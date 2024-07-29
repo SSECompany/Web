@@ -1,0 +1,21 @@
+.login_hub_container {
+    height: 100vh;
+    width: 100vw;
+    background: url('https://mlitqrsemjqz.i.optimole.com/w:auto/h:auto/q:mauto/https://www.technosip.com/wp-content/uploads/2022/05/7054182.jpg');
+    background-size: cover;
+}
+
+.login_hub {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #f7f7f7;
+    box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
+    transition: all 0.2s ease-in-out;
+}
+
+
+.login_hub:hover {
+    transform: translate(-50%, -50%) scale(1.05);
+}

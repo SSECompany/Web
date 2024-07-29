@@ -1,0 +1,17 @@
+const publicRequestKey = `
+-----BEGIN PUBLIC KEY-----
+MIICITANBgkqhkiG9w0BAQEFAAOCAg4AMIICCQKCAgB1vPFzmZvrhaSc51iqn7OK
+zaGZfYQOEkMrMo1VAdqs3NJ7qv1PsZH8RaulpzITAfxyjD5yIbv5bEQ9Zba8f5XE
+8ynA+cd1Eq9O+t38BIpWl25WixgFEuGh3jEj0iy61XVXNLYM9mxmSBJx8pyhiGOV
+7eSYsgo8Lt03JbA+/7ev5I8r8JY0zf8MtZFfJNz0obS27cCU7rWyl6C4/UmBFnCZ
+riqz4CiUX4uKV3ry7fnjr7gxjlRRWgs6g2+4KFyev5gPme5h1/DTQygcKL8R/QPZ
+EygTx7hSphkrLDQV/daNp/ZzWRHlHetzOz5ZgP5iYkAnpchSE9nms+KB5anOdA6V
+dCj/myiqFpHZspVHs9Aj+Y6tmhtn9v2Q30fped3a3ivz5rjTTkRfi5qyZmL/tDW2
+eMywRKMatfR237yHoytBsm8BTJaleHp1TyrcdfQCNqBBx9amNHIZ3Yi0u6S60Co+
+xUhF+k7A7Ncvael5H3xD3yedfqwgJej/YXiv7+7O+dTbnwmlYnw9KAz1UCGobltV
+lxeSGYj9XunHmMNaLi8QqvSrDK1ZXLENZL1M+xbbNKYg6OlOsppVgS+yfpr9O1Be
+rVVidJ/hulf+Vzo1AlwfiQUinLyAdYXcy1mWk9ZshFC4654IE9l3S4ZGET72oiil
+6WexS3BrhIENXy3Hl4cqEwIDAQAB
+-----END PUBLIC KEY-----`;
+
+export { publicRequestKey };

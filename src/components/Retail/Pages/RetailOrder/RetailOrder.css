@@ -1,0 +1,27 @@
+.retail-customer-info {
+    padding: 4px;
+    border-radius: 4px;
+    background: #f9f9f9;
+    border: 1px dashed;
+}
+
+.retail_bill_info> :nth-child(odd) {
+    background: #f9f9f9;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.retail_bill_info>* {
+    padding: 2px;
+    line-height: 2.5rem;
+    white-space: nowrap
+}
+
+.BaseTable__table-main {
+    outline: none !important;
+}
+
+.BaseTable__header-cell-text {
+    width: 100%;
+    cursor: pointer;
+}

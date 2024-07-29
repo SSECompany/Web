@@ -1,0 +1,14 @@
+.app-container {
+    background-color: #f4f5fa;
+    scroll-behavior: smooth;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.App {
+    height: 100%;
+    min-height: 0px;
+    overflow: auto;
+    scroll-behavior: smooth;
+}

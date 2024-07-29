@@ -1,0 +1,133 @@
+.login_container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    width: 100vw;
+    height: 100vh;
+    background: white;
+}
+
+.login_logo {
+    width: 40%;
+}
+
+.login_container_left {
+    padding: var(--default_padding);
+    padding-top: 20px;
+    height: 100%;
+    flex: 1;
+    overflow: auto;
+}
+
+.login_container_left .ant-form-item {
+    width: 100%;
+}
+
+.login_logo_container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.login_logo_company_logo {
+    max-width: none;
+}
+
+.login_logo_company_name,
+.login_logo_company_name span {
+    line-height: 55px;
+    user-select: none;
+    font-size: 50px;
+    font-weight: bold;
+}
+
+.login_desciption {
+    margin: 12px 0px;
+}
+
+.login_desciption_header {
+    font-size: 33px;
+    color: #1677ff;
+}
+
+.login_desciption_context {
+    font-size: 16px;
+}
+
+.login_form {
+    height: 100%;
+    border-radius: 10px;
+    display: flex;
+    padding: var(--default_padding);
+    flex-direction: column;
+    justify-content: center;
+}
+
+.login_detail {
+    gap: 15px 0px;
+}
+
+.ant-space {
+    gap: 8px;
+}
+
+.input_login_info {
+    padding-bottom: 5px;
+    border-radius: 20px;
+    width: 100%;
+    gap: 8px !important;
+}
+
+.login_tools {
+    align-items: center;
+    width: 100%;
+    justify-content: center;
+}
+
+.login_tools .ant-space-item {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.login_container_right {
+    flex: 2.2;
+    height: 100%;
+    flex-shrink: 0;
+    overflow: auto;
+}
+
+.login_container_right .ant-carousel .slick-dots-bottom {
+    gap: 0px 25px;
+    bottom: 35px;
+}
+
+.login_container_right .ant-carousel .slick-dots li {
+    width: 80px;
+}
+
+.login_container_right .ant-carousel .slick-dots li.slick-active {
+    width: 100px;
+}
+
+.login_container_right .ant-carousel .slick-dots li button {
+    height: 5px;
+}
+
+
+.login_images_container {
+    width: 100vh;
+    height: 100vh;
+    user-select: none;
+    pointer-events: none;
+}
+
+.login_image {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    user-select: none;
+    pointer-events: none;
+}

@@ -1,0 +1,23 @@
+.detail__retail__order__Container {}
+
+
+.detail__retail__order__Left {
+    background-color: white;
+    width: 22rem;
+    flex-shrink: 0;
+}
+
+.detail__retail__Userinfo {
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
+}
+
+
+.detail__retail__PaymentInfo {
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
+}
+
+.detail__retail__order__Right {}
