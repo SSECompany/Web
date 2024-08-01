@@ -52,8 +52,11 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose }) => {
       });
       currentChangeValue[`${item.value}`] = 0;
     } else {
+
+      const remainingTotal = total - Object.values(currentChangeValue).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+
       if (item?.value === "chuyen_khoan" || item?.value === "tien_the") {
-        currentChangeValue[`${item.value}`] = total;
+        currentChangeValue[`${item.value}`] = remainingTotal;
       }
       currentSelectedPayment.push(item.value);
     }
@@ -89,28 +92,60 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose }) => {
     onSave(paymentSelected.join(","), paymentChangeValue, "ADVANCE");
   };
 
+  // useEffect(() => {
+  //   const allValuesChanged = Object.values(paymentChangeValue);
+  //   const totalValues = allValuesChanged.reduce(
+  //     (sum, x) => sum + (parseFloat(x) || 0)
+  //   );
+  //   setChange(totalValues);
+  //   return () => {};
+  // }, [paymentChangeValue, total]);
+
   useEffect(() => {
     const allValuesChanged = Object.values(paymentChangeValue);
     const totalValues = allValuesChanged.reduce(
-      (sum, x) => sum + (parseFloat(x) || 0)
+      (sum, x) => sum + (parseFloat(x) || 0),
+      0
     );
     setChange(totalValues);
-    return () => {};
   }, [paymentChangeValue, total]);
 
-  useEffect(() => {
-    emitter.on("HANDLE_RETAIL_ORDER_SAVE", async () => {
-      setPaymentChangeValue(paymentChangeValue);
-      setPaymentSelectede([]);
-    });
-    return () => {
-      emitter.removeAllListeners();
-    };
-  }, []);
+  // useEffect(() => {
+  //   emitter.on("HANDLE_RETAIL_ORDER_SAVE", async () => {
+  //     setPaymentChangeValue(paymentChangeValue);
+  //     setPaymentSelectede([]);
+  //   });
+  //   return () => {
+  //     emitter.removeAllListeners();
+  //   };
+  // }, []);
+
 
   useEffect(() => {
-    paymentForm.resetFields();
-    return () => {};
+    const resetHandler = () => {
+      setPaymentChangeValue({
+        tien_mat: 0,
+        tien_the: 0,
+        chuyen_khoan: 0,
+      });
+      setPaymentSelectede([]);
+    };
+
+    emitter.on("HANDLE_RETAIL_ORDER_SAVE", resetHandler);
+    return () => {
+      emitter.off("HANDLE_RETAIL_ORDER_SAVE", resetHandler);
+    };
+  }, []);
+  
+  // useEffect(() => {
+  //   paymentForm.resetFields();
+  //   return () => {};
+  // }, [paymentChangeValue]);
+  // sửa lai không cho resetFields luôn không con trỏ chuột lỗi
+  useEffect(() => {
+    if (!_.isEqual(paymentForm.getFieldsValue(), paymentChangeValue)) {
+      paymentForm.setFieldsValue(paymentChangeValue);
+    }
   }, [paymentChangeValue]);
 
   return (
@@ -144,7 +179,6 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose }) => {
         </p>
         <div className="flex mb-2 justify-content-between align-items-center">
           <span>Tổng thanh toán</span>
-
           <span className="primary_bold_text text-lg">
             {formatCurrency(total)}
           </span>
