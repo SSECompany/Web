@@ -13,7 +13,7 @@ import {
   Tooltip,
 } from "antd";
 import _ from "lodash";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState, useContext } from "react";
 import { Column } from "react-base-table";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useDispatch, useSelector } from "react-redux";
@@ -51,6 +51,9 @@ import {
 } from "../../../Store/Actions/RetailOrderActions";
 import { getRetailOrderState } from "../../../Store/Selectors/RetailOrderSelectors";
 import RetailPaidInfo from "../RetailPaidInfo/RetailPaidInfo";
+
+import { RetailOrderContext } from './RetailOrderContext';
+
 
 const columns = [
   {
@@ -376,10 +379,6 @@ const RetailOrderInfo = ({ orderKey }) => {
     tien_the: 0,
     chuyen_khoan: 0,
   });
-  const [taxOptions, setTaxOptions] = useState([]);
-  const [currencyOptions, setCurrencyOptions] = useState([]);
-  const [autoCalPromotion, setAutoCalPromotion] = useState(false);
-  const [isMergeRowData, setIsMergeRowData] = useState(false);
 
   const [isOpenOrderList, setIsOpenOrderList] = useState(false);
 
@@ -688,7 +687,10 @@ const RetailOrderInfo = ({ orderKey }) => {
     });
   };
 
+
   // Lấy các setting cho phiếu
+  const { currencyOptions, taxOptions, autoCalPromotion, isMergeRowData } = useContext(RetailOrderContext);
+  /*
   const fetchRetailOptions = () => {
     multipleTablePutApi({
       store: "Api_get_retail_options",
@@ -698,6 +700,9 @@ const RetailOrderInfo = ({ orderKey }) => {
       data: {},
     }).then((res) => {
       if (res.responseModel?.isSucceded) {
+
+        
+        
         setCurrencyOptions(res?.listObject[0] || []);
         setTaxOptions(res?.listObject[1] || []);
         setPaymentInfo({
@@ -711,9 +716,12 @@ const RetailOrderInfo = ({ orderKey }) => {
         setIsMergeRowData(
           _.first(res?.listObject[4])?.val === "1" ? true : false
         );
+        
       }
     });
   };
+  
+  */
 
   // Lấy thông tin vật tư
   const handleFetchItemInfo = async ({ barcode, ma_vt, stock }) => {
@@ -1119,8 +1127,12 @@ const RetailOrderInfo = ({ orderKey }) => {
   );
 
   useEffect(() => {
-    fetchRetailOptions();
+    //fetchRetailOptions();
   }, []);
+
+
+  
+
 
   return (
     <div className="h-full min-h-0 flex gap-1 relative">

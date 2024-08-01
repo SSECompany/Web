@@ -25,7 +25,7 @@ const homeRoutes = [
     claims: "Permissions.home",
     path: "/",
     element: <App />,
-    errorElement: <Errorpage />,
+    //errorElement: <Errorpage />,
     children: [
       {
         label: "Dashboard",
@@ -62,7 +62,7 @@ const homeRoutes = [
 
   {
     path: "*",
-    element: <Errorpage />,
+    //element: <Errorpage />,
   },
 ];
 
