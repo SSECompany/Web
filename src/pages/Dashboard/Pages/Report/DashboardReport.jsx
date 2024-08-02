@@ -101,7 +101,6 @@ const DashboardReport = () => {
   useEffect(() => {
     handelData();
   }, []);
-  console.log("aaaaaa");
   return (
     <div className="w-full flex gap-5" style={{ maxHeight: "36rem" }}>
       <div className="w-full min-w-0 min-h-0">
