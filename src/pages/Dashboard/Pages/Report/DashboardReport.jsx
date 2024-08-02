@@ -1,149 +1,204 @@
-import { Calendar, Table } from "antd";
-import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
-import renderColumns from "../../../../app/hooks/renderColumns";
-import { SoFuckingUltimateGetApi2 } from "../../../../components/DMS/API";
-import TableLocale from "../../../../Context/TableLocale";
+import ReactECharts from "echarts-for-react";
+import { multipleTablePutApi } from "../../../../components/SaleOrder/API";
+import { dayjs } from "dayjs";
+import { List, InfiniteScroll } from "antd";
+import { formatCurrency } from "../../../../app/hooks/dataFormatHelper";
+
+import {
+  CalendarOutlined,
+  ArrowDownOutlined,
+  ArrowUpOutlined,
+} from "@ant-design/icons";
+
 const DashboardReport = () => {
-  const [dataSourse, setDataSource] = useState([]);
-  const [layoutSource, setLayoutSource] = useState([]);
-  const [currentLayout, setCurrentLayout] = useState([]);
-  const [pickerLayout, setPickerLayout] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [tableParams, setTableParams] = useState({
-    DateFrom: dayjs().add(-1, "month"),
-    DateTo: dayjs(),
-    dvcq: "",
-    ma_nvbh: "",
-    Language: "V",
-    UserID: 1022,
-    Admin: 0,
+  const dayofmonth = Array.from({ length: 31 }, (v, i) => i + 1);
+
+  const [fetchData, setFetchData] = useState({
+    thisMonth: [],
+    lastMohth: [],
   });
-  const [pagination, setPagination] = useState({
-    pageIndex: 1,
-    pageSize: 10,
-    OrderBy: "",
-  });
+  const [revenueToday, setrevenueToday] = useState([]);
+  const [revenueYesterday, setrevenueYesterday] = useState([]);
+  const [revenueByUnit, setrevenueByUnit] = useState([]);
+  const [revenueThisWeek, setrevenueThisWeek] = useState([]);
+  const [revenueThisMonth, setrevenueThisMonth] = useState([]);
 
-  const [totalResults, setTotalResults] = useState(0);
+  const [options, setOptions] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  const refreshData = () => {
-    setPagination({ ...pagination, pageIndex: 1, current: 1 });
-    if (pagination.pageIndex === 1) {
-      setLoading(true);
-    }
-  };
+  const handelData = async () => {
+    await multipleTablePutApi({
+      store: "api_get_revenue",
+      param: {},
+      data: {},
+    })
+      .then((res) => {
+        // setFetchData({
+        //   thisMonth: res.listObject[0]
+        //     .filter((id) => id.id === id.id)
+        //     .map((day) => day.tien ?? 0),
+        //   lastMohth: res.listObject[1]
+        //     .filter((id) => id.id === id.id)
+        //     .map((day) => day.tien ?? 0),
+        // });
+        setOptions({
+          tooltip: {
+            trigger: "axis",
+          },
+          xAxis: {
+            type: "category",
+            boundaryGap: false,
+            data: dayofmonth,
+          },
+          yAxis: {
+            type: "value",
+            position: "right",
+          },
+          legend: {
+            data: ["Tháng này", "Tháng trước"],
+          },
 
-  const getReportData = async () => {
-    await SoFuckingUltimateGetApi2({
-      store: "api_rpt_vieng_tham",
-      data: {
-        ...tableParams,
-        pageindex: pagination.pageIndex,
-        pageSize: pagination.pageSize,
-      },
-    }).then(async (res) => {
-      let layout = renderColumns(res?.reportLayoutModel, true);
-      await setTotalResults(res?.pagegination?.totalRecord);
-
-      if (!pickerLayout.length > 0) {
-        setCurrentLayout(layout);
-        setLayoutSource(layout);
-        setPickerLayout(
-          res?.reportLayoutModel.map((item) => {
-            return {
-              key: item.field,
-              title: item.name,
-            };
-          })
-        );
-      }
-
-      if (res.data) {
-        setDataSource((old) => {
-          return (old = res.data.map((item, index) => {
-            item.key = item.stt;
-            return item;
-          }));
+          series: [
+            {
+              name: "Tháng này",
+              areaStyle: {
+                opacity: 0.3,
+              },
+              smooth: true,
+              data: res.listObject[0]
+                .filter((id) => id.id === id.id)
+                .map((day) => day.tien ?? 0),
+              type: "line",
+            },
+            {
+              name: "Tháng trước",
+              data: res.listObject[1]
+                .filter((id) => id.id === id.id)
+                .map((day) => day.tien ?? 0),
+              type: "line",
+              areaStyle: {
+                opacity: 0.3,
+              },
+              smooth: true,
+            },
+          ],
         });
-      }
-
-      setLoading(false);
-    });
+        setLoading(false);
+        setrevenueToday(res.listObject[2]);
+        setrevenueYesterday(res.listObject[3]);
+        setrevenueByUnit(res.listObject[4]);
+        setrevenueThisWeek(res.listObject[5]);
+        setrevenueThisMonth(res.listObject[6]);
+      })
+      .catch((err) => {
+        console.error(err);
+      })
+      .finally(() => {
+        return {};
+      });
   };
-
-  const changePaginations = (item) => {
-    if (pagination.pageSize !== item) {
-      setDataSource([]);
-    }
-
-    setPagination({ ...pagination, pageSize: item });
-  };
-
-  const handleTableChange = async (paginationChanges, filters, sorter) => {
-    var sortValues = "";
-    if (Array.isArray(sorter)) {
-      sortValues = sorter
-        ?.map((item) =>
-          item.order
-            ? `${item.field} ${item.order == "descend" ? "desc" : "asc"}`
-            : ""
-        )
-        .join(", ");
-    } else {
-      if (sorter.order) {
-        sortValues = `${sorter.field} ${
-          sorter.order == "descend" ? "desc" : "asc"
-        }`;
-      }
-    }
-    setPagination({
-      ...pagination,
-      pageIndex: paginationChanges.current,
-      current: paginationChanges.current,
-      Orderby: sortValues,
-    });
-    // `dataSource` is useless since `pageSize` changed
-
-    if (pagination.pageSize !== paginationChanges?.pageSize) {
-      setDataSource([]);
-    }
-  };
-
   useEffect(() => {
-    setLoading(true);
-    getReportData();
-  }, [JSON.stringify(tableParams), pagination]);
-
+    handelData();
+  }, []);
   return (
     <div className="w-full flex gap-5" style={{ maxHeight: "36rem" }}>
       <div className="w-full min-w-0 min-h-0">
-        <Table
-          columns={currentLayout}
-          rowKey={(record) => record.key}
-          dataSource={dataSourse}
-          rowClassName={"default_table_row"}
-          className="default_table"
-          locale={TableLocale()}
-          scroll={{ x: "auto" }}
-          pagination={{
-            ...pagination,
-            total: totalResults,
-            position: ["bottomCenter"],
-            showSizeChanger: false,
-            className: "default_pagination_bar",
+        <div class="flex flex-wrap justify-content-center gap-3">
+          <div class="border-round surface-border border-3 w-12rem h-6rem bg-white m-2 font-bold flex align-items-center justify-content-center">
+            <ul>
+              <li class="flex align-items-center justify-content-center grap-1">
+                <CalendarOutlined /> Hôm qua
+              </li>
+              <li class="flex align-items-center justify-content-center">
+                {revenueYesterday.map((revenueYesterday) =>
+                  formatCurrency(revenueYesterday.tien)
+                )}
+              </li>
+              <li class="flex align-items-center justify-content-center">
+                <ArrowDownOutlined /> 20%
+              </li>
+            </ul>
+          </div>
+          <div class="border-round surface-border border-3 w-12rem h-6rem bg-white m-2 font-bold flex align-items-center justify-content-center">
+            <ul>
+              <li class="flex align-items-center justify-content-center">
+                <CalendarOutlined /> Hôm nay
+              </li>
+              <li class="flex align-items-center justify-content-center">
+                {revenueToday.map((revenueToday) =>
+                  formatCurrency(revenueToday.tien)
+                )}
+              </li>
+              <li class="flex align-items-center justify-content-center">
+                <ArrowDownOutlined /> 83%
+              </li>
+            </ul>{" "}
+          </div>
+          <div class="border-round surface-border border-3 w-12rem h-6rem bg-white m-2 font-bold flex align-items-center justify-content-center">
+            <ul>
+              <li class="flex align-items-center justify-content-center">
+                <CalendarOutlined /> Tuần này
+              </li>
+              <li class="flex align-items-center justify-content-center">
+                {revenueThisWeek.map((revenueThisWeek) =>
+                  formatCurrency(revenueThisWeek.tien)
+                )}
+              </li>
+              <li class="flex align-items-center justify-content-center">
+                <ArrowDownOutlined /> 68%
+              </li>
+            </ul>{" "}
+          </div>
+          <div class="border-round surface-border border-3 w-12rem h-6rem bg-white m-2 font-bold flex align-items-center justify-content-center">
+            <ul>
+              <li class="flex align-items-center justify-content-center">
+                <CalendarOutlined /> Tháng này
+              </li>
+              <li class="flex align-items-center justify-content-center">
+                {revenueThisMonth.map((revenueThisMonth) =>
+                  formatCurrency(revenueThisMonth.tien)
+                )}
+              </li>
+              <li class="flex align-items-center justify-content-center">
+                <ArrowUpOutlined /> 10%
+              </li>
+            </ul>
+          </div>
+        </div>
+        <ReactECharts showLoading={loading} option={options} />
+      </div>
+
+      <div className="dashboard__simple__chart__tag ">
+        <div className="dashboard__simple__chart__tag__title">
+          <span>Top doanh thu theo cửa hàng</span>
+
+          <span className="primary_color">Doanh thu</span>
+        </div>
+
+        <List
+          className="p-2 h-max-content"
+          itemLayout="horizontal"
+          style={{
+            height: "max-content",
+            width: "40rem",
+            overflow: "auto",
+            padding: "0 16px",
           }}
-          loading={loading}
-          onChange={handleTableChange}
-          showSorterTooltip={false}
+          dataSource={revenueByUnit.slice().sort((a, b) => a.tien + b.tien)}
+          renderItem={(item, index) => (
+            <List.Item className="item_in_list">
+              <div className="w-1rem">{index + 1}</div>
+              <List.Item.Meta
+                //avatar={<Avatar src={item.picture.large} />}
+                //title={<a href="https://ant.design">{item.name.last}</a>}
+                description={item.ten_dvcs}
+              />
+              <div>{item.tien}</div>
+            </List.Item>
+          )}
         />
       </div>
-      <Calendar
-        mode={"month"}
-        style={{ width: "28rem", height: "max-content" }}
-        fullscreen={false}
-        onChange={(e) => console.log(dayjs(e).format("DD/MM/YYYY"))}
-      />
     </div>
   );
 };
