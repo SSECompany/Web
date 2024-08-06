@@ -247,6 +247,11 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose }) => {
                     min="0"
                     formatter={(value) => formatNumber(value)}
                     parser={(value) => parserNumber(value)}
+                    onKeyDownCapture={(event)=>{
+                      if (!/[0-9]/.test(event.key)) {
+                        event.preventDefault();
+                      }
+                    }}
                   />
                 </Form.Item>
               </div>
