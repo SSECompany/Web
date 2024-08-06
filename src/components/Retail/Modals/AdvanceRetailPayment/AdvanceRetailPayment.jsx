@@ -92,6 +92,16 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose }) => {
     onSave(paymentSelected.join(","), paymentChangeValue, "ADVANCE");
   };
 
+   const formatNumber = (val) => {
+    if (!val) return 0;
+    return `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".").replace(/\.(?=\d{0,2}$)/g, ",");
+  }
+  
+   const parserNumber = (val) => {
+    if (!val) return 0;
+    return Number.parseFloat(val.replace(/\$\s?|(\.*)/g, "").replace(/(\,{1})/g, ".")).toFixed(2)
+  }
+
   // useEffect(() => {
   //   const allValuesChanged = Object.values(paymentChangeValue);
   //   const totalValues = allValuesChanged.reduce(
@@ -235,7 +245,8 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose }) => {
                     style={{ width: 120 }}
                     controls={false}
                     min="0"
-                    step={quantityFormat}
+                    formatter={(value) => formatNumber(value)}
+                    parser={(value) => parserNumber(value)}
                   />
                 </Form.Item>
               </div>
