@@ -284,7 +284,6 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey }) => {
               </div>
             </div>
           </div>
-
           <div className="flex flex-column gap-3 w-full min-w-0">
             <Alert
               message={
@@ -315,7 +314,6 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey }) => {
                   />
                 </div>
               )}
-
               {isRefundMode && (
                 <div className="h-full min-h-0 shadow_3 edit">
                   <PerformanceTable

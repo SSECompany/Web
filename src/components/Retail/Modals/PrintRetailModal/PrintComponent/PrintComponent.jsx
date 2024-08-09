@@ -56,6 +56,10 @@ const PrintComponent = forwardRef(
             <span style={{ fontWeight: "bold" }}>Nhân viên bán hàng:</span>{" "}
             <span>{master?.ten_nvbh || "Trống"}</span>
           </div>
+          <div>
+            <span style={{ fontWeight: "bold" }}>Ghi chú:</span>{" "}
+            <span>{master?.dien_giai || "Trống"}</span>
+          </div>
         </div>
 
         <table
@@ -118,7 +122,7 @@ const PrintComponent = forwardRef(
                 </tr>
                 <tr
                   style={
-                    index === detail.length - 1 || index + 1 === detail.length
+                    ((index === detail.length - 1 || index + 1 === detail.length) && item?.ghi_chu=='')
                       ? {
                           borderBottom: "1px dotted black",
                         }
@@ -148,6 +152,24 @@ const PrintComponent = forwardRef(
                     }}
                   >
                     {formatCurrency(item?.tien || 0)}
+                  </td>
+                </tr>
+                <tr
+                  style={
+                    item?.ghi_chu==''
+                      ? {
+                          display: "none",
+                        }
+                      : {}
+                  }
+                >
+                  <td
+                    style={{
+                      padding: "3px 6px 12px 3px",
+                      textAlign: "left",
+                    }}
+                  >
+                    Ghi chú :{(item?.ghi_chu || '')}
                   </td>
                 </tr>
               </NullComponent>

@@ -553,7 +553,7 @@ const RetailPaidInfo = ({
             </span>
           </div>
 
-          <div className="flex justify-content-between gap-2 align-items-center">
+          {/* <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0">Sử dụng điểm:</span>
             <Switch
               checked={isUsePoint}
@@ -561,7 +561,7 @@ const RetailPaidInfo = ({
                 setIsUsePoint(e);
               }}
             />
-          </div>
+          </div> */}
 
           <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0">Thanh toán:</span>

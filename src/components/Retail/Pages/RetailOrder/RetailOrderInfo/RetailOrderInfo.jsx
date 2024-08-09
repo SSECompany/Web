@@ -1014,9 +1014,29 @@ const RetailOrderInfo = ({ orderKey }) => {
     const changedRowKey = getRowKey(_.first(Object.keys(cellChanged)));
     const rowValues = getAllValueByRow(changedRowKey, allCells);
 
+    console.log(rowValues);
     const getCurRowValues = () => {
       return getAllValueByRow(changedRowKey, itemForm.getFieldsValue());
     };
+    if(cellName == 'dvt')
+    var res = await multipleTablePutApi({
+      store: "Web_GetPriceByDvt",
+      param: {
+        ma_vt:rowValues?.ma_vt,
+        dvt:cellValue
+      },
+      data: {},
+    })
+    .then((res) => {
+      if (res.responseModel?.isSucceded) {
+        if(res.listObject.length >0 ){
+          itemForm.setFieldValue(`${changedRowKey}_don_gia`, parseInt(res.listObject[0][0].t));
+
+        }
+          
+      }}
+    );
+
     const allCellsValues = getAllValueByColumn(cellName, allCells);
 
     const reCalculateTotal = (donGia = 0, soLuong = 0) => {
