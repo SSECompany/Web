@@ -104,63 +104,63 @@ const DashboardReport = () => {
   return (
     <div className="w-full flex gap-5" style={{ maxHeight: "36rem" }}>
       <div className="w-full min-w-0 min-h-0">
-        <div class="flex flex-wrap justify-content-center gap-3">
-          <div class="border-round surface-border border-3 w-12rem h-6rem bg-white m-2 font-bold flex align-items-center justify-content-center">
+        <div className="flex flex-wrap justify-content-center gap-3">
+          <div className="border-round surface-border border-3 w-12rem h-6rem bg-white m-2 font-bold flex align-items-center justify-content-center">
             <ul>
-              <li class="flex align-items-center justify-content-center grap-1">
+              <li className="flex align-items-center justify-content-center grap-1">
                 <CalendarOutlined /> Hôm qua
               </li>
-              <li class="flex align-items-center justify-content-center">
+              <li className="flex align-items-center justify-content-center">
                 {revenueYesterday.map((revenueYesterday) =>
                   formatCurrency(revenueYesterday.tien)
                 )}
               </li>
-              <li class="flex align-items-center justify-content-center">
+              <li className="flex align-items-center justify-content-center">
                 <ArrowDownOutlined /> 20%
               </li>
             </ul>
           </div>
-          <div class="border-round surface-border border-3 w-12rem h-6rem bg-white m-2 font-bold flex align-items-center justify-content-center">
+          <div className="border-round surface-border border-3 w-12rem h-6rem bg-white m-2 font-bold flex align-items-center justify-content-center">
             <ul>
-              <li class="flex align-items-center justify-content-center">
+              <li className="flex align-items-center justify-content-center">
                 <CalendarOutlined /> Hôm nay
               </li>
-              <li class="flex align-items-center justify-content-center">
+              <li className="flex align-items-center justify-content-center">
                 {revenueToday.map((revenueToday) =>
                   formatCurrency(revenueToday.tien)
                 )}
               </li>
-              <li class="flex align-items-center justify-content-center">
+              <li className="flex align-items-center justify-content-center">
                 <ArrowDownOutlined /> 83%
               </li>
             </ul>{" "}
           </div>
-          <div class="border-round surface-border border-3 w-12rem h-6rem bg-white m-2 font-bold flex align-items-center justify-content-center">
+          <div className="border-round surface-border border-3 w-12rem h-6rem bg-white m-2 font-bold flex align-items-center justify-content-center">
             <ul>
-              <li class="flex align-items-center justify-content-center">
+              <li className="flex align-items-center justify-content-center">
                 <CalendarOutlined /> Tuần này
               </li>
-              <li class="flex align-items-center justify-content-center">
+              <li className="flex align-items-center justify-content-center">
                 {revenueThisWeek.map((revenueThisWeek) =>
                   formatCurrency(revenueThisWeek.tien)
                 )}
               </li>
-              <li class="flex align-items-center justify-content-center">
+              <li className="flex align-items-center justify-content-center">
                 <ArrowDownOutlined /> 68%
               </li>
             </ul>{" "}
           </div>
-          <div class="border-round surface-border border-3 w-12rem h-6rem bg-white m-2 font-bold flex align-items-center justify-content-center">
+          <div className="border-round surface-border border-3 w-12rem h-6rem bg-white m-2 font-bold flex align-items-center justify-content-center">
             <ul>
-              <li class="flex align-items-center justify-content-center">
+              <li className="flex align-items-center justify-content-center">
                 <CalendarOutlined /> Tháng này
               </li>
-              <li class="flex align-items-center justify-content-center">
+              <li className="flex align-items-center justify-content-center">
                 {revenueThisMonth.map((revenueThisMonth) =>
                   formatCurrency(revenueThisMonth.tien)
                 )}
               </li>
-              <li class="flex align-items-center justify-content-center">
+              <li className="flex align-items-center justify-content-center">
                 <ArrowUpOutlined /> 10%
               </li>
             </ul>

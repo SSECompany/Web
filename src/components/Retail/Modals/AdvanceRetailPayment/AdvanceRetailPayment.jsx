@@ -30,7 +30,7 @@ const paymentType = [
   },
 ];
 
-const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose }) => {
+const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose,SuccessOrder }) => {
   const [paymentForm] = Form.useForm();
   const [message, contextHolder] = messageAPI.useMessage();
 
@@ -181,6 +181,11 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose }) => {
             >
               Lưu
             </Button>
+            <Button type="primary" className="mr-2 ml-2"style={{background:"#52c41a"}} 
+              onClick={ SuccessOrder}
+              >
+                Hoàn thành
+              </Button>
           </div>,
         ]}
       >

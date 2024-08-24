@@ -17,6 +17,9 @@ const claims = createSlice({
       isPremium: false,
       id: 0,
     },
+    userSetting:{
+
+    },
     isBackgound: false,
     isHideNav: false,
   },
@@ -36,6 +39,9 @@ const claims = createSlice({
         id: parseInt(action?.payload?.Id),
       };
     },
+    setUserSetting(state,action){
+      state.userSetting = action?.payload;
+    },
     setIsBackgrouds(state, action) {
       state.isBackgound = action?.payload;
     },
@@ -51,5 +57,5 @@ const claims = createSlice({
 
 const claimsReducer = claims.reducer;
 export default claimsReducer;
-export const { setClaims, setText, setIsBackgrouds, setIsHideNav } =
+export const { setClaims, setText, setIsBackgrouds, setIsHideNav,setUserSetting } =
   claims.actions;

@@ -4,11 +4,13 @@ import {
   Button,
   Drawer,
   Form,
+  Input,
   message as messageAPI,
   notification,
 } from "antd";
 import _ from "lodash";
-import React, { useEffect, useState } from "react";
+import { uuidv4 } from "@antv/xflow-core";
+import React, { useEffect, useState,useCallback } from "react";
 import {
   getAllRowKeys,
   getAllValueByRow,
@@ -31,12 +33,50 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey }) => {
   const [data, setData] = useState({});
   const [tableColumns, setTableColumns] = useState([]);
   const [isRefundMode, setIsRefundMode] = useState(false);
+  const [selectedRowkeys, setSelectedRowkeys] = useState([]);
 
   const getData = async () => {
     setIsLoading(true);
     const result = await fetchRetailOderDetail({
       stt_rec,
     });
+    if(result.detail) 
+      result.detail = result.detail.map((d,index)=>{
+        d.children=[
+          {
+            id: `${(index+1).toString().padStart(3, '0')}-detail`,
+            content: (
+              <div className="flex gap-2 justify-content-between">
+                <Form.Item
+                  initialValue={""}
+                  name={`${(index+1).toString().padStart(3, '0')}_ghi_chu`}
+                  style={{
+                    width: "55%",
+                    margin: 0,
+                  }}
+                  rules={[
+                    {
+                      required: false,
+                      message: `Ghi chú trống !`,
+                    },
+                  ]}
+                >
+                  <Input.TextArea
+                    autoSize={{
+                      minRows: 1,
+                      maxRows: 1,
+                    }}
+                    placeholder="Ghi chú"
+                    style={{ resize: "none" }}
+                  />
+                </Form.Item>
+              </div>
+            ),
+          },
+        ]
+        return d;
+      })
+    console.log(result.detail);
     setData(result);
     setTableColumns(result?.columns || []);
     setIsLoading(false);
@@ -45,11 +85,14 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey }) => {
   const handleRefundModeModify = () => {
     setIsRefundMode(!isRefundMode);
   };
+  const handleSelectedRowKeyChange = useCallback((keys) => {
+    setSelectedRowkeys(keys);
+  }, []);
 
   const handleSaveRefundOrder = async () => {
     const data = { ...itemForm.getFieldsValue() };
     const detailData = [];
-
+    console.log(data);
     getAllRowKeys(data).map((item) => {
       const rowData = getAllValueByRow(item, data);
       if (rowData.so_luong_tl) {
@@ -57,7 +100,7 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey }) => {
       }
       return;
     });
-
+    console.log(detailData);
     if (detailData.findIndex((item) => item.so_luong_tl) < 0) {
       message.warning("Không có vật tư nào trả lại !");
       return;
@@ -317,8 +360,10 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey }) => {
               {isRefundMode && (
                 <div className="h-full min-h-0 shadow_3 edit">
                   <PerformanceTable
-                    selectable={false}
+                    reverseIndex
+                    selectable
                     columns={renderRefundColumns(isRefundMode)}
+                    onSelectedRowKeyChange={handleSelectedRowKeyChange}
                     data={data?.detail || []}
                     isLoading={isLoading}
                   />

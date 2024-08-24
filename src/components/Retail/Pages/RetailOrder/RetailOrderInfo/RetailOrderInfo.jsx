@@ -361,6 +361,7 @@ const RetailOrderInfo = ({ orderKey }) => {
     ten_kh: "Vãng lai",
     dien_thoai: null,
     diem: 0,
+    diem_sd:0,
     ma_nt: "VND",
     ty_gia: 1,
     quy_doi_diem: 1,
@@ -612,6 +613,7 @@ const RetailOrderInfo = ({ orderKey }) => {
         ma_ck: cktdValues?.ma_ck || "",
         ck: cktdValues?.ck || 0,
         tl_ck: cktdValues?.tl_ck || 0,
+        t_diem_so:cktdValues?.t_diem_so||0
       });
 
       if (_.isEmpty(ckthRows) && _.isEmpty(cktdValues))
@@ -797,6 +799,7 @@ const RetailOrderInfo = ({ orderKey }) => {
         ten_kh,
         dien_thoai,
         diem: 0,
+        diem_sd:0,
       });
     },
     [paymentInfo]
@@ -860,6 +863,7 @@ const RetailOrderInfo = ({ orderKey }) => {
     }
 
     const rowID = uuidv4();
+
     setData([
       ...data,
       {
@@ -956,6 +960,7 @@ const RetailOrderInfo = ({ orderKey }) => {
 
   const handleSelectedRowKeyChange = useCallback((keys) => {
     setSelectedRowkeys(keys);
+    console.log(itemForm.getFieldValue())
   }, []);
 
   const handleSelectChange = (key, params) => {
@@ -980,6 +985,7 @@ const RetailOrderInfo = ({ orderKey }) => {
         ten_kh: label,
         dien_thoai,
         diem,
+        diem_sd:diem
       });
     }
 
@@ -1137,7 +1143,8 @@ const RetailOrderInfo = ({ orderKey }) => {
     (e) => {
       setsearchOptions([]);
       setsearchOptionsFiltered([]);
-      setRetailOrderScanning(true);
+      if(!isScanning) setRetailOrderScanning(true)
+        else setRetailOrderScanning(false);
       if (!isScanning) searchInputRef.current.focus();
 
       e.preventDefault();

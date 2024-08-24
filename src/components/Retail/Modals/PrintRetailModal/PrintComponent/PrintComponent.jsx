@@ -29,7 +29,7 @@ const PrintComponent = forwardRef(
             {master?.so_ct || "Không có số CT"}
           </span>
           <br />
-          <span>Ngày bán: {master?.ngay_ct || "Trống"}</span>
+          <span>Ngày bán: {new Date().toLocaleDateString("en-US")}</span>
           <br />
         </div>
 
@@ -70,31 +70,20 @@ const PrintComponent = forwardRef(
           }}
         >
           <thead>
-            <tr
-              style={{
-                textAlign: "left",
-              }}
-            >
-              <th
-                style={{
-                  padding: "6px",
-                }}
-              >
+            <tr style={{textAlign: "left",}}>
+              <th style={{padding: "6px"}}>
+                Sản phẩm
+              </th>
+              <th style={{padding: "6px"}}>
+                Đơn vị
+              </th>
+              <th style={{padding: "6px"}}>
                 Số lượng
               </th>
-              <th
-                style={{
-                  padding: "6px",
-                }}
-              >
+              <th style={{padding: "6px",textAlign: "right",}}>
                 Đơn giá
               </th>
-              <th
-                style={{
-                  padding: "6px",
-                  textAlign: "right",
-                }}
-              >
+              <th style={{padding: "6px",textAlign: "right",}}>
                 Thành tiền
               </th>
             </tr>
@@ -103,32 +92,13 @@ const PrintComponent = forwardRef(
           <tbody>
             {detail.map((item, index) => (
               <NullComponent key={index}>
-                <tr
-                  key={index}
-                  style={{
-                    borderTop: `${
-                      index == 0 ? "2px solid black" : "1px dotted black"
-                    }`,
-                  }}
-                >
-                  <td
-                    colSpan={3}
-                    style={{
-                      padding: "12px 3px 6px 3px",
-                    }}
-                  >
+                <tr key={index} style={{ borderTop: `${ index == 0 ? "2px solid black" : "1px dotted black" }`,}}>
+                  <td  style={{ padding: "12px 3px 6px 3px", }} >
                     {item?.ten_vt || "Không rõ"}
                   </td>
-                </tr>
-                <tr
-                  style={
-                    ((index === detail.length - 1 || index + 1 === detail.length) && item?.ghi_chu=='')
-                      ? {
-                          borderBottom: "1px dotted black",
-                        }
-                      : {}
-                  }
-                >
+                  <td style={{ padding: "3px 6px 12px 3px",  textAlign: "left",  }}  >
+                    {item?.dvt || ""}
+                  </td>
                   <td
                     style={{
                       padding: "3px 6px 12px 3px",
@@ -143,7 +113,7 @@ const PrintComponent = forwardRef(
                       textAlign: "left",
                     }}
                   >
-                    {formatCurrency(item?.gia || 0)}
+                    {formatCurrency(item?.don_gia || 0)}
                   </td>
                   <td
                     style={{
@@ -151,7 +121,7 @@ const PrintComponent = forwardRef(
                       textAlign: "right",
                     }}
                   >
-                    {formatCurrency(item?.tien || 0)}
+                    {formatCurrency(item?.thanh_tien || 0)}
                   </td>
                 </tr>
                 <tr
@@ -195,7 +165,7 @@ const PrintComponent = forwardRef(
           >
             <div style={{ width: "100px", textAlign: "left" }}>Tổng tiền</div>
             <div style={{ width: "100px", textAlign: "right" }}>
-              {formatCurrency(master?.t_tien) || "Trống"}
+              {formatCurrency(master?.tong_tien) || "Trống"}
             </div>
           </div>
 
@@ -206,7 +176,7 @@ const PrintComponent = forwardRef(
           >
             <div style={{ width: "100px", textAlign: "left" }}>Chiết khấu</div>
             <div style={{ width: "100px", textAlign: "right" }}>
-              {formatCurrency(master?.t_ck) || "Trống"}
+              {formatCurrency(master?.tong_ck) || "Trống"}
             </div>
           </div>
 
@@ -217,7 +187,7 @@ const PrintComponent = forwardRef(
           >
             <div style={{ width: "100px", textAlign: "left" }}>Thuế</div>
             <div style={{ width: "100px", textAlign: "right" }}>
-              {formatCurrency(master?.t_thue) || "Trống"}
+              {formatCurrency(master?.tong_thue) || "Trống"}
             </div>
           </div>
 
@@ -235,7 +205,7 @@ const PrintComponent = forwardRef(
             <div
               style={{ width: "100px", textAlign: "right", fontWeight: "bold" }}
             >
-              {formatCurrency(master?.t_tt) || "Trống"}
+              {formatCurrency(master?.tong_tt) || "Trống"}
             </div>
           </div>
         </div>

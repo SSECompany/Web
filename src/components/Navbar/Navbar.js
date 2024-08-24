@@ -6,11 +6,12 @@ import "./Navbar.css";
 import { Dropdown, Input, Menu, Modal } from "antd";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getRoutesAccess } from "../../app/Functions/getRouteAccess";
+import { multipleTablePutApi } from "../SaleOrder/API";
 import options__icon from "../../Icons/options__icon.svg";
 import sse__logo from "../../Icons/sse__logo.svg";
 import router, { routes } from "../../router/routes";
-import { setClaims, setIsBackgrouds } from "../../store/reducers/claimsSlice";
-import { getIsHideNav, getUserInfo } from "../../store/selectors/Selectors";
+import { setClaims, setIsBackgrouds,setUserSetting } from "../../store/reducers/claimsSlice";
+import { getIsHideNav, getUserInfo,getClaims} from "../../store/selectors/Selectors";
 import jwt from "../../utils/jwt";
 import Notify from "./Notify/Notify.jsx";
 
@@ -23,6 +24,7 @@ const Navbar = () => {
   const [searchFunctions, setSearchFunctions] = useState([]);
   const isHideNav = useSelector(getIsHideNav);
   const userInfo = useSelector(getUserInfo);
+  const userClaims =useSelector(getClaims);
   const [isShowAlert, setIsShowAlert] = useState(false);
   const [nextRoute, setNextRoute] = useState("");
 
@@ -140,9 +142,26 @@ const Navbar = () => {
       ));
     });
   };
+  const getUserSetting= async( ma_dvcs) =>{
+    const t = await multipleTablePutApi({
+      store: "api_user_setting",
+      param: {ma_dvcs :ma_dvcs},
+      data: {},
+    }).then((res)=>{
+      const data = res.listObject;
+      const setting={
+        tk_nh :data[0][0]?.tk_nh|'',
+        bin:data[0][0]?.bin|'',
+        hs_quy_doi:data[0][0]?.hs_quy_doi|0
+      };
+
+      dispatch(setUserSetting(setting));
+    })
+  }
 
   useEffect(() => {
     dispatch(setClaims(jwt.getClaims() ? jwt.getClaims() : {}));
+    getUserSetting(jwt.getClaims().MA_DVCS);
     handleLoadNavbar();
   }, []);
 

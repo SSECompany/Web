@@ -4,6 +4,7 @@ import {
   DownOutlined,
   LoadingOutlined,
 } from "@ant-design/icons";
+import { uuidv4 } from "@antv/xflow-core";
 
 import {
   Button,
@@ -36,7 +37,7 @@ import {
 import { formatCurrency } from "../../../../../app/hooks/dataFormatHelper";
 import { num2words } from "../../../../../app/Options/DataFomater";
 import { formatterNumber, parserNumber } from "../../../../../app/regex/regex";
-import { getUserInfo } from "../../../../../store/selectors/Selectors";
+import { getUserInfo,getUerSetting } from "../../../../../store/selectors/Selectors";
 import emitter from "../../../../../utils/emitter";
 import { multipleTablePutApi } from "../../../../SaleOrder/API";
 import AdvanceRetailPayment from "../../../Modals/AdvanceRetailPayment/AdvanceRetailPayment";
@@ -100,14 +101,24 @@ const RetailPaidInfo = ({
     null
   );
   const noteRef = useRef("");
+  const {tk_nh,bin,hs_quy_doi} = useSelector(getUerSetting);
 
   const [printMaster, setPrintMaster] = useState({});
+  const [so_ct, setSo_ct] = useState("");
   const [printDetail, setPrintDetail] = useState([]);
 
   var printContent = useRef();
+  const beforePrint =()=>{
+    console.log("after printing...");
+    //SaveOrder();
+  }
+  const handlePrint2 =()=>{
+    console.log('ok2')
+  }
   const handlePrint = useReactToPrint({
     content: () => printContent.current,
     documentTitle: "Print This Document",
+    onAfterPrint: beforePrint,
     copyStyles: false,
   });
 
@@ -116,6 +127,7 @@ const RetailPaidInfo = ({
   const [paymentData, setPaymentData] = useState({});
 
   const [change, setChange] = useState(0);
+  const [point, setPoint] = useState(0);
   const [voucher, setVoucher] = useState({
     voucherId: "",
     tl_ck: 0,
@@ -127,7 +139,7 @@ const RetailPaidInfo = ({
     loading: false,
     valid: false,
   });
-  const [isUsePoint, setIsUsePoint] = useState(false);
+  const [isUsePoint, setIsUsePoint] = useState(true);
   const [isOpenAdvancePayment, setIsOpenAdvancePayment] = useState(false);
   const [isShowConfirmDialog, setIsShowConfirmDialog] = useState(false);
 
@@ -167,8 +179,18 @@ const RetailPaidInfo = ({
     setRetailOrderData(JSON.stringify(""));
   }, []);
 
-  // Lưu phiếu
-  const handleSave = useCallback(
+  const SucessOrder = ()=>{
+    SaveOrder();
+  }
+  const SuccessOrder= ()=>{
+    SaveOrder();
+  }
+  const ChangePoint = (e)=>{
+    paymentInfo.diem_sd=e;
+    setPoint(e);
+    CalFinalPayment();
+  }
+  const SaveOrder = useCallback(
     async (paymentMethods, paymentMethodInfo, type = "SIMPLE") => {
       const [masterData, detailData] = await prepareOrderData(
         paymentMethods,
@@ -182,9 +204,10 @@ const RetailPaidInfo = ({
           tien_the: paymentType === "tien_the" ? masterData.tong_tt : 0,
           chuyen_khoan: paymentType === "chuyen_khoan" ? masterData.tong_tt : 0,
           httt: paymentType,
+          so_ct:so_ct
         };
       }
-
+      const tt_diem =await paymentData.tt_none_diem;
       modifyIsFormLoading(true);
 
       if (change - paymentData?.tong_tt < 0 && !isOpenAdvancePayment) {
@@ -206,16 +229,20 @@ const RetailPaidInfo = ({
       }
 
       if (master?.chuyen_khoan > 0) {
+        //setPaymentQR("");
         setPaymentQR(
-          `https://img.vietqr.io/image/970436-0551000325525-print.png?amount=${
+          `https://img.vietqr.io/image/${bin}-${tk_nh}-R45Gdao.jpg?amount=${
             master?.chuyen_khoan || 0
-          }&addInfo=TEST&accountName=MACH%20HAI%20HUNG&randon=${Math.floor(
+          }&addInfo=TESTrandom=${Math.floor(
             Math.random() * 10000
           )}`
         );
       }
+      //api_get_revenue
+
 
       setIsShowConfirmDialog(false);
+      console.log(master);
 
       const result = await multipleTablePutApi({
         arandomnumber: Math.floor(Math.random() * 10000),
@@ -231,6 +258,7 @@ const RetailPaidInfo = ({
               ...master,
               voucher: voucher.voucherId,
               sd_diem: isUsePoint ? 1 : 0,
+              tt_diem:tt_diem
             },
           ],
           detail: detailData,
@@ -238,6 +266,7 @@ const RetailPaidInfo = ({
       })
         .then((res) => {
           if (res?.responseModel?.isSucceded) {
+            setPaymentQR("");
             notification.success({
               message: `Thực hiện thành công`,
             });
@@ -258,20 +287,128 @@ const RetailPaidInfo = ({
           return null;
         });
 
-      // In phiếu
-      if (result && !_.isEmpty(result)) {
-        await multipleTablePutApi({
-          store: "api_get_infomation_print",
-          param: {
-            stt_rec: result?.stt_rec,
-          },
-          data: {},
-        }).then((res) => {
-          const data = res?.listObject || [];
-          setPrintMaster(_.first(data[0]));
-          setPrintDetail(data[1]);
-        });
+      modifyIsFormLoading(false);
+    },
+    [paymentData, voucher, change, isOpenAdvancePayment, paymentType]
+  );
+  // Lưu phiếu
+  const handleSave = useCallback(
+    async (paymentMethods, paymentMethodInfo, type = "SIMPLE") => {
+      const [masterData, detailData] = await prepareOrderData(
+        paymentMethods,
+        paymentMethodInfo
+      );
+      const temp_so_ct =await multipleTablePutApi({
+        store: "GetTblSoCt",
+        param: {
+          so_ct:""
+        },
+        data: {},
+      })
+      const data = temp_so_ct?.listObject || [];
+      const so_ct = _.first(data[0]);
+      var master = { ...masterData};
+      if (type === "SIMPLE") {
+        master = {
+          ...masterData,
+          tien_mat: paymentType === "tien_mat" ? masterData.tong_tt : 0,
+          tien_the: paymentType === "tien_the" ? masterData.tong_tt : 0,
+          chuyen_khoan: paymentType === "chuyen_khoan" ? masterData.tong_tt : 0,
+          httt: paymentType,
+        };
       }
+      console.log(master);
+      master.so_ct=so_ct.so_ct;
+
+      modifyIsFormLoading(true);
+
+      if (change - paymentData?.tong_tt < 0 && !isOpenAdvancePayment) {
+        message.warning("Tiền thanh toán không đủ !");
+        modifyIsFormLoading(false);
+        return;
+      }
+
+      if (_.isEmpty(detailData)) {
+        message.warning("Vui lòng thêm vật tư !");
+        modifyIsFormLoading(false);
+        return;
+      }
+
+      if (_.isEmpty(master?.ma_kh)) {
+        message.warning("Mã khách hàng trống!");
+        modifyIsFormLoading(false);
+        return;
+      }
+      console.log(_.first(data[0]));
+      if (master?.chuyen_khoan > 0) {
+        setPaymentQR(
+          `https://img.vietqr.io/image/${bin}-${tk_nh}-R45Gdao.jpg?amount=${
+            master?.chuyen_khoan || 0
+          }&addInfo=SoCT:${so_ct.so_ct}=random=${Math.floor(
+            Math.random() * 10
+          )}`
+        );
+      }
+
+      setIsShowConfirmDialog(false);
+      // const result = await multipleTablePutApi({
+      //   arandomnumber: Math.floor(Math.random() * 10000),
+      //   store: "Api_create_retail_order",
+      //   param: {
+      //     UnitID: unitId,
+      //     StoreID: storeId,
+      //     userId,
+      //   },
+      //   data: {
+      //     master: [
+      //       {
+      //         ...master,
+      //         voucher: voucher.voucherId,
+      //         sd_diem: isUsePoint ? 1 : 0,
+      //       },
+      //     ],
+      //     detail: detailData,
+      //   },
+      // })
+      //   .then((res) => {
+      //     if (res?.responseModel?.isSucceded) {
+      //       notification.success({
+      //         message: `Thực hiện thành công`,
+      //       });
+
+      //       onResetForm();
+
+      //       emitter.emit("HANDLE_RETAIL_ORDER_SAVE");
+      //       handleCloseAdvancePayment();
+      //       return _.first(res.listObject[0]);
+      //     } else {
+      //       notification.warning({
+      //         message: res?.responseModel?.message,
+      //       });
+      //       return null;
+      //     }
+      //   })
+      //   .catch((res) => {
+      //     return null;
+      //   });
+
+      // In phiếu
+      console.log(detailData);
+      setPrintMaster(master);
+      setPrintDetail(detailData);
+      // if (result && !_.isEmpty(result)) {
+      //   await multipleTablePutApi({
+      //     store: "api_get_infomation_print",
+      //     param: {
+      //       stt_rec: result?.stt_rec,
+      //     },
+      //     data: {},
+      //   }).then((res) => {
+      //     const data = res?.listObject || [];
+      //     setPrintMaster(_.first(data[0]));
+      //     setPrintDetail(data[1]);
+      //   });
+      // }
       modifyIsFormLoading(false);
     },
     [paymentData, voucher, change, isOpenAdvancePayment, paymentType]
@@ -357,6 +494,7 @@ const RetailPaidInfo = ({
   const CalFinalPayment = () => {
     var finalPay = paymentInfo?.tong_tt;
     var tien_voucher = 0;
+    var tt_none_diem =0;
 
     tien_voucher = Number(
       parseFloat(
@@ -367,11 +505,14 @@ const RetailPaidInfo = ({
     );
 
     finalPay = Number(parseFloat(finalPay - tien_voucher).toFixed(2));
-
+    tt_none_diem = finalPay;
+    
     if (isUsePoint) {
       finalPay = Number(
         parseFloat(
-          finalPay - paymentInfo?.diem * paymentInfo?.quy_doi_diem
+          finalPay-paymentInfo?.diem_sd * hs_quy_doi
+          
+          //finalPay - paymentInfo?.diem_sd * paymentInfo?.quy_doi_diem
         ).toFixed(2)
       );
     }
@@ -380,6 +521,7 @@ const RetailPaidInfo = ({
       ...paymentInfo,
       tong_tt: finalPay < 0 ? 0 : finalPay,
       tien_voucher: tien_voucher,
+      tt_none_diem: tt_none_diem
     });
   };
 
@@ -420,14 +562,13 @@ const RetailPaidInfo = ({
 
   useEffect(() => {
     return () => {
-      setPaymentQR("");
     };
   }, []);
 
   return (
     <div
       className="border-round-lg overflow-hidden flex flex-column align-items-center justify-content-between"
-      style={{ width: "23rem", flexShrink: 0, background: "white" }}
+      style={{  flexShrink: 0, background: "white" }}
     >
       <div className="retail_info_container overflow-y-auto p-2 w-full min-w-0">
         <div className="flex justify-content-between mb-3">
@@ -553,15 +694,27 @@ const RetailPaidInfo = ({
             </span>
           </div>
 
-          {/* <div className="flex justify-content-between gap-2 align-items-center">
+          <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0">Sử dụng điểm:</span>
+            <InputNumber
+              controls={paymentInfo.diem_sd}
+              min="0"
+              className="w-full"
+              placeholder="0"
+              onChange={(e) => {
+                ChangePoint(e)
+              }}
+              value={paymentInfo.diem_sd}
+              formatter={(value) => formatterNumber(value)}
+              parser={(value) => parserNumber(value)}
+            />
             <Switch
               checked={isUsePoint}
               onChange={(e) => {
                 setIsUsePoint(e);
               }}
             />
-          </div> */}
+          </div>
 
           <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0">Thanh toán:</span>
@@ -593,9 +746,7 @@ const RetailPaidInfo = ({
               min="0"
               className="w-full"
               placeholder="0"
-              onChange={(e) => {
-                setChange(e);
-              }}
+              onChange={(e) => {setChange(e);}}
               formatter={(value) => formatterNumber(value)}
               parser={(value) => parserNumber(value)}
             />
@@ -662,12 +813,18 @@ const RetailPaidInfo = ({
         >
           Thanh toán (F1)
         </Button>
+        <Button type="primary" className="w-full min-w-0" style={{background:"#52c41a"}} disabled={isFormLoading || cantSave}
+           onClick={ SaveOrder}
+        >
+          Hoàn thành
+        </Button>
       </div>
       <AdvanceRetailPayment
         isOpen={isOpenAdvancePayment}
         total={paymentData?.tong_tt / (paymentData?.ty_gia || 1)}
         onClose={handleCloseAdvancePayment}
         onSave={handleSave}
+        SuccessOrder={SuccessOrder}
       />
 
       <RetailPaymentConfirm
