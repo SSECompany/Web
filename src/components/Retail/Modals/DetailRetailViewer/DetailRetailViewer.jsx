@@ -95,6 +95,7 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey }) => {
     console.log(data);
     getAllRowKeys(data).map((item) => {
       const rowData = getAllValueByRow(item, data);
+      if(rowData.ghi_chu == undefined) rowData.ghi_chu="";
       if (rowData.so_luong_tl) {
         return detailData.push(rowData);
       }
