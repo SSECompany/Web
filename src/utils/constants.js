@@ -103,6 +103,12 @@ export const systemOptions = [
     icon: "pi pi-cog",
   },
   {
+    key: "1",
+    label: "Phân quyền",
+    data: "/System/Permission",
+    icon: "pi pi-cog",
+  },
+  {
     key: "2",
     label: "Màn hình hệ thống",
     data: "Dashboard screen",

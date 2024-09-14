@@ -179,7 +179,7 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose,SuccessOrder }) =
               htmlType="submit"
               onClick={handleSave}
             >
-              Lưu
+              QrCode
             </Button>
             <Button type="primary" className="mr-2 ml-2"style={{background:"#52c41a"}} 
               onClick={ SuccessOrder}

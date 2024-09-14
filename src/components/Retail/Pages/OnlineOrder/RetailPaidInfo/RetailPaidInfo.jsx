@@ -239,24 +239,13 @@ const RetailPaidInfo = ({
         return;
       }
       console.log(_.first(data[0]));
-      if (master?.chuyen_khoan > 0) {
-        setPaymentQR(
-          `https://img.vietqr.io/image/${bin}-${tk_nh}-R45Gdao.jpg?amount=${
-            master?.chuyen_khoan || 0
-          }&addInfo=SoCT:${so_ct.so_ct}=random=${Math.floor(
-            Math.random() * 10
-          )}`
-        );
-      }
 
       setIsShowConfirmDialog(false);
       
-      setPrintMaster(master);
-      setPrintDetail(detailData);
 
       const result = await multipleTablePutApi({
-        arandomnumber: Math.floor(Math.random() * 10000),
-        store: "Api_create_retail_order",
+        randomnumber: Math.floor(Math.random() * 10000),
+        store: "Api_create_retail_order_hdo",
         param: {
           UnitID: unitId,
           StoreID: storeId,
@@ -472,7 +461,6 @@ const RetailPaidInfo = ({
 
     setPaymentData({
       ...paymentInfo,
-      tong_tt: finalPay < 0 ? 0 : finalPay,
       tien_voucher: tien_voucher,
       tt_none_diem: tt_none_diem
     });
@@ -692,18 +680,6 @@ const RetailPaidInfo = ({
             </span>
           </div>
 
-          <div className="flex justify-content-between gap-2 align-items-center">
-            <span className="w-6 flex-shrink-0">Khách đưa:</span>
-            <InputNumber
-              controls={false}
-              min="0"
-              className="w-full"
-              placeholder="0"
-              onChange={(e) => {setChange(e);}}
-              formatter={(value) => formatterNumber(value)}
-              parser={(value) => parserNumber(value)}
-            />
-          </div>
         </div>
 
         <Dropdown
@@ -723,12 +699,6 @@ const RetailPaidInfo = ({
           </div>
         </Dropdown>
 
-        <div className="flex justify-content-between gap-2 align-items-center">
-          <span className="w-6 flex-shrink-0 line-height-4">Trả lại:</span>
-          <span className="primary_bold_text danger_text_color">
-            {formatCurrency(calculateBackMoney)}
-          </span>
-        </div>
 
         <div className="flex flex-column justify-content-between gap-2 ">
           <span className="w-6 flex-shrink-0 line-height-4">Ghi chú:</span>
@@ -744,28 +714,7 @@ const RetailPaidInfo = ({
       </div>
 
       <div className="retail_action_container flex gap-2 p-2 w-full shadow-4">
-        <Button
-          disabled={cantSave}
-          className="w-fit"
-          onClick={() => {
-            setIsOpenAdvancePayment(true);
-            handleShowCustomerViewDialog();
-          }}
-        >
-          Nâng cao (F7)
-        </Button>
-
-        <Button
-          type="primary"
-          className="w-full min-w-0"
-          onClick={() => {
-            setIsShowConfirmDialog(true);
-            handleShowCustomerViewDialog();
-          }}
-          disabled={isFormLoading || cantSave}
-        >
-          QrCode (F1)
-        </Button>
+        
         <Button type="primary" className="w-full min-w-0" style={{background:"#52c41a"}} disabled={isFormLoading || cantSave}
            onClick={ SaveOrder}
         >

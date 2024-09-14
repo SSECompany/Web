@@ -14,14 +14,14 @@ const Login = lazy(() => import("../pages/Login/Login"));
 
 const homeRoutes = [
   {
-    label: "Login nè",
+    label: "Login",
     claims: "Permissions.login",
     path: "/login",
     element: <Login />,
     index: true,
   },
   {
-    label: "Home nè",
+    label: "Home",
     claims: "Permissions.home",
     path: "/",
     element: <App />,

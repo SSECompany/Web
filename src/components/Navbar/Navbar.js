@@ -134,6 +134,7 @@ const Navbar = () => {
 
   const handleLoadNavbar = async () => {
     const navitems = { ...(await getRoutesAccess(routes)) };
+    console.log(navitems)
     renderNavbar(navitems.nestedRoutes);
     setSearchFunctions((item) => {
       return (item = navitems.flatRoutes.filter(

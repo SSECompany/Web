@@ -24,7 +24,7 @@ import {
 } from "../../Store/Actions/RetailOrderActions";
 import "./DetailRetailViewer.css";
 
-const DetailRetailViewer = ({ isOpen, onClose, itemKey }) => {
+const DetailRetailViewer = ({ isOpen, onClose, itemKey,ma_ct='HDL' }) => {
   const [message, contextHolder] = messageAPI.useMessage();
   const { stt_rec } = itemKey;
   const [itemForm] = Form.useForm();
@@ -38,8 +38,8 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey }) => {
   const getData = async () => {
     setIsLoading(true);
     const result = await fetchRetailOderDetail({
-      stt_rec,
-    });
+      stt_rec
+    },ma_ct);
     if(result.detail) 
       result.detail = result.detail.map((d,index)=>{
         d.children=[

@@ -20,6 +20,7 @@ const nestedArray = (raw) => {
 
 const getRoutesAccess = async (routes) => {
   const userData = store.getState().claimsReducer.claims;
+  console.log(routes);
   var routesToFlat = router.routes.find((r) => r.id == `1`).children;
 
   const childRoutes = _.flatMap(routesToFlat, (parent) => {
@@ -27,35 +28,42 @@ const getRoutesAccess = async (routes) => {
       return { ...child, path: parent.path + "/" + child.path, children: null };
     });
   });
-
-  const claims = Object.keys(userData).filter((key) => {
-    if (key.includes("Permissions.")) return userData[key];
-  });
+  const claims = userData.Permision;
+  // const claims = Object.keys(userData).filter((key) => {
+  //   if (key.includes("Permissions.")) return userData[key];
+  // });
 
   const validRoutes = routes.filter((item) => item.path == "/");
   const allRoutes = [..._.first(validRoutes).children];
 
   const flatRoutes =
-    userData?.RoleId == "1"
-      ? [...routesToFlat, ...childRoutes].map((r) => ({
-          label: r.label,
-          path: r.path,
-          claims: r.claims,
-          isParent: r.children ? true : false,
-        }))
-      : [...routesToFlat, ...childRoutes]
-          .filter((route) => claims.includes(route.claims))
-          .map((r) => ({
-            label: r.label,
-            path: r.path,
-            claims: r.claims,
-            isParent: r.children ? true : false,
-          }));
-
-  const userRoute =
-    userData?.RoleId == "1"
-      ? [...allRoutes]
-      : allRoutes.filter((route) => claims.includes(route.claims));
+    // userData?.RoleId == "1"
+    //   ? [...routesToFlat, ...childRoutes].map((r) => ({
+    //       label: r.label,
+    //       path: r.path,
+    //       claims: r.claims,
+    //       isParent: r.children ? true : false,
+    //     }))
+    //   : [...routesToFlat, ...childRoutes]
+    //       .filter((route) => claims.includes(route.claims))
+    //       .map((r) => ({
+    //         label: r.label,
+    //         path: r.path,
+    //         claims: r.claims,
+    //         isParent: r.children ? true : false,
+    //       }));
+  [...routesToFlat, ...childRoutes]
+  .filter((route) => claims.includes(route.claims))
+  .map((r) => ({
+    label: r.label,
+    path: r.path,
+    claims: r.claims,
+    isParent: r.children ? true : false,
+  }))
+  const userRoute = allRoutes.filter((route) => claims.includes(route.claims));
+  // const userRoute =  userData?.RoleId == "1"
+  //     ? [...allRoutes]
+  //     : allRoutes.filter((route) => claims.includes(route.claims));
 
   userRoute.map((route) => {
     route.key = route.path;

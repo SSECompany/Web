@@ -63,10 +63,11 @@ export const resetFetchListParams = async (params) => {
   store.dispatch(retailOrderActions.resetFetchListParams());
 };
 
-export const fetchRetailOderList = async (params) => {
+export const fetchRetailOderList = async (params,ma_ct) => {
   try {
+    var store = ma_ct=='HDL'? 'api_get_retail_order':'api_get_retail_order_hdo';
     const result = await multipleTablePutApi({
-      store: "api_get_retail_order",
+      store: store,
       param: {
         ...params,
       },
@@ -83,10 +84,11 @@ export const fetchRetailOderList = async (params) => {
   }
 };
 
-export const fetchRetailOderDetail = async (params) => {
+export const fetchRetailOderDetail = async (params,ma_ct) => {
   try {
+    var store = ma_ct=='HDL'? 'api_get_retail_order_detail':'api_get_retail_order_detail_hdo';
     const result = await multipleTablePutApi({
-      store: "api_get_retail_order_detail",
+      store: store,
       param: {
         ...params,
       },
@@ -115,7 +117,7 @@ export const fetchRetailOderDetail = async (params) => {
   }
 };
 
-export const fetchRetailOderPromotion = async (data = [], customer = "") => {
+export const fetchRetailOderPromotion = async (data = [], customer = "",ma_ct="HDL") => {
   try {
     modifyIsLoadingPromotion(true);
     const { id, unitId, storeId } = store.getState().claimsReducer.userInfo;
@@ -195,7 +197,142 @@ export const apiCreateRefundOrder = async (master = {}, detail = []) => {
 
   return result;
 };
+//-----------------------------------------------------------HDO-------------------------------------------------------------------------------
+export const fetchRetailOderListHDO = async (params) => {
+  try {
+    const result = await multipleTablePutApi({
+      store: "api_get_retail_order_hdo",
+      param: {
+        ...params,
+      },
+      data: {},
+    });
 
+    return {
+      columns: result?.listObject[1],
+      data: result?.listObject[0],
+      pagination: result?.listObject[2],
+    };
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const fetchRetailOderDetailHDO = async (params) => {
+  try {
+    const result = await multipleTablePutApi({
+      store: "api_get_retail_order_detail_hdo",
+      param: {
+        ...params,
+      },
+      data: {},
+    });
+
+    const columns = result?.listObject[2].map((item) => {
+      return {
+        key: item?.Field,
+        title: item?.Name,
+        dataKey: item?.Field,
+        width: item?.width,
+        resizable: item?.width ? true : false,
+        sortable: false,
+        hidden: !item?.width ? true : false,
+      };
+    });
+
+    return {
+      detail: result?.listObject[1],
+      master: result?.listObject[0][0],
+      columns,
+    };
+  } catch (error) {
+    console.log(error);
+  }
+};
+export const fetchRetailOderPromotionHDO = async (data = [], customer = "") => {
+  try {
+    modifyIsLoadingPromotion(true);
+    const { id, unitId, storeId } = store.getState().claimsReducer.userInfo;
+
+    var lstItems = [];
+    var lstIds = [];
+    var lstStock = [];
+    var lstPrice = [];
+    var lstQuantity = [];
+    var listTotal = [];
+    const detailData = [];
+
+    getAllRowKeys(data).map((item) => {
+      return detailData.push({ id: item, ...getAllValueByRow(item, data) });
+    });
+
+    detailData.map((item) => {
+      if (!item.ck_yn) {
+        lstItems.push(item?.ma_vt);
+        lstIds.push(item?.id);
+        lstStock.push(item?.ma_kho);
+        lstPrice.push(item?.don_gia);
+        lstQuantity.push(item?.so_luong);
+        listTotal.push(item?.thanh_tien);
+      }
+      return true;
+    });
+
+    const result = await multipleTablePutApi({
+      store: "API_SSELIB$Voucher$Sales$Discount",
+      param: {
+        cLstItemPr: lstItems.join(","),
+        cLstQtyPr: lstQuantity.join(","),
+        cLstPricePr: lstPrice.join(","),
+        cLstMoneyPr: listTotal.join(","),
+        cLstSitePr: lstStock.join(","),
+        clistID: lstIds.join(","),
+        ma_kh: customer,
+        voucherCode: "HDO",
+        gt_vip_yn: 0,
+        storeId,
+        unitId,
+      },
+      data: {},
+    });
+
+    modifyIsLoadingPromotion(false);
+
+    return {
+      ckvt: result?.listObject[1] || [],
+      ckth: result?.listObject[2] || [],
+      cktd: result?.listObject[0] || [],
+    };
+  } catch (error) {
+    console.log(error);
+  }
+};
+export const apiCreateRefundOrderHDO = async (master = {}, detail = []) => {
+  const { id, unitId, storeId } = store.getState().claimsReducer.userInfo;
+  const result = await multipleTablePutApi({
+    store: "Api_create_return_order_hdo",
+    param: {
+      UnitID: unitId,
+      StoreID: storeId,
+      userId: id,
+    },
+    data: {
+      master: [
+        {
+          ...master,
+        },
+      ],
+      detail,
+    },
+  });
+
+  return result;
+};
+
+
+
+
+//---------------------------------------------------------------------------------------------------------------------------------------------
 export const modifyIsFormLoading = async (params) => {
   store.dispatch(retailOrderActions.setIsFormLoading(params));
 };

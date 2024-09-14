@@ -32,7 +32,7 @@ import DetailRetailViewer from "../DetailRetailViewer/DetailRetailViewer";
 import PrintRetailModal from "../PrintRetailModal/PrintRetailModal";
 import "./RetailOrderListModal.css";
 
-const RetailOrderListModal = ({ isOpen, onClose }) => {
+const RetailOrderListModal = ({ isOpen, onClose,ma_ct='HDL' }) => {
   const [columns, setColumns] = useState([]);
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,7 +71,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       userId,
       storeId,
       unitId,
-    });
+    },ma_ct);
 
     setData(result?.data || []);
 
@@ -288,6 +288,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         isOpen={isShowDetail}
         itemKey={curItemShow}
         onClose={modifyShowDetail}
+        ma_ct={ma_ct}
       />
 
       <PrintRetailModal

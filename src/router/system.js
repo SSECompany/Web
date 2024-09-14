@@ -1,5 +1,6 @@
 import DashboardOptions from "../components/SystemOptions/Pages/DashboardOptions/DashboardOptions";
 import ReportDashboardOptions from "../components/SystemOptions/Pages/ReportDashboardOptions/ReportDashboardOptions";
+import PermissionSetting from "../components/SystemOptions/Pages/PermissionSetting/PermissionSetting";
 import System from "../pages/System/Pages/System";
 
 const systemRoutes = [
@@ -22,6 +23,13 @@ const systemRoutes = [
         claims: "Permissions.system.dashboards",
         path: "RpDashboardOptions",
         element: <ReportDashboardOptions />,
+        children: [],
+      },
+      {
+        label: "Phân quyền tài khoản",
+        claims: "Permissions.system.Permission",
+        path: "Permission",
+        element: <PermissionSetting />,
         children: [],
       },
     ],
