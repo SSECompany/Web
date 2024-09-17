@@ -20,7 +20,6 @@ const nestedArray = (raw) => {
 
 const getRoutesAccess = async (routes) => {
   const userData = store.getState().claimsReducer.claims;
-  console.log(routes);
   var routesToFlat = router.routes.find((r) => r.id == `1`).children;
 
   const childRoutes = _.flatMap(routesToFlat, (parent) => {

@@ -1,6 +1,7 @@
 import DashboardOptions from "../components/SystemOptions/Pages/DashboardOptions/DashboardOptions";
 import ReportDashboardOptions from "../components/SystemOptions/Pages/ReportDashboardOptions/ReportDashboardOptions";
 import PermissionSetting from "../components/SystemOptions/Pages/PermissionSetting/PermissionSetting";
+import PermissionSettingLTEST from "../components/SystemOptions/Pages/PermissionSettingLTEST/PermissionSettingLTEST";
 import System from "../pages/System/Pages/System";
 
 const systemRoutes = [
@@ -30,6 +31,13 @@ const systemRoutes = [
         claims: "Permissions.System.Permission",
         path: "Permission",
         element: <PermissionSetting />,
+        children: [],
+      },
+      {
+        label: "Phân quyền tài khoản LTEST",
+        claims: "Permissions.System.Permission",
+        path: "PermissionLTEST",
+        element: <PermissionSettingLTEST />,
         children: [],
       },
     ],
