@@ -221,11 +221,7 @@ const RetailPaidInfo = ({
 
       modifyIsFormLoading(true);
 
-      if (change - paymentData?.tong_tt < 0 && !isOpenAdvancePayment) {
-        message.warning("Tiền thanh toán không đủ !");
-        modifyIsFormLoading(false);
-        return;
-      }
+
 
       if (_.isEmpty(detailData)) {
         message.warning("Vui lòng thêm vật tư !");
@@ -242,7 +238,7 @@ const RetailPaidInfo = ({
 
       setIsShowConfirmDialog(false);
       
-
+      var temp =master.diem_sd;
       const result = await multipleTablePutApi({
         randomnumber: Math.floor(Math.random() * 10000),
         store: "Api_create_retail_order_hdo",
@@ -257,7 +253,7 @@ const RetailPaidInfo = ({
               ...master,
               voucher: voucher.voucherId,
               sd_diem: isUsePoint ? 1 : 0,
-              tt_diem:tt_diem
+              tt_diem:temp,
             },
           ],
           detail: detailData,
@@ -286,6 +282,7 @@ const RetailPaidInfo = ({
           return null;
         });
 
+      modifyIsFormLoading(false);
       modifyIsFormLoading(false);
     },
     [paymentData, voucher, change, isOpenAdvancePayment, paymentType]
@@ -321,11 +318,6 @@ const RetailPaidInfo = ({
 
       //modifyIsFormLoading(true);
 
-      if (change - paymentData?.tong_tt < 0 && !isOpenAdvancePayment) {
-        message.warning("Tiền thanh toán không đủ !");
-        modifyIsFormLoading(false);
-        return;
-      }
 
       if (_.isEmpty(detailData)) {
         message.warning("Vui lòng thêm vật tư !");

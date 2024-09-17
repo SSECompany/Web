@@ -5,7 +5,7 @@ const RORoutes = [
   {
     label: "Bán lẻ",
     // claims: "Permissions.Retail",
-    claims: "Permissions.documents.customerform",
+    claims: "Permissions.HDL",
     path: "/RO",
     element: <span></span>,
     children: [],
@@ -13,7 +13,7 @@ const RORoutes = [
   {
     label: "Bán lẻ",
     // claims: "Permissions.RO.RetailOrder",
-    claims: "Permissions.documents.customerform",
+    claims: "Permissions.HDL",
     parent: "/RO",
     path: "RO/Reatailorder",
     element: <RetailOrder />,
@@ -21,7 +21,7 @@ const RORoutes = [
   {
     label: "Hóa đơn Online",
     // claims: "Permissions.Retail",
-    claims: "Permissions.documents.customerform",
+    claims: "Permissions.HDO",
     path: "/HDO",
     element: <span></span>,
     children: [],
@@ -29,7 +29,7 @@ const RORoutes = [
   {
     label: "Hóa đơn Online",
     // claims: "Permissions.RO.RetailOrder",
-    claims: "Permissions.documents.customerform",
+    claims: "Permissions.HDO",
     parent: "/HDO",
     path: "HDO/OnlineOrder",
     element: <OnlineOrder />,

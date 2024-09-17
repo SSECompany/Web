@@ -5,13 +5,13 @@ import SaleSummaryReport from "../components/Report/Pages/SaleSummaryReport/Sale
 const reportsRoute = [
   {
     label: "Báo cáo",
-    claims: "Permissions.reports",
+    claims: "Permissions.Report",
     path: "reports",
     element: <ReportLayout />,
     children: [
       {
         label: "Bảng kê hoá đơn bán hàng",
-        claims: "Permissions.reports.orderList",
+        claims: "Permissions.Report.RptOrderList",
         path: "rptOrderList",
         children: [],
         element: <SaleInvoiceReport />,
@@ -19,7 +19,7 @@ const reportsRoute = [
 
       {
         label: "Tổng hợp bán hàng",
-        claims: "Permissions.reports.saleSummary",
+        claims: "Permissions.Report.RptSalesSummary",
         path: "rptSalesSummary",
         children: [],
         element: <SaleSummaryReport />,

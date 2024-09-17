@@ -79,3 +79,8 @@ export const apiAlterUserGroup = async (payload) => {
       return res.data;
     });
 };
+export const apigetAllClaimsByUser = async (payload) => {
+  return await https.post(`User/GetClaims`, payload).then((res) => {
+    return res?.data || [];
+  });
+};

@@ -64,3 +64,10 @@ export const setCurrentUnitsPermission = async (payload) => {
     console.error(error);
   }
 };
+export const setDefaultSelected = async (payload) => {
+  try {
+    store.dispatch(CreateAccount.setDefaultSelected(payload));
+  } catch (error) {
+    console.error(error);
+  }
+};

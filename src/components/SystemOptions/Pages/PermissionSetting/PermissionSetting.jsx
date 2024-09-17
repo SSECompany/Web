@@ -1,4 +1,4 @@
-import { Transfe,Tree , Select, Space ,Switch,Button,TreeNode  } from "antd";
+import { Transfe,Tree , Select, Space ,Switch,Button,Checkbox,List,notification   } from "antd";
 import React, { useEffect, useState,useCallback,useMemo} from "react";
 import https from "../../../../utils/https";
 import LoadingComponents from "../../../Loading/LoadingComponents";
@@ -8,8 +8,13 @@ import {
   modifiedSeletedReport,
 } from "../../Store/Actions/ReportDashboardActions";
 import { forEach } from "lodash";
+import TreeNode from "./TreeNode";
+import { setDefaultSelected } from "../../Store/Actions";
+import { useSelector } from "react-redux";
+import {getDefaultSelected} from "../../Store/Selectors";
 
 const PermissionSetting = () => {
+  //const defaultSelected=useSelector(getDefaultSelected);
   const [targetKeys, setTargetKeys] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dataSource, setDataSource] = useState([]);
@@ -17,48 +22,62 @@ const PermissionSetting = () => {
   const  [allClaims, setAllClaims] = useState([]);
   const  [dataClaims, setDataClaims] = useState([]);
   const [options,setOptions]=useState([]);
+  const [selected, setSelected] = useState([]);
   const [defaultSelected,setDefaultSelected]=useState([]);
+  const [optionsTypeUser,setOptionsTypeUser]=useState([]);
+  const [nameUpdate,setNameUpdate]=useState('');
+
+   
+  //var defaultSelected=['0-0'];
  
   const onCheck = (checkedKeys, info) => {
       console.log('onCheck', checkedKeys, info);
   };
-  const handleChangeUserName = useCallback( (value) => {
-    https.post(`User/GetClaims`, {type:0,value:value}).then((res) => {
-      console.log(res.data.roles);
-      setDefaultSelected(res.data.roles);
-      // dataClaims.forEach(d => {
-      //   if(res.data.roles.includes(d.key)) d.checked=true;
-      //   d.children.forEach(d2 => {
-      //     if(res.data.roles.includes(d2.key)) d.checked=true;
-      //     d2.checked=true;
-      //   });
-      // });
-      console.log(defaultSelected);
-    });
-  },[]);
+  var test=1;
+  const handleChangeUserName = async (value) => {
+    setNameUpdate(value);
+    const res = await https.post(`User/GetClaims`, {type:typePermission?0:1,value:value})
+    console.log(res.data.roles);
+    var temp =selected;
+    temp= res.data.roles;
+    setSelected(temp);
+    console.log(selected);
+    setDefaultSelected(['0-1']);
+  };
   const onChangeTypePermission = ()=>{
     setTypePermission(!typePermission);
+    setNameUpdate('');
   }
   const SavePermission=()=>{
-    console.log(defaultSelected);
+    setDefaultSelected(['0-1']);
+    if(nameUpdate==''){
+      notification.success({
+        message: `Chưa chọn tài khoản hoặc loại tài khoản`,
+      });
+      return;
+    }
+    if(selected.length<1){
+      notification.success({
+        message: `Tài khoản đang không được gán bất kì quyền nào`,
+      });
+      return;
+    }
+    https.post(`User/UpdateClaims`, {
+      type:typePermission?0:1,
+      value:nameUpdate,
+      listPermission:selected.join(',')
+    }).then((res) => {
+      notification.success({
+        message: `Thực hiện thành công`,
+      });
+      console.log(res);
+    });
+
   }
   const getAllClaims=()=>{
     https.post(`User/GetAllClaims`, {}).then((res) => {
       console.log(res);
-      setAllClaims(res.data);
-      var claims=[];
-      res.data.map(d=>{
-        if (d.level==1)claims.push({title:d.name,key:d.name,id:d.id,children:[]})
-      })
-      var data = claims.map(d=>{
-        var temp =res.data.filter(c=>c.level==2 && c.parent == d.id);
-        temp.forEach(d2 => {
-          d.children.push({title:d2.name,key:d2.name,id:d2.id})
-        });
-        return d;
-      })
-      setDataClaims(data);
-      console.log(data);
+      setAllClaims(res.data.map(d=>{return {...d,check:false}}));
     });
   }
   const getAllUser=()=>{
@@ -75,20 +94,21 @@ const PermissionSetting = () => {
       setOptions(data);
     });
   }
-  const renderTreeNodes = (data) =>
-    data.map(item => {
-      if (item.children) {
-        return (
-          <TreeNode title={item.title} key={item.key} dataRef={item}>
-            {renderTreeNodes(item.children)}
-          </TreeNode>
-        );
-      }
-      return <TreeNode key={item.key} {...item} />;
-  });
+  const getAllRoles=()=>{
+    https.post(`User/GetAllRoles`, {}).then((res) => {
+      var data=[];
+      res.data.map(d=>{
+        data.push({value:d.name,label:d.name})
+      })
+      console.log(data);
+      setOptionsTypeUser(data);
+    });
+  }
+  
   useEffect(() => {
     getAllClaims();
     getAllUser();
+    getAllRoles();
     return () => {};
   }, []);
 
@@ -105,10 +125,10 @@ const PermissionSetting = () => {
 
       {!typePermission ?
       <Space wrap className="mt-5 mb-5">
-        <Select defaultValue="lucy" style={{  width: 120,  }} options={optionsTypeUser} />
+        <Select defaultValue="lucy" style={{  width: 120,  }} onChange={handleChangeUserName} options={optionsTypeUser} />
       </Space>
       :
-      <Select mode="single" className="mt-5 mb-5"  style={{ width: '100%' }} placeholder="select one user"  onChange={handleChangeUserName}options={options}  optionRender={(option) => (
+      <Select mode="single" className="mt-5 mb-5"  style={{ width: '100%' }} placeholder="select one user"  onSelect={handleChangeUserName}options={options}  optionRender={(option) => (
           <Space>
             <span role="img" aria-label={option.data.label}> {option.data.emoji} </span>
             {option.data.desc}
@@ -116,9 +136,21 @@ const PermissionSetting = () => {
         )}
       />}
 
-      <Tree  className=" p-2 shadow-1" checkable  defaultSelectedKeys={defaultSelected}  defaultCheckedKeys={defaultSelected}   onCheck={onCheck}  >
-        {renderTreeNodes(dataClaims)}
-      </Tree>
+
+      {allClaims.map((d,index)=>{
+        
+        return <Checkbox key={index} checked={selected.includes(d.name)?true:false} 
+          onChange={(e)=>{
+            const isChecked = e.target.checked;
+            if (isChecked) {
+              setSelected([...selected, d.name]);
+            } else {
+              setSelected(selected.filter((c) => c !== d.name));
+            }
+            console.log(selected);
+
+          }}>{d.name}</Checkbox>
+      })}
       <div className="retail_action_container flex gap-2 p-2 w-full shadow-4 mt-5">
         <Button type="primary" className="w-full min-w-0"  onClick={SavePermission}>Update</Button>
       </div>

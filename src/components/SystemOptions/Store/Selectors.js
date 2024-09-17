@@ -13,3 +13,7 @@ export const getCurrentPermissions = (state) => {
 export const getChangedPermissions = (state) => {
   return state.AccountsReducer.account.changedPermissions;
 };
+export const getDefaultSelected = (state) => {
+  return  state.AccountsReducer.account.defaultSelected;
+};
+

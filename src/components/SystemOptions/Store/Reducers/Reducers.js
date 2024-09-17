@@ -10,6 +10,7 @@ const initStruct = {
     currentGroupsPermission: [],
     currentUnitsPermission: [],
     changedPermissions: false,
+    defaultSelected:[]
   },
   allClaims: [],
 };
@@ -42,6 +43,13 @@ const AccountsInfo = createSlice({
     },
     setCurrentUnitsPermission(state, action) {
       state.account.currentUnitsPermission = action?.payload;
+    },
+    setDefaultSelected(state, action) {
+      console.log(action);
+      var temp =action?.payload;
+      state.account.defaultSelected=[];
+      state.account.defaultSelected.push(temp);
+      //state.account.defaultSelected = temp;
     },
   },
 });

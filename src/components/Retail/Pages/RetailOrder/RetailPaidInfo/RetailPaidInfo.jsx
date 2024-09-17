@@ -252,6 +252,7 @@ const RetailPaidInfo = ({
       setIsShowConfirmDialog(false);
       
       setPrintMaster(master);
+      var temp =master.diem_sd;
       setPrintDetail(detailData);
 
       const result = await multipleTablePutApi({
@@ -268,7 +269,7 @@ const RetailPaidInfo = ({
               ...master,
               voucher: voucher.voucherId,
               sd_diem: isUsePoint ? 1 : 0,
-              tt_diem:tt_diem
+              tt_diem:temp,
             },
           ],
           detail: detailData,
