@@ -1,4 +1,4 @@
-import { Carousel, Modal } from "antd";
+import { Carousel, Modal,Button } from "antd";
 import React, { useEffect, useState } from "react";
 import useLocalStorage from "use-local-storage";
 import OrderModal from "./Modal/OrderModal";
@@ -57,6 +57,9 @@ const TransferHub = () => {
       setIsFullScreen(false);
     }
   };
+  const Test = ()=>{
+    console.log('1');
+  }
 
   useEffect(() => {
     if (qrSource) {
@@ -87,7 +90,7 @@ const TransferHub = () => {
   }, []);
 
   return (
-    <div onClick={handleFullScreen} className="relative">
+    <div  className="relative">
       <div
         className={`transfer_fullScreen_warning ${
           isFullScreen ? "opacity-0" : "opacity-100"
@@ -114,7 +117,7 @@ const TransferHub = () => {
         ))}
       </Carousel>
 
-      <Modal
+      {/* <Modal
         zIndex={5000}
         forceRender
         closable={false}
@@ -165,7 +168,8 @@ const TransferHub = () => {
             </b>
           </div>
         )}
-      </Modal>
+      </Modal> */}
+
 
       <OrderModal />
     </div>
