@@ -150,8 +150,9 @@ const Navbar = () => {
       data: {},
     }).then((res)=>{
       const data = res.listObject;
+      
       const setting={
-        tk_nh :data[0][0]?.tk_nh|'',
+        tk_nh :data[0][0]?.tk_nh,
         bin:data[0][0]?.bin|'',
         hs_quy_doi:data[0][0]?.hs_quy_doi|0
       };

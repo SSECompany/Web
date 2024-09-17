@@ -92,7 +92,7 @@ const OrderModal = ({ children }) => {
     "CUSTOMER_RETAILORDER_DATA",
     null
   );
-
+  const [qrSource, setQrSource] = useLocalStorage("QRimg", "");
   const [data, setData] = useState([]);
 
   const renderColumns = (columns) => {
@@ -113,6 +113,9 @@ const OrderModal = ({ children }) => {
     return _columns;
   };
 
+  const test=()=>{
+    console.log(qrSource);
+  }
   useEffect(() => {
     const preparedData = JSON.parse(orderData || null) || [];
 
@@ -129,6 +132,7 @@ const OrderModal = ({ children }) => {
   useEffect(() => {
     return () => {
       setOrderData("");
+      setQrSource("");
     };
   }, []);
 
@@ -144,29 +148,34 @@ const OrderModal = ({ children }) => {
       okButtonProps={{ style: { display: "none" } }}
       cancelButtonProps={{ style: { display: "none" } }}
     >
-      <div style={{ width: "100%", height: "88vh" }}>
-        <PerformanceTable
-          columns={renderColumns(CTDH)}
-          data={_.isEmpty(data) ? [] : data[1]}
-          isLoading={false}
-        />
+      <div style={{ width: "100%", height: "55vh" }}>
+        <PerformanceTable  columns={renderColumns(CTDH)}  data={_.isEmpty(data) ? [] : data[1]}  isLoading={false}/>
       </div>
-      <div
-        className="line-height-4 mt-2 flex justify-content-between px-2 border-round-lg"
-        style={{ background: "#F58220", color: "white" }}
-      >
-        <span className="text-right">{data[0]?.ten_kh}</span>
-        <div className="text-right">
-          Tổng thanh toán: <span className="font-bold">{data[0]?.tong_tt}</span>{" "}
-          {data[0]?.tl_ck != 0 ? (
-            <>
-              (<span>-{formatCurrency(data[0]?.tl_ck)}%</span>)
-            </>
-          ) : (
-            <>
-              (<span>-{formatCurrency(data[0]?.ck)}₫</span>)
-            </>
-          )}
+      <div  className="line-height-4 mt-2 flex justify-content-between px-2 border-round-lg"  style={{ width: "100%", height: "30vh"  }}  >
+        <div className="border-round-sm" style={{width:"50%" ,background: "#F58220", color: "white"}}>
+          <div className="w-100 mt-2 flex justify-content-between px-2"><span className="text-left">Khách hàng:</span> <span className="text-right">{data[0]?.ten_kh}</span></div>
+          <div className="w-100 mt-2 flex justify-content-between px-2">
+            <span className="text-left">Thành tiền:</span> 
+            <span className="text-right">{data[0]?.tong_tt}</span>   
+          </div>
+          <div className="w-100 mt-2 flex justify-content-between px-2">
+            <span className="text-left">Chiết khấu :</span> 
+            <span className="text-right">
+              {data[0]?.tl_ck != 0 ? (
+                <>
+                  (<span>{formatCurrency(data[0]?.tl_ck)}%</span>)
+                </>
+              ) : (
+                <>
+                  (<span>{formatCurrency(data[0]?.ck)}₫</span>)
+                </>
+              )}
+            </span>   
+          </div>
+          
+        </div>
+        <div className="image-qr" style={{width:"50%"}}>
+          <img  src={qrSource} style={{height:"100%"}} className="w-100 h-100"  />
         </div>
       </div>
       {children}

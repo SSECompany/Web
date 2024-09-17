@@ -78,8 +78,9 @@ const RetailPaidInfo = ({
     "f1",
     (e) => {
       e.preventDefault();
-      setIsShowConfirmDialog(true);
+      //setIsShowConfirmDialog(true);
       handleShowCustomerViewDialog();
+      handleSave();
     },
     { enableOnFormTags: ["input", "select", "textarea"] }
   );
@@ -106,6 +107,7 @@ const RetailPaidInfo = ({
   const [printMaster, setPrintMaster] = useState({});
   const [so_ct, setSo_ct] = useState("");
   const [printDetail, setPrintDetail] = useState([]);
+  const [isCreatingOrder,setIsCreatingOrder]=useState(false);
 
   var printContent = useRef();
   const beforePrint =()=>{
@@ -193,19 +195,22 @@ const RetailPaidInfo = ({
   const SaveOrder = useCallback(
     async (paymentMethods, paymentMethodInfo, type = "SIMPLE") => {
 
+      setIsCreatingOrder(true);
       const [masterData, detailData] = await prepareOrderData(
         paymentMethods,
         paymentMethodInfo
       );
-      const temp_so_ct =await multipleTablePutApi({
-        store: "GetTblSoCt",
-        param: {
-          so_ct:""
-        },
-        data: {},
-      })
-      const data = temp_so_ct?.listObject || [];
-      const so_ct = _.first(data[0]);
+      // const temp_so_ct =await multipleTablePutApi({
+      //   store: "GetTblSoCt",
+      //   param: {
+      //     so_ct:""
+      //   },
+      //   data: {},
+      // })
+      // const data = temp_so_ct?.listObject || [];
+      // const so_ct = _.first(data[0]);
+
+
       var master = { ...masterData};
       if (type === "SIMPLE") {
         master = {
@@ -238,16 +243,6 @@ const RetailPaidInfo = ({
         modifyIsFormLoading(false);
         return;
       }
-      console.log(_.first(data[0]));
-      if (master?.chuyen_khoan > 0) {
-        setPaymentQR(
-          `https://img.vietqr.io/image/${bin}-${tk_nh}-R45Gdao.jpg?amount=${
-            master?.chuyen_khoan || 0
-          }&addInfo=SoCT:${so_ct.so_ct}=random=${Math.floor(
-            Math.random() * 10
-          )}`
-        );
-      }
 
       setIsShowConfirmDialog(false);
       
@@ -277,6 +272,7 @@ const RetailPaidInfo = ({
       })
         .then((res) => {
           if (res?.responseModel?.isSucceded) {
+            setIsCreatingOrder(false);
             setPaymentQR("");
             notification.success({
               message: `Thực hiện thành công`,
@@ -296,6 +292,9 @@ const RetailPaidInfo = ({
         })
         .catch((res) => {
           return null;
+        })
+        .catch((err)=>{
+          setIsCreatingOrder(true);
         });
 
       modifyIsFormLoading(false);
@@ -305,6 +304,20 @@ const RetailPaidInfo = ({
   // Lưu phiếu
   const handleSave = useCallback(
     async (paymentMethods, paymentMethodInfo, type = "SIMPLE") => {
+
+      console.log('zzzzz');
+      const temp_so_ct =await multipleTablePutApi({
+        store: "GetTblSoCt",
+        param: {
+          so_ct:""
+        },
+        data: {},
+      })
+      const data = temp_so_ct?.listObject || [];
+      var so_ct_temp = _.first(data[0]);
+      setSo_ct(so_ct_temp);
+
+
       const [masterData, detailData] = await prepareOrderData(
         paymentMethods,
         paymentMethodInfo
@@ -350,14 +363,11 @@ const RetailPaidInfo = ({
         modifyIsFormLoading(false);
         return;
       }
-      console.log(_.first(data[0]));
       if (master?.chuyen_khoan > 0) {
         setPaymentQR(
           `https://img.vietqr.io/image/${bin}-${tk_nh}-R45Gdao.jpg?amount=${
             master?.chuyen_khoan || 0
-          }&addInfo=SoCT:${so_ct.so_ct}=random=${Math.floor(
-            Math.random() * 10
-          )}`
+          }&addInfo=SoCT:${so_ct_temp.so_ct}`
         );
       }
 
@@ -760,14 +770,15 @@ const RetailPaidInfo = ({
           type="primary"
           className="w-full min-w-0"
           onClick={() => {
-            setIsShowConfirmDialog(true);
+            // setIsShowConfirmDialog(true);
             handleShowCustomerViewDialog();
+            handleSave();
           }}
           disabled={isFormLoading || cantSave}
         >
           QrCode (F1)
         </Button>
-        <Button type="primary" className="w-full min-w-0" style={{background:"#52c41a"}} disabled={isFormLoading || cantSave}
+        <Button type="primary" className="w-full min-w-0" style={{background:"#52c41a"}} disabled={isCreatingOrder||isFormLoading || cantSave}
            onClick={ SaveOrder}
         >
           Hoàn thành

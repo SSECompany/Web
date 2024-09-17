@@ -15,6 +15,7 @@ import {
   notification,
   Spin,
   Switch,
+  Select
 } from "antd";
 import _ from "lodash";
 import React, {
@@ -64,6 +65,20 @@ const paymentTypeOptions = [
     key: "chuyen_khoan",
   },
 ];
+const listOrderStatus = [
+  {
+    label: "Lập chứng từ",
+    value: "0",
+  },
+  {
+    label: "Chuyển KTTH",
+    value: "1",
+  },
+  {
+    label: "Chuyển vào SC",
+    value: "2",
+  },
+];
 
 const RetailPaidInfo = ({
   itemForm,
@@ -107,6 +122,8 @@ const RetailPaidInfo = ({
   const [so_ct, setSo_ct] = useState("");
   const [printDetail, setPrintDetail] = useState([]);
 
+  const [isCreatingOrder,setIsCreatingOrder]=useState(false);
+
   var printContent = useRef();
   const beforePrint =()=>{
     console.log("after printing...");
@@ -145,6 +162,7 @@ const RetailPaidInfo = ({
 
   const { isFormLoading } = useSelector(getRetailOrderState);
   const { id: userId, storeId, unitId } = useSelector(getUserInfo);
+  const [orderStatus,setOrderStatus]=useState(0);
 
   //Chuẩn bị dữ liệu
   const prepareOrderData = (paymentMethods, paymentMethodInfo) => {
@@ -193,6 +211,7 @@ const RetailPaidInfo = ({
   const SaveOrder = useCallback(
     async (paymentMethods, paymentMethodInfo, type = "SIMPLE") => {
 
+      setIsCreatingOrder(true);
       const [masterData, detailData] = await prepareOrderData(
         paymentMethods,
         paymentMethodInfo
@@ -254,6 +273,7 @@ const RetailPaidInfo = ({
               voucher: voucher.voucherId,
               sd_diem: isUsePoint ? 1 : 0,
               tt_diem:temp,
+              status:orderStatus
             },
           ],
           detail: detailData,
@@ -261,6 +281,7 @@ const RetailPaidInfo = ({
       })
         .then((res) => {
           if (res?.responseModel?.isSucceded) {
+            setIsCreatingOrder(false);
             setPaymentQR("");
             notification.success({
               message: `Thực hiện thành công`,
@@ -280,9 +301,11 @@ const RetailPaidInfo = ({
         })
         .catch((res) => {
           return null;
+        })
+        .catch((err)=>{
+          setIsCreatingOrder(false);
         });
 
-      modifyIsFormLoading(false);
       modifyIsFormLoading(false);
     },
     [paymentData, voucher, change, isOpenAdvancePayment, paymentType]
@@ -457,6 +480,9 @@ const RetailPaidInfo = ({
       tt_none_diem: tt_none_diem
     });
   };
+  const ChangeOrderStatus =(value)=>{
+    setOrderStatus(value);
+  }
 
   const handleCloseAdvancePayment = useCallback(() => {
     setIsOpenAdvancePayment(false);
@@ -694,22 +720,17 @@ const RetailPaidInfo = ({
 
         <div className="flex flex-column justify-content-between gap-2 ">
           <span className="w-6 flex-shrink-0 line-height-4">Ghi chú:</span>
-          <Input.TextArea
-            ref={noteRef}
-            autoSize={{
-              minRows: 1,
-              maxRows: 3,
-            }}
-            style={{ resize: "none" }}
-          />
+          <Input.TextArea ref={noteRef} autoSize={{  minRows: 1,  maxRows: 3,}}  style={{ resize: "none" }}/>
+        </div>
+        <div className="flex flex-column justify-content-between gap-2 ">
+          <span className="w-6 flex-shrink-0 line-height-4">Trạng thái:</span>
+          <Select defaultValue={0} style={{ width: 150 }} options={listOrderStatus} onChange={ChangeOrderStatus} />
         </div>
       </div>
 
       <div className="retail_action_container flex gap-2 p-2 w-full shadow-4">
         
-        <Button type="primary" className="w-full min-w-0" style={{background:"#52c41a"}} disabled={isFormLoading || cantSave}
-           onClick={ SaveOrder}
-        >
+        <Button type="primary" className="w-full min-w-0" style={{background:"#52c41a"}} disabled={isCreatingOrder || isFormLoading || cantSave} onClick={ SaveOrder}>
           Hoàn thành
         </Button>
       </div>
