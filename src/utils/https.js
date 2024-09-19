@@ -37,7 +37,6 @@ class HttpService {
         return err.response;
       });
   }
-
   put(apiEndpoint, payload) {
     return axios.put(apiEndpoint, payload).then(
       (res) => {

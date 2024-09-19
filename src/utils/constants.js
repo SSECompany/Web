@@ -109,12 +109,6 @@ export const systemOptions = [
     icon: "pi pi-cog",
   },
   {
-    key: "1LTEST",
-    label: "Phân quyền LTEST",
-    data: "/System/PermissionLTEST",
-    icon: "pi pi-cog",
-  },
-  {
     key: "2",
     label: "Màn hình hệ thống",
     data: "Dashboard screen",

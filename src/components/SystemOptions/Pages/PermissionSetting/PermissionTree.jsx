@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tree } from 'antd';
 
-const PermissionTree = ({ data, onSelectChange }) => {
+const PermissionTree = ({ data, onSelectRolesChange }) => {
   const buildTree = (data) => {
     const tree = [];
     const lookup = {};
@@ -49,7 +49,7 @@ const PermissionTree = ({ data, onSelectChange }) => {
     setCheckedKeys(checkedKeys);
 
     const selectedNames = info.checkedNodes.map(node => node.name);
-    onSelectChange(selectedNames);
+    onSelectRolesChange(selectedNames);
   };
 
   return (
