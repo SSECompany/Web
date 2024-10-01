@@ -13,6 +13,7 @@ import { retailOrderReducer } from "../components/Retail/Store/Slices/RetailOrde
 import { saleOrderReducer } from "../components/SaleOrder/Store/Slice/SaleOrderSlice";
 import { saleoutDetailsReducer } from "../components/SaleOrder/Store/Slice/SaleOutSlice";
 import { AccountsReducer } from "../components/SystemOptions/Store/Reducers/Reducers";
+import { TransferReducer } from "../components/Transfer/Store/Slices/TransferSlice";
 import claimsReducer from "./reducers/claimsSlice";
 import loadingReducer from "./reducers/loadingSlice";
 import todoReducer from "./reducers/todoSlice";
@@ -36,6 +37,7 @@ const store = configureStore({
     KPIListReducer,
     retailOrderReducer,
     businessMapReducer,
+    TransferReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

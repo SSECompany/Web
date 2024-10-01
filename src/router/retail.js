@@ -1,5 +1,6 @@
 import RetailOrder from "../components/Retail/Pages/RetailOrder/RetailOrder";
 import OnlineOrder from "../components/Retail/Pages/OnlineOrder/OnlineOrder";
+import StockTransfer from "../components/Transfer/Pages/Transfer/Transfer";
 
 const RORoutes = [
   {
@@ -33,6 +34,13 @@ const RORoutes = [
     parent: "/HDO",
     path: "HDO/OnlineOrder",
     element: <OnlineOrder />,
+  },
+  {
+    label: "Đề nghị điều chuyển",
+    // claims: "Permissions.RO.RetailOrder",
+    claims: "Permissions.ST",
+    path: "/SAT",
+    element: <StockTransfer />,
   },
 ];
 

@@ -29,7 +29,7 @@ const homeRoutes = [
     children: [
       {
         label: "Dashboard",
-        claims: "Permissions.dashboard",
+        claims: "Permissions.Dashboard",
         path: "Dashboard",
         element: <Dashboard />,
         children: [],
@@ -39,7 +39,7 @@ const homeRoutes = [
       ...systemRoutes,
       {
         label: "Liên hệ",
-        claims: "",
+        claims: "Permission.Contact",
         path: "contact",
         element: <Contact />,
       },

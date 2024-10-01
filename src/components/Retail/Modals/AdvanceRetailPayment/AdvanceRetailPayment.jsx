@@ -14,6 +14,7 @@ import { num2words, quantityFormat } from "../../../../app/Options/DataFomater";
 import emitter from "../../../../utils/emitter";
 import { getRetailOrderState } from "../../Store/Selectors/RetailOrderSelectors";
 import "./AdvanceRetailPayment.css";
+import useLocalStorage from "use-local-storage";
 
 const paymentType = [
   {
@@ -33,6 +34,7 @@ const paymentType = [
 const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose,SuccessOrder }) => {
   const [paymentForm] = Form.useForm();
   const [message, contextHolder] = messageAPI.useMessage();
+  const [qrSource, setQrSource] = useLocalStorage("QRimg", "");
 
   const [paymentSelected, setPaymentSelectede] = useState([]);
   const [paymentChangeValue, setPaymentChangeValue] = useState({
@@ -44,6 +46,7 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose,SuccessOrder }) =
   const { isFormLoading } = useSelector(getRetailOrderState);
 
   const handleSelectedPayment = async (item) => {
+    setQrSource("");
     const currentSelectedPayment = [...paymentSelected];
     const currentChangeValue = { ...paymentChangeValue };
     if (currentSelectedPayment.includes(item.value)) {
@@ -83,13 +86,24 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose,SuccessOrder }) =
       message.warning("Chọn hình thức thanh toán");
       return;
     }
-
     if (change < total) {
       message.warning("Không đủ tiền thanh toán");
       return;
     }
 
     onSave(paymentSelected.join(","), paymentChangeValue, "ADVANCE");
+  };
+  const handleSuccessOrder = () => {
+    if (paymentSelected.length === 0) {
+      message.warning("Chọn hình thức thanh toán");
+      return;
+    }
+    if (change < total) {
+      message.warning("Không đủ tiền thanh toán");
+      return;
+    }
+
+    SuccessOrder();
   };
 
    const formatNumber = (val) => {
@@ -182,7 +196,7 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose,SuccessOrder }) =
               QrCode
             </Button>
             <Button type="primary" className="mr-2 ml-2"style={{background:"#52c41a"}} 
-              onClick={ SuccessOrder}
+              onClick={ handleSuccessOrder}
               >
                 Hoàn thành
               </Button>
@@ -253,7 +267,7 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose,SuccessOrder }) =
                     formatter={(value) => formatNumber(value)}
                     parser={(value) => parserNumber(value)}
                     onKeyDownCapture={(event)=>{
-                      if (!/[0-9]/.test(event.key)) {
+                      if ((!/[0-9]/.test(event.key)) && (event.keyCode !=8)) {
                         event.preventDefault();
                       }
                     }}

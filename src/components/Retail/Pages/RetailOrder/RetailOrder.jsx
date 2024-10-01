@@ -5,13 +5,16 @@ import { getRetailOrderState } from "../../Store/Selectors/RetailOrderSelectors"
 import "./RetailOrder.css";
 import RetailOrderInfo from "./RetailOrderInfo/RetailOrderInfo";
 import { RetailOrderProvider } from './RetailOrderInfo/RetailOrderContext';
+import useLocalStorage from "use-local-storage";
 
 const RetailOrder = () => {
   const { listOrder, currentOrder } = useSelector(getRetailOrderState);
+  const [paymentQR, setPaymentQR] = useLocalStorage("QRimg", "");
 
   useEffect(() => {
     return () => {
       resetRetailOrder();
+      setPaymentQR("");
     };
   }, []);
 

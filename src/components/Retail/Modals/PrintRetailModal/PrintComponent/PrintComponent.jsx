@@ -1,10 +1,14 @@
 import React, { forwardRef } from "react";
 import { formatCurrency } from "../../../../../app/hooks/dataFormatHelper";
+import { getUserInfo,getUerSetting } from "../../../../../store/selectors/Selectors";
+import { useSelector } from "react-redux";
 
 const NullComponent = ({ children }) => children;
 
 const PrintComponent = forwardRef(
   ({ master = {}, detail = [], items }, ref) => {
+
+    const { fullName} = useSelector(getUserInfo);
     return (
       <div className="print-content" style={{ fontFamily: "tahoma" }} ref={ref}>
         <div
@@ -54,7 +58,7 @@ const PrintComponent = forwardRef(
 
           <div>
             <span style={{ fontWeight: "bold" }}>Nhân viên bán hàng:</span>{" "}
-            <span>{master?.ten_nvbh || "Trống"}</span>
+            <span>{fullName || "Trống"}</span>
           </div>
           <div>
             <span style={{ fontWeight: "bold" }}>Ghi chú:</span>{" "}

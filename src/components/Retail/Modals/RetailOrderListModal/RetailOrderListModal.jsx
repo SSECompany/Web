@@ -95,6 +95,7 @@ const RetailOrderListModal = ({ isOpen, onClose,ma_ct='HDL' }) => {
 
   const handleSearchData = useDebouncedCallback(
     ({ key, value, params }) => {
+      console.log(key,value);
       setFetchListParams({ [`${key}`]: value, pageIndex: 1 });
     },
     [600]

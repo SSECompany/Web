@@ -43,15 +43,11 @@ const PrintRetailModal = ({ item, isOpen, onClose }) => {
   };
 
   const handleOK = async () => {
-    if (password === inputPassword?.current?.input?.value || "") {
       handlePrint();
       message.success("Đang tiến hành in");
       const to = await setTimeout(() => {
         onClose();
       }, 1500);
-    } else {
-      message.warning("Sai mật khẩu");
-    }
   };
 
   useEffect(() => {

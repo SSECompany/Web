@@ -38,3 +38,8 @@ export const apiGetStoreByUser = async (payload) => {
     return res.data;
   });
 };
+export const multipleTablePutApi = async (payload) => {
+  return await https.post(`User/AddData`, payload).then((res) => {
+    return res?.data || [];
+  });
+};

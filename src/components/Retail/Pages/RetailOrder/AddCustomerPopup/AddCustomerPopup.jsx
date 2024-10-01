@@ -6,7 +6,7 @@ import {
   message as messageAPI,
   Popover,
   Row,
-  Tooltip,
+  Tooltip,Modal 
 } from "antd";
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
@@ -19,6 +19,7 @@ import {
 import { getUserInfo } from "../../../../../store/selectors/Selectors";
 import { SoFuckingUltimateGetApi } from "../../../../DMS/API";
 import { multipleTablePutApi } from "../../../../SaleOrder/API";
+import { getIsAddNewCustomer } from "../../../Store/Selectors/RetailOrderSelectors";
 
 const AddCustomerPopup = ({ onSave }) => {
   const [message, contextHolder] = messageAPI.useMessage();
@@ -26,23 +27,30 @@ const AddCustomerPopup = ({ onSave }) => {
   const [openState, setOpenState] = useState(false);
   const [loading, setLoading] = useState(false);
   const userInfo = useSelector(getUserInfo);
+  const isAddNewCustomer = useSelector(getIsAddNewCustomer);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({});
 
-  const handleAdd = async (item) => {
-    let data = { ...item };
+  const handleAdd = (item) => {
+    console.log(item);
+    const param= { ...item, userID: userInfo.id }
     multipleTablePutApi({
       store: "Api_add_Customer",
-      param: { ...data, userID: userInfo.id },
+      param: param,
       data: {},
     }).then(async (res) => {
       if (res?.responseModel?.isSucceded) {
+
         message.success(`Thực hiện thành công`);
         handleClosePopup();
-        if (onSave)
-          await onSave({
-            ma_kh: data?.ma_kh,
-            ten_kh: data?.ten_kh,
-            dien_thoai: data?.dien_thoai,
-          });
+        console.log(formData);
+        console.log(_.first(_.first(res.listObject)));
+        const data = _.first(_.first(res.listObject));
+        await onSave({
+          ma_kh: data?.ma_kh,
+          ten_kh: formData?.ten_kh,
+          dien_thoai: formData?.dien_thoai,
+        });
       } else {
         message.warning(res?.responseModel?.message);
       }
@@ -58,45 +66,44 @@ const AddCustomerPopup = ({ onSave }) => {
     setOpenState(value);
     if (!value) handleClosePopup();
   };
-
-  const handleGenCustomerCode = () => {
-    setLoading(true);
+  const checkValidCode = (item) => {
+    var valid = true;
+    setFormData({...item,ma_kh:''});
+    var phone = item.dien_thoai;
     multipleTablePutApi({
-      store: "Api_gen_customer_code",
-      param: {},
+      store: "api_Check_customer_code",
+      param: {value:item.dien_thoai,userID: userInfo.id },
       data: {},
-    }).then(async (res) => {
+    }).then( (res) => {
       const data = _.first(_.first(res.listObject));
-      await form.setFieldValue("ma_kh", data?.ma_kh || null);
-      document.getElementById("ten_kh")?.focus();
-      setLoading(false);
-      form.validateFields(["ma_kh"]);
+      if(data?.CheckCode == '1' ){
+        setIsModalOpen(true);
+      }
+      else{
+
+        handleAdd({...item,ma_kh:phone});
+      }
+
     });
   };
 
-  const checkValidCode = async (user_name) => {
-    var valid = true;
-    await SoFuckingUltimateGetApi({
-      store: "api_Check_valid_value",
-      data: { value: user_name, key: "dmkh" },
-    })
-      .then((res) => {
-        if (res?.data[0]?.validation === 1) {
-          valid = false;
-        } else {
-          valid = true;
-        }
-      })
-      .catch((err) => {
-        console.log("owsc ớc");
-      });
-    return valid;
-  };
 
   useEffect(() => {
-    if (openState) document.getElementById("ma_kh")?.focus();
+    setOpenState(isAddNewCustomer.open);
+    form.setFieldValue('dien_thoai',isAddNewCustomer.value);
+    setFormData({...formData,dien_thoai:isAddNewCustomer.value})
+    //if (openState) document.getElementById("ma_kh")?.focus();
     return () => {};
-  }, [openState]);
+  }, [isAddNewCustomer]);
+  
+  const handleOk = () => {
+    handleAdd(formData);
+    setIsModalOpen(false);
+  };
+
+  const handleCancel = () => {
+    setIsModalOpen(false);
+  };
 
   const popoverContent = (item) => {
     return (
@@ -108,12 +115,12 @@ const AddCustomerPopup = ({ onSave }) => {
           dien_thoai: "",
         }}
         form={form}
-        onFinish={handleAdd}
+        onFinish={checkValidCode}
       >
         <p className="primary_bold_text mb-3">Thêm khách hàng</p>
 
         <div className="relative flex flex-column gap-2">
-          <Row gutter={10}>
+          {/* <Row gutter={10}>
             <Col span={21}>
               <div className="default_modal_1_row_items">
                 <span className="default_bold_label" style={{ width: "100px" }}>
@@ -159,7 +166,7 @@ const AddCustomerPopup = ({ onSave }) => {
                 </Button>
               </Tooltip>
             </Col>
-          </Row>
+          </Row> */}
 
           <Row gutter={10}>
             <Col span={24}>
@@ -277,6 +284,9 @@ const AddCustomerPopup = ({ onSave }) => {
           ></i>
         </Button>
       </Popover>
+      <Modal title="Basic Modal" open={isModalOpen} onOk={handleOk} onCancel={handleCancel}>
+        <p>Số điện thoại đã được tạo.Bạn có muốn tạo thêm khách hàng mới</p>
+      </Modal>
     </>
   );
 };

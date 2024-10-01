@@ -12,3 +12,10 @@
     overflow: auto;
     scroll-behavior: smooth;
 }
+.title_component{
+    background-color: white;
+    border-radius: 5px;
+    h3{
+        text-transform: uppercase;
+    }
+}

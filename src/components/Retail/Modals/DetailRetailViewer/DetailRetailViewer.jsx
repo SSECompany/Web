@@ -297,6 +297,12 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey,ma_ct='HDL' }) => {
                     {data?.master?.ngay_ct || "Không có dữ liệu"}
                   </span>
                 </div>
+                <div className="flex justify-content-between gap-2 align-items-center pl-1 pr-1">
+                  <span className="w-6 flex-shrink-0">Trạng thái:</span>
+                  <span className="primary_bold_text line-height-16 white-space-normal">
+                    {data?.master?.statusname || "Không có dữ liệu"}
+                  </span>
+                </div>
               </div>
             </div>
 

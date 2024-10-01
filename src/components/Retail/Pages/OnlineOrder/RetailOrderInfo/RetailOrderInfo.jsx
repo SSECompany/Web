@@ -28,6 +28,7 @@ import {
 } from "../../../../../app/Functions/getTableValue";
 import { formatCurrency } from "../../../../../app/hooks/dataFormatHelper";
 import RenderPerformanceTableCell from "../../../../../app/hooks/RenderPerformanceTableCell";
+import { modifyIsAddNewCustomer } from "../../../Store/Actions/RetailOrderActions";
 import { quantityFormat } from "../../../../../app/Options/DataFomater";
 import { phoneNumberRegex } from "../../../../../app/regex/regex";
 import SelectNotFound from "../../../../../Context/SelectNotFound";
@@ -579,6 +580,11 @@ const RetailOrderInfo = ({ orderKey }) => {
       var ckvtObject = {};
 
       result?.ckvt?.map(async (ck) => {
+        if(ck.loai_ck=='08'){
+          ckvtObject[`${ck.rowKey}_don_gia`] = ck?.gia_nt2;
+          let temp =itemForm.getFieldValue(`${ck.rowKey}_so_luong`);
+          ckvtObject[`${ck.rowKey}_thanh_tien`] = ck?.gia_nt2 * temp;
+        }
         ckvtObject[`${ck.rowKey}_ma_ck`] = ck?.ma_ck;
         ckvtObject[`${ck.rowKey}_tl_ck`] = ck.tl_ck;
         ckvtObject[`${ck.rowKey}_ck`] = ck.ck;
@@ -852,6 +858,7 @@ const RetailOrderInfo = ({ orderKey }) => {
             `${key}_so_luong`,
             Number(getAllValueByRow(key, curData)?.so_luong) + so_luong
           );
+          itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia)) );
           isHad = true;
           return;
         }
@@ -990,10 +997,11 @@ const RetailOrderInfo = ({ orderKey }) => {
     }
 
     if (params.data.type === "DTVL") {
-      setPaymentInfo({
-        ...paymentInfo,
-        dien_thoai: params?.data?.value,
-      });
+      modifyIsAddNewCustomer({open:true,value:searchValue})
+      // setPaymentInfo({
+      //   ...paymentInfo,
+      //   dien_thoai: params?.data?.value,
+      // });
     }
   };
 
@@ -1305,7 +1313,7 @@ const RetailOrderInfo = ({ orderKey }) => {
                           >
                             <div className="flex align-items-center gap-2 primary_bold_text">
                               <i className="pi pi-plus-circle primary_bold_text"></i>
-                              <span>Gắn số điện thoại vãng lai</span>
+                              <span>Thêm mới khách hàng</span>
                             </div>
                           </Select.Option>
                         )}

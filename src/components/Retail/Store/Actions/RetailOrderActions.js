@@ -344,3 +344,6 @@ export const modifyIsOpenPromotion = async (params) => {
 export const modifyIsLoadingPromotion = async (params) => {
   store.dispatch(retailOrderActions.setIsPromotionLoading(params));
 };
+export const modifyIsAddNewCustomer = async (payload) => {
+    store.dispatch(retailOrderActions.setIsAddNewCustomer(payload));
+};

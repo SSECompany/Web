@@ -180,7 +180,9 @@ const RetailPaidInfo = ({
     const detailData = [];
 
     getAllRowKeys(data).map((item) => {
-      return detailData.push(getAllValueByRow(item, data));
+      var temp=getAllValueByRow(item, data);
+      if(!temp.ghi_chu) temp={...temp,ghi_chu:''}
+      return detailData.push(temp);
     });
 
     return [masterData, detailData];
@@ -245,12 +247,14 @@ const RetailPaidInfo = ({
       if (_.isEmpty(detailData)) {
         message.warning("Vui lòng thêm vật tư !");
         modifyIsFormLoading(false);
+        setIsCreatingOrder(false);
         return;
       }
 
       if (_.isEmpty(master?.ma_kh)) {
         message.warning("Mã khách hàng trống!");
         modifyIsFormLoading(false);
+        setIsCreatingOrder(false);
         return;
       }
       console.log(_.first(data[0]));
@@ -722,10 +726,10 @@ const RetailPaidInfo = ({
           <span className="w-6 flex-shrink-0 line-height-4">Ghi chú:</span>
           <Input.TextArea ref={noteRef} autoSize={{  minRows: 1,  maxRows: 3,}}  style={{ resize: "none" }}/>
         </div>
-        <div className="flex flex-column justify-content-between gap-2 ">
+        {/* <div className="flex flex-column justify-content-between gap-2 ">
           <span className="w-6 flex-shrink-0 line-height-4">Trạng thái:</span>
           <Select defaultValue={0} style={{ width: 150 }} options={listOrderStatus} onChange={ChangeOrderStatus} />
-        </div>
+        </div> */}
       </div>
 
       <div className="retail_action_container flex gap-2 p-2 w-full shadow-4">

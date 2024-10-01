@@ -16,7 +16,7 @@ import {
   Spin,
   Switch,
 } from "antd";
-import _ from "lodash";
+import _, { truncate } from "lodash";
 import React, {
   memo,
   useCallback,
@@ -43,7 +43,7 @@ import { multipleTablePutApi } from "../../../../SaleOrder/API";
 import AdvanceRetailPayment from "../../../Modals/AdvanceRetailPayment/AdvanceRetailPayment";
 import PrintComponent from "../../../Modals/PrintRetailModal/PrintComponent/PrintComponent";
 import RetailPaymentConfirm from "../../../Modals/RetailPaymentConfirm/RetailPaymentConfirm";
-import { modifyIsFormLoading } from "../../../Store/Actions/RetailOrderActions";
+import { modifyIsFormLoading,modifyIsAddNewCustomer } from "../../../Store/Actions/RetailOrderActions";
 import { getRetailOrderState } from "../../../Store/Selectors/RetailOrderSelectors";
 
 import AddCustomerPopup from "../AddCustomerPopup/AddCustomerPopup";
@@ -64,6 +64,7 @@ const paymentTypeOptions = [
     key: "chuyen_khoan",
   },
 ];
+var so_ct={};
 
 const RetailPaidInfo = ({
   itemForm,
@@ -105,7 +106,7 @@ const RetailPaidInfo = ({
   const {tk_nh,bin,hs_quy_doi} = useSelector(getUerSetting);
 
   const [printMaster, setPrintMaster] = useState({});
-  const [so_ct, setSo_ct] = useState("");
+  //const [so_ct, setSo_ct] = useState("");
   const [printDetail, setPrintDetail] = useState([]);
   const [isCreatingOrder,setIsCreatingOrder]=useState(false);
 
@@ -146,7 +147,7 @@ const RetailPaidInfo = ({
   const [isShowConfirmDialog, setIsShowConfirmDialog] = useState(false);
 
   const { isFormLoading } = useSelector(getRetailOrderState);
-  const { id: userId, storeId, unitId } = useSelector(getUserInfo);
+  const { id: userId, storeId, unitId,storeName } = useSelector(getUserInfo);
 
   //Chuẩn bị dữ liệu
   const prepareOrderData = (paymentMethods, paymentMethodInfo) => {
@@ -164,7 +165,9 @@ const RetailPaidInfo = ({
     const detailData = [];
 
     getAllRowKeys(data).map((item) => {
-      return detailData.push(getAllValueByRow(item, data));
+      var temp=getAllValueByRow(item, data);
+      if(!temp.ghi_chu) temp={...temp,ghi_chu:''}
+      return detailData.push(temp);
     });
 
     return [masterData, detailData];
@@ -192,24 +195,14 @@ const RetailPaidInfo = ({
     setPoint(e);
     CalFinalPayment();
   }
-  const SaveOrder = useCallback(
-    async (paymentMethods, paymentMethodInfo, type = "SIMPLE") => {
-
+  const SaveOrder =  async (paymentMethods, paymentMethodInfo, type = "SIMPLE") => {
+      if(isCreatingOrder) return;
       setIsCreatingOrder(true);
+
       const [masterData, detailData] = await prepareOrderData(
         paymentMethods,
         paymentMethodInfo
       );
-      // const temp_so_ct =await multipleTablePutApi({
-      //   store: "GetTblSoCt",
-      //   param: {
-      //     so_ct:""
-      //   },
-      //   data: {},
-      // })
-      // const data = temp_so_ct?.listObject || [];
-      // const so_ct = _.first(data[0]);
-
 
       var master = { ...masterData};
       if (type === "SIMPLE") {
@@ -221,36 +214,51 @@ const RetailPaidInfo = ({
           httt: paymentType,
         };
       }
-      console.log(master);
-      master.so_ct=so_ct.so_ct;
+      if(so_ct.so_ct){
+        master={...master,so_ct:so_ct.so_ct};
+      }
+      else{
+        const temp_so_ct =await multipleTablePutApi({
+          store: "GetTblSoCt",
+          param: {
+            so_ct:""
+          },
+          data: {},
+        })
+        const data_so_ct = temp_so_ct?.listObject || [];
+        master={...master,so_ct:_.first(data_so_ct[0]).so_ct}
+      }
+      
 
       modifyIsFormLoading(true);
 
       if (change - paymentData?.tong_tt < 0 && !isOpenAdvancePayment) {
         message.warning("Tiền thanh toán không đủ !");
         modifyIsFormLoading(false);
+        setIsCreatingOrder(false);
         return;
       }
 
       if (_.isEmpty(detailData)) {
         message.warning("Vui lòng thêm vật tư !");
         modifyIsFormLoading(false);
+        setIsCreatingOrder(false);
         return;
       }
 
       if (_.isEmpty(master?.ma_kh)) {
         message.warning("Mã khách hàng trống!");
         modifyIsFormLoading(false);
+        setIsCreatingOrder(false);
         return;
       }
 
       setIsShowConfirmDialog(false);
-      
       setPrintMaster(master);
       var temp =master.diem_sd;
       setPrintDetail(detailData);
 
-      const result = await multipleTablePutApi({
+      multipleTablePutApi({
         arandomnumber: Math.floor(Math.random() * 10000),
         store: "Api_create_retail_order",
         param: {
@@ -279,9 +287,10 @@ const RetailPaidInfo = ({
             });
 
             onResetForm();
-
+            setPaymentQR('');
             emitter.emit("HANDLE_RETAIL_ORDER_SAVE");
             handleCloseAdvancePayment();
+            setChange(0);
             return _.first(res.listObject[0]);
           } else {
             notification.warning({
@@ -291,19 +300,20 @@ const RetailPaidInfo = ({
           }
         })
         .catch((res) => {
+          setIsCreatingOrder(true);
           return null;
         })
-        .catch((err)=>{
-          setIsCreatingOrder(true);
-        });
 
       modifyIsFormLoading(false);
-    },
-    [paymentData, voucher, change, isOpenAdvancePayment, paymentType]
-  );
+    }
   // Lưu phiếu
   const handleSave = useCallback(
     async (paymentMethods, paymentMethodInfo, type = "SIMPLE") => {
+      // setPaymentData({
+      //   ...paymentData,
+      // });
+      setPaymentType('chuyen_khoan');
+      await setChange(paymentData.tong_tt);
 
       console.log('zzzzz');
       const temp_so_ct =await multipleTablePutApi({
@@ -315,7 +325,8 @@ const RetailPaidInfo = ({
       })
       const data = temp_so_ct?.listObject || [];
       var so_ct_temp = _.first(data[0]);
-      setSo_ct(so_ct_temp);
+      so_ct=so_ct_temp;
+      //setSo_ct(so_ct_temp);
 
 
       const [masterData, detailData] = await prepareOrderData(
@@ -346,12 +357,6 @@ const RetailPaidInfo = ({
 
       //modifyIsFormLoading(true);
 
-      if (change - paymentData?.tong_tt < 0 && !isOpenAdvancePayment) {
-        message.warning("Tiền thanh toán không đủ !");
-        modifyIsFormLoading(false);
-        return;
-      }
-
       if (_.isEmpty(detailData)) {
         message.warning("Vui lòng thêm vật tư !");
         modifyIsFormLoading(false);
@@ -363,11 +368,13 @@ const RetailPaidInfo = ({
         modifyIsFormLoading(false);
         return;
       }
-      if (master?.chuyen_khoan > 0) {
+      console.log(master);
+      if (master?.tong_tt > 0) {
+        console.log('setchuyenkhoan');
         setPaymentQR(
-          `https://img.vietqr.io/image/${bin}-${tk_nh}-R45Gdao.jpg?amount=${
-            master?.chuyen_khoan || 0
-          }&addInfo=SoCT:${so_ct_temp.so_ct}`
+          `https://img.vietqr.io/image/${bin}-${tk_nh}-EEmxQTR.jpg?amount=${
+            master?.tong_tt || 0
+          }&addInfo=${so_ct_temp.so_ct}%20${storeName}`
         );
       }
 
@@ -494,6 +501,10 @@ const RetailPaidInfo = ({
   }, []);
 
   const handlePaymentTypeClick = ({ key }) => {
+    console.log(key);
+    if(key!= "tien_mat"){
+      setPaymentQR("");
+    }
     setPaymentType(key);
   };
 
@@ -707,6 +718,7 @@ const RetailPaidInfo = ({
             <span className="w-6 flex-shrink-0">Khách đưa:</span>
             <InputNumber
               controls={false}
+              value={change}
               min="0"
               className="w-full"
               placeholder="0"

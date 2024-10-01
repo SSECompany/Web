@@ -13,6 +13,11 @@ const initial = {
     pageIndex: 1,
     pageSize: 10,
   },
+  isAddNewCustomer:{
+    open:false,
+    value:''
+  },
+  valueAddNewCustomer:'',
   isFormLoading: false,
   isOpenPromotion: false,
   isPromotionLoading: false,
@@ -52,6 +57,9 @@ const retailOrderSlice = createSlice({
 
     resetFetchListParams: (state, action) => {
       state.fetchListParams = initial.fetchListParams;
+    },
+    setIsAddNewCustomer: (state, action) => {
+      state.isAddNewCustomer = action.payload;
     },
 
     reset: () => initial,
