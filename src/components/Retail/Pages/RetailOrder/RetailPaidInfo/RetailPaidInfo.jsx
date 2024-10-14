@@ -137,6 +137,8 @@ const RetailPaidInfo = ({
 
   const [paymentType, setPaymentType] = useState("tien_mat");
 
+  const [isQrCode, setIsQrCode] = useState(false);
+
   const [paymentData, setPaymentData] = useState({});
 
   const [change, setChange] = useState(0);
@@ -223,7 +225,7 @@ const RetailPaidInfo = ({
           tien_mat: paymentType === "tien_mat" ? masterData.tong_tt : 0,
           tien_the: paymentType === "tien_the" ? masterData.tong_tt : 0,
           chuyen_khoan: paymentType === "chuyen_khoan" ? masterData.tong_tt : 0,
-          httt: paymentType,
+          httt: isQrCode ? 'qr_code' : paymentType,
         };
       }
       if(so_ct.so_ct){
@@ -544,11 +546,17 @@ const RetailPaidInfo = ({
 
   const handlePaymentTypeClick = ({ key }) => {
     console.log(key);
+    setIsQrCode(false);
     if(key!= "chuyen_khoan"){
       setPaymentQR("");
     }
     setPaymentType(key);
   };
+  
+  useEffect(() => {
+    console.log(isQrCode);
+  }, [isQrCode])
+
   const handleSearch = useDebouncedCallback((newValue)=>{
     multipleTablePutApi({
       store: "Api_search_customers",
@@ -887,6 +895,7 @@ const RetailPaidInfo = ({
         <Button type="primary" className="w-full min-w-0" onClick={() => {
             // setIsShowConfirmDialog(true);
             handleShowCustomerViewDialog();
+            setIsQrCode(true);
             handleSave();
           }}
           disabled={isFormLoading || cantSave}
