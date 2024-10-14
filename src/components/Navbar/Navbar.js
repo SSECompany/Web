@@ -154,7 +154,9 @@ const Navbar = () => {
       const setting={
         tk_nh :data[0][0]?.tk_nh,
         bin:data[0][0]?.bin|'',
-        hs_quy_doi:data[0][0]?.hs_quy_doi|0
+        bank_account_name:data[0][0]?.bank_account_name|'',
+        hs_quy_doi:data[0][0]?.hs_quy_doi|0,
+        maxPoint:data[0][0]?.maxPoint
       };
 
       dispatch(setUserSetting(setting));

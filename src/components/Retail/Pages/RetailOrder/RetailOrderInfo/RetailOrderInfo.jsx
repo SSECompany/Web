@@ -22,6 +22,7 @@ import LoadingComponents from "../../../../Loading/LoadingComponents";
 import PerformanceTable from "../../../../ReuseComponents/PerformanceTable/PerformanceTable";
 import { multipleTablePutApi } from "../../../../SaleOrder/API";
 import RetailOrderListModal from "../../../Modals/RetailOrderListModal/RetailOrderListModal";
+import ShowItemInfoModal from "../../../Modals/ShowItemInfo/ShowItemInfoModal";
 import RetailPromotionModal from "../../../Modals/RetailPromotionModal/RetailPromotionModal";
 import {fetchRetailOderPromotion,modifyIsOpenPromotion,setCurrentRetailOrder,setRetailOrderList,setRetailOrderScanning,} from "../../../Store/Actions/RetailOrderActions";
 import { getRetailOrderState } from "../../../Store/Selectors/RetailOrderSelectors";
@@ -31,292 +32,364 @@ import { RetailOrderContext } from './RetailOrderContext';
 import useLocalStorage from "use-local-storage";
 import checkPermission from 'utils/permission'
 
-const columns = [
-  {
-    key: "image",
-    title: "Ảnh",
-    dataKey: "image",
-    width: 60,
-    align: Column.Alignment.CENTER,
-    resizable: false,
-
-    cellRenderer: ({ cellData, rowData }) =>
-      cellData ? (
-        <Image
-          className="border-circle"
-          title=""
-          style={{ height: 40 }}
-          src={cellData}
-          alt="SSE"
-        ></Image>
-      ) : (
-        <Avatar style={{ background: rowData.ck_yn ? "red" : "#341b4d" }}>
-          {rowData.ck_yn ? (
-            <i className="pi pi-gift" style={{ fontSize: 40 }}></i>
-          ) : (
-            <FileImageOutlined
-              style={{
-                fontSize: "40px",
-              }}
-            />
-          )}
-        </Avatar>
-      ),
-  },
-
-  {
-    key: "ten_vt",
-    title: "Tên vật tư",
-    dataKey: "ten_vt",
-    className: "flex-1",
-    headerClassName: "flex-1",
-    width: 100,
-    resizable: false,
-    sortable: false,
-    type: "TextArea",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "barcode",
-    title: "Barcode",
-    dataKey: "barcode",
-    width: 0,
-    resizable: false,
-    sortable: false,
-    className: "p-0",
-    headerClassName: "p-0",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "ma_vt",
-    title: "Mã vật tư",
-    dataKey: "ma_vt",
-    width: 0,
-    resizable: false,
-    sortable: false,
-    className: "p-0",
-    headerClassName: "p-0",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "ma_kho",
-    title: "Kho",
-    dataKey: "ma_kho",
-    width: 120,
-    resizable: false,
-    sortable: false,
-    editable: true,
-    controller: "dmkho_lookup",
-    type: "AutoComplete",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "dvt",
-    title: "Đơn vị",
-    dataKey: "dvt",
-    width: 70,
-    resizable: false,
-    sortable: false,
-    editable: true,
-    type: "dvt",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowData={rowData}
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "so_luong",
-    title: "Số lượng",
-    dataKey: "so_luong",
-    width: 100,
-    resizable: false,
-    sortable: false,
-    editable: true,
-    type: "Numeric",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "don_gia",
-    title: "Đơn giá",
-    dataKey: "don_gia",
-    width: 110,
-    resizable: false,
-    sortable: false,
-    editable: true,
-    type: "Numeric",
-    format: "0",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "thanh_tien",
-    title: "Thành tiền",
-    dataKey: "thanh_tien",
-    width: 120,
-    resizable: false,
-    sortable: false,
-    editable: true,
-    format: "0",
-    type: "Numeric",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "ck_yn",
-    title: "Chiết khấu",
-    dataKey: "ck_yn",
-    width: 0,
-    resizable: false,
-    sortable: false,
-    className: "p-0",
-    headerClassName: "p-0",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "ma_ck",
-    title: "Mã chiết khấu",
-    dataKey: "ma_ck",
-    width: 0,
-    resizable: false,
-    sortable: false,
-    className: "p-0",
-    headerClassName: "p-0",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "tl_ck",
-    title: "Tỷ lệ chiết khấu",
-    dataKey: "tl_ck",
-    width: 0,
-    resizable: false,
-    sortable: false,
-    editable: false,
-    format: "0",
-    type: "Numeric",
-    className: "p-0",
-    headerClassName: "p-0",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "ck",
-    title: "Tiền chiết khấu",
-    dataKey: "ck",
-    width: 0,
-    resizable: false,
-    sortable: false,
-    editable: false,
-    format: "0",
-    type: "Numeric",
-    className: "p-0",
-    headerClassName: "p-0",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-];
-
 const RetailOrderInfo = ({ orderKey }) => {
+  const [openItemInfo,setOpenItemInfo]=useState(false);
+  const [selectedItem,setSelectedItem]=useState('');
+
+  const handleShowItemInfo =(value)=>{
+    setOpenItemInfo(true);
+    setSelectedItem(value.ma_vt)
+  }
+  const KeyDownName =(event)=>{
+    event.preventDefault();
+  }
+  const rightClickName =(event)=>{
+    event.preventDefault();
+  }
+  const columns = [
+    {
+      title: "",
+      width: 60,
+      align: Column.Alignment.CENTER,
+      resizable: false,
+  
+      cellRenderer: ({ cellData, rowData }) =>{
+        return <Button
+          className="default_button"
+          danger
+          onClick={()=>RemoveTest(rowData)}
+        >
+          <i className="pi pi-trash" style={{ fontWeight: "bold" }}></i>
+        </Button>
+      }
+    },
+    {
+      key: "image",
+      title: "Ảnh",
+      dataKey: "image",
+      width: 60,
+      align: Column.Alignment.CENTER,
+      resizable: false,
+  
+      cellRenderer: ({ cellData, rowData }) =>
+        cellData ? (
+          <Image
+            className="border-circle"
+            title=""
+            style={{ height: 40 }}
+            src={cellData}
+            alt="SSE"
+          ></Image>
+        ) : (
+          <Avatar style={{ background: rowData.ck_yn ? "red" : "#341b4d" }}>
+            {rowData.ck_yn ? (
+              <i className="pi pi-gift" style={{ fontSize: 40 }}></i>
+            ) : (
+              <FileImageOutlined
+                style={{
+                  fontSize: "40px",
+                }}
+              />
+            )}
+          </Avatar>
+        ),
+    },
+  
+    {
+      key: "ten_vt",
+      title: "Tên vật tư",
+      dataKey: "ten_vt",
+      className: "flex-1",
+      headerClassName: "flex-1",
+      width: 100,
+      resizable: false,
+      sortable: false,
+      type: "TextArea",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+            <Form.Item  initialValue={cellData || null}  name={`${rowData.id}_ten_vt`}   style={{   width: "100%",  margin: 0,  }}
+            >
+              <Input.TextArea 
+                onClick={()=>{handleShowItemInfo(rowData)}}
+                autoSize={{  minRows: 1,  maxRows: 2,  }}  style={{ resize: "none", transition: "none" }} variant={"borderless"} 
+                className="p-0 Performance_table_span" 
+                onKeyDown={KeyDownName}
+                onContextMenu={rightClickName}
+              />
+            </Form.Item>
+        );
+      },
+    },
+  
+    {
+      key: "barcode",
+      title: "Barcode",
+      dataKey: "barcode",
+      width: 0,
+      resizable: false,
+      sortable: false,
+      className: "p-0",
+      headerClassName: "p-0",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+  
+    {
+      key: "ma_vt",
+      title: "Mã vật tư",
+      dataKey: "ma_vt",
+      width: 0,
+      resizable: false,
+      sortable: false,
+      className: "p-0",
+      headerClassName: "p-0",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+  
+    {
+      key: "ma_kho",
+      title: "Kho",
+      dataKey: "ma_kho",
+      width: 120,
+      resizable: false,
+      sortable: false,
+      editable: true,
+      controller: "dmkho_lookup",
+      type: "AutoComplete",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+    {
+      key: "thue_suat",
+      title: "Vat",
+      dataKey: "thue_suat",
+      width: 80,
+      resizable: false,
+      sortable: false,
+      editable: false,
+      type: "Numeric",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+    {
+      key: "thue_nt",
+      title: "Vat Tềin",
+      dataKey: "thue_nt",
+      width: 0,
+      resizable: false,
+      sortable: false,
+      editable: true,
+      type: "Numeric",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+  
+    {
+      key: "dvt",
+      title: "Đơn vị",
+      dataKey: "dvt",
+      width: 70,
+      resizable: false,
+      sortable: false,
+      editable: true,
+      type: "dvt",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowData={rowData}
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+  
+    {
+      key: "so_luong",
+      title: "Số lượng",
+      dataKey: "so_luong",
+      width: 100,
+      resizable: false,
+      sortable: false,
+      editable: true,
+      type: "Numeric",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+  
+    {
+      key: "don_gia",
+      title: "Đơn giá",
+      dataKey: "don_gia",
+      width: 110,
+      resizable: false,
+      sortable: false,
+      editable: true,
+      type: "Numeric",
+      format: "0",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+  
+    {
+      key: "thanh_tien",
+      title: "Thành tiền",
+      dataKey: "thanh_tien",
+      width: 120,
+      resizable: false,
+      sortable: false,
+      editable: true,
+      format: "0",
+      type: "Numeric",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+  
+    {
+      key: "ck_yn",
+      title: "Chiết khấu",
+      dataKey: "ck_yn",
+      width: 0,
+      resizable: false,
+      sortable: false,
+      className: "p-0",
+      headerClassName: "p-0",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+  
+    {
+      key: "ma_ck",
+      title: "Mã chiết khấu",
+      dataKey: "ma_ck",
+      width: 0,
+      resizable: false,
+      sortable: false,
+      className: "p-0",
+      headerClassName: "p-0",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+  
+    {
+      key: "tl_ck",
+      title: "Tỷ lệ chiết khấu",
+      dataKey: "tl_ck",
+      width: 0,
+      resizable: false,
+      sortable: false,
+      editable: false,
+      format: "0",
+      type: "Numeric",
+      className: "p-0",
+      headerClassName: "p-0",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+  
+    {
+      key: "ck",
+      title: "Tiền chiết khấu",
+      dataKey: "ck",
+      width: 0,
+      resizable: false,
+      sortable: false,
+      editable: false,
+      format: "0",
+      type: "Numeric",
+      className: "p-0",
+      headerClassName: "p-0",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+  ];
+  
   const { listOrder, currentOrder, isScanning, isFormLoading } =
     useSelector(getRetailOrderState);
 
@@ -370,19 +443,41 @@ const RetailOrderInfo = ({ orderKey }) => {
 
   const isHideNav = useSelector(getIsHideNav);
   const [paymentQR, setPaymentQR] = useLocalStorage("QRimg", "");
+  const [isCalVat,setIsCalVat]=useState(false);
 
   /////// Orde List functions //////////////
 
   const handleOrderListModal = useCallback(() => {
     setIsOpenOrderList(!isOpenOrderList);
   }, [isOpenOrderList]);
+  const handleCloseItemModal =useCallback( ()=>{
+    setOpenItemInfo(false);
+  },[openItemInfo])
 
   const handleHideNavbar = () => {
     dispatch(setIsHideNav(!isHideNav));
   };
+  const ChangeCalVat = async (value)=>{
+    await setIsCalVat(value);
+    console.log(value);
+    const curData = itemForm.getFieldsValue();
+    if(value){
+      await getAllRowKeys(curData).map((key) => {
+          //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)) * (Number(getAllValueByRow(key, curData)?.don_gia) *(100 - Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) );
+          itemForm.setFieldValue(`${key}_thue_nt`,((Number(getAllValueByRow(key, curData)?.so_luong)) * (Number(getAllValueByRow(key, curData)?.don_gia) *(Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) ) );
+      });
+    }
+    else{
+      await getAllRowKeys(curData).map((key) => {
+        //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)) * (Number(getAllValueByRow(key, curData)?.don_gia)) );
+        itemForm.setFieldValue(`${key}_thue_nt`,0);
+      });
+    }
+    if (autoCalPromotion) await recalPromotion(true,value);
+    else await handleCalculatorPayment();
+  }
 
   /////// Calculations functions////////////
-
   //Tính chiết khấu
   const handlePromotionCalculate = useCallback(
     async (CKVT = [], CKTH = [], CKTD = [], currentData) => {
@@ -497,8 +592,13 @@ const RetailOrderInfo = ({ orderKey }) => {
 
     const tong_ck = parseFloat(tong_ckvt + ck_tong_don);
 
-    const tong_thue = parseFloat((tong_tien * paymentInfo.thue_suat) / 100);
-
+    //const tong_thue = parseFloat((tong_tien * paymentInfo.thue_suat) / 100);
+    var tong_thue = 0
+    if (isCalVat)
+      tong_thue =await getAllValueByColumn("thue_nt", changedValues).reduce(
+      (Sum, num) => Sum + num,
+      0
+    );
     const tong_tt = parseFloat(tong_tien + tong_thue - tong_ck);
 
     const calculated = {
@@ -517,31 +617,46 @@ const RetailOrderInfo = ({ orderKey }) => {
     setIsChangedData(uuidv4());
   }, [JSON.stringify(data), JSON.stringify(paymentInfo)]);
 
-  const recalPromotion = useDebouncedCallback(async () => {
+  const recalPromotion = async (temp=false,useCal=false ) => {
     setIsCalculating(true);
-    message.open({
-      type: "loading",
-      content: "Đang xử lý chương trình chiết khấu",
-      duration: 0,
-    });
+    // message.open({
+    //   type: "loading",
+    //   content: "Đang xử lý chương trình chiết khấu",
+    //   duration: 0,
+    // });
 
     //Reset
+    var tempIsCalVat =isCalVat;
+    if(temp) tempIsCalVat =useCal
     const changedValues = { ...itemForm.getFieldsValue() };
     const allKeys = getAllRowKeys(changedValues);
     const rawData = [...data].filter((row) => !row?.ck_yn);
     var promotions = {};
-
     allKeys.map(async (key) => {
       promotions[`${key}_ma_ck`] = "";
       promotions[`${key}_tl_ck`] = 0;
       promotions[`${key}_ck`] = 0;
     });
+    var tong_thue =0
+    if (tempIsCalVat){
+      console.log('11');
+        tong_thue =await getAllValueByColumn("thue_nt", changedValues).reduce(
+        (Sum, num) => Sum + num,
+        0
+      );
+      console.log(changedValues);
+      await getAllValueByColumn("thue_nt", changedValues).map((d)=>{
+        console.log(d);
+      })
+    }
+    console.log(tempIsCalVat,tong_thue)
 
     setPaymentInfo({
       ...paymentInfo,
       ma_ck: "",
       ck: 0,
       tl_ck: 0,
+      tong_thue:tong_thue
     });
 
     await itemForm.setFieldsValue({
@@ -614,7 +729,7 @@ const RetailOrderInfo = ({ orderKey }) => {
 
     setIsCalculating(false);
     setIsCalPromotion(Tinhtrang);
-  }, 1300);
+  }
 
   useEffect(() => {
     if (!isCalPromotion && !_.isEmpty(data) && autoCalPromotion) {
@@ -802,6 +917,7 @@ const RetailOrderInfo = ({ orderKey }) => {
     dvt,
     don_gia,
     ck_yn,
+    thue_suat,
     so_luong = 1,
   }) => {
     if (isMergeRowData) {
@@ -809,12 +925,20 @@ const RetailOrderInfo = ({ orderKey }) => {
       let isHad = false;
 
       await getAllRowKeys(curData).map((key) => {
+        console.log(getAllValueByRow(key, curData)?.ma_vt)
         if (getAllValueByRow(key, curData)?.ma_vt === ma_vt) {
-          itemForm.setFieldValue(
-            `${key}_so_luong`,
-            Number(getAllValueByRow(key, curData)?.so_luong) + so_luong
-          );
+          itemForm.setFieldValue(`${key}_so_luong`,Number(getAllValueByRow(key, curData)?.so_luong) + so_luong);
+          console.log( getAllValueByRow(key, curData))
           itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia)) );
+          if(isCalVat){
+            //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia) *(100 - Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) );
+            itemForm.setFieldValue(`${key}_thue_nt`,((Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia) *(Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) ) );
+          }
+          else{
+
+            //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia)) );
+            itemForm.setFieldValue(`${key}_thue_nt`,0  );
+          }
           isHad = true;
           return;
         }
@@ -841,6 +965,8 @@ const RetailOrderInfo = ({ orderKey }) => {
         don_gia: don_gia || "0",
         thanh_tien: don_gia * 1 || "0",
         ck_yn: ck_yn || false,
+        thue_suat:thue_suat,
+        thue_nt:isCalVat?((100-thue_suat)*don_gia/100)  :0,
         children: [
           {
             id: `${rowID}-detail`,
@@ -902,6 +1028,22 @@ const RetailOrderInfo = ({ orderKey }) => {
       },
     ]);
   };
+  const RemoveTest =(d)=>{
+    const filteredData = [...data].filter(
+      (item) => (item?.id != d.id)
+    );
+    setSelectedItem('');
+    setData(filteredData);
+
+    if (_.isEmpty(filteredData)) {
+      setPaymentInfo({
+        ...paymentInfo,
+        ma_ck: "",
+        ck: 0,
+        tl_ck: 0,
+      });
+    }
+  }
 
   //xoá dòng vật tư
   const handleRemoveRowData = () => {
@@ -928,7 +1070,8 @@ const RetailOrderInfo = ({ orderKey }) => {
 
   const handleSelectChange = (key, params) => {
     if (params.data.type === "VT") {
-      const { value, label, dvt, gia, ma_kho, image } = params.data;
+      console.log(params.data)
+      const { value, label, dvt, gia, ma_kho, image,thue_suat } = params.data;
       handleAddRowData({
         ma_vt: value,
         ten_vt: label,
@@ -937,6 +1080,7 @@ const RetailOrderInfo = ({ orderKey }) => {
         dvt,
         don_gia: gia,
         ck_yn: false,
+        thue_suat:thue_suat,
       });
     }
 
@@ -1009,8 +1153,9 @@ const RetailOrderInfo = ({ orderKey }) => {
 
     const allCellsValues = getAllValueByColumn(cellName, allCells);
 
-    const reCalculateTotal = (donGia = 0, soLuong = 0) => {
+    const reCalculateTotal = (donGia = 0, soLuong = 0,thue_suat=0) => {
       itemForm.setFieldValue(`${changedRowKey}_thanh_tien`, donGia * soLuong);
+      if (isCalVat)itemForm.setFieldValue(`${changedRowKey}_thue_nt`, donGia * soLuong *thue_suat/100 );
     };
 
     switch (cellName) {
@@ -1040,7 +1185,8 @@ const RetailOrderInfo = ({ orderKey }) => {
 
     await reCalculateTotal(
       getCurRowValues()?.don_gia,
-      getCurRowValues()?.so_luong
+      getCurRowValues()?.so_luong,
+      getCurRowValues()?.thue_suat
     );
     handleCalculatorPayment();
   };
@@ -1276,7 +1422,6 @@ const RetailOrderInfo = ({ orderKey }) => {
                     </Select.OptGroup>
                   })}
               </Select>
-
               <Tooltip placement="topRight" title="Quét (F10)">
                 <Button
                   className="default_button shadow_3"
@@ -1501,11 +1646,18 @@ const RetailOrderInfo = ({ orderKey }) => {
         onResetForm={handleResetForm}
         cantSave={isCalculating}
         isChangedData={isChangedData}
+        isCalVat={isCalVat}
+        ChangeCalVat={ChangeCalVat}
       />
       <RetailOrderListModal
         isOpen={isOpenOrderList}
         onClose={handleOrderListModal}
       />
+      {/* <ShowItemInfoModal
+        isOpen={openItemInfo}
+        onClose={handleCloseItemModal}
+        ma_vt={selectedItem}
+      /> */}
       <RetailPromotionModal
         tableData={itemForm.getFieldsValue()}
         customer={paymentInfo?.ma_kh}

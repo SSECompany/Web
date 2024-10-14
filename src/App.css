@@ -19,3 +19,9 @@
         text-transform: uppercase;
     }
 }
+.ant-picker-input input::placeholder{
+    color: gray!important;
+  }
+  .custom_input_design input{
+    padding-right: 0px!important;
+}

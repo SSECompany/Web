@@ -25,3 +25,8 @@
     width: 100%;
     cursor: pointer;
 }
+.custom_input_design input{
+    padding-right: 0px!important;
+}
+.point_using input{
+}

@@ -13,7 +13,7 @@ import {
   InputNumber,
   message as messageAPI,
   notification,
-  Spin,
+  Spin,Select,
   Switch,
 } from "antd";
 import _, { truncate } from "lodash";
@@ -30,6 +30,7 @@ import { useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { useDebouncedCallback } from "use-debounce";
 import useLocalStorage from "use-local-storage";
+import { filterKeyHelper } from "app/Functions/filterHelper";
 import {
   getAllRowKeys,
   getAllValueByRow,
@@ -45,6 +46,7 @@ import PrintComponent from "../../../Modals/PrintRetailModal/PrintComponent/Prin
 import RetailPaymentConfirm from "../../../Modals/RetailPaymentConfirm/RetailPaymentConfirm";
 import { modifyIsFormLoading,modifyIsAddNewCustomer } from "../../../Store/Actions/RetailOrderActions";
 import { getRetailOrderState } from "../../../Store/Selectors/RetailOrderSelectors";
+import UpdateCustomerPopup from "../UpdateCustomerPopup/UpdateCustomerPopup";
 
 import AddCustomerPopup from "../AddCustomerPopup/AddCustomerPopup";
 
@@ -73,6 +75,8 @@ const RetailPaidInfo = ({
   onResetForm,
   cantSave,
   isChangedData,
+  isCalVat,
+  ChangeCalVat
 }) => {
   //Key map
   useHotkeys(
@@ -103,12 +107,18 @@ const RetailPaidInfo = ({
     null
   );
   const noteRef = useRef("");
-  const {tk_nh,bin,hs_quy_doi} = useSelector(getUerSetting);
+  const {tk_nh,bin,hs_quy_doi,bank_account_name} = useSelector(getUerSetting);
 
   const [printMaster, setPrintMaster] = useState({});
   //const [so_ct, setSo_ct] = useState("");
   const [printDetail, setPrintDetail] = useState([]);
   const [isCreatingOrder,setIsCreatingOrder]=useState(false);
+  const [selectCustomer,setSelectCustomer]=useState({})
+
+
+  const handleChangeVat=(value)=>{
+    ChangeCalVat(value)
+  }
 
   var printContent = useRef();
   const beforePrint =()=>{
@@ -145,6 +155,8 @@ const RetailPaidInfo = ({
   const [isUsePoint, setIsUsePoint] = useState(true);
   const [isOpenAdvancePayment, setIsOpenAdvancePayment] = useState(false);
   const [isShowConfirmDialog, setIsShowConfirmDialog] = useState(false);
+  const [dataCustomerSearch,setDataCustomerSearch]=useState([]);
+  const [valueSearch,setValueSearch]=useState("");
 
   const { isFormLoading } = useSelector(getRetailOrderState);
   const { id: userId, storeId, unitId,storeName } = useSelector(getUserInfo);
@@ -285,7 +297,7 @@ const RetailPaidInfo = ({
             notification.success({
               message: `Thực hiện thành công`,
             });
-
+            setPaymentType("tien_mat")
             onResetForm();
             setPaymentQR('');
             emitter.emit("HANDLE_RETAIL_ORDER_SAVE");
@@ -300,7 +312,7 @@ const RetailPaidInfo = ({
           }
         })
         .catch((res) => {
-          setIsCreatingOrder(true);
+          setIsCreatingOrder(false);
           return null;
         })
 
@@ -346,9 +358,9 @@ const RetailPaidInfo = ({
       if (type === "SIMPLE") {
         master = {
           ...masterData,
-          tien_mat: paymentType === "tien_mat" ? masterData.tong_tt : 0,
-          tien_the: paymentType === "tien_the" ? masterData.tong_tt : 0,
-          chuyen_khoan: paymentType === "chuyen_khoan" ? masterData.tong_tt : 0,
+          tien_mat:  0,
+          tien_the:  0,
+          chuyen_khoan:  masterData.tong_tt ,
           httt: paymentType,
         };
       }
@@ -374,7 +386,7 @@ const RetailPaidInfo = ({
         setPaymentQR(
           `https://img.vietqr.io/image/${bin}-${tk_nh}-EEmxQTR.jpg?amount=${
             master?.tong_tt || 0
-          }&addInfo=${so_ct_temp.so_ct}%20${storeName}`
+          }&addInfo=${so_ct_temp.so_ct}%20${storeName}&accountName=${bank_account_name}`
         );
       }
 
@@ -451,12 +463,42 @@ const RetailPaidInfo = ({
 
   // Set khách hàng khi thêm mới
   const handleAddCustomerComplete = useCallback(
-    ({ ma_kh, ten_kh, dien_thoai }) => {
+    ({ ma_kh, ten_kh, dien_thoai,dia_chi }) => {
       onChangeCustomer({
         ma_kh,
         ten_kh,
         dien_thoai,
       });
+      setSelectCustomer({
+        value: ma_kh,
+        label: ten_kh,
+        dia_chi: dia_chi,
+        dien_thoai: dien_thoai,
+        bl_yn: true,
+        bb_yn: false,
+        diem: 0.0000,
+        type: "KH"
+      })
+    },
+    [paymentData]
+  );
+  const handleUpdateCustomerComplete = useCallback(
+    ({ ma_kh, ten_kh, dien_thoai,bl_yn,bb_yn,dia_chi,diem }) => {
+      onChangeCustomer({
+        ma_kh,
+        ten_kh,
+        dien_thoai,
+      });
+      setSelectCustomer({
+        value: ma_kh,
+        label: ten_kh,
+        dia_chi: dia_chi,
+        dien_thoai: dien_thoai,
+        bl_yn: bl_yn,
+        bb_yn: bb_yn,
+        diem: diem,
+        type: "KH"
+      })
     },
     [paymentData]
   );
@@ -502,11 +544,42 @@ const RetailPaidInfo = ({
 
   const handlePaymentTypeClick = ({ key }) => {
     console.log(key);
-    if(key!= "tien_mat"){
+    if(key!= "chuyen_khoan"){
       setPaymentQR("");
     }
     setPaymentType(key);
   };
+  const handleSearch = useDebouncedCallback((newValue)=>{
+    multipleTablePutApi({
+      store: "Api_search_customers",
+      param: {
+        valueSearch: filterKeyHelper(newValue),
+        unitId,
+        storeId,
+        userId,
+      },
+      data: {},
+    }).then(res=>{
+      if (res.responseModel?.isSucceded) {
+        setDataCustomerSearch(_.first(res.listObject))
+      }
+    })
+  },300)
+  const handleChange = (newValue,params)=>{
+    setValueSearch(newValue);
+    console.log(newValue);
+    console.log(params);
+    const { value, label, dien_thoai, diem } = params.data;
+    setPaymentData({
+      ...paymentData,
+      ma_kh: value,
+      ten_kh: label,
+      dien_thoai,
+      diem,
+      diem_sd:diem
+    });
+    setSelectCustomer(params.data)
+  }
 
   // Lắng nghe sự thay đổi tham số để tính toán
   useEffect(() => {
@@ -546,44 +619,77 @@ const RetailPaidInfo = ({
       style={{  flexShrink: 0, background: "white" }}
     >
       <div className="retail_info_container overflow-y-auto p-2 w-full min-w-0">
-        <div className="flex justify-content-between mb-3">
-          <span className="primary_bold_text text-lg line-height-4">
-            Thông tin khách hàng:
-          </span>
+        <div className="flex justify-content-between mb-3" id="search-customer">
+          <Select
+            showSearch
+            value={valueSearch}
+            placeholder="Tìm kiếm khách hàng"
+            defaultActiveFirstOption={false}
+            suffixIcon={null}
+            filterOption={false}
+            onSearch={handleSearch}
+            onChange={handleChange}
+            notFoundContent={null}
+            style={{minWidth:"200px",width:"100%"}}
+          >
+            {
+              dataCustomerSearch.map(d=>{
+                return  <Select.Option
+                  value={d.value}
+                  label={d.text}
+                  className="px-2"
+                  data={d}
+                >
+                  <div className="flex align-items-center gap-2">
+                    <div className="flex gap-3 w-full">{d.label}</div>
+                    <div className="text-right ml-3">
+                      <span className="ml-1 primary_bold_text pr-2">
+                        {d?.dien_thoai?.trim() || ""}
+                      </span>
+                    </div>
+                  </div>
+                </Select.Option>
+              })
+            
+            
+            }
+          </Select>
           <AddCustomerPopup onSave={handleAddCustomerComplete} />
         </div>
 
-        <div
-          className="retail-customer-info relative"
-          style={{ minHeight: 60 }}
-        >
-          {paymentData?.ma_kh ? (
-            <>
-              <p className="">
-                <b>{paymentData?.ma_kh}</b> -{" "}
-                {paymentData?.ten_kh || "Không có dữ liệu"}
-              </p>
-              <p className="">
-                {paymentData?.dien_thoai?.trim() || "Không có số điện thoại"}
-              </p>
-              <div>
-                <span className="primary_bold_text">
-                  {formatCurrency(paymentData?.diem || 0)} điểm{" "}
-                </span>
-                {isUsePoint && (
-                  <b className="danger_text_color">
-                    -
-                    {paymentData?.diem <=
-                    paymentInfo?.tong_tt / paymentInfo?.quy_doi_diem
-                      ? paymentData?.diem
-                      : paymentInfo?.tong_tt / paymentInfo?.quy_doi_diem}
-                  </b>
-                )}
-              </div>
-            </>
-          ) : (
-            <b className="abs_center sub_text_color">Không có dữ liệu</b>
-          )}
+        <div  className="flex justify-content-between gap-2 retail-customer-info relative"  style={{ minHeight: 60 }} >
+          <div>
+            {paymentData?.ma_kh ? (
+              <>
+                <p className="">
+                  <b>{paymentData?.ma_kh}</b> -{" "}
+                  {paymentData?.ten_kh || "Không có dữ liệu"}
+                </p>
+                <p className="">
+                  {paymentData?.dien_thoai?.trim() || "Không có số điện thoại"}
+                </p>
+                <div>
+                  <span className="primary_bold_text">
+                    {formatCurrency(paymentData?.diem || 0)} điểm{" "}
+                  </span>
+                  {isUsePoint && (
+                    <b className="danger_text_color">
+                      -
+                      {paymentData?.diem <=
+                      paymentInfo?.tong_tt / paymentInfo?.quy_doi_diem
+                        ? paymentData?.diem
+                        : paymentInfo?.tong_tt / paymentInfo?.quy_doi_diem}
+                    </b>
+                  )}
+                </div>
+              </>
+            ) : (
+              <b className="abs_center sub_text_color">Không có dữ liệu</b>
+            )}
+          </div>
+          { selectCustomer && !selectCustomer.bb_yn && selectCustomer.bl_yn ? 
+          <UpdateCustomerPopup onSave={handleUpdateCustomerComplete} kh={selectCustomer}></UpdateCustomerPopup>
+          :''}
         </div>
 
         <p className="primary_bold_text text-lg line-height-4">
@@ -604,7 +710,7 @@ const RetailPaidInfo = ({
           </div>
 
           <div className="flex justify-content-between gap-2 align-items-center">
-            <span className="w-6 flex-shrink-0">Tổng thuế:</span>
+            <span className="w-6 flex-shrink-0">Thuế: <Switch checked={isCalVat} onChange={handleChangeVat} /></span>
             <span className="primary_bold_text">
               {formatCurrency(
                 paymentData?.tong_thue / (paymentData?.ty_gia || 1),
@@ -624,8 +730,7 @@ const RetailPaidInfo = ({
           </div>
 
           <div className="flex justify-content-between gap-2 align-items-center">
-            <span className="w-6 flex-shrink-0">Voucher:</span>
-            <span className="primary_bold_text">
+            <span className="w-6 flex-shrink-0">
               <Input
                 status={
                   !voucherStatus.valid &&
@@ -657,10 +762,6 @@ const RetailPaidInfo = ({
                 }
               />
             </span>
-          </div>
-
-          <div className="flex justify-content-between gap-2 align-items-center">
-            <span className="w-6 flex-shrink-0">Tiền voucher:</span>
             <span className="primary_bold_text">
               {formatCurrency(
                 (paymentData?.tien_voucher || 0) / (paymentData?.ty_gia || 1),
@@ -669,30 +770,33 @@ const RetailPaidInfo = ({
             </span>
           </div>
 
+          {/* <div className="flex justify-content-between gap-2 align-items-center">
+            <span className="w-6 flex-shrink-0">Tiền voucher:</span>
+            <span className="primary_bold_text">
+              {formatCurrency(
+                (paymentData?.tien_voucher || 0) / (paymentData?.ty_gia || 1),
+                paymentData?.ma_nt === "VND" ? 0 : 2
+              )}
+            </span>
+          </div> */}
+
           <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0">Sử dụng điểm:</span>
             <InputNumber
-              controls={paymentInfo.diem_sd}
+              controls={false}
               min="0"
-              className="w-full"
+              className="w-full custom_input_design"
               placeholder="0"
-              onChange={(e) => {
-                ChangePoint(e)
-              }}
+              onChange={(e) => {ChangePoint(e)}}
               value={paymentInfo.diem_sd}
               formatter={(value) => formatterNumber(value)}
               parser={(value) => parserNumber(value)}
-            />
-            <Switch
-              checked={isUsePoint}
-              onChange={(e) => {
-                setIsUsePoint(e);
-              }}
+              style={{border:"none"}}
             />
           </div>
 
           <div className="flex justify-content-between gap-2 align-items-center">
-            <span className="w-6 flex-shrink-0">Thanh toán:</span>
+            <span className="w-6 flex-shrink-0" style={{color:"#4779CF",fontWeight:"bold"}}>Thanh toán:</span>
             <span className="primary_bold_text">
               {formatCurrency(
                 paymentData?.tong_tt / (paymentData?.ty_gia || 1),
@@ -720,11 +824,12 @@ const RetailPaidInfo = ({
               controls={false}
               value={change}
               min="0"
-              className="w-full"
+              className="w-full custom_input_design"
               placeholder="0"
               onChange={(e) => {setChange(e);}}
               formatter={(value) => formatterNumber(value)}
               parser={(value) => parserNumber(value)}
+              style={{border:"none"}}
             />
           </div>
         </div>
@@ -734,6 +839,7 @@ const RetailPaidInfo = ({
             items: paymentTypeOptions,
             onClick: handlePaymentTypeClick,
           }}
+          className="mb-2 mt-2"
         >
           <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0 line-height-4 primary_bold_text">
@@ -753,10 +859,10 @@ const RetailPaidInfo = ({
           </span>
         </div>
 
-        <div className="flex flex-column justify-content-between gap-2 ">
-          <span className="w-6 flex-shrink-0 line-height-4">Ghi chú:</span>
+        <div className="flex justify-content-between gap-2  mt-2">
           <Input.TextArea
             ref={noteRef}
+            placeholder="Ghi chú"
             autoSize={{
               minRows: 1,
               maxRows: 3,
@@ -778,10 +884,7 @@ const RetailPaidInfo = ({
           Nâng cao (F7)
         </Button>
 
-        <Button
-          type="primary"
-          className="w-full min-w-0"
-          onClick={() => {
+        <Button type="primary" className="w-full min-w-0" onClick={() => {
             // setIsShowConfirmDialog(true);
             handleShowCustomerViewDialog();
             handleSave();
@@ -793,7 +896,7 @@ const RetailPaidInfo = ({
         <Button type="primary" className="w-full min-w-0" style={{background:"#52c41a"}} disabled={isCreatingOrder||isFormLoading || cantSave}
            onClick={ SaveOrder}
         >
-          Hoàn thành
+          Hoàn Thành
         </Button>
       </div>
       <AdvanceRetailPayment

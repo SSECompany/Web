@@ -82,12 +82,12 @@ const homeRoutes = [
         path: "DMSCustomer",
         element: <DMSCustomerList />,
       },
-      {
-        label: "Bản đồ kinh doanh",
-        claims: "Permissions.DMSCustomers",
-        path: "BusinessMap",
-        element: <BusinessMap />,
-      },
+      // {
+      //   label: "Bản đồ kinh doanh",
+      //   claims: "Permissions.DMSCustomers",
+      //   path: "BusinessMap",
+      //   element: <BusinessMap />,
+      // },
       ...imageRoutes,
       ...systemRoutes,
       ...SORoutes,

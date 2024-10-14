@@ -8,6 +8,7 @@ import HeaderTableBar from "../../../ReuseComponents/HeaderTableBar";
 import { SoFuckingUltimateApi, SoFuckingUltimateGetApi } from "../../API";
 import ModalAddCustomerForm from "../../Modals/ModalAddCustomerForm/ModalAddCustomerForm";
 import "./CustomerForm.css";
+import {multipleTablePutApi} from 'api'
 
 const CustomerForm = () => {
   // initialize #########################################################################
@@ -81,13 +82,14 @@ const CustomerForm = () => {
   };
 
   const getdata = () => {
-    SoFuckingUltimateGetApi({
+    multipleTablePutApi({
       store: "Get_Forms_Customer",
-      data: {
+      param: {
         ...tableParams,
         pageindex: pagination.pageindex,
         pageSize: pagination.pageSize,
       },
+      data:{}
     }).then((res) => {
       let layout = renderColumns(res?.reportLayoutModel);
       layout.push({
@@ -108,13 +110,13 @@ const CustomerForm = () => {
         },
       });
       setTableColumns(layout);
-      const data = res.data;
+      const data = res.data[0];
       data.map((item, index) => {
         item.key = item.ma_hinh_thuc;
         return item;
       });
       setData(data);
-      setTotalResults(res?.pagegination?.totalRecord);
+      setTotalResults(res?.data[1][0].totalRecord);
       setLoading(false);
     });
   };

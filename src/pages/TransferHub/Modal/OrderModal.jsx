@@ -93,6 +93,7 @@ const OrderModal = ({ children }) => {
     null
   );
   const [qrSource, setQrSource] = useLocalStorage("QRimg", "");
+  const [openQrCode,setOpenQrCode]=useState(false);
   const [data, setData] = useState([]);
 
   const renderColumns = (columns) => {
@@ -136,50 +137,83 @@ const OrderModal = ({ children }) => {
     };
   }, []);
 
+  // function usePrevious(value) {
+  //   const ref = useRef();
+  //   useEffect(() => {
+  //     ref.current = value;
+  //   });
+  //   return ref.current;
+  // }
+  // const prevAmount = usePrevious({qrSource});
+  useEffect(() => {
+      console.log(qrSource)
+      if(qrSource !='')setOpenQrCode(true);
+      else setOpenQrCode(false);
+  }, [qrSource]);
   return (
-    <Modal
-      zIndex={100}
-      width={"100vw"}
-      forceRender
-      closable={false}
-      footer
-      centered
-      open={!_.isEmpty(data) && !_.isEmpty(data[1])}
-      okButtonProps={{ style: { display: "none" } }}
-      cancelButtonProps={{ style: { display: "none" } }}
-    >
-      <div style={{ width: "100%", height: "55vh" }}>
-        <PerformanceTable  columns={renderColumns(CTDH)}  data={_.isEmpty(data) ? [] : data[1]}  isLoading={false}/>
-      </div>
-      <div  className="line-height-4 mt-2 flex justify-content-between px-2 border-round-lg"  style={{ width: "100%", height: "30vh"  }}  >
-        <div className="border-round-sm" style={{width:"50%" ,background: "#F58220", color: "white"}}>
-          <div className="w-100 mt-2 flex justify-content-between px-2"><span className="text-left">Khách hàng:</span> <span className="text-right">{data[0]?.ten_kh}</span></div>
-          <div className="w-100 mt-2 flex justify-content-between px-2">
-            <span className="text-left">Thành tiền:</span> 
-            <span className="text-right">{data[0]?.tong_tt}</span>   
-          </div>
-          <div className="w-100 mt-2 flex justify-content-between px-2">
-            <span className="text-left">Chiết khấu :</span> 
-            <span className="text-right">
-              {data[0]?.tl_ck != 0 ? (
-                <>
-                  (<span>{formatCurrency(data[0]?.tl_ck)}%</span>)
-                </>
-              ) : (
-                <>
-                  (<span>{formatCurrency(data[0]?.ck)}₫</span>)
-                </>
-              )}
-            </span>   
-          </div>
-          
+    <div>
+      <Modal
+        zIndex={100}
+        width={"100vw"}
+        forceRender
+        closable={false}
+        footer
+        centered
+        open={!_.isEmpty(data) && !_.isEmpty(data[1])}
+        okButtonProps={{ style: { display: "none" } }}
+        cancelButtonProps={{ style: { display: "none" } }}
+      >
+        <div style={{ width: "100%", height: "55vh" }}>
+          <PerformanceTable  columns={renderColumns(CTDH)}  data={_.isEmpty(data) ? [] : data[1]}  isLoading={false}/>
         </div>
-        <div className="image-qr" style={{width:"50%"}}>
-          <img  src={qrSource} style={{height:"100%"}} className="w-100 h-100"  />
+        <div  className="line-height-4 mt-2 flex justify-content-between px-2 border-round-lg"  style={{ width: "100%", height: "30vh"  }}  >
+          <div className="border-round-sm" style={{width:"50%" ,background: "#F58220", color: "white"}}>
+            <div className="w-100 mt-2 flex justify-content-between px-2"><span className="text-left">Khách hàng:</span> <span className="text-right">{data[0]?.ten_kh}</span></div>
+            <div className="w-100 mt-2 flex justify-content-between px-2">
+              <span className="text-left">Thành tiền:</span> 
+              <span className="text-right">{data[0]?.tong_tt}</span>   
+            </div>
+            <div className="w-100 mt-2 flex justify-content-between px-2">
+              <span className="text-left">Chiết khấu :</span> 
+              <span className="text-right">
+                {data[0]?.tl_ck != 0 ? (
+                  <>
+                    (<span>{formatCurrency(data[0]?.tl_ck)}%</span>)
+                  </>
+                ) : (
+                  <>
+                    (<span>{formatCurrency(data[0]?.ck)}₫</span>)
+                  </>
+                )}
+              </span>   
+            </div>
+            
+          </div>
+          <div className="image-qr" style={{width:"50%"}}>
+            <img  src={qrSource} style={{height:"100%"}} className="w-100 h-100"  />
+          </div>
         </div>
-      </div>
-      {children}
-    </Modal>
+        {children}
+      </Modal>
+      <Modal
+        zIndex={5000}
+        forceRender
+        closable={false}
+        footer
+        centered
+        open={openQrCode}
+        onCancel={() => {
+          setOpenQrCode(false);
+        }}
+        okButtonProps={{ style: { display: "none" } }}
+        cancelButtonProps={{ style: { display: "none" } }}
+        styles={{body: {position: "relative",},}}
+      >
+        <img  src={qrSource} style={{height:"100%"}} className="w-100 h-100"  />
+
+      </Modal>
+    </div>
+              
   );
 };
 

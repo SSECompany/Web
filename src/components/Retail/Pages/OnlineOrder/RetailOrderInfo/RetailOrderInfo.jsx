@@ -543,11 +543,11 @@ const RetailOrderInfo = ({ orderKey }) => {
 
   const recalPromotion = useDebouncedCallback(async () => {
     setIsCalculating(true);
-    message.open({
-      type: "loading",
-      content: "Đang xử lý chương trình chiết khấu",
-      duration: 0,
-    });
+    // message.open({
+    //   type: "loading",
+    //   content: "Đang xử lý chương trình chiết khấu",
+    //   duration: 0,
+    // });
 
     //Reset
     const changedValues = { ...itemForm.getFieldsValue() };

@@ -6,6 +6,7 @@ import { KeyFormatter } from "../../../../app/Options/KeyFormatter";
 import send_icon from "../../../../Icons/send_icon.svg";
 import LoadingComponents from "../../../Loading/LoadingComponents";
 import { SoFuckingUltimateApi, SoFuckingUltimateGetApi } from "../../API";
+import {multipleTablePutApi} from 'api'
 
 // bắt buộc khai báo bên ngoài
 
@@ -56,15 +57,16 @@ const ModalAddCustomerForm = (props) => {
   const onSubmitFormFail = () => {};
 
   const getDataEdit = (id) => {
-    SoFuckingUltimateGetApi({
+    multipleTablePutApi({
       store: "Get_Forms_Customer",
-      data: {
+      param: {
         id: id.trim(),
         pageIndex: 1,
         pageSize: 10,
         SearchKey: "",
         status: "",
       },
+      data:{}
     }).then((res) => {
       inputForm.setFieldValue(`formCode`, res.data[0]?.ma_hinh_thuc.trim());
       inputForm.setFieldValue(`formName`, res.data[0]?.ten_hinh_thuc.trim());

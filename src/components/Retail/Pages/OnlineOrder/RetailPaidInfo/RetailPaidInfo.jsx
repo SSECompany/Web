@@ -735,7 +735,7 @@ const RetailPaidInfo = ({
       <div className="retail_action_container flex gap-2 p-2 w-full shadow-4">
         
         <Button type="primary" className="w-full min-w-0" style={{background:"#52c41a"}} disabled={isCreatingOrder || isFormLoading || cantSave} onClick={ SaveOrder}>
-          Hoàn thành
+          Tạo Đơn
         </Button>
       </div>
       <AdvanceRetailPayment

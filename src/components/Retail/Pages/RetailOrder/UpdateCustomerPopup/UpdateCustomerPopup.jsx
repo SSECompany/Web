@@ -1,41 +1,28 @@
-import {
-  Button,
-  Col,
-  Form,
-  Input,
-  message as messageAPI,
-  Popover,
-  Row,
-  Tooltip,Modal 
-} from "antd";
+import {Button,Col,Form,Input,message as messageAPI,Popover,Row,Tooltip,Modal } from "antd";
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { KeyFormatter } from "../../../../../app/Options/KeyFormatter";
-import {
-  customerNameRegex,
-  phoneNumberRegex,
-  removeAscent,
-} from "../../../../../app/regex/regex";
+import {customerNameRegex,phoneNumberRegex,removeAscent,} from "../../../../../app/regex/regex";
 import { getUserInfo } from "../../../../../store/selectors/Selectors";
 import { SoFuckingUltimateGetApi } from "../../../../DMS/API";
 import { multipleTablePutApi } from "../../../../SaleOrder/API";
 import { getIsAddNewCustomer } from "../../../Store/Selectors/RetailOrderSelectors";
 
-const AddCustomerPopup = ({ onSave }) => {
+const UpdateCustomerPopup = ({ kh,onSave }) => {
   const [message, contextHolder] = messageAPI.useMessage();
   const [form] = Form.useForm();
   const [openState, setOpenState] = useState(false);
   const [loading, setLoading] = useState(false);
   const userInfo = useSelector(getUserInfo);
-  const isAddNewCustomer = useSelector(getIsAddNewCustomer);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const [formData, setFormData] = useState({});
 
   const handleAdd = (item) => {
     console.log(item);
-    const param= { ...item, userID: userInfo.id }
+    if (!kh?.value) return;
+    const param= { ...item, userID: userInfo.id,ma_kh : kh.value }
     multipleTablePutApi({
-      store: "Api_add_Customer",
+      store: "Api_update_Customer",
       param: param,
       data: {},
     }).then(async (res) => {
@@ -47,10 +34,13 @@ const AddCustomerPopup = ({ onSave }) => {
         console.log(_.first(_.first(res.listObject)));
         const data = _.first(_.first(res.listObject));
         await onSave({
-          ma_kh: data?.ma_kh,
+          ma_kh: kh?.value,
           ten_kh: param?.ten_kh,
           dien_thoai: param?.dien_thoai,
-          dia_chi:param?.dia_chi
+          dia_chi:param?.dia_chi,
+          bb_yn:kh?.bb_yn,
+          bl_yn:kh?.bl_yn,
+          diem:kh?.diem
         });
       } else {
         message.warning(res?.responseModel?.message);
@@ -67,108 +57,45 @@ const AddCustomerPopup = ({ onSave }) => {
     setOpenState(value);
     if (!value) handleClosePopup();
   };
-  const checkValidCode = (item) => {
-    var valid = true;
-    setFormData({...item,ma_kh:''});
-    var phone = item.dien_thoai;
-    multipleTablePutApi({
-      store: "api_Check_customer_code",
-      param: {value:item.dien_thoai,userID: userInfo.id },
-      data: {},
-    }).then( (res) => {
-      const data = _.first(_.first(res.listObject));
-      if(data?.CheckCode == '1' ){
-        setIsModalOpen(true);
-      }
-      else{
-
-        handleAdd({...item,ma_kh:phone});
-      }
-
-    });
-  };
 
 
   useEffect(() => {
-    setOpenState(isAddNewCustomer.open);
-    form.setFieldValue('dien_thoai',isAddNewCustomer.value);
-    setFormData({...formData,dien_thoai:isAddNewCustomer.value})
+    form.setFieldValue('dien_thoai',kh?.dien_thoai);
+    form.setFieldValue('dia_chi',kh?.dia_chi);
+    form.setFieldValue('ten_kh',kh?.label);
     //if (openState) document.getElementById("ma_kh")?.focus();
     return () => {};
-  }, [isAddNewCustomer]);
+  }, [kh]);
   
-  const handleOk = () => {
-    handleAdd(formData);
-    setIsModalOpen(false);
-  };
+  // const handleOk = () => {
+  //   handleAdd(formData);
+  //   setIsModalOpen(false);
+  // };
 
-  const handleCancel = () => {
-    setIsModalOpen(false);
-  };
+  // const handleCancel = () => {
+  //   setIsModalOpen(false);
+  // };
 
   const popoverContent = (item) => {
     return (
       <Form
-        initialValues={{
-          ma_kh: "",
-          ten_kh: "",
-          dia_chi: "",
-          dien_thoai: "",
-        }}
+        initialValues={{  ten_kh: kh.label,  dia_chi: kh.dia_chi,  dien_thoai: kh.dien_thoai,  }}
         form={form}
-        onFinish={checkValidCode}
+        onFinish={handleAdd}
       >
-        <p className="primary_bold_text mb-3">Thêm khách hàng</p>
+        <p className="primary_bold_text mb-3">Chỉnh sửa khách hàng</p>
 
         <div className="relative flex flex-column gap-2">
-          {/* <Row gutter={10}>
-            <Col span={21}>
-              <div className="default_modal_1_row_items">
+          <Row gutter={10}>
+            <Col span={24}>
+              <div className="flex justify-content-between gap-2 align-items-center">
                 <span className="default_bold_label" style={{ width: "100px" }}>
                   Mã khách
                 </span>
-                <Form.Item
-                  hasFeedback
-                  className="flex-1"
-                  name="ma_kh"
-                  rules={[
-                    { required: true, message: "Nhập mã khách" },
-                    {
-                      validator: async (_, value) => {
-                        return (await checkValidCode(value)) == true
-                          ? Promise.resolve()
-                          : Promise.reject(new Error("Mã này đã tồn tại"));
-                      },
-                    },
-                  ]}
-                >
-                  <Input
-                    autoFocus={true}
-                    onInput={(e) =>
-                      (e.target.value = KeyFormatter(e.target.value))
-                    }
-                    className="w-full"
-                    maxLength={16}
-                    placeholder="Nhập mã khách"
-                  />
-                </Form.Item>
+                <span>{kh?.value}</span>
               </div>
             </Col>
-            <Col span={3}>
-              <Tooltip title="Tự động tạo mã khách">
-                <Button
-                  onClick={handleGenCustomerCode}
-                  className="shadow_3 pl-2 pr-2 w-full"
-                >
-                  <i
-                    className="pi pi-arrow-circle-down sub_text_color"
-                    style={{ fontWeight: "bold" }}
-                  ></i>
-                </Button>
-              </Tooltip>
-            </Col>
-          </Row> */}
-
+          </Row>
           <Row gutter={10}>
             <Col span={24}>
               <div className="default_modal_1_row_items">
@@ -193,10 +120,7 @@ const AddCustomerPopup = ({ onSave }) => {
                     },
                   ]}
                 >
-                  <Input
-                    className="w-full"
-                    maxLength={126}
-                    placeholder="Nhập tên khách"
+                  <Input  className="w-full"  maxLength={126}  placeholder="Nhập tên khách"
                   />
                 </Form.Item>
               </div>
@@ -216,11 +140,7 @@ const AddCustomerPopup = ({ onSave }) => {
 
                     {
                       validator: async (_, value) => {
-                        return ((await phoneNumberRegex.test(value)) ||
-                          !value) == true
-                          ? Promise.resolve()
-                          : Promise.reject(
-                              new Error("Lỗi định dạng số điện thoại")
+                        return ((await phoneNumberRegex.test(value)) ||!value) == true? Promise.resolve(): Promise.reject(new Error("Lỗi định dạng số điện thoại")
                             );
                       },
                     },
@@ -259,7 +179,7 @@ const AddCustomerPopup = ({ onSave }) => {
 
         <div className="w-full text-right mt-3">
           <Button type="primary" htmlType="submit" loading={loading}>
-            Thêm
+            Sửa
           </Button>
         </div>
       </Form>
@@ -280,16 +200,13 @@ const AddCustomerPopup = ({ onSave }) => {
       >
         <Button className="default_button shadow_3">
           <i
-            className="pi pi-user-plus sub_text_color"
+            className="pi pi-user-edit sub_text_color"
             style={{ fontWeight: "bold" }}
           ></i>
         </Button>
       </Popover>
-      <Modal title="Basic Modal" open={isModalOpen} onOk={handleOk} onCancel={handleCancel}>
-        <p>Số điện thoại đã được tạo.Bạn có muốn tạo thêm khách hàng mới</p>
-      </Modal>
     </>
   );
 };
 
-export default AddCustomerPopup;
+export default UpdateCustomerPopup;
