@@ -1028,7 +1028,6 @@ const RetailOrderInfo = ({ orderKey }) => {
     const changedRowKey = getRowKey(_.first(Object.keys(cellChanged)));
     const rowValues = getAllValueByRow(changedRowKey, allCells);
 
-    console.log(rowValues);
     const getCurRowValues = () => {
       return getAllValueByRow(changedRowKey, itemForm.getFieldsValue());
     };

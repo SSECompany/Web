@@ -617,7 +617,6 @@ const RetailOrderInfo = ({ orderKey }) => {
   };
 
   useEffect(() => {
-    console.log('11');
     handleCalculatorPayment();
     setIsChangedData(uuidv4());
   }, [JSON.stringify(data), JSON.stringify(paymentInfo)]);
@@ -732,7 +731,6 @@ const RetailOrderInfo = ({ orderKey }) => {
 
   useEffect(() => {
     if (!isCalPromotion && !_.isEmpty(data) && autoCalPromotion) {
-      console.log('123');
       recalPromotion();
       return;
     }
@@ -1141,7 +1139,6 @@ const RetailOrderInfo = ({ orderKey }) => {
     const changedRowKey = getRowKey(_.first(Object.keys(cellChanged)));
     const rowValues = getAllValueByRow(changedRowKey, allCells);
 
-    console.log(rowValues);
     const getCurRowValues = () => {
       return getAllValueByRow(changedRowKey, itemForm.getFieldsValue());
     };

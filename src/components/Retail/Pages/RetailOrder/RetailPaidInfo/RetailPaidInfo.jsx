@@ -192,7 +192,6 @@ const RetailPaidInfo = ({
   //Hiển thị xác nhận lưu phiếu
   const handleShowCustomerViewDialog = async() => {
     const RETAILDATA = await prepareOrderData();
-    console.log(RETAILDATA);
     setRetailOrderData(RETAILDATA);
   };
 
@@ -622,7 +621,6 @@ const RetailPaidInfo = ({
   useEffect(() => {
 
     return () => {
-      console.log(isChangedData)
       if (isChangedData) {
         handleShowCustomerViewDialog();
       }
