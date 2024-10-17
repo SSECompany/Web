@@ -118,21 +118,27 @@ const OrderModal = ({ children }) => {
     console.log(qrSource);
   }
   useEffect(() => {
-    const preparedData = JSON.parse(orderData || null) || [];
+    return () => {
+      const preparedData = orderData|| [];
 
-    if (!_.isEmpty(preparedData)) {
-      preparedData[1].map((item) => {
-        item.thanh_toan = item.so_luong * item.don_gia - item.ck;
-      });
-    }
+      if (!_.isEmpty(preparedData)) {
+        preparedData[1].map((item) => {
+          item.thanh_toan = item.so_luong * item.don_gia - item.ck;
+          item.so_luong =formatCurrency(item.so_luong);
+          item.don_gia =formatCurrency(item.don_gia);
+          item.thanh_toan =formatCurrency(item.thanh_toan);
+          item.ck =formatCurrency(item.ck);
+        });
+      }
+      console.log(orderData);
+      setData(preparedData);
 
-    setData(preparedData);
-    return () => {};
+
+    };
   }, [orderData]);
 
   useEffect(() => {
     return () => {
-      setOrderData("");
       setQrSource("");
     };
   }, []);
@@ -159,15 +165,15 @@ const OrderModal = ({ children }) => {
         closable={false}
         footer
         centered
-        open={!_.isEmpty(data) && !_.isEmpty(data[1])}
+        open={orderData!=""}
         okButtonProps={{ style: { display: "none" } }}
         cancelButtonProps={{ style: { display: "none" } }}
       >
         <div style={{ width: "100%", height: "55vh" }}>
           <PerformanceTable  columns={renderColumns(CTDH)}  data={_.isEmpty(data) ? [] : data[1]}  isLoading={false}/>
         </div>
-        <div  className="line-height-4 mt-2 flex justify-content-between px-2 border-round-lg"  style={{ width: "100%", height: "30vh"  }}  >
-          <div className="border-round-sm" style={{width:"50%" ,background: "#F58220", color: "white"}}>
+        <div  className="line-height-4 mt-2 flex  px-2 border-round-lg"  style={{ width: "100%", height: "30vh"  }}  >
+          <div className="border-round-sm" style={{width:"100%" ,background: "#F58220", color: "white"}}>
             <div className="w-100 mt-2 flex justify-content-between px-2"><span className="text-left">Khách hàng:</span> <span className="text-right">{data[0]?.ten_kh}</span></div>
             <div className="w-100 mt-2 flex justify-content-between px-2">
               <span className="text-left">Thành tiền:</span> 
@@ -189,9 +195,9 @@ const OrderModal = ({ children }) => {
             </div>
             
           </div>
-          <div className="image-qr" style={{width:"50%"}}>
+          {/* <div className="image-qr" style={{width:"50%"}}>
             <img  src={qrSource} style={{height:"100%"}} className="w-100 h-100"  />
-          </div>
+          </div> */}
         </div>
         {children}
       </Modal>

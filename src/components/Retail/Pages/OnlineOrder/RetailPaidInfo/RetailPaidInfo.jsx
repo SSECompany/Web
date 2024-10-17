@@ -113,7 +113,9 @@ const RetailPaidInfo = ({
   const [paymentQR, setPaymentQR] = useLocalStorage("QRimg", "");
   const [retailOrderData, setRetailOrderData] = useLocalStorage(
     "CUSTOMER_RETAILORDER_DATA",
-    null
+    null,{
+      syncData: false
+    }
   );
   const noteRef = useRef("");
   const {tk_nh,bin,hs_quy_doi} = useSelector(getUerSetting);
@@ -190,14 +192,15 @@ const RetailPaidInfo = ({
 
   //Hiển thị xác nhận lưu phiếu
   const handleShowCustomerViewDialog = async () => {
+    console.log('zzz');
     const RETAILDATA = await prepareOrderData();
     setRetailOrderData(JSON.stringify(RETAILDATA));
   };
 
   //Ẩn xác nhận lưu phiếu
-  const handleHideCustomerViewDialog = useCallback(async () => {
-    setRetailOrderData(JSON.stringify(""));
-  }, []);
+  // const handleHideCustomerViewDialog = useCallback(async () => {
+  //   setRetailOrderData(JSON.stringify(""));
+  // }, []);
 
   const SucessOrder = ()=>{
     SaveOrder();

@@ -35,6 +35,11 @@ import checkPermission from 'utils/permission'
 const RetailOrderInfo = ({ orderKey }) => {
   const [openItemInfo,setOpenItemInfo]=useState(false);
   const [selectedItem,setSelectedItem]=useState('');
+  const [retailOrderData, setRetailOrderData] = useLocalStorage(
+    "CUSTOMER_RETAILORDER_DATA",null,{
+      syncData: false
+    }
+  );
 
   const handleShowItemInfo =(value)=>{
     setOpenItemInfo(true);
@@ -459,7 +464,6 @@ const RetailOrderInfo = ({ orderKey }) => {
   };
   const ChangeCalVat = async (value)=>{
     await setIsCalVat(value);
-    console.log(value);
     const curData = itemForm.getFieldsValue();
     if(value){
       await getAllRowKeys(curData).map((key) => {
@@ -613,6 +617,7 @@ const RetailOrderInfo = ({ orderKey }) => {
   };
 
   useEffect(() => {
+    console.log('11');
     handleCalculatorPayment();
     setIsChangedData(uuidv4());
   }, [JSON.stringify(data), JSON.stringify(paymentInfo)]);
@@ -639,17 +644,11 @@ const RetailOrderInfo = ({ orderKey }) => {
     });
     var tong_thue =0
     if (tempIsCalVat){
-      console.log('11');
         tong_thue =await getAllValueByColumn("thue_nt", changedValues).reduce(
         (Sum, num) => Sum + num,
         0
       );
-      console.log(changedValues);
-      await getAllValueByColumn("thue_nt", changedValues).map((d)=>{
-        console.log(d);
-      })
     }
-    console.log(tempIsCalVat,tong_thue)
 
     setPaymentInfo({
       ...paymentInfo,
@@ -733,6 +732,7 @@ const RetailOrderInfo = ({ orderKey }) => {
 
   useEffect(() => {
     if (!isCalPromotion && !_.isEmpty(data) && autoCalPromotion) {
+      console.log('123');
       recalPromotion();
       return;
     }
@@ -877,10 +877,26 @@ const RetailOrderInfo = ({ orderKey }) => {
         dien_thoai,
         diem: 0,
         diem_sd:0,
+        moc_diem:0
       });
     },
     [paymentInfo]
   );
+  const handleSelectCustomerComplete = useCallback(
+    ({ ma_kh, ten_kh, dien_thoai,diem,moc_diem }) => {
+      setPaymentInfo({
+        ...paymentInfo,
+        ma_kh,
+        ten_kh,
+        dien_thoai,
+        diem: diem,
+        diem_sd:0,
+        moc_diem:moc_diem
+      });
+    },
+    [paymentInfo]
+  );
+
 
   //////////table functions//////////
   const handleAddOrder = async () => {
@@ -925,10 +941,8 @@ const RetailOrderInfo = ({ orderKey }) => {
       let isHad = false;
 
       await getAllRowKeys(curData).map((key) => {
-        console.log(getAllValueByRow(key, curData)?.ma_vt)
         if (getAllValueByRow(key, curData)?.ma_vt === ma_vt) {
           itemForm.setFieldValue(`${key}_so_luong`,Number(getAllValueByRow(key, curData)?.so_luong) + so_luong);
-          console.log( getAllValueByRow(key, curData))
           itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia)) );
           if(isCalVat){
             //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia) *(100 - Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) );
@@ -1065,12 +1079,10 @@ const RetailOrderInfo = ({ orderKey }) => {
 
   const handleSelectedRowKeyChange = useCallback((keys) => {
     setSelectedRowkeys(keys);
-    console.log(itemForm.getFieldValue())
   }, []);
 
   const handleSelectChange = (key, params) => {
     if (params.data.type === "VT") {
-      console.log(params.data)
       const { value, label, dvt, gia, ma_kho, image,thue_suat } = params.data;
       handleAddRowData({
         ma_vt: value,
@@ -1085,14 +1097,15 @@ const RetailOrderInfo = ({ orderKey }) => {
     }
 
     if (params.data.type === "KH") {
-      const { value, label, dien_thoai, diem } = params.data;
+      const { value, label, dien_thoai, diem,moc_diem } = params.data;
       setPaymentInfo({
         ...paymentInfo,
         ma_kh: value,
         ten_kh: label,
         dien_thoai,
         diem,
-        diem_sd:diem
+        diem_sd:0,
+        moc_diem:moc_diem
       });
     }
 
@@ -1555,7 +1568,7 @@ const RetailOrderInfo = ({ orderKey }) => {
             </Tooltip>
           </div>
 
-          <div className="flex gap-3">
+          {/* <div className="flex gap-3">
             <div>
               <b className="primary_bold_text mr-1">Thuế :</b>
               <Select
@@ -1636,13 +1649,14 @@ const RetailOrderInfo = ({ orderKey }) => {
                 });
               }}
             />
-          </div>
+          </div> */}
         </div>
       </div>
       <RetailPaidInfo
         itemForm={itemForm}
         paymentInfo={paymentInfo}
         onChangeCustomer={handleAddCustomerComplete}
+        onSelectCustomer={handleSelectCustomerComplete}
         onResetForm={handleResetForm}
         cantSave={isCalculating}
         isChangedData={isChangedData}

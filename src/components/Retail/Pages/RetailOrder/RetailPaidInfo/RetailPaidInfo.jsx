@@ -72,6 +72,7 @@ const RetailPaidInfo = ({
   itemForm,
   paymentInfo,
   onChangeCustomer,
+  onSelectCustomer,
   onResetForm,
   cantSave,
   isChangedData,
@@ -103,11 +104,12 @@ const RetailPaidInfo = ({
   const [message, contextHolder] = messageAPI.useMessage();
   const [paymentQR, setPaymentQR] = useLocalStorage("QRimg", "");
   const [retailOrderData, setRetailOrderData] = useLocalStorage(
-    "CUSTOMER_RETAILORDER_DATA",
-    null
+    "CUSTOMER_RETAILORDER_DATA",null,{
+      syncData: false
+    }
   );
   const noteRef = useRef("");
-  const {tk_nh,bin,hs_quy_doi,bank_account_name} = useSelector(getUerSetting);
+  const {tk_nh,bin,hs_quy_doi,bank_account_name,maxPoint} = useSelector(getUerSetting);
 
   const [printMaster, setPrintMaster] = useState({});
   //const [so_ct, setSo_ct] = useState("");
@@ -176,27 +178,24 @@ const RetailPaidInfo = ({
       dien_giai: noteRef?.current?.resizableTextArea?.textArea?.value || "",
     };
 
-    const detailData = [];
+    var detailData = [];
 
-    getAllRowKeys(data).map((item) => {
+    detailData =getAllRowKeys(data).map((item) => {
       var temp=getAllValueByRow(item, data);
       if(!temp.ghi_chu) temp={...temp,ghi_chu:''}
-      return detailData.push(temp);
+      return temp;
     });
 
     return [masterData, detailData];
   };
 
   //Hiển thị xác nhận lưu phiếu
-  const handleShowCustomerViewDialog = async () => {
+  const handleShowCustomerViewDialog = async() => {
     const RETAILDATA = await prepareOrderData();
-    setRetailOrderData(JSON.stringify(RETAILDATA));
+    console.log(RETAILDATA);
+    setRetailOrderData(RETAILDATA);
   };
 
-  //Ẩn xác nhận lưu phiếu
-  const handleHideCustomerViewDialog = useCallback(async () => {
-    setRetailOrderData(JSON.stringify(""));
-  }, []);
 
   const SucessOrder = ()=>{
     SaveOrder();
@@ -205,12 +204,14 @@ const RetailPaidInfo = ({
     SaveOrder();
   }
   const ChangePoint = (e)=>{
-    paymentInfo.diem_sd=e;
-    setPoint(e);
-    CalFinalPayment();
+    if(e<=paymentInfo.diem){
+      paymentInfo.diem_sd=e;
+      setPoint(e);
+      CalFinalPayment();
+    }
   }
   const SaveOrder =  async (paymentMethods, paymentMethodInfo, type = "SIMPLE") => {
-      if(isCreatingOrder) return;
+      if(isCreatingOrder||isFormLoading || cantSave) return;
       setIsCreatingOrder(true);
 
       const [masterData, detailData] = await prepareOrderData(
@@ -225,7 +226,7 @@ const RetailPaidInfo = ({
           tien_mat: paymentType === "tien_mat" ? masterData.tong_tt : 0,
           tien_the: paymentType === "tien_the" ? masterData.tong_tt : 0,
           chuyen_khoan: paymentType === "chuyen_khoan" ? masterData.tong_tt : 0,
-          httt: isQrCode ? 'qr_code' : paymentType,
+          httt: isQrCode ? 'qr' : paymentType,
         };
       }
       if(so_ct.so_ct){
@@ -315,6 +316,7 @@ const RetailPaidInfo = ({
         })
         .catch((res) => {
           setIsCreatingOrder(false);
+          modifyIsFormLoading(false);
           return null;
         })
 
@@ -326,10 +328,11 @@ const RetailPaidInfo = ({
       // setPaymentData({
       //   ...paymentData,
       // });
+      if(isFormLoading || cantSave) return;
       setPaymentType('chuyen_khoan');
+      setIsQrCode(true);
       await setChange(paymentData.tong_tt);
 
-      console.log('zzzzz');
       const temp_so_ct =await multipleTablePutApi({
         store: "GetTblSoCt",
         param: {
@@ -575,18 +578,25 @@ const RetailPaidInfo = ({
   },300)
   const handleChange = (newValue,params)=>{
     setValueSearch(newValue);
-    console.log(newValue);
-    console.log(params);
-    const { value, label, dien_thoai, diem } = params.data;
+
+    const { value, label, dien_thoai, diem,moc_diem } = params.data;
     setPaymentData({
       ...paymentData,
       ma_kh: value,
       ten_kh: label,
       dien_thoai,
       diem,
-      diem_sd:diem
+      diem_sd:0,
+      moc_diem:moc_diem
     });
     setSelectCustomer(params.data)
+    onSelectCustomer({
+      ma_kh:value,
+      ten_kh:label,
+      dien_thoai:dien_thoai,
+      diem:diem,
+      moc_diem:moc_diem
+    });
   }
 
   // Lắng nghe sự thay đổi tham số để tính toán
@@ -610,10 +620,13 @@ const RetailPaidInfo = ({
   }, [JSON.stringify(printMaster)]);
 
   useEffect(() => {
-    if (isChangedData) {
-      handleShowCustomerViewDialog();
-    }
-    return () => {};
+
+    return () => {
+      console.log(isChangedData)
+      if (isChangedData) {
+        handleShowCustomerViewDialog();
+      }
+    };
   }, [JSON.stringify(isChangedData)]);
 
   useEffect(() => {
@@ -680,7 +693,7 @@ const RetailPaidInfo = ({
                   <span className="primary_bold_text">
                     {formatCurrency(paymentData?.diem || 0)} điểm{" "}
                   </span>
-                  {isUsePoint && (
+                  {isUsePoint && paymentData?.diem >=paymentData?.moc_diem  && (
                     <b className="danger_text_color">
                       -
                       {paymentData?.diem <=
@@ -800,6 +813,7 @@ const RetailPaidInfo = ({
               formatter={(value) => formatterNumber(value)}
               parser={(value) => parserNumber(value)}
               style={{border:"none"}}
+              disabled={paymentData?.diem<maxPoint}
             />
           </div>
 
@@ -882,7 +896,6 @@ const RetailPaidInfo = ({
 
       <div className="retail_action_container flex gap-2 p-2 w-full shadow-4">
         <Button
-          disabled={cantSave}
           className="w-fit"
           onClick={() => {
             setIsOpenAdvancePayment(true);
@@ -895,14 +908,12 @@ const RetailPaidInfo = ({
         <Button type="primary" className="w-full min-w-0" onClick={() => {
             // setIsShowConfirmDialog(true);
             handleShowCustomerViewDialog();
-            setIsQrCode(true);
             handleSave();
           }}
-          disabled={isFormLoading || cantSave}
         >
           QrCode (F1)
         </Button>
-        <Button type="primary" className="w-full min-w-0" style={{background:"#52c41a"}} disabled={isCreatingOrder||isFormLoading || cantSave}
+        <Button type="primary" className="w-full min-w-0" style={{background:"#52c41a"}}
            onClick={ SaveOrder}
         >
           Hoàn Thành

@@ -10,9 +10,15 @@ import useLocalStorage from "use-local-storage";
 const RetailOrder = () => {
   const { listOrder, currentOrder } = useSelector(getRetailOrderState);
   const [paymentQR, setPaymentQR] = useLocalStorage("QRimg", "");
+  const [retailOrderData, setRetailOrderData] = useLocalStorage(
+    "CUSTOMER_RETAILORDER_DATA",null,{
+      syncData: false
+    }
+  );
 
   useEffect(() => {
     return () => {
+      setRetailOrderData("");
       resetRetailOrder();
       setPaymentQR("");
     };
