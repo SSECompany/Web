@@ -730,7 +730,9 @@ const RetailOrderInfo = ({ orderKey }) => {
   }
 
   useEffect(() => {
+    console.log(!isCalPromotion && !_.isEmpty(data) && autoCalPromotion);
     if (!isCalPromotion && !_.isEmpty(data) && autoCalPromotion) {
+
       recalPromotion();
       return;
     }
@@ -1039,6 +1041,7 @@ const RetailOrderInfo = ({ orderKey }) => {
         ],
       },
     ]);
+    handleCalculatorPayment();
   };
   const RemoveTest =(d)=>{
     const filteredData = [...data].filter(

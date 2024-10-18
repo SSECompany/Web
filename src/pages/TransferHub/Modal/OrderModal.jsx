@@ -177,7 +177,7 @@ const OrderModal = ({ children }) => {
             <div className="w-100 mt-2 flex justify-content-between px-2"><span className="text-left">Khách hàng:</span> <span className="text-right">{data[0]?.ten_kh}</span></div>
             <div className="w-100 mt-2 flex justify-content-between px-2">
               <span className="text-left">Thành tiền:</span> 
-              <span className="text-right">{data[0]?.tong_tt}</span>   
+              <span className="text-right">{formatCurrency(data[0]?.tong_tt)}</span>   
             </div>
             <div className="w-100 mt-2 flex justify-content-between px-2">
               <span className="text-left">Chiết khấu :</span> 

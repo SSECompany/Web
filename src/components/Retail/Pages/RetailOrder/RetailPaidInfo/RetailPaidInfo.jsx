@@ -169,7 +169,7 @@ const RetailPaidInfo = ({
   const prepareOrderData = (paymentMethods, paymentMethodInfo) => {
     const data = { ...itemForm.getFieldsValue() };
     const masterData = {
-      ...paymentData,
+      ...paymentInfo,
       ...paymentMethodInfo,
       tien_mat: paymentMethods
         ? paymentMethodInfo?.tien_mat
@@ -177,6 +177,7 @@ const RetailPaidInfo = ({
       httt: paymentMethods || "tien_mat",
       dien_giai: noteRef?.current?.resizableTextArea?.textArea?.value || "",
     };
+    console.log(paymentData);
 
     var detailData = [];
 
@@ -625,7 +626,7 @@ const RetailPaidInfo = ({
         handleShowCustomerViewDialog();
       }
     };
-  }, [JSON.stringify(isChangedData)]);
+  }, [JSON.stringify(paymentInfo)]);
 
   useEffect(() => {
     return () => {

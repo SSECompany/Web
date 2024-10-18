@@ -119,8 +119,6 @@ export const fetchRetailOderDetail = async (params,ma_ct) => {
 
 export const fetchRetailOderPromotion = async (data = [], customer = "",ma_ct="HDL") => {
   try {
-    console.log('ma_ct',ma_ct);
-    console.log('data',data);
     modifyIsLoadingPromotion(true);
     const { id, unitId, storeId } = store.getState().claimsReducer.userInfo;
 
@@ -147,10 +145,6 @@ export const fetchRetailOderPromotion = async (data = [], customer = "",ma_ct="H
       }
       return true;
     });
-    console.log('detailData',detailData);
-    console.log('listTotal',listTotal);
-    console.log('listTotal',lstQuantity);
-
     const result = await multipleTablePutApi({
       store: "API_SSELIB$Voucher$Sales$Discount",
       param: {
