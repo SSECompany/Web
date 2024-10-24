@@ -90,7 +90,6 @@ const CTDH = [
 const OrderModal = ({ children }) => {
   const [orderData, setOrderData] = useLocalStorage(
     "CUSTOMER_RETAILORDER_DATA",
-    null
   );
   const [qrSource, setQrSource] = useLocalStorage("QRimg", "");
   const [openQrCode,setOpenQrCode]=useState(false);
@@ -119,7 +118,14 @@ const OrderModal = ({ children }) => {
   }
   useEffect(() => {
     return () => {
-      const preparedData = orderData|| [];
+      console.log()
+      const storeActive = JSON.parse(localStorage.getItem("CUSTOMER_RETAILORDER_DATA"));
+      console.log(storeActive)
+      console.log(typeof(storeActive))
+      if(typeof(storeActive) !='object' || storeActive =='' || storeActive ==null|| storeActive ==undefined)  return;
+      console.log('---')
+      const preparedData = storeActive|| [];
+      console.log(preparedData);
 
       if (!_.isEmpty(preparedData)) {
         preparedData[1].map((item) => {
@@ -130,12 +136,11 @@ const OrderModal = ({ children }) => {
           item.ck =formatCurrency(item.ck);
         });
       }
-      console.log(orderData);
       setData(preparedData);
 
 
     };
-  }, [orderData]);
+  }, [JSON.stringify(orderData)]);
 
   useEffect(() => {
     return () => {

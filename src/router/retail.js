@@ -1,4 +1,4 @@
-import RetailOrder from "../components/Retail/Pages/RetailOrder/RetailOrder";
+import RetailOrder from "../components/Retail/Pages/RetailOrder2/RetailOrder";
 import OnlineOrder from "../components/Retail/Pages/OnlineOrder/OnlineOrder";
 import StockTransfer from "../components/Transfer/Pages/Transfer/Transfer";
 

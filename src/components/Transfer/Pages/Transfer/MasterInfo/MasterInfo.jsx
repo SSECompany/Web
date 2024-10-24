@@ -92,12 +92,12 @@ const MasterInfo = ({itemForm,masterForm,CreateStockTransfer}) => {
             </Form.Item>
           </div>
 
-          <div className="flex align-items-center mt-2">
+          {/* <div className="flex align-items-center mt-2">
             <span className="w-3 flex-shrink-0">Cửa hàng:</span>
             <Form.Item  initialValue={''}  name="dept_id"   style={{ width:"100%",margin: 0}}  >
               <Select  style={{ width: "100%" }}    options={list_bp}  />
             </Form.Item>
-          </div>
+          </div> */}
 
           <div className="flex  align-items-center mt-2">
             <span className="w-3 flex-shrink-0 ">Ghi chú:</span>

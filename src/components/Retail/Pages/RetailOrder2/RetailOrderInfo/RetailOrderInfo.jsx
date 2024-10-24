@@ -2,7 +2,7 @@ import { FileImageOutlined } from "@ant-design/icons";
 import { uuidv4 } from "@antv/xflow-core";
 import {Avatar,Button,Form,Image,Input,InputNumber,message as messageAPI,Segmented,Select,Tooltip,} from "antd";
 import _ from "lodash";
-import React, { memo, useCallback, useEffect, useRef, useState, useContext } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState, useContext ,useMemo } from "react";
 import { Column } from "react-base-table";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useDispatch, useSelector } from "react-redux";
@@ -32,13 +32,13 @@ import { RetailOrderContext } from './RetailOrderContext';
 import useLocalStorage from "use-local-storage";
 import checkPermission from 'utils/permission'
 
+var isDelete =false;
+
 const RetailOrderInfo = ({ orderKey }) => {
   const [openItemInfo,setOpenItemInfo]=useState(false);
   const [selectedItem,setSelectedItem]=useState('');
   const [retailOrderData, setRetailOrderData] = useLocalStorage(
-    "CUSTOMER_RETAILORDER_DATA",null,{
-      synData:false
-    }
+   "CUSTOMER_RETAILORDER_DATA"
   );
 
   const handleShowItemInfo =(value)=>{
@@ -229,7 +229,7 @@ const RetailOrderInfo = ({ orderKey }) => {
       key: "dvt",
       title: "Đơn vị",
       dataKey: "dvt",
-      width: 70,
+      width: 120,
       resizable: false,
       sortable: false,
       editable: true,
@@ -410,6 +410,7 @@ const RetailOrderInfo = ({ orderKey }) => {
   const [searchColapse, setSearchColapse] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOptionsFiltered, setsearchOptionsFiltered] = useState([]);
+  const [isQrCode, setIsQrCode] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState({
     ma_kh: "KVL",
     ten_kh: "Vãng lai",
@@ -432,10 +433,13 @@ const RetailOrderInfo = ({ orderKey }) => {
     tong_tt: 0,
     tien_mat: 0,
     tien_the: 0,
+    dien_giai:'',
     chuyen_khoan: 0,
+    t_diem_so:0
   });
 
   const [isOpenOrderList, setIsOpenOrderList] = useState(false);
+  const [changeCustomerPay,setChangeCustomerPay] = useState(0)
 
   const [isCalPromotion, setIsCalPromotion] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -449,12 +453,86 @@ const RetailOrderInfo = ({ orderKey }) => {
   const isHideNav = useSelector(getIsHideNav);
   const [paymentQR, setPaymentQR] = useLocalStorage("QRimg", "");
   const [isCalVat,setIsCalVat]=useState(false);
+  const [so_ct,setSo_ct]=useState({so_ct:''})
 
   /////// Orde List functions //////////////
+
+  const getDataOrder = (paymentMethods='', paymentMethodInfo={}) => {
+    console.log('123');
+    const data = { ...itemForm.getFieldsValue() };
+    var masterData={};
+    if(paymentMethods==''){
+      masterData = { ...paymentInfo  }
+
+    }
+    else{
+       masterData = {
+        ...paymentInfo,
+        ...paymentMethodInfo,
+        tien_mat: paymentMethods? paymentMethodInfo?.tien_mat: paymentInfo.tong_tt,
+        httt: paymentMethods || "tien_mat",
+      }
+    };
+    console.log(paymentInfo);
+    var detailData = [];
+
+      detailData =getAllRowKeys(data).map((item) => {
+        var temp=getAllValueByRow(item, data);
+        console.log(temp);
+        if(!temp.ghi_chu) temp={...temp,ghi_chu:''}
+        return temp;
+      });
+      console.log(detailData);
+
+      return [masterData, detailData];
+  }
+  const getDataOrder2 = async() => {
+    const data = { ...itemForm.getFieldsValue() };
+    const   masterData = { ...paymentInfo  }
+
+    
+    var detailData = [];
+
+      detailData =getAllRowKeys(data).map((item) => {
+        var temp=getAllValueByRow(item, data);
+        if(!temp.ghi_chu) temp={...temp,ghi_chu:''}
+        return temp;
+      });
+
+      return [masterData, detailData];
+  }
+
+    const handleShowCustomerViewDialog = useMemo( () =>async() => {
+      console.log('z1')
+      const RETAILDATA = await getDataOrder2();
+      console.log(RETAILDATA);
+      await setRetailOrderData(RETAILDATA);
+    },[paymentInfo])
+
+    const onChangePaymentInfo = (data)=>{
+      setPaymentInfo(data);
+      handleCalculatorPayment();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   const handleOrderListModal = useCallback(() => {
     setIsOpenOrderList(!isOpenOrderList);
   }, [isOpenOrderList]);
+
+
   const handleCloseItemModal =useCallback( ()=>{
     setOpenItemInfo(false);
   },[openItemInfo])
@@ -614,13 +692,17 @@ const RetailOrderInfo = ({ orderKey }) => {
       tong_ck,
       tong_thue,
     };
+    console.log(calculated);
     setPaymentInfo(calculated);
   };
 
   useEffect(() => {
-    handleCalculatorPayment();
-    setIsChangedData(uuidv4());
+    //handleCalculatorPayment();
+    //setIsChangedData(uuidv4());
+    handleShowCustomerViewDialog();
   }, [JSON.stringify(paymentInfo)]);
+
+
 
   const recalPromotion = async (temp=false,useCal=false ) => {
     setIsCalculating(true);
@@ -684,7 +766,7 @@ const RetailOrderInfo = ({ orderKey }) => {
         ...ckvtObject,
       });
       result?.ckvt?.map(async (ck) => {
-        if(ck.loai_ck=='08'){
+      if(ck.loai_ck=='08'){
           ckvtObject[`${ck.rowKey}_don_gia`] = ck?.gia_nt2;
         }
         ckvtObject[`${ck.rowKey}_ma_ck`] = ck?.ma_ck;
@@ -719,9 +801,10 @@ const RetailOrderInfo = ({ orderKey }) => {
         tl_ck: cktdValues?.tl_ck || 0,
         t_diem_so:cktdValues?.t_diem_so||0
       });
+      console.log(paymentInfo);
+      handleCalculatorPayment();
 
-      if (_.isEmpty(ckthRows) && _.isEmpty(cktdValues) )
-        handleCalculatorPayment();
+      if (_.isEmpty(ckthRows) && _.isEmpty(cktdValues) ){console.log('ck');  handleCalculatorPayment();}
       message.destroy();
       return !_.isEmpty(ckthRows);
     });
@@ -732,6 +815,7 @@ const RetailOrderInfo = ({ orderKey }) => {
 
   useEffect(() => {
     console.log(!isCalPromotion && !_.isEmpty(data) && autoCalPromotion);
+    console.log('data',data)
     if (!isCalPromotion && !_.isEmpty(data) && autoCalPromotion) {
       
       recalPromotion();
@@ -1044,22 +1128,25 @@ const RetailOrderInfo = ({ orderKey }) => {
     ]);
     handleCalculatorPayment();
   };
-  const RemoveTest =(d)=>{
-    const filteredData = [...data].filter(
+  const RemoveTest =async (d)=>{
+    console.log(isDelete);
+    if (isDelete) return;
+    isDelete=true;
+    const filteredData = await [...data].filter(
       (item) => (item?.id != d.id)
     );
     setSelectedItem('');
-    setData(filteredData);
+    await setData(filteredData);
 
     if (_.isEmpty(filteredData)) {
-      setPaymentInfo({
-        ...paymentInfo,
-        ma_ck: "",
-        ck: 0,
-        tl_ck: 0,
-      });
+      await handleCalculatorPayment();
+      isDelete=false;
     }
+    const myTimeout = setTimeout(()=>{
+      isDelete=false;
+    }, 300);
   }
+
 
   //xoá dòng vật tư
   const handleRemoveRowData = () => {
@@ -1076,12 +1163,13 @@ const RetailOrderInfo = ({ orderKey }) => {
         ck: 0,
         tl_ck: 0,
       });
+      handleCalculatorPayment();
     }
   };
 
-  const handleSelectedRowKeyChange = useCallback((keys) => {
+  const handleSelectedRowKeyChange = (keys) => {
     setSelectedRowkeys(keys);
-  }, []);
+  };
 
   const handleSelectChange = (key, params) => {
     if (params.data.type === "VT") {
@@ -1200,7 +1288,7 @@ const RetailOrderInfo = ({ orderKey }) => {
       default:
         break;
     }
-
+    if(cellName!='default_button')
     await reCalculateTotal(
       getCurRowValues()?.don_gia,
       getCurRowValues()?.so_luong,
@@ -1667,6 +1755,9 @@ const RetailOrderInfo = ({ orderKey }) => {
         isChangedData={isChangedData}
         isCalVat={isCalVat}
         ChangeCalVat={ChangeCalVat}
+        ChangePaymentInfo={onChangePaymentInfo}
+        changeCustomerPay={changeCustomerPay}
+        getDataOrder={getDataOrder}
       />
       <RetailOrderListModal
         isOpen={isOpenOrderList}

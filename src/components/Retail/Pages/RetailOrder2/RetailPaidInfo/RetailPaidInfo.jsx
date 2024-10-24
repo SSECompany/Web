@@ -77,7 +77,10 @@ const RetailPaidInfo = ({
   cantSave,
   isChangedData,
   isCalVat,
-  ChangeCalVat
+  ChangeCalVat,
+  ChangePaymentInfo,
+  changeCustomerPay,
+  getDataOrder 
 }) => {
   //Key map
   useHotkeys(
@@ -116,6 +119,7 @@ const RetailPaidInfo = ({
   const [printDetail, setPrintDetail] = useState([]);
   const [isCreatingOrder,setIsCreatingOrder]=useState(false);
   const [selectCustomer,setSelectCustomer]=useState({})
+  const [note,setNote] =useState('');
 
 
   const handleChangeVat=(value)=>{
@@ -189,12 +193,14 @@ const RetailPaidInfo = ({
 
     return [masterData, detailData];
   };
+  
 
   //Hiển thị xác nhận lưu phiếu
   const handleShowCustomerViewDialog = async() => {
-    console.log('z1')
-    const RETAILDATA = await prepareOrderData();
-    setRetailOrderData(RETAILDATA);
+    // console.log('z1')
+     //const RETAILDATA = await prepareOrderData();
+    // setRetailOrderData(RETAILDATA);
+    ChangePaymentInfo({...paymentInfo})
   };
 
 
@@ -206,16 +212,54 @@ const RetailPaidInfo = ({
   }
   const ChangePoint = (e)=>{
     if(e<=paymentInfo.diem){
-      paymentInfo.diem_sd=e;
-      setPoint(e);
-      CalFinalPayment();
+      
+    paymentInfo.diem_sd=e;
+    setPoint(e);
+
+    var finalPay = paymentInfo?.tong_tt;
+    var tien_voucher = 0;
+    var tt_none_diem =0;
+
+    tien_voucher = Number(
+      parseFloat(
+        voucher?.tl_ck
+          ? (voucher?.tl_ck * paymentInfo?.tong_tien) / 100
+          : voucher?.tien_ck
+      ).toFixed(2)
+    );
+
+    finalPay = Number(parseFloat(finalPay - tien_voucher).toFixed(2));
+    tt_none_diem = finalPay;
+    
+    if (isUsePoint) {
+      finalPay = Number(
+        parseFloat(
+          finalPay-e * hs_quy_doi
+          
+          //finalPay - paymentInfo?.diem_sd * paymentInfo?.quy_doi_diem
+        ).toFixed(2)
+      );
+    }
+
+    ChangePaymentInfo({
+      ...paymentInfo,
+      tong_tt: finalPay < 0 ? 0 : finalPay,
+      tien_voucher: tien_voucher,
+      tt_none_diem: tt_none_diem,
+      diem_sd:e
+    });
+
+
+
+      // ChangePaymentInfo({...paymentInfo,diem_sd:e})
+      // CalFinalPayment();
     }
   }
   const SaveOrder =  async (paymentMethods, paymentMethodInfo, type = "SIMPLE") => {
       if(isCreatingOrder||isFormLoading || cantSave) return;
       setIsCreatingOrder(true);
 
-      const [masterData, detailData] = await prepareOrderData(
+      const [masterData, detailData] = getDataOrder(
         paymentMethods,
         paymentMethodInfo
       );
@@ -333,6 +377,7 @@ const RetailPaidInfo = ({
       setPaymentType('chuyen_khoan');
       setIsQrCode(true);
       await setChange(paymentData.tong_tt);
+      ChangePaymentInfo({...paymentInfo,tong_tt:paymentData.tong_tt})
 
       const temp_so_ct =await multipleTablePutApi({
         store: "GetTblSoCt",
@@ -347,7 +392,7 @@ const RetailPaidInfo = ({
       //setSo_ct(so_ct_temp);
 
 
-      const [masterData, detailData] = await prepareOrderData(
+      const [masterData, detailData] = getDataOrder(
         paymentMethods,
         paymentMethodInfo
       );
@@ -488,7 +533,7 @@ const RetailPaidInfo = ({
     },
     [paymentData]
   );
-  const handleUpdateCustomerComplete = useCallback(
+  const handleUpdateCustomerComplete = 
     ({ ma_kh, ten_kh, dien_thoai,bl_yn,bb_yn,dia_chi,diem }) => {
       onChangeCustomer({
         ma_kh,
@@ -505,9 +550,7 @@ const RetailPaidInfo = ({
         diem: diem,
         type: "KH"
       })
-    },
-    [paymentData]
-  );
+    }
 
   // Tính toán thông tin thanh toán khi có sự thay đổi
   const CalFinalPayment = () => {
@@ -536,7 +579,7 @@ const RetailPaidInfo = ({
       );
     }
 
-    setPaymentData({
+    ChangePaymentInfo({
       ...paymentInfo,
       tong_tt: finalPay < 0 ? 0 : finalPay,
       tien_voucher: tien_voucher,
@@ -549,18 +592,16 @@ const RetailPaidInfo = ({
   }, []);
 
   const handlePaymentTypeClick = ({ key }) => {
-    console.log(key);
     setIsQrCode(false);
     if(key!= "chuyen_khoan"){
       setPaymentQR("");
     }
     setPaymentType(key);
   };
-  
-  useEffect(() => {
-    console.log(isQrCode);
-  }, [isQrCode])
-
+  const changeNote =(e)=>{
+    setNote(e.value);
+    ChangePaymentInfo({...paymentInfo,dien_giai:e.value})
+  }
   const handleSearch = useDebouncedCallback((newValue)=>{
     multipleTablePutApi({
       store: "Api_search_customers",
@@ -581,15 +622,15 @@ const RetailPaidInfo = ({
     setValueSearch(newValue);
 
     const { value, label, dien_thoai, diem,moc_diem } = params.data;
-    setPaymentData({
-      ...paymentData,
-      ma_kh: value,
-      ten_kh: label,
-      dien_thoai,
-      diem,
-      diem_sd:0,
-      moc_diem:moc_diem
-    });
+    // setPaymentData({
+    //   ...paymentData,
+    //   ma_kh: value,
+    //   ten_kh: label,
+    //   dien_thoai,
+    //   diem,
+    //   diem_sd:0,
+    //   moc_diem:moc_diem
+    // });
     setSelectCustomer(params.data)
     onSelectCustomer({
       ma_kh:value,
@@ -603,10 +644,10 @@ const RetailPaidInfo = ({
   // Lắng nghe sự thay đổi tham số để tính toán
   useEffect(() => {
     if (!_.isEmpty(paymentInfo)) {
-      CalFinalPayment();
+      setPaymentData(paymentInfo)
     }
     return () => {};
-  }, [paymentInfo, isUsePoint, voucher]);
+  }, [paymentInfo]);
 
   //Kiểm tra đã render lại phiếu chưa và in hoá đơn
   useEffect(() => {
@@ -621,12 +662,9 @@ const RetailPaidInfo = ({
   }, [JSON.stringify(printMaster)]);
 
   useEffect(() => {
-
-    return () => {
-        handleShowCustomerViewDialog();
-    
-    };
-  }, [isChangedData]);
+    setChange(changeCustomerPay);
+    return () => {};
+  }, [changeCustomerPay]);
 
   useEffect(() => {
     return () => {
@@ -679,25 +717,25 @@ const RetailPaidInfo = ({
 
         <div  className="flex justify-content-between gap-2 retail-customer-info relative"  style={{ minHeight: 60 }} >
           <div>
-            {paymentData?.ma_kh ? (
+            {paymentInfo?.ma_kh ? (
               <>
                 <p className="">
-                  <b>{paymentData?.ma_kh}</b> -{" "}
-                  {paymentData?.ten_kh || "Không có dữ liệu"}
+                  <b>{paymentInfo?.ma_kh}</b> -{" "}
+                  {paymentInfo?.ten_kh || "Không có dữ liệu"}
                 </p>
                 <p className="">
-                  {paymentData?.dien_thoai?.trim() || "Không có số điện thoại"}
+                  {paymentInfo?.dien_thoai?.trim() || "Không có số điện thoại"}
                 </p>
                 <div>
                   <span className="primary_bold_text">
-                    {formatCurrency(paymentData?.diem || 0)} điểm{" "}
+                    {formatCurrency(paymentInfo?.diem || 0)} điểm{" "}
                   </span>
-                  {isUsePoint && paymentData?.diem >=paymentData?.moc_diem  && (
+                  {isUsePoint && paymentInfo?.diem >=paymentInfo?.moc_diem  && (
                     <b className="danger_text_color">
                       -
-                      {paymentData?.diem <=
+                      {paymentInfo?.diem <=
                       paymentInfo?.tong_tt / paymentInfo?.quy_doi_diem
-                        ? paymentData?.diem
+                        ? paymentInfo?.diem
                         : paymentInfo?.tong_tt / paymentInfo?.quy_doi_diem}
                     </b>
                   )}
@@ -719,12 +757,12 @@ const RetailPaidInfo = ({
         <div className="retail_bill_info">
           <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0">
-              Tổng tiền ({paymentData?.tong_sl || 0} sản phẩm):
+              Tổng tiền ({paymentInfo?.tong_sl || 0} sản phẩm):
             </span>
             <span className="primary_bold_text line-height-16 white-space-normal">
               {formatCurrency(
-                paymentData?.tong_tien / (paymentData?.ty_gia || 1),
-                paymentData?.ma_nt === "VND" ? 0 : 2
+                paymentInfo?.tong_tien / (paymentInfo?.ty_gia || 1),
+                paymentInfo?.ma_nt === "VND" ? 0 : 2
               )}
             </span>
           </div>
@@ -733,8 +771,8 @@ const RetailPaidInfo = ({
             <span className="w-6 flex-shrink-0">Thuế: <Switch checked={isCalVat} onChange={handleChangeVat} /></span>
             <span className="primary_bold_text">
               {formatCurrency(
-                paymentData?.tong_thue / (paymentData?.ty_gia || 1),
-                paymentData?.ma_nt === "VND" ? 0 : 2
+                paymentInfo?.tong_thue / (paymentData?.ty_gia || 1),
+                paymentInfo?.ma_nt === "VND" ? 0 : 2
               )}
             </span>
           </div>
@@ -743,8 +781,8 @@ const RetailPaidInfo = ({
             <span className="w-6 flex-shrink-0">Tổng chiết khấu:</span>
             <span className="primary_bold_text">
               {formatCurrency(
-                paymentData?.tong_ck / (paymentData?.ty_gia || 1),
-                paymentData?.ma_nt === "VND" ? 0 : 2
+                paymentInfo?.tong_ck / (paymentInfo?.ty_gia || 1),
+                paymentInfo?.ma_nt === "VND" ? 0 : 2
               )}
             </span>
           </div>
@@ -784,8 +822,8 @@ const RetailPaidInfo = ({
             </span>
             <span className="primary_bold_text">
               {formatCurrency(
-                (paymentData?.tien_voucher || 0) / (paymentData?.ty_gia || 1),
-                paymentData?.ma_nt === "VND" ? 0 : 2
+                (paymentInfo?.tien_voucher || 0) / (paymentInfo?.ty_gia || 1),
+                paymentInfo?.ma_nt === "VND" ? 0 : 2
               )}
             </span>
           </div>
@@ -812,7 +850,7 @@ const RetailPaidInfo = ({
               formatter={(value) => formatterNumber(value)}
               parser={(value) => parserNumber(value)}
               style={{border:"none"}}
-              disabled={paymentData?.diem<maxPoint}
+              disabled={paymentInfo?.moc_diem<maxPoint}
             />
           </div>
 
@@ -820,8 +858,8 @@ const RetailPaidInfo = ({
             <span className="w-6 flex-shrink-0" style={{color:"#4779CF",fontWeight:"bold"}}>Thanh toán:</span>
             <span className="primary_bold_text">
               {formatCurrency(
-                paymentData?.tong_tt / (paymentData?.ty_gia || 1),
-                paymentData?.ma_nt === "VND" ? 0 : 2
+                paymentInfo?.tong_tt / (paymentInfo?.ty_gia || 1),
+                paymentInfo?.ma_nt === "VND" ? 0 : 2
               )}
             </span>
           </div>
@@ -831,8 +869,8 @@ const RetailPaidInfo = ({
             <span className="primary_bold_text line-height-16 white-space-normal">
               {num2words(
                 parseFloat(
-                  (paymentData?.tong_tt / (paymentData?.ty_gia || 1)).toFixed(
-                    paymentData?.ma_nt === "VND" ? 0 : 2
+                  (paymentInfo?.tong_tt / (paymentInfo?.ty_gia || 1)).toFixed(
+                    paymentInfo?.ma_nt === "VND" ? 0 : 2
                   )
                 ) || 0
               )}
@@ -881,46 +919,30 @@ const RetailPaidInfo = ({
         </div>
 
         <div className="flex justify-content-between gap-2  mt-2">
-          <Input.TextArea
-            ref={noteRef}
+          <Input
+            value={note}
             placeholder="Ghi chú"
-            autoSize={{
-              minRows: 1,
-              maxRows: 3,
-            }}
+            onChange={changeNote}
             style={{ resize: "none" }}
           />
         </div>
       </div>
 
       <div className="retail_action_container flex gap-2 p-2 w-full shadow-4">
-        <Button
-          className="w-fit"
-          onClick={() => {
-            setIsOpenAdvancePayment(true);
-            handleShowCustomerViewDialog();
-          }}
-        >
+        <Button  className="w-fit"  onClick={() => {  setIsOpenAdvancePayment(true); handleShowCustomerViewDialog();  }}   >
           Nâng cao (F7)
         </Button>
 
-        <Button type="primary" className="w-full min-w-0" onClick={() => {
-            // setIsShowConfirmDialog(true);
-            handleShowCustomerViewDialog();
-            handleSave();
-          }}
-        >
+        <Button type="primary" className="w-full min-w-0" onClick={() => {  handleShowCustomerViewDialog();  handleSave();  }} >
           QrCode (F1)
         </Button>
-        <Button type="primary" className="w-full min-w-0" style={{background:"#52c41a"}}
-           onClick={ SaveOrder}
-        >
+        <Button type="primary" className="w-full min-w-0" style={{background:"#52c41a"}}  onClick={ SaveOrder}  >
           Hoàn Thành
         </Button>
       </div>
       <AdvanceRetailPayment
         isOpen={isOpenAdvancePayment}
-        total={paymentData?.tong_tt / (paymentData?.ty_gia || 1)}
+        total={paymentInfo?.tong_tt / (paymentInfo?.ty_gia || 1)}
         onClose={handleCloseAdvancePayment}
         onSave={handleSave}
         SuccessOrder={SuccessOrder}
