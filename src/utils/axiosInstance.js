@@ -55,8 +55,10 @@ instance.interceptors.response.use(
 
         const [newToken, newRefreshToken] = await refreshingFunc;
 
-        jwt.setRefreshToken(newRefreshToken);
-        jwt.setAccessToken(newToken);
+        console.log(newRefreshToken,newToken);
+
+        await jwt.setRefreshToken(newRefreshToken);
+        await jwt.setAccessToken(newToken);
 
         config.headers.Authorization = `Bearer ${newToken}`;
         // retry original request

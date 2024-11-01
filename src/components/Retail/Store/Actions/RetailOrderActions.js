@@ -332,6 +332,12 @@ export const apiCreateRefundOrderHDO = async (master = {}, detail = []) => {
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------------
+
+
+export const modifyChangeTabOrder = async (params) => {
+  store.dispatch(retailOrderActions.setChangeTabOrder(params));
+};
+
 export const modifyIsFormLoading = async (params) => {
   store.dispatch(retailOrderActions.setIsFormLoading(params));
 };

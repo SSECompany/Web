@@ -21,6 +21,7 @@ const initial = {
   isFormLoading: false,
   isOpenPromotion: false,
   isPromotionLoading: false,
+  changeTabOrder:0
 };
 
 const retailOrderSlice = createSlice({
@@ -60,6 +61,9 @@ const retailOrderSlice = createSlice({
     },
     setIsAddNewCustomer: (state, action) => {
       state.isAddNewCustomer = action.payload;
+    },
+    setChangeTabOrder :(state,action)=>{
+      state.changeTabOrder = action.payload;
     },
 
     reset: () => initial,

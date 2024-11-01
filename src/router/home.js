@@ -11,6 +11,7 @@ import systemRoutes from "./system";
 
 const LoginHub = lazy(() => import("../pages/LoginHub/LoginHub"));
 const Login = lazy(() => import("../pages/Login/Login"));
+const Test = lazy(() => import("../pages/Test/Test"));
 
 const homeRoutes = [
   {
@@ -19,6 +20,13 @@ const homeRoutes = [
     path: "/login",
     element: <Login />,
     index: true,
+  },
+  {
+    label: "test",
+    claims: "Permissions.ABCXYZDEF",
+    path: "/test",
+    element: <Test />,
+    children:[]
   },
   {
     label: "Home",

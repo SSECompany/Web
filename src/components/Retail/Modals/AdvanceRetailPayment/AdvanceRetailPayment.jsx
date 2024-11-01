@@ -29,6 +29,10 @@ const paymentType = [
     label: "Chuyển khoản",
     value: "chuyen_khoan",
   },
+  {
+    label: "Qr Code",
+    value: "qr",
+  },
 ];
 
 const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose,SuccessOrder }) => {
@@ -41,6 +45,7 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose,SuccessOrder }) =
     tien_mat: 0,
     tien_the: 0,
     chuyen_khoan: 0,
+    qr:0,
   });
   const [change, setChange] = useState(0);
   const { isFormLoading } = useSelector(getRetailOrderState);
@@ -82,7 +87,7 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose,SuccessOrder }) =
   };
 
   const handleSave = () => {
-    if (paymentSelected.length === 0) {
+    if (paymentSelected.includes('qr') === 0) {
       message.warning("Chọn hình thức thanh toán");
       return;
     }
@@ -103,7 +108,7 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose,SuccessOrder }) =
       return;
     }
 
-    SuccessOrder();
+    SuccessOrder(paymentSelected.join(","),paymentChangeValue,'ADVANCE');
   };
 
    const formatNumber = (val) => {
@@ -267,7 +272,7 @@ const AdvanceRetailPayment = ({ onSave, isOpen, total, onClose,SuccessOrder }) =
                     formatter={(value) => formatNumber(value)}
                     parser={(value) => parserNumber(value)}
                     onKeyDownCapture={(event)=>{
-                      if ((!/[0-9]/.test(event.key)) && (event.keyCode !=8)) {
+                      if ((!/[0-9]/.test(event.key)) &&  (![8, 46, 37,38,39,40].includes(event.keyCode)) ) {
                         event.preventDefault();
                       }
                     }}

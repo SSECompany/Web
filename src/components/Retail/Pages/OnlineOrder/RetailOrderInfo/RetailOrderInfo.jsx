@@ -191,6 +191,44 @@ const columns = [
       );
     },
   },
+  {
+    key: "thue_suat",
+    title: "Vat",
+    dataKey: "thue_suat",
+    width: 80,
+    resizable: false,
+    sortable: false,
+    editable: false,
+    type: "Numeric",
+    cellRenderer: ({ rowData, column, cellData }) => {
+      return (
+        <RenderPerformanceTableCell
+          rowKey={rowData?.id}
+          column={column}
+          cellData={cellData}
+        />
+      );
+    },
+  },
+  {
+    key: "thue_nt",
+    title: "Vat Tềin",
+    dataKey: "thue_nt",
+    width: 0,
+    resizable: false,
+    sortable: false,
+    editable: true,
+    type: "Numeric",
+    cellRenderer: ({ rowData, column, cellData }) => {
+      return (
+        <RenderPerformanceTableCell
+          rowKey={rowData?.id}
+          column={column}
+          cellData={cellData}
+        />
+      );
+    },
+  },
 
   {
     key: "so_luong",
@@ -387,6 +425,7 @@ const RetailOrderInfo = ({ orderKey }) => {
   const [isCalPromotion, setIsCalPromotion] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isChangedData, setIsChangedData] = useState(false);
+  const [isCalVat,setIsCalVat]=useState(false);
 
   const searchInputRef = useRef(null);
 
@@ -404,6 +443,24 @@ const RetailOrderInfo = ({ orderKey }) => {
   const handleHideNavbar = () => {
     dispatch(setIsHideNav(!isHideNav));
   };
+  const ChangeCalVat = async (value)=>{
+    await setIsCalVat(value);
+    const curData = itemForm.getFieldsValue();
+    if(value){
+      await getAllRowKeys(curData).map((key) => {
+          //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)) * (Number(getAllValueByRow(key, curData)?.don_gia) *(100 - Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) );
+          itemForm.setFieldValue(`${key}_thue_nt`,((Number(getAllValueByRow(key, curData)?.so_luong)) * (Number(getAllValueByRow(key, curData)?.don_gia) *(Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) ) );
+      });
+    }
+    else{
+      await getAllRowKeys(curData).map((key) => {
+        //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)) * (Number(getAllValueByRow(key, curData)?.don_gia)) );
+        itemForm.setFieldValue(`${key}_thue_nt`,0);
+      });
+    }
+    if (autoCalPromotion) await recalPromotion(true,value);
+    else await handleCalculatorPayment();
+  }
 
   /////// Calculations functions////////////
 
@@ -521,7 +578,13 @@ const RetailOrderInfo = ({ orderKey }) => {
 
     const tong_ck = parseFloat(tong_ckvt + ck_tong_don);
 
-    const tong_thue = parseFloat((tong_tien * paymentInfo.thue_suat) / 100);
+    // const tong_thue = parseFloat((tong_tien * paymentInfo.thue_suat) / 100);
+    var tong_thue = 0
+    if (isCalVat)
+      tong_thue =await getAllValueByColumn("thue_nt", changedValues).reduce(
+      (Sum, num) => Sum + num,
+      0
+    );
 
     const tong_tt = parseFloat(tong_tien + tong_thue - tong_ck);
 
@@ -739,11 +802,8 @@ const RetailOrderInfo = ({ orderKey }) => {
       param: {
         barcode,
         ma_vt,
-        UnitID: unitId,
-        StoreID: storeId,
-        StockID: stock || "",
-        Currency: paymentInfo?.ma_nt,
         userId,
+        StoreID: storeId,
       },
       data: {},
     }).then((res) => {
@@ -753,7 +813,7 @@ const RetailOrderInfo = ({ orderKey }) => {
           return;
         }
 
-        const { ma_vt, ten_vt, ma_kho, dvt, gia } = _.first(
+        const { ma_vt, ten_vt, ma_kho, dvt, gia ,thue_suat} = _.first(
           _.first(res.listObject)
         );
 
@@ -768,6 +828,7 @@ const RetailOrderInfo = ({ orderKey }) => {
             so_luong: 1,
             don_gia: gia || "0",
             ck_yn: false,
+            thue_suat:thue_suat
           });
           return;
         }
@@ -846,6 +907,7 @@ const RetailOrderInfo = ({ orderKey }) => {
     dvt,
     don_gia,
     ck_yn,
+    thue_suat,
     so_luong = 1,
   }) => {
     if (isMergeRowData) {
@@ -854,11 +916,17 @@ const RetailOrderInfo = ({ orderKey }) => {
 
       await getAllRowKeys(curData).map((key) => {
         if (getAllValueByRow(key, curData)?.ma_vt === ma_vt) {
-          itemForm.setFieldValue(
-            `${key}_so_luong`,
-            Number(getAllValueByRow(key, curData)?.so_luong) + so_luong
-          );
+          itemForm.setFieldValue(`${key}_so_luong`,Number(getAllValueByRow(key, curData)?.so_luong) + so_luong);
           itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia)) );
+          if(isCalVat){
+            //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia) *(100 - Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) );
+            itemForm.setFieldValue(`${key}_thue_nt`,((Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia) *(Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) ) );
+          }
+          else{
+
+            //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia)) );
+            itemForm.setFieldValue(`${key}_thue_nt`,0  );
+          }
           isHad = true;
           return;
         }
@@ -885,6 +953,8 @@ const RetailOrderInfo = ({ orderKey }) => {
         don_gia: don_gia || "0",
         thanh_tien: don_gia * 1 || "0",
         ck_yn: ck_yn || false,
+        thue_suat:thue_suat,
+        thue_nt:isCalVat?((100-thue_suat)*don_gia/100)  :0,
         children: [
           {
             id: `${rowID}-detail`,
@@ -945,6 +1015,7 @@ const RetailOrderInfo = ({ orderKey }) => {
         ],
       },
     ]);
+    handleCalculatorPayment();
   };
 
   //xoá dòng vật tư
@@ -972,7 +1043,7 @@ const RetailOrderInfo = ({ orderKey }) => {
 
   const handleSelectChange = (key, params) => {
     if (params.data.type === "VT") {
-      const { value, label, dvt, gia, ma_kho, image } = params.data;
+      const { value, label, dvt, gia, ma_kho, image ,thue_suat  } = params.data;
       handleAddRowData({
         ma_vt: value,
         ten_vt: label,
@@ -981,6 +1052,7 @@ const RetailOrderInfo = ({ orderKey }) => {
         dvt,
         don_gia: gia,
         ck_yn: false,
+        thue_suat:thue_suat,
       });
     }
 
@@ -1420,7 +1492,7 @@ const RetailOrderInfo = ({ orderKey }) => {
             </Tooltip>
           </div>
 
-          <div className="flex gap-3">
+          {/* <div className="flex gap-3">
             <div>
               <b className="primary_bold_text mr-1">Thuế :</b>
               <Select
@@ -1501,7 +1573,7 @@ const RetailOrderInfo = ({ orderKey }) => {
                 });
               }}
             />
-          </div>
+          </div> */}
         </div>
       </div>
       <RetailPaidInfo
@@ -1511,6 +1583,8 @@ const RetailOrderInfo = ({ orderKey }) => {
         onResetForm={handleResetForm}
         cantSave={isCalculating}
         isChangedData={isChangedData}
+        ChangeCalVat={ChangeCalVat}
+        isCalVat={isCalVat}
       />
       <RetailOrderListModal
         isOpen={isOpenOrderList}

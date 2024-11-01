@@ -469,13 +469,13 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
   });
   const handleSetVoucher =(value) =>{
     if(value.voucher)  setVoucher({
-        voucherId: value.voucher?.voucherId,
+        voucherId: value.voucher?.value,
         tien_ck:value.voucher?.tien_ck,
         tl_ck:value.voucher?.tl_ck,
       });
       setVoucherStatus({
         ...voucherStatus,
-        currentVoucher: value.status?.currentVoucher,
+        currentVoucher: value.status?.value,
         valid: value.status?.valid,
         loading: value.status?.loading,
       });
@@ -577,7 +577,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     if(value){
       await getAllRowKeys(curData).map((key) => {
           //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)) * (Number(getAllValueByRow(key, curData)?.don_gia) *(100 - Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) );
-          itemForm.setFieldValue(`${key}_thue_nt`,(((Number(getAllValueByRow(key, curData)?.so_luong)) * Number(getAllValueByRow(key, curData)?.don_gia)- Number(getAllValueByRow(key, curData)?.ck)) *(Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) );
+          itemForm.setFieldValue(`${key}_thue_nt`,((Number(getAllValueByRow(key, curData)?.so_luong)) * (Number(getAllValueByRow(key, curData)?.don_gia) *(Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) ) );
       });
     }
     else{
@@ -742,11 +742,11 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     tien_voucher = Number(
       parseFloat(
         voucher?.tl_ck
-          ? (voucher?.tl_ck * (tong_tien + tong_thue -tong_ck)) / 100
+          ? (voucher?.tl_ck * paymentInfo?.tong_tien) / 100
           : voucher?.tien_ck
       ).toFixed(2)
     );
-    console.log(isCalVat,tong_thue,tien_voucher,tong_tien ,tong_thue , tong_ck , (voucher?.tl_ck * (tong_tien + tong_thue)) / 100, tien_voucher)
+    console.log(isCalVat,tong_thue,tien_voucher,tong_tien ,tong_thue , tong_ck , dataTemp.diem_sd,parseFloat(hs_quy_doi) , tien_voucher)
     const tong_tt = parseFloat(tong_tien + tong_thue - tong_ck - dataTemp.diem_sd*(hs_quy_doi? hs_quy_doi:0)- tien_voucher);
     const cal = {
       ...dataTemp,
@@ -1127,7 +1127,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
           itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia)) );
           if(isCalVat){
             //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia) *(100 - Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) );
-            itemForm.setFieldValue(`${key}_thue_nt`,(((Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * Number(getAllValueByRow(key, curData)?.don_gia) -Number(getAllValueByRow(key, curData)?.ck)  )*(Number(getAllValueByRow(key, curData)?.thue_suat))/100  ) );
+            itemForm.setFieldValue(`${key}_thue_nt`,((Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia) *(Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) ) );
           }
           else{
 
@@ -1702,7 +1702,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
             </Tooltip>
             :''}
 
-            <Tooltip placement="topRight" title="Thanh toán">
+            {/* <Tooltip placement="topRight" title="Thanh toán">
               <Button
                 className="default_button"
                 onClick={() => {
@@ -1721,7 +1721,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
                   style={{ fontWeight: "bold" }}
                 ></i>
               </Button>
-            </Tooltip>
+            </Tooltip> */}
 
             <Tooltip placement="topRight" title="Danh sách đơn">
               <Button onClick={handleOrderListModal} className="default_button">
@@ -1848,6 +1848,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       <RetailOrderListModal
         isOpen={isOpenOrderList}
         onClose={handleOrderListModal}
+        ma_ct={'HDO'}
       />
       {/* <ShowItemInfoModal
         isOpen={openItemInfo}

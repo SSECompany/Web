@@ -1,5 +1,5 @@
 import RetailOrder from "../components/Retail/Pages/RetailOrder2/RetailOrder";
-import OnlineOrder from "../components/Retail/Pages/OnlineOrder/OnlineOrder";
+import OnlineOrder from "../components/Retail/Pages/OnlineOrder2/RetailOrder";
 import StockTransfer from "../components/Transfer/Pages/Transfer/Transfer";
 
 const RORoutes = [

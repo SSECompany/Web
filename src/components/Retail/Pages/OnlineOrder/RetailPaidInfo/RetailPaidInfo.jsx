@@ -86,6 +86,8 @@ const RetailPaidInfo = ({
   onChangeCustomer,
   onResetForm,
   cantSave,
+  ChangeCalVat,
+  isCalVat ,
   isChangedData,
 }) => {
   //Key map
@@ -207,6 +209,9 @@ const RetailPaidInfo = ({
   }
   const SuccessOrder= ()=>{
     SaveOrder();
+  }
+  const handleChangeVat=(value)=>{
+    ChangeCalVat(value)
   }
   const ChangePoint = (e)=>{
     paymentInfo.diem_sd=e;
@@ -594,8 +599,17 @@ const RetailPaidInfo = ({
             </span>
           </div>
 
-          <div className="flex justify-content-between gap-2 align-items-center">
+          {/* <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0">Tổng thuế:</span>
+            <span className="primary_bold_text">
+              {formatCurrency(
+                paymentData?.tong_thue / (paymentData?.ty_gia || 1),
+                paymentData?.ma_nt === "VND" ? 0 : 2
+              )}
+            </span>
+          </div> */}
+          <div className="flex justify-content-between gap-2 align-items-center">
+            <span className="w-6 flex-shrink-0">Thuế: <Switch checked={isCalVat} onChange={handleChangeVat} /></span>
             <span className="primary_bold_text">
               {formatCurrency(
                 paymentData?.tong_thue / (paymentData?.ty_gia || 1),

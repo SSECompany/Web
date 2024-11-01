@@ -194,6 +194,15 @@ const PrintComponent = forwardRef(
               {formatCurrency(master?.tong_thue) || "Trống"}
             </div>
           </div>
+          <div
+            style={{
+              display: "flex",
+            }}
+          >
+            <div style={{ width: "100px", textAlign: "left" }}>Voucher:</div>
+            <div style={{ width: "100px", textAlign: "left" }}>  {formatCurrency(master?.voucher) || "Trống"}  </div>
+            <div style={{ width: "100px", textAlign: "right" }}>  {formatCurrency(master?.tien_voucher) || "Trống"}  </div>
+          </div>
 
           <div
             style={{

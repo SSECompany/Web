@@ -169,7 +169,6 @@ const RetailPaidInfo = ({
   const [isShowConfirmDialog, setIsShowConfirmDialog] = useState(false);
   const [dataCustomerSearch,setDataCustomerSearch]=useState([]);
   const [valueSearch,setValueSearch]=useState("");
-  const [ voucherChild,setVoucherChild]=useState('')
 
   const { isFormLoading } = useSelector(getRetailOrderState);
   const { id: userId, storeId, unitId,storeName } = useSelector(getUserInfo);
@@ -277,7 +276,7 @@ const RetailPaidInfo = ({
           ...masterData,
           tien_mat: paymentMethods === "tien_mat" ? masterData.tong_tt : 0,
           tien_the: paymentType === "tien_the" ? masterData.tong_tt : 0,
-          chuyen_khoan: (paymentType === "chuyen_khoan" && !isQrCode) ? masterData.tong_tt : 0,
+          chuyen_khoan: paymentType === "chuyen_khoan" ? masterData.tong_tt : 0,
           qr: isQrCode ? masterData.tong_tt : 0,
           httt: isQrCode ? 'qr' : paymentType,
         };
@@ -292,8 +291,8 @@ const RetailPaidInfo = ({
           httt: paymentMethods,
         };
       }
-      if(so_ct?.so_ct){
-        master={...master,so_ct:so_ct?.so_ct};
+      if(so_ct.so_ct){
+        master={...master,so_ct:so_ct.so_ct};
       }
       else{
         const temp_so_ct =await multipleTablePutApi({
@@ -332,19 +331,13 @@ const RetailPaidInfo = ({
       }
 
       setIsShowConfirmDialog(false);
-      setPrintMaster({
-        ...master,
-        voucher: voucher?.voucherId,
-        sd_diem: isUsePoint ? 1 : 0,
-        tt_diem:temp,
-      });
+      setPrintMaster(master);
       var temp =master.diem_sd;
       setPrintDetail(detailData);
-      console.log(voucher);
 
       multipleTablePutApi({
         arandomnumber: Math.floor(Math.random() * 10000),
-        store: "Api_create_retail_order",
+        store: "Api_create_retail_order_hdo",
         param: {
           UnitID: unitId,
           StoreID: storeId,
@@ -354,7 +347,7 @@ const RetailPaidInfo = ({
           master: [
             {
               ...master,
-              voucher: voucher?.voucherId,
+              voucher: voucher.voucherId,
               sd_diem: isUsePoint ? 1 : 0,
               tt_diem:temp,
             },
@@ -372,25 +365,9 @@ const RetailPaidInfo = ({
             setPaymentType("tien_mat")
             onResetForm();
             setValueSearch("");
-            so_ct={}
             setPaymentQR('');
-            setVoucherMaster(
-              {
-                status:{
-                currentVoucher: '',
-                loading: false,
-                },
-                voucher:{
-                  voucherId: '',
-                  tien_ck:0,
-                  tl_ck:0,
-                }
-              }
-            )
-            setVoucherChild('');
             emitter.emit("HANDLE_RETAIL_ORDER_SAVE");
             handleCloseAdvancePayment();
-            
             setChange(0);
             return _.first(res.listObject[0]);
           } else {
@@ -504,7 +481,6 @@ const RetailPaidInfo = ({
   }, [paymentData, voucher, change]);
 
   const onVoucherClear =() =>{
-    setVoucherChild('');
     setVoucherMaster(
       {
         status:{
@@ -520,12 +496,9 @@ const RetailPaidInfo = ({
       }
     )
   }
-  const changeVoucher =(e)=>{
-    setVoucherChild( e.target.value)
-  }
   // Xác thực voucher
   const handleFindVoucher = useDebouncedCallback(async (e) => {
-    var value = e.target.value;
+    const value = e.target.value;
     if (value) {
       setVoucherMaster({status:{
         ...voucherStatus,
@@ -545,17 +518,17 @@ const RetailPaidInfo = ({
       }).then((res) => {
         if (res?.responseModel?.isSucceded) {
           if (!_.isEmpty(_.first(res?.listObject))) {
-            const { tl_ck, tien_ck,ma_the } = _.first(_.first(res?.listObject));
+            const { tl_ck, tien_ck } = _.first(_.first(res?.listObject));
 
             setVoucherMaster(
               {
                 status:{
                 ...voucherStatus,
-                currentVoucher: ma_the,
+                currentVoucher: value,
                 loading: false,
                 },
                 voucher:{
-                  voucherId: ma_the,
+                  voucherId: value,
                   tien_ck,
                   tl_ck,
                 }
@@ -568,7 +541,7 @@ const RetailPaidInfo = ({
               {
                 status:{
                 ...voucherStatus,
-                currentVoucher: '',
+                currentVoucher: value,
                 loading: false,
                 },
                 voucher:{
@@ -875,8 +848,7 @@ const RetailPaidInfo = ({
 
           <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0">
-              <Input id="voucher-custom"
-              value={voucherChild}
+              <Input
                 status={
                   !voucherStatus.valid &&
                   voucherStatus.currentVoucher &&
@@ -884,7 +856,7 @@ const RetailPaidInfo = ({
                     ? "error"
                     : null
                 }
-                onChange={(e)=>{changeVoucher(e);handleFindVoucher(e)}}
+                onChange={handleFindVoucher}
                 allowClear ={{ clearIcon: <CloseOutlined onClick={ onVoucherClear } /> }}
                 placeholder="Mã Voucher"
                 suffix={
@@ -964,7 +936,7 @@ const RetailPaidInfo = ({
             </span>
           </div>
 
-          <div className="flex justify-content-between gap-2 align-items-center">
+          {/* <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0">Khách đưa:</span>
             <InputNumber
               controls={false}
@@ -977,7 +949,7 @@ const RetailPaidInfo = ({
               parser={(value) => parserNumber(value)}
               style={{border:"none"}}
             />
-          </div>
+          </div> */}
         </div>
 
         <Dropdown
@@ -998,12 +970,12 @@ const RetailPaidInfo = ({
           </div>
         </Dropdown>
 
-        <div className="flex justify-content-between gap-2 align-items-center">
+        {/* <div className="flex justify-content-between gap-2 align-items-center">
           <span className="w-6 flex-shrink-0 line-height-4">Trả lại:</span>
           <span className="primary_bold_text danger_text_color">
             {formatCurrency(calculateBackMoney)}
           </span>
-        </div>
+        </div> */}
 
         <div className="flex justify-content-between gap-2  mt-2">
           <Input
@@ -1016,15 +988,9 @@ const RetailPaidInfo = ({
       </div>
 
       <div className="retail_action_container flex gap-2 p-2 w-full shadow-4">
-        <Button  className="w-fit"  onClick={() => {  setIsOpenAdvancePayment(true); handleShowCustomerViewDialog();  }}   >
-          Nâng cao (F7)
-        </Button>
-
-        <Button type="primary" className="w-full min-w-0" onClick={() => {  handleShowCustomerViewDialog();  handleSave();  }} >
-          QrCode (F1)
-        </Button>
-        <Button type="primary" className="w-full min-w-0" style={{background:"#52c41a"}}  onClick={ SaveOrder}  >
-          Hoàn Thành
+        
+        <Button type="primary" className="w-full min-w-0" style={{background:"#52c41a"}} disabled={isCreatingOrder || isFormLoading || cantSave} onClick={ SaveOrder}>
+          Tạo Đơn
         </Button>
       </div>
       <AdvanceRetailPayment
