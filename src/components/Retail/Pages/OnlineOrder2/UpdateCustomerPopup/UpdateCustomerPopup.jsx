@@ -30,9 +30,9 @@ const UpdateCustomerPopup = ({ kh,onSave }) => {
 
         message.success(`Thực hiện thành công`);
         handleClosePopup();
-        console.log(formData);
         console.log(_.first(_.first(res.listObject)));
         const data = _.first(_.first(res.listObject));
+        console.log(kh?.diem);
         await onSave({
           ma_kh: kh?.value,
           ten_kh: param?.ten_kh,
@@ -40,6 +40,7 @@ const UpdateCustomerPopup = ({ kh,onSave }) => {
           dia_chi:param?.dia_chi,
           bb_yn:kh?.bb_yn,
           bl_yn:kh?.bl_yn,
+          moc_diem:kh?.moc_diem,
           diem:kh?.diem
         });
       } else {

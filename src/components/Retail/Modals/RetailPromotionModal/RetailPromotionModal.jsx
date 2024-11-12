@@ -30,6 +30,15 @@ const ckvt = [
     hidden: true,
   },
   {
+    Field: "ten_ck",
+    Name: "Tên chiết khấu",
+    Name2: "Promotion name",
+    Type: "Text",
+    Format: null,
+    width: 250,
+    hidden: true,
+  },
+  {
     Field: "ma_vt",
     Name: "Mã vật tư",
     Name2: "Item code",
@@ -123,6 +132,15 @@ const ckth = [
     width: 100,
     hidden: false,
   },
+  {
+    Field: "ten_ck",
+    Name: "Tên chiết khấu",
+    Name2: "Promotion name",
+    Type: "Text",
+    Format: null,
+    width: 250,
+    hidden: true,
+  },
 ];
 
 const cktd = [
@@ -143,6 +161,15 @@ const cktd = [
     Format: null,
     width: 120,
     hidden: false,
+  },
+  {
+    Field: "ten_ck",
+    Name: "Tên chiết khấu",
+    Name2: "Promotion name",
+    Type: "Text",
+    Format: null,
+    width: 250,
+    hidden: true,
   },
 
   {
@@ -178,11 +205,11 @@ const RetailPromotionModal = ({ tableData, customer, handleSave }) => {
   const [CKTDSelected, setCKTDSelected] = useState([]);
 
   const handleOK = async () => {
-    const CKVT = CKVTData.filter((item) => CKVTSelected.includes(item.id));
-    const CKTH = CKTHData.filter((item) => CKTHSelected.includes(item.id));
-    const CKTD = CKTDData.filter((item) => CKTDSelected.includes(item.id));
+    // const CKVT = CKVTData.filter((item) => CKVTSelected.includes(item.id));
+    // const CKTH = CKTHData.filter((item) => CKTHSelected.includes(item.id));
+    // const CKTD = CKTDData.filter((item) => CKTDSelected.includes(item.id));
 
-    await handleSave(CKVT, CKTH, CKTD);
+    // await handleSave(CKVT, CKTH, CKTD);
     onClose();
   };
 

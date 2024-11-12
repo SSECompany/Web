@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef,useEffect } from "react";
 import { formatCurrency } from "../../../../../app/hooks/dataFormatHelper";
 import { getUserInfo,getUerSetting } from "../../../../../store/selectors/Selectors";
 import { useSelector } from "react-redux";
@@ -184,14 +184,16 @@ const PrintComponent = forwardRef(
             </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-            }}
-          >
+          <div style={{  display: "flex", }} >
             <div style={{ width: "100px", textAlign: "left" }}>Thuế</div>
             <div style={{ width: "100px", textAlign: "right" }}>
               {formatCurrency(master?.tong_thue) || "Trống"}
+            </div>
+          </div>
+          <div style={{  display: "flex", }} >
+            <div style={{ width: "100px", textAlign: "left" }}>Điểm</div>
+            <div style={{ width: "100px", textAlign: "right" }}>
+              {formatCurrency(master?.tien_diem) || "Trống"}
             </div>
           </div>
           <div
@@ -200,7 +202,7 @@ const PrintComponent = forwardRef(
             }}
           >
             <div style={{ width: "100px", textAlign: "left" }}>Voucher:</div>
-            <div style={{ width: "100px", textAlign: "left" }}>  {formatCurrency(master?.voucher) || "Trống"}  </div>
+            <div style={{ width: "100px", textAlign: "left" }}>  {(master?.voucherId) || "Trống"}  </div>
             <div style={{ width: "100px", textAlign: "right" }}>  {formatCurrency(master?.tien_voucher) || "Trống"}  </div>
           </div>
 

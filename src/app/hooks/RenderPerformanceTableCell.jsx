@@ -13,6 +13,7 @@ const RenderPerformanceTableCell = ({
   cellData,
   rowData,
   numberCap,
+  customShow=false
 }) => {
   const { type, editable, title, key, required, width, controller, format } =
     column;
@@ -125,6 +126,23 @@ const RenderPerformanceTableCell = ({
     default:
       node = <Input className="default_input_detail w-full" />;
       break;
+  }
+  if(key =='so_luong'){
+    if(customShow){
+      node = (
+        <InputNumber
+          placeholder="0"
+          controls={false}
+          min="0"
+          max={numberCap || Number.MAX_SAFE_INTEGER}
+          className="w-full"
+          step={format || quantityFormat}
+          formatter={(value) => formatterNumber(value)}
+          parser={(value) => parserNumber(value)}
+          disabled="true"
+        />
+      );
+    }
   }
   return (
     <>

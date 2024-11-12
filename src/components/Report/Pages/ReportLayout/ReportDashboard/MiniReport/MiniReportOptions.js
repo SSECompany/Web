@@ -82,7 +82,6 @@ export const getMiniBarReportOptions = (title = [], value = []) => {
 export const lineOptions = {};
 
 export const getMinicircleOptions = (data) => {
-  console.log("data", data);
   return {
     tooltip: {
       trigger: "item",

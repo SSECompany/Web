@@ -132,11 +132,9 @@ const RetailPaidInfo = ({
 
   var printContent = useRef();
   const beforePrint =()=>{
-    console.log("after printing...");
     //SaveOrder();
   }
   const handlePrint2 =()=>{
-    console.log('ok2')
   }
   const handlePrint = useReactToPrint({
     content: () => printContent.current,
@@ -186,7 +184,7 @@ const RetailPaidInfo = ({
       httt: paymentMethods || "tien_mat",
       dien_giai: noteRef?.current?.resizableTextArea?.textArea?.value || "",
     };
-    console.log(paymentData);
+
 
     var detailData = [];
 
@@ -216,7 +214,6 @@ const RetailPaidInfo = ({
     SaveOrder();
   }
   const ChangePoint = (e)=>{
-    console.log(e);
     if(e<=paymentInfo.diem){
       
     paymentInfo.diem_sd=e;
@@ -269,7 +266,6 @@ const RetailPaidInfo = ({
         paymentMethods,
         paymentMethodInfo
       );
-      console.log(paymentMethods,paymentMethodInfo,type)
 
       var master = { ...masterData};
       if (type === "SIMPLE") {
@@ -285,10 +281,10 @@ const RetailPaidInfo = ({
       if (type === "ADVANCE") {
         master = {
           ...masterData,
-          tien_mat:  paymentMethodInfo.tien_mat ,
-          tien_the: paymentMethodInfo.tien_the ,
-          chuyen_khoan:  paymentMethodInfo.chuyen_khoan ,
-          qr: paymentMethodInfo.qr, 
+          tien_mat:  paymentMethodInfo?.tien_mat ,
+          tien_the: paymentMethodInfo?.tien_the ,
+          chuyen_khoan:  paymentMethodInfo?.chuyen_khoan ,
+          qr: paymentMethodInfo?.qr, 
           httt: paymentMethods,
         };
       }
@@ -340,7 +336,6 @@ const RetailPaidInfo = ({
       });
       var temp =master.diem_sd;
       setPrintDetail(detailData);
-      console.log(voucher);
 
       multipleTablePutApi({
         arandomnumber: Math.floor(Math.random() * 10000),
@@ -388,6 +383,7 @@ const RetailPaidInfo = ({
               }
             )
             setVoucherChild('');
+            setDataCustomerSearch([]);
             emitter.emit("HANDLE_RETAIL_ORDER_SAVE");
             handleCloseAdvancePayment();
             
@@ -481,9 +477,7 @@ const RetailPaidInfo = ({
         modifyIsFormLoading(false);
         return;
       }
-      console.log(master);
       if (master?.tong_tt > 0) {
-        console.log('setchuyenkhoan');
         setPaymentQR(
           `https://img.vietqr.io/image/${bin}-${tk_nh}-EEmxQTR.jpg?amount=${
             totalQr || 0
@@ -605,6 +599,7 @@ const RetailPaidInfo = ({
         ma_kh,
         ten_kh,
         dien_thoai,
+        diem:0
       });
       setSelectCustomer({
         value: ma_kh,
@@ -616,15 +611,25 @@ const RetailPaidInfo = ({
         diem: 0.0000,
         type: "KH"
       })
+      onSelectCustomer({
+        ma_kh:ma_kh,
+        ten_kh:ten_kh,
+        dien_thoai:dien_thoai,
+        diem:0,
+        bb_yn:false,
+        bl_yn:true,
+        moc_diem:0
+      });
     },
     [paymentData]
   );
   const handleUpdateCustomerComplete = 
-    ({ ma_kh, ten_kh, dien_thoai,bl_yn,bb_yn,dia_chi,diem }) => {
+    ({ ma_kh, ten_kh, dien_thoai,bl_yn,bb_yn,dia_chi,diem,moc_diem }) => {
       onChangeCustomer({
         ma_kh,
         ten_kh,
         dien_thoai,
+        diem
       });
       setSelectCustomer({
         value: ma_kh,
@@ -636,6 +641,15 @@ const RetailPaidInfo = ({
         diem: diem,
         type: "KH"
       })
+      onSelectCustomer({
+        ma_kh:ma_kh,
+        ten_kh:ten_kh,
+        dien_thoai:dien_thoai,
+        diem:diem,
+        bb_yn,
+        bl_yn,
+        moc_diem:moc_diem
+      });
     }
 
   // Tính toán thông tin thanh toán khi có sự thay đổi
@@ -686,7 +700,7 @@ const RetailPaidInfo = ({
   };
   const changeNote =(e)=>{
     setNote(e.value);
-    ChangePaymentInfo({...paymentInfo,dien_giai:e.value})
+    ChangePaymentInfo({...paymentInfo,dien_giai:e.target.value})
   }
   const handleSearch = useDebouncedCallback((newValue)=>{
     multipleTablePutApi({
@@ -707,7 +721,7 @@ const RetailPaidInfo = ({
   const handleChange = (newValue,params)=>{
     setValueSearch(newValue);
 
-    const { value, label, dien_thoai, diem,moc_diem } = params.data;
+    const { value, label, dien_thoai, diem,moc_diem,bl_yn,bb_yn } = params.data;
     // setPaymentData({
     //   ...paymentData,
     //   ma_kh: value,
@@ -723,7 +737,9 @@ const RetailPaidInfo = ({
       ten_kh:label,
       dien_thoai:dien_thoai,
       diem:diem,
-      moc_diem:moc_diem
+      moc_diem:moc_diem,
+      bl_yn,
+      bb_yn 
     });
   }
 
@@ -873,7 +889,7 @@ const RetailPaidInfo = ({
             </span>
           </div>
 
-          <div className="flex justify-content-between gap-2 align-items-center">
+          {/* <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0">
               <Input id="voucher-custom"
               value={voucherChild}
@@ -913,7 +929,7 @@ const RetailPaidInfo = ({
                 paymentInfo?.ma_nt === "VND" ? 0 : 2
               )}
             </span>
-          </div>
+          </div> */}
 
           {/* <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0">Tiền voucher:</span>

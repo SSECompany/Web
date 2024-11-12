@@ -1,7 +1,7 @@
 import { FileImageOutlined } from "@ant-design/icons";
 import { uuidv4 } from "@antv/xflow-core";
 import {Avatar,Button,Form,Image,Input,InputNumber,message as messageAPI,Segmented,Select,Tooltip,} from "antd";
-import _ from "lodash";
+import _, { forEach } from "lodash";
 import React, { memo, useCallback, useEffect, useRef, useState, useContext ,useMemo } from "react";
 import { Column } from "react-base-table";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -26,6 +26,7 @@ import ShowItemInfoModal from "../../../Modals/ShowItemInfo/ShowItemInfoModal";
 import RetailPromotionModal from "../../../Modals/RetailPromotionModal/RetailPromotionModal";
 import {fetchRetailOderPromotion,modifyIsOpenPromotion,setCurrentRetailOrder,setRetailOrderList,setRetailOrderScanning,modifyChangeTabOrder} from "../../../Store/Actions/RetailOrderActions";
 import { getRetailOrderState } from "../../../Store/Selectors/RetailOrderSelectors";
+import "./RetailOrderInfo.css";
 import RetailPaidInfo from "../RetailPaidInfo/RetailPaidInfo";
 
 import { RetailOrderContext } from './RetailOrderContext';
@@ -59,6 +60,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       resizable: false,
   
       cellRenderer: ({ cellData, rowData }) =>{
+        if (rowData.ck_yn) return null
         return <Button
           className="default_button"
           danger
@@ -261,6 +263,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
             rowKey={rowData?.id}
             column={column}
             cellData={cellData}
+            customShow={rowData?.ck_yn}
           />
         );
       },
@@ -398,6 +401,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
   const { listOrder, currentOrder, isScanning, isFormLoading,changeTabOrder } =
     useSelector(getRetailOrderState);
 
+  var isGetBarCode=false;
   const [message, contextHolder] = messageAPI.useMessage();
   const [itemForm] = Form.useForm();
 
@@ -479,7 +483,6 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         valid: value.status?.valid,
         loading: value.status?.loading,
       });
-      console.log('setcouvher',value)
   }
 
   /////// Orde List functions //////////////
@@ -527,7 +530,6 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
 
     const handleShowCustomerViewDialog = useMemo( () =>async() => {
       const RETAILDATA = await getDataOrder2();
-      console.log(orderKey,RETAILDATA)
       await setRetailOrderData(RETAILDATA);
     },[paymentInfo])
 
@@ -550,7 +552,6 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
 
 
   const handlechangeTabOrder = async (value)=>{
-    console.log(value);
     setRetailOrderScanning(false);
     localStorage.setItem("tabOrder", value);
     setCurrentRetailOrder(value);
@@ -572,7 +573,6 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
   };
   const ChangeCalVat = async (value)=>{
     await setIsCalVat(value);
-    console.log(value);
     const curData = itemForm.getFieldsValue();
     if(value){
       await getAllRowKeys(curData).map((key) => {
@@ -638,7 +638,6 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         ck: cktdValues?.ck || 0,
         tl_ck: cktdValues?.tl_ck || 0,
       };
-      console.log('x2');
       setPaymentInfo(await handleCalculatorPayment(temp));
 
       // setPaymentInfo({
@@ -695,7 +694,6 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
 
   //Tính thanh toán
   const handleCalculatorPayment = async (dataTemp,temp =false,useCal=false) => {
-
     var tempIsCalVat =isCalVat;
     if(temp) tempIsCalVat =useCal
     const changedValues = { ...itemForm.getFieldsValue() };
@@ -746,7 +744,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
           : voucher?.tien_ck
       ).toFixed(2)
     );
-    console.log(isCalVat,tong_thue,tien_voucher,tong_tien ,tong_thue , tong_ck , (voucher?.tl_ck * (tong_tien + tong_thue)) / 100, tien_voucher)
+    //console.log(isCalVat,tong_thue,tien_voucher,tong_tien ,tong_thue , tong_ck , (voucher?.tl_ck * (tong_tien + tong_thue)) / 100, tien_voucher)
     const tong_tt = parseFloat(tong_tien + tong_thue - tong_ck - dataTemp.diem_sd*(hs_quy_doi? hs_quy_doi:0)- tien_voucher);
     const cal = {
       ...dataTemp,
@@ -755,8 +753,10 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       tong_tt,
       tong_ck,
       tong_thue,
+      tien_diem:dataTemp.diem_sd *(hs_quy_doi? hs_quy_doi:0),
       tien_voucher:tien_voucher
     };
+    console
 
     return cal
     //setPaymentInfo(calculated);
@@ -771,8 +771,8 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
 
   useEffect(() => {
     async function fetchData() {
-      const temp = {...paymentInfo};
-      console.log('voucher',temp);
+      const temp = {...paymentInfo,voucherId:voucher?.voucherId};
+      //console.log('voucher',temp);
       setPaymentInfo( await handleCalculatorPayment(temp))
       return () => {};
     }
@@ -800,34 +800,35 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     if(temp) tempIsCalVat =useCal
     const changedValues = { ...itemForm.getFieldsValue() };
     const allKeys = getAllRowKeys(changedValues);
-    const rawData = [...data].filter((row) => !row?.ck_yn);
+    var rawData = [...data].filter((row) => !row?.ck_yn);
+    var listPromotion = [...data].filter((row) => row?.ck_yn);
     var promotions = {};
     allKeys.map(async (key) => {
       promotions[`${key}_ma_ck`] = "";
       promotions[`${key}_tl_ck`] = 0;
       promotions[`${key}_ck`] = 0;
     });
-    var tong_thue =0
-    console.log(tempIsCalVat);
-    if (tempIsCalVat){
-        tong_thue =await getAllValueByColumn("thue_nt", changedValues).reduce(
-        (Sum, num) => Sum + num,
-        0
-      );
-    }
-    console.log(tong_thue);
+    // var tong_thue =0
+    // console.log(tempIsCalVat);
+    // if (tempIsCalVat){
+    //     tong_thue =await getAllValueByColumn("thue_nt", changedValues).reduce(
+    //     (Sum, num) => Sum + num,
+    //     0
+    //   );
+    // }
+    // console.log(tong_thue);
 
-    setPaymentInfo({
-      ...paymentInfo,
-      ma_ck: "",
-      ck: 0,
-      tl_ck: 0,
-      tong_thue:tong_thue
-    });
+    // setPaymentInfo({
+    //   ...paymentInfo,
+    //   ma_ck: "",
+    //   ck: 0,
+    //   tl_ck: 0,
+    //   tong_thue:tong_thue
+    // });
 
-    await itemForm.setFieldsValue({
-      ...promotions,
-    });
+    // await itemForm.setFieldsValue({
+    //   ...promotions,
+    // });
     //Recal
     const Tinhtrang = await fetchRetailOderPromotion(
       changedValues,
@@ -837,45 +838,65 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       var ckvtObject = {};
 
       result?.ckvt?.map(async (ck) => {
+        var  temp =itemForm.getFieldValue(`${ck.rowKey}_so_luong`);
+        var  temp_thue_suat =itemForm.getFieldValue(`${ck.rowKey}_thue_suat`);
         if(ck.loai_ck=='08'){
           ckvtObject[`${ck.rowKey}_don_gia`] = ck?.gia_nt2;
-          let temp =itemForm.getFieldValue(`${ck.rowKey}_so_luong`);
           ckvtObject[`${ck.rowKey}_thanh_tien`] = ck?.gia_nt2 * temp;
+          if(tempIsCalVat) ckvtObject[`${ck.rowKey}_thue_nt`] = (ck?.gia_nt2 * temp *temp_thue_suat /100);
+          else ckvtObject[`${ck.rowKey}_thue_nt`] = 0;
+          
         }
         ckvtObject[`${ck.rowKey}_ma_ck`] = ck?.ma_ck;
         ckvtObject[`${ck.rowKey}_tl_ck`] = ck.tl_ck;
         ckvtObject[`${ck.rowKey}_ck`] = ck.ck;
+        if(tempIsCalVat) ckvtObject[`${ck.rowKey}_thue_nt`] = (ck?.gia_nt2 * temp -ck.ck)*temp_thue_suat /100;
+        else ckvtObject[`${ck.rowKey}_thue_nt`] = 0;
       });
 
       itemForm.setFieldsValue({
         ...ckvtObject,
       });
-      result?.ckvt?.map(async (ck) => {
-      if(ck.loai_ck=='08'){
-          ckvtObject[`${ck.rowKey}_don_gia`] = ck?.gia_nt2;
-        }
-        ckvtObject[`${ck.rowKey}_ma_ck`] = ck?.ma_ck;
-        ckvtObject[`${ck.rowKey}_tl_ck`] = ck.tl_ck;
-        ckvtObject[`${ck.rowKey}_ck`] = ck.ck;
-      });
+      // result?.ckvt?.map(async (ck) => {
+      //   if(ck.loai_ck=='08'){
+      //     ckvtObject[`${ck.rowKey}_don_gia`] = ck?.gia_nt2;
+      //   }
+      //   ckvtObject[`${ck.rowKey}_ma_ck`] = ck?.ma_ck;
+      //   ckvtObject[`${ck.rowKey}_tl_ck`] = ck.tl_ck;
+      //   ckvtObject[`${ck.rowKey}_ck`] = ck.ck;
+      // });
 
-      const ckthRows = result?.ckth?.map((ck) => {
-        return {
-          id: uuidv4(),
-          ma_vt: ck.ma_vt,
-          ten_vt: ck.ten_vt,
-          ma_kho: ck.ma_kho,
-          image: "",
-          dvt: ck.dvt,
-          so_luong: ck.so_luong,
-          don_gia: "0",
-          thanh_tien: "0",
-          ck_yn: true,
-          ma_ck: ck.ma_ck,
-        };
-      });
+      var check =false;
+      if(listPromotion.length == result.ckth.length && result.ckth.length >0){
+        listPromotion.forEach(d => {
+          let t = result.ckth.find(c=>c.ma_vt.trim()==d.ma_vt.trim() && c.so_luong==d.so_luong)
+          if (!t) check=true;
+        });
+      } else if (!( result.ckth.length ==0 && listPromotion.length  ==0)) check =true;
+      if(check){
+        const tempzz = rawData
+        console.log(tempzz)
+        result?.ckth?.forEach((ck) => {
+          tempzz.push({
+            id: uuidv4(),
+            ma_vt: ck.ma_vt,
+            ten_vt: ck.ten_vt,
+            ma_kho: ck.ma_kho,
+            image: "",
+            dvt: ck.dvt,
+            so_luong: ck.so_luong,
+            don_gia: "0",
+            thanh_tien: "0",
+            ck_yn: true,
+            ma_ck: ck.ma_ck,
+          });
+        });
+        console.log(tempzz)
+        setData(tempzz);
+      }
 
-      setData([...rawData, ...ckthRows]);
+      
+      //if(!_.isEmpty(ckthRows)) setIsChangedData(uuidv4());
 
       const cktdValues = _.first(result.cktd);
 
@@ -906,21 +927,23 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       // }
       message.destroy();
       setIsCalculating(false);
-      return !_.isEmpty(ckthRows);
     });
 
-    setIsCalculating(false);
-    setIsCalPromotion(Tinhtrang);
   }
 
   useEffect(() => {
-    if (!isCalPromotion && !_.isEmpty(data) && autoCalPromotion) {
-      console.log('xx')
+    if ( !_.isEmpty(data) && autoCalPromotion) {
+      console.log(data);
       recalPromotion();
       return;
     }
     setIsCalPromotion(false);
   }, [JSON.stringify(data), JSON.stringify(paymentInfo.ma_kh)]);
+
+  // useEffect(() => {
+  //     setData([...data])
+  //     return;
+  // }, [isChangedData]);
 
   ///////////orther functions /////
 
@@ -986,7 +1009,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
 
   // Lấy thông tin vật tư
   const handleFetchItemInfo = async ({ barcode, ma_vt, stock }) => {
-    setPaymentQR();
+    isGetBarCode =true;
     var results = {};
     await multipleTablePutApi({
       store: "Api_get_item_info",
@@ -997,7 +1020,8 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         userId,
       },
       data: {},
-    }).then((res) => {
+    })
+    .then((res) => {
       if (res.responseModel?.isSucceded) {
         if (_.isEmpty(_.first(res.listObject))) {
           message.warning("Barcode không tồn tại!");
@@ -1032,16 +1056,24 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
           };
         }
       }
+    })
+    .finally(() => {
+      isGetBarCode=false;
+      searchInputRef.current.focus()
     });
-
     return results;
   };
 
   // Tìm kiếm vật tư khi vào chế đọ barcode
-  const handleSearchItemInfo = useDebouncedCallback((barcode) => {
-    handleFetchItemInfo({ barcode, ma_vt: "", stock: "" });
-    setSearchValue("");
-  }, 100);
+  const handleSearchItemInfo = (barcode) => {
+    // const lastCharCode = barcode.charCodeAt(barcode.length - 1)
+    // if(lastCharCode=== 13){
+    //   console.log('enter')
+    // }
+    // console.log(lastCharCode ,barcode)
+    //handleFetchItemInfo({ barcode, ma_vt: "", stock: "" });QSP0915
+    //setSearchValue("");
+  };
 
   // Tìm kiếm thông tin khách hàng và vật tư
   const handleSearchValue = useDebouncedCallback((searchValue) => {
@@ -1138,7 +1170,10 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
           return;
         }
       });
-      if (autoCalPromotion) await recalPromotion();
+      if (autoCalPromotion) {
+        console.log('tt')
+        await recalPromotion()
+      }
       else {
         const temp = {...paymentInfo};
         setPaymentInfo(await handleCalculatorPayment(temp));
@@ -1150,8 +1185,6 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     }
 
     const rowID = uuidv4();
-    console.log(thue_suat)
-    console.log((100-thue_suat)*don_gia/100);
     setData([
       ...data,
       {
@@ -1229,7 +1262,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       },
     ]);
     const temp = {...paymentInfo};
-    setPaymentInfo(await handleCalculatorPayment(temp));
+    //setPaymentInfo(await handleCalculatorPayment(temp));
     //handleCalculatorPayment();
     //setIsReCal(uuidv4())
   };
@@ -1258,11 +1291,14 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
   //xoá dòng vật tư
   const handleRemoveRowData = async() => {
     const filteredData = [...data].filter(
-      (item) => !selectedRowkeys.includes(item?.id)
+      (item) => {
+        console.log(item);
+        !selectedRowkeys.includes(item?.id)
+
+      }
     );
 
     setData(filteredData);
-
     if (_.isEmpty(filteredData)) {
       const temp = {
         ...paymentInfo,
@@ -1339,7 +1375,6 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     );
   };
   const ChangeTab = async(e,index)=>{
-    console.log(index)
     await modifyChangeTabOrder(index)
   }
   const handleChangeValue = async (cellChanged, allCells) => {
@@ -1457,13 +1492,24 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
   useEffect(() => {
   }, []);
 
-
+const Test=()=>{
+  console.log(data);
+}
+const handelKeyPress =(event)=>{
+  if(isScanning){
+    if(event.keyCode ==13){
+      handleFetchItemInfo({ barcode:searchValue, ma_vt: "", stock: "" })
+      setSearchValue("")
+    }
+  }
+}
   
 
 
   return (
     <div className="h-full min-h-0 flex gap-1 relative">
       {contextHolder}
+      {/* <input type="text" onKeyDown={}></input> */}
       <LoadingComponents loading={isFormLoading} text={"Đang tạo đơn hàng"} />
       <div className="h-full min-h-0 w-full min-w-0 flex flex-column gap-1">
         <div
@@ -1482,7 +1528,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
               }}
             >
               <Select
-                disabled={isCalculating}
+                disabled={isGetBarCode}
                 ref={searchInputRef}
                 className="w-full"
                 value={null}
@@ -1520,6 +1566,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
                   setSearchLoading(true);
                   handleSearchValue(e);
                 }}
+                onKeyDown={handelKeyPress}
                 listHeight={500}
               >
                 {!isScanning &&
@@ -1659,7 +1706,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
               onValuesChange={handleChangeValue}
             >
               <PerformanceTable
-                reverseIndex
+                
                 selectable
                 columns={columns}
                 data={data}

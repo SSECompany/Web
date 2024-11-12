@@ -12,7 +12,7 @@ const PerformanceTable = ({
   columns,
   data,
   onSelectedRowKeyChange,
-  reverseIndex,
+  reverseIndex =false,
   isLoading,
 }) => {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
@@ -95,10 +95,12 @@ const PerformanceTable = ({
     },
     ...columns,
   ];
-
+  
+  console.error = () => {};
   return (
     <AutoResizer>
       {({ width, height }) => (
+         //<BaseTable />
         <BaseTable
           expandColumnKey={_columns[0].key}
           overscanRowCount={30}
