@@ -1,6 +1,6 @@
 import { Modal } from "antd";
 import _, { uniqueId } from "lodash";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import useLocalStorage from "use-local-storage";
 import { formatCurrency } from "../../../app/hooks/dataFormatHelper";
 import PerformanceTable from "../../../components/ReuseComponents/PerformanceTable/PerformanceTable";
@@ -92,7 +92,7 @@ const OrderModal = ({ children }) => {
     "CUSTOMER_RETAILORDER_DATA",
   );
   const [qrSource, setQrSource] = useLocalStorage("QRimg", "");
-  const [openQrCode,setOpenQrCode]=useState(false);
+  const [openQrCode, setOpenQrCode] = useState(false);
   const [data, setData] = useState([]);
 
   const renderColumns = (columns) => {
@@ -113,7 +113,7 @@ const OrderModal = ({ children }) => {
     return _columns;
   };
 
-  const test=()=>{
+  const test = () => {
     console.log(qrSource);
   }
   useEffect(() => {
@@ -121,19 +121,19 @@ const OrderModal = ({ children }) => {
       console.log()
       const storeActive = JSON.parse(localStorage.getItem("CUSTOMER_RETAILORDER_DATA"));
       console.log(storeActive)
-      console.log(typeof(storeActive))
-      if(typeof(storeActive) !='object' || storeActive =='' || storeActive ==null|| storeActive ==undefined)  return;
+      console.log(typeof (storeActive))
+      if (typeof (storeActive) != 'object' || storeActive == '' || storeActive == null || storeActive == undefined) return;
       console.log('---')
-      const preparedData = storeActive|| [];
+      const preparedData = storeActive || [];
       console.log(preparedData);
 
       if (!_.isEmpty(preparedData)) {
         preparedData[1].map((item) => {
           item.thanh_toan = item.so_luong * item.don_gia - item.ck;
-          item.so_luong =formatCurrency(item.so_luong);
-          item.don_gia =formatCurrency(item.don_gia);
-          item.thanh_toan =formatCurrency(item.thanh_toan);
-          item.ck =formatCurrency(item.ck);
+          item.so_luong = formatCurrency(item.so_luong);
+          item.don_gia = formatCurrency(item.don_gia);
+          item.thanh_toan = formatCurrency(item.thanh_toan);
+          item.ck = formatCurrency(item.ck);
         });
       }
       setData(preparedData);
@@ -157,9 +157,9 @@ const OrderModal = ({ children }) => {
   // }
   // const prevAmount = usePrevious({qrSource});
   useEffect(() => {
-      console.log(qrSource)
-      if(qrSource !='')setOpenQrCode(true);
-      else setOpenQrCode(false);
+    console.log(qrSource)
+    if (qrSource != '') setOpenQrCode(true);
+    else setOpenQrCode(false);
   }, [qrSource]);
   return (
     <div>
@@ -170,22 +170,27 @@ const OrderModal = ({ children }) => {
         closable={false}
         footer
         centered
-        open={orderData!=""}
+        open={orderData != ""}
         okButtonProps={{ style: { display: "none" } }}
         cancelButtonProps={{ style: { display: "none" } }}
       >
         <div style={{ width: "100%", height: "55vh" }}>
-          <PerformanceTable  columns={renderColumns(CTDH)}  data={_.isEmpty(data) ? [] : data[1]}  isLoading={false}/>
+          <PerformanceTable columns={renderColumns(CTDH)} data={_.isEmpty(data) ? [] : data[1]} isLoading={false} />
         </div>
-        <div  className="line-height-4 mt-2 flex  px-2 border-round-lg"  style={{ width: "100%", height: "30vh"  }}  >
-          <div className="border-round-sm" style={{width:"100%" ,background: "#F58220", color: "white"}}>
+        <div className="line-height-4 mt-2 flex  px-2 border-round-lg" style={{ width: "100%", height: "30vh" }}  >
+          <div className="border-round-sm" style={{
+            width: "100%",
+            background: "rgb(217 235 248)",
+            color: "black",
+            fontWeight: "bold",
+          }}>
             <div className="w-100 mt-2 flex justify-content-between px-2"><span className="text-left">Khách hàng:</span> <span className="text-right">{data[0]?.ten_kh}</span></div>
             <div className="w-100 mt-2 flex justify-content-between px-2">
-              <span className="text-left">Thành tiền:</span> 
-              <span className="text-right">{formatCurrency(data[0]?.tong_tt)}</span>   
+              <span className="text-left">Thành tiền:</span>
+              <span className="text-right">{formatCurrency(data[0]?.tong_tt)}</span>
             </div>
             <div className="w-100 mt-2 flex justify-content-between px-2">
-              <span className="text-left">Chiết khấu :</span> 
+              <span className="text-left">Chiết khấu :</span>
               <span className="text-right">
                 {data[0]?.tl_ck != 0 ? (
                   <>
@@ -196,9 +201,9 @@ const OrderModal = ({ children }) => {
                     (<span>{formatCurrency(data[0]?.ck)}₫</span>)
                   </>
                 )}
-              </span>   
+              </span>
             </div>
-            
+
           </div>
           {/* <div className="image-qr" style={{width:"50%"}}>
             <img  src={qrSource} style={{height:"100%"}} className="w-100 h-100"  />
@@ -218,13 +223,13 @@ const OrderModal = ({ children }) => {
         }}
         okButtonProps={{ style: { display: "none" } }}
         cancelButtonProps={{ style: { display: "none" } }}
-        styles={{body: {position: "relative",},}}
+        styles={{ body: { position: "relative", }, }}
       >
-        <img  src={qrSource} style={{height:"100%"}} className="w-100 h-100"  />
+        <img src={qrSource} style={{ height: "100%" }} className="w-100 h-100" />
 
       </Modal>
     </div>
-              
+
   );
 };
 

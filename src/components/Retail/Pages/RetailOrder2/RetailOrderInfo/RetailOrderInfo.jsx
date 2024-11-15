@@ -1,55 +1,53 @@
 import { FileImageOutlined } from "@ant-design/icons";
 import { uuidv4 } from "@antv/xflow-core";
-import {Avatar,Button,Form,Image,Input,InputNumber,message as messageAPI,Segmented,Select,Tooltip,} from "antd";
-import _, { forEach } from "lodash";
-import React, { memo, useCallback, useEffect, useRef, useState, useContext ,useMemo } from "react";
+import { Avatar, Button, Form, Image, Input, InputNumber, message as messageAPI, Segmented, Select, Tooltip, } from "antd";
+import _ from "lodash";
+import { memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Column } from "react-base-table";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useDispatch, useSelector } from "react-redux";
 import { useDebouncedCallback } from "use-debounce";
 import { filterKeyHelper } from "../../../../../app/Functions/filterHelper";
-import {getAllRowKeys,getAllValueByColumn,getAllValueByRow,getCellName,getRowKey,} from "../../../../../app/Functions/getTableValue";
+import { getAllRowKeys, getAllValueByColumn, getAllValueByRow, getCellName, getRowKey, } from "../../../../../app/Functions/getTableValue";
 import { formatCurrency } from "../../../../../app/hooks/dataFormatHelper";
 import RenderPerformanceTableCell from "../../../../../app/hooks/RenderPerformanceTableCell";
 import { quantityFormat } from "../../../../../app/Options/DataFomater";
 import { phoneNumberRegex } from "../../../../../app/regex/regex";
 import SelectNotFound from "../../../../../Context/SelectNotFound";
 import { setIsHideNav } from "../../../../../store/reducers/claimsSlice";
-import { modifyIsAddNewCustomer } from "../../../Store/Actions/RetailOrderActions";
-import {getIsHideNav,getUserInfo,getUerSetting} from "../../../../../store/selectors/Selectors";
+import { getIsHideNav, getUerSetting, getUserInfo } from "../../../../../store/selectors/Selectors";
 import { CHARTCOLORS } from "../../../../../utils/constants";
 import LoadingComponents from "../../../../Loading/LoadingComponents";
 import PerformanceTable from "../../../../ReuseComponents/PerformanceTable/PerformanceTable";
 import { multipleTablePutApi } from "../../../../SaleOrder/API";
 import RetailOrderListModal from "../../../Modals/RetailOrderListModal/RetailOrderListModal";
-import ShowItemInfoModal from "../../../Modals/ShowItemInfo/ShowItemInfoModal";
 import RetailPromotionModal from "../../../Modals/RetailPromotionModal/RetailPromotionModal";
-import {fetchRetailOderPromotion,modifyIsOpenPromotion,setCurrentRetailOrder,setRetailOrderList,setRetailOrderScanning,modifyChangeTabOrder} from "../../../Store/Actions/RetailOrderActions";
+import { fetchRetailOderPromotion, modifyChangeTabOrder, modifyIsAddNewCustomer, modifyIsOpenPromotion, setCurrentRetailOrder, setRetailOrderList, setRetailOrderScanning } from "../../../Store/Actions/RetailOrderActions";
 import { getRetailOrderState } from "../../../Store/Selectors/RetailOrderSelectors";
-import "./RetailOrderInfo.css";
 import RetailPaidInfo from "../RetailPaidInfo/RetailPaidInfo";
+import "./RetailOrderInfo.css";
 
-import { RetailOrderContext } from './RetailOrderContext';
 import useLocalStorage from "use-local-storage";
-import checkPermission from 'utils/permission'
+import checkPermission from 'utils/permission';
+import { RetailOrderContext } from './RetailOrderContext';
 
-var isDelete =false;
+var isDelete = false;
 
-const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
-  const [openItemInfo,setOpenItemInfo]=useState(false);
-  const [selectedItem,setSelectedItem]=useState('');
+const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
+  const [openItemInfo, setOpenItemInfo] = useState(false);
+  const [selectedItem, setSelectedItem] = useState('');
   const [retailOrderData, setRetailOrderData] = useLocalStorage(
-   "CUSTOMER_RETAILORDER_DATA"
+    "CUSTOMER_RETAILORDER_DATA"
   );
 
-  const handleShowItemInfo =(value)=>{
+  const handleShowItemInfo = (value) => {
     setOpenItemInfo(true);
     setSelectedItem(value.ma_vt)
   }
-  const KeyDownName =(event)=>{
+  const KeyDownName = (event) => {
     event.preventDefault();
   }
-  const rightClickName =(event)=>{
+  const rightClickName = (event) => {
     event.preventDefault();
   }
   const columns = [
@@ -58,13 +56,13 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       width: 60,
       align: Column.Alignment.CENTER,
       resizable: false,
-  
-      cellRenderer: ({ cellData, rowData }) =>{
+
+      cellRenderer: ({ cellData, rowData }) => {
         if (rowData.ck_yn) return null
         return <Button
           className="default_button"
           danger
-          onClick={()=>RemoveTest(rowData)}
+          onClick={() => RemoveTest(rowData)}
         >
           <i className="pi pi-trash" style={{ fontWeight: "bold" }}></i>
         </Button>
@@ -77,7 +75,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       width: 60,
       align: Column.Alignment.CENTER,
       resizable: false,
-  
+
       cellRenderer: ({ cellData, rowData }) =>
         cellData ? (
           <Image
@@ -101,7 +99,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
           </Avatar>
         ),
     },
-  
+
     {
       key: "ten_vt",
       title: "Tên vật tư",
@@ -114,20 +112,20 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       type: "TextArea",
       cellRenderer: ({ rowData, column, cellData }) => {
         return (
-            <Form.Item  initialValue={cellData || null}  name={`${rowData.id}_ten_vt`}   style={{   width: "100%",  margin: 0,  }}
-            >
-              <Input.TextArea 
-                onClick={()=>{handleShowItemInfo(rowData)}}
-                autoSize={{  minRows: 1,  maxRows: 2,  }}  style={{ resize: "none", transition: "none" }} variant={"borderless"} 
-                className="p-0 Performance_table_span" 
-                onKeyDown={KeyDownName}
-                onContextMenu={rightClickName}
-              />
-            </Form.Item>
+          <Form.Item initialValue={cellData || null} name={`${rowData.id}_ten_vt`} style={{ width: "100%", margin: 0, }}
+          >
+            <Input.TextArea
+              onClick={() => { handleShowItemInfo(rowData) }}
+              autoSize={{ minRows: 1, maxRows: 2, }} style={{ resize: "none", transition: "none" }} variant={"borderless"}
+              className="p-0 Performance_table_span"
+              onKeyDown={KeyDownName}
+              onContextMenu={rightClickName}
+            />
+          </Form.Item>
         );
       },
     },
-  
+
     {
       key: "barcode",
       title: "Barcode",
@@ -147,7 +145,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         );
       },
     },
-  
+
     {
       key: "ma_vt",
       title: "Mã vật tư",
@@ -167,7 +165,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         );
       },
     },
-  
+
     {
       key: "ma_kho",
       title: "Kho",
@@ -226,7 +224,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         );
       },
     },
-  
+
     {
       key: "dvt",
       title: "Đơn vị",
@@ -247,7 +245,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         );
       },
     },
-  
+
     {
       key: "so_luong",
       title: "Số lượng",
@@ -268,7 +266,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         );
       },
     },
-  
+
     {
       key: "don_gia",
       title: "Đơn giá",
@@ -289,7 +287,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         );
       },
     },
-  
+
     {
       key: "thanh_tien",
       title: "Thành tiền",
@@ -310,7 +308,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         );
       },
     },
-  
+
     {
       key: "ck_yn",
       title: "Chiết khấu",
@@ -330,7 +328,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         );
       },
     },
-  
+
     {
       key: "ma_ck",
       title: "Mã chiết khấu",
@@ -350,7 +348,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         );
       },
     },
-  
+
     {
       key: "tl_ck",
       title: "Tỷ lệ chiết khấu",
@@ -373,7 +371,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         );
       },
     },
-  
+
     {
       key: "ck",
       title: "Tiền chiết khấu",
@@ -397,11 +395,11 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       },
     },
   ];
-  
-  const { listOrder, currentOrder, isScanning, isFormLoading,changeTabOrder } =
+
+  const { listOrder, currentOrder, isScanning, isFormLoading, changeTabOrder } =
     useSelector(getRetailOrderState);
 
-  var isGetBarCode=false;
+  var isGetBarCode = false;
   const [message, contextHolder] = messageAPI.useMessage();
   const [itemForm] = Form.useForm();
 
@@ -415,13 +413,13 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOptionsFiltered, setsearchOptionsFiltered] = useState([]);
   const [isQrCode, setIsQrCode] = useState(false);
-  const [isReCal,setIsReCal]=useState(false);
+  const [isReCal, setIsReCal] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState({
     ma_kh: "KVL",
     ten_kh: "Vãng lai",
     dien_thoai: null,
     diem: 0,
-    diem_sd:0,
+    diem_sd: 0,
     ma_nt: "VND",
     ty_gia: 1,
     quy_doi_diem: 1,
@@ -438,13 +436,13 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     tong_tt: 0,
     tien_mat: 0,
     tien_the: 0,
-    dien_giai:'',
+    dien_giai: '',
     chuyen_khoan: 0,
-    t_diem_so:0,
+    t_diem_so: 0,
   });
 
   const [isOpenOrderList, setIsOpenOrderList] = useState(false);
-  const [changeCustomerPay,setChangeCustomerPay] = useState(0)
+  const [changeCustomerPay, setChangeCustomerPay] = useState(0)
 
   const [isCalPromotion, setIsCalPromotion] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -457,9 +455,9 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
 
   const isHideNav = useSelector(getIsHideNav);
   const [paymentQR, setPaymentQR] = useLocalStorage("QRimg", "");
-  const [isCalVat,setIsCalVat]=useState(false);
-  const [so_ct,setSo_ct]=useState({so_ct:''})
-  const {tk_nh,bin,hs_quy_doi,bank_account_name,maxPoint} = useSelector(getUerSetting);
+  const [isCalVat, setIsCalVat] = useState(false);
+  const [so_ct, setSo_ct] = useState({ so_ct: '' })
+  const { tk_nh, bin, hs_quy_doi, bank_account_name, maxPoint } = useSelector(getUerSetting);
   const [voucher, setVoucher] = useState({
     voucherId: "",
     tl_ck: 0,
@@ -471,77 +469,75 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     loading: false,
     valid: false,
   });
-  const handleSetVoucher =(value) =>{
-    if(value.voucher)  setVoucher({
-        voucherId: value.voucher?.voucherId,
-        tien_ck:value.voucher?.tien_ck,
-        tl_ck:value.voucher?.tl_ck,
-      });
-      setVoucherStatus({
-        ...voucherStatus,
-        currentVoucher: value.status?.currentVoucher,
-        valid: value.status?.valid,
-        loading: value.status?.loading,
-      });
+  const handleSetVoucher = (value) => {
+    if (value.voucher) setVoucher({
+      voucherId: value.voucher?.voucherId,
+      tien_ck: value.voucher?.tien_ck,
+      tl_ck: value.voucher?.tl_ck,
+    });
+    setVoucherStatus({
+      ...voucherStatus,
+      currentVoucher: value.status?.currentVoucher,
+      valid: value.status?.valid,
+      loading: value.status?.loading,
+    });
   }
 
   /////// Orde List functions //////////////
 
-  const getDataOrder = (paymentMethods='', paymentMethodInfo={}) => {
+  const getDataOrder = (paymentMethods = '', paymentMethodInfo = {}) => {
     const data = { ...itemForm.getFieldsValue() };
-    var masterData={};
-    if(paymentMethods==''){
-      masterData = { ...paymentInfo  }
+    var masterData = {};
+    if (paymentMethods == '') {
+      masterData = { ...paymentInfo }
 
     }
-    else{
-       masterData = {
+    else {
+      masterData = {
         ...paymentInfo,
         ...paymentMethodInfo,
-        tien_mat: paymentMethods? paymentMethodInfo?.tien_mat: paymentInfo.tong_tt,
+        tien_mat: paymentMethods ? paymentMethodInfo?.tien_mat : paymentInfo.tong_tt,
         httt: paymentMethods || "tien_mat",
       }
     };
     var detailData = [];
 
-      detailData =getAllRowKeys(data).map((item) => {
-        var temp=getAllValueByRow(item, data);
-        if(!temp.ghi_chu) temp={...temp,ghi_chu:''}
-        return temp;
-      });
+    detailData = getAllRowKeys(data).map((item) => {
+      var temp = getAllValueByRow(item, data);
+      if (!temp.ghi_chu) temp = { ...temp, ghi_chu: '' }
+      return temp;
+    });
 
-      return [masterData, detailData];
+    return [masterData, detailData];
   }
-  const getDataOrder2 = async() => {
+  const getDataOrder2 = async () => {
     const data = { ...itemForm.getFieldsValue() };
-    const   masterData = { ...paymentInfo  }
+    const masterData = { ...paymentInfo }
 
-    
+
     var detailData = [];
 
-      detailData =getAllRowKeys(data).map((item) => {
-        var temp=getAllValueByRow(item, data);
-        if(!temp.ghi_chu) temp={...temp,ghi_chu:''}
-        return temp;
-      });
+    detailData = getAllRowKeys(data).map((item) => {
+      var temp = getAllValueByRow(item, data);
+      if (!temp.ghi_chu) temp = { ...temp, ghi_chu: '' }
+      return temp;
+    });
 
-      return [masterData, detailData];
+    return [masterData, detailData];
   }
 
-    const handleShowCustomerViewDialog = useMemo( () =>async() => {
-      const RETAILDATA = await getDataOrder2();
-      await setRetailOrderData(RETAILDATA);
-    },[paymentInfo])
+  const handleShowCustomerViewDialog = useMemo(() => async () => {
+    const RETAILDATA = await getDataOrder2();
+    await setRetailOrderData(RETAILDATA);
+  }, [paymentInfo])
 
-    const onChangePaymentInfo = async(data)=>{
-      const temp =await handleCalculatorPayment(data)
-      setPaymentInfo(temp);
-      
-      //setIsReCal(uuidv4())
-      //handleCalculatorPayment();
-    }
+  const onChangePaymentInfo = async (data) => {
+    const temp = await handleCalculatorPayment(data)
+    setPaymentInfo(temp);
 
-
+    //setIsReCal(uuidv4())
+    //handleCalculatorPayment();
+  }
 
 
 
@@ -551,7 +547,9 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
 
 
 
-  const handlechangeTabOrder = async (value)=>{
+
+
+  const handlechangeTabOrder = async (value) => {
     setRetailOrderScanning(false);
     localStorage.setItem("tabOrder", value);
     setCurrentRetailOrder(value);
@@ -564,32 +562,32 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
   }, [isOpenOrderList]);
 
 
-  const handleCloseItemModal =useCallback( ()=>{
+  const handleCloseItemModal = useCallback(() => {
     setOpenItemInfo(false);
-  },[openItemInfo])
+  }, [openItemInfo])
 
   const handleHideNavbar = () => {
     dispatch(setIsHideNav(!isHideNav));
   };
-  const ChangeCalVat = async (value)=>{
+  const ChangeCalVat = async (value) => {
     await setIsCalVat(value);
     const curData = itemForm.getFieldsValue();
-    if(value){
+    if (value) {
       await getAllRowKeys(curData).map((key) => {
-          //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)) * (Number(getAllValueByRow(key, curData)?.don_gia) *(100 - Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) );
-          itemForm.setFieldValue(`${key}_thue_nt`,(((Number(getAllValueByRow(key, curData)?.so_luong)) * Number(getAllValueByRow(key, curData)?.don_gia)- Number(getAllValueByRow(key, curData)?.ck)) *(Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) );
+        //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)) * (Number(getAllValueByRow(key, curData)?.don_gia) *(100 - Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) );
+        itemForm.setFieldValue(`${key}_thue_nt`, (((Number(getAllValueByRow(key, curData)?.so_luong)) * Number(getAllValueByRow(key, curData)?.don_gia) - Number(getAllValueByRow(key, curData)?.ck)) * (Number(getAllValueByRow(key, curData)?.thue_suat)) / 100));
       });
     }
-    else{
+    else {
       await getAllRowKeys(curData).map((key) => {
         //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)) * (Number(getAllValueByRow(key, curData)?.don_gia)) );
-        itemForm.setFieldValue(`${key}_thue_nt`,0);
+        itemForm.setFieldValue(`${key}_thue_nt`, 0);
       });
     }
-    if (autoCalPromotion) await recalPromotion(true,value);
+    if (autoCalPromotion) await recalPromotion(true, value);
     else {
-      const temp={...paymentInfo}
-      setPaymentInfo(await handleCalculatorPayment(temp,true,value));
+      const temp = { ...paymentInfo }
+      setPaymentInfo(await handleCalculatorPayment(temp, true, value));
     }
     //await handleCalculatorPayment();
     //await setIsReCal(uuidv4());
@@ -631,7 +629,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         setData([...(currentData || data), ...ckthRows]);
 
       const cktdValues = _.first(CKTD);
-      const temp =_.cloneDeep(paymentInfo);
+      const temp = _.cloneDeep(paymentInfo);
       temp = {
         ...temp,
         ma_ck: cktdValues?.ma_ck || "",
@@ -693,9 +691,9 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
   };
 
   //Tính thanh toán
-  const handleCalculatorPayment = async (dataTemp,temp =false,useCal=false) => {
-    var tempIsCalVat =isCalVat;
-    if(temp) tempIsCalVat =useCal
+  const handleCalculatorPayment = async (dataTemp, temp = false, useCal = false) => {
+    var tempIsCalVat = isCalVat;
+    if (temp) tempIsCalVat = useCal
     const changedValues = { ...itemForm.getFieldsValue() };
 
     const allData = getAllRowKeys(changedValues).map((item) => {
@@ -722,7 +720,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     );
 
     const ck_tong_don =
-    dataTemp.ma_ck || !dataTemp.tl_ck
+      dataTemp.ma_ck || !dataTemp.tl_ck
         ? dataTemp.ck
         : (tong_tien * dataTemp.tl_ck) / 100;
 
@@ -731,21 +729,21 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     //const tong_thue = parseFloat((tong_tien * paymentInfo.thue_suat) / 100);
     var tong_thue = 0
     if (tempIsCalVat)
-      tong_thue =await getAllValueByColumn("thue_nt", changedValues).reduce(
-      (Sum, num) => Sum + num,
-      0
-    );
+      tong_thue = await getAllValueByColumn("thue_nt", changedValues).reduce(
+        (Sum, num) => Sum + num,
+        0
+      );
     var tien_voucher = 0;
 
     tien_voucher = Number(
       parseFloat(
         voucher?.tl_ck
-          ? (voucher?.tl_ck * (tong_tien + tong_thue -tong_ck)) / 100
+          ? (voucher?.tl_ck * (tong_tien + tong_thue - tong_ck)) / 100
           : voucher?.tien_ck
       ).toFixed(2)
     );
     //console.log(isCalVat,tong_thue,tien_voucher,tong_tien ,tong_thue , tong_ck , (voucher?.tl_ck * (tong_tien + tong_thue)) / 100, tien_voucher)
-    const tong_tt = parseFloat(tong_tien + tong_thue - tong_ck - dataTemp.diem_sd*(hs_quy_doi? hs_quy_doi:0)- tien_voucher);
+    const tong_tt = parseFloat(tong_tien + tong_thue - tong_ck - dataTemp.diem_sd * (hs_quy_doi ? hs_quy_doi : 0) - tien_voucher);
     const cal = {
       ...dataTemp,
       tong_sl,
@@ -753,10 +751,9 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       tong_tt,
       tong_ck,
       tong_thue,
-      tien_diem:dataTemp.diem_sd *(hs_quy_doi? hs_quy_doi:0),
-      tien_voucher:tien_voucher
+      tien_diem: dataTemp.diem_sd * (hs_quy_doi ? hs_quy_doi : 0),
+      tien_voucher: tien_voucher
     };
-    console
 
     return cal
     //setPaymentInfo(calculated);
@@ -771,15 +768,15 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
 
   useEffect(() => {
     async function fetchData() {
-      const temp = {...paymentInfo,voucherId:voucher?.voucherId};
+      const temp = { ...paymentInfo, voucherId: voucher?.voucherId };
       //console.log('voucher',temp);
-      setPaymentInfo( await handleCalculatorPayment(temp))
-      return () => {};
+      setPaymentInfo(await handleCalculatorPayment(temp))
+      return () => { };
     }
     fetchData();
   }, [voucher]);
 
-  
+
 
   // useEffect(() => {
   //   handleCalculatorPayment();
@@ -787,7 +784,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
 
 
 
-  const recalPromotion = async (temp=false,useCal=false ) => {
+  const recalPromotion = async (temp = false, useCal = false) => {
     setIsCalculating(true);
     // message.open({
     //   type: "loading",
@@ -796,8 +793,8 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     // });
 
     //Reset
-    var tempIsCalVat =isCalVat;
-    if(temp) tempIsCalVat =useCal
+    var tempIsCalVat = isCalVat;
+    if (temp) tempIsCalVat = useCal
     const changedValues = { ...itemForm.getFieldsValue() };
     const allKeys = getAllRowKeys(changedValues);
     var rawData = [...data].filter((row) => !row?.ck_yn);
@@ -833,24 +830,24 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     const Tinhtrang = await fetchRetailOderPromotion(
       changedValues,
       paymentInfo.ma_kh
-    ).then( async (result) => {
+    ).then(async (result) => {
       //Chiết khấu chi tiết vật tư
       var ckvtObject = {};
 
       result?.ckvt?.map(async (ck) => {
-        var  temp =itemForm.getFieldValue(`${ck.rowKey}_so_luong`);
-        var  temp_thue_suat =itemForm.getFieldValue(`${ck.rowKey}_thue_suat`);
-        if(ck.loai_ck=='08'){
+        var temp = itemForm.getFieldValue(`${ck.rowKey}_so_luong`);
+        var temp_thue_suat = itemForm.getFieldValue(`${ck.rowKey}_thue_suat`);
+        if (ck.loai_ck == '08') {
           ckvtObject[`${ck.rowKey}_don_gia`] = ck?.gia_nt2;
           ckvtObject[`${ck.rowKey}_thanh_tien`] = ck?.gia_nt2 * temp;
-          if(tempIsCalVat) ckvtObject[`${ck.rowKey}_thue_nt`] = (ck?.gia_nt2 * temp *temp_thue_suat /100);
+          if (tempIsCalVat) ckvtObject[`${ck.rowKey}_thue_nt`] = (ck?.gia_nt2 * temp * temp_thue_suat / 100);
           else ckvtObject[`${ck.rowKey}_thue_nt`] = 0;
-          
+
         }
         ckvtObject[`${ck.rowKey}_ma_ck`] = ck?.ma_ck;
         ckvtObject[`${ck.rowKey}_tl_ck`] = ck.tl_ck;
         ckvtObject[`${ck.rowKey}_ck`] = ck.ck;
-        if(tempIsCalVat) ckvtObject[`${ck.rowKey}_thue_nt`] = (ck?.gia_nt2 * temp -ck.ck)*temp_thue_suat /100;
+        if (tempIsCalVat) ckvtObject[`${ck.rowKey}_thue_nt`] = (ck?.gia_nt2 * temp - ck.ck) * temp_thue_suat / 100;
         else ckvtObject[`${ck.rowKey}_thue_nt`] = 0;
       });
 
@@ -866,14 +863,14 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       //   ckvtObject[`${ck.rowKey}_ck`] = ck.ck;
       // });
 
-      var check =false;
-      if(listPromotion.length == result.ckth.length && result.ckth.length >0){
+      var check = false;
+      if (listPromotion.length == result.ckth.length && result.ckth.length > 0) {
         listPromotion.forEach(d => {
-          let t = result.ckth.find(c=>c.ma_vt.trim()==d.ma_vt.trim() && c.so_luong==d.so_luong)
-          if (!t) check=true;
+          let t = result.ckth.find(c => c.ma_vt.trim() == d.ma_vt.trim() && c.so_luong == d.so_luong)
+          if (!t) check = true;
         });
-      } else if (!( result.ckth.length ==0 && listPromotion.length  ==0)) check =true;
-      if(check){
+      } else if (!(result.ckth.length == 0 && listPromotion.length == 0)) check = true;
+      if (check) {
         const tempzz = rawData
         console.log(tempzz)
         result?.ckth?.forEach((ck) => {
@@ -895,7 +892,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         setData(tempzz);
       }
 
-      
+
       //if(!_.isEmpty(ckthRows)) setIsChangedData(uuidv4());
 
       const cktdValues = _.first(result.cktd);
@@ -905,9 +902,9 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         ma_ck: cktdValues?.ma_ck || "",
         ck: cktdValues?.ck || 0,
         tl_ck: cktdValues?.tl_ck || 0,
-        t_diem_so:cktdValues?.t_diem_so||0
+        t_diem_so: cktdValues?.t_diem_so || 0
       };
-      await setPaymentInfo(await handleCalculatorPayment(temp,true,tempIsCalVat));
+      await setPaymentInfo(await handleCalculatorPayment(temp, true, tempIsCalVat));
 
       // await  setPaymentInfo({
       //   ...paymentInfo,
@@ -932,7 +929,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
   }
 
   useEffect(() => {
-    if ( !_.isEmpty(data) && autoCalPromotion) {
+    if (!_.isEmpty(data) && autoCalPromotion) {
       console.log(data);
       recalPromotion();
       return;
@@ -1005,11 +1002,11 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
   // Lấy các setting cho phiếu
   const { currencyOptions, taxOptions, autoCalPromotion, isMergeRowData } = useContext(RetailOrderContext);
 
-  
+
 
   // Lấy thông tin vật tư
   const handleFetchItemInfo = async ({ barcode, ma_vt, stock }) => {
-    isGetBarCode =true;
+    isGetBarCode = true;
     var results = {};
     await multipleTablePutApi({
       store: "Api_get_item_info",
@@ -1021,46 +1018,46 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       },
       data: {},
     })
-    .then((res) => {
-      if (res.responseModel?.isSucceded) {
-        if (_.isEmpty(_.first(res.listObject))) {
-          message.warning("Barcode không tồn tại!");
-          return;
-        }
+      .then((res) => {
+        if (res.responseModel?.isSucceded) {
+          if (_.isEmpty(_.first(res.listObject))) {
+            message.warning("Barcode không tồn tại!");
+            return;
+          }
 
-        const { ma_vt, ten_vt, ma_kho, dvt, gia ,thue_suat} = _.first(
-          _.first(res.listObject)
-        );
+          const { ma_vt, ten_vt, ma_kho, dvt, gia, thue_suat } = _.first(
+            _.first(res.listObject)
+          );
 
-        if (barcode) {
-          handleAddRowData({
-            barcode,
-            ma_vt,
-            ten_vt,
-            ma_kho,
-            image: "",
-            dvt,
-            so_luong: 1,
-            don_gia: gia || "0",
-            ck_yn: false,
-            thue_suat:thue_suat
-          });
-          return;
+          if (barcode) {
+            handleAddRowData({
+              barcode,
+              ma_vt,
+              ten_vt,
+              ma_kho,
+              image: "",
+              dvt,
+              so_luong: 1,
+              don_gia: gia || "0",
+              ck_yn: false,
+              thue_suat: thue_suat
+            });
+            return;
+          }
+          if (ma_vt) {
+            results = {
+              ma_vt,
+              ma_kho,
+              dvt,
+              gia,
+            };
+          }
         }
-        if (ma_vt) {
-          results = {
-            ma_vt,
-            ma_kho,
-            dvt,
-            gia,
-          };
-        }
-      }
-    })
-    .finally(() => {
-      isGetBarCode=false;
-      searchInputRef.current.focus()
-    });
+      })
+      .finally(() => {
+        isGetBarCode = false;
+        searchInputRef.current.focus()
+      });
     return results;
   };
 
@@ -1089,22 +1086,22 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         ten_kh,
         dien_thoai,
         diem: 0,
-        diem_sd:0,
-        moc_diem:0
+        diem_sd: 0,
+        moc_diem: 0
       });
     },
     [paymentInfo]
   );
   const handleSelectCustomerComplete = useCallback(
-    ({ ma_kh, ten_kh, dien_thoai,diem,moc_diem }) => {
+    ({ ma_kh, ten_kh, dien_thoai, diem, moc_diem }) => {
       setPaymentInfo({
         ...paymentInfo,
         ma_kh,
         ten_kh,
         dien_thoai,
         diem: diem,
-        diem_sd:0,
-        moc_diem:moc_diem
+        diem_sd: 0,
+        moc_diem: moc_diem
       });
     },
     [paymentInfo]
@@ -1146,7 +1143,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     dvt,
     don_gia,
     ck_yn,
-    thue_suat=0,
+    thue_suat = 0,
     so_luong = 1,
   }) => {
     if (isMergeRowData) {
@@ -1155,16 +1152,16 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
 
       await getAllRowKeys(curData).map((key) => {
         if (getAllValueByRow(key, curData)?.ma_vt === ma_vt) {
-          itemForm.setFieldValue(`${key}_so_luong`,Number(getAllValueByRow(key, curData)?.so_luong) + so_luong);
-          itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia)) );
-          if(isCalVat){
+          itemForm.setFieldValue(`${key}_so_luong`, Number(getAllValueByRow(key, curData)?.so_luong) + so_luong);
+          itemForm.setFieldValue(`${key}_thanh_tien`, (Number(getAllValueByRow(key, curData)?.so_luong) + so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia)));
+          if (isCalVat) {
             //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia) *(100 - Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) );
-            itemForm.setFieldValue(`${key}_thue_nt`,(((Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * Number(getAllValueByRow(key, curData)?.don_gia) -Number(getAllValueByRow(key, curData)?.ck)  )*(Number(getAllValueByRow(key, curData)?.thue_suat))/100  ) );
+            itemForm.setFieldValue(`${key}_thue_nt`, (((Number(getAllValueByRow(key, curData)?.so_luong) + so_luong) * Number(getAllValueByRow(key, curData)?.don_gia) - Number(getAllValueByRow(key, curData)?.ck)) * (Number(getAllValueByRow(key, curData)?.thue_suat)) / 100));
           }
-          else{
+          else {
 
             //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia)) );
-            itemForm.setFieldValue(`${key}_thue_nt`,0  );
+            itemForm.setFieldValue(`${key}_thue_nt`, 0);
           }
           isHad = true;
           return;
@@ -1175,10 +1172,10 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         await recalPromotion()
       }
       else {
-        const temp = {...paymentInfo};
+        const temp = { ...paymentInfo };
         setPaymentInfo(await handleCalculatorPayment(temp));
       }
-        //setIsReCal(uuidv4())
+      //setIsReCal(uuidv4())
       //await handleCalculatorPayment();
 
       if (isHad) return;
@@ -1199,8 +1196,8 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         don_gia: don_gia || "0",
         thanh_tien: don_gia * 1 || "0",
         ck_yn: ck_yn || false,
-        thue_suat:thue_suat,
-        thue_nt:isCalVat?(thue_suat*don_gia/100)  :0,
+        thue_suat: thue_suat,
+        thue_nt: isCalVat ? (thue_suat * don_gia / 100) : 0,
         children: [
           {
             id: `${rowID}-detail`,
@@ -1261,14 +1258,14 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         ],
       },
     ]);
-    const temp = {...paymentInfo};
+    const temp = { ...paymentInfo };
     //setPaymentInfo(await handleCalculatorPayment(temp));
     //handleCalculatorPayment();
     //setIsReCal(uuidv4())
   };
-  const RemoveTest =async (d)=>{
+  const RemoveTest = async (d) => {
     if (isDelete) return;
-    isDelete=true;
+    isDelete = true;
     const filteredData = await [...data].filter(
       (item) => (item?.id != d.id)
     );
@@ -1276,26 +1273,25 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     await setData(filteredData);
 
     if (_.isEmpty(filteredData)) {
-      const temp = {...paymentInfo};
+      const temp = { ...paymentInfo };
       setPaymentInfo(await handleCalculatorPayment(temp));
       //await handleCalculatorPayment();
       //setIsReCal(uuidv4())
-      isDelete=false;
+      isDelete = false;
     }
-    const myTimeout = setTimeout(()=>{
-      isDelete=false;
+    const myTimeout = setTimeout(() => {
+      isDelete = false;
     }, 300);
   }
 
 
   //xoá dòng vật tư
-  const handleRemoveRowData = async() => {
+  const handleRemoveRowData = async () => {
     const filteredData = [...data].filter(
-      (item) => {
-        console.log(item);
+      (item) =>
         !selectedRowkeys.includes(item?.id)
 
-      }
+
     );
 
     setData(filteredData);
@@ -1324,7 +1320,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
 
   const handleSelectChange = (key, params) => {
     if (params.data.type === "VT") {
-      const { value, label, dvt, gia, ma_kho, image,thue_suat } = params.data;
+      const { value, label, dvt, gia, ma_kho, image, thue_suat } = params.data;
       handleAddRowData({
         ma_vt: value,
         ten_vt: label,
@@ -1333,25 +1329,25 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
         dvt,
         don_gia: gia,
         ck_yn: false,
-        thue_suat:thue_suat,
+        thue_suat: thue_suat,
       });
     }
 
     if (params.data.type === "KH") {
-      const { value, label, dien_thoai, diem,moc_diem } = params.data;
+      const { value, label, dien_thoai, diem, moc_diem } = params.data;
       setPaymentInfo({
         ...paymentInfo,
         ma_kh: value,
         ten_kh: label,
         dien_thoai,
         diem,
-        diem_sd:0,
-        moc_diem:moc_diem
+        diem_sd: 0,
+        moc_diem: moc_diem
       });
     }
 
     if (params.data.type === "DTVL") {
-      modifyIsAddNewCustomer({open:true,value:searchValue})
+      modifyIsAddNewCustomer({ open: true, value: searchValue })
       // setPaymentInfo({
       //   ...paymentInfo,
       //   dien_thoai: params?.data?.value,
@@ -1374,7 +1370,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       </div>
     );
   };
-  const ChangeTab = async(e,index)=>{
+  const ChangeTab = async (e, index) => {
     await modifyChangeTabOrder(index)
   }
   const handleChangeValue = async (cellChanged, allCells) => {
@@ -1386,30 +1382,31 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     const getCurRowValues = () => {
       return getAllValueByRow(changedRowKey, itemForm.getFieldsValue());
     };
-    if(cellName == 'dvt')
-    var res = await multipleTablePutApi({
-      store: "Web_GetPriceByDvt",
-      param: {
-        ma_vt:rowValues?.ma_vt,
-        dvt:cellValue
-      },
-      data: {},
-    })
-    .then((res) => {
-      if (res.responseModel?.isSucceded) {
-        if(res.listObject.length >0 ){
-          itemForm.setFieldValue(`${changedRowKey}_don_gia`, parseInt(res.listObject[0][0].t));
+    if (cellName == 'dvt')
+      var res = await multipleTablePutApi({
+        store: "Web_GetPriceByDvt",
+        param: {
+          ma_vt: rowValues?.ma_vt,
+          dvt: cellValue
+        },
+        data: {},
+      })
+        .then((res) => {
+          if (res.responseModel?.isSucceded) {
+            if (res.listObject.length > 0) {
+              itemForm.setFieldValue(`${changedRowKey}_don_gia`, parseInt(res.listObject[0][0].t));
 
+            }
+
+          }
         }
-          
-      }}
-    );
+        );
 
     const allCellsValues = getAllValueByColumn(cellName, allCells);
 
-    const reCalculateTotal = (donGia = 0, soLuong = 0,thue_suat=0) => {
+    const reCalculateTotal = (donGia = 0, soLuong = 0, thue_suat = 0) => {
       itemForm.setFieldValue(`${changedRowKey}_thanh_tien`, donGia * soLuong);
-      if (isCalVat)itemForm.setFieldValue(`${changedRowKey}_thue_nt`, donGia * soLuong *thue_suat/100 );
+      if (isCalVat) itemForm.setFieldValue(`${changedRowKey}_thue_nt`, donGia * soLuong * thue_suat / 100);
     };
 
     switch (cellName) {
@@ -1436,13 +1433,13 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
       default:
         break;
     }
-    if(cellName!='default_button')
-    await reCalculateTotal(
-      getCurRowValues()?.don_gia,
-      getCurRowValues()?.so_luong,
-      getCurRowValues()?.thue_suat
-    );
-    const temp = {...paymentInfo};
+    if (cellName != 'default_button')
+      await reCalculateTotal(
+        getCurRowValues()?.don_gia,
+        getCurRowValues()?.so_luong,
+        getCurRowValues()?.thue_suat
+      );
+    const temp = { ...paymentInfo };
     setPaymentInfo(await handleCalculatorPayment(temp));
   };
 
@@ -1460,7 +1457,7 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
 
       setsearchOptionsFiltered([...filteredOptions] || []);
     }
-    return () => {};
+    return () => { };
   }, [JSON.stringify(searchOptions), JSON.stringify(searchColapse)]);
 
   //Key map
@@ -1479,8 +1476,8 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
     (e) => {
       setsearchOptions([]);
       setsearchOptionsFiltered([]);
-      if(!isScanning) setRetailOrderScanning(true)
-        else setRetailOrderScanning(false);
+      if (!isScanning) setRetailOrderScanning(true)
+      else setRetailOrderScanning(false);
       if (!isScanning) searchInputRef.current.focus();
 
       e.preventDefault();
@@ -1492,18 +1489,18 @@ const RetailOrderInfo = ({ orderKey ,currentTabOrder,ref }) => {
   useEffect(() => {
   }, []);
 
-const Test=()=>{
-  console.log(data);
-}
-const handelKeyPress =(event)=>{
-  if(isScanning){
-    if(event.keyCode ==13){
-      handleFetchItemInfo({ barcode:searchValue, ma_vt: "", stock: "" })
-      setSearchValue("")
+  const Test = () => {
+    console.log(data);
+  }
+  const handelKeyPress = (event) => {
+    if (isScanning) {
+      if (event.keyCode == 13) {
+        handleFetchItemInfo({ barcode: searchValue, ma_vt: "", stock: "" })
+        setSearchValue("")
+      }
     }
   }
-}
-  
+
 
 
   return (
@@ -1577,9 +1574,8 @@ const handelKeyPress =(event)=>{
                         <div className="flex justify-content-between align-items-center">
                           <b className="primary_color">{group?.label}</b>
                           <i
-                            className={`pi pi-angle-${
-                              searchColapse.includes(group.key) ? "down" : "up"
-                            } cursor-pointer`}
+                            className={`pi pi-angle-${searchColapse.includes(group.key) ? "down" : "up"
+                              } cursor-pointer`}
                             onClick={() => {
                               handleCollapseOptions(group.key);
                             }}
@@ -1604,14 +1600,14 @@ const handelKeyPress =(event)=>{
                           >
                             <Avatar
                               style={{
-                                background:
-                                  CHARTCOLORS[Math.floor(Math.random() * 12)],
+                                background: CHARTCOLORS[item?.label?.charAt(0).toUpperCase()],
+
                                 width: 30,
                                 height: 30,
                               }}
                               src={item?.image}
                             >
-                              {item?.label?.substring(0, 1)}
+                              {item?.label?.charAt(0).toUpperCase()}
                             </Avatar>
                             <div className="flex gap-3 w-full">
                               <div className="w-full">{item.label}</div>
@@ -1637,7 +1633,7 @@ const handelKeyPress =(event)=>{
 
                       {group?.key == "KH" &&
                         phoneNumberRegex.test(searchValue) &&
-                        (group?.options.length==0) && (
+                        (group?.options.length == 0) && (
                           <Select.Option
                             key={`dien_thoai`}
                             value={searchValue}
@@ -1670,9 +1666,8 @@ const handelKeyPress =(event)=>{
                   }}
                 >
                   <i
-                    className={`pi pi-qrcode ${
-                      isScanning ? "success_text_color" : "danger_text_color"
-                    }`}
+                    className={`pi pi-qrcode ${isScanning ? "success_text_color" : "danger_text_color"
+                      }`}
                     style={{ fontWeight: "bold" }}
                   ></i>
                 </Button>
@@ -1706,7 +1701,7 @@ const handelKeyPress =(event)=>{
               onValuesChange={handleChangeValue}
             >
               <PerformanceTable
-                
+
                 selectable
                 columns={columns}
                 data={data}
@@ -1733,21 +1728,21 @@ const handelKeyPress =(event)=>{
                 <i className="pi pi-trash" style={{ fontWeight: "bold" }}></i>
               </Button>
             </Tooltip>
-            {checkPermission("Permission.HDL.Discount")?
-            <Tooltip placement="topRight" title="Khuyến mãi (F8)">
-              <Button className="default_button"
-                onClick={() => {
-                  handleResetPromotion();
-                  modifyIsOpenPromotion(true);
-                }}
-              >
-                <i
-                  className="pi pi-gift danger_text_color"
-                  style={{ fontWeight: "bold" }}
-                ></i>
-              </Button>
-            </Tooltip>
-            :''}
+            {checkPermission("Permission.HDL.Discount") ?
+              <Tooltip placement="topRight" title="Khuyến mãi (F8)">
+                <Button className="default_button"
+                  onClick={() => {
+                    handleResetPromotion();
+                    modifyIsOpenPromotion(true);
+                  }}
+                >
+                  <i
+                    className="pi pi-gift danger_text_color"
+                    style={{ fontWeight: "bold" }}
+                  ></i>
+                </Button>
+              </Tooltip>
+              : ''}
 
             <Tooltip placement="topRight" title="Thanh toán">
               <Button
@@ -1757,9 +1752,10 @@ const handelKeyPress =(event)=>{
                     `${window.location.origin}/transfer`,
                     "Thanh toán",
                     "screenX=1,screenY=1,left=1,top=1,menubar=0,height=" +
-                      screen.height +
-                      ",width=" +
-                      screen.width
+                    window.screen.height +
+
+                    ",width=" +
+                    window.screen.width
                   );
                 }}
               >
@@ -1782,9 +1778,8 @@ const handelKeyPress =(event)=>{
             <Tooltip placement="topRight" title="Toàn màn hình">
               <Button onClick={handleHideNavbar} className="default_button">
                 <i
-                  className={`pi pi-arrows-alt ${
-                    isHideNav ? "sub_text_color" : "gray_text_color"
-                  } `}
+                  className={`pi pi-arrows-alt ${isHideNav ? "sub_text_color" : "gray_text_color"
+                    } `}
                   style={{ fontWeight: "bold" }}
                 ></i>
               </Button>
