@@ -1,5 +1,9 @@
 import {
-  DownOutlined
+  CheckCircleTwoTone,
+  CloseCircleTwoTone,
+  DownOutlined,
+  LoadingOutlined,
+  CloseOutlined 
 } from "@ant-design/icons";
 
 import {
@@ -31,6 +35,7 @@ import {
   getAllRowKeys,
   getAllValueByRow,
 } from "../../../../../app/Functions/getTableValue";
+import { Spin } from "antd";
 import { formatCurrency } from "../../../../../app/hooks/dataFormatHelper";
 import { num2words } from "../../../../../app/Options/DataFomater";
 import { formatterNumber, parserNumber } from "../../../../../app/regex/regex";
@@ -890,7 +895,7 @@ const RetailPaidInfo = ({
             </span>
           </div>
 
-          {/* <div className="flex justify-content-between gap-2 align-items-center">
+          <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0">
               <Input id="voucher-custom"
               value={voucherChild}
@@ -930,7 +935,7 @@ const RetailPaidInfo = ({
                 paymentInfo?.ma_nt === "VND" ? 0 : 2
               )}
             </span>
-          </div> */}
+          </div>
 
           {/* <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0">Tiền voucher:</span>
