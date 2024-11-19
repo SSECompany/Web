@@ -6,13 +6,13 @@ import "./Navbar.css";
 import { Dropdown, Input, Menu, Modal } from "antd";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getRoutesAccess } from "../../app/Functions/getRouteAccess";
-import { multipleTablePutApi } from "../SaleOrder/API";
 import options__icon from "../../Icons/options__icon.svg";
-import sse__logo from "../../Icons/sse__logo.svg";
+import white from "../../Icons/white.png";
 import router, { routes } from "../../router/routes";
-import { setClaims, setIsBackgrouds,setUserSetting } from "../../store/reducers/claimsSlice";
-import { getIsHideNav, getUserInfo,getClaims} from "../../store/selectors/Selectors";
+import { setClaims, setIsBackgrouds, setUserSetting } from "../../store/reducers/claimsSlice";
+import { getClaims, getIsHideNav, getUserInfo } from "../../store/selectors/Selectors";
 import jwt from "../../utils/jwt";
+import { multipleTablePutApi } from "../SaleOrder/API";
 import Notify from "./Notify/Notify.jsx";
 
 const Navbar = () => {
@@ -24,7 +24,7 @@ const Navbar = () => {
   const [searchFunctions, setSearchFunctions] = useState([]);
   const isHideNav = useSelector(getIsHideNav);
   const userInfo = useSelector(getUserInfo);
-  const userClaims =useSelector(getClaims);
+  const userClaims = useSelector(getClaims);
   const [isShowAlert, setIsShowAlert] = useState(false);
   const [nextRoute, setNextRoute] = useState("");
 
@@ -143,20 +143,20 @@ const Navbar = () => {
       ));
     });
   };
-  const getUserSetting= async( ma_dvcs) =>{
+  const getUserSetting = async (ma_dvcs) => {
     const t = await multipleTablePutApi({
       store: "api_user_setting",
-      param: {ma_dvcs :ma_dvcs},
+      param: { ma_dvcs: ma_dvcs },
       data: {},
-    }).then((res)=>{
+    }).then((res) => {
       const data = res.listObject;
-      
-      const setting={
-        tk_nh :data[0][0]?.tk_nh,
-        bin:data[0][0]?.bin|'',
-        bank_account_name:data[0][0]?.bank_account_name|'',
-        hs_quy_doi:data[0][0]?.hs_quy_doi|0,
-        maxPoint:data[0][0]?.maxPoint
+
+      const setting = {
+        tk_nh: data[0][0]?.tk_nh,
+        bin: data[0][0]?.bin | '',
+        bank_account_name: data[0][0]?.bank_account_name | '',
+        hs_quy_doi: data[0][0]?.hs_quy_doi | 0,
+        maxPoint: data[0][0]?.maxPoint
       };
 
       dispatch(setUserSetting(setting));
@@ -252,7 +252,7 @@ const Navbar = () => {
       <div className="first_navbar_row_left">
         <div className="navbar_logo_functions">
           <img
-            src={sse__logo}
+            src={white}
             alt="SSE giải pháp phần mềm doanh nghiệp"
             onClick={handleLogo}
             color="red"

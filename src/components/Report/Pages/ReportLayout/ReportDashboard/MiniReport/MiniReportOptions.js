@@ -1,5 +1,4 @@
 import { formatCurrency } from "../../../../../../app/hooks/dataFormatHelper";
-import { CHARTCOLORS } from "../../../../../../utils/constants";
 
 export const getMiniBarReportOptions = (title = [], value = []) => {
   return {
@@ -40,9 +39,12 @@ export const getMiniBarReportOptions = (title = [], value = []) => {
         type: "bar",
         itemStyle: {
           borderRadius: [4, 4, 0, 0],
+          color: function (params) {
+            const colors = ["#ff4d4f", "#36cfc9", "#ffa940", "#73d13d"];
+            return colors[params.dataIndex % colors.length];
+          },
         },
         colorBy: "data",
-        color: CHARTCOLORS,
         // markLine: {
         //   silent: true,
         //   symbolSize: 6,
@@ -88,11 +90,10 @@ export const getMinicircleOptions = (data) => {
       formatter: function (params) {
         return `${params.marker} ${params.name} 
                <span class="text-float-left ml-2 primary_bold_text">${formatCurrency(
-                 params.value
-               )} - </span>
-               <span class="text-float-right primary_bold_text">${
-                 params.percent
-               }%</span>`;
+          params.value
+        )} - </span>
+               <span class="text-float-right primary_bold_text">${params.percent
+          }%</span>`;
       },
       textStyle: {
         fontFamily: "'Lexend Deca', sans-serif",
@@ -116,6 +117,11 @@ export const getMinicircleOptions = (data) => {
           borderRadius: 6,
           borderColor: "#fff",
           borderWidth: 2,
+          color: function (params) {
+            // Tùy chỉnh màu sắc cho từng thanh
+            const colors = ["#ff4d4f", "#36cfc9", "#ffa940", "#73d13d"];
+            return colors[params.dataIndex % colors.length];
+          },
         },
 
         height: "275px",
@@ -126,8 +132,6 @@ export const getMinicircleOptions = (data) => {
         },
 
         colorBy: "data",
-        color: CHARTCOLORS,
-
         emphasis: {
           label: {
             show: false,

@@ -1382,27 +1382,30 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     const getCurRowValues = () => {
       return getAllValueByRow(changedRowKey, itemForm.getFieldsValue());
     };
-    if (cellName == 'dvt')
-      var res = await multipleTablePutApi({
+
+    if (cellName === 'dvt' || cellName === "ma_kho") {
+      const params = {
+        ma_vt: rowValues?.ma_vt,
+        dvt: cellName === 'dvt' ? cellValue : rowValues?.dvt,
+        ma_kho: cellName === "ma_kho" ? cellValue : rowValues?.ma_kho,
+      };
+
+      const res = await multipleTablePutApi({
         store: "Web_GetPriceByDvt",
-        param: {
-          ma_vt: rowValues?.ma_vt,
-          dvt: cellValue
-        },
+        param: params,
         data: {},
-      })
-        .then((res) => {
-          if (res.responseModel?.isSucceded) {
-            if (res.listObject.length > 0) {
-              itemForm.setFieldValue(`${changedRowKey}_don_gia`, parseInt(res.listObject[0][0].t));
+      });
 
-            }
-
-          }
+      if (res.responseModel?.isSucceded) {
+        if (res.listObject.length > 0 && res.listObject[0].length > 0 && res.listObject[0][0].t) {
+          // Nếu có data trong listObject
+          itemForm.setFieldValue(`${changedRowKey}_don_gia`, parseInt(res.listObject[0][0].t));
+        } else {
+          // Nếu không có data
+          itemForm.setFieldValue(`${changedRowKey}_don_gia`, 0);
         }
-        );
-
-    const allCellsValues = getAllValueByColumn(cellName, allCells);
+      }
+    }
 
     const reCalculateTotal = (donGia = 0, soLuong = 0, thue_suat = 0) => {
       itemForm.setFieldValue(`${changedRowKey}_thanh_tien`, donGia * soLuong);
@@ -1410,35 +1413,22 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     };
 
     switch (cellName) {
-      case "ma_kho":
-        await handleFetchItemInfo({
-          barcode: "",
-          ma_vt: rowValues?.ma_vt,
-          stock: cellValue,
-        }).then((res) => {
-          itemForm.setFieldValue(`${changedRowKey}_don_gia`, res?.gia || "0");
-        });
-
-        if (autoCalPromotion) recalPromotion();
-        break;
-
       case "don_gia":
-        if (autoCalPromotion) recalPromotion();
-        break;
-
       case "so_luong":
         if (autoCalPromotion) recalPromotion();
         break;
-
       default:
         break;
     }
-    if (cellName != 'default_button')
+
+    if (cellName !== 'default_button') {
       await reCalculateTotal(
         getCurRowValues()?.don_gia,
         getCurRowValues()?.so_luong,
         getCurRowValues()?.thue_suat
       );
+    }
+
     const temp = { ...paymentInfo };
     setPaymentInfo(await handleCalculatorPayment(temp));
   };
