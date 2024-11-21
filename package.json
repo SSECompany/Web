@@ -5,7 +5,9 @@
   "dependencies": {
     "@ant-design/charts": "^2.1.1",
     "@antv/layout": "^0.3.25",
-    "@antv/xflow-core": "^1.0.55",
+    "@antv/x6": "1.30.0",
+    "@antv/x6-react-shape": "^1.2.5",
+    "@antv/xflow-core": "^1.1.52",
     "@googlemaps/markerclusterer": "^2.5.3",
     "@iconscout/react-unicons": "^2.0.0",
     "@reduxjs/toolkit": "^1.9.3",
