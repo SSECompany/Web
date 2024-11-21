@@ -1,6 +1,8 @@
-import RetailOrder from "../components/Retail/Pages/RetailOrder2/RetailOrder";
 import OnlineOrder from "../components/Retail/Pages/OnlineOrder2/RetailOrder";
+import RefundOrder from "../components/Retail/Pages/RefundOrder/RefundOrder";
+import RetailOrder from "../components/Retail/Pages/RetailOrder2/RetailOrder";
 import StockTransfer from "../components/Transfer/Pages/Transfer/Transfer";
+
 
 const RORoutes = [
   {
@@ -19,6 +21,13 @@ const RORoutes = [
     path: "RO/Reatailorder",
     element: <RetailOrder />,
   },
+  {
+    claims: "Permissions.HDL.HDL",
+    parent: "/RO",
+    path: "RO/ReFundOrder",
+    element: <RefundOrder />,
+  },
+
   {
     label: "Hóa đơn Online",
     // claims: "Permissions.Retail",

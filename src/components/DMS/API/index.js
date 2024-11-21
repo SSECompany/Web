@@ -22,7 +22,14 @@ export const ApiGetTaskDetail = async (payload) => {
 };
 
 export const ApiWebLookup = async (payload) => {
-  return await https.post(`User/look-up`, payload).then((res) => {
+  const { id, unitId, storeId } = store.getState().claimsReducer.userInfo;
+
+  return await https.post(`User/look-up`, {
+    ...payload,
+    userId: payload.userId || id,
+    unitId,
+    storeId,
+  }).then((res) => {
     return res.data;
   });
 };

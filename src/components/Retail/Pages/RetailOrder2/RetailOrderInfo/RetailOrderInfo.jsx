@@ -25,6 +25,7 @@ import RetailPromotionModal from "../../../Modals/RetailPromotionModal/RetailPro
 import { fetchRetailOderPromotion, modifyIsAddNewCustomer, modifyIsOpenPromotion, setCurrentRetailOrder, setRetailOrderList, setRetailOrderScanning } from "../../../Store/Actions/RetailOrderActions";
 import { getRetailOrderState } from "../../../Store/Selectors/RetailOrderSelectors";
 import RetailPaidInfo from "../RetailPaidInfo/RetailPaidInfo";
+
 import "./RetailOrderInfo.css";
 
 import useLocalStorage from "use-local-storage";
@@ -579,6 +580,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       });
 
       const ckthRows = CKTH.map((ck) => {
+        console.log("🚀 ~ ckthRows ~ ckthRows:", ckthRows)
         return {
           id: uuidv4(),
           ma_vt: ck.ma_vt,
@@ -743,9 +745,13 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       //Chiết khấu chi tiết vật tư
       var ckvtObject = {};
 
+      console.log("CKTH:", result?.ckth);
+      console.log("CKTD:", result?.cktd);
+
       result?.ckvt?.map(async (ck) => {
         var temp = itemForm.getFieldValue(`${ck.rowKey}_so_luong`);
         var temp_thue_suat = itemForm.getFieldValue(`${ck.rowKey}_thue_suat`);
+
         if (ck.loai_ck == '08') {
           ckvtObject[`${ck.rowKey}_don_gia`] = ck?.gia_nt2;
           ckvtObject[`${ck.rowKey}_thanh_tien`] = ck?.gia_nt2 * temp;
@@ -800,10 +806,12 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
         tl_ck: cktdValues?.tl_ck || 0,
         t_diem_so: cktdValues?.t_diem_so || 0
       };
+
       await setPaymentInfo(await handleCalculatorPayment(temp, true, tempIsCalVat));
 
       message.destroy();
       setIsCalculating(false);
+
     });
 
   }
@@ -1212,10 +1220,12 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       return getAllValueByRow(changedRowKey, itemForm.getFieldsValue());
     };
 
-    if (cellName === 'dvt') {
+    if (cellName === 'dvt' || cellName === "ma_kho") {
       const params = {
         ma_vt: rowValues?.ma_vt,
         dvt: cellName === 'dvt' ? cellValue : rowValues?.dvt,
+        ma_kho: cellName === 'ma_kho' ? cellValue : rowValues?.ma_kho,
+
       };
 
       const res = await multipleTablePutApi({
@@ -1225,6 +1235,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       });
 
       if (res.responseModel?.isSucceded) {
+        console.log("🚀 ~ handleChangeValue ~ res:", res.listObject)
         if (res.listObject.length > 0 && res.listObject[0].length > 0 && res.listObject[0][0].t) {
           // Nếu có data trong listObject
           itemForm.setFieldValue(`${changedRowKey}_don_gia`, parseInt(res.listObject[0][0].t));
@@ -1702,16 +1713,13 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
         isOpen={isOpenOrderList}
         onClose={handleOrderListModal}
       />
-      {/* <ShowItemInfoModal
-        isOpen={openItemInfo}
-        onClose={handleCloseItemModal}
-        ma_vt={selectedItem}
-      /> */}
+
       <RetailPromotionModal
         tableData={itemForm.getFieldsValue()}
         customer={paymentInfo?.ma_kh}
         handleSave={handlePromotionCalculate}
       />
+
     </div>
   );
 };

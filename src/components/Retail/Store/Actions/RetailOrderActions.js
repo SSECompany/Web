@@ -86,7 +86,7 @@ export const fetchRetailOderList = async (params, ma_ct) => {
 
 export const fetchRetailOderDetail = async (params, ma_ct) => {
   try {
-    var store = ma_ct == 'HDL' ? 'ss0' : 'api_get_retail_order_detail_hdo';
+    var store = ma_ct == 'HDL' ? 'api_get_retail_order_detail' : 'api_get_retail_order_detail_hdo';
     const result = await multipleTablePutApi({
       store: store,
       param: {
