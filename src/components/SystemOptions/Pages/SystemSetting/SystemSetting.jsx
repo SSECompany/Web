@@ -7,7 +7,7 @@ import {
   notification,
   Switch,
 } from "antd";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import LoadingComponents from "../../../Loading/LoadingComponents";
 import {
   fetchSystemSetting,
@@ -54,7 +54,7 @@ const SystemSetting = () => {
 
   useEffect(() => {
     getSystemSetting();
-    return () => {};
+    return () => { };
   }, []);
 
   const renderFormFields = ({
@@ -132,15 +132,15 @@ const SystemSetting = () => {
 
       <Form form={settingForm} component={false}>
         <div className="h-full min-h-0 overflow-auto px-3 py-2">
-          {settings.map((item) =>
-            renderFormFields({
+          {settings.map((item) => {
+            return renderFormFields({
               key: item?.key,
               defaultValue: item?.value,
               title: item?.title,
               type: item?.Type,
               description: item?.description,
             })
-          )}
+          })}
         </div>
 
         <div className="p-2 shadow-2 text-right">

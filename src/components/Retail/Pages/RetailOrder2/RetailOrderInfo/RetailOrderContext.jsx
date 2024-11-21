@@ -1,8 +1,8 @@
-import React, { createContext, useState, useEffect } from 'react';
-import { multipleTablePutApi } from "../../../../SaleOrder/API";
+import _ from 'lodash';
+import { createContext, useEffect, useState } from 'react';
 import { useSelector } from "react-redux";
 import { getUserInfo } from "../../../../../store/selectors/Selectors";
-import _ from 'lodash';
+import { multipleTablePutApi } from "../../../../SaleOrder/API";
 
 // Tạo Context
 export const RetailOrderContext = createContext();
@@ -26,6 +26,7 @@ export const RetailOrderProvider = ({ children }) => {
             },
             data: {},
         }).then((res) => {
+            console.log("🚀 ~ fetchRetailOptions ~ res:", res)
             if (res.responseModel?.isSucceded) {
                 setCurrencyOptions(res?.listObject[0] || []);
                 setTaxOptions(res?.listObject[1] || []);

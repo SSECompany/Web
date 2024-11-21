@@ -63,9 +63,9 @@ export const resetFetchListParams = async (params) => {
   store.dispatch(retailOrderActions.resetFetchListParams());
 };
 
-export const fetchRetailOderList = async (params,ma_ct) => {
+export const fetchRetailOderList = async (params, ma_ct) => {
   try {
-    var store = ma_ct=='HDL'? 'api_get_retail_order':'api_get_retail_order_hdo';
+    var store = ma_ct == 'HDL' ? 'api_get_retail_order' : 'api_get_retail_order_hdo';
     const result = await multipleTablePutApi({
       store: store,
       param: {
@@ -84,9 +84,9 @@ export const fetchRetailOderList = async (params,ma_ct) => {
   }
 };
 
-export const fetchRetailOderDetail = async (params,ma_ct) => {
+export const fetchRetailOderDetail = async (params, ma_ct) => {
   try {
-    var store = ma_ct=='HDL'? 'api_get_retail_order_detail':'api_get_retail_order_detail_hdo';
+    var store = ma_ct == 'HDL' ? 'ss0' : 'api_get_retail_order_detail_hdo';
     const result = await multipleTablePutApi({
       store: store,
       param: {
@@ -117,7 +117,7 @@ export const fetchRetailOderDetail = async (params,ma_ct) => {
   }
 };
 
-export const fetchRetailOderPromotion = async (data = [], customer = "",ma_ct="HDL") => {
+export const fetchRetailOderPromotion = async (data = [], customer = "", ma_ct = "HDL") => {
   try {
     modifyIsLoadingPromotion(true);
     const { id, unitId, storeId } = store.getState().claimsReducer.userInfo;
@@ -350,5 +350,5 @@ export const modifyIsLoadingPromotion = async (params) => {
   store.dispatch(retailOrderActions.setIsPromotionLoading(params));
 };
 export const modifyIsAddNewCustomer = async (payload) => {
-    store.dispatch(retailOrderActions.setIsAddNewCustomer(payload));
+  store.dispatch(retailOrderActions.setIsAddNewCustomer(payload));
 };

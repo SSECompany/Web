@@ -22,7 +22,7 @@ import PerformanceTable from "../../../../ReuseComponents/PerformanceTable/Perfo
 import { multipleTablePutApi } from "../../../../SaleOrder/API";
 import RetailOrderListModal from "../../../Modals/RetailOrderListModal/RetailOrderListModal";
 import RetailPromotionModal from "../../../Modals/RetailPromotionModal/RetailPromotionModal";
-import { fetchRetailOderPromotion, modifyChangeTabOrder, modifyIsAddNewCustomer, modifyIsOpenPromotion, setCurrentRetailOrder, setRetailOrderList, setRetailOrderScanning } from "../../../Store/Actions/RetailOrderActions";
+import { fetchRetailOderPromotion, modifyIsAddNewCustomer, modifyIsOpenPromotion, setCurrentRetailOrder, setRetailOrderList, setRetailOrderScanning } from "../../../Store/Actions/RetailOrderActions";
 import { getRetailOrderState } from "../../../Store/Selectors/RetailOrderSelectors";
 import RetailPaidInfo from "../RetailPaidInfo/RetailPaidInfo";
 import "./RetailOrderInfo.css";
@@ -207,7 +207,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     },
     {
       key: "thue_nt",
-      title: "Vat Tềin",
+      title: "Vat Tiền",
       dataKey: "thue_nt",
       width: 0,
       resizable: false,
@@ -395,16 +395,12 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       },
     },
   ];
-
   const { listOrder, currentOrder, isScanning, isFormLoading, changeTabOrder } =
     useSelector(getRetailOrderState);
-
   var isGetBarCode = false;
   const [message, contextHolder] = messageAPI.useMessage();
   const [itemForm] = Form.useForm();
-
   const [totalPromotionType, setTotalPromotionType] = useState("RATIO");
-
   const [data, setData] = useState([]);
   const [selectedRowkeys, setSelectedRowkeys] = useState([]);
   const [searchValue, setSearchValue] = useState("");
@@ -412,8 +408,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
   const [searchColapse, setSearchColapse] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOptionsFiltered, setsearchOptionsFiltered] = useState([]);
-  const [isQrCode, setIsQrCode] = useState(false);
-  const [isReCal, setIsReCal] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState({
     ma_kh: "KVL",
     ten_kh: "Vãng lai",
@@ -456,7 +450,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
   const isHideNav = useSelector(getIsHideNav);
   const [paymentQR, setPaymentQR] = useLocalStorage("QRimg", "");
   const [isCalVat, setIsCalVat] = useState(false);
-  const [so_ct, setSo_ct] = useState({ so_ct: '' })
   const { tk_nh, bin, hs_quy_doi, bank_account_name, maxPoint } = useSelector(getUerSetting);
   const [voucher, setVoucher] = useState({
     voucherId: "",
@@ -484,7 +477,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
   }
 
   /////// Orde List functions //////////////
-
   const getDataOrder = (paymentMethods = '', paymentMethodInfo = {}) => {
     const data = { ...itemForm.getFieldsValue() };
     var masterData = {};
@@ -514,7 +506,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     const data = { ...itemForm.getFieldsValue() };
     const masterData = { ...paymentInfo }
 
-
     var detailData = [];
 
     detailData = getAllRowKeys(data).map((item) => {
@@ -522,7 +513,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       if (!temp.ghi_chu) temp = { ...temp, ghi_chu: '' }
       return temp;
     });
-
     return [masterData, detailData];
   }
 
@@ -534,20 +524,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
   const onChangePaymentInfo = async (data) => {
     const temp = await handleCalculatorPayment(data)
     setPaymentInfo(temp);
-
-    //setIsReCal(uuidv4())
-    //handleCalculatorPayment();
   }
-
-
-
-
-
-
-
-
-
-
 
   const handlechangeTabOrder = async (value) => {
     setRetailOrderScanning(false);
@@ -562,10 +539,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
   }, [isOpenOrderList]);
 
 
-  const handleCloseItemModal = useCallback(() => {
-    setOpenItemInfo(false);
-  }, [openItemInfo])
-
   const handleHideNavbar = () => {
     dispatch(setIsHideNav(!isHideNav));
   };
@@ -574,13 +547,11 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     const curData = itemForm.getFieldsValue();
     if (value) {
       await getAllRowKeys(curData).map((key) => {
-        //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)) * (Number(getAllValueByRow(key, curData)?.don_gia) *(100 - Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) );
         itemForm.setFieldValue(`${key}_thue_nt`, (((Number(getAllValueByRow(key, curData)?.so_luong)) * Number(getAllValueByRow(key, curData)?.don_gia) - Number(getAllValueByRow(key, curData)?.ck)) * (Number(getAllValueByRow(key, curData)?.thue_suat)) / 100));
       });
     }
     else {
       await getAllRowKeys(curData).map((key) => {
-        //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)) * (Number(getAllValueByRow(key, curData)?.don_gia)) );
         itemForm.setFieldValue(`${key}_thue_nt`, 0);
       });
     }
@@ -589,8 +560,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       const temp = { ...paymentInfo }
       setPaymentInfo(await handleCalculatorPayment(temp, true, value));
     }
-    //await handleCalculatorPayment();
-    //await setIsReCal(uuidv4());
   }
 
   /////// Calculations functions////////////
@@ -637,15 +606,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
         tl_ck: cktdValues?.tl_ck || 0,
       };
       setPaymentInfo(await handleCalculatorPayment(temp));
-
-      // setPaymentInfo({
-      //   ...paymentInfo,
-      //   ma_ck: cktdValues?.ma_ck || "",
-      //   ck: cktdValues?.ck || 0,
-      //   tl_ck: cktdValues?.tl_ck || 0,
-      // });
-      // setIsReCal(uuidv4())
-      //handleCalculatorPayment();
     },
     [JSON.stringify(paymentInfo), JSON.stringify(data)]
   );
@@ -669,13 +629,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     await itemForm.setFieldsValue({
       ...promotions,
     });
-
-    // setPaymentInfo({
-    //   ...paymentInfo,
-    //   ma_ck: "",
-    //   ck: 0,
-    //   tl_ck: 0,
-    // });
     const temp = {
       ...paymentInfo,
       ma_ck: "",
@@ -683,11 +636,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       tl_ck: 0,
     };
     setPaymentInfo(await handleCalculatorPayment(temp));
-
     setTotalPromotionType("RATIO");
-
-    //setIsReCal(uuidv4())
-    //handleCalculatorPayment();
   };
 
   //Tính thanh toán
@@ -726,7 +675,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
 
     const tong_ck = parseFloat(tong_ckvt + ck_tong_don);
 
-    //const tong_thue = parseFloat((tong_tien * paymentInfo.thue_suat) / 100);
     var tong_thue = 0
     if (tempIsCalVat)
       tong_thue = await getAllValueByColumn("thue_nt", changedValues).reduce(
@@ -742,7 +690,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
           : voucher?.tien_ck
       ).toFixed(2)
     );
-    //console.log(isCalVat,tong_thue,tien_voucher,tong_tien ,tong_thue , tong_ck , (voucher?.tl_ck * (tong_tien + tong_thue)) / 100, tien_voucher)
     const tong_tt = parseFloat(tong_tien + tong_thue - tong_ck - dataTemp.diem_sd * (hs_quy_doi ? hs_quy_doi : 0) - tien_voucher);
     const cal = {
       ...dataTemp,
@@ -754,22 +701,17 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       tien_diem: dataTemp.diem_sd * (hs_quy_doi ? hs_quy_doi : 0),
       tien_voucher: tien_voucher
     };
-
     return cal
-    //setPaymentInfo(calculated);
   };
 
 
   useEffect(() => {
-    //handleCalculatorPayment();
-    //setIsChangedData(uuidv4());
     handleShowCustomerViewDialog();
   }, [JSON.stringify(paymentInfo)]);
 
   useEffect(() => {
     async function fetchData() {
       const temp = { ...paymentInfo, voucherId: voucher?.voucherId };
-      //console.log('voucher',temp);
       setPaymentInfo(await handleCalculatorPayment(temp))
       return () => { };
     }
@@ -777,21 +719,8 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
   }, [voucher]);
 
 
-
-  // useEffect(() => {
-  //   handleCalculatorPayment();
-  // }, [isReCal]);
-
-
-
   const recalPromotion = async (temp = false, useCal = false) => {
     setIsCalculating(true);
-    // message.open({
-    //   type: "loading",
-    //   content: "Đang xử lý chương trình chiết khấu",
-    //   duration: 0,
-    // });
-
     //Reset
     var tempIsCalVat = isCalVat;
     if (temp) tempIsCalVat = useCal
@@ -805,27 +734,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       promotions[`${key}_tl_ck`] = 0;
       promotions[`${key}_ck`] = 0;
     });
-    // var tong_thue =0
-    // console.log(tempIsCalVat);
-    // if (tempIsCalVat){
-    //     tong_thue =await getAllValueByColumn("thue_nt", changedValues).reduce(
-    //     (Sum, num) => Sum + num,
-    //     0
-    //   );
-    // }
-    // console.log(tong_thue);
 
-    // setPaymentInfo({
-    //   ...paymentInfo,
-    //   ma_ck: "",
-    //   ck: 0,
-    //   tl_ck: 0,
-    //   tong_thue:tong_thue
-    // });
-
-    // await itemForm.setFieldsValue({
-    //   ...promotions,
-    // });
     //Recal
     const Tinhtrang = await fetchRetailOderPromotion(
       changedValues,
@@ -854,14 +763,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       itemForm.setFieldsValue({
         ...ckvtObject,
       });
-      // result?.ckvt?.map(async (ck) => {
-      //   if(ck.loai_ck=='08'){
-      //     ckvtObject[`${ck.rowKey}_don_gia`] = ck?.gia_nt2;
-      //   }
-      //   ckvtObject[`${ck.rowKey}_ma_ck`] = ck?.ma_ck;
-      //   ckvtObject[`${ck.rowKey}_tl_ck`] = ck.tl_ck;
-      //   ckvtObject[`${ck.rowKey}_ck`] = ck.ck;
-      // });
 
       var check = false;
       if (listPromotion.length == result.ckth.length && result.ckth.length > 0) {
@@ -872,7 +773,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       } else if (!(result.ckth.length == 0 && listPromotion.length == 0)) check = true;
       if (check) {
         const tempzz = rawData
-        console.log(tempzz)
         result?.ckth?.forEach((ck) => {
           tempzz.push({
             id: uuidv4(),
@@ -888,12 +788,8 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
             ma_ck: ck.ma_ck,
           });
         });
-        console.log(tempzz)
         setData(tempzz);
       }
-
-
-      //if(!_.isEmpty(ckthRows)) setIsChangedData(uuidv4());
 
       const cktdValues = _.first(result.cktd);
 
@@ -906,22 +802,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       };
       await setPaymentInfo(await handleCalculatorPayment(temp, true, tempIsCalVat));
 
-      // await  setPaymentInfo({
-      //   ...paymentInfo,
-      //   ma_ck: cktdValues?.ma_ck || "",
-      //   ck: cktdValues?.ck || 0,
-      //   tl_ck: cktdValues?.tl_ck || 0,
-      //   t_diem_so:cktdValues?.t_diem_so||0
-      // });
-      // setIsReCal(uuidv4())
-      //handleCalculatorPayment();
-
-      // if (_.isEmpty(ckthRows) && _.isEmpty(cktdValues) ){
-      //   const temp = {...paymentInfo,};
-      //   setPaymentInfo(handleCalculatorPayment(temp));
-      //   //  handleCalculatorPayment();
-      //   //setIsReCal(uuidv4())
-      // }
       message.destroy();
       setIsCalculating(false);
     });
@@ -930,17 +810,11 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
 
   useEffect(() => {
     if (!_.isEmpty(data) && autoCalPromotion) {
-      console.log(data);
       recalPromotion();
       return;
     }
     setIsCalPromotion(false);
   }, [JSON.stringify(data), JSON.stringify(paymentInfo.ma_kh)]);
-
-  // useEffect(() => {
-  //     setData([...data])
-  //     return;
-  // }, [isChangedData]);
 
   ///////////orther functions /////
 
@@ -1002,8 +876,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
   // Lấy các setting cho phiếu
   const { currencyOptions, taxOptions, autoCalPromotion, isMergeRowData } = useContext(RetailOrderContext);
 
-
-
   // Lấy thông tin vật tư
   const handleFetchItemInfo = async ({ barcode, ma_vt, stock }) => {
     isGetBarCode = true;
@@ -1059,17 +931,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
         searchInputRef.current.focus()
       });
     return results;
-  };
-
-  // Tìm kiếm vật tư khi vào chế đọ barcode
-  const handleSearchItemInfo = (barcode) => {
-    // const lastCharCode = barcode.charCodeAt(barcode.length - 1)
-    // if(lastCharCode=== 13){
-    //   console.log('enter')
-    // }
-    // console.log(lastCharCode ,barcode)
-    //handleFetchItemInfo({ barcode, ma_vt: "", stock: "" });QSP0915
-    //setSearchValue("");
   };
 
   // Tìm kiếm thông tin khách hàng và vật tư
@@ -1146,41 +1007,40 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     thue_suat = 0,
     so_luong = 1,
   }) => {
+    // Kiểm tra nếu cần gộp dòng
     if (isMergeRowData) {
       const curData = itemForm.getFieldsValue();
       let isHad = false;
-
       await getAllRowKeys(curData).map((key) => {
-        if (getAllValueByRow(key, curData)?.ma_vt === ma_vt) {
-          itemForm.setFieldValue(`${key}_so_luong`, Number(getAllValueByRow(key, curData)?.so_luong) + so_luong);
-          itemForm.setFieldValue(`${key}_thanh_tien`, (Number(getAllValueByRow(key, curData)?.so_luong) + so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia)));
-          if (isCalVat) {
-            //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia) *(100 - Number(getAllValueByRow(key, curData)?.thue_suat))/100 ) );
-            itemForm.setFieldValue(`${key}_thue_nt`, (((Number(getAllValueByRow(key, curData)?.so_luong) + so_luong) * Number(getAllValueByRow(key, curData)?.don_gia) - Number(getAllValueByRow(key, curData)?.ck)) * (Number(getAllValueByRow(key, curData)?.thue_suat)) / 100));
-          }
-          else {
+        const existingRow = getAllValueByRow(key, curData);
+        if (existingRow?.ma_vt === ma_vt && existingRow?.dvt === dvt) {
+          const newQuantity = Number(existingRow.so_luong) + so_luong;
+          itemForm.setFieldValue(`${key}_so_luong`, newQuantity);
+          const newThanhTien = newQuantity * (Number(existingRow.don_gia));
+          itemForm.setFieldValue(`${key}_thanh_tien`, newThanhTien);
 
-            //itemForm.setFieldValue(`${key}_thanh_tien`,(Number(getAllValueByRow(key, curData)?.so_luong)+so_luong) * (Number(getAllValueByRow(key, curData)?.don_gia)) );
+          if (isCalVat) {
+            const newThueNT = ((newQuantity * Number(existingRow.don_gia) - Number(existingRow.ck)) * (Number(existingRow.thue_suat)) / 100);
+            itemForm.setFieldValue(`${key}_thue_nt`, newThueNT);
+          } else {
             itemForm.setFieldValue(`${key}_thue_nt`, 0);
           }
           isHad = true;
           return;
         }
       });
-      if (autoCalPromotion) {
-        console.log('tt')
-        await recalPromotion()
+      if (isHad) {
+        if (autoCalPromotion) {
+          await recalPromotion();
+        } else {
+          const temp = { ...paymentInfo };
+          setPaymentInfo(await handleCalculatorPayment(temp));
+        }
+        return;
       }
-      else {
-        const temp = { ...paymentInfo };
-        setPaymentInfo(await handleCalculatorPayment(temp));
-      }
-      //setIsReCal(uuidv4())
-      //await handleCalculatorPayment();
-
-      if (isHad) return;
     }
 
+    // Nếu không gộp, thêm dòng mới vào dữ liệu
     const rowID = uuidv4();
     setData([
       ...data,
@@ -1210,12 +1070,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
                     width: "55%",
                     margin: 0,
                   }}
-                  rules={[
-                    {
-                      required: false,
-                      message: `Ghi chú trống !`,
-                    },
-                  ]}
                 >
                   <Input.TextArea
                     autoSize={{
@@ -1235,12 +1089,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
                       margin: 0,
                       width: 105,
                     }}
-                    rules={[
-                      {
-                        required: false,
-                        message: `Ghi chú trống !`,
-                      },
-                    ]}
                   >
                     <InputNumber
                       placeholder="0"
@@ -1258,11 +1106,11 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
         ],
       },
     ]);
-    const temp = { ...paymentInfo };
-    //setPaymentInfo(await handleCalculatorPayment(temp));
-    //handleCalculatorPayment();
-    //setIsReCal(uuidv4())
   };
+
+
+
+
   const RemoveTest = async (d) => {
     if (isDelete) return;
     isDelete = true;
@@ -1275,8 +1123,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     if (_.isEmpty(filteredData)) {
       const temp = { ...paymentInfo };
       setPaymentInfo(await handleCalculatorPayment(temp));
-      //await handleCalculatorPayment();
-      //setIsReCal(uuidv4())
       isDelete = false;
     }
     const myTimeout = setTimeout(() => {
@@ -1284,14 +1130,11 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     }, 300);
   }
 
-
   //xoá dòng vật tư
   const handleRemoveRowData = async () => {
     const filteredData = [...data].filter(
       (item) =>
         !selectedRowkeys.includes(item?.id)
-
-
     );
 
     setData(filteredData);
@@ -1303,14 +1146,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
         tl_ck: 0,
       };
       setPaymentInfo(await handleCalculatorPayment(temp));
-      // setPaymentInfo({
-      //   ...paymentInfo,
-      //   ma_ck: "",
-      //   ck: 0,
-      //   tl_ck: 0,
-      // });
-      // //handleCalculatorPayment();
-      // setIsReCal(uuidv4())
     }
   };
 
@@ -1348,10 +1183,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
 
     if (params.data.type === "DTVL") {
       modifyIsAddNewCustomer({ open: true, value: searchValue })
-      // setPaymentInfo({
-      //   ...paymentInfo,
-      //   dien_thoai: params?.data?.value,
-      // });
     }
   };
 
@@ -1370,9 +1201,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       </div>
     );
   };
-  const ChangeTab = async (e, index) => {
-    await modifyChangeTabOrder(index)
-  }
+
   const handleChangeValue = async (cellChanged, allCells) => {
     const cellName = getCellName(_.first(Object.keys(cellChanged)));
     const cellValue = _.first(Object.values(cellChanged));
@@ -1383,11 +1212,10 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       return getAllValueByRow(changedRowKey, itemForm.getFieldsValue());
     };
 
-    if (cellName === 'dvt' || cellName === "ma_kho") {
+    if (cellName === 'dvt') {
       const params = {
         ma_vt: rowValues?.ma_vt,
         dvt: cellName === 'dvt' ? cellValue : rowValues?.dvt,
-        ma_kho: cellName === "ma_kho" ? cellValue : rowValues?.ma_kho,
       };
 
       const res = await multipleTablePutApi({
@@ -1476,12 +1304,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     [isScanning]
   );
 
-  useEffect(() => {
-  }, []);
 
-  const Test = () => {
-    console.log(data);
-  }
   const handelKeyPress = (event) => {
     if (isScanning) {
       if (event.keyCode == 13) {
@@ -1496,7 +1319,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
   return (
     <div className="h-full min-h-0 flex gap-1 relative">
       {contextHolder}
-      {/* <input type="text" onKeyDown={}></input> */}
       <LoadingComponents loading={isFormLoading} text={"Đang tạo đơn hàng"} />
       <div className="h-full min-h-0 w-full min-w-0 flex flex-column gap-1">
         <div
@@ -1546,7 +1368,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
                   setSearchValue(e);
                   if (isScanning) {
                     setSearchLoading(true);
-                    handleSearchItemInfo(e);
                     return;
                   }
                   setsearchOptionsFiltered([]);

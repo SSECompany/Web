@@ -9,8 +9,7 @@ import {
   notification,
 } from "antd";
 import _ from "lodash";
-import { uuidv4 } from "@antv/xflow-core";
-import React, { useEffect, useState,useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   getAllRowKeys,
   getAllValueByRow,
@@ -24,7 +23,7 @@ import {
 } from "../../Store/Actions/RetailOrderActions";
 import "./DetailRetailViewer.css";
 
-const DetailRetailViewer = ({ isOpen, onClose, itemKey,ma_ct='HDL' }) => {
+const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
   const [message, contextHolder] = messageAPI.useMessage();
   const { stt_rec } = itemKey;
   const [itemForm] = Form.useForm();
@@ -39,17 +38,17 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey,ma_ct='HDL' }) => {
     setIsLoading(true);
     const result = await fetchRetailOderDetail({
       stt_rec
-    },ma_ct);
-    if(result.detail) 
-      result.detail = result.detail.map((d,index)=>{
-        d.children=[
+    }, ma_ct);
+    if (result.detail)
+      result.detail = result.detail.map((d, index) => {
+        d.children = [
           {
-            id: `${(index+1).toString().padStart(3, '0')}-detail`,
+            id: `${(index + 1).toString().padStart(3, '0')}-detail`,
             content: (
               <div className="flex gap-2 justify-content-between">
                 <Form.Item
                   initialValue={""}
-                  name={`${(index+1).toString().padStart(3, '0')}_ghi_chu`}
+                  name={`${(index + 1).toString().padStart(3, '0')}_ghi_chu`}
                   style={{
                     width: "55%",
                     margin: 0,
@@ -76,7 +75,6 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey,ma_ct='HDL' }) => {
         ]
         return d;
       })
-    console.log(result.detail);
     setData(result);
     setTableColumns(result?.columns || []);
     setIsLoading(false);
@@ -95,7 +93,7 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey,ma_ct='HDL' }) => {
     console.log(data);
     getAllRowKeys(data).map((item) => {
       const rowData = getAllValueByRow(item, data);
-      if(rowData.ghi_chu == undefined) rowData.ghi_chu="";
+      if (rowData.ghi_chu == undefined) rowData.ghi_chu = "";
       if (rowData.so_luong_tl) {
         return detailData.push(rowData);
       }
@@ -340,15 +338,15 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey,ma_ct='HDL' }) => {
                 data?.master?.status == "1" || data?.master?.status == "2"
                   ? "Đơn hàng đã được xác nhận thành công"
                   : data?.master?.status == "3"
-                  ? "Đơn hàng đã bị huỷ"
-                  : "Đơn hàng đang chờ xác nhận"
+                    ? "Đơn hàng đã bị huỷ"
+                    : "Đơn hàng đang chờ xác nhận"
               }
               type={
                 data?.master?.status == "1" || data?.master?.status == "2"
                   ? "success"
                   : data?.master?.status == "3"
-                  ? "error"
-                  : "warning"
+                    ? "error"
+                    : "warning"
               }
               showIcon
             />

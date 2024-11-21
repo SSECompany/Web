@@ -1,5 +1,5 @@
 import { Tree } from "primereact/tree";
-import React, { useState } from "react";
+import { useState } from "react";
 
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import SystemSetting from "../../../components/SystemOptions/Pages/SystemSetting/SystemSetting";
@@ -30,7 +30,7 @@ const System = () => {
     }
   };
 
-  const onUnselect = (event) => {};
+  const onUnselect = (event) => { };
 
   return (
     <div className="page_2_side_default gap-3">
