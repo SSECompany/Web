@@ -580,7 +580,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       });
 
       const ckthRows = CKTH.map((ck) => {
-        console.log("🚀 ~ ckthRows ~ ckthRows:", ckthRows)
         return {
           id: uuidv4(),
           ma_vt: ck.ma_vt,
@@ -744,9 +743,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     ).then(async (result) => {
       //Chiết khấu chi tiết vật tư
       var ckvtObject = {};
-
-      console.log("CKTH:", result?.ckth);
-      console.log("CKTD:", result?.cktd);
 
       result?.ckvt?.map(async (ck) => {
         var temp = itemForm.getFieldValue(`${ck.rowKey}_so_luong`);
@@ -1019,9 +1015,11 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     if (isMergeRowData) {
       const curData = itemForm.getFieldsValue();
       let isHad = false;
+
       await getAllRowKeys(curData).map((key) => {
         const existingRow = getAllValueByRow(key, curData);
-        if (existingRow?.ma_vt === ma_vt && existingRow?.dvt === dvt) {
+        console.log("🚀 ~ awaitgetAllRowKeys ~ existingRow:", JSON.stringify(existingRow, null, 2))
+        if (existingRow?.ma_vt === ma_vt && existingRow?.dvt === dvt && !existingRow.ck_yn) {
           const newQuantity = Number(existingRow.so_luong) + so_luong;
           itemForm.setFieldValue(`${key}_so_luong`, newQuantity);
           const newThanhTien = newQuantity * (Number(existingRow.don_gia));
@@ -1235,7 +1233,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       });
 
       if (res.responseModel?.isSucceded) {
-        console.log("🚀 ~ handleChangeValue ~ res:", res.listObject)
         if (res.listObject.length > 0 && res.listObject[0].length > 0 && res.listObject[0][0].t) {
           // Nếu có data trong listObject
           itemForm.setFieldValue(`${changedRowKey}_don_gia`, parseInt(res.listObject[0][0].t));

@@ -26,7 +26,6 @@ export const RetailOrderProvider = ({ children }) => {
             },
             data: {},
         }).then((res) => {
-            console.log("🚀 ~ fetchRetailOptions ~ res:", res)
             if (res.responseModel?.isSucceded) {
                 setCurrencyOptions(res?.listObject[0] || []);
                 setTaxOptions(res?.listObject[1] || []);
