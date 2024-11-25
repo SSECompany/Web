@@ -276,7 +276,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       resizable: false,
       sortable: false,
       editable: true,
-      type: "Numeric",
+      type: "don_gia",
       format: "0",
       cellRenderer: ({ rowData, column, cellData }) => {
         return (
@@ -284,6 +284,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
             rowKey={rowData?.id}
             column={column}
             cellData={cellData}
+            handleChangePrice={handleChangePrice}
           />
         );
       },
@@ -533,7 +534,19 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     setCurrentRetailOrder(value);
   }
 
+  const handleChangePrice = async (value, key, rowkey) => {
+    const so_luong = itemForm.getFieldValue([rowkey + '_so_luong'])
+    itemForm.setFieldsValue({
+      [rowkey + '_' + key]: value
+    });
+    itemForm.setFieldsValue({
+      [rowkey + '_thanh_tien']: so_luong * value
+    });
 
+    const temp = await handleCalculatorPayment(paymentInfo)
+    setPaymentInfo(temp);
+
+  }
 
   const handleOrderListModal = useCallback(() => {
     setIsOpenOrderList(!isOpenOrderList);
@@ -1018,7 +1031,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
 
       await getAllRowKeys(curData).map((key) => {
         const existingRow = getAllValueByRow(key, curData);
-        console.log("🚀 ~ awaitgetAllRowKeys ~ existingRow:", JSON.stringify(existingRow, null, 2))
         if (existingRow?.ma_vt === ma_vt && existingRow?.dvt === dvt && !existingRow.ck_yn) {
           const newQuantity = Number(existingRow.so_luong) + so_luong;
           itemForm.setFieldValue(`${key}_so_luong`, newQuantity);
@@ -1716,6 +1728,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
         customer={paymentInfo?.ma_kh}
         handleSave={handlePromotionCalculate}
       />
+
 
     </div>
   );

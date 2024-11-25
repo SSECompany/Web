@@ -1,19 +1,21 @@
 import { DatePicker, Form, Input, InputNumber, Select } from "antd";
-import React, { memo, useEffect, useState } from "react";
+import _ from 'lodash';
+import { memo, useEffect, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
+import PriceCellRenderer from "../../../src/components/Retail/Pages/RetailOrder2/RetailOrderInfo/PriceCellRenderer/PriceCellRenderer";
 import { ApiWebLookup } from "../../components/DMS/API";
 import SelectItemCode from "../../Context/SelectItemCode";
 import SelectNotFound from "../../Context/SelectNotFound";
 import { datetimeFormat, quantityFormat } from "../Options/DataFomater";
 import { formatterNumber, parserNumber } from "../regex/regex";
-
 const RenderPerformanceTableCell = ({
   rowKey,
   column,
   cellData,
   rowData,
   numberCap,
-  customShow=false
+  handleChangePrice = null,
+  customShow = false
 }) => {
   const { type, editable, title, key, required, width, controller, format } =
     column;
@@ -44,6 +46,9 @@ const RenderPerformanceTableCell = ({
     lookupData({ controller: controller, value: value });
   }, 600);
 
+  const handleChangePriceCell = (value) => { handleChangePrice(value, key, rowKey) }
+
+
   const fetchItemUnitData = (ma_vt = "") => {
     lookupData({ controller: "dmqddvt_lookup", value: ma_vt });
   };
@@ -53,7 +58,7 @@ const RenderPerformanceTableCell = ({
       fetchItemUnitData(rowData?.ma_vt || "");
     }
 
-    return () => {};
+    return () => { };
   }, []);
 
   let node;
@@ -97,7 +102,7 @@ const RenderPerformanceTableCell = ({
               lookupData({ controller: controller, value: "" });
           }}
           optionLabelProp="value"
-          // onSelect={onChangeSelection}
+        // onSelect={onChangeSelection}
         >
           {SelectItemCode(selectOptions)}
         </Select>
@@ -116,10 +121,23 @@ const RenderPerformanceTableCell = ({
           notFoundContent={SelectNotFound(selectLoading, selectOptions)}
           filterOption={false}
           optionLabelProp="value"
-          // onSelect={onChangeSelection}
+        // onSelect={onChangeSelection}
         >
           {SelectItemCode(selectOptions)}
         </Select>
+      );
+      break;
+
+    case "don_gia":
+      node = (
+        <PriceCellRenderer
+          rowKey={rowKey}
+          column={column}
+          cellData={cellData}
+          rowData={rowData}
+          numberCap={numberCap}
+          handleChangePriceCellRender={handleChangePriceCell}
+        />
       );
       break;
 
@@ -127,8 +145,8 @@ const RenderPerformanceTableCell = ({
       node = <Input className="default_input_detail w-full" />;
       break;
   }
-  if(key =='so_luong'){
-    if(customShow){
+  if (key == 'so_luong') {
+    if (customShow) {
       node = (
         <InputNumber
           placeholder="0"

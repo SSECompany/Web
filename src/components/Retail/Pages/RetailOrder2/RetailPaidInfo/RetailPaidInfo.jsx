@@ -1,9 +1,9 @@
 import {
   CheckCircleTwoTone,
   CloseCircleTwoTone,
+  CloseOutlined,
   DownOutlined,
-  LoadingOutlined,
-  CloseOutlined 
+  LoadingOutlined
 } from "@ant-design/icons";
 
 import {
@@ -14,6 +14,7 @@ import {
   message as messageAPI,
   notification,
   Select,
+  Spin,
   Switch
 } from "antd";
 import { filterKeyHelper } from "app/Functions/filterHelper";
@@ -35,7 +36,6 @@ import {
   getAllRowKeys,
   getAllValueByRow,
 } from "../../../../../app/Functions/getTableValue";
-import { Spin } from "antd";
 import { formatCurrency } from "../../../../../app/hooks/dataFormatHelper";
 import { num2words } from "../../../../../app/Options/DataFomater";
 import { formatterNumber, parserNumber } from "../../../../../app/regex/regex";
@@ -112,30 +112,30 @@ const RetailPaidInfo = ({
   const [message, contextHolder] = messageAPI.useMessage();
   const [paymentQR, setPaymentQR] = useLocalStorage("QRimg", "");
   const [retailOrderData, setRetailOrderData] = useLocalStorage(
-    "CUSTOMER_RETAILORDER_DATA",null,{
+    "CUSTOMER_RETAILORDER_DATA", null, {
     syncData: false
   }
   );
   const noteRef = useRef("");
-  const {tk_nh,bin,hs_quy_doi,bank_account_name,maxPoint} = useSelector(getUerSetting);
+  const { tk_nh, bin, hs_quy_doi, bank_account_name, maxPoint } = useSelector(getUerSetting);
 
   const [printMaster, setPrintMaster] = useState({});
   //const [so_ct, setSo_ct] = useState("");
   const [printDetail, setPrintDetail] = useState([]);
-  const [isCreatingOrder,setIsCreatingOrder]=useState(false);
-  const [selectCustomer,setSelectCustomer]=useState({})
-  const [note,setNote] =useState('');
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [selectCustomer, setSelectCustomer] = useState({})
+  const [note, setNote] = useState('');
 
 
-  const handleChangeVat=(value)=>{
+  const handleChangeVat = (value) => {
     ChangeCalVat(value)
   }
 
   var printContent = useRef();
-  const beforePrint =()=>{
+  const beforePrint = () => {
     //SaveOrder();
   }
-  const handlePrint2 =()=>{
+  const handlePrint2 = () => {
   }
   const handlePrint = useReactToPrint({
     content: () => printContent.current,
@@ -782,7 +782,7 @@ const RetailPaidInfo = ({
   return (
     <div
       className="border-round-lg overflow-hidden flex flex-column align-items-center justify-content-between"
-      style={{ flexShrink: 0, background: "white" }}
+      style={{ flexShrink: 0, background: "white", width: 450 }}
     >
       <div className="retail_info_container overflow-y-auto p-2 w-full min-w-0">
         <div className="flex justify-content-between mb-3" id="search-customer">
@@ -898,16 +898,16 @@ const RetailPaidInfo = ({
           <div className="flex justify-content-between gap-2 align-items-center">
             <span className="w-6 flex-shrink-0">
               <Input id="voucher-custom"
-              value={voucherChild}
+                value={voucherChild}
                 status={
                   !voucherStatus.valid &&
-                  voucherStatus.currentVoucher &&
-                  !voucherStatus.loading
+                    voucherStatus.currentVoucher &&
+                    !voucherStatus.loading
                     ? "error"
                     : null
                 }
-                onChange={(e)=>{changeVoucher(e);handleFindVoucher(e)}}
-                allowClear ={{ clearIcon: <CloseOutlined onClick={ onVoucherClear } /> }}
+                onChange={(e) => { changeVoucher(e); handleFindVoucher(e) }}
+                allowClear={{ clearIcon: <CloseOutlined onClick={onVoucherClear} /> }}
                 placeholder="Mã Voucher"
                 suffix={
                   voucherStatus.loading ? (
