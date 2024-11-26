@@ -555,30 +555,33 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     setCurrentRetailOrder(value);
   }
 
-  const handleChangePrice = async (discountType,percent, value, key, rowkey) => {
+  const handleChangePrice = async (discountType, percent, value, key, rowkey) => {
     const gia_ban = itemForm.getFieldValue([rowkey + '_don_gia_temp'])
     const so_luong = itemForm.getFieldValue([rowkey + '_so_luong'])
 
     var gia_last = gia_ban;
     if (value > 0) {
-      gia_last=value
+      gia_last = value
     } else {
       if (percent > 0) {
-        if (discountType =="%") gia_last = gia_ban * (100 - percent) / 100
+        if (discountType == "%") gia_last = gia_ban * (100 - percent) / 100
         else gia_last = gia_ban - percent
       }
 
     }
 
-      itemForm.setFieldsValue({
-        [rowkey + '_' + key]: gia_last
-      });
-      itemForm.setFieldsValue({
-        [rowkey + '_thanh_tien']: so_luong * gia_last
-      });
-  
+    itemForm.setFieldsValue({
+      [rowkey + '_' + key]: gia_last
+    });
+    itemForm.setFieldsValue({
+      [rowkey + '_thanh_tien']: so_luong * gia_last
+    });
 
-
+    const thue_suat = itemForm.getFieldValue([rowkey + '_thue_suat']);
+    const thue_nt = (gia_last * so_luong * thue_suat) / 100;
+    itemForm.setFieldsValue({
+      [rowkey + '_thue_nt']: thue_nt
+    });
     const temp = await handleCalculatorPayment(paymentInfo)
     setPaymentInfo(temp);
 
@@ -1108,7 +1111,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
         dvt,
         so_luong: so_luong ? so_luong : 1,
         don_gia: don_gia || "0",
-        don_gia_temp:don_gia || "0",
+        don_gia_temp: don_gia || "0",
         thanh_tien: don_gia * 1 || "0",
         ck_yn: ck_yn || false,
         thue_suat: thue_suat,
