@@ -46,7 +46,7 @@ const RenderPerformanceTableCell = ({
     lookupData({ controller: controller, value: value });
   }, 600);
 
-  const handleChangePriceCell = (percent, value) => { handleChangePrice(percent, value, key, rowKey) }
+  const handleChangePriceCell = (discountType,percent, value) => { handleChangePrice(discountType,percent, value, key, rowKey) }
 
 
   const fetchItemUnitData = (ma_vt = "") => {

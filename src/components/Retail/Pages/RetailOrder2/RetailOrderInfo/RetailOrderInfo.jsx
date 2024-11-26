@@ -289,6 +289,27 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
         );
       },
     },
+    {
+      key: "don_gia_temp",
+      title: "Thành tiền",
+      dataKey: "don_gia_temp",
+      width: 0,
+      resizable: false,
+      sortable: false,
+      editable: true,
+      format: "0",
+      type: "Numeric",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+
 
     {
       key: "thanh_tien",
@@ -534,28 +555,28 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     setCurrentRetailOrder(value);
   }
 
-  const handleChangePrice = async (percent, value, key, rowkey) => {
-    const gia_ban = itemForm.getFieldValue([rowkey + '_' + key])
+  const handleChangePrice = async (discountType,percent, value, key, rowkey) => {
+    const gia_ban = itemForm.getFieldValue([rowkey + '_don_gia_temp'])
     const so_luong = itemForm.getFieldValue([rowkey + '_so_luong'])
+
+    var gia_last = gia_ban;
     if (value > 0) {
-      itemForm.setFieldsValue({
-        [rowkey + '_' + key]: value
-      });
-      itemForm.setFieldsValue({
-        [rowkey + '_thanh_tien']: so_luong * value
-      });
+      gia_last=value
     } else {
       if (percent > 0) {
-        itemForm.setFieldsValue({
-          [rowkey + '_' + key]: gia_ban * (100 - percent) / 100
-        });
-        itemForm.setFieldsValue({
-          [rowkey + '_thanh_tien']: so_luong * gia_ban * (100 - percent) / 100
-        });
+        if (discountType =="%") gia_last = gia_ban * (100 - percent) / 100
+        else gia_last = gia_ban - percent
       }
 
     }
 
+      itemForm.setFieldsValue({
+        [rowkey + '_' + key]: gia_last
+      });
+      itemForm.setFieldsValue({
+        [rowkey + '_thanh_tien']: so_luong * gia_last
+      });
+  
 
 
     const temp = await handleCalculatorPayment(paymentInfo)
@@ -1087,6 +1108,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
         dvt,
         so_luong: so_luong ? so_luong : 1,
         don_gia: don_gia || "0",
+        don_gia_temp:don_gia || "0",
         thanh_tien: don_gia * 1 || "0",
         ck_yn: ck_yn || false,
         thue_suat: thue_suat,
@@ -1263,9 +1285,11 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
         if (res.listObject.length > 0 && res.listObject[0].length > 0 && res.listObject[0][0].t) {
           // Nếu có data trong listObject
           itemForm.setFieldValue(`${changedRowKey}_don_gia`, parseInt(res.listObject[0][0].t));
+          itemForm.setFieldValue(`${changedRowKey}_don_gia_temp`, parseInt(res.listObject[0][0].t));
         } else {
           // Nếu không có data
           itemForm.setFieldValue(`${changedRowKey}_don_gia`, 0);
+          itemForm.setFieldValue(`${changedRowKey}_don_gia_temp`, 0);
         }
       }
     }

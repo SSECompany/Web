@@ -24,18 +24,16 @@ const PriceCellRenderer = ({ rowKey, column, cellData, handleChangePriceCellRend
 
     const handleDiscountChange = (newDiscountValue) => {
         setDiscountValue(newDiscountValue);
-        const newFinalPrice = calculateFinalPrice(value, discountType, newDiscountValue);
-        setFinalPrice(newFinalPrice);
     };
 
     const handleDiscountTypeChange = (type) => {
         setDiscountType(type);
-        const newFinalPrice = calculateFinalPrice(value, type, discountValue);
-        setFinalPrice(newFinalPrice);
     };
 
     const handleConfirm = () => {
-        handleChangePriceCellRender(discountValue, finalPrice);
+        handleChangePriceCellRender(discountType,discountValue, finalPrice);
+        setFinalPrice(0)
+        setDiscountValue(0)
         setValue(finalPrice);
         setIsPopupVisible(false);
         resetDiscountValue();
@@ -84,6 +82,7 @@ const PriceCellRenderer = ({ rowKey, column, cellData, handleChangePriceCellRend
                 <InputNumber
                     style={{ width: "100%" }}
                     controls={false}
+                    value={finalPrice}
                     formatter={(value) => formatterNumber(value)}
                     parser={(value) => parserNumber(value)}
                     placeholder="0"
@@ -110,7 +109,7 @@ const PriceCellRenderer = ({ rowKey, column, cellData, handleChangePriceCellRend
             onClick={() => setIsEditing(true)}
             onDoubleClick={() => {
                 setIsPopupVisible(true);
-
+                setFinalPrice(0)
             }}
             style={{ position: "relative", cursor: "pointer" }}
         >
