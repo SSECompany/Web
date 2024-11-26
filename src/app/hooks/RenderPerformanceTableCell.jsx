@@ -46,7 +46,7 @@ const RenderPerformanceTableCell = ({
     lookupData({ controller: controller, value: value });
   }, 600);
 
-  const handleChangePriceCell = (value) => { handleChangePrice(value, key, rowKey) }
+  const handleChangePriceCell = (percent, value) => { handleChangePrice(percent, value, key, rowKey) }
 
 
   const fetchItemUnitData = (ma_vt = "") => {
@@ -164,7 +164,7 @@ const RenderPerformanceTableCell = ({
   }
   return (
     <>
-      {editable ? (
+      {editable ? column.type == "don_gia" ? node : (
         <Form.Item
           initialValue={cellData || null}
           name={`${rowKey}_${key}`}

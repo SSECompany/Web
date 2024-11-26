@@ -1,6 +1,6 @@
 import { formatterNumber, parserNumber } from "@/../../src/app/regex/regex";
-import { Button, InputNumber, Popover } from "antd";
-import { useState } from "react";
+import { Button, Form, InputNumber, Popover } from "antd";
+import { useRef, useState } from "react";
 
 const PriceCellRenderer = ({ rowKey, column, cellData, handleChangePriceCellRender, numberCap }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -8,12 +8,16 @@ const PriceCellRenderer = ({ rowKey, column, cellData, handleChangePriceCellRend
     const [value, setValue] = useState(cellData);
     const [discountType, setDiscountType] = useState("%");
     const [discountValue, setDiscountValue] = useState(0);
-    const [finalPrice, setFinalPrice] = useState(cellData);
+    const [finalPrice, setFinalPrice] = useState(0);
+    const DiscontInputRef = useRef(null);
+
 
     const calculateFinalPrice = (basePrice, discountType, discountValue) => {
         if (discountType === "%") {
             const discountAmount = (basePrice * discountValue) / 100;
             return basePrice - discountAmount;
+        } else if (discountType === "VND") {
+            return basePrice - discountValue;
         }
         return basePrice;
     };
@@ -24,35 +28,31 @@ const PriceCellRenderer = ({ rowKey, column, cellData, handleChangePriceCellRend
         setFinalPrice(newFinalPrice);
     };
 
-    const handleDiscountTypeChange = () => {
-        setDiscountType("%");
-        const newFinalPrice = calculateFinalPrice(value, "%", discountValue);
+    const handleDiscountTypeChange = (type) => {
+        setDiscountType(type);
+        const newFinalPrice = calculateFinalPrice(value, type, discountValue);
         setFinalPrice(newFinalPrice);
     };
 
     const handleConfirm = () => {
-        handleChangePriceCellRender(finalPrice)
-        setValue(finalPrice)
+        handleChangePriceCellRender(discountValue, finalPrice);
+        setValue(finalPrice);
         setIsPopupVisible(false);
+        resetDiscountValue();
     };
 
     const handlePopupClose = () => {
         setIsPopupVisible(false);
+        resetDiscountValue();
     };
+
+    const resetDiscountValue = () => {
+        setDiscountValue(0);
+    };
+
 
     const renderPopupContent = () => (
         <div style={{ padding: 10, width: 250 }}>
-            <div>
-                <label>Đơn giá:</label>
-                <InputNumber
-                    value={value}
-                    style={{ width: "100%" }}
-                    controls={false}
-                    formatter={(value) => formatterNumber(value)}
-                    parser={(value) => parserNumber(value)}
-                    disabled={true}
-                />
-            </div>
             <div style={{ marginTop: 10 }}>
                 <label>Giảm giá:</label>
                 <div style={{ display: "flex", gap: 5 }}>
@@ -67,21 +67,32 @@ const PriceCellRenderer = ({ rowKey, column, cellData, handleChangePriceCellRend
                     />
                     <Button
                         type={discountType === "%" ? "primary" : "default"}
-                        onClick={handleDiscountTypeChange}
+                        onClick={() => handleDiscountTypeChange("%")}
                     >
                         %
+                    </Button>
+                    <Button
+                        type={discountType === "VND" ? "primary" : "default"}
+                        onClick={() => handleDiscountTypeChange("VND")}
+                    >
+                        VND
                     </Button>
                 </div>
             </div>
             <div style={{ marginTop: 10 }}>
                 <label>Giá bán:</label>
                 <InputNumber
-                    value={finalPrice}
                     style={{ width: "100%" }}
                     controls={false}
-                    disabled={true}
                     formatter={(value) => formatterNumber(value)}
                     parser={(value) => parserNumber(value)}
+                    placeholder="0"
+                    min="0"
+                    onChange={(newValue) => {
+                        setFinalPrice(newValue);
+                    }}
+
+
                 />
             </div>
             <Button
@@ -97,25 +108,32 @@ const PriceCellRenderer = ({ rowKey, column, cellData, handleChangePriceCellRend
     return (
         <div
             onClick={() => setIsEditing(true)}
-            onDoubleClick={() => setIsPopupVisible(true)}
+            onDoubleClick={() => {
+                setIsPopupVisible(true);
+
+            }}
             style={{ position: "relative", cursor: "pointer" }}
         >
-            <InputNumber
+            <Form.Item
+                initialValue={cellData || null}
                 name={`${rowKey}_${column.key}`}
-                controls={false}
-                formatter={(value) => formatterNumber(value)}
-                parser={(value) => parserNumber(value)}
-                placeholder="0"
-                min="0"
-                max={numberCap || Number.MAX_SAFE_INTEGER}
-                className="w-full"
-                value={value}
-                onChange={(newValue) => {
-                    handleChangePriceCellRender(newValue)
-                    setValue(newValue)
-                }}
-
-            />
+            >
+                <InputNumber
+                    controls={false}
+                    formatter={(value) => formatterNumber(value)}
+                    parser={(value) => parserNumber(value)}
+                    placeholder="0"
+                    min="0"
+                    max={numberCap || Number.MAX_SAFE_INTEGER}
+                    className="w-full"
+                    value={value}
+                    onChange={(newValue) => {
+                        handleChangePriceCellRender(newValue);
+                        setValue(newValue);
+                        resetDiscountValue();
+                    }}
+                />
+            </Form.Item>
 
             <Popover
                 content={renderPopupContent()}

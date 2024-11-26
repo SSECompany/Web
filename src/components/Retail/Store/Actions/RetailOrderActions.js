@@ -141,7 +141,7 @@ export const fetchRetailOderPromotion = async (data = [], customer = "", ma_ct =
         lstStock.push(item?.ma_kho);
         lstPrice.push(item?.don_gia);
         lstQuantity.push(item?.so_luong);
-        listTotal.push(item?.so_luong * item?.don_gia);
+        listTotal.push(item?.so_luong * item?.don_gia || 0);
       }
       return true;
     });

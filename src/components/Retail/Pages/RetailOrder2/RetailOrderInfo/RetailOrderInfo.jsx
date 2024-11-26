@@ -534,14 +534,29 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     setCurrentRetailOrder(value);
   }
 
-  const handleChangePrice = async (value, key, rowkey) => {
+  const handleChangePrice = async (percent, value, key, rowkey) => {
+    const gia_ban = itemForm.getFieldValue([rowkey + '_' + key])
     const so_luong = itemForm.getFieldValue([rowkey + '_so_luong'])
-    itemForm.setFieldsValue({
-      [rowkey + '_' + key]: value
-    });
-    itemForm.setFieldsValue({
-      [rowkey + '_thanh_tien']: so_luong * value
-    });
+    if (value > 0) {
+      itemForm.setFieldsValue({
+        [rowkey + '_' + key]: value
+      });
+      itemForm.setFieldsValue({
+        [rowkey + '_thanh_tien']: so_luong * value
+      });
+    } else {
+      if (percent > 0) {
+        itemForm.setFieldsValue({
+          [rowkey + '_' + key]: gia_ban * (100 - percent) / 100
+        });
+        itemForm.setFieldsValue({
+          [rowkey + '_thanh_tien']: so_luong * gia_ban * (100 - percent) / 100
+        });
+      }
+
+    }
+
+
 
     const temp = await handleCalculatorPayment(paymentInfo)
     setPaymentInfo(temp);
