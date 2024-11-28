@@ -33,6 +33,7 @@ import checkPermission from 'utils/permission';
 import { RetailOrderContext } from './RetailOrderContext';
 
 var isDelete = false;
+var globalIsCalVat=false;
 
 const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
   const [openItemInfo, setOpenItemInfo] = useState(false);
@@ -558,7 +559,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
   const handleChangePrice = async (discountType,percent, value, key, rowkey) => {
     const gia_ban = itemForm.getFieldValue([rowkey + '_don_gia_temp'])
     const so_luong = itemForm.getFieldValue([rowkey + '_so_luong'])
-
     var gia_last = gia_ban;
     if (value > 0) {
       gia_last=value
@@ -576,10 +576,17 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       itemForm.setFieldsValue({
         [rowkey + '_thanh_tien']: so_luong * gia_last
       });
-  
+      console.log(globalIsCalVat)
+      if(globalIsCalVat){
+        const thue = itemForm.getFieldValue([rowkey + '_thue_suat'])
+        itemForm.setFieldsValue({
+          [rowkey + '_thue_nt']: (so_luong * gia_last)*thue/100
+        });
+        console.log(thue,(so_luong * gia_last)*thue/100)
+      }
 
 
-    const temp = await handleCalculatorPayment(paymentInfo)
+    const temp = await handleCalculatorPayment(paymentInfo,true,globalIsCalVat)
     setPaymentInfo(temp);
 
   }
@@ -593,7 +600,9 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     dispatch(setIsHideNav(!isHideNav));
   };
   const ChangeCalVat = async (value) => {
-    await setIsCalVat(value);
+    globalIsCalVat =value
+    setIsCalVat(value);
+    console.log(value);
     const curData = itemForm.getFieldsValue();
     if (value) {
       await getAllRowKeys(curData).map((key) => {
