@@ -11,17 +11,6 @@ const PriceCellRenderer = ({ rowKey, column, cellData, handleChangePriceCellRend
     const [finalPrice, setFinalPrice] = useState(0);
     const DiscontInputRef = useRef(null);
 
-
-    const calculateFinalPrice = (basePrice, discountType, discountValue) => {
-        if (discountType === "%") {
-            const discountAmount = (basePrice * discountValue) / 100;
-            return basePrice - discountAmount;
-        } else if (discountType === "VND") {
-            return basePrice - discountValue;
-        }
-        return basePrice;
-    };
-
     const handleDiscountChange = (newDiscountValue) => {
         setDiscountValue(newDiscountValue);
     };
@@ -31,7 +20,7 @@ const PriceCellRenderer = ({ rowKey, column, cellData, handleChangePriceCellRend
     };
 
     const handleConfirm = () => {
-        handleChangePriceCellRender(discountType,discountValue, finalPrice);
+        handleChangePriceCellRender(discountType, discountValue, finalPrice);
         setFinalPrice(0)
         setDiscountValue(0)
         setValue(finalPrice);

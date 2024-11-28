@@ -556,15 +556,15 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     setCurrentRetailOrder(value);
   }
 
-  const handleChangePrice = async (discountType,percent, value, key, rowkey) => {
+  const handleChangePrice = async (discountType, percent, value, key, rowkey) => {
     const gia_ban = itemForm.getFieldValue([rowkey + '_don_gia_temp'])
     const so_luong = itemForm.getFieldValue([rowkey + '_so_luong'])
     var gia_last = gia_ban;
     if (value > 0) {
-      gia_last=value
+      gia_last = value
     } else {
       if (percent > 0) {
-        if (discountType =="%") gia_last = gia_ban * (100 - percent) / 100
+        if (discountType == "%") gia_last = gia_ban * (100 - percent) / 100
         else gia_last = gia_ban - percent
       }
 
@@ -591,6 +591,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
 
   }
 
+ 
   const handleOrderListModal = useCallback(() => {
     setIsOpenOrderList(!isOpenOrderList);
   }, [isOpenOrderList]);
@@ -1117,7 +1118,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
         dvt,
         so_luong: so_luong ? so_luong : 1,
         don_gia: don_gia || "0",
-        don_gia_temp:don_gia || "0",
+        don_gia_temp: don_gia || "0",
         thanh_tien: don_gia * 1 || "0",
         ck_yn: ck_yn || false,
         thue_suat: thue_suat,
