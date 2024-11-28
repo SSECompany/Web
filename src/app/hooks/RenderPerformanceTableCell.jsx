@@ -1,4 +1,4 @@
-import { DatePicker, Form, Input, InputNumber, Select } from "antd";
+import { Checkbox, DatePicker, Form, Input, InputNumber, Select } from "antd";
 import _ from 'lodash';
 import { memo, useEffect, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
@@ -15,6 +15,7 @@ const RenderPerformanceTableCell = ({
   rowData,
   numberCap,
   handleChangePrice = null,
+  handleChangeCheckbox = null,
   customShow = false
 }) => {
   const { type, editable, title, key, required, width, controller, format } =
@@ -46,8 +47,13 @@ const RenderPerformanceTableCell = ({
     lookupData({ controller: controller, value: value });
   }, 600);
 
-  const handleChangePriceCell = (discountType,percent, value) => { handleChangePrice(discountType,percent, value, key, rowKey) }
+  const handleChangePriceCell = (discountType, percent, value) => { handleChangePrice(discountType, percent, value, key, rowKey) }
 
+  const handleChangeCheckboxCell = (checked, rowKey, key) => {
+    if (handleChangeCheckbox) {
+      handleChangeCheckbox(checked, rowKey, key);
+    }
+  };
 
   const fetchItemUnitData = (ma_vt = "") => {
     lookupData({ controller: "dmqddvt_lookup", value: ma_vt });
@@ -141,6 +147,16 @@ const RenderPerformanceTableCell = ({
       );
       break;
 
+    case "Checkbox":
+      node = (
+        <Checkbox
+          className="checked"
+          checked={cellData || false}
+          onChange={(e) => handleChangeCheckboxCell(e.target.checked, rowKey, key)}
+        />
+      );
+      break;
+
     default:
       node = <Input className="default_input_detail w-full" />;
       break;
@@ -211,7 +227,6 @@ const RenderPerformanceTableCell = ({
             <Input
               variant={"borderless"}
               className="BaseTable__row-cell-text p-0 Performance_table_span"
-              disabled={!editable}
             />
           )}
         </Form.Item>

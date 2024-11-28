@@ -90,7 +90,6 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
   const handleSaveRefundOrder = async () => {
     const data = { ...itemForm.getFieldsValue() };
     const detailData = [];
-    console.log(data);
     getAllRowKeys(data).map((item) => {
       const rowData = getAllValueByRow(item, data);
       if (rowData.ghi_chu == undefined) rowData.ghi_chu = "";
@@ -99,7 +98,6 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
       }
       return;
     });
-    console.log(detailData);
     if (detailData.findIndex((item) => item.so_luong_tl) < 0) {
       message.warning("Không có vật tư nào trả lại !");
       return;
@@ -137,13 +135,25 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
           item.className = "p-0";
           item.headerClassName = "p-0";
         }
-        item.editable = false;
+        if (item.key === "gia") {
+          item.key = "gia";
+          item.title = "Giá";
+          item.dataKey = "gia";
+          item.width = 110;
+          item.resizable = false;
+          item.sortable = false;
+          item.editable = true;
+          item.type = "don_gia";
+          item.format = "0";
+        }
         item.cellRenderer = ({ rowData, column, cellData }) => {
           return (
             <RenderPerformanceTableCell
               rowKey={rowData?.key}
               column={column}
               cellData={cellData}
+              handleChangePrice={handleChangePrice}
+
             />
           );
         };
@@ -170,9 +180,59 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
           );
         },
       });
+
+      columns.push({
+        key: "tra_hang_yn",
+        title: "Trả hàng",
+        dataKey: "tra_hang_yn",
+        width: 120,
+        editable: true,
+        resizable: false,
+        sortable: false,
+        required: true,
+        type: "Checkbox",
+        cellRenderer: ({ rowData, column, cellData }) => {
+          return (
+            <RenderPerformanceTableCell
+              rowKey={rowData?.key}
+              column={column}
+              cellData={cellData}
+              handleChangeCheckbox={handleChangeCheckbox}
+            />
+          );
+        },
+      });
     }
+
+
     return columns;
   };
+
+  const handleChangePrice = async (discountType, percent, value, key, rowkey) => {
+    const gia_ban = itemForm.getFieldValue([rowkey + '_gia'])
+    var gia_last = gia_ban;
+    if (value > 0) {
+      gia_last = value
+    } else {
+      if (percent > 0) {
+        if (discountType == "%") gia_last = gia_ban * (100 - percent) / 100
+        else gia_last = gia_ban - percent
+      }
+    }
+
+    itemForm.setFieldsValue({
+      [rowkey + '_' + key]: gia_last
+    });
+
+  }
+
+  const handleChangeCheckbox = (checked, rowKey, key) => {
+    itemForm.setFieldsValue({
+      [`${rowKey}_${key}`]: checked ? 1 : 0
+    });
+  };
+
+
 
   useEffect(() => {
     if (isOpen) {

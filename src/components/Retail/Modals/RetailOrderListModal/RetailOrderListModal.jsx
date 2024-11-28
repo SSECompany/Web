@@ -11,7 +11,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import _ from "lodash";
-import React, { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { Column } from "react-base-table";
 import { useSelector } from "react-redux";
 import { useDebouncedCallback } from "use-debounce";
@@ -32,7 +32,7 @@ import DetailRetailViewer from "../DetailRetailViewer/DetailRetailViewer";
 import PrintRetailModal from "../PrintRetailModal/PrintRetailModal";
 import "./RetailOrderListModal.css";
 
-const RetailOrderListModal = ({ isOpen, onClose,ma_ct='HDL' }) => {
+const RetailOrderListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
   const [columns, setColumns] = useState([]);
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,7 +71,7 @@ const RetailOrderListModal = ({ isOpen, onClose,ma_ct='HDL' }) => {
       userId,
       storeId,
       unitId,
-    },ma_ct);
+    }, ma_ct);
 
     setData(result?.data || []);
 
@@ -95,7 +95,6 @@ const RetailOrderListModal = ({ isOpen, onClose,ma_ct='HDL' }) => {
 
   const handleSearchData = useDebouncedCallback(
     ({ key, value, params }) => {
-      console.log(key,value);
       setFetchListParams({ [`${key}`]: value, pageIndex: 1 });
     },
     [600]
@@ -106,7 +105,7 @@ const RetailOrderListModal = ({ isOpen, onClose,ma_ct='HDL' }) => {
       fetchData();
     }
     if (!isOpen) resetFetchListParams();
-    return () => {};
+    return () => { };
   }, [JSON.stringify(fetchListParams), JSON.stringify(isOpen)]);
 
   const renderColumns = (columns) => {
@@ -194,9 +193,8 @@ const RetailOrderListModal = ({ isOpen, onClose,ma_ct='HDL' }) => {
         <div className="flex h-full align-items-center justify-content-between">
           <span className="select-none">{title}</span>
           <i
-            className={`pi pi-search transition-ease-in transition-all mr-2${
-              getValueParam(key) ? " font-bold" : ""
-            }`}
+            className={`pi pi-search transition-ease-in transition-all mr-2${getValueParam(key) ? " font-bold" : ""
+              }`}
           ></i>
         </div>
       </Popover>

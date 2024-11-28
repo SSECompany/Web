@@ -587,6 +587,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
 
   }
 
+ 
   const handleOrderListModal = useCallback(() => {
     setIsOpenOrderList(!isOpenOrderList);
   }, [isOpenOrderList]);
