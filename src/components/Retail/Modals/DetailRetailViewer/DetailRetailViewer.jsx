@@ -86,13 +86,18 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
   const handleSelectedRowKeyChange = useCallback((keys) => {
     setSelectedRowkeys(keys);
   }, []);
+  const handleChangeCell =(value, key, rowKey)=>{
+    itemForm.setFieldValue(rowKey+'_'+key,value.target.checked?1:0)
+  }
 
   const handleSaveRefundOrder = async () => {
     const data = { ...itemForm.getFieldsValue() };
+    console.log(data)
     const detailData = [];
     getAllRowKeys(data).map((item) => {
       const rowData = getAllValueByRow(item, data);
       if (rowData.ghi_chu == undefined) rowData.ghi_chu = "";
+      if (rowData.tra_hang_yn == undefined) rowData.tra_hang_yn = 0;
       if (rowData.so_luong_tl) {
         return detailData.push(rowData);
       }
@@ -189,7 +194,7 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
         editable: true,
         resizable: false,
         sortable: false,
-        required: true,
+        required: false,
         type: "Checkbox",
         cellRenderer: ({ rowData, column, cellData }) => {
           return (
@@ -197,7 +202,7 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
               rowKey={rowData?.key}
               column={column}
               cellData={cellData}
-              handleChangeCheckbox={handleChangeCheckbox}
+              handleChangeCell={handleChangeCell}
             />
           );
         },

@@ -15,7 +15,7 @@ const RenderPerformanceTableCell = ({
   rowData,
   numberCap,
   handleChangePrice = null,
-  handleChangeCheckbox = null,
+  handleChangeCell=null,
   customShow = false
 }) => {
   const { type, editable, title, key, required, width, controller, format } =
@@ -48,12 +48,8 @@ const RenderPerformanceTableCell = ({
   }, 600);
 
   const handleChangePriceCell = (discountType, percent, value) => { handleChangePrice(discountType, percent, value, key, rowKey) }
+  const handleChangeValueCell = (value) => { handleChangeCell(value, key, rowKey) }
 
-  const handleChangeCheckboxCell = (checked, rowKey, key) => {
-    if (handleChangeCheckbox) {
-      handleChangeCheckbox(checked, rowKey, key);
-    }
-  };
 
   const fetchItemUnitData = (ma_vt = "") => {
     lookupData({ controller: "dmqddvt_lookup", value: ma_vt });
@@ -86,6 +82,11 @@ const RenderPerformanceTableCell = ({
     case "Text":
       node = <Input className="default_input_detail w-full" />;
       break;
+    case "Checkbox":
+        node = (
+          <input type="checkbox" onChange={handleChangeValueCell} value="Bike" />
+        );
+        break;
     case "Datetime":
       node = <DatePicker format={datetimeFormat} />;
       break;
@@ -143,16 +144,6 @@ const RenderPerformanceTableCell = ({
           rowData={rowData}
           numberCap={numberCap}
           handleChangePriceCellRender={handleChangePriceCell}
-        />
-      );
-      break;
-
-    case "Checkbox":
-      node = (
-        <Checkbox
-          className="checked"
-          checked={cellData || false}
-          onChange={(e) => handleChangeCheckboxCell(e.target.checked, rowKey, key)}
         />
       );
       break;
@@ -227,6 +218,7 @@ const RenderPerformanceTableCell = ({
             <Input
               variant={"borderless"}
               className="BaseTable__row-cell-text p-0 Performance_table_span"
+              disabled={!editable}
             />
           )}
         </Form.Item>
