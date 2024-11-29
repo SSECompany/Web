@@ -82,17 +82,20 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
 
   const handleRefundModeModify = () => {
     setIsRefundMode(!isRefundMode);
+    if (isRefundMode) {
+      resetValues();
+    }
   };
+
   const handleSelectedRowKeyChange = useCallback((keys) => {
     setSelectedRowkeys(keys);
   }, []);
-  const handleChangeCell =(value, key, rowKey)=>{
-    itemForm.setFieldValue(rowKey+'_'+key,value.target.checked?1:0)
+  const handleChangeCell = (value, key, rowKey) => {
+    itemForm.setFieldValue(rowKey + '_' + key, value.target.checked ? 1 : 0)
   }
 
   const handleSaveRefundOrder = async () => {
     const data = { ...itemForm.getFieldsValue() };
-    console.log(data)
     const detailData = [];
     getAllRowKeys(data).map((item) => {
       const rowData = getAllValueByRow(item, data);
@@ -231,12 +234,18 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
 
   }
 
-  const handleChangeCheckbox = (checked, rowKey, key) => {
-    itemForm.setFieldsValue({
-      [`${rowKey}_${key}`]: checked ? 1 : 0
-    });
+  const resetValues = () => {
+    itemForm.resetFields();
+    setData(prevData => ({
+      ...prevData,
+      detail: prevData.detail.map(item => ({
+        ...item,
+        ghi_chu: "",
+        tra_hang_yn: 0,
+        so_luong_tl: ""
+      }))
+    }));
   };
-
 
 
   useEffect(() => {
@@ -246,10 +255,14 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
 
     if (!isOpen) {
       setIsRefundMode(false);
+
     }
 
     return () => {
       setIsLoading(true);
+      if (isRefundMode) {
+        resetValues();
+      }
     };
   }, [isOpen]);
 
