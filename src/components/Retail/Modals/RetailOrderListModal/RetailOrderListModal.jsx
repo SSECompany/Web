@@ -15,6 +15,7 @@ import { memo, useCallback, useEffect, useState } from "react";
 import { Column } from "react-base-table";
 import { useSelector } from "react-redux";
 import { useDebouncedCallback } from "use-debounce";
+import { formatCurrency } from "../../../../app/hooks/dataFormatHelper";
 import {
   datetimeFormat,
   datetimeFormat2,
@@ -31,6 +32,7 @@ import { getRetailOrderState } from "../../Store/Selectors/RetailOrderSelectors"
 import DetailRetailViewer from "../DetailRetailViewer/DetailRetailViewer";
 import PrintRetailModal from "../PrintRetailModal/PrintRetailModal";
 import "./RetailOrderListModal.css";
+
 
 const RetailOrderListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
   const [columns, setColumns] = useState([]);
@@ -110,7 +112,28 @@ const RetailOrderListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
 
   const renderColumns = (columns) => {
     const _columns = columns.map((item) => {
-      if (item?.Type === "Status")
+      if (item?.Field === "t_tt") {
+        return {
+          key: item?.Field,
+          title: renderTitle({
+            title: item?.Name,
+            type: item?.Type,
+            key: item?.Field,
+          }),
+          type: item?.Type,
+          dataKey: item?.Field,
+          width: item?.width,
+          resizable: item?.width ? true : false,
+          sortable: false,
+          hidden: !item?.width ? true : false,
+          cellRenderer: ({ rowData }) => {
+            const value = rowData[item.Field];
+            return formatCurrency(value);
+          }
+        };
+      }
+
+      if (item?.Type === "Status") {
         return {
           key: item?.Field,
           title: item?.Name,
@@ -121,6 +144,7 @@ const RetailOrderListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
           sortable: false,
           hidden: !item?.width ? true : false,
         };
+      }
 
       return {
         key: item?.Field,
@@ -129,6 +153,7 @@ const RetailOrderListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
           type: item?.Type,
           key: item?.Field,
         }),
+        type: item?.Type,
         dataKey: item?.Field,
         width: item?.width,
         resizable: item?.width ? true : false,

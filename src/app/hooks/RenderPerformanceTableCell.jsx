@@ -1,4 +1,4 @@
-import { Checkbox, DatePicker, Form, Input, InputNumber, Select } from "antd";
+import { DatePicker, Form, Input, InputNumber, Select } from "antd";
 import _ from 'lodash';
 import { memo, useEffect, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
@@ -15,7 +15,7 @@ const RenderPerformanceTableCell = ({
   rowData,
   numberCap,
   handleChangePrice = null,
-  handleChangeCell=null,
+  handleChangeCell = null,
   customShow = false
 }) => {
   const { type, editable, title, key, required, width, controller, format } =
@@ -83,10 +83,10 @@ const RenderPerformanceTableCell = ({
       node = <Input className="default_input_detail w-full" />;
       break;
     case "Checkbox":
-        node = (
-          <input type="checkbox" onChange={handleChangeValueCell} value="Bike" />
-        );
-        break;
+      node = (
+        <input type="checkbox" onChange={handleChangeValueCell} value="Bike" />
+      );
+      break;
     case "Datetime":
       node = <DatePicker format={datetimeFormat} />;
       break;
@@ -203,24 +203,34 @@ const RenderPerformanceTableCell = ({
             },
           ]}
         >
-          {type === "TextArea" ? (
-            <Input.TextArea
-              autoSize={{
-                minRows: 1,
-                maxRows: 2,
-              }}
-              style={{ resize: "none", transition: "none" }}
-              variant={"borderless"}
-              className="p-0 Performance_table_span"
-              disabled={!editable}
-            />
-          ) : (
-            <Input
-              variant={"borderless"}
-              className="BaseTable__row-cell-text p-0 Performance_table_span"
-              disabled={!editable}
-            />
-          )}
+          {
+            type === "TextArea" ? (
+              <Input.TextArea
+                autoSize={{
+                  minRows: 1,
+                  maxRows: 2,
+                }}
+                style={{ resize: "none", transition: "none" }}
+                variant={"borderless"}
+                className="p-0 Performance_table_span"
+                disabled={!editable}
+              />
+            ) : type === "Numeric" ? (
+              <InputNumber
+                formatter={(value) => formatterNumber(value)}
+                parser={(value) => parserNumber(value)}
+                readOnly
+                style={{ border: "none" }}
+                className="custom_input_number"
+              />
+            ) : (
+              <Input
+                variant={"borderless"}
+                className="BaseTable__row-cell-text p-0 Performance_table_span"
+                disabled={!editable}
+              />
+            )
+          }
         </Form.Item>
       )}
     </>

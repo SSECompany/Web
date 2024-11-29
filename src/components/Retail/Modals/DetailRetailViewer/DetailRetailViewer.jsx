@@ -15,6 +15,7 @@ import {
   getAllValueByRow,
 } from "../../../../app/Functions/getTableValue";
 import RenderPerformanceTableCell from "../../../../app/hooks/RenderPerformanceTableCell";
+import { formatCurrency } from "../../../../app/hooks/dataFormatHelper";
 import LoadingComponents from "../../../Loading/LoadingComponents";
 import PerformanceTable from "../../../ReuseComponents/PerformanceTable/PerformanceTable";
 import {
@@ -154,6 +155,7 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
           item.type = "don_gia";
           item.format = "0";
         }
+
         item.cellRenderer = ({ rowData, column, cellData }) => {
           return (
             <RenderPerformanceTableCell
@@ -209,6 +211,30 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
             />
           );
         },
+      });
+    } else {
+      columns.map((item) => {
+        if (item.key === "gia") {
+          item.key = "gia";
+          item.title = "Giá";
+          item.dataKey = "gia";
+          item.width = 110;
+          item.resizable = false;
+          item.sortable = false;
+          item.type = "Numeric";
+          item.format = "0";
+        }
+
+        item.cellRenderer = ({ rowData, column, cellData }) => {
+          return (
+            <RenderPerformanceTableCell
+              rowKey={rowData?.key}
+              column={column}
+              cellData={cellData}
+
+            />
+          );
+        };
       });
     }
 
@@ -344,20 +370,20 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
                     Tổng tiền ({data?.master?.t_so_luong || 0} sản phẩm):
                   </span>
                   <span className="primary_bold_text line-height-16 white-space-normal">
-                    {data?.master?.t_tien || 0}
+                    {formatCurrency(data?.master?.t_tien || 0)}
                   </span>
                 </div>
 
                 <div className="flex justify-content-between gap-2 align-items-center pl-1 pr-1">
                   <span className="w-6 flex-shrink-0">Tổng thuế:</span>
                   <span className="primary_bold_text line-height-16 white-space-normal">
-                    {data?.master?.t_thue || 0}
+                    {formatCurrency(data?.master?.t_thue || 0)}
                   </span>
                 </div>
                 <div className="flex justify-content-between gap-2 align-items-center pl-1 pr-1">
                   <span className="w-6 flex-shrink-0">Tổng chiết khấu:</span>
                   <span className="primary_bold_text line-height-16 white-space-normal">
-                    {data?.master?.t_ck || 0}
+                    {formatCurrency(data?.master?.t_ck || 0)}
                   </span>
                 </div>
                 <div className="flex justify-content-between gap-2 align-items-center pl-1 pr-1">
