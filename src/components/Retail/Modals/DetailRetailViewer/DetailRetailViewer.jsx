@@ -8,7 +8,6 @@ import {
   message as messageAPI,
   notification,
 } from "antd";
-import _ from "lodash";
 import { useCallback, useEffect, useState } from "react";
 import {
   getAllRowKeys,
@@ -28,12 +27,202 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
   const [message, contextHolder] = messageAPI.useMessage();
   const { stt_rec } = itemKey;
   const [itemForm] = Form.useForm();
+  const [itemForm2] = Form.useForm();
 
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState({});
+
+  const [dataDetail, setDataDetail] = useState([]);
   const [tableColumns, setTableColumns] = useState([]);
   const [isRefundMode, setIsRefundMode] = useState(false);
   const [selectedRowkeys, setSelectedRowkeys] = useState([]);
+
+  const columns = [
+    {
+      "key": "images",
+      "title": "ảnh",
+      "dataKey": "images",
+      "width": 0,
+      "resizable": false,
+      "sortable": false,
+      "hidden": true,
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+        );
+      }
+    },
+    {
+      "key": "stt_rec",
+      "title": "stt_rec",
+      "dataKey": "stt_rec",
+      "width": 0,
+      "resizable": false,
+      "sortable": false,
+      "hidden": true,
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+
+        );
+      }
+    },
+    {
+      "key": "stt_rec0",
+      "title": "stt_rec0",
+      "dataKey": "stt_rec0",
+      "width": 0,
+      "resizable": false,
+      "sortable": false,
+      "hidden": false,
+      "className": "p-0",
+      "headerClassName": "p-0",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+
+        );
+      }
+    },
+    {
+      "key": "ma_vt",
+      "title": "Mã vật tư",
+      "dataKey": "ma_vt",
+      "width": 80,
+      "resizable": true,
+      "sortable": false,
+      "hidden": false,
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+
+        );
+      }
+    },
+    {
+      "key": "ten_vt",
+      "title": "Tên vật tư",
+      "dataKey": "ten_vt",
+      "width": 200,
+      "resizable": true,
+      "sortable": false,
+      "hidden": false,
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+
+        );
+      }
+    },
+    {
+      "key": "dvt",
+      "title": "Đơn vị tính",
+      "dataKey": "dvt",
+      "width": 80,
+      "resizable": true,
+      "sortable": false,
+      "hidden": false,
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+
+        );
+      }
+    },
+    {
+      "key": "ten_kho",
+      "title": "Kho",
+      "dataKey": "ten_kho",
+      "width": 120,
+      "resizable": true,
+      "sortable": false,
+      "hidden": false,
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+
+        );
+      }
+    },
+    {
+      "key": "gia",
+      "title": "Giá",
+      "dataKey": "gia",
+      "width": 110,
+      "resizable": false,
+      "sortable": false,
+      "type": "don_gia",
+      "editable": true,
+      "format": "0",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.key}
+            column={column}
+            cellData={cellData}
+            handleChangePrice={handleChangePrice}
+          />
+        );
+      }
+    },
+    {
+      "key": "so_luong",
+      "title": "Số lượng",
+      "dataKey": "so_luong",
+      "width": 100,
+      "resizable": true,
+      "sortable": false,
+      "hidden": false, cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+
+        );
+      }
+    },
+    {
+      key: "tra_hang_yn",
+      title: "Trả hàng",
+      dataKey: "tra_hang_yn",
+      width: 120,
+      editable: true,
+      resizable: false,
+      sortable: false,
+      required: false,
+      type: "Checkbox",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.key}
+            column={column}
+            cellData={cellData}
+            handleChangeCell={handleChangeCell}
+          />
+        );
+      },
+    },
+    {
+      key: "so_luong_tl",
+      title: "Số lượng trả",
+      dataKey: "so_luong_tl",
+      width: 120,
+      editable: true,
+      resizable: false,
+      sortable: false,
+      required: true,
+      type: "Numeric",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.key}
+            column={column}
+            cellData={cellData}
+            numberCap={rowData?.so_luong}
+          />
+        );
+      },
+    }
+  ]
+
 
   const getData = async () => {
     setIsLoading(true);
@@ -77,7 +266,33 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
         return d;
       })
     setData(result);
+    console.log(result, "result")
+    setDataDetail(result.detail)
+    result?.columns.map((item) => {
+      if (item.key === "gia") {
+        item.key = "gia";
+        item.title = "Giá";
+        item.dataKey = "gia";
+        item.width = 110;
+        item.resizable = false;
+        item.sortable = false;
+        item.type = "Numeric";
+        item.format = "0";
+      }
+
+      item.cellRenderer = ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.key}
+            column={column}
+            cellData={cellData}
+
+          />
+        );
+      };
+    });
     setTableColumns(result?.columns || []);
+    console.log(result?.columns)
     setIsLoading(false);
   };
 
@@ -86,7 +301,11 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
     if (isRefundMode) {
       resetValues();
     }
+
   };
+  const test = () => {
+    console.log(data.detail)
+  }
 
   const handleSelectedRowKeyChange = useCallback((keys) => {
     setSelectedRowkeys(keys);
@@ -132,115 +351,6 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
     setIsLoading(false);
   };
 
-  const renderRefundColumns = (isRefund) => {
-    var columns = _.cloneDeep(tableColumns);
-    if (isRefund) {
-      columns.map((item) => {
-        if (item.key === "stt_rec0") {
-          item.hidden = false;
-          item.width = 0;
-          item.resizable = false;
-          item.sortable = false;
-          item.className = "p-0";
-          item.headerClassName = "p-0";
-        }
-        if (item.key === "gia") {
-          item.key = "gia";
-          item.title = "Giá";
-          item.dataKey = "gia";
-          item.width = 110;
-          item.resizable = false;
-          item.sortable = false;
-          item.editable = true;
-          item.type = "don_gia";
-          item.format = "0";
-        }
-
-        item.cellRenderer = ({ rowData, column, cellData }) => {
-          return (
-            <RenderPerformanceTableCell
-              rowKey={rowData?.key}
-              column={column}
-              cellData={cellData}
-              handleChangePrice={handleChangePrice}
-
-            />
-          );
-        };
-      });
-
-      columns.push({
-        key: "so_luong_tl",
-        title: "Số lượng trả",
-        dataKey: "so_luong_tl",
-        width: 120,
-        editable: true,
-        resizable: false,
-        sortable: false,
-        required: true,
-        type: "Numeric",
-        cellRenderer: ({ rowData, column, cellData }) => {
-          return (
-            <RenderPerformanceTableCell
-              rowKey={rowData?.key}
-              column={column}
-              cellData={cellData}
-              numberCap={rowData?.so_luong}
-            />
-          );
-        },
-      });
-
-      columns.push({
-        key: "tra_hang_yn",
-        title: "Trả hàng",
-        dataKey: "tra_hang_yn",
-        width: 120,
-        editable: true,
-        resizable: false,
-        sortable: false,
-        required: false,
-        type: "Checkbox",
-        cellRenderer: ({ rowData, column, cellData }) => {
-          return (
-            <RenderPerformanceTableCell
-              rowKey={rowData?.key}
-              column={column}
-              cellData={cellData}
-              handleChangeCell={handleChangeCell}
-            />
-          );
-        },
-      });
-    } else {
-      columns.map((item) => {
-        if (item.key === "gia") {
-          item.key = "gia";
-          item.title = "Giá";
-          item.dataKey = "gia";
-          item.width = 110;
-          item.resizable = false;
-          item.sortable = false;
-          item.type = "Numeric";
-          item.format = "0";
-        }
-
-        item.cellRenderer = ({ rowData, column, cellData }) => {
-          return (
-            <RenderPerformanceTableCell
-              rowKey={rowData?.key}
-              column={column}
-              cellData={cellData}
-
-            />
-          );
-        };
-      });
-    }
-
-
-    return columns;
-  };
 
   const handleChangePrice = async (discountType, percent, value, key, rowkey) => {
     const gia_ban = itemForm.getFieldValue([rowkey + '_gia'])
@@ -260,22 +370,13 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
 
   }
 
-  const resetValues = () => {
-    itemForm.resetFields();
-    setData(prevData => ({
-      ...prevData,
-      detail: prevData.detail.map(item => ({
-        ...item,
-        ghi_chu: "",
-        tra_hang_yn: 0,
-        so_luong_tl: ""
-      }))
-    }));
-  };
+
 
 
   useEffect(() => {
+
     if (isOpen) {
+      console.log(itemKey)
       getData();
     }
 
@@ -290,8 +391,21 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
         resetValues();
       }
     };
-  }, [isOpen]);
+  }, [itemKey, isOpen, stt_rec]);
 
+
+  const resetValues = () => {
+    itemForm.resetFields();
+    setData(prevData => ({
+      ...prevData,
+      detail: prevData.detail.map(item => ({
+        ...item,
+        ghi_chu: "",
+        tra_hang_yn: 0,
+        so_luong_tl: ""
+      }))
+    }));
+  };
   return (
     <Drawer
       title={
@@ -337,6 +451,7 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
                 {data?.master?.ten_kh || "Không có dữ liệu"}
               </Avatar>
               <div className="text-center">
+                <Button onClick={test}>Đề nghị trả hàng</Button>
                 <b className="text-xl">
                   {data?.master?.ten_kh || "Không có dữ liệu"}
                 </b>
@@ -455,30 +570,32 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
               showIcon
             />
 
-            <Form form={itemForm} component={false} initialValues={{}}>
-              {!isRefundMode && (
-                <div className="h-full min-h-0 shadow_3 not_edit">
-                  <PerformanceTable
-                    selectable={false}
-                    columns={renderRefundColumns(isRefundMode)}
-                    data={data?.detail || []}
-                    isLoading={isLoading}
-                  />
-                </div>
-              )}
-              {isRefundMode && (
+            {!isRefundMode ? <Form form={itemForm2} component={false} initialValues={{}}>
+              <div className="h-full min-h-0 shadow_3 not_edit" >
+                <PerformanceTable
+                  selectable={false}
+                  columns={tableColumns}
+                  data={dataDetail}
+                  isLoading={isLoading}
+                />
+              </div>
+            </Form>
+
+              :
+              <Form form={itemForm} component={false} initialValues={{}}>
                 <div className="h-full min-h-0 shadow_3 edit">
                   <PerformanceTable
                     reverseIndex
                     selectable
-                    columns={renderRefundColumns(isRefundMode)}
+                    columns={columns}
                     onSelectedRowKeyChange={handleSelectedRowKeyChange}
-                    data={data?.detail || []}
+                    data={dataDetail}
                     isLoading={isLoading}
                   />
                 </div>
-              )}
-            </Form>
+
+              </Form>
+            }
           </div>
         </div>
       )}

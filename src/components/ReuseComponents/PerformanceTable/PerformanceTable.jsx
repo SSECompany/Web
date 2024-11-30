@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import BaseTable, { AutoResizer } from "react-base-table";
 import "react-base-table/styles.css";
 import no_file from "../../../Icons/no_file.svg";
@@ -12,11 +12,11 @@ const PerformanceTable = ({
   columns,
   data,
   onSelectedRowKeyChange,
-  reverseIndex =false,
+  reverseIndex = false,
   isLoading,
 }) => {
+  console.log("🚀 ~ data:", data)
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-
   const handleSelectionChange = ({ selected, rowKey, rowData, rowIndex }) => {
     const selectedRow = [...selectedRowKeys];
 
@@ -59,7 +59,7 @@ const PerformanceTable = ({
     if (onSelectedRowKeyChange) {
       onSelectedRowKeyChange(selectedRowKeys);
     }
-    return () => {};
+    return () => { };
   }, [selectedRowKeys]);
 
   const _columns = [
@@ -95,12 +95,12 @@ const PerformanceTable = ({
     },
     ...columns,
   ];
-  
-  console.error = () => {};
+
+  console.error = () => { };
   return (
     <AutoResizer>
       {({ width, height }) => (
-         //<BaseTable />
+        //<BaseTable />
         <BaseTable
           expandColumnKey={_columns[0].key}
           overscanRowCount={30}

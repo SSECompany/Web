@@ -20,7 +20,6 @@ const RenderPerformanceTableCell = ({
 }) => {
   const { type, editable, title, key, required, width, controller, format } =
     column;
-
   const [selectLoading, setSelectLoading] = useState(false);
   const [selectOptions, setSelectOptions] = useState([]);
 
