@@ -21,6 +21,7 @@
 
 .custom_input_number {
   border: none;
+  background: none !important;
 }
 
 .custom_input_number .ant-input-number-input {
