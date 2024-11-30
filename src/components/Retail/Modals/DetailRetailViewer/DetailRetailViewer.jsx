@@ -23,7 +23,7 @@ import {
 } from "../../Store/Actions/RetailOrderActions";
 import "./DetailRetailViewer.css";
 
-const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
+const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => { 
   const [message, contextHolder] = messageAPI.useMessage();
   const { stt_rec } = itemKey;
   const [itemForm] = Form.useForm();
@@ -37,6 +37,322 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
   const [isRefundMode, setIsRefundMode] = useState(false);
   const [selectedRowkeys, setSelectedRowkeys] = useState([]);
 
+
+  const columnOrder=[
+    {
+        "key": "images",
+        "title": "ảnh",
+        "dataKey": "images",
+        "width": 0,
+        "resizable": false,
+        "sortable": false,
+        "hidden": true,
+        cellRenderer : ({ rowData, column, cellData }) => {
+          return (
+            <RenderPerformanceTableCell
+              rowKey={rowData?.key}
+              column={column}
+              cellData={cellData}
+
+            />
+          )
+        }
+    },
+    {
+        "key": "stt_rec",
+        "title": "stt_rec",
+        "dataKey": "stt_rec",
+        "width": 0,
+        "resizable": false,
+        "sortable": false,
+        "hidden": true,
+        cellRenderer : ({ rowData, column, cellData }) => {
+          return (
+            <RenderPerformanceTableCell
+              rowKey={rowData?.key}
+              column={column}
+              cellData={cellData}
+
+            />
+          )
+        }
+    },
+    {
+        "key": "stt_rec0",
+        "title": "stt_rec0",
+        "dataKey": "stt_rec0",
+        "width": 0,
+        "resizable": false,
+        "sortable": false,
+        "hidden": true,
+        cellRenderer : ({ rowData, column, cellData }) => {
+          return (
+            <RenderPerformanceTableCell
+              rowKey={rowData?.key}
+              column={column}
+              cellData={cellData}
+
+            />
+          )
+        }
+    },
+    {
+        "key": "ma_vt",
+        "title": "Mã vật tư",
+        "dataKey": "ma_vt",
+        "width": 120,
+        "resizable": true,
+        "sortable": false,
+        "hidden": false,
+        cellRenderer : ({ rowData, column, cellData }) => {
+          return (
+            <RenderPerformanceTableCell
+              rowKey={rowData?.key}
+              column={column}
+              cellData={cellData}
+
+            />
+          )
+        }
+    },
+    {
+        "key": "ten_vt",
+        "title": "Tên vật tư",
+        "dataKey": "ten_vt",
+        "width": 200,
+        "resizable": true,
+        "sortable": false,
+        "hidden": false,
+        cellRenderer : ({ rowData, column, cellData }) => {
+          return (
+            <RenderPerformanceTableCell
+              rowKey={rowData?.key}
+              column={column}
+              cellData={cellData}
+
+            />
+          )
+        }
+    },
+    {
+        "key": "dvt",
+        "title": "Đơn vị tính",
+        "dataKey": "dvt",
+        "width": 80,
+        "resizable": true,
+        "sortable": false,
+        "hidden": false,
+        cellRenderer : ({ rowData, column, cellData }) => {
+          return (
+            <RenderPerformanceTableCell
+              rowKey={rowData?.key}
+              column={column}
+              cellData={cellData}
+
+            />
+          )
+        }
+    },
+    {
+        "key": "ten_kho",
+        "title": "Kho",
+        "dataKey": "ten_kho",
+        "width": 120,
+        "resizable": true,
+        "sortable": false,
+        "hidden": false,
+        cellRenderer : ({ rowData, column, cellData }) => {
+          return (
+            <RenderPerformanceTableCell
+              rowKey={rowData?.key}
+              column={column}
+              cellData={cellData}
+
+            />
+          )
+        }
+    },
+    {
+        "key": "gia",
+        "title": "Giá",
+        "dataKey": "gia",
+        "width": 110,
+        "resizable": false,
+        "sortable": false,
+        "hidden": false,
+        "type": "Numeric",
+        "format": "0",
+        cellRenderer : ({ rowData, column, cellData }) => {
+          return (
+            <RenderPerformanceTableCell
+              rowKey={rowData?.key}
+              column={column}
+              cellData={cellData}
+
+            />
+          );
+        }
+    },
+    {
+        "key": "so_luong",
+        "title": "Số lượng",
+        "dataKey": "so_luong",
+        "width": 100,
+        "resizable": true,
+        "sortable": false,
+        "hidden": false,
+        cellRenderer : ({ rowData, column, cellData }) => {
+          return (
+            <RenderPerformanceTableCell
+              rowKey={rowData?.key}
+              column={column}
+              cellData={cellData}
+
+            />
+          )
+        }
+    },
+  ]
+  const columns_temp = [
+    {
+      "key": "images",
+      "title": "ảnh",
+      "dataKey": "images",
+      "width": 0,
+      "resizable": false,
+      "sortable": false,
+      "hidden": true,
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+        );
+      }
+    },
+    {
+      "key": "stt_rec",
+      "title": "stt_rec",
+      "dataKey": "stt_rec",
+      "width": 0,
+      "resizable": false,
+      "sortable": false,
+      "hidden": true,
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+
+        );
+      }
+    },
+    {
+      "key": "stt_rec0",
+      "title": "stt_rec0",
+      "dataKey": "stt_rec0",
+      "width": 0,
+      "resizable": false,
+      "sortable": false,
+      "hidden": false,
+      "className": "p-0",
+      "headerClassName": "p-0",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+
+        );
+      }
+    },
+    {
+      "key": "ma_vt",
+      "title": "Mã vật tư",
+      "dataKey": "ma_vt",
+      "width": 80,
+      "resizable": true,
+      "sortable": false,
+      "hidden": false,
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+
+        );
+      }
+    },
+    {
+      "key": "ten_vt",
+      "title": "Tên vật tư",
+      "dataKey": "ten_vt",
+      "width": 200,
+      "resizable": true,
+      "sortable": false,
+      "hidden": false,
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+
+        );
+      }
+    },
+    {
+      "key": "dvt",
+      "title": "Đơn vị tính",
+      "dataKey": "dvt",
+      "width": 80,
+      "resizable": true,
+      "sortable": false,
+      "hidden": false,
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+
+        );
+      }
+    },
+    {
+      "key": "ten_kho",
+      "title": "Kho",
+      "dataKey": "ten_kho",
+      "width": 120,
+      "resizable": true,
+      "sortable": false,
+      "hidden": false,
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+
+        );
+      }
+    },
+    {
+      "key": "gia",
+      "title": "Giá",
+      "dataKey": "gia",
+      "width": 110,
+      "resizable": false,
+      "sortable": false,
+      "type": "don_gia",
+      "editable": true,
+      "format": "0",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{formatCurrency(cellData)}</span>
+        );
+      }
+    },
+    {
+      "key": "so_luong",
+      "title": "Số lượng",
+      "dataKey": "so_luong",
+      "width": 100,
+      "resizable": true,
+      "sortable": false,
+      "hidden": false, cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <span>{cellData}</span>
+
+        );
+      }
+    },
+    
+    
+  ]
   const columns = [
     {
       "key": "images",
@@ -268,30 +584,30 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
     setData(result);
     console.log(result, "result")
     setDataDetail(result.detail)
-    result?.columns.map((item) => {
-      if (item.key === "gia") {
-        item.key = "gia";
-        item.title = "Giá";
-        item.dataKey = "gia";
-        item.width = 110;
-        item.resizable = false;
-        item.sortable = false;
-        item.type = "Numeric";
-        item.format = "0";
-      }
+    // result?.columns.map((item) => {
+    //   if (item.key === "gia") {
+    //     item.key = "gia";
+    //     item.title = "Giá";
+    //     item.dataKey = "gia";
+    //     item.width = 110;
+    //     item.resizable = false;
+    //     item.sortable = false;
+    //     item.type = "Numeric";
+    //     item.format = "0";
+    //   }
 
-      item.cellRenderer = ({ rowData, column, cellData }) => {
-        return (
-          <RenderPerformanceTableCell
-            rowKey={rowData?.key}
-            column={column}
-            cellData={cellData}
+    //   item.cellRenderer = ({ rowData, column, cellData }) => {
+    //     return (
+    //       <RenderPerformanceTableCell
+    //         rowKey={rowData?.key}
+    //         column={column}
+    //         cellData={cellData}
 
-          />
-        );
-      };
-    });
-    setTableColumns(result?.columns || []);
+    //       />
+    //     );
+    //   };
+    // });
+    //setTableColumns(result?.columns || []);
     console.log(result?.columns)
     setIsLoading(false);
   };
@@ -316,13 +632,19 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
 
   const handleSaveRefundOrder = async () => {
     const data = { ...itemForm.getFieldsValue() };
+    console.log(data)
     const detailData = [];
-    getAllRowKeys(data).map((item) => {
+    getAllRowKeys(data).map((item,index) => {
+      console.log(item,index)
+      const tt=dataDetail[index]
+      tt.children=""
       const rowData = getAllValueByRow(item, data);
-      if (rowData.ghi_chu == undefined) rowData.ghi_chu = "";
-      if (rowData.tra_hang_yn == undefined) rowData.tra_hang_yn = 0;
-      if (rowData.so_luong_tl) {
-        return detailData.push(rowData);
+      if (rowData.ghi_chu == undefined) tt.ghi_chu = ""; else  tt.ghi_chu=rowData.ghi_chu;
+      if (rowData.tra_hang_yn == undefined) tt.tra_hang_yn = 0; else  tt.ghi_chu=rowData.tra_hang_yn;
+      if (rowData.so_luong_tl == undefined) tt.so_luong_tl=0; else  tt.so_luong_tl=rowData.so_luong_tl;
+      console.log(tt)
+      if (tt.so_luong_tl) {
+        return detailData.push(tt);
       }
       return;
     });
@@ -396,6 +718,7 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
 
   const resetValues = () => {
     itemForm.resetFields();
+    itemForm2.resetFields();
     setData(prevData => ({
       ...prevData,
       detail: prevData.detail.map(item => ({
@@ -451,7 +774,6 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
                 {data?.master?.ten_kh || "Không có dữ liệu"}
               </Avatar>
               <div className="text-center">
-                <Button onClick={test}>Đề nghị trả hàng</Button>
                 <b className="text-xl">
                   {data?.master?.ten_kh || "Không có dữ liệu"}
                 </b>
@@ -569,21 +891,22 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
               }
               showIcon
             />
-
-            {!isRefundMode ? <Form form={itemForm2} component={false} initialValues={{}}>
-              <div className="h-full min-h-0 shadow_3 not_edit" >
+            <Form form={itemForm2} component={false} initialValues={{}} >
+              <div className="h-full min-h-0 shadow_3 not_edit" style={{display:!isRefundMode ? 'block':'none'}}>
                 <PerformanceTable
+                  reverseIndex
                   selectable={false}
-                  columns={tableColumns}
+                  columns={columns_temp}
+                  onSelectedRowKeyChange={handleSelectedRowKeyChange}
                   data={dataDetail}
                   isLoading={isLoading}
                 />
               </div>
             </Form>
-
-              :
-              <Form form={itemForm} component={false} initialValues={{}}>
-                <div className="h-full min-h-0 shadow_3 edit">
+            
+              
+              <Form form={itemForm} component={false} initialValues={{}}  >
+                <div className="h-full min-h-0 shadow_3 edit" style={{display:isRefundMode ? 'block':'none'}}>
                   <PerformanceTable
                     reverseIndex
                     selectable
@@ -595,7 +918,7 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
                 </div>
 
               </Form>
-            }
+            
           </div>
         </div>
       )}

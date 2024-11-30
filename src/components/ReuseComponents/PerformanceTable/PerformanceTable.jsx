@@ -87,7 +87,7 @@ const PerformanceTable = ({
         const { id } = rowData;
 
         const newIndex = data.findIndex((item) => item.id === id);
-        return reverseIndex ? newIndex + 1 : rowIndex + 1;
+        return  newIndex + 1 ;
       },
       key: "__rowNumber__",
 
@@ -124,7 +124,7 @@ const PerformanceTable = ({
           width={width}
           height={height}
           columns={_columns}
-          data={reverseIndex ? [...data].reverse() : [...data]}
+          data={data}
           rowClassName={renderSelectedRowsClass}
           className="performance__table__Container"
           rowRenderer={rowRenderer}
