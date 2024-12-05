@@ -1,3 +1,4 @@
+import { uuidv4 } from "@antv/xflow-core";
 import {
   Alert,
   Avatar,
@@ -9,12 +10,14 @@ import {
   notification,
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
 import {
   getAllRowKeys,
   getAllValueByRow,
 } from "../../../../app/Functions/getTableValue";
 import RenderPerformanceTableCell from "../../../../app/hooks/RenderPerformanceTableCell";
 import { formatCurrency } from "../../../../app/hooks/dataFormatHelper";
+import { setRefundData } from '../../../../store/reducers/refundSlice';
 import LoadingComponents from "../../../Loading/LoadingComponents";
 import PerformanceTable from "../../../ReuseComponents/PerformanceTable/PerformanceTable";
 import {
@@ -23,7 +26,9 @@ import {
 } from "../../Store/Actions/RetailOrderActions";
 import "./DetailRetailViewer.css";
 
+
 const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
+  const dispatch = useDispatch();
   const [message, contextHolder] = messageAPI.useMessage();
   const { stt_rec } = itemKey;
   const [itemForm] = Form.useForm();
@@ -31,7 +36,6 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState({});
   const [dataDetail, setDataDetail] = useState([]);
-  console.log("🚀 ~ DetailRetailViewer ~ dataDetail:", dataDetail)
   const [isRefundMode, setIsRefundMode] = useState(false);
   const [selectedRowkeys, setSelectedRowkeys] = useState([]);
 
@@ -454,6 +458,23 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
       detailData
     );
 
+    const newSttRec = result.listObject[0][0]?.stt_rec;
+
+    const refundData =
+    {
+      data: detailData.map(item => ({
+        ...item,
+        thanh_tien: item.so_luong_tl * item.gia,
+        stt_rec: newSttRec || item.stt_rec,
+        id: uuidv4(),
+        isDeleted: 0,
+        don_gia_temp: item.gia
+      }))
+    }
+
+
+    dispatch(setRefundData(refundData));
+
     if (result?.responseModel?.isSucceded) {
       notification.success({
         message: `Tạo đơn hàng trả lại thành công`,
@@ -480,13 +501,12 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
         else gia_last = gia_ban - percent
       }
     }
+    gia_last = Math.max(gia_last, 0);
 
     itemForm.setFieldsValue({
       [rowkey + '_' + key]: gia_last
     });
-
   }
-
   useEffect(() => {
     if (isOpen) {
       getData();

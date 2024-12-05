@@ -116,7 +116,6 @@ const PriceCellRenderer = ({ rowKey, column, cellData, handleChangePriceCellRend
                     className="w-full"
                     value={value}
                     onChange={(newValue) => {
-                        handleChangePriceCellRender(newValue);
                         setValue(newValue);
                         resetDiscountValue();
                     }}

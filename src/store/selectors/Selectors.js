@@ -6,3 +6,4 @@ export const getUserInfo = (state) => state.claimsReducer.userInfo;
 export const getIsBackgound = (state) => state.claimsReducer.isBackgound;
 export const getUerSetting = (state) => state.claimsReducer.userSetting;
 export const getIsHideNav = (state) => state.claimsReducer.isHideNav;
+export const getRefunds = (state) => state.refunds.refunds;

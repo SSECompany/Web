@@ -7,6 +7,8 @@ import { Column } from "react-base-table";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useDispatch, useSelector } from "react-redux";
 import { useDebouncedCallback } from "use-debounce";
+import useLocalStorage from "use-local-storage";
+import checkPermission from 'utils/permission';
 import { filterKeyHelper } from "../../../../../app/Functions/filterHelper";
 import { getAllRowKeys, getAllValueByColumn, getAllValueByRow, getCellName, getRowKey, } from "../../../../../app/Functions/getTableValue";
 import { formatCurrency } from "../../../../../app/hooks/dataFormatHelper";
@@ -25,17 +27,20 @@ import RetailPromotionModal from "../../../Modals/RetailPromotionModal/RetailPro
 import { fetchRetailOderPromotion, modifyIsAddNewCustomer, modifyIsOpenPromotion, setCurrentRetailOrder, setRetailOrderList, setRetailOrderScanning } from "../../../Store/Actions/RetailOrderActions";
 import { getRetailOrderState } from "../../../Store/Selectors/RetailOrderSelectors";
 import RetailPaidInfo from "../RetailPaidInfo/RetailPaidInfo";
-
+import Refund from './Refund/Refund';
+import { RetailOrderContext } from './RetailOrderContext';
 import "./RetailOrderInfo.css";
 
-import useLocalStorage from "use-local-storage";
-import checkPermission from 'utils/permission';
-import { RetailOrderContext } from './RetailOrderContext';
+
 
 var isDelete = false;
 var globalIsCalVat = false;
 
+
 const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
+  const refunds = useSelector((state) => state.refunds.refunds);
+  const total = useSelector((state) => state.refunds.total);
+
   const [openItemInfo, setOpenItemInfo] = useState(false);
   const [selectedItem, setSelectedItem] = useState('');
   const [retailOrderData, setRetailOrderData] = useLocalStorage(
@@ -571,18 +576,16 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     }
 
     itemForm.setFieldsValue({
-      [rowkey + '_' + key]: gia_last
+      [rowkey + '_' + key]: Math.max(gia_last, 0)
     });
     itemForm.setFieldsValue({
-      [rowkey + '_thanh_tien']: so_luong * gia_last
+      [rowkey + '_thanh_tien']: Math.max(so_luong * gia_last, 0)
     });
-    console.log(globalIsCalVat)
     if (globalIsCalVat) {
       const thue = itemForm.getFieldValue([rowkey + '_thue_suat'])
       itemForm.setFieldsValue({
-        [rowkey + '_thue_nt']: (so_luong * gia_last) * thue / 100
+        [rowkey + '_thue_nt']: Math.max((so_luong * gia_last) * thue / 100, 0)
       });
-      console.log(thue, (so_luong * gia_last) * thue / 100)
     }
 
 
@@ -749,7 +752,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
           : voucher?.tien_ck
       ).toFixed(2)
     );
-    const tong_tt = parseFloat(tong_tien + tong_thue - tong_ck - dataTemp.diem_sd * (hs_quy_doi ? hs_quy_doi : 0) - tien_voucher);
+    const tong_tt = parseFloat(tong_tien + tong_thue - tong_ck - dataTemp.diem_sd * (hs_quy_doi ? hs_quy_doi : 0) - tien_voucher) - total;
     const cal = {
       ...dataTemp,
       tong_sl,
@@ -767,6 +770,17 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
   useEffect(() => {
     handleShowCustomerViewDialog();
   }, [JSON.stringify(paymentInfo)]);
+
+  useEffect(() => {
+    async function fetchData() {
+      const temp = { ...paymentInfo };
+      setPaymentInfo(await handleCalculatorPayment(temp))
+      return () => { };
+    }
+    fetchData();
+
+
+  }, [total]);
 
   useEffect(() => {
     async function fetchData() {
@@ -1384,11 +1398,13 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
 
 
 
+
   return (
     <div className="h-full min-h-0 flex gap-1 relative">
       {contextHolder}
       <LoadingComponents loading={isFormLoading} text={"Đang tạo đơn hàng"} />
       <div className="h-full min-h-0 w-full min-w-0 flex flex-column gap-1">
+
         <div
           className="h-full min-h-0 overflow-hidden border-round-md flex flex-column"
           style={{ background: "#fff" }}
@@ -1589,6 +1605,12 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
             </Form>
           </div>
         </div>
+
+        {refunds.data && refunds.data.length > 0 && (
+          <Refund dataRefund={refunds.data} />
+
+        )}
+
         <div
           className="border-round-md flex p-2 align-items-center justify-content-between"
           style={{
@@ -1665,88 +1687,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
             </Tooltip>
           </div>
 
-          {/* <div className="flex gap-3">
-            <div>
-              <b className="primary_bold_text mr-1">Thuế :</b>
-              <Select
-                style={{ width: "6rem" }}
-                defaultValue={0}
-                options={taxOptions}
-                value={paymentInfo.thue_suat}
-                onChange={(e) => {
-                  setPaymentInfo({
-                    ...paymentInfo,
-                    thue_suat: e,
-                  });
-                }}
-              />
-            </div>
-
-            <div className="flex align-items-center justify-content-center">
-              <span className="primary_bold_text mr-1">Chiết khấu :</span>
-              <InputNumber
-                disabled={paymentInfo.ma_ck}
-                defaultValue={0}
-                controls={false}
-                min="0"
-                max={
-                  totalPromotionType === "MONEY"
-                    ? paymentInfo.tong_tien + paymentInfo.tong_thue
-                    : 100
-                }
-                style={{ width: "10rem" }}
-                step={quantityFormat}
-                value={
-                  totalPromotionType === "MONEY"
-                    ? paymentInfo.ck
-                    : paymentInfo.tl_ck
-                }
-                onChange={(e) => {
-                  setPaymentInfo({
-                    ...paymentInfo,
-                    tl_ck: totalPromotionType === "MONEY" ? 0 : e,
-                    ck: totalPromotionType === "MONEY" ? e : 0,
-                  });
-                }}
-                addonAfter={
-                  <Select
-                    disabled={paymentInfo.ma_ck}
-                    className="Select__no__padding"
-                    style={{
-                      width: 40,
-                    }}
-                    value={totalPromotionType}
-                    popupMatchSelectWidth={false}
-                    suffixIcon={false}
-                    filterOption={false}
-                    onChange={(e) => {
-                      setTotalPromotionType(e);
-                      setPaymentInfo({
-                        ...paymentInfo,
-                        tl_ck: 0,
-                        ck: 0,
-                      });
-                    }}
-                  >
-                    <Select.Option value="MONEY">₫</Select.Option>
-                    <Select.Option value="RATIO">%</Select.Option>
-                  </Select>
-                }
-              />
-            </div>
-            <Select
-              style={{ width: "8rem" }}
-              defaultValue={1}
-              options={currencyOptions}
-              onChange={(e, option) => {
-                setPaymentInfo({
-                  ...paymentInfo,
-                  ty_gia: e,
-                  ma_nt: option.label,
-                });
-              }}
-            />
-          </div> */}
         </div>
       </div>
       <RetailPaidInfo

@@ -15,7 +15,6 @@ const PerformanceTable = ({
   reverseIndex = false,
   isLoading,
 }) => {
-  console.log("🚀 ~ data:", data)
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const handleSelectionChange = ({ selected, rowKey, rowData, rowIndex }) => {
     const selectedRow = [...selectedRowKeys];
@@ -85,9 +84,8 @@ const PerformanceTable = ({
       title: "STT",
       cellRenderer: ({ rowIndex, rowData }) => {
         const { id } = rowData;
-
         const newIndex = data.findIndex((item) => item.id === id);
-        return  newIndex + 1 ;
+        return newIndex + 1;
       },
       key: "__rowNumber__",
 

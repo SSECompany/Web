@@ -16,7 +16,10 @@ import { AccountsReducer } from "../components/SystemOptions/Store/Reducers/Redu
 import { TransferReducer } from "../components/Transfer/Store/Slices/TransferSlice";
 import claimsReducer from "./reducers/claimsSlice";
 import loadingReducer from "./reducers/loadingSlice";
+import refundReducer from "./reducers/refundSlice";
 import todoReducer from "./reducers/todoSlice";
+
+
 //store
 const store = configureStore({
   reducer: {
@@ -37,7 +40,9 @@ const store = configureStore({
     KPIListReducer,
     retailOrderReducer,
     businessMapReducer,
-    TransferReducer
+    TransferReducer,
+    refunds: refundReducer,
+
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

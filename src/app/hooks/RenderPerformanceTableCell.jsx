@@ -1,13 +1,16 @@
 import { DatePicker, Form, Input, InputNumber, Select } from "antd";
 import _ from 'lodash';
 import { memo, useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { useDebouncedCallback } from "use-debounce";
 import PriceCellRenderer from "../../../src/components/Retail/Pages/RetailOrder2/RetailOrderInfo/PriceCellRenderer/PriceCellRenderer";
 import { ApiWebLookup } from "../../components/DMS/API";
 import SelectItemCode from "../../Context/SelectItemCode";
 import SelectNotFound from "../../Context/SelectNotFound";
+import { getUserInfo } from "../../store/selectors/Selectors";
 import { datetimeFormat, quantityFormat } from "../Options/DataFomater";
 import { formatterNumber, parserNumber } from "../regex/regex";
+
 const RenderPerformanceTableCell = ({
   rowKey,
   column,
@@ -22,11 +25,12 @@ const RenderPerformanceTableCell = ({
     column;
   const [selectLoading, setSelectLoading] = useState(false);
   const [selectOptions, setSelectOptions] = useState([]);
+  const userInfo = useSelector(getUserInfo);
 
   const lookupData = async (item) => {
     await setSelectLoading(true);
     ApiWebLookup({
-      userId: "1",
+      userId: userInfo.id.toString(),
       controller: item.controller,
       pageIndex: 1,
       FilterValueCode: item.value.trim(),
