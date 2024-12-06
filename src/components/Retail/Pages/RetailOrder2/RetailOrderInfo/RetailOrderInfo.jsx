@@ -475,11 +475,10 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
 
   const { id: userId, storeId, unitId } = useSelector(getUserInfo);
   const dispatch = useDispatch();
-
   const isHideNav = useSelector(getIsHideNav);
   const [paymentQR, setPaymentQR] = useLocalStorage("QRimg", "");
   const [isCalVat, setIsCalVat] = useState(false);
-  const { hs_quy_doi  } = useSelector(getUerSetting);
+  const { hs_quy_doi } = useSelector(getUerSetting);
   const [voucher, setVoucher] = useState({
     voucherId: "",
     tl_ck: 0,
@@ -605,7 +604,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
   const ChangeCalVat = async (value) => {
     globalIsCalVat = value
     setIsCalVat(value);
-    console.log(value);
     const curData = itemForm.getFieldsValue();
     if (value) {
       await getAllRowKeys(curData).map((key) => {
@@ -950,7 +948,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
 
 
   // Lấy các setting cho phiếu
-  const {  autoCalPromotion, isMergeRowData } = useContext(RetailOrderContext);
+  const { autoCalPromotion, isMergeRowData } = useContext(RetailOrderContext);
 
   // Lấy thông tin vật tư
   const handleFetchItemInfo = async ({ barcode, ma_vt, stock }) => {
