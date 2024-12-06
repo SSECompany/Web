@@ -479,7 +479,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
   const isHideNav = useSelector(getIsHideNav);
   const [paymentQR, setPaymentQR] = useLocalStorage("QRimg", "");
   const [isCalVat, setIsCalVat] = useState(false);
-  const { tk_nh, bin, hs_quy_doi, bank_account_name, maxPoint } = useSelector(getUerSetting);
+  const { hs_quy_doi  } = useSelector(getUerSetting);
   const [voucher, setVoucher] = useState({
     voucherId: "",
     tl_ck: 0,
@@ -950,7 +950,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
 
 
   // Lấy các setting cho phiếu
-  const { currencyOptions, taxOptions, autoCalPromotion, isMergeRowData } = useContext(RetailOrderContext);
+  const {  autoCalPromotion, isMergeRowData } = useContext(RetailOrderContext);
 
   // Lấy thông tin vật tư
   const handleFetchItemInfo = async ({ barcode, ma_vt, stock }) => {

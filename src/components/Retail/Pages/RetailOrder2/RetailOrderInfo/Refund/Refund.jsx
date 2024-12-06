@@ -2,36 +2,27 @@ import { FileImageOutlined } from "@ant-design/icons";
 import { uuidv4 } from "@antv/xflow-core";
 import { Avatar, Button, Form, Image, Input, message as messageAPI, Select } from "antd";
 import _ from "lodash";
-import { useContext, useEffect, useRef, useState } from "react";
-import { useDispatch } from "react-redux";
-
+import { useEffect, useRef, useState } from "react";
 import { Column } from "react-base-table";
 import { useHotkeys } from "react-hotkeys-hook";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useDebouncedCallback } from "use-debounce";
 import { filterKeyHelper } from "../../../../../../app/Functions/filterHelper";
 import { getAllRowKeys, getAllValueByColumn, getAllValueByRow, getCellName, getRowKey, } from "../../../../../../app/Functions/getTableValue";
 import { formatCurrency } from "../../../../../../app/hooks/dataFormatHelper";
 import RenderPerformanceTableCell from "../../../../../../app/hooks/RenderPerformanceTableCell";
 import SelectNotFound from "../../../../../../Context/SelectNotFound";
+import { addRefundData, setTotal } from '../../../../../../store/reducers/refundSlice';
 import { getUerSetting, getUserInfo } from "../../../../../../store/selectors/Selectors";
-
-import { fetchRetailOderPromotion, modifyIsAddNewCustomer, modifyIsOpenPromotion, setRetailOrderScanning } from "../../../../Store/Actions/RetailOrderActions";
-
 import { CHARTCOLORS } from "../../../../../../utils/constants";
 import PerformanceTable from "../../../../../ReuseComponents/PerformanceTable/PerformanceTable";
 import { multipleTablePutApi } from "../../../../../SaleOrder/API";
+import { fetchRetailOderPromotion, modifyIsAddNewCustomer, modifyIsOpenPromotion, setRetailOrderScanning } from "../../../../Store/Actions/RetailOrderActions";
 import { getRetailOrderState } from "../../../../Store/Selectors/RetailOrderSelectors";
-
 import "../RetailOrderInfo";
-
-import { addRefundData, setTotal } from '../../../../../../store/reducers/refundSlice';
-import { RetailOrderContext } from '../RetailOrderContext';
-
 
 var isDelete = false;
 var globalIsCalVat = false;
-
 
 const Refund = ({ dataRefund }) => {
     const dispatch = useDispatch();
@@ -347,91 +338,7 @@ const Refund = ({ dataRefund }) => {
             },
         },
 
-        // {
-        //     key: "ck_yn",
-        //     title: "Chiết khấu",
-        //     dataKey: "ck_yn",
-        //     width: 0,
-        //     resizable: false,
-        //     sortable: false,
-        //     className: "p-0",
-        //     headerClassName: "p-0",
-        //     cellRenderer: ({ rowData, column, cellData }) => {
-        //         return (
-        //             <RenderPerformanceTableCell
-        //                 rowKey={rowData?.id}
-        //                 column={column}
-        //                 cellData={cellData}
-        //             />
-        //         );
-        //     },
-        // },
 
-        // {
-        //     key: "ma_ck",
-        //     title: "Mã chiết khấu",
-        //     dataKey: "ma_ck",
-        //     width: 0,
-        //     resizable: false,
-        //     sortable: false,
-        //     className: "p-0",
-        //     headerClassName: "p-0",
-        //     cellRenderer: ({ rowData, column, cellData }) => {
-        //         return (
-        //             <RenderPerformanceTableCell
-        //                 rowKey={rowData?.id}
-        //                 column={column}
-        //                 cellData={cellData}
-        //             />
-        //         );
-        //     },
-        // },
-
-        // {
-        //     key: "tl_ck",
-        //     title: "Tỷ lệ chiết khấu",
-        //     dataKey: "tl_ck",
-        //     width: 0,
-        //     resizable: false,
-        //     sortable: false,
-        //     editable: false,
-        //     format: "0",
-        //     type: "Numeric",
-        //     className: "p-0",
-        //     headerClassName: "p-0",
-        //     cellRenderer: ({ rowData, column, cellData }) => {
-        //         return (
-        //             <RenderPerformanceTableCell
-        //                 rowKey={rowData?.id}
-        //                 column={column}
-        //                 cellData={cellData}
-        //             />
-        //         );
-        //     },
-        // },
-
-        // {
-        //     key: "ck",
-        //     title: "Tiền chiết khấu",
-        //     dataKey: "ck",
-        //     width: 0,
-        //     resizable: false,
-        //     sortable: false,
-        //     editable: false,
-        //     format: "0",
-        //     type: "Numeric",
-        //     className: "p-0",
-        //     headerClassName: "p-0",
-        //     cellRenderer: ({ rowData, column, cellData }) => {
-        //         return (
-        //             <RenderPerformanceTableCell
-        //                 rowKey={rowData?.id}
-        //                 column={column}
-        //                 cellData={cellData}
-        //             />
-        //         );
-        //     },
-        // },
     ];
     const { isScanning } =
         useSelector(getRetailOrderState);
@@ -755,8 +662,6 @@ const Refund = ({ dataRefund }) => {
         });
     };
 
-    // Lấy các setting cho phiếu
-    const { autoCalPromotion, isMergeRowData } = useContext(RetailOrderContext);
 
     // Lấy thông tin vật tư
     const handleFetchItemInfo = async ({ barcode, ma_vt, stock }) => {
