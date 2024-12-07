@@ -2,7 +2,7 @@
 const Login = () => {
   return (
     <div className="login_container">
-        1.2.23
+        1.2.25
     </div>
   );
 };
