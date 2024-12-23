@@ -1,0 +1,4 @@
+.table_hide_selection tr>td:first-child,
+.table_hide_selection tr>th:first-child {
+    display: none;
+}

@@ -1,0 +1,76 @@
+import { createSlice } from "@reduxjs/toolkit";
+import { uuidv4 } from "@antv/xflow-core";
+var temp = uuidv4()
+
+const initial = {
+  currentOrder: temp,
+  listOrder: [temp],
+  isScanning: false,
+  fetchListParams: {
+    so_ct: "",
+    ngay_ct: "",
+    ma_kh: "",
+    ten_kh: "",
+    dien_thoai: "",
+    pageIndex: 1,
+    pageSize: 10,
+  },
+  isAddNewCustomer:{
+    open:false,
+    value:''
+  },
+  valueAddNewCustomer:'',
+  isFormLoading: false,
+  isOpenPromotion: false,
+  isPromotionLoading: false,
+  changeTabOrder:0
+};
+
+const retailOrderSlice = createSlice({
+  name: "retailOrder",
+  initialState: initial,
+  reducers: {
+    setCurrentOrder: (state, action) => {
+      state.currentOrder = action?.payload;
+    },
+
+    setIsOpenPromotion: (state, action) => {
+      state.isOpenPromotion = action?.payload;
+    },
+
+    setIsPromotionLoading: (state, action) => {
+      state.isPromotionLoading = action?.payload;
+    },
+
+    setIsFormLoading: (state, action) => {
+      state.isFormLoading = action?.payload;
+    },
+
+    setIsScanning: (state, action) => {
+      state.isScanning = action?.payload;
+    },
+
+    setListOrder: (state, action) => {
+      state.listOrder = action?.payload;
+    },
+
+    setFetchListParams: (state, action) => {
+      state.fetchListParams = action?.payload;
+    },
+
+    resetFetchListParams: (state, action) => {
+      state.fetchListParams = initial.fetchListParams;
+    },
+    setIsAddNewCustomer: (state, action) => {
+      state.isAddNewCustomer = action.payload;
+    },
+    setChangeTabOrder :(state,action)=>{
+      state.changeTabOrder = action.payload;
+    },
+
+    reset: () => initial,
+  },
+});
+
+export const { actions: retailOrderActions, reducer: retailOrderReducer } =
+  retailOrderSlice;

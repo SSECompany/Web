@@ -1,0 +1,20 @@
+.ReportDashboard__container {
+    grid-gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(23rem, 1fr));
+    padding: 6px;
+}
+
+.ReportDashboard__container>div {
+    background-color: white;
+    padding: 6px;
+    cursor: pointer;
+    transition: .3s linear;
+    border-radius: 4px;
+    box-shadow: 0 3px 6px 0 #3333, 0 2px 2px 0 #00000014;
+    padding: 10px;
+}
+
+.ReportDashboard__container>div:hover {
+    box-shadow: 0 1px 8px 0 #4779cfaf, 0 -1px 0px 0 #00000014;
+}

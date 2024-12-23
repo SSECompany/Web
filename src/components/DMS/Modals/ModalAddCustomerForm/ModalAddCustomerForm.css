@@ -1,0 +1,6 @@
+.modal__time__picker :nth-child(1){
+    flex: none;
+}
+.modal__time__picker .ant-space-item{
+    width: 40%;
+}

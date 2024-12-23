@@ -1,0 +1,13 @@
+.custom_table .BaseTable__row-cell-text {
+  word-break: break-word;
+  word-wrap: break-word;
+  white-space: normal !important;
+  text-overflow: unset !important;
+  max-height: 3rem;
+  overflow-y: visible !important;
+  font-size: 18px !important;
+}
+
+.custom_table .text_left {
+  font-size: 20px !important;
+}
