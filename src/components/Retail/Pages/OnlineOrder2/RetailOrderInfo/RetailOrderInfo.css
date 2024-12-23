@@ -1,9 +1,0 @@
-.ant-checkbox-wrapper {
-  display: none !important;
-}
-
-.ant-form-item-control-input .checked {
-  display: flex !important;
-  justify-content: center;
-  align-items: center;
-}
