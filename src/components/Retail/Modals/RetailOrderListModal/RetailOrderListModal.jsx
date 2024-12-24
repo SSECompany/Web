@@ -278,9 +278,6 @@ const RetailOrderListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
             >
               <Button
                 className="default_button"
-                onClick={() => {
-                  console.log("Key value:", key);
-                }}
               >
                 <i
                   className="pi pi-pencil danger_text_color"

@@ -1,21 +1,19 @@
 import {
   CheckCircleTwoTone,
   CloseCircleTwoTone,
-  DownOutlined,
-  LoadingOutlined,
+  LoadingOutlined
 } from "@ant-design/icons";
 
 import { CloseOutlined } from "@ant-design/icons";
 import {
   Button,
-  Dropdown,
   Input,
   InputNumber,
   message as messageAPI,
   notification,
   Select,
   Spin,
-  Switch,
+  Switch
 } from "antd";
 import { filterKeyHelper } from "app/Functions/filterHelper";
 import _ from "lodash";
@@ -41,7 +39,6 @@ import { formatCurrency } from "../../../../../app/hooks/dataFormatHelper";
 import { num2words } from "../../../../../app/Options/DataFomater";
 import { formatterNumber, parserNumber } from "../../../../../app/regex/regex";
 import { getUerSetting, getUserInfo } from "../../../../../store/selectors/Selectors";
-import emitter from "../../../../../utils/emitter";
 import { multipleTablePutApi } from "../../../../SaleOrder/API";
 import AdvanceRetailPayment from "../../../Modals/AdvanceRetailPayment/AdvanceRetailPayment";
 import PrintComponent from "../../../Modals/PrintRetailModal/PrintComponent/PrintComponent";

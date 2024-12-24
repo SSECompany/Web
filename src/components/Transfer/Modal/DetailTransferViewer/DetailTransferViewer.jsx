@@ -1,15 +1,14 @@
-import {Alert,Avatar,Button,Drawer,Form,Input,message as messageAPI,notification} from "antd";
+import { Alert, Drawer, Form, Input, message as messageAPI } from "antd";
 
 import { CaretDownOutlined } from '@ant-design/icons';
-import _, { size } from "lodash";
-import { uuidv4 } from "@antv/xflow-core";
-import React, { useEffect, useState,useCallback } from "react";
+import _ from "lodash";
+import { useEffect, useState } from "react";
 import LoadingComponents from "../../../Loading/LoadingComponents";
 import PerformanceTable from "../../../ReuseComponents/PerformanceTable/PerformanceTable";
-import {fetchTransferDetail,} from "../../Store/Actions/TransferActions";
+import { fetchTransferDetail, } from "../../Store/Actions/TransferActions";
 import "./DetailTransferViewer.css";
 
-const DetailRetailViewer = ({ isOpen, onClose, itemKey,ma_ct='HDL' }) => {
+const DetailRetailViewer = ({ isOpen, onClose, itemKey, ma_ct = 'HDL' }) => {
   const [message, contextHolder] = messageAPI.useMessage();
   const { stt_rec } = itemKey;
   const [itemForm] = Form.useForm();
@@ -24,17 +23,17 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey,ma_ct='HDL' }) => {
     setIsLoading(true);
     const result = await fetchTransferDetail({
       stt_rec
-    },ma_ct);
-    if(result.detail) 
-      result.detail = result.detail.map((d,index)=>{
-        d.children=[
+    }, ma_ct);
+    if (result.detail)
+      result.detail = result.detail.map((d, index) => {
+        d.children = [
           {
-            id: `${(index+1).toString().padStart(3, '0')}-detail`,
+            id: `${(index + 1).toString().padStart(3, '0')}-detail`,
             content: (
               <div className="flex gap-2 justify-content-between">
                 <Form.Item
                   initialValue={""}
-                  name={`${(index+1).toString().padStart(3, '0')}_ghi_chu`}
+                  name={`${(index + 1).toString().padStart(3, '0')}_ghi_chu`}
                   style={{
                     width: "55%",
                     margin: 0,
@@ -61,7 +60,6 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey,ma_ct='HDL' }) => {
         ]
         return d;
       })
-    console.log(result.detail);
     setData(result);
     setTableColumns(result?.columns || []);
     setIsLoading(false);
@@ -87,9 +85,9 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey,ma_ct='HDL' }) => {
           <span>Thông tin đề nghị xuất điều chuyển</span>
         </div>
       }
-      placement="right"width={"80%"}open={isOpen}
-      styles={{body: {position: "relative",},}}
-      onClose={() => {onClose();}}
+      placement="right" width={"80%"} open={isOpen}
+      styles={{ body: { position: "relative", }, }}
+      onClose={() => { onClose(); }}
       destroyOnClose={true}
     >
       {isLoading ? (
@@ -102,11 +100,11 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey,ma_ct='HDL' }) => {
               <div className="retail_bill_info detail__retail__PaymentInfo p-2">
                 <div className="flex justify-content-between gap-2 align-items-center pl-1 pr-1">
                   <span className="w-6 flex-shrink-0">Mã kho :</span>
-                  <span className="primary_bold_text line-height-16 white-space-normal">{data?.master?.ma_kho } </span>
+                  <span className="primary_bold_text line-height-16 white-space-normal">{data?.master?.ma_kho} </span>
                 </div>
                 <div className="flex justify-content-between gap-2 align-items-center pl-1 pr-1">
                   <span className="w-6 flex-shrink-0">Tên kho :</span>
-                  <span className="primary_bold_text line-height-16 white-space-normal">{data?.master?.ten_kho_xuat } </span>
+                  <span className="primary_bold_text line-height-16 white-space-normal">{data?.master?.ten_kho_xuat} </span>
                 </div>
               </div>
             </div>
@@ -118,11 +116,11 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey,ma_ct='HDL' }) => {
               <div className="retail_bill_info detail__retail__PaymentInfo p-2">
                 <div className="flex justify-content-between gap-2 align-items-center pl-1 pr-1">
                   <span className="w-6 flex-shrink-0">Mã kho :</span>
-                  <span className="primary_bold_text line-height-16 white-space-normal">{data?.master?.ma_khon } </span>
+                  <span className="primary_bold_text line-height-16 white-space-normal">{data?.master?.ma_khon} </span>
                 </div>
                 <div className="flex justify-content-between gap-2 align-items-center pl-1 pr-1">
                   <span className="w-6 flex-shrink-0">Tên kho :</span>
-                  <span className="primary_bold_text line-height-16 white-space-normal">{data?.master?.ten_kho_nhap } </span>
+                  <span className="primary_bold_text line-height-16 white-space-normal">{data?.master?.ten_kho_nhap} </span>
                 </div>
               </div>
             </div>
@@ -155,19 +153,19 @@ const DetailRetailViewer = ({ isOpen, onClose, itemKey,ma_ct='HDL' }) => {
           </div>
           <div className="flex flex-column gap-3 w-full min-w-0">
             <Alert
-              message={data?.master?.status == "0" ? "Đơn hàng đang chờ phê duyệt": "Đơn hàng điều chuyển thành công"}
-              type={data?.master?.status == "0" ? "warning": "success"}
+              message={data?.master?.status == "0" ? "Đơn hàng đang chờ phê duyệt" : "Đơn hàng điều chuyển thành công"}
+              type={data?.master?.status == "0" ? "warning" : "success"}
               showIcon
             />
             <Form form={itemForm} component={false} initialValues={{}}>
-                <div className="h-full min-h-0 shadow_3 not_edit">
-                  <PerformanceTable
-                    selectable={false}
-                    columns={renderRefundColumns(isRefundMode)}
-                    data={data?.detail || []}
-                    isLoading={isLoading}
-                  />
-                </div>
+              <div className="h-full min-h-0 shadow_3 not_edit">
+                <PerformanceTable
+                  selectable={false}
+                  columns={renderRefundColumns(isRefundMode)}
+                  data={data?.detail || []}
+                  isLoading={isLoading}
+                />
+              </div>
             </Form>
           </div>
         </div>

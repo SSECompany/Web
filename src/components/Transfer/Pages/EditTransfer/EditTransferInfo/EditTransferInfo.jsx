@@ -6,6 +6,7 @@ import _ from "lodash";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Column } from "react-base-table";
 import { useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
 import { useDebouncedCallback } from "use-debounce";
 import getTextValue from 'utils/lang';
 import { filterKeyHelper } from "../../../../../app/Functions/filterHelper";
@@ -18,7 +19,7 @@ import { CHARTCOLORS } from "../../../../../utils/constants";
 import LoadingComponents from "../../../../Loading/LoadingComponents";
 import PerformanceTable from "../../../../ReuseComponents/PerformanceTable/PerformanceTable";
 import TransferListModal from "../../../Modal/TransferListModal/TransferListModal";
-import { modifyIsFormLoading } from "../../../Store/Actions/TransferActions";
+import { fetchTransferDetail, modifyIsFormLoading } from "../../../Store/Actions/TransferActions";
 import { getTransferState } from "../../../Store/Selectors/TransferSelectors";
 import MasterInfo from "../MasterInfo/MasterInfo";
 
@@ -154,9 +155,8 @@ const columns = [
 
 ];
 
-const TransferInfo = ({ orderKey }) => {
+const EditTransferInfo = ({ orderKey }) => {
   const { isScanning, isFormLoading } = useSelector(getTransferState);
-
   const [message, contextHolder] = messageAPI.useMessage();
   const [itemForm] = Form.useForm();
   const [masterForm] = Form.useForm();
@@ -172,17 +172,68 @@ const TransferInfo = ({ orderKey }) => {
 
   const [isOpenOrderList, setIsOpenOrderList] = useState(false);
   const { openListTransfer } = useSelector(getTransferState);
-
+  const { id } = useParams();
 
   const searchInputRef = useRef(null);
 
-  const { id: userId, storeId, unitId, lang } = useSelector(getUserInfo);
 
 
   //------------Search item------------------
   const handleSearchValue = useDebouncedCallback((searchValue) => {
     fetchItemsNCustomers({ searchValue });
   }, 400);
+
+
+  const getData = async () => {
+    const result = await fetchTransferDetail({
+      stt_rec: id
+    }, 'HDL');
+    if (result.detail)
+      result.detail = result.detail.map((d, index) => {
+        d.image = d.image || "https://pbs.twimg.com/media/FfgUqSqWYAIygwN.jpg";
+        d.children = [
+          {
+            id: `${(index + 1).toString().padStart(3, '0')}-detail`,
+            content: (
+              <div className="flex gap-2 justify-content-between">
+                <Form.Item
+                  initialValue={""}
+                  name={`${(index + 1).toString().padStart(3, '0')}_ghi_chu`}
+                  style={{
+                    width: "55%",
+                    margin: 0,
+                  }}
+                  rules={[
+                    {
+                      required: false,
+                      message: `Ghi chú trống !`,
+                    },
+                  ]}
+                >
+                  <Input.TextArea
+                    autoSize={{
+                      minRows: 1,
+                      maxRows: 1,
+                    }}
+                    placeholder="Ghi chú"
+                    style={{ resize: "none" }}
+                  />
+                </Form.Item>
+              </div>
+            ),
+          },
+        ]
+
+        return d;
+      })
+    setData(result.detail);
+
+  };
+  useEffect(() => {
+    getData()
+  }, [id])
+
+  const { id: userId, storeId, unitId, lang } = useSelector(getUserInfo);
 
   const fetchItemsNCustomers = ({ searchValue }) => {
     setsearchOptions([]);
@@ -207,11 +258,10 @@ const TransferInfo = ({ orderKey }) => {
   };
   const handleAddRowData = async ({ barcode = "", ma_vt, ten_vt, image, ma_kho, dvt, don_gia, ck_yn, so_luong = 1 }) => {
     const curData = itemForm.getFieldsValue();
-    console.log(curData)
     let isHad = false;
 
     await getAllRowKeys(curData).map((key) => {
-      if (getAllValueByRow(key, curData)?.ma_vt === ma_vt) {
+      if (getAllValueByRow(key, curData)?.ma_vt.trim() === ma_vt.trim()) {
         itemForm.setFieldValue(
           `${key}_so_luong`,
           Number(getAllValueByRow(key, curData)?.so_luong) + so_luong
@@ -290,9 +340,6 @@ const TransferInfo = ({ orderKey }) => {
       return detailData.push(temp);
     });
 
-    console.log(masterData)
-    console.log(itemData)
-    console.log(detailData)
 
     if (masterData.fStock == "" || masterData.tStock == "") {
       message.warning(getTextValue(lang, 'Transfer.MessEmptyStockTransfer'));
@@ -383,6 +430,28 @@ const TransferInfo = ({ orderKey }) => {
     }
     return () => { };
   }, [JSON.stringify(searchOptions), JSON.stringify(searchColapse)]);
+
+  const processDataAndSetForm = (data) => {
+    const formValues = {};
+    data.forEach(item => {
+      formValues[`${item.id}_ten_vt`] = item.ten_vt?.trim() || "";
+      formValues[`${item.id}_ma_vt`] = item.ma_vt?.trim() || "";
+      formValues[`${item.id}_dvt`] = item.dvt?.trim() || "";
+      formValues[`${item.id}_so_luong`] = item.so_luong || 1; // Default to 1
+      formValues[`${item.id}_don_gia`] = item.gia || 0; // Default to 0
+      formValues[`${item.id}_thanh_tien`] = (item.gia || 0) * (item.so_luong || 1);
+      formValues[`${item.id}_thue_nt`] = null;
+      formValues[`${item.id}_ghi_chu`] = "";
+    });
+
+    itemForm.setFieldsValue(formValues);
+  };
+
+  useEffect(() => {
+    if (data.length > 0) {
+      processDataAndSetForm(data);
+    }
+  }, [data]);
 
   return (
     <div className="h-full min-h-0 flex gap-1 relative">
@@ -505,28 +574,14 @@ const TransferInfo = ({ orderKey }) => {
         itemForm={itemForm}
         masterForm={masterForm}
         CreateStockTransfer={CreateStockTransfer}
-      //onResetForm={handleResetForm}
       />
       <TransferListModal
         isOpen={isOpenOrderList}
         onClose={handleTransferModal}
       />
-      {/* <RetailPaidInfo
-        itemForm={itemForm}
-        paymentInfo={paymentInfo}
-        onChangeCustomer={handleAddCustomerComplete}
-        onResetForm={handleResetForm}
-        cantSave={isCalculating}
-        isChangedData={isChangedData}
-      />
-      <RetailOrderListModal
-        isOpen={isOpenOrderList}
-        onClose={handleOrderListModal}
-      />
-      <RetailPromotionModal tableData={itemForm.getFieldsValue()} customer={paymentInfo?.ma_kh}  handleSave={handlePromotionCalculate}
-      /> */}
+
     </div>
   );
 };
 
-export default memo(TransferInfo);
+export default memo(EditTransferInfo);

@@ -1,18 +1,11 @@
 import { Button } from "antd";
-import { memo, useEffect } from "react";
+import { memo } from "react";
 
-import useLocalStorage from "use-local-storage";
 import { actionSetOpenTransfer } from '../../Store/Actions/TransferActions';
-import TransferInfo from './Transfer/TransferInfo';
+import EditTransferInfo from './EditTransferInfo/EditTransferInfo';
 
-const RetailOrder = () => {
-  const [paymentQR, setPaymentQR] = useLocalStorage("QRimg", "");
+const EditTransfer = () => {
 
-  useEffect(() => {
-    return () => {
-      setPaymentQR('');
-    };
-  }, []);
   const handleShowList = () => {
     actionSetOpenTransfer(true);
   }
@@ -26,11 +19,11 @@ const RetailOrder = () => {
         </div>
       </div>
 
-      <TransferInfo />
+      <EditTransferInfo />
 
     </div>
 
   );
 };
 
-export default memo(RetailOrder);
+export default memo(EditTransfer);

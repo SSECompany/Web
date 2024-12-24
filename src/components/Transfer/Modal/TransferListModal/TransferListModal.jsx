@@ -1,22 +1,23 @@
-import {Button,DatePicker,Input,Modal,Pagination,Popover,Skeleton,Tag,Tooltip,} from "antd";
+import { Button, DatePicker, Input, Modal, Pagination, Popover, Skeleton, Tag, Tooltip, } from "antd";
+import { multipleTablePutApi } from "api";
 import dayjs from "dayjs";
 import _ from "lodash";
-import React, { memo, useCallback, useEffect, useState,useRef } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Column } from "react-base-table";
 import { useSelector } from "react-redux";
+import { Link } from "react-router-dom";
+import { useReactToPrint } from "react-to-print";
 import { useDebouncedCallback } from "use-debounce";
-import {datetimeFormat,datetimeFormat2,} from "../../../../app/Options/DataFomater";
+import { datetimeFormat, datetimeFormat2, } from "../../../../app/Options/DataFomater";
 import { getUserInfo } from "../../../../store/selectors/Selectors";
 import PerformanceTable from "../../../ReuseComponents/PerformanceTable/PerformanceTable";
-import {fetchTransferList,getValueParam,resetFetchListParams,setFetchListParams,} from "../../Store/Actions/TransferActions";
+import { fetchTransferList, getValueParam, resetFetchListParams, setFetchListParams, } from "../../Store/Actions/TransferActions";
 import { getTransferState } from "../../Store/Selectors/TransferSelectors";
 import DetailTransferViewer from "../DetailTransferViewer/DetailTransferViewer";
 import PrintComponent from "../PrintComponent/PrintComponent";
 import "./TransferListModal.css";
-import { useReactToPrint } from "react-to-print";
-import {multipleTablePutApi}  from "api"
 
-const TransferListModal = ({ isOpen, onClose,ma_ct='HDL' }) => {
+const TransferListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
   const [columns, setColumns] = useState([]);
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,8 +45,8 @@ const TransferListModal = ({ isOpen, onClose,ma_ct='HDL' }) => {
     await multipleTablePutApi({
       store: "api_get_information_print",
       param: {
-        ma_ct:'SAT',
-        stt_rec:key.stt_rec,
+        ma_ct: 'SAT',
+        stt_rec: key.stt_rec,
       },
       data: {},
     }).then((res) => {
@@ -82,7 +83,7 @@ const TransferListModal = ({ isOpen, onClose,ma_ct='HDL' }) => {
       userId,
       storeId,
       unitId,
-    },ma_ct);
+    }, ma_ct);
 
     setData(result?.data || []);
 
@@ -106,7 +107,7 @@ const TransferListModal = ({ isOpen, onClose,ma_ct='HDL' }) => {
 
   const handleSearchData = useDebouncedCallback(
     ({ key, value, params }) => {
-      console.log(key,value);
+      console.log(key, value);
       setFetchListParams({ [`${key}`]: value, pageIndex: 1 });
     },
     [600]
@@ -118,7 +119,7 @@ const TransferListModal = ({ isOpen, onClose,ma_ct='HDL' }) => {
       fetchData();
     }
     if (!isOpen) resetFetchListParams();
-    return () => {};
+    return () => { };
   }, [JSON.stringify(fetchListParams), JSON.stringify(isOpen)]);
 
   const renderColumns = (columns) => {
@@ -206,9 +207,8 @@ const TransferListModal = ({ isOpen, onClose,ma_ct='HDL' }) => {
         <div className="flex h-full align-items-center justify-content-between">
           <span className="select-none">{title}</span>
           <i
-            className={`pi pi-search transition-ease-in transition-all mr-2${
-              getValueParam(key) ? " font-bold" : ""
-            }`}
+            className={`pi pi-search transition-ease-in transition-all mr-2${getValueParam(key) ? " font-bold" : ""
+              }`}
           ></i>
         </div>
       </Popover>
@@ -253,6 +253,22 @@ const TransferListModal = ({ isOpen, onClose,ma_ct='HDL' }) => {
               style={{ fontWeight: "bold" }}
             ></i>
           </Button>
+        </Tooltip>
+        <Tooltip placement="topRight" title="Sửa đơn điều chuyển">
+          <Link
+            to={`/EditTransfer/${key.stt_rec}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button
+              className="default_button"
+            >
+              <i
+                className="pi pi-pencil danger_text_color"
+                style={{ fontWeight: "bold" }}
+              ></i>
+            </Button>
+          </Link>
         </Tooltip>
       </div>
     );

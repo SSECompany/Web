@@ -63,7 +63,7 @@ export const resetFetchListParams = async (params) => {
   store.dispatch(TransferActions.resetFetchListParams());
 };
 
-export const fetchTransferList = async (params,ma_ct) => {
+export const fetchTransferList = async (params, ma_ct) => {
   try {
     var store = 'api_get_delivery_request_form';
     const result = await multipleTablePutApi({
@@ -84,7 +84,7 @@ export const fetchTransferList = async (params,ma_ct) => {
   }
 };
 
-export const fetchTransferDetail = async (params,ma_ct) => {
+export const fetchTransferDetail = async (params, ma_ct) => {
   try {
     var store = 'api_get_delivery_request_form_detail';
     const result = await multipleTablePutApi({
@@ -117,7 +117,7 @@ export const fetchTransferDetail = async (params,ma_ct) => {
   }
 };
 
-export const fetchRetailOderPromotion = async (data = [], customer = "",ma_ct="HDL") => {
+export const fetchRetailOderPromotion = async (data = [], customer = "", ma_ct = "HDL") => {
   try {
     modifyIsLoadingPromotion(true);
     const { id, unitId, storeId } = store.getState().claimsReducer.userInfo;
@@ -348,5 +348,5 @@ export const modifyIsLoadingPromotion = async (params) => {
   store.dispatch(TransferActions.setIsPromotionLoading(params));
 };
 export const modifyIsAddNewCustomer = async (payload) => {
-    store.dispatch(TransferActions.setIsAddNewCustomer(payload));
+  store.dispatch(TransferActions.setIsAddNewCustomer(payload));
 };

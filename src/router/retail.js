@@ -1,4 +1,5 @@
 import EditOrder from "components/Retail/Pages/EditOrder/EditOrder";
+import EditTransfer from "components/Transfer/Pages/EditTransfer/EditTransfer";
 import OnlineOrder from "../components/Retail/Pages/OnlineOrder2/RetailOrder";
 import RetailOrder from "../components/Retail/Pages/RetailOrder2/RetailOrder";
 import StockTransfer from "../components/Transfer/Pages/Transfer/Transfer";
@@ -55,6 +56,11 @@ const RORoutes = [
     claims: "Permissions.ST.ST",
     path: "/SAT",
     element: <StockTransfer />,
+  },
+  {
+    label: "Sửa đơn điều chuyển",
+    path: "/EditTransfer/:id",
+    element: <EditTransfer />,
   },
 ];
 
