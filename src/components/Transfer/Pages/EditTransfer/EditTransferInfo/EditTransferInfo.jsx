@@ -175,6 +175,8 @@ const EditTransferInfo = ({ orderKey }) => {
   const { id } = useParams();
 
   const searchInputRef = useRef(null);
+  const [masterData, setMasterData] = useState([]);
+  console.log("🚀 ~ EditTransferInfo ~ masterData:", masterData)
 
 
 
@@ -227,7 +229,7 @@ const EditTransferInfo = ({ orderKey }) => {
         return d;
       })
     setData(result.detail);
-
+    setMasterData(result.master)
   };
   useEffect(() => {
     getData()
@@ -362,11 +364,12 @@ const EditTransferInfo = ({ orderKey }) => {
 
     modifyIsFormLoading(true);
     multipleTablePutApi({
-      store: "Api_create_delivery_request_form",
+      store: "Api_update_delivery_request_form",
       param: {
         UnitID: unitId,
         StoreID: storeId,
         userId,
+        stt_rec: id
       },
       data: {
         master: master,
@@ -574,6 +577,7 @@ const EditTransferInfo = ({ orderKey }) => {
         itemForm={itemForm}
         masterForm={masterForm}
         CreateStockTransfer={CreateStockTransfer}
+        masterData={masterData}
       />
       <TransferListModal
         isOpen={isOpenOrderList}
