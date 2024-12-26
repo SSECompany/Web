@@ -1,12 +1,10 @@
 import { Button, DatePicker, Input, Modal, Pagination, Popover, Skeleton, Tag, Tooltip, } from "antd";
-import { multipleTablePutApi } from "api";
 import dayjs from "dayjs";
 import _ from "lodash";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { Column } from "react-base-table";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import { useReactToPrint } from "react-to-print";
 import { useDebouncedCallback } from "use-debounce";
 import { datetimeFormat, datetimeFormat2, } from "../../../../app/Options/DataFomater";
 import { getUserInfo } from "../../../../store/selectors/Selectors";
@@ -14,7 +12,6 @@ import PerformanceTable from "../../../ReuseComponents/PerformanceTable/Performa
 import { fetchTransferList, getValueParam, resetFetchListParams, setFetchListParams, } from "../../Store/Actions/TransferActions";
 import { getTransferState } from "../../Store/Selectors/TransferSelectors";
 import DetailTransferViewer from "../DetailTransferViewer/DetailTransferViewer";
-import PrintComponent from "../PrintComponent/PrintComponent";
 import "./TransferListModal.css";
 
 const TransferListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
@@ -22,49 +19,10 @@ const TransferListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isShowDetail, setIsShowDetail] = useState(false);
-  const [isShowPrint, setIsShowPrint] = useState(false);
   const [curItemShow, setCurItemShow] = useState("");
   const [totalRecord, setTotalRecord] = useState(0);
-
   const { fetchListParams } = useSelector(getTransferState);
-  const { userName, id: userId, storeId, unitId } = useSelector(getUserInfo);
-
-  var printContent = useRef();
-  const [master, setMaster] = useState({});
-  const [detail, setDetail] = useState([]);
-
-
-  const handlePrint = useReactToPrint({
-    content: () => printContent.current,
-    documentTitle: "Print This Document",
-    copyStyles: false,
-  });
-  const getPrintData = async (key) => {
-    setIsLoading(true);
-
-    await multipleTablePutApi({
-      store: "api_get_information_print",
-      param: {
-        ma_ct: 'SAT',
-        stt_rec: key.stt_rec,
-      },
-      data: {},
-    }).then((res) => {
-      const data = res?.listObject || [];
-      setMaster(_.first(data[0]));
-      setDetail(data[1]);
-      handlePrint();
-    });
-
-    setIsLoading(false);
-  };
-
-
-
-  const handleVisiblePrintModal = (item = {}) => {
-    console.log(item);
-    getPrintData(item);
-  };
+  const { id: userId, storeId, unitId } = useSelector(getUserInfo);
 
   const modifyShowDetail = useCallback(() => {
     setIsShowDetail(!isShowDetail);
@@ -107,14 +65,12 @@ const TransferListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
 
   const handleSearchData = useDebouncedCallback(
     ({ key, value, params }) => {
-      console.log(key, value);
       setFetchListParams({ [`${key}`]: value, pageIndex: 1 });
     },
     [600]
   );
 
   useEffect(() => {
-    console.log(fetchListParams);
     if (isOpen) {
       fetchData();
     }
@@ -227,20 +183,6 @@ const TransferListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
   const actionsRender = (key = "") => {
     return (
       <div className="flex gap-2 p-2 border-round-xs">
-        <Tooltip placement="topRight" title="In">
-          <Button
-            className="default_button"
-            onClick={() => {
-              handleVisiblePrintModal(key);
-            }}
-          >
-            <i
-              className="pi pi-print warning_text_color"
-              style={{ fontWeight: "bold" }}
-            ></i>
-          </Button>
-        </Tooltip>
-
         <Tooltip placement="topRight" title="Xem chi tiết">
           <Button
             className="default_button"
@@ -318,13 +260,6 @@ const TransferListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
         itemKey={curItemShow}
         onClose={modifyShowDetail}
         ma_ct={ma_ct}
-      />
-
-      <PrintComponent
-        ref={printContent}
-        master={master}
-        detail={detail}
-        items={[1, 2, 3, 4, 5, 6]}
       />
     </Modal>
   );
