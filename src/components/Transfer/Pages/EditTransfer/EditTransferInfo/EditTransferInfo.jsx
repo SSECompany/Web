@@ -2,6 +2,7 @@ import { FileImageOutlined } from "@ant-design/icons";
 import { uuidv4 } from "@antv/xflow-core";
 import { Avatar, Button, Form, Image, Input, message as messageAPI, Modal, notification, Select, Tooltip } from "antd";
 import { multipleTablePutApi } from "api";
+import CustomConfirmModal from "components/Transfer/Modal/ConfirmModal/ConfirmModal";
 import _ from "lodash";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Column } from "react-base-table";
@@ -487,6 +488,21 @@ const EditTransferInfo = ({ orderKey }) => {
     }
   }, [data]);
 
+
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const handleConfirmDelete = () => {
+    setData([]);
+    setSelectedRowkeys([]);
+    setIsModalVisible(false);
+    message.success("Đã xóa toàn bộ dữ liệu thành công!");
+  };
+
+  const handleCancelDelete = () => {
+    setIsModalVisible(false);
+    message.info("Đã hủy thao tác xóa.");
+  };
+
   return (
     <div className="h-full min-h-0 flex gap-1 relative">
       {contextHolder}
@@ -595,11 +611,21 @@ const EditTransferInfo = ({ orderKey }) => {
               <Button
                 className="default_button"
                 danger
-                onClick={handleRemoveRowData}
+                onClick={() => setIsModalVisible(true)}
               >
                 <i className="pi pi-trash" style={{ fontWeight: "bold" }}></i>
               </Button>
             </Tooltip>
+
+            <CustomConfirmModal
+              visible={isModalVisible}
+              title="Xác nhận xóa"
+              content="Bạn có chắc chắn muốn xóa toàn bộ dữ liệu không? Thao tác này không thể hoàn tác."
+              onConfirm={handleConfirmDelete}
+              onCancel={handleCancelDelete}
+              confirmText="Xóa"
+              cancelText="Hủy"
+            />
           </div>
         </div>
       </div>
