@@ -1,6 +1,6 @@
 import { FileImageOutlined } from "@ant-design/icons";
 import { uuidv4 } from "@antv/xflow-core";
-import { Avatar, Button, Form, Image, Input, message as messageAPI, notification, Select, Tooltip } from "antd";
+import { Avatar, Button, Form, Image, Input, message as messageAPI, Modal, notification, Select, Tooltip } from "antd";
 import { multipleTablePutApi } from "api";
 import _ from "lodash";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -23,145 +23,13 @@ import { fetchTransferDetail, modifyIsFormLoading } from "../../../Store/Actions
 import { getTransferState } from "../../../Store/Selectors/TransferSelectors";
 import MasterInfo from "../MasterInfo/MasterInfo";
 
-const columns = [
-  {
-    key: "image",
-    title: "Ảnh",
-    dataKey: "image",
-    width: 60,
-    align: Column.Alignment.CENTER,
-    resizable: false,
 
-    cellRenderer: ({ cellData, rowData }) =>
-      cellData ? (
-        <Image className="border-circle" title="" style={{ height: 40 }} src={cellData} alt="SSE" ></Image>
-      ) : (
-        <Avatar style={{ background: rowData.ck_yn ? "red" : "#341b4d" }}>
-          {rowData.ck_yn ? (
-            <i className="pi pi-gift" style={{ fontSize: 40 }}></i>
-          ) : (
-            <FileImageOutlined
-              style={{
-                fontSize: "40px",
-              }}
-            />
-          )}
-        </Avatar>
-      ),
-  },
-
-  {
-    key: "ten_vt",
-    title: "Tên vật tư",
-    dataKey: "ten_vt",
-    className: "flex-1",
-    headerClassName: "flex-1",
-    width: 100,
-    resizable: false,
-    sortable: false,
-    type: "TextArea",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "barcode",
-    title: "Barcode",
-    dataKey: "barcode",
-    width: 0,
-    resizable: false,
-    sortable: false,
-    className: "p-0",
-    headerClassName: "p-0",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "ma_vt",
-    title: "Mã vật tư",
-    dataKey: "ma_vt",
-    width: 0,
-    resizable: false,
-    sortable: false,
-    className: "p-0",
-    headerClassName: "p-0",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "dvt",
-    title: "Đơn vị",
-    dataKey: "dvt",
-    width: 100,
-    resizable: false,
-    sortable: false,
-    editable: true,
-    type: "dvt",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowData={rowData}
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-  {
-    key: "so_luong",
-    title: "Số lượng",
-    dataKey: "so_luong",
-    width: 100,
-    resizable: false,
-    sortable: false,
-    editable: true,
-    type: "Numeric",
-    cellRenderer: ({ rowData, column, cellData }) => {
-      return (
-        <RenderPerformanceTableCell
-          rowKey={rowData?.id}
-          column={column}
-          cellData={cellData}
-        />
-      );
-    },
-  },
-
-
-];
 
 const EditTransferInfo = ({ orderKey }) => {
   const { isScanning, isFormLoading } = useSelector(getTransferState);
   const [message, contextHolder] = messageAPI.useMessage();
   const [itemForm] = Form.useForm();
   const [masterForm] = Form.useForm();
-
-
   const [data, setData] = useState([]);
   const [selectedRowkeys, setSelectedRowkeys] = useState([]);
   const [searchValue, setSearchValue] = useState("");
@@ -176,9 +44,160 @@ const EditTransferInfo = ({ orderKey }) => {
 
   const searchInputRef = useRef(null);
   const [masterData, setMasterData] = useState([]);
-  console.log("🚀 ~ EditTransferInfo ~ masterData:", masterData)
 
 
+
+  const columns = [
+    {
+      key: "delete",
+      title: "",
+      dataKey: "delete",
+      width: 60,
+      align: Column.Alignment.CENTER,
+      resizable: false,
+      cellRenderer: ({ rowData }) => {
+        return (
+          <Tooltip placement="topRight" title="Xóa dòng">
+            <Button
+              className="default_button"
+              danger
+              onClick={() => handleRemoveRowById(rowData.id)}
+            >
+              <i className="pi pi-trash" style={{ fontWeight: "bold" }}></i>
+            </Button>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      key: "image",
+      title: "Ảnh",
+      dataKey: "image",
+      width: 60,
+      align: Column.Alignment.CENTER,
+      resizable: false,
+
+      cellRenderer: ({ cellData, rowData }) =>
+        cellData ? (
+          <Image className="border-circle" title="" style={{ height: 40 }} src={cellData} alt="SSE" ></Image>
+        ) : (
+          <Avatar style={{ background: rowData.ck_yn ? "red" : "#341b4d" }}>
+            {rowData.ck_yn ? (
+              <i className="pi pi-gift" style={{ fontSize: 40 }}></i>
+            ) : (
+              <FileImageOutlined
+                style={{
+                  fontSize: "40px",
+                }}
+              />
+            )}
+          </Avatar>
+        ),
+    },
+    {
+      key: "ten_vt",
+      title: "Tên vật tư",
+      dataKey: "ten_vt",
+      className: "flex-1",
+      headerClassName: "flex-1",
+      width: 100,
+      resizable: false,
+      sortable: false,
+      type: "TextArea",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+
+    {
+      key: "barcode",
+      title: "Barcode",
+      dataKey: "barcode",
+      width: 0,
+      resizable: false,
+      sortable: false,
+      className: "p-0",
+      headerClassName: "p-0",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+
+    {
+      key: "ma_vt",
+      title: "Mã vật tư",
+      dataKey: "ma_vt",
+      width: 0,
+      resizable: false,
+      sortable: false,
+      className: "p-0",
+      headerClassName: "p-0",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+
+    {
+      key: "dvt",
+      title: "Đơn vị",
+      dataKey: "dvt",
+      width: 100,
+      resizable: false,
+      sortable: false,
+      editable: true,
+      type: "dvt",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowData={rowData}
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+
+    {
+      key: "so_luong",
+      title: "Số lượng",
+      dataKey: "so_luong",
+      width: 100,
+      resizable: false,
+      sortable: false,
+      editable: true,
+      type: "Numeric",
+      cellRenderer: ({ rowData, column, cellData }) => {
+        return (
+          <RenderPerformanceTableCell
+            rowKey={rowData?.id}
+            column={column}
+            cellData={cellData}
+          />
+        );
+      },
+    },
+
+
+  ];
 
   //------------Search item------------------
   const handleSearchValue = useDebouncedCallback((searchValue) => {
@@ -305,14 +324,34 @@ const EditTransferInfo = ({ orderKey }) => {
       },
     ]);
   };
-  const handleRemoveRowData = () => {
-    const filteredData = [...data].filter((item) => !selectedRowkeys.includes(item?.id));
-    setData(filteredData);
+
+  const handleRemoveRowById = (rowId) => {
+    const updatedData = data.filter((row) => row.id !== rowId);
+    setData(updatedData);
+    message.success("Đã xóa dòng thành công!");
   };
+
+  const handleRemoveRowData = () => {
+    Modal.confirm({
+      title: "Xác nhận xóa",
+      content: "Bạn có chắc chắn muốn xóa toàn bộ dữ liệu không?",
+      okText: "Xóa",
+      cancelText: "Hủy",
+      onOk: () => {
+        setData([]);
+        setSelectedRowkeys([]);
+      },
+      onCancel: () => {
+        message.info("Đã hủy xóa dữ liệu.");
+      },
+    });
+  };
+
 
   const handleSelectedRowKeyChange = useCallback((keys) => {
     setSelectedRowkeys(keys);
   }, []);
+
   const handleSelectChange = (key, params) => {
     if (params.data.type === "VT") {
       const { value, label, dvt, gia, ma_kho, image } = params.data;
@@ -381,9 +420,6 @@ const EditTransferInfo = ({ orderKey }) => {
           notification.success({
             message: `Thực hiện thành công`,
           });
-          itemForm.resetFields();
-          masterForm.resetFields();
-          setData([]);
           modifyIsFormLoading(false);
         }
       }).catch((err) => { modifyIsFormLoading(false); });
@@ -393,11 +429,6 @@ const EditTransferInfo = ({ orderKey }) => {
   }, [isOpenOrderList]);
 
 
-
-  //reset Form
-  const handleResetForm = useCallback(() => {
-    setData([]);
-  }, []);
 
   const handleCollapseOptions = (key) => {
     const currentCollaps = [...searchColapse];
@@ -560,14 +591,13 @@ const EditTransferInfo = ({ orderKey }) => {
           }}
         >
           <div className="flex gap-2">
-            <Tooltip placement="topRight" title="Xoá dữ liệu">
-              <Button className="default_button" danger onClick={handleRemoveRowData} >
+            <Tooltip placement="topRight" title="Xoá toàn bộ dữ liệu">
+              <Button
+                className="default_button"
+                danger
+                onClick={handleRemoveRowData}
+              >
                 <i className="pi pi-trash" style={{ fontWeight: "bold" }}></i>
-              </Button>
-            </Tooltip>
-            <Tooltip placement="topRight" title="Danh sách đơn">
-              <Button onClick={handleTransferModal} className="default_button">
-                <i className="pi pi-list sub_text_color" style={{ fontWeight: "bold" }} ></i>
               </Button>
             </Tooltip>
           </div>
@@ -584,7 +614,7 @@ const EditTransferInfo = ({ orderKey }) => {
         onClose={handleTransferModal}
       />
 
-    </div>
+    </div >
   );
 };
 

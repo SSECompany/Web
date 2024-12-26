@@ -38,7 +38,6 @@ var isDelete = false;
 var globalIsCalVat = false;
 
 const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
-  const [checkLoad, setCheckLoad] = useState(false);
   const [openItemInfo, setOpenItemInfo] = useState(false);
   const [selectedItem, setSelectedItem] = useState('');
   const [retailOrderData, setRetailOrderData] = useLocalStorage(
@@ -49,34 +48,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
 
   const getData = async () => {
     const result = await fetchRetailOderDetail({ stt_rec: id }, "HDO");
-    if (result.master)
-      setPaymentInfo({
-        ...paymentInfo,
-        ma_kh: result.master.ma_kh,
-        ten_kh: result.master.ten_kh,
-        dien_thoai: result.master?.dien_thoai,
-        diem: result.master?.dien_thoai,
-        diem_sd: 0,
-        ma_nt: "VND",
-        ty_gia: 1,
-        quy_doi_diem: 1,
-        tong_tien: result.master?.t_tien,
-        thue_suat: result.master?.t_thue,
-        tong_thue: result.master?.t_thue,
-        tong_sl: result.master?.t_so_luong,
-        ck: 0,
-        ma_ck: result.master?.ma_ck,
-        tl_ck: 0,
-        tong_ck: result.master?.t_ck,
-        voucher: "",
-        tien_voucher: 0,
-        tong_tt: result.master?.t_tt,
-        tien_mat: 0,
-        tien_the: 0,
-        dien_giai: result.master?.dien_giai,
-        chuyen_khoan: 0,
-        t_diem_so: 0,
-      });
     if (result.detail)
       result.detail = result.detail.map((d, index) => {
         d.image = d.image || "https://pbs.twimg.com/media/FfgUqSqWYAIygwN.jpg";
@@ -114,7 +85,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
         ]
         return d;
       })
-
     setData(result.detail)
   };
 
@@ -516,7 +486,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOptionsFiltered, setsearchOptionsFiltered] = useState([]);
   const [paymentInfo, setPaymentInfo] = useState({
-    ma_kh: "ANONYMOUS",
+    ma_kh: "KVL",
     ten_kh: "Vãng lai",
     dien_thoai: null,
     diem: 0,
@@ -540,7 +510,6 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
     dien_giai: '',
     chuyen_khoan: 0,
     t_diem_so: 0,
-    so_ct: ""
   });
 
   const [isOpenOrderList, setIsOpenOrderList] = useState(false);
@@ -949,9 +918,7 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
 
   useEffect(() => {
     if (!_.isEmpty(data) && autoCalPromotion) {
-      if (checkLoad)
-        recalPromotion();
-      else setCheckLoad(true);
+      recalPromotion();
       return;
     }
     setIsCalPromotion(false);
@@ -1374,8 +1341,8 @@ const RetailOrderInfo = ({ orderKey, currentTabOrder, ref }) => {
       );
     }
 
-    // const temp = { ...paymentInfo };
-    // setPaymentInfo(await handleCalculatorPayment(temp));
+    const temp = { ...paymentInfo };
+    setPaymentInfo(await handleCalculatorPayment(temp));
   };
 
   // Search
