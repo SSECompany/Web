@@ -1,4 +1,5 @@
 import { Button, DatePicker, Input, Modal, Pagination, Popover, Skeleton, Tag, Tooltip, } from "antd";
+import PrintRetailModal from "components/Retail/Modals/PrintRetailModal/PrintRetailModal";
 import dayjs from "dayjs";
 import _ from "lodash";
 import { memo, useCallback, useEffect, useState } from "react";
@@ -23,6 +24,7 @@ const TransferListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
   const [totalRecord, setTotalRecord] = useState(0);
   const { fetchListParams } = useSelector(getTransferState);
   const { id: userId, storeId, unitId } = useSelector(getUserInfo);
+  const [isShowPrint, setIsShowPrint] = useState(false);
 
   const modifyShowDetail = useCallback(() => {
     setIsShowDetail(!isShowDetail);
@@ -180,9 +182,34 @@ const TransferListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
     );
   };
 
+  const modifyPrintModalVisible = useCallback(() => {
+    setIsShowPrint(!isShowPrint);
+  }, [isShowPrint]);
+
+
+  const handleVisiblePrintModal = (item = {}) => {
+    modifyPrintModalVisible();
+    setCurItemShow(item);
+
+  };
+
   const actionsRender = (key = "") => {
     return (
       <div className="flex gap-2 p-2 border-round-xs">
+        <Tooltip placement="topRight" title="In">
+          <Button
+            className="default_button"
+            onClick={() => {
+              handleVisiblePrintModal(key);
+            }}
+          >
+            <i
+              className="pi pi-print warning_text_color"
+              style={{ fontWeight: "bold" }}
+            ></i>
+          </Button>
+        </Tooltip>
+
         <Tooltip placement="topRight" title="Xem chi tiết">
           <Button
             className="default_button"
@@ -260,6 +287,11 @@ const TransferListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
         itemKey={curItemShow}
         onClose={modifyShowDetail}
         ma_ct={ma_ct}
+      />
+      <PrintRetailModal
+        item={curItemShow}
+        onClose={modifyPrintModalVisible}
+        isOpen={isShowPrint}
       />
     </Modal>
   );
