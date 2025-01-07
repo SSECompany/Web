@@ -115,6 +115,8 @@ const MasterInfo = ({ itemForm, masterForm, CreateStockTransfer, masterData }) =
                   <Select
                     style={{ width: 200 }}
                     options={tStock}
+                    disabled={true}
+
                     onChange={(value) => handleStockChange('tStock', value)}
                   />
                 </Form.Item>

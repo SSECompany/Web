@@ -17,12 +17,14 @@ const MasterInfo = ({ itemForm, masterForm, CreateStockTransfer }) => {
   const { isFormLoading } = useSelector(getTransferState);
   const [stockList, setStockList] = useState([]); // Danh sách toàn bộ kho
 
+
+
   useEffect(() => {
     const fetchStockData = async () => {
       try {
         const res = await multipleTablePutApi({
           store: "api_get_site",
-          param: { StoreId: '', UnitId: '' }, // Lấy toàn bộ danh sách kho
+          param: { StoreId: '', UnitId: '' },
           data: {},
         });
 
@@ -34,7 +36,6 @@ const MasterInfo = ({ itemForm, masterForm, CreateStockTransfer }) => {
 
           setStockList(stocks); // Lưu toàn bộ danh sách kho
           setFStock(stocks); // Dùng cho kho xuất
-          setTStock(stocks); // Dùng cho kho nhập
         }
       } catch (error) {
         console.error("Error fetching stock data:", error);
@@ -46,29 +47,20 @@ const MasterInfo = ({ itemForm, masterForm, CreateStockTransfer }) => {
 
 
   useEffect(() => {
-    const fetchStores = async () => {
-      try {
-        const res = await multipleTablePutApi({
-          store: "api_get_list_store",
-          param: {},
-          data: {},
-        });
-
+    multipleTablePutApi({ store: "api_get_site", param: { StoreId: storeId, UnitId: '' }, data: {}, })
+      .then(async (res) => {
         if (res.responseModel?.isSucceded) {
-          const stores = _.first(res.listObject).map((d) => ({
-            value: d.storeId,
-            label: d.storeName,
-          }));
-          setList_bp(stores);
-          masterForm.setFieldValue(`dept_id`, storeId);
-        }
-      } catch (error) {
-        console.error("Error fetching stores:", error);
-      }
-    };
+          const temp = _.first(res.listObject).map((d) => {
+            return { value: d.ma_kho, label: d.ten_kho }
+          })
+          setTStock(temp);
 
-    fetchStores();
-  }, [storeId, masterForm]);
+        }
+      });
+
+    return () => { };
+  }, [storeId]);
+
 
   const handleCreateStockTransfer = () => {
     CreateStockTransfer();
