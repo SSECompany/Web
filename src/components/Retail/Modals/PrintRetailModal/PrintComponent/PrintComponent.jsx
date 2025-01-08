@@ -1,31 +1,31 @@
-import React, { forwardRef,useEffect } from "react";
-import { formatCurrency } from "../../../../../app/hooks/dataFormatHelper";
-import { getUserInfo,getUerSetting } from "../../../../../store/selectors/Selectors";
+import { forwardRef } from "react";
 import { useSelector } from "react-redux";
+import { formatCurrency } from "../../../../../app/hooks/dataFormatHelper";
+import { getUerSetting, getUserInfo } from "../../../../../store/selectors/Selectors";
 
 const NullComponent = ({ children }) => children;
 
 const PrintComponent = forwardRef(
   ({ master = {}, detail = [], items }, ref) => {
 
-    const { fullName} = useSelector(getUserInfo);
-    const { address_bp,tell_bp,name_dvcs} = useSelector(getUerSetting);
-    var now=new Date()
+    const { fullName } = useSelector(getUserInfo);
+    const { address_bp, tell_bp, name_dvcs } = useSelector(getUerSetting);
+    var now = new Date()
     return (
-      <div className="print-content" style={{ fontFamily: "tahoma",fontSize:13 }} ref={ref}>
+      <div className="print-content" style={{ fontFamily: "tahoma", fontSize: 13 }} ref={ref}>
         <div
           style={{
             padding: "0px 0px 20px 0px",
             borderBottom: "1px dotted black",
           }}
         >
-          <label style={{ fontWeight: "bold",fontSize:18 }}>
+          <label style={{ fontWeight: "bold", fontSize: 18 }}>
             {name_dvcs}
           </label>
           <br></br>
-          <label>{address_bp }</label>
+          <label>{address_bp}</label>
           <br></br>
-          <label>{tell_bp }</label>
+          <label>{tell_bp}</label>
         </div>
 
         <div style={{ textAlign: "center", marginTop: "10px" }}>
@@ -33,7 +33,7 @@ const PrintComponent = forwardRef(
             HOÁ ĐƠN BÁN HÀNG
           </span>
           <br />
-          <span>Ngày bán: { `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`}</span>
+          <span>Ngày bán: {`${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`}</span>
           <br />
           <span>NV: {fullName}</span>
           <br />
@@ -80,20 +80,20 @@ const PrintComponent = forwardRef(
           }}
         >
           <thead>
-            <tr style={{textAlign: "left",}}>
-              <th style={{padding: "6px"}} >
+            <tr style={{ textAlign: "left", }}>
+              <th style={{ padding: "6px" }} >
                 Sản phẩm
               </th>
-              <th style={{padding: "6px"}}>
+              <th style={{ padding: "6px" }}>
                 Đơn vị
               </th>
-              <th style={{padding: "6px"}}>
+              <th style={{ padding: "6px" }}>
                 SL
               </th>
-              <th style={{padding: "6px",textAlign: "right",}}>
+              <th style={{ padding: "6px", textAlign: "right", }}>
                 Đơn giá
               </th>
-              <th style={{padding: "6px",textAlign: "right",}}>
+              <th style={{ padding: "6px", textAlign: "right", }}>
                 Thành tiền
               </th>
             </tr>
@@ -102,11 +102,11 @@ const PrintComponent = forwardRef(
           <tbody>
             {detail.map((item, index) => (
               <NullComponent key={index}>
-                <tr key={index} style={{ borderTop: `${ index == 0 ? "2px solid black" : "1px dotted black" }`,}}>
-                  <td  style={{ padding: "12px 3px 6px 3px", }} >
+                <tr key={index} style={{ borderTop: `${index == 0 ? "2px solid black" : "1px dotted black"}`, }}>
+                  <td style={{ padding: "12px 3px 6px 3px", }} >
                     {item?.ten_vt || "Không rõ"}
                   </td>
-                  <td style={{ padding: "3px 6px 12px 3px",  textAlign: "left",  }}  >
+                  <td style={{ padding: "3px 6px 12px 3px", textAlign: "left", }}  >
                     {item?.dvt || ""}
                   </td>
                   <td
@@ -136,10 +136,10 @@ const PrintComponent = forwardRef(
                 </tr>
                 <tr
                   style={
-                    item?.ghi_chu==''
+                    item?.ghi_chu == ''
                       ? {
-                          display: "none",
-                        }
+                        display: "none",
+                      }
                       : {}
                   }
                 >
@@ -190,13 +190,13 @@ const PrintComponent = forwardRef(
             </div>
           </div>
 
-          <div style={{  display: "flex", }} >
+          <div style={{ display: "flex", }} >
             <div style={{ width: "100px", textAlign: "left" }}>Thuế</div>
             <div style={{ width: "100px", textAlign: "right" }}>
               {formatCurrency(master?.tong_thue) || "Trống"}
             </div>
           </div>
-          <div style={{  display: "flex", }} >
+          <div style={{ display: "flex", }} >
             <div style={{ width: "100px", textAlign: "left" }}>Điểm</div>
             <div style={{ width: "100px", textAlign: "right" }}>
               {formatCurrency(master?.tien_diem) || "Trống"}
@@ -225,7 +225,7 @@ const PrintComponent = forwardRef(
             <div
               style={{ width: "30px", textAlign: "left", fontWeight: "bold" }}
             >
-              <span>{master.httt=='qr'?'qr':master.httt=='chuyen_khoan'?'ck':'tm'}</span>
+              <span>{master.httt == 'qr' ? 'qr' : master.httt == 'chuyen_khoan' ? 'ck' : 'tm'}</span>
             </div>
             <div
               style={{ width: "100px", textAlign: "right", fontWeight: "bold" }}
@@ -242,16 +242,16 @@ const PrintComponent = forwardRef(
             padding: "0px 0px 5px 0px",
           }}
         >
-          <div style={{width:"100%"}} >
+          <div style={{ width: "100%" }} >
             <span>Lưu ý</span>
           </div>
-          <div style={{width:"100%",marginTop: "10px"}} >
-            <span style={{ fontStyle: "italic"}}>1.Quý khách vui lòng kiểm tra lại hàng và hóa đơn trước khi ra về</span>
+          <div style={{ width: "100%", marginTop: "10px" }} >
+            <span style={{ fontStyle: "italic" }}>1.Quý khách vui lòng kiểm tra lại hàng và hóa đơn trước khi ra về</span>
             <br />
             <span style={{ fontStyle: "italic" }}>2.Quý khách vui lòng đem theo hóa đơn này khi đổi trả hàng lỗi,hỏng</span>
           </div>
-          <div style={{width:"100%",marginTop: "40px"}} >
-          <span style={{ fontStyle: "italic",textAlign:"center",fontWeight: "bold" }}>CẢM ƠN QUÝ KHÁCH VÀ HẸN GẶP LẠI</span>
+          <div style={{ width: "100%", marginTop: "40px" }} >
+            <span style={{ fontStyle: "italic", textAlign: "center", fontWeight: "bold" }}>CẢM ƠN QUÝ KHÁCH VÀ HẸN GẶP LẠI</span>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { Input, message as messageAPI, Modal } from "antd";
+import { message as messageAPI, Modal } from "antd";
 import _ from "lodash";
 import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
@@ -9,15 +9,11 @@ import PrintComponent from "./PrintComponent/PrintComponent";
 import "./PrintRetailModal.css";
 
 const PrintRetailModal = ({ item, isOpen, onClose }) => {
-  const { so_ct, ngay_ct, ma_kh, ten_kh, t_tt, stt_rec } = item;
-
-  const { id: userId, storeId, unitId, storeName } = useSelector(getUserInfo);
-  const inputPassword = useRef("");
+  const { so_ct, ngay_ct, stt_rec } = item;
+  const { id: userId, storeId, unitId } = useSelector(getUserInfo);
   const [message, contextHolder] = messageAPI.useMessage();
-  const [password, setPassword] = useState("123ABC");
   const [master, setMaster] = useState({});
   const [detail, setDetail] = useState([]);
-
   const [loading, setLoading] = useState(true);
   var printContent = useRef();
 
@@ -31,7 +27,7 @@ const PrintRetailModal = ({ item, isOpen, onClose }) => {
     setLoading(true);
 
     await multipleTablePutApi({
-      store: "api_get_infomation_print",
+      store: "api_get_infomation_print_PXI",
       param: {
         stt_rec,
         UnitID: unitId,
@@ -44,7 +40,6 @@ const PrintRetailModal = ({ item, isOpen, onClose }) => {
       setMaster(_.first(data[0]));
       setDetail(data[1]);
     });
-
     setLoading(false);
   };
 
@@ -87,29 +82,6 @@ const PrintRetailModal = ({ item, isOpen, onClose }) => {
             <span>Ngày chứng từ: </span>
             <b className="sub_text_color">{ngay_ct}</b>
           </div>
-          <div>
-            <span>Khách hàng: </span>
-            <b className="sub_text_color">
-              {ma_kh} - {ten_kh}
-            </b>
-          </div>
-          <div>
-            <span>Tiền thanh toán: </span>
-            <b className="sub_text_color">{t_tt}</b>
-          </div>
-        </div>
-        <div>
-          <label>Nhập mật khẩu</label>
-          <Input
-            type={"password"}
-            autoComplete="false"
-            autoCapitalize="false"
-            defaultValue=""
-            ref={inputPassword}
-            required
-            minLength={8}
-            placeholder="Nhập mật khẩu"
-          />
         </div>
       </div>
       <PrintComponent

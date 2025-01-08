@@ -1,5 +1,5 @@
 import { Button, DatePicker, Input, Modal, Pagination, Popover, Skeleton, Tag, Tooltip, } from "antd";
-import PrintRetailModal from "components/Retail/Modals/PrintRetailModal/PrintRetailModal";
+
 import dayjs from "dayjs";
 import _ from "lodash";
 import { memo, useCallback, useEffect, useState } from "react";
@@ -13,6 +13,7 @@ import PerformanceTable from "../../../ReuseComponents/PerformanceTable/Performa
 import { fetchTransferList, getValueParam, resetFetchListParams, setFetchListParams, } from "../../Store/Actions/TransferActions";
 import { getTransferState } from "../../Store/Selectors/TransferSelectors";
 import DetailTransferViewer from "../DetailTransferViewer/DetailTransferViewer";
+import PrintRetailModal from "../PrintRetailModal/PrintRetailModal";
 import "./TransferListModal.css";
 
 const TransferListModal = ({ isOpen, onClose, ma_ct = 'HDL' }) => {
