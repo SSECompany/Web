@@ -2,8 +2,6 @@ import { forwardRef } from "react";
 
 const PrintComponent = forwardRef(
   ({ master = {}, detail = [] }, ref) => {
-    console.log("🚀 ~ detail:", detail)
-
     var now = new Date()
     return (
       <div className="print-content" style={{ fontFamily: "tahoma", fontSize: 13, padding: "20px" }} ref={ref}>
