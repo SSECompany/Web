@@ -1,0 +1,33 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  padding: 10px;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.categories {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.category {
+  padding: 10px 15px;
+  margin-right: 10px;
+  border: 1px solid #ddd;
+  background-color: #f9f9f9;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.category.active {
+  background-color: #007bff;
+  color: #fff;
+  border-color: #007bff;
+}
+
+.category:hover {
+  background-color: #007bff;
+  color: #fff;
+}

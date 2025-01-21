@@ -1,0 +1,229 @@
+/* Container chính */
+.order-item {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 20px;
+  border-bottom: 1px solid #eaeaea;
+  font-size: 14px;
+  background-color: #ffffff;
+  transition: background-color 0.3s ease-in-out, box-shadow 0.2s ease;
+}
+
+.order-item:hover {
+  background-color: #f9fafc;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.order-item-main {
+  display: grid;
+  grid-template-columns: 40px 1fr 140px 100px 40px;
+  align-items: center;
+}
+
+/* Phần tử cuối cùng không có border */
+.order-item:last-child {
+  border-bottom: none;
+}
+
+/* STT */
+.order-item-index {
+  text-align: center;
+  font-weight: bold;
+  color: #6c757d;
+}
+
+/* Danh sách món thêm */
+.order-item-extras {
+  margin-top: 8px;
+  list-style: none;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.order-extra-item {
+  display: grid;
+  grid-template-columns: 1fr 140px 120px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.order-extra-item:last-child {
+  border-bottom: none;
+}
+
+.extra-name {
+  font-style: italic;
+  font-size: 15px;
+  color: #495057;
+}
+.extra-main {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 30px;
+}
+
+/* Điều chỉnh số lượng món thêm */
+.extra-quantity-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.extra-quantity-controls button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.extra-quantity-controls button:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+.extra-quantity {
+  padding: 0 10px;
+  font-size: 15px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Giá sản phẩm */
+.extra-price {
+  color: #28a745;
+  font-weight: bold;
+  font-size: 15px;
+  text-align: right;
+}
+
+/* Tên sản phẩm */
+.order-item-name {
+  font-size: 16px;
+  color: #212529;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Điều chỉnh số lượng */
+.quantity-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.quantity-controls button {
+  padding: 4px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.quantity-controls button:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+.quantity-controls span {
+  padding: 0 10px;
+  font-size: 15px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Giá sản phẩm */
+.order-item-price {
+  text-align: center;
+  font-weight: 600;
+  font-size: 16px;
+  color: #28a745;
+}
+/* Dropdown container */
+.dropdown-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.dropdown-toggle {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: #6c757d;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.dropdown-toggle:hover {
+  color: #007bff;
+  transform: scale(1.1);
+}
+
+/* Dropdown menu */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 180px;
+  border-radius: 6px;
+  overflow: hidden;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Hiệu ứng mượt khi hiển thị */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-menu button {
+  display: block;
+  width: 100%;
+  padding: 12px 15px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #212529;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dropdown-menu button:hover {
+  background-color: #f1f3f5;
+  color: #007bff;
+}
+
+.dropdown-menu button.delete-item {
+  color: #e63946;
+  font-weight: bold;
+}
+
+.dropdown-menu button.delete-item:hover {
+  background-color: #ffe5e5;
+  color: #b71c1c;
+}
