@@ -1,4 +1,5 @@
 import POSPage from "../modules/order/view/order/POSPage";
+import TransferHub from "../pages/TransferHub/TransferHub";
 
 
 
@@ -21,6 +22,14 @@ const homeRoutes = [
         element: <POSPage />,
         children: [],
       },
+      {
+        label: "Tranfering",
+        claims: "Permissions.Transfer",
+        path: "/transfer",
+        element: <TransferHub />,
+        index: true,
+      },
+
 
     ],
   },

@@ -1,4 +1,4 @@
-import { Tabs } from "antd";
+import { Button, Tabs, Tooltip } from "antd";
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../../api";
@@ -79,8 +79,8 @@ const POSPage = () => {
         if (!activeTabId && orders.length === 0) {
             dispatch(
                 addTab({
-                    tableName: "Đơn mới",
-                    tableId: "order",
+                    tableName: orders.tableName || "Đơn mới",
+                    tableId: orders.tableName || "order",
                 })
             );
         }
@@ -119,25 +119,54 @@ const POSPage = () => {
         <div className="pos-page">
             <div className="main-container">
                 <div className="left-middle-panel">
-                    <Tabs
-                        type="editable-card"
-                        activeKey={activeTabId}
-                        onChange={switchTabHandler}
-                        onEdit={(targetKey, action) => {
-                            if (action === "add") {
-                                setIsModalVisible(true);
-                            } else {
-                                removeTabHandler(targetKey);
-                            }
-                        }}
-                    >
-                        {orders.map((tab) => (
-                            <Tabs.TabPane tab={tab.tableName} key={tab.tableId}>
-                                <Category />
-                                <MenuGrid onAdd={addToOrder} />
-                            </Tabs.TabPane>
-                        ))}
-                    </Tabs>
+                    <div className="tabs-menu-container">
+                        <Tabs
+                            type="editable-card"
+                            activeKey={activeTabId}
+                            onChange={switchTabHandler}
+                            onEdit={(targetKey, action) => {
+                                if (action === "add") {
+                                    setIsModalVisible(true);
+                                } else {
+                                    removeTabHandler(targetKey);
+                                }
+                            }}
+                        >
+                            {orders.map((tab) => (
+                                <Tabs.TabPane tab={tab.tableName} key={tab.tableId}>
+                                    <Category />
+                                    <MenuGrid onAdd={addToOrder} />
+                                </Tabs.TabPane>
+                            ))}
+                        </Tabs>
+                    </div>
+
+                    {/* Tool-tip Div */}
+                    <div className="tool-tip">
+                        <Tooltip placement="topRight" title="Thanh toán">
+                            <Button
+                                className="default_button"
+                                onClick={() => {
+                                    window.open(
+                                        `${window.location.origin}/transfer`,
+                                        "Thanh toán",
+                                        "screenX=1,screenY=1,left=1,top=1,menubar=0,height=" +
+                                        screen.height +
+                                        ",width=" +
+                                        screen.width
+                                    );
+                                }}
+                            >
+                                <i className="pi pi-credit-card primary_color"></i>
+                            </Button>
+                        </Tooltip>
+
+                        <Tooltip placement="topRight" title="Danh sách đơn">
+                            <Button className="default_button">
+                                <i className="pi pi-list sub_text_color"></i>
+                            </Button>
+                        </Tooltip>
+                    </div>
                 </div>
                 <div className="right-panel">
                     <OrderList
@@ -149,6 +178,7 @@ const POSPage = () => {
                     />
                 </div>
             </div>
+
 
             <SelectTableModal
                 visible={isModalVisible}

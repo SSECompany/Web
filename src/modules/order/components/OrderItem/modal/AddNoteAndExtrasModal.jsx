@@ -2,11 +2,10 @@ import { Button, Checkbox, Col, Input, Modal, Row } from "antd";
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { addExtrasToOrder } from "../../../../../store/reducers/order";
-
+import "./AddNoteAndExtrasModal.css";
 export default function AddNoteAndExtrasModal({ isVisible, onClose, orderIndex }) {
     const [note, setNote] = useState("");
     const [extras, setExtras] = useState([]);
-    console.log("🚀 ~ AddNoteAndExtrasModal ~ extras:", extras)
     const dispatch = useDispatch();
 
     const selectedItem = useSelector((state) => state.orders.selectedItem);
@@ -16,9 +15,11 @@ export default function AddNoteAndExtrasModal({ isVisible, onClose, orderIndex }
 
     useEffect(() => {
         if (isVisible) {
-            const currentOrder = orders?.[activeTabId]?.[orderIndex] || {};
+            const currentTab = orders.find((tab) => tab.tableId === activeTabId) || {};
+            const currentOrder = currentTab.detail?.[orderIndex] || {};
             const currentOrderExtras = currentOrder.extras || [];
-            const savedNote = currentOrder.note || "";
+            const savedNote = currentOrder.ghi_chu || "";
+
             setExtras((prevExtras) => {
                 if (prevExtras.length > 0) return prevExtras;
                 return listItemExtra.map((item) => {
@@ -34,7 +35,8 @@ export default function AddNoteAndExtrasModal({ isVisible, onClose, orderIndex }
             });
             setNote(savedNote);
         }
-    }, [isVisible, listItemExtra, orders, activeTabId, orderIndex]);
+    }, [listItemExtra, orders, activeTabId]);
+
 
 
     const handleCheckboxChange = (id) => {
@@ -95,6 +97,7 @@ export default function AddNoteAndExtrasModal({ isVisible, onClose, orderIndex }
                     Lưu
                 </Button>,
             ]}
+            className="main-modal"
         >
             <div style={{ marginBottom: "20px" }}>
                 <Input.TextArea
@@ -104,7 +107,7 @@ export default function AddNoteAndExtrasModal({ isVisible, onClose, orderIndex }
                     onChange={(e) => setNote(e.target.value)}
                 />
             </div>
-            <div>
+            <div className="popup-info">
                 {extras.map((extra) => (
                     <Row
                         key={extra.ma_vt_more}
@@ -117,17 +120,18 @@ export default function AddNoteAndExtrasModal({ isVisible, onClose, orderIndex }
                                 onChange={() =>
                                     handleCheckboxChange(extra.ma_vt_more)
                                 }
+                                className="custom-checkbox"
                             />
                         </Col>
-                        <Col span={14}>
+                        <Col span={14} style={{ paddingLeft: "5px" }}>
                             <span>{extra.ten_vt}</span>
                         </Col>
-                        <Col span={4} style={{ textAlign: "right" }}>
+                        <Col span={4} style={{ textAlign: "center" }}>
                             <span>
                                 {extra.price?.toLocaleString() || extra.gia?.toLocaleString() || "0"}đ
                             </span>
                         </Col>
-                        <Col span={5} style={{ textAlign: "center" }}>
+                        <Col className="update-quantity" span={5} style={{ textAlign: "center" }}>
                             <Button
                                 size="small"
                                 onClick={() =>
