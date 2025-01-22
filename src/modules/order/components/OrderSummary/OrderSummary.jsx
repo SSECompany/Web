@@ -69,9 +69,9 @@ export default function OrderSummary({ total, itemCount }) {
             const response = await multipleTablePutApi({
                 store: "Api_create_retail_order",
                 param: {
-                    StoreID: storeId,
-                    unitId: unitId,
-                    userId: userId,
+                    StoreID: "",
+                    unitId: "1BVBD",
+                    userId: 10036,
                 },
                 data: {
                     master: [masterData],
