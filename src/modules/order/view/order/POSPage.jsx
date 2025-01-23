@@ -1,5 +1,5 @@
 import { Button, Tabs, Tooltip } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../../api";
 import Loading from "../../../../components/Loading/Loading";
@@ -9,6 +9,7 @@ import {
     addTab,
     removeTab,
     setListCategory,
+    setListOrderInfo,
     setListOrderTable,
     switchTab
 } from "../../../../store/reducers/order";
@@ -16,12 +17,15 @@ import Category from "../../components/Category/Category";
 import MenuGrid from "../../components/Menu/MenuGrid";
 import OrderList from "../../components/OrderList/OrderList";
 import OrderSummary from "../../components/OrderSummary/OrderSummary";
+import RetailOrderListModal from "../../components/RetailOrderListModal/RetailOrderListModal";
 import "./POSPage.css";
+
 
 const POSPage = () => {
     const dispatch = useDispatch();
     const { activeTabId, orders } = useSelector((state) => state.orders);
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isOpenOrderList, setIsOpenOrderList] = useState(false);
 
     useEffect(() => {
         const fetchTableData = async () => {
@@ -73,6 +77,33 @@ const POSPage = () => {
         };
 
         fetchCategoryData();
+
+        const fetchListOrderData = async () => {
+            try {
+                const res = await multipleTablePutApi({
+                    store: "api_get_retail_order",
+                    param: {
+                        so_ct: "",
+                        ngay_ct: "",
+                        ma_kh: "",
+                        ten_kh: "",
+                        dien_thoai: "",
+                        pageIndex: 1,
+                        pageSize: 10,
+                        userId: 10036,
+                        storeId: "",
+                        unitId: "1BVBD "
+                    },
+                    data: {},
+                });
+                const data = res?.listObject[0];
+
+                dispatch(setListOrderInfo(data));
+            } catch (err) {
+                console.error("Error fetching data:", err);
+            }
+        };
+        fetchListOrderData();
     }, [dispatch]);
 
     useEffect(() => {
@@ -115,6 +146,17 @@ const POSPage = () => {
         const tab = orders.find((tab) => tab.tableId === activeTabId);
         return parseInt(tab?.master?.tong_sl || 0);
     };
+
+    const handleOrderListModal = useCallback(() => {
+        setIsOpenOrderList(!isOpenOrderList);
+    }, [isOpenOrderList]);
+
+
+    useEffect(() => {
+        localStorage.setItem("pos_orders", JSON.stringify(orders));
+        localStorage.setItem("pos_activeTabId", activeTabId || "");
+    }, [orders, activeTabId]);
+
     return (
         <div className="pos-page">
             <div className="main-container">
@@ -150,10 +192,7 @@ const POSPage = () => {
                                     window.open(
                                         `${window.location.origin}/transfer`,
                                         "Thanh toán",
-                                        "screenX=1,screenY=1,left=1,top=1,menubar=0,height=" +
-                                        screen.height +
-                                        ",width=" +
-                                        screen.width
+                                        `screenX=1,screenY=1,left=1,top=1,menubar=0,height=${window.screen.height},width=${window.screen.width}`
                                     );
                                 }}
                             >
@@ -162,7 +201,7 @@ const POSPage = () => {
                         </Tooltip>
 
                         <Tooltip placement="topRight" title="Danh sách đơn">
-                            <Button className="default_button">
+                            <Button className="default_button" onClick={handleOrderListModal} >
                                 <i className="pi pi-list sub_text_color"></i>
                             </Button>
                         </Tooltip>
@@ -184,6 +223,10 @@ const POSPage = () => {
                 visible={isModalVisible}
                 onCancel={() => setIsModalVisible(false)}
                 onConfirm={addNewTab}
+            />
+            <RetailOrderListModal
+                isOpen={isOpenOrderList}
+                onClose={handleOrderListModal}
             />
             <Loading />
         </div>

@@ -22,19 +22,17 @@ const homeRoutes = [
         element: <POSPage />,
         children: [],
       },
-      {
-        label: "Tranfering",
-        claims: "Permissions.Transfer",
-        path: "/transfer",
-        element: <TransferHub />,
-        index: true,
-      },
+
 
 
     ],
   },
-
-
+  {
+    label: "Tranfering",
+    path: "transfer",
+    element: <TransferHub />,
+    index: true,
+  },
   {
     path: "*",
   },

@@ -1,41 +1,15 @@
 import { EllipsisOutlined } from "@ant-design/icons";
 import { Button, Dropdown, Menu } from "antd";
 import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { addExtrasToOrder } from "../../../../store/reducers/order";
 import AddNoteAndExtrasModal from "./modal/AddNoteAndExtrasModal";
 import "./OrderItem.css";
 
 export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem, onAddNote }) {
     const [isModalVisible, setIsModalVisible] = useState(false);
-    const activeTabId = useSelector((state) => state.orders.activeTabId);
-
-    const dispatch = useDispatch();
 
     const handleAddNote = () => {
         onAddNote();
         setIsModalVisible(true);
-    };
-
-    const handleUpdateExtraQuantity = (ma_vt_more, increment) => {
-        const updatedExtras = item.extras.map((extra) => {
-            if (extra.ma_vt_more === ma_vt_more) {
-                return {
-                    ...extra,
-                    quantity: Math.max(1, extra.quantity + increment),
-                };
-            }
-            return extra;
-        });
-
-        dispatch(
-            addExtrasToOrder({
-                tableId: activeTabId,
-                orderIndex: index,
-                extras: updatedExtras,
-                note: item.ghi_chu || "",
-            })
-        );
     };
 
     const menu = (

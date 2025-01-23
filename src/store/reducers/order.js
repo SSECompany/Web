@@ -4,6 +4,7 @@ const initialState = {
     activeTabId: null,
     orders: [],
     listOrderTable: [],
+    listOrderInfo: [],
     listCategory: [],
     selectedCategory: {
         loai_nh: 1,
@@ -39,6 +40,7 @@ const orders = createSlice({
             }
             state.activeTabId = tableId;
         },
+
         updateTabTableName: (state, action) => {
             const { tableId, tableName } = action.payload;
             const tab = state.orders.find((tab) => tab.tableId === state.activeTabId);
@@ -48,6 +50,7 @@ const orders = createSlice({
                 state.activeTabId = tableId;
             }
         },
+
         addProductToTab: (state, action) => {
             const { tableId, product } = action.payload;
             const tab = state.orders.find((tab) => tab.tableId === tableId);
@@ -73,6 +76,7 @@ const orders = createSlice({
                     .toString();
             }
         },
+
         addExtrasToOrder: (state, action) => {
             const { tableId, orderIndex, extras, note } = action.payload;
             const tab = state.orders.find((tab) => tab.tableId === tableId);
@@ -80,39 +84,41 @@ const orders = createSlice({
             if (tab) {
                 const mainProduct = tab.detail[orderIndex];
                 if (mainProduct) {
-                    mainProduct.extras = extras.map((extra) => {
-                        const existingExtra = mainProduct.extras?.find(
-                            (e) => e.ma_vt === extra.ma_vt
-                        );
-                        return {
+                    // Xóa bỏ extras cũ trước khi thêm mới
+                    console.log("Before Update Extras:", mainProduct.extras);
+
+                    mainProduct.extras = extras
+                        .filter((extra) => extra.quantity > 0)
+                        .map((extra) => ({
                             ...extra,
-                            quantity: existingExtra
-                                ? Math.max(1, extra.quantity)
-                                : extra.quantity,
-                        };
-                    });
+                            quantity: extra.quantity,
+                        }));
+
+                    console.log("After Update Extras:", mainProduct.extras);
+
                     mainProduct.ghi_chu = note;
-                    // Tính tổng tiền món chính
+
                     const mainTotal = parseFloat(mainProduct.don_gia) * mainProduct.so_luong;
-                    // Tính tổng tiền món phụ (extras)
                     const extrasTotal = mainProduct.extras.reduce(
-                        (sum, extra) =>
-                            sum +
-                            (extra.gia || 0) * extra.quantity * mainProduct.so_luong,
+                        (sum, extra) => sum + extra.gia * extra.quantity * mainProduct.so_luong,
                         0
                     );
-                    // Ghi đè lại thành tiền món chính
+
                     mainProduct.thanh_tien = (mainTotal + extrasTotal).toFixed(0);
-                    // Cập nhật tổng tiền và tổng số lượng của tab
+
                     tab.master.tong_tien = tab.detail
                         .reduce((sum, item) => sum + parseFloat(item.thanh_tien), 0)
                         .toFixed(0);
+
                     tab.master.tong_sl = tab.detail
                         .reduce((sum, item) => sum + parseInt(item.so_luong), 0)
                         .toString();
+
+                    localStorage.setItem("pos_orders", JSON.stringify(state.orders));
                 }
             }
         },
+
         updateProductQuantity: (state, action) => {
             const { tableId, productIndex, increment } = action.payload;
             const tab = state.orders.find((tab) => tab.tableId === tableId);
@@ -167,6 +173,7 @@ const orders = createSlice({
                 state.activeTabId = state.orders.length ? state.orders[0].tableId : null;
             }
         },
+
         clearTabData: (state, action) => {
             const tableId = action.payload; // Lấy tableId từ payload
             state.orders = state.orders.filter((tab) => tab.tableId !== tableId); // Xóa tab có tableId khớp
@@ -174,6 +181,7 @@ const orders = createSlice({
                 state.activeTabId = state.orders.length ? state.orders[0].tableId : null; // Đặt tab khác làm active nếu còn tab
             }
         },
+
         setListOrderTable: (state, action) => {
             state.listOrderTable = action.payload;
         },
@@ -191,6 +199,9 @@ const orders = createSlice({
         },
         setListItemExtra: (state, action) => {
             state.listItemExtra = action.payload;
+        },
+        setListOrderInfo: (state, action) => {
+            state.listOrderInfo = action.payload;
         },
         switchTab: (state, action) => {
             const newActiveTabId = action.payload;
@@ -218,7 +229,8 @@ export const {
     addExtrasToOrder,
     updateMasterData,
     updateTabTableName,
-    clearTabData
+    clearTabData,
+    setListOrderInfo
 } = orders.actions;
 
 export default orders.reducer;
