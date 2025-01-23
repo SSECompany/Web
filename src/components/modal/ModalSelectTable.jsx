@@ -4,7 +4,12 @@ import { useSelector } from "react-redux";
 
 const { Option } = Select;
 
-const SelectTableModal = ({ visible, onCancel, onConfirm }) => {
+const SelectTableModal = ({
+    visible,
+    onCancel,
+    onConfirm,
+    modalTitle = "Chọn bàn"
+}) => {
     const [selectedTable, setSelectedTable] = useState(null);
 
     const tables = useSelector((state) => state.orders.listOrderTable);
@@ -12,14 +17,14 @@ const SelectTableModal = ({ visible, onCancel, onConfirm }) => {
     const handleOk = () => {
         if (selectedTable) {
             const selectedData = tables.find((table) => table.id === selectedTable);
-            onConfirm(selectedData); 
+            onConfirm(selectedData);
             setSelectedTable(null);
         }
     };
 
     return (
         <Modal
-            title="Chọn bàn"
+            title={modalTitle}
             visible={visible}
             onOk={handleOk}
             onCancel={onCancel}

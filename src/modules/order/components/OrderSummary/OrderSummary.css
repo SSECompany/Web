@@ -10,25 +10,15 @@
 .summary-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
 }
 
-.summary-button {
-  width: 150px;
+.summary-button,
+.qr-code-button,
+.select-table-button {
+  width: 160px;
+  height: auto;
   padding: 10px;
-  margin-right: 5px;
-  background-color: #007bff;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.summary-button.primary {
-  width: 150px;
-  padding: 10px;
-  margin-right: 5px;
-  background-color: #28a745;
-  color: #fff;
   border: none;
   border-radius: 4px;
   font-size: 16px;
@@ -37,18 +27,41 @@
   transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
+.summary-button.primary {
+  background-color: #28a745;
+  color: #fff;
+}
+
 .summary-button.primary:hover:not(:disabled) {
   background-color: #218838;
   transform: scale(1.05);
 }
 
-.summary-button.primary:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
+.qr-code-button {
+  background-color: #17a2b8;
+  color: #fff;
 }
 
-.summary-button:last-child {
-  margin-right: 0;
+.qr-code-button:hover:not(:disabled) {
+  background-color: #138496;
+  transform: scale(1.05);
+}
+
+.select-table-button {
+  background-color: #ffc107;
+  color: #fff;
+}
+
+.select-table-button:hover:not(:disabled) {
+  background-color: #e0a800;
+  transform: scale(1.05);
+}
+
+.summary-button.primary:disabled,
+.qr-code-button:disabled,
+.select-table-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
 }
 
 .summary-total {
@@ -56,6 +69,7 @@
   gap: 10px;
   align-items: center;
 }
+
 .summary-total_font {
   font-size: 18px;
   font-weight: bold;
@@ -64,7 +78,7 @@
 .summary-count {
   display: flex;
   background-color: #8e8b84;
-  color: black;
+  color: white;
   font-size: 14px;
   font-weight: bold;
   padding: 10px 6px;
@@ -73,28 +87,4 @@
   min-width: 20px;
   justify-content: center;
   align-items: center;
-}
-
-.qr-code-button {
-  width: 150px;
-  padding: 10px;
-  margin-right: 5px;
-  background-color: #17a2b8;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-.qr-code-button:hover:not(:disabled) {
-  background-color: #138496;
-  transform: scale(1.05);
-}
-
-.qr-code-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
 }
