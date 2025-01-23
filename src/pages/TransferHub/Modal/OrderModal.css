@@ -1,0 +1,54 @@
+.custom_table .text-left {
+  font-size: 20px !important;
+}
+
+.text-left,
+.text-right {
+  color: black !important;
+}
+.custom_table {
+  border-radius: 10px;
+  color: black;
+  padding: 20px;
+}
+
+.custom_table .ant-table {
+  background-color: white;
+  color: black;
+}
+
+.custom_table .ant-table-thead > tr > th {
+  background-color: #f0f4fa;
+  color: #000;
+  font-weight: bold;
+}
+
+.custom_table .ant-table-tbody > tr > td {
+  color: black;
+}
+
+.custom_table .ant-table-tbody > tr:hover {
+  background-color: #e2e8f0;
+}
+
+.custom_table .line-height-4 {
+  border-radius: 5px;
+  background-color: #d9ebf8;
+  padding: 15px;
+}
+
+.custom_table .summary-item {
+  display: flex;
+  justify-content: space-between;
+  margin: 5px 0;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.custom_table .summary-item span {
+  margin-right: 10px;
+}
+
+.main-modal .ant-modal-wrap.ant-modal-centered {
+  background-color: #000;
+}

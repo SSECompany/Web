@@ -18,16 +18,6 @@
   overflow: hidden;
 }
 
-.left-middle-panel {
-  width: 65%;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-  border-right: 1px solid #ddd;
-  overflow-y: auto;
-}
-
 .right-panel {
   width: 35%;
   padding: 16px;
@@ -108,4 +98,50 @@
   background-color: #f9f9f9;
   padding: 16px;
   border-radius: 8px;
+}
+
+.left-middle-panel {
+  width: 65%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border-right: 1px solid #ddd;
+  overflow-y: auto;
+  position: relative;
+}
+
+.tool-tip {
+  position: fixed;
+  bottom: 0;
+  left: 5px;
+  width: calc(65% - 17px);
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  border-radius: 7px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.tool-tip button {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tool-tip button:hover {
+  background-color: #f0f0f0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tool-tip button i {
+  font-size: 18px;
+  color: #ff6600;
 }
