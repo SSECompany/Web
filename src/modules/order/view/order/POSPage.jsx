@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../../api";
 import Loading from "../../../../components/Loading/Loading";
 import SelectTableModal from "../../../../components/modal/ModalSelectTable";
+import Navbar from "../../../../components/Navbar/Navbar";
 import {
     addProductToTab,
     addTab,
@@ -13,6 +14,7 @@ import {
     setListOrderTable,
     switchTab
 } from "../../../../store/reducers/order";
+import jwt from "../../../../utils/jwt";
 import Category from "../../components/Category/Category";
 import MenuGrid from "../../components/Menu/MenuGrid";
 import OrderList from "../../components/OrderList/OrderList";
@@ -158,7 +160,11 @@ const POSPage = () => {
     }, [orders, activeTabId]);
 
     return (
-        <div className="pos-page">
+
+        <div div className="pos-page" >
+            <div>
+                {jwt.checkExistToken() && <Navbar />}
+            </div>
             <div className="main-container">
                 <div className="left-middle-panel">
                     <div className="tabs-menu-container">
@@ -173,6 +179,7 @@ const POSPage = () => {
                                     removeTabHandler(targetKey);
                                 }
                             }}
+                            className="test"
                         >
                             {orders.map((tab) => (
                                 <Tabs.TabPane tab={tab.tableName} key={tab.tableId}>
@@ -183,7 +190,6 @@ const POSPage = () => {
                         </Tabs>
                     </div>
 
-                    {/* Tool-tip Div */}
                     <div className="tool-tip">
                         <Tooltip placement="topRight" title="Thanh toán">
                             <Button
@@ -229,7 +235,7 @@ const POSPage = () => {
                 onClose={handleOrderListModal}
             />
             <Loading />
-        </div>
+        </div >
     );
 };
 

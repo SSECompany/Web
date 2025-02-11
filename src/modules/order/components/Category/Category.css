@@ -9,11 +9,11 @@
 .categories {
   display: flex;
   flex-wrap: wrap;
+  gap: 5px;
 }
 
 .category {
   padding: 10px 15px;
-  margin-right: 10px;
   border: 1px solid #ddd;
   background-color: #f9f9f9;
   cursor: pointer;
