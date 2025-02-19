@@ -71,6 +71,7 @@
 .navbar_avatar_container {
   height: 30px;
   width: 30px;
+  display: flex;
 }
 
 .navbar_avatar_container img {

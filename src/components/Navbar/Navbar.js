@@ -1,3 +1,4 @@
+import { DownOutlined } from '@ant-design/icons';
 import { UilSearch } from "@iconscout/react-unicons";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -251,7 +252,7 @@ const Navbar = () => {
   }, [routeLocation]);
 
   return (
-    <div className={`navbar${isHideNav ? " hiden" : ""}`}>
+    <div className={`navbar${isHideNav ? "hidden" : ""}`}>
       <div className="first_navbar_row_left">
         <div className="navbar_logo_functions">
           <img
@@ -313,11 +314,8 @@ const Navbar = () => {
                 placement="bottomRight"
                 trigger={["click"]}
               >
-                <img
-                  className="navbar_avatar"
-                  src="https://i.ex-cdn.com/mgn.vn/files/content/2023/02/14/hutao-yelan-banner-revenue-1-1657.jpg"
-                  alt=""
-                />
+
+                <DownOutlined />
               </Dropdown>
             </div>
           </li>
