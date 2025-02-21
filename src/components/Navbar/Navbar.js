@@ -1,13 +1,13 @@
+import { DownOutlined } from "@ant-design/icons";
+import { Dropdown, Menu, Modal } from "antd";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import "./Navbar.css";
-
-import { Dropdown, Menu, Modal } from "antd";
 import { Link, useLocation } from "react-router-dom";
 import { getRoutesAccess } from "../../app/Functions/getRouteAccess";
 import router, { routes } from "../../router/routes";
 import { setClaims, setIsBackgrouds } from "../../store/reducers/claimsSlice";
 import jwt from "../../utils/jwt";
+import "./Navbar.css";
 
 const Navbar = () => {
 
@@ -82,7 +82,7 @@ const Navbar = () => {
               onClick={handleSetBackground}
               className="default_header_label"
             >
-              PHENIKA
+              PHENIKAA
             </span>
           </div>
         </div>
@@ -117,11 +117,7 @@ const Navbar = () => {
                 placement="bottomRight"
                 trigger={["click"]}
               >
-                <img
-                  className="navbar_avatar"
-                  src="/default-img.jpg"
-                  alt=""
-                />
+                <DownOutlined />
               </Dropdown>
             </div>
           </li>

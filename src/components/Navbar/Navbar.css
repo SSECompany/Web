@@ -70,6 +70,9 @@
 .navbar_avatar_container {
   height: 30px;
   width: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .navbar_avatar_container img {
@@ -207,4 +210,13 @@
 
 .modal_home_search .modal_search_results_item:hover span {
   color: white;
+}
+
+.primary_text_color {
+  display: flex;
+  align-items: center;
+}
+
+.primary_bold_text {
+  padding-left: 10px;
 }

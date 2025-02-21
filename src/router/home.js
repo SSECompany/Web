@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import { Navigate, Outlet, useLocation, useParams } from "react-router-dom";
 import App from "../App";
+import GenerateQR from "../components/QRCode/GenerateQR/GenerateQR";
 import POSPage from "../modules/order/view/order/POSPage";
 import TransferHub from "../pages/TransferHub/TransferHub";
 
@@ -56,6 +57,12 @@ const homeRoutes = [
         label: "Transferring",
         path: "transfer",
         element: <TransferHub />,
+        index: true,
+      },
+      {
+        label: "Generate QR",
+        path: "generate-qr",
+        element: <GenerateQR />,
         index: true,
       },
       {

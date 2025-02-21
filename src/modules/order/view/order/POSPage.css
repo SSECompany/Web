@@ -20,13 +20,12 @@
 }
 
 .right-panel {
-  width: 35%;
+  width: 45%;
   padding: 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 16px;
-  overflow-y: auto;
 }
 
 .tabs-menu-container {
@@ -101,22 +100,20 @@
 }
 
 .left-middle-panel {
-  width: 65%;
+  width: 55%;
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 16px;
   border-right: 1px solid #ddd;
-  overflow-y: auto;
   position: relative;
 }
 
-/* Tooltip: Ẩn trên tablet & mobile */
 .tool-tip {
   position: fixed;
   bottom: 0;
   left: 5px;
-  width: calc(65% - 17px);
+  width: calc(55% - 17px);
   background-color: #fff;
   display: flex;
   align-items: center;
@@ -154,6 +151,8 @@
 @media (max-width: 768px) {
   .main-container {
     flex-direction: column;
+    overflow: scroll;
+    padding-bottom: 50px;
   }
   .left-middle-panel {
     width: 100%;
@@ -181,5 +180,17 @@
   }
   .pos-page {
     height: auto;
+  }
+  .App {
+    overflow: hidden;
+  }
+  .order-item-main {
+    grid-template-columns: 20px 1fr 130px 65px 20px;
+  }
+  .order-item {
+    padding: 10px 10px 10px 0;
+  }
+  .quantity-controls span {
+    padding: 4px;
   }
 }

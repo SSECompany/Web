@@ -39,8 +39,10 @@
   color: #212529;
   font-weight: 600;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
+  word-wrap: break-word;
+  max-width: 100%;
 }
 
 /* Giá sản phẩm */
