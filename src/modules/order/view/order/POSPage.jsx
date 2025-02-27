@@ -23,6 +23,7 @@ import RetailOrderListModal from "../../components/RetailOrderListModal/RetailOr
 import "./POSPage.css";
 
 
+
 const POSPage = () => {
     const dispatch = useDispatch();
     const { activeTabId, orders } = useSelector((state) => state.orders);
@@ -159,6 +160,17 @@ const POSPage = () => {
         localStorage.setItem("pos_activeTabId", activeTabId || "");
     }, [orders, activeTabId]);
 
+
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(err => {
+                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen().then(() => setIsFullscreen(false));
+        }
+    };
     return (
 
         <div div className="pos-page" >
@@ -195,11 +207,17 @@ const POSPage = () => {
                             <Button
                                 className="default_button"
                                 onClick={() => {
-                                    window.open(
-                                        `${window.location.origin}/transfer`,
+                                    const screenWidth = window.screen.width;
+                                    const screenHeight = window.screen.height;
+                                    const paymentWindow = window.open(
+                                        "/transfer",
                                         "Thanh toán",
-                                        `screenX=1,screenY=1,left=1,top=1,menubar=0,height=${window.screen.height},width=${window.screen.width}`
+                                        `left=${screenWidth},top=0,width=1080,height=1920`
                                     );
+
+                                    if (!paymentWindow) {
+                                        alert("Vui lòng bật popup trên trình duyệt!");
+                                    }
                                 }}
                             >
                                 <i className="pi pi-credit-card primary_color"></i>
@@ -209,6 +227,12 @@ const POSPage = () => {
                         <Tooltip placement="topRight" title="Danh sách đơn">
                             <Button className="default_button" onClick={handleOrderListModal} >
                                 <i className="pi pi-list sub_text_color"></i>
+                            </Button>
+                        </Tooltip>
+
+                        <Tooltip placement="topRight" title={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}>
+                            <Button onClick={toggleFullscreen} className="default_button">
+                                <i className={`pi pi-arrows-alt ${isFullscreen ? "sub_text_color" : "gray_text_color"}`} style={{ fontWeight: "bold" }}></i>
                             </Button>
                         </Tooltip>
                     </div>

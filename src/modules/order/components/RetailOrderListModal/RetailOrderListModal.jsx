@@ -4,7 +4,6 @@ import { useSelector } from "react-redux";
 import "./RetailOrderListModal.css";
 
 const RetailOrderListModal = ({ isOpen, onClose }) => {
-  const [totalRecord, setTotalRecord] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(5); // Số lượng bản ghi trên mỗi trang
   const data = useSelector((state) => state.orders?.listOrderInfo) || [];

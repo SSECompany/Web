@@ -1,4 +1,4 @@
-import { DownOutlined } from "@ant-design/icons";
+import { MoreOutlined } from "@ant-design/icons";
 import { Dropdown, Menu, Modal } from "antd";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -117,7 +117,7 @@ const Navbar = () => {
                 placement="bottomRight"
                 trigger={["click"]}
               >
-                <DownOutlined />
+                <MoreOutlined />
               </Dropdown>
             </div>
           </li>
