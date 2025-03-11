@@ -1,54 +1,71 @@
-import { Modal, Pagination, Table } from "antd";
-import React, { useState } from "react";
-import { useSelector } from "react-redux";
+import { Modal, Spin, Table } from "antd";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { multipleTablePutApi } from "../../../../api";
+import { setListOrderInfo } from "../../../../store/reducers/order";
 import "./RetailOrderListModal.css";
 
 const RetailOrderListModal = ({ isOpen, onClose }) => {
-  const [totalRecord, setTotalRecord] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(5); // Số lượng bản ghi trên mỗi trang
-  const data = useSelector((state) => state.orders?.listOrderInfo) || [];
+  const [pageSize, setPageSize] = useState(7);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [allData, setAllData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch();
 
-  // Cột cho bảng
-  const columns = [
-    {
-      title: "STT",
-      dataIndex: "stt",
-      key: "stt",
-      render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
-    },
-    {
-      title: "Mã KH",
-      dataIndex: "ma_kh",
-      key: "ma_kh",
-    },
-    {
-      title: "Số chứng từ",
-      dataIndex: "so_ct",
-      key: "so_ct",
-    },
-    {
-      title: "Ngày chứng từ",
-      dataIndex: "ngay_ct",
-      key: "ngay_ct",
-    },
-    {
-      title: "Thành tiền",
-      dataIndex: "t_tt",
-      key: "t_tt",
-      render: (value) => `${value.toLocaleString()} VND`,
-    },
-    {
-      title: "Trạng thái",
-      dataIndex: "statusName",
-      key: "statusName",
-    },
-  ];
+  const { id, storeId, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
 
-  // Xử lý khi chuyển trang
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
+  const fetchListOrderData = async () => {
+    setIsLoading(true);
+    try {
+      const res = await multipleTablePutApi({
+        store: "api_get_retail_order",
+        param: {
+          so_ct: "",
+          ngay_ct: "",
+          ma_kh: "",
+          ten_kh: "",
+          dien_thoai: "",
+          pageIndex: 1,
+          pageSize: 1000,
+          userId: id,
+          unitId: unitId,
+          storeId: storeId,
+        },
+        data: {},
+      });
+
+      const updatedData = Array.isArray(res?.listObject[0]) ? res.listObject[0] : [];
+      const paginationInfo = res?.listObject[2]?.[0] || {};
+      const totalRecords = paginationInfo.totalRecord || updatedData.length;
+
+      setAllData(updatedData);
+      setTotalRecords(totalRecords);
+      dispatch(setListOrderInfo(updatedData));
+    } catch (err) {
+      console.error("❌ Lỗi khi lấy danh sách đơn hàng:", err);
+    }
+    setIsLoading(false);
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchListOrderData();
+    }
+  }, [isOpen]);
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const currentData = allData.slice(startIndex, endIndex);
+
+  const columns = [
+    { title: "STT", dataIndex: "stt", key: "stt", render: (_, __, index) => startIndex + index + 1 },
+    { title: "Mã KH", dataIndex: "ma_kh", key: "ma_kh" },
+    { title: "Số chứng từ", dataIndex: "so_ct", key: "so_ct" },
+    { title: "Ngày chứng từ", dataIndex: "ngay_ct", key: "ngay_ct" },
+    { title: "Thành tiền", dataIndex: "t_tt", key: "t_tt", render: (value) => `${value.toLocaleString()} VND` },
+    { title: "Trạng thái", dataIndex: "statusName", key: "statusName" },
+  ];
 
   return (
     <Modal
@@ -63,29 +80,24 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       cancelButtonProps={{ style: { display: "none" } }}
     >
       <div className="retail__modal__Container">
-        <div className="h-full w-full flex flex-column gap-3">
-          <div className="h-full min-h-0">
-            <Table
-              dataSource={data.slice(
-                (currentPage - 1) * pageSize,
-                currentPage * pageSize
-              )}
-              columns={columns}
-              rowKey="id"
-              pagination={false}
-            />
-          </div>
-          <div className="align-self-end">
-            <Pagination
-              className="w-fit"
-              total={data.length}
-              pageSize={pageSize}
-              current={currentPage}
-              onChange={handlePageChange}
-              showSizeChanger={false}
-            />
-          </div>
-        </div>
+        {isLoading ? (
+          <Spin size="large" />
+        ) : (
+          <Table
+            dataSource={currentData}
+            columns={columns}
+            rowKey="id"
+            pagination={{
+              current: currentPage,
+              pageSize: pageSize,
+              total: totalRecords,
+              onChange: (page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              },
+            }}
+          />
+        )}
       </div>
     </Modal>
   );

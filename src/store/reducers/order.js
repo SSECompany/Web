@@ -7,9 +7,9 @@ const initialState = {
     listOrderInfo: [],
     listCategory: [],
     selectedCategory: {
-        loai_nh: 1,
-        ma_nh: "DOAN",
-        ten_nh: "DOAN",
+        loai_nh: "",
+        ma_nh: "",
+        ten_nh: "",
     },
     menuItems: [],
     selectedItem: {},
@@ -84,8 +84,6 @@ const orders = createSlice({
             if (tab) {
                 const mainProduct = tab.detail[orderIndex];
                 if (mainProduct) {
-                    // Xóa bỏ extras cũ trước khi thêm mới
-                    console.log("Before Update Extras:", mainProduct.extras);
 
                     mainProduct.extras = extras
                         .filter((extra) => extra.quantity > 0)
@@ -94,7 +92,6 @@ const orders = createSlice({
                             quantity: extra.quantity,
                         }));
 
-                    console.log("After Update Extras:", mainProduct.extras);
 
                     mainProduct.ghi_chu = note;
 

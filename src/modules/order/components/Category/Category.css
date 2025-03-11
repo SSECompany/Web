@@ -1,33 +1,90 @@
-.main {
+.category-container {
   display: flex;
-  flex-direction: column;
-  background-color: #fff;
-  padding: 10px;
-  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+  align-items: center;
+  position: relative;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 7px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-top: 5px;
 }
 
 .categories {
   display: flex;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  white-space: nowrap;
+  scroll-behavior: smooth;
+  padding: 10px 15px;
+  width: calc(100% - 60px);
+  border-radius: 8px;
+}
+
+.categories::-webkit-scrollbar {
+  display: none;
 }
 
 .category {
-  padding: 10px 15px;
-  margin-right: 10px;
-  border: 1px solid #ddd;
-  background-color: #f9f9f9;
+  background-color: white;
+  border: 2px solid #ddd;
+  padding: 12px 18px;
+  margin: 5px;
+  border-radius: 30px;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.3s, color 0.3s;
+  transition: all 0.3s ease-in-out;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 600;
+  color: #555;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.category:hover {
+  background-color: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
 }
 
 .category.active {
   background-color: #007bff;
-  color: #fff;
-  border-color: #007bff;
+  color: white;
+  font-weight: bold;
+  border: none;
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+  transform: scale(1.05);
 }
 
-.category:hover {
-  background-color: #007bff;
-  color: #fff;
+.scroll-btn {
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 10px;
+  position: absolute;
+  z-index: 10;
+  border-radius: 50%;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  width: 40px;
+}
+
+.scroll-btn:hover {
+  background-color: rgba(240, 240, 240, 0.95);
+  transform: scale(1.15);
+}
+
+.scroll-btn.left {
+  left: 10px;
+}
+
+.scroll-btn.right {
+  right: 10px;
+}
+
+ư.scroll-btn.hidden {
+  display: none;
 }

@@ -1,3 +1,4 @@
+import { isMobile } from "react-device-detect";
 import https from "../utils/https";
 import jwt from "../utils/jwt";
 
@@ -38,8 +39,13 @@ export const apiGetStoreByUser = async (payload) => {
     return res.data;
   });
 };
+
 export const multipleTablePutApi = async (payload) => {
-  return await https.post(`User/AddDataCustomerPre`, payload).then((res) => {
+  const isCustomerView = isMobile || window.location.pathname.includes("order");
+
+  const apiUrl = isCustomerView ? `User/AddDataCustomerPre` : `User/AddData`;
+
+  return await https.post(apiUrl, payload).then((res) => {
     return res?.data || [];
   });
 };

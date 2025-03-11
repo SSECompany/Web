@@ -39,8 +39,10 @@
   color: #212529;
   font-weight: 600;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
+  word-wrap: break-word;
+  max-width: 100%;
 }
 
 /* Giá sản phẩm */
@@ -148,4 +150,50 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Tiêu đề của bảng */
+.order-header {
+  display: grid;
+  grid-template-columns: 40px 1fr 140px 100px 40px;
+  align-items: center;
+  font-weight: bold;
+  background-color: #f1f3f5;
+  padding: 12px 20px;
+  border-bottom: 2px solid #ccc;
+  color: #333;
+  text-align: center;
+}
+
+/* Căn chỉnh từng phần tử trong tiêu đề */
+.order-header-index {
+  text-align: center;
+  font-weight: bold;
+}
+
+.order-header-name {
+  text-align: left;
+  margin-left: 10px;
+}
+
+.order-header-quantity {
+  text-align: center;
+}
+
+.order-header-price {
+  text-align: center;
+}
+
+.order-header-action {
+  text-align: right;
+}
+
+/* Hiệu ứng hover cho tiêu đề */
+.order-header:hover {
+  background-color: #e9ecef;
+}
+
+/* Điều chỉnh khoảng cách giữa header và danh sách */
+.order-item:first-child {
+  margin-top: 10px;
 }

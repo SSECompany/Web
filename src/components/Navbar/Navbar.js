@@ -1,0 +1,109 @@
+import { MoreOutlined } from "@ant-design/icons";
+import { Dropdown, Menu } from "antd";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Link, useLocation } from "react-router-dom";
+
+import { getRoutesAccess } from "../../app/Functions/getRouteAccess";
+import router, { routes } from "../../router/routes";
+import { setClaims, setIsBackgrouds } from "../../store/reducers/claimsSlice";
+import { getUserInfo } from "../../store/selectors/Selectors";
+import jwt from "../../utils/jwt";
+
+import "./Navbar.css";
+
+const Navbar = () => {
+  const dispatch = useDispatch();
+  const userInfo = useSelector(getUserInfo);
+  const routeLocation = useLocation();
+
+  useEffect(() => {
+    dispatch(setClaims(jwt.getClaims() || {}));
+  }, [dispatch]);
+
+  const handleLogout = async () => {
+    await jwt.resetAccessToken();
+    router.navigate("/login");
+    dispatch(setClaims([]));
+  };
+
+  const handleSetBackground = () => {
+    dispatch(setIsBackgrouds(true));
+  };
+
+  const handleRouteChange = async (data) => {
+    const { flatRoutes } = await getRoutesAccess(routes);
+    const validRoutes = ["", "/", "login", "transfer"];
+
+    if (
+      !validRoutes.includes(data?.pathname?.substring(1)) &&
+      flatRoutes.findIndex((item) => item.path === data?.pathname?.substring(1)) < 0
+    ) {
+    }
+  };
+
+  useEffect(() => {
+    handleRouteChange(routeLocation);
+  }, [routeLocation]);
+
+  const menuItems = [
+    {
+      key: "logout",
+      label: <Link onClick={handleLogout}>Đăng Xuất</Link>,
+      danger: true,
+    },
+  ];
+
+  return (
+    <div className="navbar">
+      <div className="first_navbar_row_left">
+        <div className="navbar_logo_functions">
+          <div className="navbar_search_function">
+            <span onClick={handleSetBackground} className="default_header_label">
+              PHENIKAA
+            </span>
+          </div>
+        </div>
+
+        <Menu
+          mode="horizontal"
+          className="navbar_routes"
+          style={{
+            lineHeight: "30px",
+            border: "none",
+            width: "100%",
+            minWidth: "0",
+            userSelect: "none",
+          }}
+        />
+      </div>
+
+      <div className="first_navbar_row_right flex gap-1">
+        <div className="px-1 text-center">
+          <div className="primary_bold_text">{userInfo?.fullName || ""}</div>
+          <div className="primary_text_color">
+            <i className="pi pi-map-marker mr-1"></i>
+            {userInfo?.storeName || ""}
+          </div>
+        </div>
+
+        <ul>
+          <li>
+            <div className="navbar_avatar_container">
+              <Dropdown
+                menu={{ items: menuItems }}
+                overlayClassName="navbar_avatar_dropdown"
+                placement="bottomRight"
+                trigger={["click"]}
+              >
+                <MoreOutlined />
+              </Dropdown>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+export default Navbar;

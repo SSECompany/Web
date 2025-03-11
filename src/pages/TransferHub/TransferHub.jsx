@@ -8,6 +8,7 @@ const TransferHub = () => {
   const [isTransfering, setIsTransfering] = useState(false);
   const [isSucceded, setIsSucceded] = useState(false);
 
+
   const handleCloseModal = () => {
     setIsTransfering(false);
     setIsSucceded(false);
