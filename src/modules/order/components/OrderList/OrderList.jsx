@@ -8,6 +8,7 @@ import "./OrderList.css";
 export default function OrderList({ order }) {
     const dispatch = useDispatch();
     const activeTabId = useSelector((state) => state.orders.activeTabId);
+    const { id, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
 
     const handleAddNote = async (item) => {
         dispatch(setSelectedItem(item));
@@ -17,10 +18,10 @@ export default function OrderList({ order }) {
                 param: {
                     Currency: "VND",
                     item: item.ma_vt,
-                    unitId: "1BVBD",
-                    userId: 10036,
+                    unitId: unitId,
+                    userId: id,
                     pageindex: 1,
-                    pagesize: 10,
+                    pagesize: 100,
                 },
                 data: {},
             });
@@ -46,17 +47,26 @@ export default function OrderList({ order }) {
     };
 
     return (
-        <ul className="order-list">
-            {order.map((item, index) => (
-                <OrderItem
-                    key={index}
-                    item={item}
-                    index={index}
-                    onUpdateQuantity={handleUpdateQuantity}
-                    onDeleteItem={() => handleDeleteItem(index)}
-                    onAddNote={() => handleAddNote(item)}
-                />
-            ))}
-        </ul>
+        <div >
+            <div className="order-header">
+                <span className="order-header-index">STT</span>
+                <span className="order-header-name"> Sản phẩm</span>
+                <span className="order-header-quantity">SL</span>
+                <span className="order-header-price">Giá</span>
+            </div>
+            <ul className="order-list">
+                {order.map((item, index) => (
+                    <OrderItem
+                        key={index}
+                        item={item}
+                        index={index}
+                        onUpdateQuantity={handleUpdateQuantity}
+                        onDeleteItem={() => handleDeleteItem(index)}
+                        onAddNote={() => handleAddNote(item)}
+                    />
+                ))}
+            </ul>
+
+        </div >
     );
 }

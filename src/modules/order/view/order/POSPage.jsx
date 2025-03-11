@@ -3,14 +3,13 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../../api";
 import Loading from "../../../../components/Loading/Loading";
-import SelectTableModal from "../../../../components/modal/ModalSelectTable";
+import SelectTableModal from "../../../../components/Modal/ModalSelectTable";
 import Navbar from "../../../../components/Navbar/Navbar";
 import {
     addProductToTab,
     addTab,
     removeTab,
     setListCategory,
-    setListOrderInfo,
     setListOrderTable,
     switchTab
 } from "../../../../store/reducers/order";
@@ -29,18 +28,23 @@ const POSPage = () => {
     const { activeTabId, orders } = useSelector((state) => state.orders);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isOpenOrderList, setIsOpenOrderList] = useState(false);
+    const { id, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
 
     useEffect(() => {
+        // if (!id || !unitId) {
+        //     return;
+        // }
+
         const fetchTableData = async () => {
             try {
                 const res = await multipleTablePutApi({
                     store: "api_getListRestaurantTables",
                     param: {
                         searchValue: "",
-                        unitId: "1BVBD",
-                        userId: 10036,
+                        unitId: unitId,
+                        userId: id,
                         pageindex: 1,
-                        pagesize: 10,
+                        pagesize: 100,
                     },
                     data: {},
                 });
@@ -50,10 +54,9 @@ const POSPage = () => {
                 })) || [];
                 dispatch(setListOrderTable(data));
             } catch (err) {
-                console.error("Error fetching data:", err);
+                console.error("❌ Lỗi khi lấy dữ liệu bàn:", err);
             }
         };
-        fetchTableData();
 
         const fetchCategoryData = async () => {
             try {
@@ -61,10 +64,10 @@ const POSPage = () => {
                     store: "api_getListItemGroup",
                     param: {
                         searchValue: "",
-                        unitId: "1BVBD",
-                        userId: 10036,
+                        unitId: unitId,
+                        userId: id,
                         pageindex: 1,
-                        pagesize: 10,
+                        pagesize: 1000,
                     },
                     data: {},
                 });
@@ -75,39 +78,13 @@ const POSPage = () => {
                 })) || [];
                 dispatch(setListCategory(data));
             } catch (err) {
-                console.error("Error fetching data:", err);
+                console.error("❌ Lỗi khi lấy dữ liệu danh mục:", err);
             }
         };
 
+        fetchTableData();
         fetchCategoryData();
-
-        const fetchListOrderData = async () => {
-            try {
-                const res = await multipleTablePutApi({
-                    store: "api_get_retail_order",
-                    param: {
-                        so_ct: "",
-                        ngay_ct: "",
-                        ma_kh: "",
-                        ten_kh: "",
-                        dien_thoai: "",
-                        pageIndex: 1,
-                        pageSize: 10,
-                        userId: 10036,
-                        storeId: "",
-                        unitId: "1BVBD "
-                    },
-                    data: {},
-                });
-                const data = res?.listObject[0];
-
-                dispatch(setListOrderInfo(data));
-            } catch (err) {
-                console.error("Error fetching data:", err);
-            }
-        };
-        fetchListOrderData();
-    }, [dispatch]);
+    }, [id, unitId, dispatch]);
 
     useEffect(() => {
         if (!activeTabId && orders.length === 0) {
@@ -160,17 +137,6 @@ const POSPage = () => {
         localStorage.setItem("pos_activeTabId", activeTabId || "");
     }, [orders, activeTabId]);
 
-
-    const [isFullscreen, setIsFullscreen] = useState(false);
-    const toggleFullscreen = () => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(err => {
-                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
-            });
-        } else {
-            document.exitFullscreen().then(() => setIsFullscreen(false));
-        }
-    };
     return (
 
         <div div className="pos-page" >
@@ -203,7 +169,7 @@ const POSPage = () => {
                     </div>
 
                     <div className="tool-tip">
-                        <Tooltip placement="topRight" title="Thanh toán">
+                        {/* <Tooltip placement="topRight" title="Thanh toán">
                             <Button
                                 className="default_button"
                                 onClick={() => {
@@ -222,7 +188,7 @@ const POSPage = () => {
                             >
                                 <i className="pi pi-credit-card primary_color"></i>
                             </Button>
-                        </Tooltip>
+                        </Tooltip> */}
 
                         <Tooltip placement="topRight" title="Danh sách đơn">
                             <Button className="default_button" onClick={handleOrderListModal} >
@@ -230,11 +196,6 @@ const POSPage = () => {
                             </Button>
                         </Tooltip>
 
-                        <Tooltip placement="topRight" title={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}>
-                            <Button onClick={toggleFullscreen} className="default_button">
-                                <i className={`pi pi-arrows-alt ${isFullscreen ? "sub_text_color" : "gray_text_color"}`} style={{ fontWeight: "bold" }}></i>
-                            </Button>
-                        </Tooltip>
                     </div>
                 </div>
                 <div className="right-panel">

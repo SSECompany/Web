@@ -7,14 +7,7 @@ const TransferHub = () => {
   const [qrSource, setQrSource] = useLocalStorage("QRimg", "");
   const [isTransfering, setIsTransfering] = useState(false);
   const [isSucceded, setIsSucceded] = useState(false);
-  const [isSecondaryScreen, setIsSecondaryScreen] = useState(false);
 
-  useEffect(() => {
-    if (window.opener) {
-      setIsSecondaryScreen(true);
-    }
-    console.log("Window opened from:", window.opener ? "Secondary Screen" : "Primary Screen");
-  }, []);
 
   const handleCloseModal = () => {
     setIsTransfering(false);

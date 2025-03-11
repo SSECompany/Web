@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../../../api";
-import { getUserInfo } from "../../../../store/selectors/Selectors";
 import PrintComponent from "./PrintComponent/PrintComponent";
 import "./PrintOrderModal.css";
 
 const PrintOrderModal = ({ item, isOpen, onClose }) => {
   const { so_ct, ngay_ct, stt_rec } = item;
-  const { id: userId, storeId, unitId } = useSelector(getUserInfo);
+  const { id, storeId, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
   const [message, contextHolder] = messageAPI.useMessage();
+
   const [master, setMaster] = useState({});
   const [detail, setDetail] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,9 +30,9 @@ const PrintOrderModal = ({ item, isOpen, onClose }) => {
       store: "api_get_infomation_print_PXI",
       param: {
         stt_rec,
-        UnitID: unitId,
-        StoreID: storeId,
-        userId,
+        unitId: unitId,
+        storeId: storeId,
+        userId: id,
       },
       data: {},
     }).then((res) => {

@@ -2,110 +2,52 @@ import { forwardRef } from "react";
 
 const PrintComponent = forwardRef(
   ({ master = {}, detail = [] }, ref) => {
-    var now = new Date()
-    return (
-      <div className="print-content" style={{ fontFamily: "tahoma", fontSize: 13, padding: "20px" }} ref={ref}>
-        <div
-          style={{
-            padding: "10px",
-            borderBottom: "1px dotted black",
-          }}
-        >
-          <label style={{ fontWeight: "bold", fontSize: 14 }}>
-            {master?.name_dvcs}
-          </label>
-          <br></br>
-          <label>{master?.address_bp}</label>
-          <br></br>
-          <label>{master?.tell_bp}</label>
-        </div>
+    var now = new Date();
 
-        <div style={{ textAlign: "center", marginTop: "10px" }}>
-          <span style={{ fontWeight: "bold", fontSize: 13 }}>
-            Hoá đơn
-          </span>
+    const formatNumber = (val) => {
+      if (!val) return "0";
+      return `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".").replace(/\.(?=\d{0,2}$)/g, ",");
+    };
+
+    return (
+      <div className="print-content" style={{ fontFamily: "Arial", fontSize: 13, padding: "12px", maxWidth: "250px" }} ref={ref}>
+        <div style={{ textAlign: "center", marginBottom: "8px" }}>
+          <label style={{ fontWeight: "bold", fontSize: 16 }}>HÓA ĐƠN</label>
           <br />
           <span>Ngày bán: {`${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`}</span>
-          <br />
-          <span>
-            Số chứng từ: {master?.so_ct || "Không có số CT"}
-          </span>
-          <br />
         </div>
 
-        <div
-          style={{
-            marginTop: 20,
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            padding: "10px",
-            marginBottom: 20
-          }}
-        >
-          <div><strong>Người nhận hàng:</strong> {master?.ong_ba || "Trống"}</div>
-          <div><strong>Diễn giải:</strong> {master?.dien_giai || "Trống"}</div>
-          <div><strong>Kho xuất:</strong> {master?.ten_kho || "Trống"}</div>
-          <div><strong>Kho nhập:</strong> {master?.ten_khon || "Trống"}</div>
+        <div style={{ paddingBottom: "6px", marginBottom: "6px" }}>
+          <div><strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}</div>
         </div>
 
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            marginBottom: "20px",
-            padding: "10px",
-          }}
-        >
+        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "6px" }}>
           <thead>
-            <tr style={{ textAlign: "center" }}>
-              <th style={{ borderRight: "1px solid black", borderBottom: "1px solid black", padding: "8px" }}>STT</th>
-              <th style={{ borderRight: "1px solid black", borderBottom: "1px solid black", padding: "8px" }}>Tên vật tư</th>
-              <th style={{ borderRight: "1px solid black", borderBottom: "1px solid black", padding: "8px" }}>Đvt</th>
-              <th style={{ borderBottom: "1px solid black", padding: "8px" }}>Số lượng</th>
+            <tr style={{ fontSize: 12 }}>
+              <th style={{ borderBottom: "1px solid black", padding: "3px", textAlign: "left", whiteSpace: "nowrap", width: "40%" }}>Tên món</th>
+              <th style={{ borderBottom: "1px solid black", padding: "3px", textAlign: "center", whiteSpace: "nowrap", width: "10%" }}>SL</th>
+              <th style={{ borderBottom: "1px solid black", padding: "3px", textAlign: "center", whiteSpace: "nowrap", width: "25%" }}>Giá</th>
+              <th style={{ borderBottom: "1px solid black", padding: "3px", textAlign: "center", whiteSpace: "nowrap", width: "25%" }}>Thành tiền</th>
             </tr>
           </thead>
           <tbody>
             {detail.map((item, index) => (
-              <tr key={index}>
-                <td style={{ borderRight: "1px solid black", textAlign: "center", padding: "8px" }}>{index + 1}</td>
-                <td style={{ borderRight: "1px solid black", textAlign: "center", padding: "8px" }}>{item?.ten_vt || "Trống"}</td>
-                <td style={{ borderRight: "1px solid black", textAlign: "center", padding: "8px" }}>{item?.dvt || "Trống"}</td>
-                <td style={{ textAlign: "center", padding: "8px" }}>{item?.so_luong || ""}</td>
+              <tr key={index} style={{ fontSize: 11 }}>
+                <td style={{ padding: "3px", whiteSpace: "nowrap" }}>{item?.ten_vt || "Trống"}</td>
+                <td style={{ padding: "3px", textAlign: "center" }}>{item?.so_luong || 1}</td>
+                <td style={{ padding: "3px", textAlign: "center" }}>{formatNumber(item?.don_gia) || "0"}đ</td>
+                <td style={{ padding: "3px", textAlign: "center" }}>{formatNumber(item?.thanh_tien) || "0"}đ</td>
               </tr>
             ))}
-            {detail.length === 0 && (
-              <tr>
-                <td colSpan={4} style={{ textAlign: "center", padding: "8px", border: "1px solid black" }}>
-                  Không có dữ liệu
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
 
-        <div style={{ marginTop: "30px", display: "flex", justifyContent: "space-evenly" }}>
-          <div style={{ textAlign: "center" }}>
-            <div>Người lập</div>
-            <div>(Ký, họ tên)</div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div>Người nhận hàng</div>
-            <div>(Ký, họ tên)</div>
-          </div>
+        <div style={{ borderTop: "1px solid black", paddingTop: "6px", fontWeight: "bold", textAlign: "right", fontSize: 15 }}>
+          Tổng tiền: {formatNumber(master?.tong_tien) || "0"}đ
         </div>
 
-
-        <div
-          style={{
-            marginTop: "30px",
-            borderBottom: "3px solid black",
-            padding: "10px 0px",
-          }}
-        >
-          <div style={{ width: "100%", marginTop: "30px" }} >
-            <span style={{ fontStyle: "italic", display: "flex", justifyContent: "center" }}>CẢM ƠN QUÝ KHÁCH</span>
-          </div>
+        <div style={{ textAlign: "center", marginTop: "12px", fontStyle: "italic", fontSize: 14 }}>
+          CẢM ƠN QUÝ KHÁCH, HẸN GẶP LẠI!
         </div>
       </div>
     );

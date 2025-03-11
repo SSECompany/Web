@@ -195,9 +195,6 @@ const Login = () => {
           </div>
           <div className="login_desciption">
             <h1 className="login_desciption_header">Hí, Chào mừng trở lại</h1>
-            {/* <span className="login_desciption_context">
-              Mình đợi hơi bị lâu rồi đấy
-            </span> */}
           </div>
           <Space className="default_space login_detail" direction="vertical">
             <Space

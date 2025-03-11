@@ -6,14 +6,15 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../../api";
-import SelectTableModal from "../../../../components/modal/ModalSelectTable";
+import SelectTableModal from "../../../../components/Modal/ModalSelectTable";
 import PrintComponent from "../../../../modules/order/components/OrderSummary/PrintOrderModal/PrintComponent/PrintComponent";
 import { clearTabData } from "../../../../store/reducers/order";
 import "./OrderSummary.css";
-import QRCodeComponent from "./QRCode/QRCode";
+import PaymentModal from "./PaymentModal/PaymentModal";
 
 export default function OrderSummary({ total, itemCount }) {
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
     const [modalType, setModalType] = useState(null);
     const [message, contextHolder] = messageAPI.useMessage();
 
@@ -22,7 +23,8 @@ export default function OrderSummary({ total, itemCount }) {
         state.orders?.orders?.find((tab) => tab.tableId === activeTabId)
     );
 
-    const { id: userId, storeId, unitId } = useSelector((state) => state.user || {});
+    const { id, storeId, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
+
     const dispatch = useDispatch();
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
@@ -44,7 +46,7 @@ export default function OrderSummary({ total, itemCount }) {
         }
     }, [printMaster, printDetail]);
 
-    const handlePreparePrint = () => {
+    const handlePreparePrint = (selectedPayments = ["tien_mat", "chuyen_khoan"], paymentAmounts = { tien_mat: "0", chuyen_khoan: "0" }) => {
         if (!activeTab) {
             message.warning("Không có dữ liệu để in!");
             return;
@@ -55,9 +57,10 @@ export default function OrderSummary({ total, itemCount }) {
             dien_giai: activeTab?.master?.dien_giai || "",
             tong_tien: parseFloat(activeTab?.master?.tong_tien || 0).toString(),
             tong_sl: parseInt(activeTab?.master?.tong_sl || 0).toString(),
-            tien_mat: "0",
-            qr: "0",
-            httt: "tien_mat,qr",
+            tien_mat: (paymentAmounts.tien_mat).toString() || "0",
+            chuyen_khoan: (paymentAmounts.chuyen_khoan).toString() || "0",
+            tong_tt: (parseFloat(paymentAmounts.tien_mat || 0) + parseFloat(paymentAmounts.chuyen_khoan || 0)).toString(),
+            httt: selectedPayments.join(","),
         };
 
         const detailData = activeTab?.detail?.flatMap((item) => {
@@ -99,12 +102,14 @@ export default function OrderSummary({ total, itemCount }) {
         setIsCreatingOrder(true);
 
         try {
-            const response = await multipleTablePutApi({
+            const payload = {
                 store: "Api_create_retail_order",
-                param: { StoreID: "", unitId: "1BVBD", userId: 10036 },
+                param: { StoreID: storeId, unitId: unitId, userId: id },
                 data: { master: [printMaster], detail: printDetail },
-            });
+            };
 
+
+            const response = await multipleTablePutApi(payload);
             if (response?.responseModel?.isSucceded) {
                 notification.success({ message: "Thực hiện thành công!" });
                 dispatch(clearTabData(activeTabId));
@@ -117,6 +122,19 @@ export default function OrderSummary({ total, itemCount }) {
         setIsCreatingOrder(false);
     };
 
+    const handleOpenPaymentModal = () => {
+        setIsPaymentModalVisible(true);
+    };
+
+    const handleClosePaymentModal = () => {
+        setIsPaymentModalVisible(false);
+    };
+
+    const handleConfirmPayment = (selectedPayments, paymentAmounts) => {
+        handleClosePaymentModal();
+        handlePreparePrint(selectedPayments, paymentAmounts);
+    };
+
     return (
         <div className="order-summary">
             <div className="summary-info">
@@ -126,6 +144,14 @@ export default function OrderSummary({ total, itemCount }) {
                     <p className="summary-total_font">{total.toLocaleString()}đ</p>
                 </span>
             </div>
+
+            <PaymentModal
+                visible={isPaymentModalVisible}
+                onClose={handleClosePaymentModal}
+                onConfirm={handleConfirmPayment}
+                total={total}
+            />
+
             <SelectTableModal
                 visible={isModalVisible}
                 onCancel={() => setIsModalVisible(false)}
@@ -140,6 +166,7 @@ export default function OrderSummary({ total, itemCount }) {
                 }}
                 modalTitle={modalType === "updateTable" ? "Chọn bàn cho tab hiện tại" : "Chọn bàn"}
             />
+
             <div className="summary-actions">
                 <button className="select-table-button" onClick={() => {
                     setModalType("updateTable");
@@ -147,14 +174,19 @@ export default function OrderSummary({ total, itemCount }) {
                 }}>
                     {activeTab?.tableName || "Chọn bàn"}
                 </button>
-                <QRCodeComponent activeTab={activeTab} userId={userId} storeId={storeId} unitId={unitId} />
-                <button className="summary-button primary" onClick={handlePreparePrint} disabled={isCreatingOrder || isPrinting}>
+                <button
+                    className="summary-button primary"
+                    onClick={handleOpenPaymentModal}
+                    disabled={isCreatingOrder || isPrinting}
+                >
                     Thanh toán
                 </button>
             </div>
+
             <div style={{ display: "none" }}>
                 <PrintComponent ref={printContent} master={printMaster} detail={printDetail} />
             </div>
+
             {contextHolder}
         </div>
     );

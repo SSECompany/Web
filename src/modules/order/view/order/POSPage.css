@@ -1,28 +1,29 @@
 .pos-page {
   display: flex;
-  justify-content: center;
   padding: 0;
   margin: 0;
-  height: 100vh;
   box-sizing: border-box;
   background-color: #f5f5f5;
   flex-direction: column;
+  overflow: auto;
 }
 
 .main-container {
   display: flex;
   width: 100%;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  height: 100vh;
+  overflow: auto;
+}
+
+.main-container::-webkit-scrollbar {
+  display: none;
 }
 
 .right-panel {
-  width: 45%;
+  width: 40%;
   padding: 10px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   gap: 10px;
 }
 
@@ -84,7 +85,7 @@
 }
 
 .left-middle-panel {
-  width: 55%;
+  width: 60%;
   display: flex;
   flex-direction: column;
   padding: 10px;
@@ -96,7 +97,7 @@
   position: fixed;
   bottom: 10px;
   left: 5px;
-  width: calc(55% - 17px);
+  width: calc(60% - 17px);
   background-color: #fff;
   display: flex;
   align-items: center;
@@ -131,11 +132,14 @@
 }
 
 /* Responsive cho Mobile */
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
+  .pos-page {
+    height: 100vh;
+  }
   .main-container {
     flex-direction: column;
     overflow: scroll;
-    padding-bottom: 50px;
+    padding-bottom: 20px;
   }
   .left-middle-panel {
     width: 100%;
@@ -143,6 +147,7 @@
   }
   .right-panel {
     width: 100%;
+    margin-top: 30px;
   }
   .menu-section {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -154,19 +159,14 @@
     display: none;
   }
   .order-list {
-    flex: none;
-    height: 35vh;
+    height: 45vh;
+    padding: 5px;
   }
   .menu-grid {
-    height: 35vh;
+    height: 45vh;
     grid-template-columns: repeat(2, 1fr);
   }
-  .pos-page {
-    height: auto;
-  }
-  .App {
-    overflow: hidden;
-  }
+
   .order-item-main {
     grid-template-columns: 20px 1fr 130px 65px 20px;
   }
@@ -175,5 +175,55 @@
   }
   .quantity-controls span {
     padding: 4px;
+  }
+  .login_container_right {
+    display: none;
+  }
+  .order-summary {
+    margin-top: 30px;
+  }
+  .order-header {
+    padding: 12px 0;
+  }
+  .order-item-name {
+    font-size: 14px;
+  }
+  .login_logo_company_name,
+  .login_logo_company_name span {
+    line-height: 25px;
+    font-size: 40px;
+  }
+  .login_container_left {
+    padding-top: 30px;
+  }
+  .login_desciption_header {
+    font-size: 24px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .order-header {
+    grid-template-columns: 10% 35% 18% 26% 0;
+  }
+
+  .order-item-main {
+    grid-template-columns: 10% 35% 22% 27% 0;
+  }
+
+  .quantity-controls button {
+    width: 25px;
+    height: 25px;
+  }
+
+  .order-item-price {
+    font-size: 12px;
+  }
+  .main-container {
+    padding-bottom: 60px;
+  }
+  .payment-option {
+    padding: 10px 0px;
+    font-size: 12px;
+    width: 100px;
   }
 }
