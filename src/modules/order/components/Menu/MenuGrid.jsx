@@ -16,7 +16,9 @@ export default function MenuGrid({ onAdd }) {
                             name: item.label,
                             price: item.gia,
                             unit: item.dvt,
-                            id: item.value
+                            id: item.value,
+                            image: item.image
+
                         }}
                         onAdd={onAdd}
                     />

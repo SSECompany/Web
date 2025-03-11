@@ -59,9 +59,7 @@ export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem,
                         {item.extras.map((extra) => (
                             <li key={extra.ma_vt_more} className="order-extra-item">
                                 <span className="extra-name">+ {extra.ten_vt}</span>
-
                                 <span className="extra-quantity">{extra.quantity}</span>
-
                                 <span className="extra-price">
                                     {(extra.gia || extra.price)?.toLocaleString()}đ
                                 </span>

@@ -57,8 +57,6 @@ instance.interceptors.response.use(
 
         const [newToken, newRefreshToken] = await refreshingFunc;
 
-        console.log(newRefreshToken, newToken);
-
         await jwt.setRefreshToken(newRefreshToken);
         await jwt.setAccessToken(newToken);
 

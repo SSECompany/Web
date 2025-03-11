@@ -3,16 +3,17 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../../api";
 import Loading from "../../../../components/Loading/Loading";
-import SelectTableModal from "../../../../components/modal/ModalSelectTable";
+import SelectTableModal from "../../../../components/Modal/ModalSelectTable";
+import Navbar from "../../../../components/Navbar/Navbar";
 import {
     addProductToTab,
     addTab,
     removeTab,
     setListCategory,
-    setListOrderInfo,
     setListOrderTable,
     switchTab
 } from "../../../../store/reducers/order";
+import jwt from "../../../../utils/jwt";
 import Category from "../../components/Category/Category";
 import MenuGrid from "../../components/Menu/MenuGrid";
 import OrderList from "../../components/OrderList/OrderList";
@@ -21,23 +22,29 @@ import RetailOrderListModal from "../../components/RetailOrderListModal/RetailOr
 import "./POSPage.css";
 
 
+
 const POSPage = () => {
     const dispatch = useDispatch();
     const { activeTabId, orders } = useSelector((state) => state.orders);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isOpenOrderList, setIsOpenOrderList] = useState(false);
+    const { id, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
 
     useEffect(() => {
+        // if (!id || !unitId) {
+        //     return;
+        // }
+
         const fetchTableData = async () => {
             try {
                 const res = await multipleTablePutApi({
                     store: "api_getListRestaurantTables",
                     param: {
                         searchValue: "",
-                        unitId: "1BVBD",
-                        userId: 10036,
+                        unitId: unitId,
+                        userId: id,
                         pageindex: 1,
-                        pagesize: 10,
+                        pagesize: 100,
                     },
                     data: {},
                 });
@@ -47,10 +54,9 @@ const POSPage = () => {
                 })) || [];
                 dispatch(setListOrderTable(data));
             } catch (err) {
-                console.error("Error fetching data:", err);
+                console.error("❌ Lỗi khi lấy dữ liệu bàn:", err);
             }
         };
-        fetchTableData();
 
         const fetchCategoryData = async () => {
             try {
@@ -58,10 +64,10 @@ const POSPage = () => {
                     store: "api_getListItemGroup",
                     param: {
                         searchValue: "",
-                        unitId: "1BVBD",
-                        userId: 10036,
+                        unitId: unitId,
+                        userId: id,
                         pageindex: 1,
-                        pagesize: 10,
+                        pagesize: 1000,
                     },
                     data: {},
                 });
@@ -72,39 +78,13 @@ const POSPage = () => {
                 })) || [];
                 dispatch(setListCategory(data));
             } catch (err) {
-                console.error("Error fetching data:", err);
+                console.error("❌ Lỗi khi lấy dữ liệu danh mục:", err);
             }
         };
 
+        fetchTableData();
         fetchCategoryData();
-
-        const fetchListOrderData = async () => {
-            try {
-                const res = await multipleTablePutApi({
-                    store: "api_get_retail_order",
-                    param: {
-                        so_ct: "",
-                        ngay_ct: "",
-                        ma_kh: "",
-                        ten_kh: "",
-                        dien_thoai: "",
-                        pageIndex: 1,
-                        pageSize: 10,
-                        userId: 10036,
-                        storeId: "",
-                        unitId: "1BVBD "
-                    },
-                    data: {},
-                });
-                const data = res?.listObject[0];
-
-                dispatch(setListOrderInfo(data));
-            } catch (err) {
-                console.error("Error fetching data:", err);
-            }
-        };
-        fetchListOrderData();
-    }, [dispatch]);
+    }, [id, unitId, dispatch]);
 
     useEffect(() => {
         if (!activeTabId && orders.length === 0) {
@@ -158,7 +138,11 @@ const POSPage = () => {
     }, [orders, activeTabId]);
 
     return (
-        <div className="pos-page">
+
+        <div div className="pos-page" >
+            <div>
+                {jwt.checkExistToken() && <Navbar />}
+            </div>
             <div className="main-container">
                 <div className="left-middle-panel">
                     <div className="tabs-menu-container">
@@ -173,6 +157,7 @@ const POSPage = () => {
                                     removeTabHandler(targetKey);
                                 }
                             }}
+                            className="test"
                         >
                             {orders.map((tab) => (
                                 <Tabs.TabPane tab={tab.tableName} key={tab.tableId}>
@@ -183,28 +168,34 @@ const POSPage = () => {
                         </Tabs>
                     </div>
 
-                    {/* Tool-tip Div */}
                     <div className="tool-tip">
-                        <Tooltip placement="topRight" title="Thanh toán">
+                        {/* <Tooltip placement="topRight" title="Thanh toán">
                             <Button
                                 className="default_button"
                                 onClick={() => {
-                                    window.open(
-                                        `${window.location.origin}/transfer`,
+                                    const screenWidth = window.screen.width;
+                                    const screenHeight = window.screen.height;
+                                    const paymentWindow = window.open(
+                                        "/transfer",
                                         "Thanh toán",
-                                        `screenX=1,screenY=1,left=1,top=1,menubar=0,height=${window.screen.height},width=${window.screen.width}`
+                                        `left=${screenWidth},top=0,width=1080,height=1920`
                                     );
+
+                                    if (!paymentWindow) {
+                                        alert("Vui lòng bật popup trên trình duyệt!");
+                                    }
                                 }}
                             >
                                 <i className="pi pi-credit-card primary_color"></i>
                             </Button>
-                        </Tooltip>
+                        </Tooltip> */}
 
                         <Tooltip placement="topRight" title="Danh sách đơn">
                             <Button className="default_button" onClick={handleOrderListModal} >
                                 <i className="pi pi-list sub_text_color"></i>
                             </Button>
                         </Tooltip>
+
                     </div>
                 </div>
                 <div className="right-panel">
@@ -229,7 +220,7 @@ const POSPage = () => {
                 onClose={handleOrderListModal}
             />
             <Loading />
-        </div>
+        </div >
     );
 };
 

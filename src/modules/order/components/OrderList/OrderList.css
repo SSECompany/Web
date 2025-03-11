@@ -1,16 +1,15 @@
 .order-list {
-  padding: 10px;
   background-color: #fff;
   border-radius: 8px;
   list-style: none;
-  height: -webkit-fill-available;
+  height: 57vh;
   overflow-y: auto;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  margin-bottom: 10px;
 }
 
 .order-list::-webkit-scrollbar {
   width: 6px;
+  display: none;
 }
 
 .order-list::-webkit-scrollbar-thumb {

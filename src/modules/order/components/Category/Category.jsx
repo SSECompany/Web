@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../../api";
 import { setLoading } from "../../../../store/reducers/loadingSlice";
@@ -9,6 +10,10 @@ export default function Category() {
     const dispatch = useDispatch();
     const categories = useSelector((state) => state.orders.listCategory);
     const selectedCategory = useSelector((state) => state.orders.selectedCategory);
+    const { id, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
+    const scrollRef = useRef(null);
+    const [showLeftArrow, setShowLeftArrow] = useState(false);
+    const [showRightArrow, setShowRightArrow] = useState(true);
 
     const fetchMenuItems = async (category) => {
         dispatch(setLoading(true));
@@ -20,17 +25,16 @@ export default function Category() {
                     ma_nh: category.ma_nh,
                     Currency: "VND",
                     searchValue: "",
-                    unitId: "1BVBD",
-                    userId: 10036,
+                    unitId: unitId,
+                    userId: id,
                     pageindex: 1,
-                    pagesize: 10,
+                    pagesize: 1000,
                 },
                 data: {},
             });
             const data = res?.listObject[0] || [];
             dispatch(setMenuItems(data));
             dispatch(setLoading(false));
-
         } catch (error) {
             console.error("Error fetching menu items:", error);
         }
@@ -49,9 +53,52 @@ export default function Category() {
         }
     }, [categories, dispatch]);
 
+    const updateScrollButtons = () => {
+        if (scrollRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+            setShowLeftArrow(scrollLeft > 0);
+            setShowRightArrow(scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 1);
+        }
+    };
+
+    useEffect(() => {
+        setShowRightArrow(true);
+        setTimeout(() => {
+            updateScrollButtons();
+        }, 100);
+
+        const handleScroll = () => updateScrollButtons();
+        if (scrollRef.current) {
+            scrollRef.current.addEventListener("scroll", handleScroll);
+        }
+        return () => {
+            if (scrollRef.current) {
+                scrollRef.current.removeEventListener("scroll", handleScroll);
+            }
+        };
+    }, [categories]);
+
+    const scrollLeft = () => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollBy({ left: -200, behavior: "smooth" });
+        }
+    };
+
+    const scrollRight = () => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollBy({ left: 200, behavior: "smooth" });
+        }
+    };
+
     return (
-        <div className="main">
-            <div className="categories">
+        <div className="category-container">
+            {showLeftArrow && (
+                <button className="scroll-btn left" onClick={scrollLeft}>
+                    <LeftOutlined />
+                </button>
+            )}
+
+            <div className="categories" ref={scrollRef}>
                 {Array.isArray(categories) && categories.length > 0 &&
                     categories.map((category) => (
                         <button
@@ -64,6 +111,12 @@ export default function Category() {
                     ))
                 }
             </div>
+
+            {showRightArrow && (
+                <button className="scroll-btn right" onClick={scrollRight}>
+                    <RightOutlined />
+                </button>
+            )}
         </div>
     );
 }

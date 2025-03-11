@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import claimsReducer from './reducers/claimsSlice';
 import loadingReducer from "./reducers/loadingSlice";
 import orders from "./reducers/order";
 
@@ -7,6 +8,7 @@ const store = configureStore({
   reducer: {
     orders: orders,
     loadingReducer,
+    claimsReducer
 
   },
   middleware: (getDefaultMiddleware) =>
