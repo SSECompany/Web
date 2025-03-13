@@ -1,3 +1,4 @@
+import * as signalR from "@microsoft/signalr";
 import { Button, Tabs, Tooltip } from "antd";
 import React, { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -28,13 +29,60 @@ const POSPage = () => {
     const { activeTabId, orders } = useSelector((state) => state.orders);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isOpenOrderList, setIsOpenOrderList] = useState(false);
+
     const { id, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
 
     useEffect(() => {
-        // if (!id || !unitId) {
-        //     return;
-        // }
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("https://api-phenika.sse.net.vn/api/Hub/orderHub")
+            .withAutomaticReconnect()
+            .build();
 
+        connection.on("ReceiveNewOrder", (orderData) => {
+            console.log("🔥 Nhận đơn hàng mới:", JSON.stringify(orderData));
+
+            if (!orderData || !orderData.stt_rec) {
+                console.warn("⚠️ Dữ liệu đơn hàng không hợp lệ:", orderData);
+                return;
+            }
+
+            dispatch(addTab({
+                tableName: `Đơn hàng ${orderData.stt_rec}`,
+                tableId: orderData.stt_rec,
+                master: {
+                    dien_giai: orderData.dien_giai || "",
+                    tong_tien: orderData.tong_tien || "0",
+                    tong_sl: orderData.tong_sl || "0",
+                    tong_tt: orderData.tong_tt || "0",
+                    tien_mat: orderData.tien_mat || "0",
+                    chuyen_khoan: orderData.chuyen_khoan || "0",
+                    httt: orderData.httt || "",
+                },
+                detail: orderData.detail || []
+            }));
+        });
+
+        async function start() {
+            try {
+                await connection.start();
+                await connection.invoke("AddToGroup", "orderingArea");
+            } catch (err) {
+                console.error("❌ SignalR Connection Error:", err);
+                setTimeout(start, 5000);
+            }
+        }
+
+        start();
+
+        return () => {
+            connection.off("ReceiveNewOrder");
+            connection.stop();
+            console.log("🛑 SignalR Disconnected!");
+        };
+    }, [dispatch]);
+
+
+    useEffect(() => {
         const fetchTableData = async () => {
             try {
                 const res = await multipleTablePutApi({

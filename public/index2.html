@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Notification</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+</head>
+
+<body>
+    <h2>Danh sách đơn hàng</h2>
+    <ul id="orderList"></ul>
+
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("https://api-phenika.sse.net.vn/api/Hub/orderHub")
+            .build();
+
+        connection.on("ReceiveNewOrder", function (orderData) {
+            console.log(" Nhận đơn hàng mới:", orderData);
+            console.log(JSON.stringify(orderData));
+            var stt_rec = orderData.stt_rec;
+            let li = document.createElement("li");
+            li.textContent = "Đơn hàng mới: " + stt_rec;
+            document.getElementById("orderList").appendChild(li);
+        });
+
+        async function start() {
+            try {
+                await connection.start();
+                console.log("Connected to SignalR!");
+                await connection.invoke("AddToGroup", "orderingArea");
+                console.log("Joined group LINHD1Z");
+            } catch (err) {
+                console.log(err);
+                console.error(err.toString())
+                setTimeout(start, 5000);
+            }
+        }
+
+        start();
+    </script>
+</body>
+
+</html>

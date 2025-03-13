@@ -25,6 +25,8 @@ import themeComponents from "./utils/theme";
 dayjs.extend(updateLocale);
 dayjs.updateLocale("vi", {});
 
+
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <Provider store={store}>
