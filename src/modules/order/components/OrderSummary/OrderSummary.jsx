@@ -28,6 +28,7 @@ export default function OrderSummary({ total, itemCount }) {
     const dispatch = useDispatch();
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
+    const [showQR, setShowQR] = useState(false);
 
     const printContent = useRef();
     const [printMaster, setPrintMaster] = useState({});
@@ -132,6 +133,9 @@ export default function OrderSummary({ total, itemCount }) {
 
     const handleConfirmPayment = (selectedPayments, paymentAmounts) => {
         handleClosePaymentModal();
+        if (selectedPayments.includes("chuyen_khoan")) {
+            setShowQR(true);
+        }
         handlePreparePrint(selectedPayments, paymentAmounts);
     };
 
@@ -151,7 +155,6 @@ export default function OrderSummary({ total, itemCount }) {
                 onConfirm={handleConfirmPayment}
                 total={total}
             />
-
             <SelectTableModal
                 visible={isModalVisible}
                 onCancel={() => setIsModalVisible(false)}
