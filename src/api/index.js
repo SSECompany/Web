@@ -1,4 +1,3 @@
-import { isMobile } from "react-device-detect";
 import https from "../utils/https";
 import jwt from "../utils/jwt";
 
@@ -41,11 +40,25 @@ export const apiGetStoreByUser = async (payload) => {
 };
 
 export const multipleTablePutApi = async (payload) => {
-  const isCustomerView = isMobile || window.location.pathname.includes("order");
+  const isCustomerView = window.location.pathname.includes("order");
+  const token = localStorage.getItem("access_token");
 
-  const apiUrl = isCustomerView ? `User/AddDataCustomerPre` : `User/AddData`;
+  let apiUrl;
 
-  return await https.post(apiUrl, payload).then((res) => {
+  if (isCustomerView && !token) {
+    apiUrl = `User/AddDataCustomerPre`;
+  } else if (!isCustomerView && token) {
+    apiUrl = `User/AddData`;
+  } else {
+    console.warn("⚠️ Không xác định endpoint phù hợp, sử dụng mặc định AddDataCustomerPre");
+    apiUrl = `User/AddDataCustomerPre`;
+  }
+
+  return await https.post(apiUrl, payload, {
+    headers: {
+      Authorization: token ? `Bearer ${token}` : "",
+    },
+  }).then((res) => {
     return res?.data || [];
   });
 };

@@ -79,12 +79,8 @@ const Navbar = () => {
       </div>
 
       <div className="first_navbar_row_right flex gap-1">
-        <div className="px-1 text-center">
+        <div className="px-1 text-center flex full-name">
           <div className="primary_bold_text">{userInfo?.fullName || ""}</div>
-          <div className="primary_text_color">
-            <i className="pi pi-map-marker mr-1"></i>
-            {userInfo?.storeName || ""}
-          </div>
         </div>
 
         <ul>

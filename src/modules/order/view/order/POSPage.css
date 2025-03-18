@@ -131,6 +131,21 @@
   padding-top: 0 !important;
 }
 
+.hide-tabs-and-buttons .tabs-menu-container button.ant-tabs-nav-add,
+.hide-tabs-and-buttons .tabs-menu-container span.anticon.anticon-close,
+.hide-tabs-and-buttons .select-table-button {
+  display: none;
+}
+
+.hide-tabs-and-buttons .summary-button {
+  width: 80%;
+  height: 40px;
+}
+
+.hide-tabs-and-buttons .summary-actions {
+  justify-content: center;
+}
+
 /* Responsive cho Mobile */
 @media screen and (max-width: 768px) {
   .pos-page {
@@ -200,7 +215,6 @@
     font-size: 24px;
   }
 }
-
 @media screen and (max-width: 480px) {
   .order-header {
     grid-template-columns: 10% 35% 18% 26% 0;
