@@ -4,6 +4,7 @@ import {
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../../api";
 import SelectTableModal from "../../../../components/Modal/ModalSelectTable";
@@ -13,7 +14,9 @@ import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
 
 export default function OrderSummary({ total, itemCount }) {
+    const { orderId } = useParams();
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [selectedTable, setSelectedTable] = useState(null);
     const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
     const [modalType, setModalType] = useState(null);
     const [message, contextHolder] = messageAPI.useMessage();
@@ -28,10 +31,13 @@ export default function OrderSummary({ total, itemCount }) {
     const dispatch = useDispatch();
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
+    const [showQR, setShowQR] = useState(false);
 
     const printContent = useRef();
     const [printMaster, setPrintMaster] = useState({});
     const [printDetail, setPrintDetail] = useState([]);
+
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
     const handlePrint = useReactToPrint({
         content: () => printContent.current,
@@ -96,6 +102,76 @@ export default function OrderSummary({ total, itemCount }) {
         setIsPrinting(true);
     };
 
+    const handleSendOrderDirectly = async () => {
+        if (!activeTab) {
+            message.warning("Không có dữ liệu để gửi!");
+            return;
+        }
+
+        const masterData = {
+            ma_ban: activeTab?.tableId,
+            dien_giai: activeTab?.master?.dien_giai || "",
+            tong_tien: parseFloat(activeTab?.master?.tong_tien || 0).toString(),
+            tong_sl: parseInt(activeTab?.master?.tong_sl || 0).toString(),
+            tien_mat: "0",
+            chuyen_khoan: "0",
+            tong_tt: "0",
+            httt: "",
+        };
+
+        const detailData = activeTab?.detail?.flatMap((item) => {
+            const mainItem = {
+                ten_vt: item.ten_vt,
+                ma_vt_root: item.ma_vt_root || "",
+                ma_vt: item.ma_vt,
+                so_luong: item.so_luong.toString(),
+                don_gia: item.don_gia.toString(),
+                thanh_tien: (item.so_luong * item.don_gia).toString(),
+                ghi_chu: item.ghi_chu || "",
+            };
+
+            const extraItems = (item.extras || []).map((extra) => ({
+                ten_vt: extra.ten_vt,
+                ma_vt_root: item.ma_vt,
+                ma_vt: extra.ma_vt_more,
+                so_luong: (extra.quantity * item.so_luong).toString(),
+                don_gia: extra.gia.toString(),
+                thanh_tien: (extra.gia * extra.quantity * item.so_luong).toString(),
+            }));
+
+            return [mainItem, ...extraItems];
+        });
+
+        if (!detailData?.length) {
+            message.warning("Vui lòng thêm vật tư!");
+            return;
+        }
+
+        setIsCreatingOrder(true);
+
+        try {
+            const payload = {
+                store: "Api_create_retail_order",
+                param: { StoreID: storeId, unitId: unitId, userId: id },
+                data: { master: [masterData], detail: detailData },
+            };
+
+            const response = await multipleTablePutApi(payload);
+            if (response?.responseModel?.isSucceded) {
+                notification.success({ message: "Đơn hàng đã được gửi thành công!" });
+                setTimeout(() => {
+                    dispatch(clearTabData(activeTabId));
+                }, 500);
+            } else {
+                notification.warning({ message: response?.responseModel?.message });
+            }
+        } catch (error) {
+            notification.error({ message: "Có lỗi xảy ra khi gửi đơn hàng!", description: error.message });
+        }
+
+        setIsCreatingOrder(false);
+    };
+
     const handleSaveOrder = async () => {
         setIsPrinting(false);
         if (isCreatingOrder) return;
@@ -132,8 +208,17 @@ export default function OrderSummary({ total, itemCount }) {
 
     const handleConfirmPayment = (selectedPayments, paymentAmounts) => {
         handleClosePaymentModal();
+        if (selectedPayments.includes("chuyen_khoan")) {
+            setShowQR(true);
+        }
         handlePreparePrint(selectedPayments, paymentAmounts);
     };
+
+    useEffect(() => {
+        const token = localStorage.getItem("access_token");
+        const isOrderPage = window.location.pathname.includes("/order");
+        setIsMobile(isOrderPage && !token);
+    }, []);
 
     return (
         <div className="order-summary">
@@ -151,7 +236,6 @@ export default function OrderSummary({ total, itemCount }) {
                 onConfirm={handleConfirmPayment}
                 total={total}
             />
-
             <SelectTableModal
                 visible={isModalVisible}
                 onCancel={() => setIsModalVisible(false)}
@@ -162,6 +246,7 @@ export default function OrderSummary({ total, itemCount }) {
                             payload: { tableId: selectedTable.id, tableName: selectedTable.name },
                         });
                     }
+                    setSelectedTable(selectedTable);
                     setIsModalVisible(false);
                 }}
                 modalTitle={modalType === "updateTable" ? "Chọn bàn cho tab hiện tại" : "Chọn bàn"}
@@ -172,14 +257,15 @@ export default function OrderSummary({ total, itemCount }) {
                     setModalType("updateTable");
                     setIsModalVisible(true);
                 }}>
-                    {activeTab?.tableName || "Chọn bàn"}
+                    {selectedTable ? selectedTable.name : orderId ? `Bàn ${orderId}` : "Đơn mới"}
                 </button>
+
                 <button
                     className="summary-button primary"
-                    onClick={handleOpenPaymentModal}
+                    onClick={isMobile ? handleSendOrderDirectly : handleOpenPaymentModal}
                     disabled={isCreatingOrder || isPrinting}
                 >
-                    Thanh toán
+                    {isMobile ? "Gửi" : "Thanh toán"}
                 </button>
             </div>
 

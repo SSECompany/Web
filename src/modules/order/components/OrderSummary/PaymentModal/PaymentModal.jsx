@@ -12,34 +12,29 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
     });
     const [change, setChange] = useState(0);
 
-    useEffect(() => {
-        if (visible) {
-            setSelectedPayments(["tien_mat"]);
-            setPaymentAmounts({ tien_mat: total, chuyen_khoan: 0 });
-            setChange(0);
-        }
-    }, [visible, total]);
-
-    useEffect(() => {
-        const totalPaid = selectedPayments.reduce((sum, method) => sum + (paymentAmounts[method] || 0), 0);
-        setChange(totalPaid - total);
-    }, [paymentAmounts, selectedPayments, total]);
-
     const handlePaymentSelection = (method) => {
         setSelectedPayments((prev) => {
-            if (prev.includes(method)) {
-                setPaymentAmounts((amounts) => ({ ...amounts, [method]: 0 }));
-                return prev.filter((item) => item !== method);
+            const newSelectedPayments = prev.includes(method)
+                ? prev.filter((item) => item !== method)
+                : [...prev, method];
+
+            if (!newSelectedPayments.includes("tien_mat") && paymentAmounts.tien_mat !== 0) {
+                setPaymentAmounts((amounts) => ({
+                    ...amounts,
+                    tien_mat: paymentAmounts.tien_mat,
+                }));
             }
-            return [...prev, method];
+
+            return newSelectedPayments;
         });
     };
 
     const handleAmountChange = (method, value) => {
-        setPaymentAmounts((prev) => ({
-            ...prev,
-            [method]: value || 0,
-        }));
+        const newAmounts = { ...paymentAmounts, [method]: value || 0 };
+        setPaymentAmounts(newAmounts);
+
+        const totalAmount = Object.values(newAmounts).reduce((sum, val) => sum + val, 0);
+        setChange(totalAmount - total);
     };
 
     const handleClose = () => {
@@ -58,6 +53,19 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
         if (!val) return 0;
         return Number.parseFloat(val.replace(/\$\s?|(\.*)/g, "").replace(/(\,{1})/g, ".")).toFixed(2);
     };
+
+    const showQRCode = selectedPayments.length === 1 && selectedPayments.includes("chuyen_khoan");
+
+    const qrUrl = `https://img.vietqr.io/image/TPB-03775720401-compact2.png?amount=${total}&accountName=Dang%Huu%Dat`;
+
+    useEffect(() => {
+        if (visible) {
+            setSelectedPayments(["tien_mat"]);
+            setPaymentAmounts({ tien_mat: total, chuyen_khoan: 0 });
+            setChange(0);
+        }
+    }, [visible, total]);
+
 
     return (
         <Modal
@@ -87,21 +95,28 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
                 ))}
             </div>
 
-            {selectedPayments.length > 0 && (
+            {showQRCode && (
+                <div className="qr-code-container">
+                    <p className="payment-text"><strong>Quét mã QR để thanh toán:</strong></p>
+                    <img src={qrUrl} alt="QR Code" className="qr-code-image" />
+                </div>
+            )}
+
+            {!showQRCode && (
                 <>
                     <p className="payment-text"><strong>Nhập số tiền:</strong></p>
                     {selectedPayments.map((method) => (
                         <div key={method} className="payment-amount-container">
                             <span>{method === "tien_mat" ? "Tiền mặt" : "Chuyển khoản"}</span>
                             <InputNumber
-                                value={paymentAmounts[method]}
+                                value={paymentAmounts[method] || 0}  // Ensure this is defaulting to zero when no value is entered
                                 onChange={(value) => handleAmountChange(method, value)}
                                 className="payment-input"
                                 style={{ width: 120 }}
                                 controls={false}
                                 min="0"
-                                formatter={(value) => formatNumber(value)}
-                                parser={(value) => parserNumber(value)}
+                                formatter={(value) => value ? formatNumber(value) : ''}
+                                parser={(value) => value ? parserNumber(value) : 0}
                                 onKeyDownCapture={(event) => {
                                     if ((!/[0-9]/.test(event.key)) && (![8, 46, 37, 38, 39, 40].includes(event.keyCode))) {
                                         event.preventDefault();
