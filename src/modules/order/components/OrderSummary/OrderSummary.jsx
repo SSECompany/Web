@@ -67,6 +67,8 @@ export default function OrderSummary({ total, itemCount }) {
             chuyen_khoan: (paymentAmounts.chuyen_khoan).toString() || "0",
             tong_tt: (parseFloat(paymentAmounts.tien_mat || 0) + parseFloat(paymentAmounts.chuyen_khoan || 0)).toString(),
             httt: selectedPayments.join(","),
+            stt_rec: activeTab?.master?.stt_rec || "",
+            status: "2"
         };
 
         const detailData = activeTab?.detail?.flatMap((item) => {
@@ -117,6 +119,8 @@ export default function OrderSummary({ total, itemCount }) {
             chuyen_khoan: "0",
             tong_tt: "0",
             httt: "",
+            stt_rec: "",
+            status: "0"
         };
 
         const detailData = activeTab?.detail?.flatMap((item) => {

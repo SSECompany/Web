@@ -21,7 +21,7 @@ const orders = createSlice({
     initialState,
     reducers: {
         addTab: (state, action) => {
-            const { tableName, tableId } = action.payload;
+            const { tableName, tableId, isRealtime } = action.payload;
             const existingTab = state.orders.find((tab) => tab.tableId === tableId);
             if (!existingTab) {
                 state.orders.push({
@@ -35,11 +35,15 @@ const orders = createSlice({
                         tien_mat: "0",
                         chuyen_khoan: "0",
                         httt: "",
+                        stt_rect: "",
+                        status: "2",
                     },
                     detail: [],
                 });
             }
-            state.activeTabId = tableId;
+            if (!isRealtime) {
+                state.activeTabId = tableId;
+            }
         },
 
         updateTabTableName: (state, action) => {
