@@ -2,7 +2,8 @@ import { LoadingOutlined } from "@ant-design/icons";
 import { Spin } from "antd";
 import React from "react";
 import { useSelector } from "react-redux";
-import { getLoading } from "../../store/selectors/Selectors";
+import { getLoading } from "../../../store/selectors/Selectors";
+
 import "./Loading.css";
 
 const Loading = () => {
