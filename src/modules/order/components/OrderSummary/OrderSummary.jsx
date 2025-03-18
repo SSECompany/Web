@@ -7,11 +7,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../../api";
-import SelectTableModal from "../../../../components/Modal/ModalSelectTable";
-import PrintComponent from "../../../../modules/order/components/OrderSummary/PrintOrderModal/PrintComponent/PrintComponent";
+import SelectTableModal from "../../../../components/common/Modal/ModalSelectTable";
 import { clearTabData } from "../../../../store/reducers/order";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
+import PrintComponent from "./PrintComponent/PrintComponent";
 
 export default function OrderSummary({ total, itemCount }) {
     const { orderId } = useParams();
@@ -21,10 +21,8 @@ export default function OrderSummary({ total, itemCount }) {
     const [modalType, setModalType] = useState(null);
     const [message, contextHolder] = messageAPI.useMessage();
 
-    const activeTabId = useSelector((state) => state.orders?.activeTabId);
-    const activeTab = useSelector((state) =>
-        state.orders?.orders?.find((tab) => tab.tableId === activeTabId)
-    );
+    const { activeTabId, orders } = useSelector((state) => state.orders);
+    const activeTab = orders?.find((tab) => tab.tableId === activeTabId);
 
     const { id, storeId, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
 
@@ -47,15 +45,13 @@ export default function OrderSummary({ total, itemCount }) {
     });
 
     useEffect(() => {
-        if (isPrinting && Object.keys(printMaster).length > 0 && printDetail.length > 0) {
-            handlePrint();
-        }
+        if (isPrinting && printMaster?.ma_ban && printDetail.length) handlePrint();
     }, [printMaster, printDetail]);
 
-    const handlePreparePrint = (selectedPayments = ["tien_mat", "chuyen_khoan"], paymentAmounts = { tien_mat: "0", chuyen_khoan: "0" }) => {
+    const generateOrderData = (status = "0", selectedPayments = [], paymentAmounts = {}) => {
         if (!activeTab) {
-            message.warning("Không có dữ liệu để in!");
-            return;
+            message.warning("Không có dữ liệu!");
+            return null;
         }
 
         const masterData = {
@@ -63,16 +59,16 @@ export default function OrderSummary({ total, itemCount }) {
             dien_giai: activeTab?.master?.dien_giai || "",
             tong_tien: parseFloat(activeTab?.master?.tong_tien || 0).toString(),
             tong_sl: parseInt(activeTab?.master?.tong_sl || 0).toString(),
-            tien_mat: (paymentAmounts.tien_mat).toString() || "0",
-            chuyen_khoan: (paymentAmounts.chuyen_khoan).toString() || "0",
+            tien_mat: (paymentAmounts.tien_mat || "0").toString(),
+            chuyen_khoan: (paymentAmounts.chuyen_khoan || "0").toString(),
             tong_tt: (parseFloat(paymentAmounts.tien_mat || 0) + parseFloat(paymentAmounts.chuyen_khoan || 0)).toString(),
             httt: selectedPayments.join(","),
-            stt_rec: activeTab?.master?.stt_rec || "",
-            status: "2"
+            stt_rec: status === "2" ? activeTab?.master?.stt_rec || "" : "",
+            status
         };
 
-        const detailData = activeTab?.detail?.flatMap((item) => {
-            const mainItem = {
+        const detailData = activeTab?.detail?.flatMap((item) => [
+            {
                 ten_vt: item.ten_vt,
                 ma_vt_root: item.ma_vt_root || "",
                 ma_vt: item.ma_vt,
@@ -80,99 +76,56 @@ export default function OrderSummary({ total, itemCount }) {
                 don_gia: item.don_gia.toString(),
                 thanh_tien: (item.so_luong * item.don_gia).toString(),
                 ghi_chu: item.ghi_chu || "",
-            };
-
-            const extraItems = (item.extras || []).map((extra) => ({
+            },
+            ...(item.extras || []).map((extra) => ({
                 ten_vt: extra.ten_vt,
                 ma_vt_root: item.ma_vt,
                 ma_vt: extra.ma_vt_more,
                 so_luong: (extra.quantity * item.so_luong).toString(),
                 don_gia: extra.gia.toString(),
                 thanh_tien: (extra.gia * extra.quantity * item.so_luong).toString(),
-            }));
-
-            return [mainItem, ...extraItems];
-        });
+            })),
+        ]);
 
         if (!detailData?.length) {
             message.warning("Vui lòng thêm vật tư!");
-            return;
+            return null;
         }
 
-        setPrintMaster(masterData);
-        setPrintDetail(detailData);
+        return { masterData, detailData };
+    };
+
+    const handlePreparePrint = (selectedPayments = ["tien_mat", "chuyen_khoan"], paymentAmounts = { tien_mat: "0", chuyen_khoan: "0" }) => {
+        const orderData = generateOrderData("2", selectedPayments, paymentAmounts);
+        if (!orderData) return;
+
+        setPrintMaster(orderData.masterData);
+        setPrintDetail(orderData.detailData);
         setIsPrinting(true);
     };
 
     const handleSendOrderDirectly = async () => {
-        if (!activeTab) {
-            message.warning("Không có dữ liệu để gửi!");
-            return;
-        }
-
-        const masterData = {
-            ma_ban: activeTab?.tableId,
-            dien_giai: activeTab?.master?.dien_giai || "",
-            tong_tien: parseFloat(activeTab?.master?.tong_tien || 0).toString(),
-            tong_sl: parseInt(activeTab?.master?.tong_sl || 0).toString(),
-            tien_mat: "0",
-            chuyen_khoan: "0",
-            tong_tt: "0",
-            httt: "",
-            stt_rec: "",
-            status: "0"
-        };
-
-        const detailData = activeTab?.detail?.flatMap((item) => {
-            const mainItem = {
-                ten_vt: item.ten_vt,
-                ma_vt_root: item.ma_vt_root || "",
-                ma_vt: item.ma_vt,
-                so_luong: item.so_luong.toString(),
-                don_gia: item.don_gia.toString(),
-                thanh_tien: (item.so_luong * item.don_gia).toString(),
-                ghi_chu: item.ghi_chu || "",
-            };
-
-            const extraItems = (item.extras || []).map((extra) => ({
-                ten_vt: extra.ten_vt,
-                ma_vt_root: item.ma_vt,
-                ma_vt: extra.ma_vt_more,
-                so_luong: (extra.quantity * item.so_luong).toString(),
-                don_gia: extra.gia.toString(),
-                thanh_tien: (extra.gia * extra.quantity * item.so_luong).toString(),
-            }));
-
-            return [mainItem, ...extraItems];
-        });
-
-        if (!detailData?.length) {
-            message.warning("Vui lòng thêm vật tư!");
-            return;
-        }
+        const orderData = generateOrderData();
+        if (!orderData) return;
 
         setIsCreatingOrder(true);
-
         try {
             const payload = {
                 store: "Api_create_retail_order",
                 param: { StoreID: storeId, unitId: unitId, userId: id },
-                data: { master: [masterData], detail: detailData },
+                data: { master: [orderData.masterData], detail: orderData.detailData },
             };
 
             const response = await multipleTablePutApi(payload);
             if (response?.responseModel?.isSucceded) {
                 notification.success({ message: "Đơn hàng đã được gửi thành công!" });
-                setTimeout(() => {
-                    dispatch(clearTabData(activeTabId));
-                }, 500);
+                setTimeout(() => dispatch(clearTabData(activeTabId)), 500);
             } else {
                 notification.warning({ message: response?.responseModel?.message });
             }
         } catch (error) {
-            notification.error({ message: "Có lỗi xảy ra khi gửi đơn hàng!", description: error.message });
+            notification.error({ message: "Có lỗi xảy ra!", description: error.message });
         }
-
         setIsCreatingOrder(false);
     };
 
@@ -187,7 +140,6 @@ export default function OrderSummary({ total, itemCount }) {
                 param: { StoreID: storeId, unitId: unitId, userId: id },
                 data: { master: [printMaster], detail: printDetail },
             };
-
 
             const response = await multipleTablePutApi(payload);
             if (response?.responseModel?.isSucceded) {
@@ -224,6 +176,11 @@ export default function OrderSummary({ total, itemCount }) {
         setIsMobile(isOrderPage && !token);
     }, []);
 
+    const openSelectTableModal = (type) => {
+        setModalType(type);
+        setIsModalVisible(true);
+    };
+
     return (
         <div className="order-summary">
             <div className="summary-info">
@@ -257,10 +214,7 @@ export default function OrderSummary({ total, itemCount }) {
             />
 
             <div className="summary-actions">
-                <button className="select-table-button" onClick={() => {
-                    setModalType("updateTable");
-                    setIsModalVisible(true);
-                }}>
+                <button className="select-table-button" onClick={() => openSelectTableModal("updateTable")}>
                     {selectedTable ? selectedTable.name : orderId ? `Bàn ${orderId}` : "Đơn mới"}
                 </button>
 

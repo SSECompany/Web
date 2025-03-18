@@ -1,6 +1,6 @@
 import { Outlet } from "react-router-dom";
 import "./App.css";
-import Loading from "./components/Loading/Loading";
+import Loading from "./components/common/Loading/Loading";
 
 function App() {
   return (

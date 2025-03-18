@@ -1,27 +1,13 @@
 import { lazy } from "react";
-import { Navigate, Outlet, useLocation, useParams } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import App from "../App";
-import GenerateQR from "../components/QRCode/GenerateQR/GenerateQR";
-import POSPage from "../modules/order/view/order/POSPage";
-import TransferHub from "../pages/TransferHub/TransferHub";
+import GenerateQR from "../components/common/GenerateQR/GenerateQR";
+import POSPage from "../pages/order/POSPage";
+import TransferHub from "../pages/transferHub/TransferHub";
+import ProtectedRoute from "./ProtectedRoute";
 
-const Login = lazy(() => import("../pages/Login/Login"));
+const Login = lazy(() => import("../pages/login/Login"));
 
-const ProtectedRoute = () => {
-  const token = localStorage.getItem("access_token");
-  const location = useLocation();
-  const { orderId } = useParams();
-
-  if (token) {
-    return <Outlet />;
-  }
-
-  if (location.pathname === "/" && !token) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <Navigate to={`/order/${orderId}`} replace />;
-};
 
 const homeRoutes = [
   {

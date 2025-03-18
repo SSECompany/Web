@@ -4,11 +4,11 @@ import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
 
-import { getRoutesAccess } from "../../app/Functions/getRouteAccess";
-import router, { routes } from "../../router/routes";
-import { setClaims, setIsBackgrouds } from "../../store/reducers/claimsSlice";
-import { getUserInfo } from "../../store/selectors/Selectors";
-import jwt from "../../utils/jwt";
+import { getRoutesAccess } from "../../../app/Functions/getRouteAccess";
+import router, { routes } from "../../../router/routes";
+import { setClaims, setIsBackgrouds } from "../../../store/reducers/claimsSlice";
+import { getUserInfo } from "../../../store/selectors/Selectors";
+import jwt from "../../../utils/jwt";
 
 import "./Navbar.css";
 
