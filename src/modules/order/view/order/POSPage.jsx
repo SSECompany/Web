@@ -55,7 +55,7 @@ const POSPage = () => {
                 id: masterData.ma_ban || `order_${Date.now()}`
             };
 
-            dispatch(addTab({ tableName: tableData.name, tableId: tableData.id }));
+            dispatch(addTab({ tableName: tableData.name, tableId: tableData.id, isRealtime: true }));
 
             setTimeout(() => {
                 detailData.forEach((item) => {
@@ -74,7 +74,6 @@ const POSPage = () => {
                 if (token && !isOrderPage) {
                     await connection.start();
                     await connection.invoke("AddToGroup", "orderingArea");
-                    console.log("✅ Đã tham gia nhóm orderingArea");
                 } else {
                     console.warn("⚠️ Không tham gia orderingArea do thiếu token hoặc đang ở trang /order");
                 }
