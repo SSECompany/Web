@@ -43,7 +43,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       setTotalRecords(totalRecords);
       dispatch(setListOrderInfo(updatedData));
     } catch (err) {
-      console.error("❌ Lỗi khi lấy danh sách đơn hàng:", err);
+      console.error("Lỗi khi lấy danh sách đơn hàng:", err);
     }
     setIsLoading(false);
   };
@@ -91,9 +91,9 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
               current: currentPage,
               pageSize: pageSize,
               total: totalRecords,
-              onChange: (page, size) => {
+              showSizeChanger: false,
+              onChange: (page) => {
                 setCurrentPage(page);
-                setPageSize(size);
               },
             }}
           />

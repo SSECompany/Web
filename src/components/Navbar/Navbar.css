@@ -209,11 +209,12 @@
   color: white;
 }
 
-.primary_text_color {
+.full-name {
   display: flex;
   align-items: center;
 }
 
-.primary_bold_text {
-  padding-left: 10px;
+.navbar_avatar_container svg {
+  width: 20px;
+  height: 20px;
 }

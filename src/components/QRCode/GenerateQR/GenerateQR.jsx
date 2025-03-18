@@ -1,10 +1,12 @@
 import { QRCodeCanvas } from "qrcode.react";
 import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 
 
 const GenerateQR = () => {
     const generateRandomNumbers = () => Array.from({ length: 10 }, () => Math.floor(10000 + Math.random() * 90000));
 
+    const { orderId } = useParams();
     const [orderIds, setOrderIds] = useState([]);
 
     useEffect(() => {
@@ -13,6 +15,9 @@ const GenerateQR = () => {
 
     return (
         <div className="flex flex-col items-center space-y-4 flex-wrap gap-7">
+            <button className="bg-yellow-500 text-white px-4 py-2 rounded">
+                {orderId ? `Bàn ${orderId}` : "Đơn mới"}
+            </button>
             {orderIds.map((orderId, index) => (
                 <div
                     key={index}

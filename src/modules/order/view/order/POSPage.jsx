@@ -2,6 +2,7 @@ import * as signalR from "@microsoft/signalr";
 import { Button, Tabs, Tooltip } from "antd";
 import React, { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
 import { multipleTablePutApi } from "../../../../api";
 import Loading from "../../../../components/Loading/Loading";
 import SelectTableModal from "../../../../components/Modal/ModalSelectTable";
@@ -22,8 +23,6 @@ import OrderSummary from "../../components/OrderSummary/OrderSummary";
 import RetailOrderListModal from "../../components/RetailOrderListModal/RetailOrderListModal";
 import "./POSPage.css";
 
-
-
 const POSPage = () => {
     const dispatch = useDispatch();
     const { activeTabId, orders } = useSelector((state) => state.orders);
@@ -31,6 +30,10 @@ const POSPage = () => {
     const [isOpenOrderList, setIsOpenOrderList] = useState(false);
 
     const { id, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
+    const { orderId } = useParams();
+
+    const token = localStorage.getItem("access_token");
+    const isOrderPage = window.location.pathname.includes("/order");
 
     useEffect(() => {
         const connection = new signalR.HubConnectionBuilder()
@@ -39,33 +42,42 @@ const POSPage = () => {
             .build();
 
         connection.on("ReceiveNewOrder", (orderData) => {
-            console.log("🔥 Nhận đơn hàng mới:", JSON.stringify(orderData));
-
-            if (!orderData || !orderData.stt_rec) {
+            if (!orderData || !orderData.master || !orderData.detail) {
                 console.warn("⚠️ Dữ liệu đơn hàng không hợp lệ:", orderData);
                 return;
             }
 
-            dispatch(addTab({
-                tableName: `Đơn hàng ${orderData.stt_rec}`,
-                tableId: orderData.stt_rec,
-                master: {
-                    dien_giai: orderData.dien_giai || "",
-                    tong_tien: orderData.tong_tien || "0",
-                    tong_sl: orderData.tong_sl || "0",
-                    tong_tt: orderData.tong_tt || "0",
-                    tien_mat: orderData.tien_mat || "0",
-                    chuyen_khoan: orderData.chuyen_khoan || "0",
-                    httt: orderData.httt || "",
-                },
-                detail: orderData.detail || []
-            }));
+            const masterData = orderData.master[0] || {};
+            const detailData = orderData.detail || [];
+
+            const tableData = {
+                name: masterData.ma_ban ? ` Bàn ${masterData.ma_ban}` : "Đơn mới",
+                id: masterData.ma_ban || `order_${Date.now()}`
+            };
+
+            dispatch(addTab({ tableName: tableData.name, tableId: tableData.id }));
+
+            setTimeout(() => {
+                detailData.forEach((item) => {
+                    const product = {
+                        id: item.ma_vt,
+                        name: item.ten_vt,
+                        price: item.don_gia
+                    };
+                    dispatch(addProductToTab({ tableId: tableData.id, product }));
+                });
+            }, 100);
         });
 
         async function start() {
             try {
-                await connection.start();
-                await connection.invoke("AddToGroup", "orderingArea");
+                if (token && !isOrderPage) {
+                    await connection.start();
+                    await connection.invoke("AddToGroup", "orderingArea");
+                    console.log("✅ Đã tham gia nhóm orderingArea");
+                } else {
+                    console.warn("⚠️ Không tham gia orderingArea do thiếu token hoặc đang ở trang /order");
+                }
             } catch (err) {
                 console.error("❌ SignalR Connection Error:", err);
                 setTimeout(start, 5000);
@@ -81,69 +93,77 @@ const POSPage = () => {
         };
     }, [dispatch]);
 
-
     useEffect(() => {
-        const fetchTableData = async () => {
+        const fetchData = async () => {
             try {
-                const res = await multipleTablePutApi({
-                    store: "api_getListRestaurantTables",
-                    param: {
-                        searchValue: "",
-                        unitId: unitId,
-                        userId: id,
-                        pageindex: 1,
-                        pagesize: 100,
-                    },
-                    data: {},
-                });
-                const data = res?.listObject[0]?.map((item) => ({
+                const [tableRes, categoryRes] = await Promise.all([
+                    multipleTablePutApi({
+                        store: "api_getListRestaurantTables",
+                        param: {
+                            searchValue: "",
+                            unitId: unitId,
+                            userId: id,
+                            pageindex: 1,
+                            pagesize: 100,
+                        },
+                        data: {},
+                    }),
+                    multipleTablePutApi({
+                        store: "api_getListItemGroup",
+                        param: {
+                            searchValue: "",
+                            unitId: unitId,
+                            userId: id,
+                            pageindex: 1,
+                            pagesize: 1000,
+                        },
+                        data: {},
+                    })
+                ]);
+
+                const tableData = tableRes?.listObject[0]?.map((item) => ({
                     id: item.value,
                     name: item.label,
                 })) || [];
-                dispatch(setListOrderTable(data));
-            } catch (err) {
-                console.error("❌ Lỗi khi lấy dữ liệu bàn:", err);
-            }
-        };
 
-        const fetchCategoryData = async () => {
-            try {
-                const res = await multipleTablePutApi({
-                    store: "api_getListItemGroup",
-                    param: {
-                        searchValue: "",
-                        unitId: unitId,
-                        userId: id,
-                        pageindex: 1,
-                        pagesize: 1000,
-                    },
-                    data: {},
-                });
-                const data = res?.listObject[0]?.map((item) => ({
+                const categoryData = categoryRes?.listObject[0]?.map((item) => ({
                     loai_nh: item.loai_nh,
                     ma_nh: item.ma_nh,
                     ten_nh: item.ten_nh,
                 })) || [];
-                dispatch(setListCategory(data));
+
+                dispatch(setListOrderTable(tableData));
+                dispatch(setListCategory(categoryData));
             } catch (err) {
-                console.error("❌ Lỗi khi lấy dữ liệu danh mục:", err);
+                console.error("❌ Lỗi khi lấy dữ liệu:", err);
             }
         };
 
-        fetchTableData();
-        fetchCategoryData();
-    }, [id, unitId, dispatch]);
+        fetchData();
+    }, [unitId, id, dispatch]);
 
     useEffect(() => {
         if (!activeTabId && orders.length === 0) {
             dispatch(
                 addTab({
-                    tableName: orders.tableName || "Đơn mới",
-                    tableId: orders.tableName || "order",
+                    tableName: orderId ? `Bàn ${orderId}` : "Đơn mới",
+                    tableId: orderId || "order",
                 })
             );
         }
-    }, [activeTabId, orders, dispatch]);
+    }, [activeTabId, orders, dispatch, orderId]);
+
+    useEffect(() => {
+        localStorage.setItem("pos_orders", JSON.stringify(orders));
+        localStorage.setItem("pos_activeTabId", activeTabId || "");
+    }, [orders, activeTabId]);
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        const isOrderPage = window.location.pathname.includes("/order");
+
+        document.body.classList.toggle("hide-tabs-and-buttons", isOrderPage && !token);
+    }, []);
 
     const addNewTab = (tableData) => {
         dispatch(addTab({ tableName: tableData.name, tableId: tableData.id }));
@@ -157,7 +177,6 @@ const POSPage = () => {
     const switchTabHandler = (tableId) => {
         dispatch(switchTab(tableId));
     };
-
 
     const addToOrder = (product) => {
         dispatch(addProductToTab({ tableId: activeTabId, product }));
@@ -179,14 +198,7 @@ const POSPage = () => {
         setIsOpenOrderList(!isOpenOrderList);
     }, [isOpenOrderList]);
 
-
-    useEffect(() => {
-        localStorage.setItem("pos_orders", JSON.stringify(orders));
-        localStorage.setItem("pos_activeTabId", activeTabId || "");
-    }, [orders, activeTabId]);
-
     return (
-
         <div div className="pos-page" >
             <div>
                 {jwt.checkExistToken() && <Navbar />}
@@ -205,10 +217,9 @@ const POSPage = () => {
                                     removeTabHandler(targetKey);
                                 }
                             }}
-                            className="test"
                         >
                             {orders.map((tab) => (
-                                <Tabs.TabPane tab={tab.tableName} key={tab.tableId}>
+                                <Tabs.TabPane tab={tab.tableName} key={tab.tableId} >
                                     <Category />
                                     <MenuGrid onAdd={addToOrder} />
                                 </Tabs.TabPane>
@@ -217,33 +228,11 @@ const POSPage = () => {
                     </div>
 
                     <div className="tool-tip">
-                        {/* <Tooltip placement="topRight" title="Thanh toán">
-                            <Button
-                                className="default_button"
-                                onClick={() => {
-                                    const screenWidth = window.screen.width;
-                                    const screenHeight = window.screen.height;
-                                    const paymentWindow = window.open(
-                                        "/transfer",
-                                        "Thanh toán",
-                                        `left=${screenWidth},top=0,width=1080,height=1920`
-                                    );
-
-                                    if (!paymentWindow) {
-                                        alert("Vui lòng bật popup trên trình duyệt!");
-                                    }
-                                }}
-                            >
-                                <i className="pi pi-credit-card primary_color"></i>
-                            </Button>
-                        </Tooltip> */}
-
                         <Tooltip placement="topRight" title="Danh sách đơn">
                             <Button className="default_button" onClick={handleOrderListModal} >
                                 <i className="pi pi-list sub_text_color"></i>
                             </Button>
                         </Tooltip>
-
                     </div>
                 </div>
                 <div className="right-panel">
@@ -256,7 +245,6 @@ const POSPage = () => {
                     />
                 </div>
             </div>
-
 
             <SelectTableModal
                 visible={isModalVisible}
