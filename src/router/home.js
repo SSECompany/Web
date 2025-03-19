@@ -31,13 +31,13 @@ const homeRoutes = [
             path: "",
             element: <POSPage />,
           },
+          {
+            label: "Order",
+            path: "order/:orderId",
+            element: <POSPage />,
+            index: true,
+          },
         ],
-      },
-      {
-        label: "Order",
-        path: "order/:orderId",
-        element: <POSPage />,
-        index: true,
       },
       {
         label: "Transferring",
