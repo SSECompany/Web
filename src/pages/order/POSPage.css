@@ -205,14 +205,17 @@
   }
   .login_logo_company_name,
   .login_logo_company_name span {
-    line-height: 25px;
-    font-size: 40px;
+    line-height: 25px !important;
+    font-size: 45px !important;
   }
   .login_container_left {
-    padding-top: 30px;
+    padding-top: 30px !important;
   }
   .login_desciption_header {
-    font-size: 24px;
+    font-size: 24px !important;
+  }
+  .login_form {
+    justify-content: flex-start !important;
   }
 }
 @media screen and (max-width: 480px) {
