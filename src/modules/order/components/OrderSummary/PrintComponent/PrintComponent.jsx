@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import React, { forwardRef } from "react";
 
 const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
   var now = new Date();
@@ -32,14 +32,42 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
           </tr>
         </thead>
         <tbody>
-          {detail.map((item, index) => (
-            <tr key={index} style={{ fontSize: "12px" }}>
-              <td style={{ padding: "3px", textAlign: "left", wordWrap: "break-word", overflowWrap: "break-word" }}>{item?.ten_vt || "Trống"}</td>
-              <td style={{ padding: "3px", textAlign: "center" }}>{item?.so_luong || 1}</td>
-              <td style={{ padding: "3px", textAlign: "center" }}>{formatNumber(item?.don_gia) || "0"}đ</td>
-              <td style={{ padding: "3px", textAlign: "center", whiteSpace: "nowrap" }}>{formatNumber(item?.thanh_tien) || "0"}đ</td>
-            </tr>
-          ))}
+          {detail
+            .filter((item) => !item?.ma_vt_root) 
+            .map((item, index) => {
+              const subItems = detail.filter((sub) => sub?.ma_vt_root === item?.ma_vt);
+              return (
+                <React.Fragment key={index}>
+                  <tr style={{ fontSize: "12px" }}>
+                    <td style={{ padding: "3px", textAlign: "left", wordWrap: "break-word", overflowWrap: "break-word" }}>
+                      <span>{item?.ten_vt}</span>
+                    </td>
+                    <td style={{ padding: "3px", textAlign: "center" }}>{item?.so_luong || 1}</td>
+                    <td style={{ padding: "3px", textAlign: "center" }}>{formatNumber(item?.don_gia) || "0"}đ</td>
+                    <td style={{ padding: "3px", textAlign: "center", whiteSpace: "nowrap" }}>{formatNumber(item?.thanh_tien) || "0"}đ</td>
+                  </tr>
+
+                  {subItems.map((sub, subIndex) => (
+                    <tr key={`sub-${index}-${subIndex}`} style={{ fontSize: "12px" }}>
+                      <td style={{ padding: "3px", textAlign: "left", wordWrap: "break-word", overflowWrap: "break-word" }}>
+                        <span style={{ fontSize: "10px" }}>+ {sub?.ten_vt}</span>
+                      </td>
+                      <td style={{ padding: "3px", textAlign: "center" }}>{sub?.so_luong || 1}</td>
+                      <td style={{ padding: "3px", textAlign: "center" }}>{formatNumber(sub?.don_gia) || "0"}đ</td>
+                      <td style={{ padding: "3px", textAlign: "center", whiteSpace: "nowrap" }}>{formatNumber(sub?.thanh_tien) || "0"}đ</td>
+                    </tr>
+                  ))}
+
+                  {item?.ghi_chu && (
+                    <tr key={`note-${index}`} style={{ fontSize: "10px", fontStyle: "italic", color: "#6c757d" }}>
+                      <td colSpan="4" style={{ padding: "3px", textAlign: "left" }}>
+                        Ghi chú: {item?.ghi_chu}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
         </tbody>
       </table>
 
