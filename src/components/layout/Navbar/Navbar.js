@@ -59,9 +59,9 @@ const Navbar = () => {
       <div className="first_navbar_row_left">
         <div className="navbar_logo_functions">
           <div className="navbar_search_function">
-            <span onClick={handleSetBackground} className="default_header_label">
+            <h2 onClick={handleSetBackground} className="default_header_label">
               PHENIKAA
-            </span>
+            </h2>
           </div>
         </div>
 

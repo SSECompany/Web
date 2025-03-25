@@ -5,6 +5,7 @@ import AddNoteAndExtrasModal from "./modal/AddNoteAndExtrasModal";
 import "./OrderItem.css";
 
 export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem, onAddNote }) {
+    console.log("🚀 ~ OrderItem ~ item:", item)
     const [isModalVisible, setIsModalVisible] = useState(false);
 
     const handleAddNote = () => {
@@ -64,9 +65,13 @@ export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem,
                                     {(extra.gia || extra.price)?.toLocaleString()}đ
                                 </span>
                             </li>
+
                         ))}
+
                     </ul>
                 )}
+                {item.ghi_chu && <div className="order-item-note">Ghi chú: {item.ghi_chu}</div>}
+
             </li>
 
             <AddNoteAndExtrasModal
