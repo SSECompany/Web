@@ -45,6 +45,7 @@ export const multipleTablePutApi = async (payload) => {
 
   let apiUrl;
 
+
   if (isCustomerView && !token) {
     apiUrl = `User/AddDataCustomerPre`;
   } else if (!isCustomerView && token) {
@@ -55,10 +56,51 @@ export const multipleTablePutApi = async (payload) => {
   }
 
   return await https.post(apiUrl, payload, {
+
     headers: {
       Authorization: token ? `Bearer ${token}` : "",
     },
   }).then((res) => {
+    return res?.data || [];
+  });
+};
+
+export const printOrderApi = async (sttRec, userId) => {
+  const token = localStorage.getItem("access_token");
+  return await https.post(
+    `Print/print-order`,
+    {
+      stt_rec: sttRec,
+      action: "0",
+      userId: userId,
+    },
+    {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    }
+  ).then((res) => {
+    return res?.data || [];
+  });
+};
+
+export const syncFastApi = async (sttRec, userId) => {
+  const token = localStorage.getItem("access_token");
+  return await https.post(
+    `SynchronousFAST/SynchronousSCSVVoucher`,
+    {
+      stt_rec: sttRec,
+      action: "1",
+      userId: userId.toString(),
+    },
+    {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    }
+  ).then((res) => {
     return res?.data || [];
   });
 };
