@@ -21,26 +21,39 @@ const orders = createSlice({
     initialState,
     reducers: {
         addTab: (state, action) => {
-            const { tableName, tableId, isRealtime } = action.payload;
+            const {
+                tableName,
+                tableId,
+                isRealtime,
+                master = {},
+            } = action.payload;
+
             const existingTab = state.orders.find((tab) => tab.tableId === tableId);
             if (!existingTab) {
+                const defaultMaster = {
+                    dien_giai: "",
+                    tong_tien: "0",
+                    tong_sl: "0",
+                    tong_tt: "0",
+                    tien_mat: "0",
+                    chuyen_khoan: "0",
+                    httt: "",
+                    stt_rec: "",
+                    status: "2",
+                    ma_ban: "",
+                };
+
                 state.orders.push({
                     tableName,
                     tableId,
                     master: {
-                        dien_giai: "",
-                        tong_tien: "0",
-                        tong_sl: "0",
-                        tong_tt: "0",
-                        tien_mat: "0",
-                        chuyen_khoan: "0",
-                        httt: "",
-                        stt_rect: "",
-                        status: "2",
+                        ...defaultMaster,
+                        ...master,
                     },
                     detail: [],
                 });
             }
+
             if (!isRealtime) {
                 state.activeTabId = tableId;
             }
@@ -177,10 +190,10 @@ const orders = createSlice({
         },
 
         clearTabData: (state, action) => {
-            const tableId = action.payload; // Lấy tableId từ payload
-            state.orders = state.orders.filter((tab) => tab.tableId !== tableId); // Xóa tab có tableId khớp
+            const tableId = action.payload;
+            state.orders = state.orders.filter((tab) => tab.tableId !== tableId);
             if (state.activeTabId === tableId) {
-                state.activeTabId = state.orders.length ? state.orders[0].tableId : null; // Đặt tab khác làm active nếu còn tab
+                state.activeTabId = state.orders.length ? state.orders[0].tableId : null;
             }
         },
 

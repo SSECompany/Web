@@ -6,8 +6,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { useReactToPrint } from "react-to-print";
-import { multipleTablePutApi } from "../../../../api";
-import SelectTableModal from "../../../../components/common/Modal/ModalSelectTable";
+import { multipleTablePutApi, printOrderApi, syncFastApi } from "../../../../api";
 import { clearTabData } from "../../../../store/reducers/order";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
@@ -15,38 +14,23 @@ import PrintComponent from "./PrintComponent/PrintComponent";
 
 export default function OrderSummary({ total, itemCount }) {
     const { orderId } = useParams();
+    const dispatch = useDispatch();
+    const { activeTabId, orders } = useSelector((state) => state.orders);
+    const { id, storeId, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [selectedTable, setSelectedTable] = useState(null);
     const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
     const [modalType, setModalType] = useState(null);
     const [message, contextHolder] = messageAPI.useMessage();
-
-    const { activeTabId, orders } = useSelector((state) => state.orders);
-    const activeTab = orders?.find((tab) => tab.tableId === activeTabId);
-
-    const { id, storeId, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
-
-    const dispatch = useDispatch();
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
     const [showQR, setShowQR] = useState(false);
-
     const printContent = useRef();
     const [printMaster, setPrintMaster] = useState({});
     const [printDetail, setPrintDetail] = useState([]);
-
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-    const handlePrint = useReactToPrint({
-        content: () => printContent.current,
-        documentTitle: "Print This Document",
-        copyStyles: false,
-        onAfterPrint: () => handleSaveOrder(),
-    });
-
-    useEffect(() => {
-        if (isPrinting && printMaster?.ma_ban && printDetail.length) handlePrint();
-    }, [printMaster, printDetail]);
+    const activeTab = orders?.find((tab) => tab.tableId === activeTabId);
 
     const generateOrderData = (status = "0", selectedPayments = [], paymentAmounts = {}) => {
         if (!activeTab) {
@@ -95,15 +79,6 @@ export default function OrderSummary({ total, itemCount }) {
         return { masterData, detailData };
     };
 
-    const handlePreparePrint = (selectedPayments = ["tien_mat", "chuyen_khoan"], paymentAmounts = { tien_mat: "0", chuyen_khoan: "0" }) => {
-        const orderData = generateOrderData("2", selectedPayments, paymentAmounts);
-        if (!orderData) return;
-
-        setPrintMaster(orderData.masterData);
-        setPrintDetail(orderData.detailData);
-        setIsPrinting(true);
-    };
-
     const handleSendOrderDirectly = async () => {
         const orderData = generateOrderData();
         if (!orderData) return;
@@ -143,7 +118,18 @@ export default function OrderSummary({ total, itemCount }) {
 
             const response = await multipleTablePutApi(payload);
             if (response?.responseModel?.isSucceded) {
-                notification.success({ message: "Thực hiện thành công!" });
+                const sttRec = response?.listObject[0][0]?.stt_rec;
+                if (sttRec) {
+                    try {
+                        await printOrderApi(sttRec, id);
+                        await syncFastApi(sttRec, id);
+                        notification.success({ message: "Thực hiện thành công và đồng bộ!" });
+                    } catch (error) {
+                        notification.error({ message: "Có lỗi xảy ra khi thực hiện thanh toán hoặc đồng bộ!", description: error.message });
+                    }
+                } else {
+                    notification.warning({ message: "Không có `stt_rec` để thực hiện các API!" });
+                }
                 dispatch(clearTabData(activeTabId));
             } else {
                 notification.warning({ message: response?.responseModel?.message });
@@ -153,6 +139,26 @@ export default function OrderSummary({ total, itemCount }) {
         }
         setIsCreatingOrder(false);
     };
+
+    const handlePreparePrint = (selectedPayments = ["tien_mat", "chuyen_khoan"], paymentAmounts = { tien_mat: "0", chuyen_khoan: "0" }) => {
+        const orderData = generateOrderData("2", selectedPayments, paymentAmounts);
+        if (!orderData) return;
+
+        setPrintMaster(orderData.masterData);
+        setPrintDetail(orderData.detailData);
+        setIsPrinting(true);
+    };
+
+    const handlePrint = useReactToPrint({
+        content: () => printContent.current,
+        documentTitle: "Print This Document",
+        copyStyles: false,
+        onAfterPrint: () => handleSaveOrder(),
+    });
+
+    useEffect(() => {
+        if (isPrinting && printMaster?.ma_ban && printDetail.length) handlePrint();
+    }, [printMaster, printDetail]);
 
     const handleOpenPaymentModal = () => {
         setIsPaymentModalVisible(true);
@@ -197,7 +203,7 @@ export default function OrderSummary({ total, itemCount }) {
                 onConfirm={handleConfirmPayment}
                 total={total}
             />
-            <SelectTableModal
+            {/* <SelectTableModal
                 visible={isModalVisible}
                 onCancel={() => setIsModalVisible(false)}
                 onConfirm={(selectedTable) => {
@@ -211,12 +217,12 @@ export default function OrderSummary({ total, itemCount }) {
                     setIsModalVisible(false);
                 }}
                 modalTitle={modalType === "updateTable" ? "Chọn bàn cho tab hiện tại" : "Chọn bàn"}
-            />
+            /> */}
 
             <div className="summary-actions">
-                <button className="select-table-button" onClick={() => openSelectTableModal("updateTable")}>
+                {/* <button className="select-table-button" onClick={() => openSelectTableModal("updateTable")}>
                     {selectedTable ? selectedTable.name : orderId ? `Bàn ${orderId}` : "Đơn mới"}
-                </button>
+                </button> */}
 
                 <button
                     className="summary-button primary"

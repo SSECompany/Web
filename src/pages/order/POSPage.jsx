@@ -37,7 +37,7 @@ const POSPage = () => {
 
     useEffect(() => {
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("https://api-phenika.sse.net.vn/api/Hub/orderHub")
+            .withUrl(`${process.env.REACT_APP_ROOT_API}Hub/orderHub`)
             .withAutomaticReconnect()
             .build();
 
@@ -55,7 +55,13 @@ const POSPage = () => {
                 id: masterData.ma_ban || `order_${Date.now()}`
             };
 
-            dispatch(addTab({ tableName: tableData.name, tableId: tableData.id, isRealtime: true }));
+            dispatch(addTab({
+                tableName: tableData.name,
+                tableId: tableData.id,
+                isRealtime: true,
+                master: masterData,
+                detail: detailData
+            }));
 
             setTimeout(() => {
                 detailData.forEach((item) => {

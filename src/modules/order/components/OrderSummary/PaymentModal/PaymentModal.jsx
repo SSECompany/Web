@@ -12,6 +12,12 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
     });
     const [change, setChange] = useState(0);
 
+    const showQRCode = selectedPayments.length === 1 && selectedPayments.includes("chuyen_khoan");
+
+    const account = process.env.REACT_APP_VIETQR_ACCOUNT;
+    const accountName = encodeURIComponent(process.env.REACT_APP_VIETQR_ACCOUNT_NAME);
+    const qrUrl = `https://img.vietqr.io/image/${account}-compact2.png?amount=${total}&accountName=${accountName}`;
+
     const handlePaymentSelection = (method) => {
         setSelectedPayments((prev) => {
             const newSelectedPayments = prev.includes(method)
@@ -44,6 +50,14 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
         onClose();
     };
 
+    useEffect(() => {
+        if (visible) {
+            setSelectedPayments(["tien_mat"]);
+            setPaymentAmounts({ tien_mat: total, chuyen_khoan: 0 });
+            setChange(0);
+        }
+    }, [visible, total]);
+
     const formatNumber = (val) => {
         if (!val) return 0;
         return `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".").replace(/\.(?=\d{0,2}$)/g, ",");
@@ -53,19 +67,6 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
         if (!val) return 0;
         return Number.parseFloat(val.replace(/\$\s?|(\.*)/g, "").replace(/(\,{1})/g, ".")).toFixed(2);
     };
-
-    const showQRCode = selectedPayments.length === 1 && selectedPayments.includes("chuyen_khoan");
-
-    const qrUrl = `https://img.vietqr.io/image/TPB-03775720401-compact2.png?amount=${total}&accountName=Dang%Huu%Dat`;
-
-    useEffect(() => {
-        if (visible) {
-            setSelectedPayments(["tien_mat"]);
-            setPaymentAmounts({ tien_mat: total, chuyen_khoan: 0 });
-            setChange(0);
-        }
-    }, [visible, total]);
-
 
     return (
         <Modal
@@ -109,7 +110,7 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
                         <div key={method} className="payment-amount-container">
                             <span>{method === "tien_mat" ? "Tiền mặt" : "Chuyển khoản"}</span>
                             <InputNumber
-                                value={paymentAmounts[method] || 0}  // Ensure this is defaulting to zero when no value is entered
+                                value={paymentAmounts[method] || 0}
                                 onChange={(value) => handleAmountChange(method, value)}
                                 className="payment-input"
                                 style={{ width: 120 }}
