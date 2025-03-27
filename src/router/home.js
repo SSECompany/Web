@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import { Navigate } from "react-router-dom";
 import App from "../App";
+import ErrorPage from "../components/common/ErrorPage/ErrorPage";
 import GenerateQR from "../components/common/GenerateQR/GenerateQR";
 import POSPage from "../pages/order/POSPage";
 import TransferHub from "../pages/transferHub/TransferHub";
@@ -54,6 +55,11 @@ const homeRoutes = [
       {
         path: "*",
         element: <Navigate to="/" replace />,
+      },
+      {
+        label: "Error",
+        path: "error",
+        element: <ErrorPage />,
       },
     ],
   },
