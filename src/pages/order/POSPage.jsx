@@ -51,7 +51,7 @@ const POSPage = () => {
             const detailData = orderData.detail || [];
 
             const tableData = {
-                name: masterData.ma_ban ? ` Bàn ${masterData.ma_ban}` : "Đơn mới",
+                name: masterData.ma_ban ? `${masterData.ma_ban}` : "Đơn mới",
                 id: masterData.ma_ban || `order_${Date.now()}`
             };
 
@@ -151,7 +151,7 @@ const POSPage = () => {
         if (!activeTabId && orders.length === 0) {
             dispatch(
                 addTab({
-                    tableName: orderId ? `Bàn ${orderId}` : "Đơn mới",
+                    tableName: orderId ? `${orderId}` : "Đơn mới",
                     tableId: orderId || "order",
                 })
             );

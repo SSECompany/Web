@@ -1,4 +1,5 @@
-import { Modal, Spin, Table } from "antd";
+import { Button, DatePicker, Input, Modal, Select, Spin, Table, Tag } from "antd";
+import moment from 'moment';
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../../api";
@@ -11,21 +12,22 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const [totalRecords, setTotalRecords] = useState(0);
   const [allData, setAllData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [filters, setFilters] = useState({});
   const dispatch = useDispatch();
 
   const { id, storeId, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
 
-  const fetchListOrderData = async () => {
+  const fetchListOrderData = async (filterParams) => {
     setIsLoading(true);
     try {
       const res = await multipleTablePutApi({
         store: "api_get_retail_order",
         param: {
-          so_ct: "",
-          ngay_ct: "",
-          ma_kh: "",
-          ten_kh: "",
-          dien_thoai: "",
+          so_ct: filterParams.so_ct || "",
+          ngay_ct: filterParams.ngay_ct || "",
+          ma_kh: filterParams.ma_kh || "",
+          status: filterParams.status || "",
+          ma_ban: filterParams.ma_ban || "",
           pageIndex: 1,
           pageSize: 1000,
           userId: id,
@@ -50,7 +52,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
-      fetchListOrderData();
+      fetchListOrderData({});
     }
   }, [isOpen]);
 
@@ -59,12 +61,172 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const currentData = allData.slice(startIndex, endIndex);
 
   const columns = [
-    { title: "STT", dataIndex: "stt", key: "stt", render: (_, __, index) => startIndex + index + 1 },
-    { title: "Mã KH", dataIndex: "ma_kh", key: "ma_kh" },
-    { title: "Số chứng từ", dataIndex: "so_ct", key: "so_ct" },
-    { title: "Ngày chứng từ", dataIndex: "ngay_ct", key: "ngay_ct" },
-    { title: "Thành tiền", dataIndex: "t_tt", key: "t_tt", render: (value) => `${value.toLocaleString()} VND` },
-    { title: "Trạng thái", dataIndex: "statusName", key: "statusName" },
+    {
+      title: "STT",
+      dataIndex: "stt",
+      key: "stt",
+      render: (_, __, index) => startIndex + index + 1
+    },
+    {
+      title: "Nhân viên",
+      dataIndex: "username",
+      key: "username",
+    },
+    {
+      title: "Mã bàn",
+      dataIndex: "ma_ban",
+      key: "ma_ban",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm kiếm Mã bàn"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => {
+              confirm();
+              const newFilters = { ...filters, ma_ban: selectedKeys[0] };
+              setFilters(newFilters);
+              fetchListOrderData(newFilters);
+            }}
+            style={{ marginBottom: 8, display: "block" }}
+          />
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => {
+              confirm();
+              const newFilters = { ...filters, ma_ban: selectedKeys[0] };
+              setFilters(newFilters);
+              fetchListOrderData(newFilters);
+            }}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
+      onFilter: (value, record) => record.ma_ban.includes(value),
+    },
+    {
+      title: "Số chứng từ",
+      dataIndex: "so_ct",
+      key: "so_ct",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder={`Tìm kiếm Số CT`}
+            value={selectedKeys[0]}
+            onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+            onPressEnter={() => {
+              confirm();
+              const newFilters = { ...filters, so_ct: selectedKeys[0] };
+              setFilters(newFilters);
+              fetchListOrderData(newFilters);
+            }}
+            style={{ marginBottom: 8, display: 'block' }}
+          />
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => {
+              confirm();
+              const newFilters = { ...filters, so_ct: selectedKeys[0] };
+              setFilters(newFilters);
+              fetchListOrderData(newFilters);
+            }}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+
+        </div>
+      ),
+      onFilter: (value, record) => record.so_ct.includes(value),
+    },
+    {
+      title: "Ngày chứng từ",
+      dataIndex: "ngay_ct",
+      key: "ngay_ct",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div style={{ padding: 8 }}>
+          <DatePicker
+            value={selectedKeys[0] ? moment(selectedKeys[0], 'DD/MM/YYYY') : null}
+            onChange={(date) => {
+              if (date) {
+                setSelectedKeys([date.format('DD/MM/YYYY')]);
+              } else {
+                setSelectedKeys([]);
+              }
+            }}
+            style={{ marginBottom: 8, display: 'block' }}
+            format="DD/MM/YYYY"
+            placeholder="Chọn ngày CT"
+          />
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => {
+              confirm();
+              const newFilters = { ...filters, ngay_ct: selectedKeys[0] };
+              setFilters(newFilters);
+              fetchListOrderData(newFilters);
+            }}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+
+        </div>
+      ),
+      onFilter: (value, record) => record.ngay_ct.includes(value),
+    },
+    {
+      title: "Tổng tiền",
+      dataIndex: "t_tt",
+      key: "t_tt",
+      render: (value) => `${value.toLocaleString()} VND`
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "statusName",
+      key: "statusName",
+      render: (text) => (
+        <Tag color={text === "Hoàn thành" ? "green" : "yellow"}>
+          {text}
+        </Tag>
+      ),
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div style={{ padding: 8 }}>
+          <Select
+            placeholder="Chọn trạng thái"
+            value={selectedKeys[0]}
+            onChange={(value) => {
+              setSelectedKeys(value ? [value] : []);
+            }}
+            style={{ width: 200, marginBottom: 8, display: 'block' }}
+          >
+            <Select.Option value="2">Hoàn thành</Select.Option>
+            <Select.Option value="0">Chưa hoàn thành</Select.Option>
+          </Select>
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => {
+              confirm();
+              const newFilters = { ...filters, status: selectedKeys[0] };
+              setFilters(newFilters);
+              fetchListOrderData(newFilters);
+            }}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
+      onFilter: (value, record) => record.statusName.includes(value),
+    }
   ];
 
   return (
