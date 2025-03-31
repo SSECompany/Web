@@ -218,7 +218,14 @@
     justify-content: flex-start !important;
   }
 }
-@media screen and (max-width: 480px) {
+
+@media (min-width: 380px) and (max-width: 430px) {
+  .order-extra-item {
+    grid-template-columns: 1fr 40px 120px;
+  }
+}
+
+@media screen and (max-width: 360px) {
   .order-header {
     grid-template-columns: 10% 35% 18% 26% 0;
   }
@@ -242,5 +249,8 @@
     padding: 10px 0px;
     font-size: 12px;
     width: 100px;
+  }
+  .order-extra-item {
+    grid-template-columns: 1fr 20px 120px;
   }
 }

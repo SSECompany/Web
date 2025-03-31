@@ -13,6 +13,7 @@ import OrderList from "../../modules/order/components/OrderList/OrderList";
 import OrderSummary from "../../modules/order/components/OrderSummary/OrderSummary";
 import RetailOrderListModal from "../../modules/order/components/RetailOrderListModal/RetailOrderListModal";
 import {
+    addOrderFromSignal,
     addProductToTab,
     addTab,
     removeTab,
@@ -42,13 +43,37 @@ const POSPage = () => {
             .build();
 
         connection.on("ReceiveNewOrder", (orderData) => {
+            console.log("🚀 ~ connection.on ~ orderData:", orderData);
             if (!orderData || !orderData.master || !orderData.detail) {
                 console.warn("⚠️ Dữ liệu đơn hàng không hợp lệ:", orderData);
                 return;
             }
 
             const masterData = orderData.master[0] || {};
-            const detailData = orderData.detail || [];
+            const flatDetailData = orderData.detail || [];
+
+            // Group extras by uniqueid
+            const groupedDetailData = [];
+            const groupedMap = {};
+
+            flatDetailData.forEach(item => {
+                const { uniqueid, ma_vt_root } = item;
+
+                // Identify extras by checking ma_vt_root
+                if (ma_vt_root) {
+                    // extras
+                    if (groupedMap[uniqueid]) {
+                        groupedMap[uniqueid].extras.push(item);
+                    }
+                } else {
+                    // main item
+                    const mainItem = { ...item, extras: [] };
+                    groupedDetailData.push(mainItem);
+                    groupedMap[uniqueid] = mainItem;
+                }
+            });
+
+            const detailData = groupedDetailData;
 
             const tableData = {
                 name: masterData.ma_ban ? `${masterData.ma_ban}` : "Đơn mới",
@@ -70,7 +95,7 @@ const POSPage = () => {
                         name: item.ten_vt,
                         price: item.don_gia
                     };
-                    dispatch(addProductToTab({ tableId: tableData.id, product }));
+                    dispatch(addOrderFromSignal({ tableId: tableData.id, detailData }));
                 });
             }, 100);
         });

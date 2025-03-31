@@ -6,7 +6,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { useReactToPrint } from "react-to-print";
-import { multipleTablePutApi, printOrderApi, syncFastApi } from "../../../../api";
+import { v4 as uuidv4 } from "uuid";
+import { multipleTablePutApi, printOrderApi } from "../../../../api";
 import { clearTabData } from "../../../../store/reducers/order";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
@@ -51,8 +52,9 @@ export default function OrderSummary({ total, itemCount }) {
             status
         };
 
-        const detailData = activeTab?.detail?.flatMap((item) => [
-            {
+        const detailData = activeTab?.detail?.flatMap((item) => {
+            const uniqueid = uuidv4();
+            const mainItem = {
                 ten_vt: item.ten_vt,
                 ma_vt_root: item.ma_vt_root || "",
                 ma_vt: item.ma_vt,
@@ -60,16 +62,19 @@ export default function OrderSummary({ total, itemCount }) {
                 don_gia: item.don_gia.toString(),
                 thanh_tien: (item.so_luong * item.don_gia).toString(),
                 ghi_chu: item.ghi_chu || "",
-            },
-            ...(item.extras || []).map((extra) => ({
+                uniqueid
+            };
+            const extras = (item.extras || []).map((extra) => ({
                 ten_vt: extra.ten_vt,
                 ma_vt_root: item.ma_vt,
                 ma_vt: extra.ma_vt_more,
-                so_luong: (extra.quantity * item.so_luong).toString(),
-                don_gia: extra.gia.toString(),
+                quantity: (extra.quantity * item.so_luong).toString(),
+                gia: extra.gia.toString(),
                 thanh_tien: (extra.gia * extra.quantity * item.so_luong).toString(),
-            })),
-        ]);
+                uniqueid
+            }));
+            return [mainItem, ...extras];
+        });
 
         if (!detailData?.length) {
             message.warning("Vui lòng thêm vật tư!");
@@ -81,6 +86,7 @@ export default function OrderSummary({ total, itemCount }) {
 
     const handleSendOrderDirectly = async () => {
         const orderData = generateOrderData();
+        console.log("🚀 ~ handleSendOrderDirectly ~ orderData:", orderData.detailData)
         if (!orderData) return;
 
         setIsCreatingOrder(true);
@@ -122,7 +128,7 @@ export default function OrderSummary({ total, itemCount }) {
                 if (sttRec) {
                     try {
                         await printOrderApi(sttRec, id);
-                        await syncFastApi(sttRec, id);
+                        // await syncFastApi(sttRec, id);
                         notification.success({ message: "Thực hiện thành công và đồng bộ!" });
                     } catch (error) {
                         notification.error({ message: "Có lỗi xảy ra khi thực hiện thanh toán hoặc đồng bộ!", description: error.message });
