@@ -5,7 +5,6 @@ import AddNoteAndExtrasModal from "./modal/AddNoteAndExtrasModal";
 import "./OrderItem.css";
 
 export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem, onAddNote }) {
-    console.log("🚀 ~ OrderItem ~ item:", item)
     const [isModalVisible, setIsModalVisible] = useState(false);
 
     const handleAddNote = () => {
@@ -57,17 +56,18 @@ export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem,
 
                 {item.extras && item.extras.length > 0 && (
                     <ul className="order-item-extras">
-                        {item.extras.map((extra) => (
-                            <li key={extra.ma_vt_more} className="order-extra-item">
-                                <span className="extra-name">+ {extra.ten_vt}</span>
-                                <span className="extra-quantity">{extra.quantity}</span>
-                                <span className="extra-price">
-                                    {(extra.gia || extra.price)?.toLocaleString()}đ
-                                </span>
-                            </li>
-
-                        ))}
-
+                        {item.extras.map((extra) => {
+                            console.log("🚀 ~ {item.extras.map ~ extra:", extra)
+                            return (
+                                <li key={extra.ma_vt_more} className="order-extra-item">
+                                    <span className="extra-name">+ {extra.ten_vt}</span>
+                                    <span className="extra-quantity">{extra.quantity}</span>
+                                    <span className="extra-price">
+                                        {(extra.gia || extra.price)?.toLocaleString()}đ
+                                    </span>
+                                </li>
+                            );
+                        })}
                     </ul>
                 )}
                 {item.ghi_chu && <div className="order-item-note">Ghi chú: {item.ghi_chu}</div>}

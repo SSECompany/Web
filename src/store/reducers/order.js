@@ -225,6 +225,36 @@ const orders = createSlice({
                 state.activeTabId = newActiveTabId;
             }
         },
+        addOrderFromSignal: (state, action) => {
+            const { tableId, detailData } = action.payload;
+            const tab = state.orders.find((tab) => tab.tableId === tableId);
+
+            if (tab) {
+                // Kiểm tra trùng lặp trước khi thêm
+                const existingIds = tab.detail.map(item => item.ma_vt);
+                const newItems = detailData.filter(item => !existingIds.includes(item.ma_vt));
+
+                tab.detail.push(...newItems);
+
+                // Cập nhật lại tổng tiền và tổng số lượng sau khi thêm chi tiết
+                let newTongTien = 0;
+                let newTongSl = 0;
+
+                tab.detail.forEach(item => {
+                    const mainTotal = parseFloat(item.don_gia) * parseInt(item.so_luong);
+                    const extrasTotal = item.extras.reduce(
+                        (sum, extra) => sum + (parseFloat(extra.gia) * parseInt(extra.quantity) * parseInt(item.so_luong)),
+                        0
+                    );
+                    item.thanh_tien = (mainTotal + extrasTotal).toFixed(0);
+                    newTongTien += parseFloat(item.thanh_tien);
+                    newTongSl += parseInt(item.so_luong);
+                });
+
+                tab.master.tong_tien = newTongTien.toFixed(0);
+                tab.master.tong_sl = newTongSl.toString();
+            }
+        },
     },
 });
 
@@ -245,7 +275,8 @@ export const {
     updateMasterData,
     updateTabTableName,
     clearTabData,
-    setListOrderInfo
+    setListOrderInfo,
+    addOrderFromSignal
 } = orders.actions;
 
 export default orders.reducer;
