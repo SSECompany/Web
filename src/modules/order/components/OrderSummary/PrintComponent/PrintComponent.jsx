@@ -33,7 +33,7 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
         </thead>
         <tbody>
           {detail
-            .filter((item) => !item?.ma_vt_root) 
+            .filter((item) => !item?.ma_vt_root)
             .map((item, index) => {
               const subItems = detail.filter((sub) => sub?.ma_vt_root === item?.ma_vt);
               return (
@@ -59,7 +59,7 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
                   ))}
 
                   {item?.ghi_chu && (
-                    <tr key={`note-${index}`} style={{ fontSize: "10px", fontStyle: "italic", color: "#6c757d" }}>
+                    <tr key={`note-${index}`} style={{ fontSize: "12px", fontStyle: "italic" }}>
                       <td colSpan="4" style={{ padding: "3px", textAlign: "left" }}>
                         Ghi chú: {item?.ghi_chu}
                       </td>

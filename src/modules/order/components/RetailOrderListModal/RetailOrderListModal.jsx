@@ -1,9 +1,9 @@
-import { Button, DatePicker, Input, Modal, Select, Spin, Table, Tag } from "antd";
-import moment from 'moment';
+import { EditOutlined } from '@ant-design/icons';
+import { Button, DatePicker, Input, Modal, notification, Select, Spin, Table, Tag } from "antd";
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../../api";
-import { setListOrderInfo } from "../../../../store/reducers/order";
+import { addProductToTab, addTab, setListOrderInfo } from "../../../../store/reducers/order";
 import "./RetailOrderListModal.css";
 
 const RetailOrderListModal = ({ isOpen, onClose }) => {
@@ -16,7 +16,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
 
   const { id, storeId, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
-
+  const tabs = useSelector((state) => state.orders.orders);
   const fetchListOrderData = async (filterParams) => {
     setIsLoading(true);
     try {
@@ -152,7 +152,6 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div style={{ padding: 8 }}>
           <DatePicker
-            value={selectedKeys[0] ? moment(selectedKeys[0], 'DD/MM/YYYY') : null}
             onChange={(date) => {
               if (date) {
                 setSelectedKeys([date.format('DD/MM/YYYY')]);
@@ -226,8 +225,78 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         </div>
       ),
       onFilter: (value, record) => record.statusName.includes(value),
+    },
+    {
+      title: "Chức năng",
+      key: "action",
+      render: (_, record) => (
+        <Button
+          icon={<EditOutlined />}
+          onClick={() => handleEdit(record)}
+          type="danger"
+          size="small"
+          className='edit_button'
+          disabled={record.status === "2"}
+          style={record.status === "2" ? { opacity: 0.5, pointerEvents: 'none' } : {}}
+        >
+        </Button>
+      ),
     }
   ];
+
+  const handleEdit = async (record) => {
+    try {
+      const existingTab = tabs.some((tab) => tab.master.stt_rec === record.stt_rec);
+      if (existingTab) {
+        notification.error({
+          message: 'Tab đã tồn tại !!!',
+          duration: 5,
+        });
+        return;
+      }
+
+      const res = await multipleTablePutApi({
+        store: "api_get_data_detail_retail_order",
+        param: {
+          stt_rec: record.stt_rec,
+        },
+        data: {},
+      });
+
+      if (res?.responseModel?.isSucceded) {
+        const masterData = res?.listObject[0]?.[0] || {};
+        const detailData = res?.listObject[1] || [];
+
+        const tableData = {
+          name: masterData.ma_ban,
+          id: masterData.ma_ban,
+        };
+
+        dispatch(addTab({
+          tableName: tableData.name,
+          tableId: tableData.id,
+          isRealtime: false,
+          master: masterData,
+          detail: detailData,
+        }));
+
+        setTimeout(() => {
+          detailData.forEach((item) => {
+            const product = {
+              id: item.ma_vt,
+              name: item.ten_vt,
+              price: item.don_gia,
+            };
+            dispatch(addProductToTab({ tableId: tableData.id, product }));
+          });
+        }, 100);
+      } else {
+        console.error("API không thành công:", res?.responseModel?.message);
+      }
+    } catch (err) {
+      console.error("Lỗi khi gọi API chi tiết đơn hàng:", err);
+    }
+  };
 
   return (
     <Modal

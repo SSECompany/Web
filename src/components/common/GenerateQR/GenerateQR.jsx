@@ -12,7 +12,7 @@ const GenerateQR = () => {
                     className="flex flex-col items-center space-y-2 border-2 border-blue-500 p-4 rounded-lg shadow-md bg-white text-center w-[220px]"
                 >
                     <QRCodeCanvas
-                        value={`https://phenikaa-banhang.sse.net.vn/order/${table.value}?ma_qr=${table.ma_qr}`}
+                        value={`http://192.168.1.83:3000/order/${table.value}?ma_qr=${table.ma_qr}`}
                         size={200}
                     />
                 </div>
