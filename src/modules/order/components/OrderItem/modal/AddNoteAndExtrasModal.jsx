@@ -70,11 +70,9 @@ export default function AddNoteAndExtrasModal({ isVisible, onClose, orderIndex }
                 tableId: activeTabId,
                 orderIndex,
                 extras: selectedExtras.map((extra) => ({
-                    ma_vt: extra.ma_vt,
-                    ma_vt_more: extra.ma_vt_more,
-                    ten_vt: extra.ten_vt,
-                    gia: extra.gia,
+                    ...extra,
                     quantity: extra.quantity,
+                    gia: extra.gia || extra.price || 0,
                 })),
                 note,
             })

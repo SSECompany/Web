@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
     activeTabId: null,
+    internalActiveTabId: null,
     orders: [],
     listOrderTable: [],
     listOrderInfo: [],
@@ -26,36 +27,60 @@ const orders = createSlice({
                 tableId,
                 isRealtime,
                 master = {},
+                detail = [],
             } = action.payload;
 
-            const existingTab = state.orders.find((tab) => tab.tableId === tableId);
-            if (!existingTab) {
-                const defaultMaster = {
-                    dien_giai: "",
-                    tong_tien: "0",
-                    tong_sl: "0",
-                    tong_tt: "0",
-                    tien_mat: "0",
-                    chuyen_khoan: "0",
-                    httt: "",
-                    stt_rec: "",
-                    status: "2",
-                    ma_ban: "",
+            const defaultMaster = {
+                dien_giai: "",
+                tong_tien: "0",
+                tong_sl: "0",
+                tong_tt: "0",
+                tien_mat: "0",
+                chuyen_khoan: "0",
+                httt: "",
+                stt_rec: "",
+                status: "2",
+                ma_ban: "",
+            };
+
+            let tong_tien = 0;
+            let tong_sl = 0;
+
+            const normalizedDetail = detail.map(item => {
+                const so_luong = parseInt(item.so_luong || 0);
+                const don_gia = parseFloat(item.don_gia || 0);
+                const extrasTotal = (item.extras || []).reduce((sum, extra) =>
+                    sum + parseFloat(extra.don_gia || 0) * parseInt(extra.so_luong || 0) * so_luong, 0
+                );
+                const thanh_tien = don_gia * so_luong + extrasTotal;
+
+                tong_tien += thanh_tien;
+                tong_sl += so_luong;
+
+                return {
+                    ...item,
+                    thanh_tien: thanh_tien.toFixed(0),
                 };
+            });
 
-                state.orders.push({
-                    tableName,
-                    tableId,
-                    master: {
-                        ...defaultMaster,
-                        ...master,
-                    },
-                    detail: [],
-                });
-            }
+            const internalId = `${tableId}_${Date.now()}`;
 
-            if (!isRealtime) {
+            state.orders.push({
+                internalId,
+                tableName,
+                tableId,
+                master: {
+                    ...defaultMaster,
+                    ...master,
+                    tong_tien: tong_tien.toFixed(0),
+                    tong_sl: tong_sl.toString(),
+                },
+                detail: normalizedDetail,
+            });
+
+            if (!isRealtime || state.orders.length === 0) {
                 state.activeTabId = tableId;
+                state.internalActiveTabId = internalId;
             }
         },
 
@@ -71,7 +96,10 @@ const orders = createSlice({
 
         addProductToTab: (state, action) => {
             const { tableId, product } = action.payload;
-            const tab = state.orders.find((tab) => tab.tableId === tableId);
+            let tab = state.orders.find((tab) => tab.tableId === tableId && tab.internalId === state.internalActiveTabId);
+            if (!tab) {
+                tab = state.orders.find((tab) => tab.internalId === state.internalActiveTabId);
+            }
 
             if (tab) {
                 tab.detail.push({
@@ -97,27 +125,31 @@ const orders = createSlice({
 
         addExtrasToOrder: (state, action) => {
             const { tableId, orderIndex, extras, note } = action.payload;
-            const tab = state.orders.find((tab) => tab.tableId === tableId);
+            let tab = state.orders.find((tab) => tab.tableId === tableId && tab.internalId === state.internalActiveTabId);
+            if (!tab) {
+                tab = state.orders.find((tab) => tab.internalId === state.internalActiveTabId);
+            }
 
             if (tab) {
                 const mainProduct = tab.detail[orderIndex];
                 if (mainProduct) {
-
-                    mainProduct.extras = extras
+                    const updatedExtras = extras
                         .filter((extra) => extra.quantity > 0)
                         .map((extra) => ({
                             ...extra,
-                            quantity: extra.quantity,
+                            so_luong: extra.quantity,
+                            don_gia: extra.gia || extra.don_gia || 0,
                         }));
 
-
+                    mainProduct.extras = updatedExtras;
                     mainProduct.ghi_chu = note;
 
-                    const mainTotal = parseFloat(mainProduct.don_gia) * mainProduct.so_luong;
-                    const extrasTotal = mainProduct.extras.reduce(
-                        (sum, extra) => sum + extra.gia * extra.quantity * mainProduct.so_luong,
+                    const mainTotal = parseFloat(mainProduct.don_gia || 0) * parseInt(mainProduct.so_luong || 0);
+                    const extrasTotal = updatedExtras.reduce(
+                        (sum, extra) =>
+                            sum + parseFloat(extra.don_gia || 0) * parseInt(extra.so_luong || 0),
                         0
-                    );
+                    ) * parseInt(mainProduct.so_luong || 0);
 
                     mainProduct.thanh_tien = (mainTotal + extrasTotal).toFixed(0);
 
@@ -147,7 +179,7 @@ const orders = createSlice({
                 const mainTotal = parseFloat(product.don_gia) * newQuantity;
 
                 const extrasTotal =
-                    product.extras?.reduce(
+                    (product.extras || []).reduce(
                         (sum, extra) =>
                             sum + (extra.gia || 0) * extra.quantity * newQuantity,
                         0
@@ -183,17 +215,19 @@ const orders = createSlice({
 
         removeTab: (state, action) => {
             const { tableId } = action.payload;
-            state.orders = state.orders.filter((tab) => tab.tableId !== tableId);
-            if (state.activeTabId === tableId) {
+            state.orders = state.orders.filter((tab) => tab.internalId !== tableId);
+            if (state.internalActiveTabId === tableId) {
                 state.activeTabId = state.orders.length ? state.orders[0].tableId : null;
+                state.internalActiveTabId = state.orders.length ? state.orders[0].internalId : null;
             }
         },
 
         clearTabData: (state, action) => {
             const tableId = action.payload;
-            state.orders = state.orders.filter((tab) => tab.tableId !== tableId);
-            if (state.activeTabId === tableId) {
+            state.orders = state.orders.filter((tab) => tab.internalId !== tableId);
+            if (state.internalActiveTabId === tableId) {
                 state.activeTabId = state.orders.length ? state.orders[0].tableId : null;
+                state.internalActiveTabId = state.orders.length ? state.orders[0].internalId : null;
             }
         },
 
@@ -220,9 +254,10 @@ const orders = createSlice({
         },
         switchTab: (state, action) => {
             const newActiveTabId = action.payload;
-            const tabExists = state.orders.find((tab) => tab.tableId === newActiveTabId);
-            if (tabExists) {
-                state.activeTabId = newActiveTabId;
+            const tab = state.orders.find((tab) => tab.internalId === newActiveTabId);
+            if (tab) {
+                state.activeTabId = tab.tableId;
+                state.internalActiveTabId = newActiveTabId;
             }
         },
         addOrderFromSignal: (state, action) => {
@@ -231,8 +266,8 @@ const orders = createSlice({
 
             if (tab) {
                 // Kiểm tra trùng lặp trước khi thêm
-                const existingIds = tab.detail.map(item => item.ma_vt);
-                const newItems = detailData.filter(item => !existingIds.includes(item.ma_vt));
+                const existingIds = tab.detail.map(item => item.unique_id);
+                const newItems = detailData.filter(item => !existingIds.includes(item.unique_id));
 
                 tab.detail.push(...newItems);
 
@@ -241,14 +276,22 @@ const orders = createSlice({
                 let newTongSl = 0;
 
                 tab.detail.forEach(item => {
-                    const mainTotal = parseFloat(item.don_gia) * parseInt(item.so_luong);
-                    const extrasTotal = item.extras.reduce(
-                        (sum, extra) => sum + (parseFloat(extra.gia) * parseInt(extra.quantity) * parseInt(item.so_luong)),
+                    const so_luong = parseInt(item.so_luong || 0);
+                    const don_gia = parseFloat(item.don_gia || 0);
+                    const extrasTotal = (item.extras || []).reduce(
+                        (sum, extra) =>
+                            sum +
+                            (parseFloat(extra.don_gia || extra.gia || 0) *
+                                parseInt(extra.so_luong || extra.quantity || 0) *
+                                so_luong),
                         0
                     );
-                    item.thanh_tien = (mainTotal + extrasTotal).toFixed(0);
-                    newTongTien += parseFloat(item.thanh_tien);
-                    newTongSl += parseInt(item.so_luong);
+
+                    const thanh_tien = don_gia * so_luong + extrasTotal;
+                    item.thanh_tien = thanh_tien.toFixed(0);
+
+                    newTongTien += thanh_tien;
+                    newTongSl += so_luong;
                 });
 
                 tab.master.tong_tien = newTongTien.toFixed(0);

@@ -3,12 +3,12 @@ import { Button, DatePicker, Input, Modal, notification, Select, Spin, Table, Ta
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../../api";
-import { addProductToTab, addTab, setListOrderInfo } from "../../../../store/reducers/order";
+import { addTab, setListOrderInfo, switchTab } from "../../../../store/reducers/order";
 import "./RetailOrderListModal.css";
 
 const RetailOrderListModal = ({ isOpen, onClose }) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(7);
+  const [pageSize, setPageSize] = useState(6);
   const [totalRecords, setTotalRecords] = useState(0);
   const [allData, setAllData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -265,31 +265,38 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
 
       if (res?.responseModel?.isSucceded) {
         const masterData = res?.listObject[0]?.[0] || {};
-        const detailData = res?.listObject[1] || [];
+        const flatDetailData = res?.listObject[1] || [];
+        const groupedDetailData = [];
 
+        flatDetailData.forEach(item => {
+          const { ma_vt_root } = item;
+          if (ma_vt_root) {
+            const parent = groupedDetailData.find(p => p.ma_vt === ma_vt_root);
+            if (parent) {
+              parent.extras = parent.extras || [];
+              parent.extras.push(item);
+            }
+          } else {
+            groupedDetailData.push({ ...item, extras: [] });
+          }
+        });
+
+        const detailData = groupedDetailData;
         const tableData = {
           name: masterData.ma_ban,
           id: masterData.ma_ban,
         };
 
+        const internalId = `${tableData.id}_${Date.now()}`;
         dispatch(addTab({
           tableName: tableData.name,
           tableId: tableData.id,
           isRealtime: false,
+          internalId,
           master: masterData,
           detail: detailData,
         }));
-
-        setTimeout(() => {
-          detailData.forEach((item) => {
-            const product = {
-              id: item.ma_vt,
-              name: item.ten_vt,
-              price: item.don_gia,
-            };
-            dispatch(addProductToTab({ tableId: tableData.id, product }));
-          });
-        }, 100);
+        dispatch(switchTab(internalId));
       } else {
         console.error("API không thành công:", res?.responseModel?.message);
       }

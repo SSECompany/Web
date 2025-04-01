@@ -149,7 +149,9 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
                 <Button
                     key="pay"
                     type="primary"
-                    onClick={() => onConfirm(selectedPayments, paymentAmounts)}
+                    onClick={() => {
+                        onConfirm(selectedPayments, paymentAmounts);
+                    }}
                     className="payment-button primary"
                     disabled={selectedPayments.length === 0 || Object.values(paymentAmounts).reduce((sum, val) => sum + val, 0) < total}
                 >
