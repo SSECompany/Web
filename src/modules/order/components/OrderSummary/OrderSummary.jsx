@@ -4,24 +4,20 @@ import {
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
 import { useReactToPrint } from "react-to-print";
-import { v4 as uuidv4 } from "uuid";
 import { multipleTablePutApi, printOrderApi } from "../../../../api";
 import { clearTabData } from "../../../../store/reducers/order";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
 import PrintComponent from "./PrintComponent/PrintComponent";
 
+const generateRandomId = () => Array.from({ length: 16 }, () => Math.floor(Math.random() * 36).toString(36)).join('');
+
 export default function OrderSummary({ total, itemCount }) {
-    const { orderId } = useParams();
     const dispatch = useDispatch();
-    const { activeTabId, orders } = useSelector((state) => state.orders);
+    const { internalActiveTabId, orders } = useSelector((state) => state.orders);
     const { id, storeId, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
-    const [isModalVisible, setIsModalVisible] = useState(false);
-    const [selectedTable, setSelectedTable] = useState(null);
     const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
-    const [modalType, setModalType] = useState(null);
     const [message, contextHolder] = messageAPI.useMessage();
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
@@ -31,7 +27,7 @@ export default function OrderSummary({ total, itemCount }) {
     const [printDetail, setPrintDetail] = useState([]);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-    const activeTab = orders?.find((tab) => tab.tableId === activeTabId);
+    const activeTab = orders?.find((tab) => tab.internalId === internalActiveTabId);
 
     const generateOrderData = (status = "0", selectedPayments = [], paymentAmounts = {}) => {
         if (!activeTab) {
@@ -42,37 +38,43 @@ export default function OrderSummary({ total, itemCount }) {
         const masterData = {
             ma_ban: activeTab?.tableId,
             dien_giai: activeTab?.master?.dien_giai || "",
-            tong_tien: parseFloat(activeTab?.master?.tong_tien || 0).toString(),
-            tong_sl: parseInt(activeTab?.master?.tong_sl || 0).toString(),
-            tien_mat: (paymentAmounts.tien_mat || "0").toString(),
-            chuyen_khoan: (paymentAmounts.chuyen_khoan || "0").toString(),
-            tong_tt: (parseFloat(paymentAmounts.tien_mat || 0) + parseFloat(paymentAmounts.chuyen_khoan || 0)).toString(),
+            tong_tien: Number(activeTab?.master?.tong_tien || 0).toString(),
+            tong_sl: Number(activeTab?.master?.tong_sl || 0).toString(),
+            tien_mat: Number(paymentAmounts.tien_mat || 0).toString(),
+            chuyen_khoan: Number(paymentAmounts.chuyen_khoan || 0).toString(),
+            tong_tt: (Number(paymentAmounts.tien_mat || 0) + Number(paymentAmounts.chuyen_khoan || 0)).toString(),
             httt: selectedPayments.join(","),
             stt_rec: status === "2" ? activeTab?.master?.stt_rec || "" : "",
             status
         };
 
         const detailData = activeTab?.detail?.flatMap((item) => {
-            const uniqueid = uuidv4();
+            const uniqueid = item.uniqueid || generateRandomId();
             const mainItem = {
                 ten_vt: item.ten_vt,
                 ma_vt_root: item.ma_vt_root || "",
                 ma_vt: item.ma_vt,
-                so_luong: item.so_luong.toString(),
-                don_gia: item.don_gia.toString(),
-                thanh_tien: (item.so_luong * item.don_gia).toString(),
+                so_luong: (item.so_luong || 0).toString(),
+                don_gia: (item.don_gia || 0).toString(),
+                thanh_tien: ((item.so_luong || 0) * (item.don_gia || 0)).toString(),
                 ghi_chu: item.ghi_chu || "",
                 uniqueid
             };
-            const extras = (item.extras || []).map((extra) => ({
-                ten_vt: extra.ten_vt,
-                ma_vt_root: item.ma_vt,
-                ma_vt: extra.ma_vt_more,
-                quantity: (extra.quantity * item.so_luong).toString(),
-                gia: extra.gia.toString(),
-                thanh_tien: (extra.gia * extra.quantity * item.so_luong).toString(),
-                uniqueid
-            }));
+            const extras = (item.extras || []).map((extra) => {
+                const quantity = parseFloat(extra.quantity || extra.so_luong || 0);
+                const price = parseFloat(extra.gia || extra.don_gia || 0);
+                const amount = quantity * price * (item.so_luong || 0);
+
+                return {
+                    ten_vt: extra.ten_vt,
+                    ma_vt_root: item.ma_vt,
+                    ma_vt: extra.ma_vt_more || extra.ma_vt,
+                    so_luong: (quantity * (item.so_luong || 0)).toString(),
+                    don_gia: price.toString(),
+                    thanh_tien: amount.toString(),
+                    uniqueid
+                };
+            });
             return [mainItem, ...extras];
         });
 
@@ -86,7 +88,6 @@ export default function OrderSummary({ total, itemCount }) {
 
     const handleSendOrderDirectly = async () => {
         const orderData = generateOrderData();
-        console.log("🚀 ~ handleSendOrderDirectly ~ orderData:", orderData.detailData)
         if (!orderData) return;
 
         setIsCreatingOrder(true);
@@ -100,7 +101,7 @@ export default function OrderSummary({ total, itemCount }) {
             const response = await multipleTablePutApi(payload);
             if (response?.responseModel?.isSucceded) {
                 notification.success({ message: "Đơn hàng đã được gửi thành công!" });
-                setTimeout(() => dispatch(clearTabData(activeTabId)), 500);
+                setTimeout(() => dispatch(clearTabData(internalActiveTabId)), 500);
             } else {
                 notification.warning({ message: response?.responseModel?.message });
             }
@@ -129,14 +130,14 @@ export default function OrderSummary({ total, itemCount }) {
                     try {
                         await printOrderApi(sttRec, id);
                         // await syncFastApi(sttRec, id);
-                        notification.success({ message: "Thực hiện thành công và đồng bộ!" });
+                        notification.success({ message: "Thanh toán thành công !" });
                     } catch (error) {
                         notification.error({ message: "Có lỗi xảy ra khi thực hiện thanh toán hoặc đồng bộ!", description: error.message });
                     }
                 } else {
                     notification.warning({ message: "Không có `stt_rec` để thực hiện các API!" });
                 }
-                dispatch(clearTabData(activeTabId));
+                dispatch(clearTabData(internalActiveTabId));
             } else {
                 notification.warning({ message: response?.responseModel?.message });
             }
@@ -188,11 +189,6 @@ export default function OrderSummary({ total, itemCount }) {
         setIsMobile(isOrderPage && !token);
     }, []);
 
-    const openSelectTableModal = (type) => {
-        setModalType(type);
-        setIsModalVisible(true);
-    };
-
     return (
         <div className="order-summary">
             <div className="summary-info">
@@ -209,27 +205,8 @@ export default function OrderSummary({ total, itemCount }) {
                 onConfirm={handleConfirmPayment}
                 total={total}
             />
-            {/* <SelectTableModal
-                visible={isModalVisible}
-                onCancel={() => setIsModalVisible(false)}
-                onConfirm={(selectedTable) => {
-                    if (modalType === "updateTable") {
-                        dispatch({
-                            type: "orders/updateTabTableName",
-                            payload: { tableId: selectedTable.id, tableName: selectedTable.name },
-                        });
-                    }
-                    setSelectedTable(selectedTable);
-                    setIsModalVisible(false);
-                }}
-                modalTitle={modalType === "updateTable" ? "Chọn bàn cho tab hiện tại" : "Chọn bàn"}
-            /> */}
 
             <div className="summary-actions">
-                {/* <button className="select-table-button" onClick={() => openSelectTableModal("updateTable")}>
-                    {selectedTable ? selectedTable.name : orderId ? `Bàn ${orderId}` : "Đơn mới"}
-                </button> */}
-
                 <button
                     className="summary-button primary"
                     onClick={isMobile ? handleSendOrderDirectly : handleOpenPaymentModal}

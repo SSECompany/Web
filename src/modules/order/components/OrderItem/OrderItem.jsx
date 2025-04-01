@@ -57,13 +57,12 @@ export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem,
                 {item.extras && item.extras.length > 0 && (
                     <ul className="order-item-extras">
                         {item.extras.map((extra) => {
-                            console.log("🚀 ~ {item.extras.map ~ extra:", extra)
                             return (
                                 <li key={extra.ma_vt_more} className="order-extra-item">
                                     <span className="extra-name">+ {extra.ten_vt}</span>
-                                    <span className="extra-quantity">{extra.quantity}</span>
+                                    <span className="extra-quantity">{extra.quantity || extra.so_luong}</span>
                                     <span className="extra-price">
-                                        {(extra.gia || extra.price)?.toLocaleString()}đ
+                                        {(extra.gia || extra.don_gia)?.toLocaleString()}đ
                                     </span>
                                 </li>
                             );

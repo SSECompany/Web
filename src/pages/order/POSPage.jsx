@@ -26,7 +26,7 @@ import "./POSPage.css";
 
 const POSPage = () => {
     const dispatch = useDispatch();
-    const { activeTabId, orders } = useSelector((state) => state.orders);
+    const { activeTabId, internalActiveTabId, orders } = useSelector((state) => state.orders);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isOpenOrderList, setIsOpenOrderList] = useState(false);
 
@@ -43,7 +43,6 @@ const POSPage = () => {
             .build();
 
         connection.on("ReceiveNewOrder", (orderData) => {
-            console.log("🚀 ~ connection.on ~ orderData:", orderData);
             if (!orderData || !orderData.master || !orderData.detail) {
                 console.warn("⚠️ Dữ liệu đơn hàng không hợp lệ:", orderData);
                 return;
@@ -51,22 +50,17 @@ const POSPage = () => {
 
             const masterData = orderData.master[0] || {};
             const flatDetailData = orderData.detail || [];
-
-            // Group extras by uniqueid
             const groupedDetailData = [];
             const groupedMap = {};
 
             flatDetailData.forEach(item => {
                 const { uniqueid, ma_vt_root } = item;
 
-                // Identify extras by checking ma_vt_root
                 if (ma_vt_root) {
-                    // extras
                     if (groupedMap[uniqueid]) {
                         groupedMap[uniqueid].extras.push(item);
                     }
                 } else {
-                    // main item
                     const mainItem = { ...item, extras: [] };
                     groupedDetailData.push(mainItem);
                     groupedMap[uniqueid] = mainItem;
@@ -89,14 +83,7 @@ const POSPage = () => {
             }));
 
             setTimeout(() => {
-                detailData.forEach((item) => {
-                    const product = {
-                        id: item.ma_vt,
-                        name: item.ten_vt,
-                        price: item.don_gia
-                    };
-                    dispatch(addOrderFromSignal({ tableId: tableData.id, detailData }));
-                });
+                dispatch(addOrderFromSignal({ tableId: tableData.id, detailData }));
             }, 100);
         });
 
@@ -173,15 +160,13 @@ const POSPage = () => {
     }, [unitId, id, dispatch]);
 
     useEffect(() => {
-        if (!activeTabId && orders.length === 0) {
-            dispatch(
-                addTab({
-                    tableName: orderId ? `${orderId}` : "Đơn mới",
-                    tableId: orderId || "order",
-                })
-            );
+        if (!internalActiveTabId && orders.length === 0) {
+            const defaultId = orderId || "Đơn mới";
+            const internalId = `${defaultId}_${Date.now()}`;
+            dispatch(addTab({ tableName: defaultId, tableId: defaultId }));
+            dispatch(switchTab(internalId));
         }
-    }, [activeTabId, orders, dispatch, orderId]);
+    }, [internalActiveTabId, orders, dispatch, orderId]);
 
     useEffect(() => {
         localStorage.setItem("pos_orders", JSON.stringify(orders));
@@ -204,8 +189,8 @@ const POSPage = () => {
         dispatch(removeTab({ tableId: targetTableId }));
     };
 
-    const switchTabHandler = (tableId) => {
-        dispatch(switchTab(tableId));
+    const switchTabHandler = (internalId) => {
+        dispatch(switchTab(internalId));
     };
 
     const addToOrder = (product) => {
@@ -213,14 +198,12 @@ const POSPage = () => {
     };
 
     const calculateTotal = () => {
-        const tab = orders.find((tab) => {
-            return tab.tableId === activeTabId
-        })
+        const tab = orders.find((tab) => tab.internalId === internalActiveTabId);
         return parseFloat(tab?.master?.tong_tien || 0);
     };
 
     const calculateItemCount = () => {
-        const tab = orders.find((tab) => tab.tableId === activeTabId);
+        const tab = orders.find((tab) => tab.internalId === internalActiveTabId);
         return parseInt(tab?.master?.tong_sl || 0);
     };
 
@@ -238,7 +221,7 @@ const POSPage = () => {
                     <div className="tabs-menu-container">
                         <Tabs
                             type="editable-card"
-                            activeKey={activeTabId}
+                            activeKey={internalActiveTabId}
                             onChange={switchTabHandler}
                             onEdit={(targetKey, action) => {
                                 if (action === "add") {
@@ -249,7 +232,7 @@ const POSPage = () => {
                             }}
                         >
                             {orders.map((tab) => (
-                                <Tabs.TabPane tab={tab.tableName} key={tab.tableId} >
+                                <Tabs.TabPane tab={tab.tableName} key={tab.internalId} >
                                     <Category />
                                     <MenuGrid onAdd={addToOrder} />
                                 </Tabs.TabPane>
@@ -267,7 +250,7 @@ const POSPage = () => {
                 </div>
                 <div className="right-panel">
                     <OrderList
-                        order={orders.find((tab) => tab.tableId === activeTabId)?.detail || []}
+                        order={orders.find((tab) => tab.internalId === internalActiveTabId)?.detail || []}
                     />
                     <OrderSummary
                         total={calculateTotal()}

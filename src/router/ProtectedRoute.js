@@ -13,7 +13,6 @@ const ProtectedRoute = () => {
         const isValid = tableData.some((table) => table.value === orderId && table.ma_qr === ma_qr);
 
         if (!isValid) {
-            console.log("🚀 ")
             return <Navigate to="/error" replace />;
         }
     }
