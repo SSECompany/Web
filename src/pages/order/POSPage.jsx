@@ -1,5 +1,5 @@
 import * as signalR from "@microsoft/signalr";
-import { Button, Tabs, Tooltip } from "antd";
+import { Button, Modal, Tabs, Tooltip } from "antd";
 import React, { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
@@ -16,6 +16,7 @@ import {
     addOrderFromSignal,
     addProductToTab,
     addTab,
+    clearTabData,
     removeTab,
     setListCategory,
     setListOrderTable,
@@ -70,7 +71,7 @@ const POSPage = () => {
             const detailData = groupedDetailData;
 
             const tableData = {
-                name: masterData.ma_ban ? `${masterData.ma_ban}` : "Đơn mới",
+                name: masterData.ma_ban ? `${masterData.ma_ban}` : "POS",
                 id: masterData.ma_ban || `order_${Date.now()}`
             };
 
@@ -161,9 +162,10 @@ const POSPage = () => {
 
     useEffect(() => {
         if (!internalActiveTabId && orders.length === 0) {
-            const defaultId = orderId || "Đơn mới";
+            const defaultId = "POS";
+            const tableName = "Máy POS"
             const internalId = `${defaultId}_${Date.now()}`;
-            dispatch(addTab({ tableName: defaultId, tableId: defaultId }));
+            dispatch(addTab({ tableName: tableName, tableId: defaultId }));
             dispatch(switchTab(internalId));
         }
     }, [internalActiveTabId, orders, dispatch, orderId]);
@@ -186,7 +188,29 @@ const POSPage = () => {
     };
 
     const removeTabHandler = (targetTableId) => {
-        dispatch(removeTab({ tableId: targetTableId }));
+        const targetTab = orders.find(tab => tab.internalId === targetTableId);
+
+        if (!targetTab) return;
+
+        const isPOS = targetTab?.tableId === "POS";
+        const confirmTitle = isPOS ? "Xác nhận xóa dữ liệu" : "Xác nhận đóng tab";
+        const confirmContent = isPOS
+            ? "Bạn có chắc muốn xoá toàn bộ dữ liệu của tab POS?"
+            : `Bạn có chắc muốn đóng tab "${targetTab.tableName}"?`;
+
+        Modal.confirm({
+            title: confirmTitle,
+            content: confirmContent,
+            okText: "Xác nhận",
+            cancelText: "Hủy",
+            onOk: () => {
+                if (isPOS) {
+                    dispatch(clearTabData(targetTableId));
+                } else {
+                    dispatch(removeTab({ tableId: targetTableId }));
+                }
+            }
+        });
     };
 
     const switchTabHandler = (internalId) => {
@@ -219,25 +243,27 @@ const POSPage = () => {
             <div className="main-container">
                 <div className="left-middle-panel">
                     <div className="tabs-menu-container">
-                        <Tabs
-                            type="editable-card"
-                            activeKey={internalActiveTabId}
-                            onChange={switchTabHandler}
-                            onEdit={(targetKey, action) => {
-                                if (action === "add") {
-                                    setIsModalVisible(true);
-                                } else {
-                                    removeTabHandler(targetKey);
-                                }
-                            }}
-                        >
-                            {orders.map((tab) => (
-                                <Tabs.TabPane tab={tab.tableName} key={tab.internalId} >
-                                    <Category />
-                                    <MenuGrid onAdd={addToOrder} />
-                                </Tabs.TabPane>
-                            ))}
-                        </Tabs>
+                        <div className="custom-tabs">
+                            <Tabs
+                                type="editable-card"
+                                activeKey={internalActiveTabId}
+                                onChange={switchTabHandler}
+                                onEdit={(targetKey, action) => {
+                                    if (action === "add") {
+                                        setIsModalVisible(true);
+                                    } else {
+                                        removeTabHandler(targetKey);
+                                    }
+                                }}
+                            >
+                                {orders.map((tab) => (
+                                    <Tabs.TabPane tab={tab.tableName} key={tab.internalId} >
+                                        <Category />
+                                        <MenuGrid onAdd={addToOrder} />
+                                    </Tabs.TabPane>
+                                ))}
+                            </Tabs>
+                        </div>
                     </div>
 
                     <div className="tool-tip">

@@ -224,10 +224,21 @@ const orders = createSlice({
 
         clearTabData: (state, action) => {
             const tableId = action.payload;
-            state.orders = state.orders.filter((tab) => tab.internalId !== tableId);
-            if (state.internalActiveTabId === tableId) {
-                state.activeTabId = state.orders.length ? state.orders[0].tableId : null;
-                state.internalActiveTabId = state.orders.length ? state.orders[0].internalId : null;
+            const tab = state.orders.find(tab => tab.internalId === tableId);
+            if (tab) {
+                tab.master = {
+                    dien_giai: "",
+                    tong_tien: "0",
+                    tong_sl: "0",
+                    tong_tt: "0",
+                    tien_mat: "0",
+                    chuyen_khoan: "0",
+                    httt: "",
+                    stt_rec: "",
+                    status: "2",
+                    ma_ban: tab.tableId === "POS" ? "" : tab.master.ma_ban,
+                };
+                tab.detail = [];
             }
         },
 
@@ -298,6 +309,39 @@ const orders = createSlice({
                 tab.master.tong_sl = newTongSl.toString();
             }
         },
+        updateProductPrice: (state, action) => {
+            const { index, newPrice } = action.payload;
+            const tab = state.orders.find((tab) => tab.internalId === state.internalActiveTabId);
+            if (tab && tab.detail[index]) {
+                const item = tab.detail[index];
+                item.don_gia = newPrice;
+
+                const mainTotal = newPrice * parseInt(item.so_luong || 0);
+                const extrasTotal =
+                    (item.extras || []).reduce(
+                        (sum, extra) =>
+                            sum +
+                            (parseFloat(extra.don_gia || extra.gia || 0) *
+                                parseInt(extra.so_luong || extra.quantity || 0) *
+                                parseInt(item.so_luong || 0)),
+                        0
+                    );
+
+                item.thanh_tien = (mainTotal + extrasTotal).toFixed(0);
+
+                // Recalculate order totals
+                let tongTien = 0;
+                let tongSl = 0;
+
+                tab.detail.forEach((d) => {
+                    tongTien += parseFloat(d.thanh_tien) || 0;
+                    tongSl += parseInt(d.so_luong) || 0;
+                });
+
+                tab.master.tong_tien = tongTien.toFixed(0);
+                tab.master.tong_sl = tongSl.toString();
+            }
+        },
     },
 });
 
@@ -315,7 +359,7 @@ export const {
     setSelectedItem,
     setListItemExtra,
     addExtrasToOrder,
-    updateMasterData,
+    updateProductPrice,
     updateTabTableName,
     clearTabData,
     setListOrderInfo,

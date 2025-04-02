@@ -1,13 +1,8 @@
 import React, { forwardRef } from "react";
+import { formatNumber } from "../../../../../app/hook/dataFormatHelper";
 
 const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
   var now = new Date();
-
-  const formatNumber = (val) => {
-    if (!val) return "0";
-    return `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".").replace(/\.(?=\d{0,2}$)/g, ",");
-  };
-
   return (
     <div className="print-content" style={{ fontFamily: "Arial", fontSize: "12px", padding: "10px", maxWidth: "260px" }} ref={ref}>
       <div style={{ textAlign: "center", marginBottom: "8px" }}>

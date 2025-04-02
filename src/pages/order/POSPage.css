@@ -8,6 +8,43 @@
   overflow: auto;
 }
 
+/* Style tab đẹp cho POS */
+.custom-tabs .ant-tabs-nav {
+  background-color: #f8f9fa;
+  padding: 6px 8px;
+  border-bottom: 1px solid #ddd;
+  overflow-x: auto;
+}
+
+.custom-tabs .ant-tabs-tab {
+  white-space: nowrap;
+  width: 98px;
+  justify-content: space-evenly;
+}
+
+.custom-tabs .ant-tabs-tab:hover {
+  background-color: #f0f0f0;
+}
+
+.custom-tabs .ant-tabs-tab-active {
+  background-color: #2f80ed;
+  color: #fff;
+  font-weight: bold;
+}
+
+.custom-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #fff;
+}
+
+.custom-tabs .ant-tabs-tab-remove {
+  margin-left: 8px;
+  color: #bbb;
+}
+
+.custom-tabs .ant-tabs-tab-remove:hover {
+  color: red;
+}
+
 .main-container {
   display: flex;
   width: 100%;

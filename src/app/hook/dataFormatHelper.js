@@ -27,14 +27,6 @@ const formatData = (data, layout) => {
   return formatedData;
 };
 
-// const deleteObjectItems = (data: {}, options: []) => {
-//   const rawData = { ...data };
-//   options.map((item) => {
-//     return delete rawData[item];
-//   });
-//   return rawData;
-// };
-
 const formatCurrency = (num = 0, numDegit = 0) => {
   return Number(num).toLocaleString("de-DE", {
     minimumFractionDigits: Number(numDegit),
@@ -42,5 +34,16 @@ const formatCurrency = (num = 0, numDegit = 0) => {
   });
 };
 
-export { formatCurrency, formatData };
+const formatNumber = (val) => {
+  if (!val) return 0;
+  return `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".").replace(/\.(?=\d{0,2}$)/g, ",");
+};
+
+const parserNumber = (val) => {
+  if (!val) return 0;
+  return Number.parseFloat(val.replace(/\$\s?|(\.*)/g, "").replace(/(\,{1})/g, ".")).toFixed(2);
+};
+
+
+export { formatCurrency, formatData, formatNumber, parserNumber };
 
