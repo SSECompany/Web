@@ -195,7 +195,7 @@ export default function OrderSummary({ total, itemCount }) {
                 <span className="summary-total">
                     <p>Tổng tiền</p>
                     <span className="summary-count">{itemCount}</span>
-                    <p className="summary-total_font">{total.toLocaleString()}đ</p>
+                    <p className="summary-total_font">{total.toLocaleString()} đ</p>
                 </span>
             </div>
 
