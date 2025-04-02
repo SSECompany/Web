@@ -1,9 +1,11 @@
-import { EditOutlined } from '@ant-design/icons';
+import { EditOutlined, PrinterOutlined } from '@ant-design/icons';
 import { Button, DatePicker, Input, Modal, notification, Select, Spin, Table, Tag } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../../api";
 import { addTab, setListOrderInfo, switchTab } from "../../../../store/reducers/order";
+import PrintComponent from '../OrderSummary/PrintComponent/PrintComponent';
 import "./RetailOrderListModal.css";
 
 const RetailOrderListModal = ({ isOpen, onClose }) => {
@@ -17,6 +19,10 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
 
   const { id, storeId, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
   const tabs = useSelector((state) => state.orders.orders);
+  const [printMaster, setPrintMaster] = useState({});
+  const [printDetail, setPrintDetail] = useState([]);
+  const printContent = useRef();
+
   const fetchListOrderData = async (filterParams) => {
     setIsLoading(true);
     try {
@@ -230,16 +236,29 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       title: "Chức năng",
       key: "action",
       render: (_, record) => (
-        <Button
-          icon={<EditOutlined />}
-          onClick={() => handleEdit(record)}
-          type="danger"
-          size="small"
-          className='edit_button'
-          disabled={record.status === "2"}
-          style={record.status === "2" ? { opacity: 0.5, pointerEvents: 'none' } : {}}
-        >
-        </Button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+            type="danger"
+            size="small"
+            className="edit_button"
+            disabled={record.status === "2"}
+            style={record.status === "2" ? { opacity: 0.5, pointerEvents: 'none' } : {}}
+          />
+          <Button
+            icon={<PrinterOutlined />}
+            onClick={() => handleReprint(record)}
+            size="small"
+            type="primary"
+            style={{
+              backgroundColor: "#faad14",
+              borderColor: "#faad14",
+              opacity: record.status !== "2" ? 0.5 : 1,
+              pointerEvents: record.status !== "2" ? "none" : "auto"
+            }}
+          />
+        </div>
       ),
     }
   ];
@@ -305,39 +324,96 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleReprint = async (record) => {
+    if (record.status !== "2") {
+      notification.warning({
+        message: 'Chỉ có thể in lại hóa đơn đã hoàn thành!',
+        duration: 4,
+      });
+      return;
+    }
+
+    try {
+      const res = await multipleTablePutApi({
+        store: "api_get_data_detail_retail_order",
+        param: { stt_rec: record.stt_rec },
+        data: {},
+      });
+
+      if (res?.responseModel?.isSucceded) {
+        const masterData = res?.listObject[0]?.[0] || {};
+        const flatDetailData = res?.listObject[1] || [];
+        const groupedDetailData = [];
+
+        flatDetailData.forEach(item => {
+          const { ma_vt_root } = item;
+          if (ma_vt_root) {
+            const parent = groupedDetailData.find(p => p.ma_vt === ma_vt_root);
+            if (parent) {
+              parent.extras = parent.extras || [];
+              parent.extras.push(item);
+            }
+          } else {
+            groupedDetailData.push({ ...item, extras: [] });
+          }
+        });
+
+        setPrintMaster(masterData);
+        setPrintDetail(groupedDetailData);
+
+        setTimeout(() => {
+          handlePrint();
+        }, 300);
+      }
+    } catch (error) {
+      console.error("Lỗi khi in lại hóa đơn:", error);
+    }
+  };
+
+  const handlePrint = useReactToPrint({
+    content: () => printContent.current,
+    documentTitle: "Print This Document",
+    copyStyles: false,
+  });
+
   return (
-    <Modal
-      open={isOpen}
-      width={"80%"}
-      title="Danh sách đơn hàng"
-      destroyOnClose={true}
-      onCancel={onClose}
-      cancelText="Đóng"
-      centered
-      okButtonProps={{ style: { display: "none" } }}
-      cancelButtonProps={{ style: { display: "none" } }}
-    >
-      <div className="retail__modal__Container">
-        {isLoading ? (
-          <Spin size="large" />
-        ) : (
-          <Table
-            dataSource={currentData}
-            columns={columns}
-            rowKey="id"
-            pagination={{
-              current: currentPage,
-              pageSize: pageSize,
-              total: totalRecords,
-              showSizeChanger: false,
-              onChange: (page) => {
-                setCurrentPage(page);
-              },
-            }}
-          />
-        )}
+    <>
+      <Modal
+        open={isOpen}
+        width={"80%"}
+        title="Danh sách đơn hàng"
+        destroyOnClose={true}
+        onCancel={onClose}
+        cancelText="Đóng"
+        centered
+        okButtonProps={{ style: { display: "none" } }}
+        cancelButtonProps={{ style: { display: "none" } }}
+      >
+        <div className="retail__modal__Container">
+          {isLoading ? (
+            <Spin size="large" />
+          ) : (
+            <Table
+              dataSource={currentData}
+              columns={columns}
+              rowKey="id"
+              pagination={{
+                current: currentPage,
+                pageSize: pageSize,
+                total: totalRecords,
+                showSizeChanger: false,
+                onChange: (page) => {
+                  setCurrentPage(page);
+                },
+              }}
+            />
+          )}
+        </div>
+      </Modal>
+      <div style={{ display: "none" }}>
+        <PrintComponent ref={printContent} master={printMaster} detail={printDetail} />
       </div>
-    </Modal>
+    </>
   );
 };
 
