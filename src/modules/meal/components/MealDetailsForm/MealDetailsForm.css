@@ -1,0 +1,193 @@
+.meal-ticket-form {
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  margin: 20px auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Back Button */
+.back-button-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.back-button {
+  padding: 8px;
+  background-color: white;
+  color: black;
+  font-size: 24px !important;
+  border: none;
+}
+
+.back-button svg {
+  font-size: 20px !important;
+}
+
+.form-title {
+  text-align: center;
+  font-size: 22px;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+/* Mode Selection */
+.mode-selection-group {
+  margin-bottom: 15px;
+}
+
+.mode-label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.mode-dropdown {
+  width: 100%;
+}
+
+/* Meal Selection and Quantity */
+.meal-selection-group {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 15px;
+  width: 95%;
+  justify-content: space-between;
+}
+.meal-type-selection {
+  display: flex;
+  flex-direction: column;
+  width: 80%;
+}
+
+.meal-dropdown {
+  width: 65%;
+}
+
+.meal-description {
+  font-size: 14px;
+  color: #555;
+  font-style: italic;
+}
+
+.quantity-controls {
+  align-items: flex-start !important;
+}
+
+.quantity-button:hover {
+  background-color: #ddd;
+}
+
+.quantity-display {
+  font-size: 16px;
+}
+
+/* Price Input Group */
+.price-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 15px;
+  justify-content: space-between;
+}
+
+.price-label {
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+.price-checkbox {
+  margin: 0 5px;
+}
+
+.price-display {
+  font-size: 16px;
+  padding: 6px 12px;
+  background-color: #f0f0f0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  text-align: right;
+  min-width: 60px;
+}
+
+.currency-symbol {
+  font-size: 16px;
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+/* Notes Section */
+.notes-input-group {
+  margin-bottom: 15px;
+}
+
+.note-label {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.note-input {
+  width: 100%;
+  padding: 10px;
+  resize: vertical;
+  min-height: 100px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fafafa;
+}
+
+/* Submit Button */
+.submit-button {
+  padding: 12px;
+  background-color: #007bff;
+  color: white;
+  font-size: 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.submit-button:hover {
+  background-color: #0056b3;
+}
+
+.submit-icon {
+  font-size: 18px;
+  margin-left: 10px;
+}
+
+/* Add Row Button */
+.add-row-button {
+  background-color: #007bff;
+  color: white;
+  font-size: 20px;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px auto;
+  cursor: pointer;
+}
+
+.add-row-button:hover {
+  background-color: #0056b3;
+}
+
+.meal-ticket-row {
+  margin-bottom: 20px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}

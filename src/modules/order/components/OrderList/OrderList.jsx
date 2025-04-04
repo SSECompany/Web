@@ -1,7 +1,7 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../../api";
-import { removeProductFromTab, setListItemExtra, setSelectedItem, updateProductQuantity } from "../../../../store/reducers/order";
+import { removeProductFromTab, setListItemExtra, setSelectedItem, updateProductQuantity } from "../../store/order";
 import OrderItem from "../OrderItem/OrderItem";
 import "./OrderList.css";
 
