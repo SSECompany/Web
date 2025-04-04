@@ -1,7 +1,7 @@
 import { Button, Checkbox, Col, Input, Modal, Row } from "antd";
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { addExtrasToOrder } from "../../../../../store/reducers/order";
+import { addExtrasToOrder } from "../../../store/order";
 import "./AddNoteAndExtrasModal.css";
 export default function AddNoteAndExtrasModal({ isVisible, onClose, orderIndex }) {
     const [note, setNote] = useState("");

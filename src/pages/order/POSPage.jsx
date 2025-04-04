@@ -12,6 +12,7 @@ import MenuGrid from "../../modules/order/components/Menu/MenuGrid";
 import OrderList from "../../modules/order/components/OrderList/OrderList";
 import OrderSummary from "../../modules/order/components/OrderSummary/OrderSummary";
 import RetailOrderListModal from "../../modules/order/components/RetailOrderListModal/RetailOrderListModal";
+
 import {
     addOrderFromSignal,
     addProductToTab,
@@ -21,7 +22,7 @@ import {
     setListCategory,
     setListOrderTable,
     switchTab
-} from "../../store/reducers/order";
+} from "../../modules/order/store/order";
 import jwt from "../../utils/jwt";
 import "./POSPage.css";
 

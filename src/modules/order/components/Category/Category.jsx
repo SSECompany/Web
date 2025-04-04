@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../../api";
 import { setLoading } from "../../../../store/reducers/loadingSlice";
-import { setCurrentCategory, setMenuItems } from "../../../../store/reducers/order";
+import { setCurrentCategory, setMenuItems } from "../../store/order";
 import "./Category.css";
 
 export default function Category() {

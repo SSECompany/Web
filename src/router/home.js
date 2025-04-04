@@ -3,12 +3,12 @@ import { Navigate } from "react-router-dom";
 import App from "../App";
 import ErrorPage from "../components/common/ErrorPage/ErrorPage";
 import GenerateQR from "../components/common/GenerateQR/GenerateQR";
+import MealTicketForm from "../pages/mealTicket/MealTicketForm";
 import POSPage from "../pages/order/POSPage";
 import TransferHub from "../pages/transferHub/TransferHub";
 import ProtectedRoute from "./ProtectedRoute";
 
 const Login = lazy(() => import("../pages/login/Login"));
-
 
 const homeRoutes = [
   {
@@ -37,6 +37,11 @@ const homeRoutes = [
             path: "order/:orderId",
             element: <POSPage />,
             index: true,
+          },
+          {
+            label: "Meal Ticket Form",
+            path: "meal-ticket",
+            element: <MealTicketForm />,
           },
         ],
       },
