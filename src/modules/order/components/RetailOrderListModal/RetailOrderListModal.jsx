@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../../api";
-import { addTab, setListOrderInfo, switchTab } from "../../../../store/reducers/order";
+import { addTab, setListOrderInfo, switchTab } from '../../store/order';
 import PrintComponent from '../OrderSummary/PrintComponent/PrintComponent';
 import "./RetailOrderListModal.css";
 

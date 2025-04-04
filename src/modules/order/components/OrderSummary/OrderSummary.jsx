@@ -6,7 +6,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi, printOrderApi } from "../../../../api";
-import { clearTabData } from "../../../../store/reducers/order";
+import { clearTabData } from "../../store/order";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
 import PrintComponent from "./PrintComponent/PrintComponent";

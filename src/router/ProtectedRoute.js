@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { tableData } from "../components/common/GenerateQR/tableDataQR"; // Import tableData
+import { tableData } from "../components/common/GenerateQR/tableDataQR";
 
 const ProtectedRoute = () => {
     const token = localStorage.getItem("access_token");
@@ -17,7 +17,7 @@ const ProtectedRoute = () => {
         }
     }
 
-    if (!token && location.pathname === "/") {
+    if (!token && (location.pathname === "/" || location.pathname === "/meal-ticket")) {
         return <Navigate to="/login" replace />;
     }
 

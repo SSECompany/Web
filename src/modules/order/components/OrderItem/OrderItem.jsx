@@ -1,20 +1,15 @@
 import { EllipsisOutlined } from "@ant-design/icons";
 import { Button, Dropdown, Menu } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { formatNumber } from "../../../../app/hook/dataFormatHelper";
-import { updateProductPrice } from "../../../../store/reducers/order";
+import { updateProductPrice } from "../../store/order";
 import AddNoteAndExtrasModal from "./modal/AddNoteAndExtrasModal";
 import "./OrderItem.css";
 
 export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem, onAddNote }) {
     const [isModalVisible, setIsModalVisible] = useState(false);
-    const [priceInput, setPriceInput] = useState("");
     const dispatch = useDispatch();
-
-    useEffect(() => {
-        setPriceInput(item.don_gia?.toString() || "");
-    }, [item.don_gia]);
 
     const handleAddNote = () => {
         onAddNote();
@@ -23,7 +18,6 @@ export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem,
 
     const handleApplyVoucher = () => {
         dispatch(updateProductPrice({ index, newPrice: 0 }));
-        setPriceInput("0");
     };
 
     const menu = (
@@ -39,7 +33,6 @@ export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem,
             </Menu.Item>
         </Menu>
     );
-
 
     return (
         <>
@@ -61,26 +54,12 @@ export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem,
                             +
                         </Button>
                     </div>
-                    <input
-                        className="order-item-price-input"
-                        type="text"
-                        value={formatNumber(priceInput)}
-                        onChange={(e) => {
-                            const raw = e.target.value.replace(/[^0-9]/g, "");
-                            setPriceInput(raw);
-                        }}
-                        onBlur={() => {
-                            const numeric = parseInt(priceInput);
-                            if (!isNaN(numeric)) {
-                                dispatch(updateProductPrice({ index, newPrice: numeric }));
-                                setPriceInput(formatNumber(numeric));
-                            } else {
-                                dispatch(updateProductPrice({ index, newPrice: 0 }));
-                                setPriceInput(formatNumber(0));
-                            }
-                        }}
-                        style={{ width: "90px", textAlign: "right", color: "#28a745" }}
-                    />
+                    <span
+                        className="order-item-price-display"
+                        style={{ width: "90px", textAlign: "right", color: "#28a745", fontSize: 16 }}
+                    >
+                        {formatNumber(item.don_gia)}đ
+                    </span>
                     <Dropdown overlay={menu} trigger={["click"]} placement="bottomRight">
                         <Button
                             type="text"
