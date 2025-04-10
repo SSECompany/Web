@@ -1,4 +1,4 @@
-import jwtDecode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import Cookies from "universal-cookie";
 const cookies = new Cookies();
 const ACCESS_TOKEN_KEY = "access_token";
@@ -84,6 +84,8 @@ const setDashboardReport = (settings) => {
   return window.localStorage.setItem(DARDBOARD_REPORT_SETTINGS, settings);
 };
 
+
+
 const jwt = {
   getAccessToken,
   getRefreshToken,
@@ -100,5 +102,6 @@ const jwt = {
   setStatisticboardSetting,
   getDashboardReport,
   setDashboardReport,
+  
 };
 export default jwt;

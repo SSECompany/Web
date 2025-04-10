@@ -1,6 +1,6 @@
 import { EllipsisOutlined } from "@ant-design/icons";
 import { Button, Dropdown, Menu } from "antd";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { formatNumber } from "../../../../app/hook/dataFormatHelper";
 import { updateProductPrice } from "../../store/order";
@@ -9,7 +9,13 @@ import "./OrderItem.css";
 
 export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem, onAddNote }) {
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [priceInput, setPriceInput] = useState("");
     const dispatch = useDispatch();
+    const token = localStorage.getItem("access_token");
+
+    useEffect(() => {
+        setPriceInput(item.don_gia?.toString() || "");
+    }, [item.don_gia]);
 
     const handleAddNote = () => {
         onAddNote();
@@ -18,21 +24,26 @@ export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem,
 
     const handleApplyVoucher = () => {
         dispatch(updateProductPrice({ index, newPrice: 0 }));
+        setPriceInput("0");
     };
+
 
     const menu = (
         <Menu>
             <Menu.Item key="add-note" onClick={handleAddNote}>
                 Ghi chú/Món thêm
             </Menu.Item>
-            <Menu.Item key="apply-voucher" onClick={handleApplyVoucher}>
-                Áp dụng voucher
-            </Menu.Item>
+            {token && (
+                <Menu.Item key="apply-voucher" onClick={handleApplyVoucher}>
+                    Áp dụng voucher
+                </Menu.Item>
+            )}
             <Menu.Item key="delete-item" danger onClick={() => onDeleteItem(index)}>
                 Xóa món
             </Menu.Item>
         </Menu>
     );
+
 
     return (
         <>
@@ -55,10 +66,10 @@ export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem,
                         </Button>
                     </div>
                     <span
-                        className="order-item-price-display"
-                        style={{ width: "90px", textAlign: "right", color: "#28a745", fontSize: 16 }}
+                        className="order-item-price-input"
+                        style={{ width: "90px", textAlign: "right", color: "#28a745", display: "inline-block" }}
                     >
-                        {formatNumber(item.don_gia)}đ
+                        {formatNumber(priceInput)}
                     </span>
                     <Dropdown overlay={menu} trigger={["click"]} placement="bottomRight">
                         <Button
