@@ -260,6 +260,9 @@
   .order-extra-item {
     grid-template-columns: 1fr 40px 120px;
   }
+  .order-item-price-input {
+    width: 60px !important;
+  }
 }
 
 @media screen and (max-width: 360px) {

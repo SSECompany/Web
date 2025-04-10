@@ -2,17 +2,19 @@ import { RightOutlined } from '@ant-design/icons';
 import { Select } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setBeds, setShowMealDetails, setShowRoomSelection } from '../../store/meal';
-import MealDetailsForm from '../MealDetailsForm/MealDetailsForm';
+import { setBeds, setCurrentBedIndex, setListBeds, setMasterData, setRoomCode, setShowMealDetails, setShowRoomSelection } from '../../store/meal';
 import './RoomSelectionForm.css';
 
 const { Option } = Select;
 
-const RoomSelectionForm = ({ mealDetails, handleChange, roomOptions }) => {
+const RoomSelectionForm = () => {
     const dispatch = useDispatch();
-    const { showMealDetails } = useSelector(state => state.meals);
+    const masterData = useSelector((state) => state.meals.meals.masterData || {});
+    const listBeds = useSelector((state) => state.meals.listBeds || []);
+    const submittedBeds = useSelector((state) => state.meals.submittedBeds || []);
+    const detailData = useSelector((state) => state.meals.meals.detailData || []);
     const [availableRooms, setAvailableRooms] = useState([]);
-    const [mealItems, setMealItems] = useState([{ mode: '', note: '' }]);
+    const [isRoomSelectable, setIsRoomSelectable] = useState(false);
 
     const filterRoomsByDepartment = (departmentCode) => {
         if (departmentCode === 'khoa1') {
@@ -41,32 +43,37 @@ const RoomSelectionForm = ({ mealDetails, handleChange, roomOptions }) => {
     };
 
     useEffect(() => {
-        if (mealDetails.name) {
-            filterRoomsByDepartment(mealDetails.name);
+        if (masterData.name) {
+            filterRoomsByDepartment(masterData.name);
+            setIsRoomSelectable(true);
+        } else {
+            setAvailableRooms([]);
+            setIsRoomSelectable(false);
         }
-    }, [mealDetails.name]);
+    }, [masterData.name]);
 
-    const handleBedClick = (bed) => {
-        dispatch(setBeds([bed]));
+    const handleBedClick = (bed, index) => {
+        dispatch(setBeds(bed));
+        dispatch(setCurrentBedIndex(index));
         dispatch(setShowMealDetails(true));
         dispatch(setShowRoomSelection(false));
     };
 
     const handleRoomChange = (value) => {
         const selectedRoom = availableRooms.find(room => room.id === value);
-        handleChange({ target: { name: 'roomCode', value } });
         if (selectedRoom) {
-            const beds = getBedsByRoomCode(selectedRoom.id);
-            dispatch(setBeds(beds));
-        } else {
-            dispatch(setBeds([]));
+            dispatch(setRoomCode(value));
+            const beds = getBedsByRoomCode(value);
+            dispatch(setListBeds(beds)); // Lưu giường vào listBeds
         }
     };
 
-    const handleBackToRoomSelection = () => {
-        dispatch(setShowMealDetails(false));
-        dispatch(setShowRoomSelection(true));
-    };
+    useEffect(() => {
+        if (masterData.roomCode) {
+            const beds = getBedsByRoomCode(masterData.roomCode);
+            dispatch(setBeds(beds)); // Đảm bảo danh sách giường được cập nhật khi quay lại
+        }
+    }, [masterData.roomCode, dispatch]);
 
     return (
         <div className="form-container">
@@ -76,8 +83,11 @@ const RoomSelectionForm = ({ mealDetails, handleChange, roomOptions }) => {
                 <Select
                     id="name"
                     name="name"
-                    value={mealDetails.name}
-                    onChange={value => handleChange({ target: { name: 'name', value } })}
+                    value={masterData.name}
+                    onChange={(value) => {
+                        dispatch(setMasterData({ name: value }));
+                        filterRoomsByDepartment(value);
+                    }}
                     required
                     className="custom-select"
                 >
@@ -92,10 +102,10 @@ const RoomSelectionForm = ({ mealDetails, handleChange, roomOptions }) => {
                 <Select
                     id="roomCode"
                     name="roomCode"
-                    value={mealDetails.roomCode}
+                    value={masterData.roomCode}
                     onChange={handleRoomChange}
                     required
-                    disabled={!mealDetails.name}
+                    disabled={!isRoomSelectable}
                     className="custom-select"
                 >
                     <Option value="">Select Mã Phòng</Option>
@@ -107,29 +117,88 @@ const RoomSelectionForm = ({ mealDetails, handleChange, roomOptions }) => {
                 </Select>
             </div>
 
-            {mealDetails.roomCode && mealDetails.roomCode !== '' && Array.isArray(mealDetails.beds) && mealDetails.beds.length > 0 && (
+            {Array.isArray(listBeds) && listBeds.length > 0 && (
                 <div className="list-items">
-                    {mealDetails.beds.map((bed, index) => (
-                        <div
-                            key={index}
-                            className="list-item"
-                            onClick={() => handleBedClick(bed)}
-                        >
-                            <span>{bed}</span>
-                            <RightOutlined style={{ fontSize: '18px' }} />
-                        </div>
-                    ))}
+                    {listBeds.map((bed, index) => {
+                        const isSubmitted = submittedBeds.includes(index);
+                        const meals = detailData[index] || {};
+                        return (
+                            <div key={index}>
+                                <div
+                                    className="list-item"
+                                    onClick={() => handleBedClick(bed, index)}
+                                >
+                                    <span>{bed}</span>
+                                    <RightOutlined style={{ fontSize: '18px' }} />
+                                </div>
+                                {isSubmitted && (
+                                    <div className="submitted-item">
+                                        {Array.isArray(meals.caSang) && meals.caSang.some(m => m.mealType || m.mode) && (
+                                            <div style={{ marginBottom: '12px' }}>
+                                                <p><strong>Ca Sáng:</strong></p>
+                                                {meals.caSang.filter(m => m.mealType || m.mode).map((m, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        style={{
+                                                            marginLeft: '16px',
+                                                            marginBottom: '8px',
+                                                            paddingBottom: '8px',
+                                                            borderBottom: '1px solid #ccc'
+                                                        }}
+                                                    >
+                                                        {m.mode && <p>+ Chế độ: {m.mode}</p>}
+                                                        {m.mealType && <p>+ Món ăn: {m.mealType}</p>}
+                                                        {m.quantity && <p>+ Số lượng: {m.quantity}</p>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {Array.isArray(meals.caTrua) && meals.caTrua.some(m => m.mealType || m.mode) && (
+                                            <div style={{ marginBottom: '12px' }}>
+                                                <p><strong>Ca Trưa:</strong></p>
+                                                {meals.caTrua.filter(m => m.mealType || m.mode).map((m, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        style={{
+                                                            marginLeft: '16px',
+                                                            marginBottom: '8px',
+                                                            paddingBottom: '8px',
+                                                            borderBottom: '1px solid #ccc'
+                                                        }}
+                                                    >
+                                                        {m.mode && <p>+ Chế độ: {m.mode}</p>}
+                                                        {m.mealType && <p>+ Món ăn: {m.mealType}</p>}
+                                                        {m.quantity && <p>+ Số lượng: {m.quantity}</p>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {Array.isArray(meals.caToi) && meals.caToi.some(m => m.mealType || m.mode) && (
+                                            <div style={{ marginBottom: '12px' }}>
+                                                <p><strong>Ca Tối:</strong></p>
+                                                {meals.caToi.filter(m => m.mealType || m.mode).map((m, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        style={{
+                                                            marginLeft: '16px',
+                                                            marginBottom: '8px',
+                                                            paddingBottom: '8px',
+                                                            borderBottom: '1px solid #ccc'
+                                                        }}
+                                                    >
+                                                        {m.mode && <p>+ Chế độ: {m.mode}</p>}
+                                                        {m.mealType && <p>+ Món ăn: {m.mealType}</p>}
+                                                        {m.quantity && <p>+ Số lượng: {m.quantity}</p>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
-            )}
-
-            {showMealDetails && (
-                <MealDetailsForm
-                    mealDetails={mealDetails}
-                    handleChange={handleChange}
-                    handleSubmit={() => { }}
-                    setShowMealDetails={dispatch(setShowMealDetails)}
-                    handleBackToRoomSelection={handleBackToRoomSelection}
-                />
             )}
         </div>
     );

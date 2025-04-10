@@ -1,14 +1,14 @@
 import { ArrowLeftOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
 import { Checkbox, Input, Select, Tabs } from 'antd';
-import React, { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { setBeds, setPrice, setShowMealDetails, setShowRoomSelection } from '../../store/meal';
+import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { markBedAsSubmitted, setMeal, setShowMealDetails, setShowRoomSelection } from '../../store/meal';
 import './MealDetailsForm.css';
 
 const { TabPane } = Tabs;
 
 const mealData = {
-    morning: {
+    caSang: {
         "Viêm gan man": {
             name: 'Cơm gà hấp',
             description: 'Cơm gà hấp với rau củ tươi.',
@@ -25,7 +25,7 @@ const mealData = {
             price: 95000,
         },
     },
-    afternoon: {
+    caTrua: {
         "Viêm gan man": {
             name: 'Cơm cá hồi',
             description: 'Cơm với cá hồi và rau xanh.',
@@ -42,7 +42,7 @@ const mealData = {
             price: 100000,
         },
     },
-    evening: {
+    caToi: {
         "Viêm gan man": {
             name: 'Cơm tôm',
             description: 'Cơm tôm với sốt tỏi.',
@@ -61,70 +61,157 @@ const mealData = {
     },
 };
 
-const MealDetailsForm = ({ roomCode }) => {
+const MealDetailsForm = () => {
     const dispatch = useDispatch();
-    const [meals, setMeals] = useState({
-        morning: [{ mode: '', mealType: '', quantity: 0, note: '', collectMoney: false }],
-        afternoon: [{ mode: '', mealType: '', quantity: 0, note: '', collectMoney: false }],
-        evening: [{ mode: '', mealType: '', quantity: 0, note: '', collectMoney: false }],
+    const masterData = useSelector((state) => state.meals.meals.masterData || {});
+    const meals = useSelector((state) => state.meals.meals.detailData || []);
+    const currentBedIndex = useSelector((state) => state.meals.currentBedIndex);
+    const submittedBeds = useSelector((state) => state.meals.submittedBeds || []);
+
+    const defaultMealEntry = [{ mode: '', mealType: '', quantity: 1, note: '', collectMoney: false, totalMoney: 0 }];
+    const [mealEntries, setMealEntries] = useState({
+        caSang: meals[currentBedIndex]?.caSang?.length ? meals[currentBedIndex].caSang : defaultMealEntry,
+        caTrua: meals[currentBedIndex]?.caTrua?.length ? meals[currentBedIndex].caTrua : defaultMealEntry,
+        caToi: meals[currentBedIndex]?.caToi?.length ? meals[currentBedIndex].caToi : defaultMealEntry,
     });
 
-    useEffect(() => {
-        const getBedsByRoomCode = (roomCode) => {
-            return ['Bed1', 'Bed2', 'Bed3'];
-        };
-
-        const beds = getBedsByRoomCode(roomCode);
-        dispatch(setBeds(beds));
-    }, [roomCode, dispatch]);
+    const updateMealEntriesInRedux = (updatedMeals) => {
+        dispatch(setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex }));
+    };
 
     const handleChange = (timeOfDay, index, e) => {
         const { name, value } = e.target;
-        const updatedMeals = { ...meals };
-        updatedMeals[timeOfDay][index][name] = value;
 
-        // Kiểm tra lại mealType và giá trị
-        if (name === 'mealType') {
-            updatedMeals[timeOfDay][index].quantity = 1; // Set quantity to 1 when mealType is selected
-            const price = mealData[timeOfDay][value]?.price || 0;
-            dispatch(setPrice(price)); // Cập nhật giá khi thay đổi mealType
-        }
+        setMealEntries((prev) => {
+            const updatedMeals = { ...prev };
 
-        setMeals(updatedMeals); // Cập nhật lại state
-    };
+            if (!updatedMeals[timeOfDay]) {
+                updatedMeals[timeOfDay] = [];
+            }
 
-    const handleModeChange = (timeOfDay, index, value) => {
-        const updatedMeals = { ...meals };
-        updatedMeals[timeOfDay][index].mode = value;
-        updatedMeals[timeOfDay][index].mealType = '';
-        updatedMeals[timeOfDay][index].quantity = 0;
-        dispatch(setPrice(0));
-        setMeals(updatedMeals);
+            const updatedMeal = { ...updatedMeals[timeOfDay][index] };
+
+            updatedMeal[name] = value;
+
+            if (name === 'mealType') {
+                updatedMeal.quantity = 1;
+                updatedMeal.mealType = mealData[timeOfDay][updatedMeal.mode]?.name || value;
+                const price = mealData[timeOfDay][value]?.price || 0;
+                updatedMeal.price = price; // Set price
+                updatedMeal.totalMoney = price * updatedMeal.quantity || 0;
+            }
+
+            updatedMeals[timeOfDay][index] = updatedMeal;
+
+            updateMealEntriesInRedux(updatedMeals);
+
+            return updatedMeals;
+        });
     };
 
     const handleQuantityChange = (timeOfDay, index, change) => {
-        const updatedMeals = { ...meals };
-        const newQuantity = Math.max(1, updatedMeals[timeOfDay][index].quantity + change); // Tính số lượng mới
-        updatedMeals[timeOfDay][index].quantity = newQuantity;
+        setMealEntries((prev) => {
+            const updatedMeals = { ...prev };
+            const updatedMealEntries = [...updatedMeals[timeOfDay]];
 
-        // Kiểm tra và lấy giá món ăn
-        const mealType = updatedMeals[timeOfDay][index].mealType;
-        const price = mealData[timeOfDay][mealType]?.price || 0;
+            const meal = updatedMealEntries[index];
+            const newQuantity = Math.max(1, meal.quantity + change); // Ensure quantity doesn't go below 1
+            const price = mealData[timeOfDay] && mealData[timeOfDay][meal.mode]
+                ? mealData[timeOfDay][meal.mode].price
+                : 0;
 
-        // Cập nhật lại giá trong Redux store
-        dispatch(setPrice(price * newQuantity));
+            // Recalculate totalMoney
+            updatedMealEntries[index] = {
+                ...meal,
+                quantity: newQuantity,
+                price,
+                totalMoney: meal.collectMoney ? 0 : price * newQuantity || 0,
+            };
 
-        setMeals(updatedMeals); // Cập nhật lại state với số lượng mới
+            updatedMeals[timeOfDay] = updatedMealEntries;
+
+            updateMealEntriesInRedux(updatedMeals); // Update Redux
+            console.log("🚀 ~ setMealEntries ~ totalMoney:", updatedMealEntries)
+
+            return updatedMeals;
+        });
     };
 
     const handleAddMeal = (timeOfDay) => {
-        const updatedMeals = { ...meals };
-        updatedMeals[timeOfDay].push({ mode: '', mealType: '', quantity: 0, note: '', collectMoney: false });
-        setMeals(updatedMeals);
+        setMealEntries((prev) => {
+            const updatedMeals = {
+                ...prev,
+                [timeOfDay]: [
+                    ...(prev[timeOfDay] || []),
+                    { mode: '', mealType: '', quantity: 1, note: '', collectMoney: false, totalMoney: 0 }
+                ],
+            };
+
+            updateMealEntriesInRedux(updatedMeals);
+
+            return updatedMeals;
+        });
+    };
+
+    const handleCollectMoneyChange = (timeOfDay, index, e) => {
+        setMealEntries((prev) => {
+            const updatedMeals = { ...prev };
+            const updatedTimeOfDayMeals = [...updatedMeals[timeOfDay]];
+            const updatedMeal = { ...updatedTimeOfDayMeals[index] };
+
+            updatedMeal.collectMoney = e.target.checked;
+
+            const price = mealData[timeOfDay] && mealData[timeOfDay][updatedMeal.mode]
+                ? mealData[timeOfDay][updatedMeal.mode].price
+                : 0;
+
+            updatedMeal.totalMoney = e.target.checked
+                ? 0
+                : price * updatedMeal.quantity || 0;
+
+            updatedTimeOfDayMeals[index] = updatedMeal;
+            updatedMeals[timeOfDay] = updatedTimeOfDayMeals;
+
+            updateMealEntriesInRedux(updatedMeals); // Cập nhật Redux
+
+            return updatedMeals;
+        });
+    };
+
+    const handleModeChange = (timeOfDay, index, value) => {
+        setMealEntries((prev) => {
+            const updatedMeals = { ...prev };  // Sao chép mealEntries
+            if (!updatedMeals[timeOfDay]) {
+                updatedMeals[timeOfDay] = [];
+            }
+
+            // Tạo bản sao của mảng `updatedMeals[timeOfDay]`
+            const updatedTimeOfDayMeals = [...updatedMeals[timeOfDay]];
+
+            // Tạo một bản sao của meal tại index
+            updatedTimeOfDayMeals[index] = {
+                mode: value,
+                mealType: '', // Đặt lại mealType khi thay đổi chế độ
+                quantity: 0,
+                note: '',
+                price: 0,
+                collectMoney: false
+            };
+
+            // Cập nhật lại mảng `timeOfDay` trong state
+            updatedMeals[timeOfDay] = updatedTimeOfDayMeals;
+
+            updateMealEntriesInRedux(updatedMeals);  // Cập nhật Redux
+
+            return updatedMeals;
+        });
     };
 
     const handleSubmit = () => {
-        console.log('Submitted meal details:', meals);
+        console.log('Submitted meal details:', mealEntries);
+        dispatch(markBedAsSubmitted(currentBedIndex)); // Dispatch to mark bed as submitted
+        dispatch(setShowMealDetails(false));
+        dispatch(setShowRoomSelection(true));
     };
 
     const handleBackToRoomSelection = () => {
@@ -132,95 +219,103 @@ const MealDetailsForm = ({ roomCode }) => {
         dispatch(setShowRoomSelection(true));
     };
 
-    const renderMealEntries = (timeOfDay) => (
-        meals[timeOfDay].map((meal, index) => (
-            <div key={index} className="meal-entry">
-                {/* Mode Selection */}
-                <div className="mode-selection-group">
-                    <label htmlFor={`mode-${index}`} className="mode-label">Chế độ</label>
-                    <Select
-                        id={`mode-${index}`}
-                        name="mode"
-                        value={meal.mode}
-                        onChange={(value) => handleModeChange(timeOfDay, index, value)}
-                        className="mode-dropdown"
-                    >
-                        <Select.Option value="">Select Chế độ</Select.Option>
-                        <Select.Option value="Viêm gan man">Viêm gan man</Select.Option>
-                        <Select.Option value="Giảm cân">Giảm cân</Select.Option>
-                        <Select.Option value="Tiểu đường">Tiểu đường</Select.Option>
-                    </Select>
-                </div>
-
-                <div className="meal-selection-group">
-                    <div className="meal-type-selection">
+    const renderMealEntries = (timeOfDay) => {
+        return mealEntries[timeOfDay].map((meal, index) => {
+            return (
+                <div key={index} className="meal-entry">
+                    <div className="mode-selection-group">
+                        <label htmlFor={`mode-${timeOfDay}-${index}`} className="mode-label">Chế độ</label>
                         <Select
-                            id={`mealType-${index}`}
-                            name="mealType"
-                            value={meal.mode ? meal.mealType : ''}
-                            onChange={(value) => handleChange(timeOfDay, index, { target: { name: 'mealType', value } })}
-                            className="meal-dropdown"
-                            disabled={!meal.mode}
+                            id={`mode-${timeOfDay}-${index}`}
+                            name="mode"
+                            value={meal.mode}
+                            onChange={(value) => handleModeChange(timeOfDay, index, value)}
+                            className="mode-dropdown"
                         >
-                            <Select.Option value="">Select Món ăn</Select.Option>
-                            {meal.mode && Object.keys(mealData[timeOfDay]).map((mode) => (
-                                <Select.Option key={mode} value={mode}>
-                                    {mealData[timeOfDay][mode].name}
-                                </Select.Option>
-                            ))}
+                            <Select.Option value="">Select Chế độ</Select.Option>
+                            <Select.Option value="Viêm gan man">Viêm gan man</Select.Option>
+                            <Select.Option value="Giảm cân">Giảm cân</Select.Option>
+                            <Select.Option value="Tiểu đường">Tiểu đường</Select.Option>
                         </Select>
-                        <div className="meal-description">
-                            {meal.mode ? mealData[timeOfDay][meal.mealType]?.description : ''}
+                    </div>
+
+                    <div className="meal-selection-group">
+                        <div className="meal-type-selection">
+                            <Select
+                                id={`mealType-${timeOfDay}-${index}`}
+                                name="mealType"
+                                value={meal.mealType || ''}
+                                onChange={(value) => {
+                                    console.log('MealType changed:', value);
+                                    handleChange(timeOfDay, index, { target: { name: 'mealType', value } });
+                                }}
+                                className="meal-dropdown"
+                                disabled={!meal.mode}
+                            >
+                                <Select.Option value="">Select Món ăn</Select.Option>
+                                {meal.mode && Object.keys(mealData[timeOfDay]).map((key) => {
+                                    if (key === meal.mode) {
+                                        return (
+                                            <Select.Option key={key} value={key}>
+                                                {mealData[timeOfDay][key].name}
+                                            </Select.Option>
+                                        );
+                                    }
+                                    return null;
+                                })}
+                            </Select>
+                            <div className="meal-description">
+                                {meal.mode && meal.mealType ? mealData[timeOfDay][meal.mealType]?.description : ''}
+                            </div>
+                        </div>
+                        <div className="quantity-controls">
+                            <button onClick={() => handleQuantityChange(timeOfDay, index, -1)} className="quantity-button" disabled={!meal.mode || meal.quantity <= 1}>
+                                <MinusOutlined />
+                            </button>
+                            <span className="quantity-display">{meal.quantity}</span>
+                            <button onClick={() => handleQuantityChange(timeOfDay, index, 1)} className="quantity-button" disabled={!meal.mode}>
+                                <PlusOutlined />
+                            </button>
                         </div>
                     </div>
-                    <div className="quantity-controls">
-                        <button onClick={() => handleQuantityChange(timeOfDay, index, -1)} className="quantity-button" disabled={!meal.mode || meal.quantity <= 1}>
-                            <MinusOutlined />
-                        </button>
-                        <span className="quantity-display">{meal.quantity}</span>
-                        <button onClick={() => handleQuantityChange(timeOfDay, index, 1)} className="quantity-button" disabled={!meal.mode}>
-                            <PlusOutlined />
-                        </button>
-                    </div>
-                </div>
 
-                <div className="price-input-group">
-                    <div>
-                        <span htmlFor={`collectMoney-${index}`} className="price-label">Bệnh nhân</span>
-                        <Checkbox
-                            type="checkbox"
-                            id={`collectMoney-${index}`}
-                            name="collectMoney"
-                            checked={meal.collectMoney}
-                            onChange={(e) => {
-                                const updatedMeals = { ...meals };
-                                updatedMeals[timeOfDay][index].collectMoney = e.target.checked;
-                                updatedMeals[timeOfDay][index].price = e.target.checked ? 0 : (meal.mode ? mealData[timeOfDay][meal.mealType]?.price || 0 : 0);
-                                setMeals(updatedMeals);
-                            }}
-                            className="price-checkbox"
+                    <div className="price-input-group">
+                        <div>
+                            <span htmlFor={`collectMoney-${timeOfDay}-${index}`} className="price-label">Bệnh nhân</span>
+                            <Checkbox
+                                id={`collectMoney-${timeOfDay}-${index}`}
+                                name="collectMoney"
+                                checked={meal.collectMoney || false}
+                                onChange={(e) => handleCollectMoneyChange(timeOfDay, index, e)}
+                                className="price-checkbox"
+                                disabled={!meal.mode}
+                            />
+                        </div>
+
+                        <span className="price-display">
+                            {meal.collectMoney
+                                ? 0
+                                : meal.totalMoney || 0
+                            } đ
+                        </span>
+                    </div>
+
+                    <div className="notes-input-group">
+                        <label htmlFor={`note-${timeOfDay}-${index}`} className="note-label">Ghi chú</label>
+                        <Input.TextArea
+                            id={`note-${timeOfDay}-${index}`}
+                            name="note"
+                            value={meal.note || ''}
+                            onChange={(e) => handleChange(timeOfDay, index, e)}
+                            placeholder="Enter notes"
+                            className="note-input"
                             disabled={!meal.mode}
                         />
                     </div>
-
-                    <span className="price-display">{meal.collectMoney ? 0 : (meal.mode ? mealData[timeOfDay][meal.mealType]?.price || 0 : 0)} đ</span>
                 </div>
-
-                <div className="notes-input-group">
-                    <label htmlFor={`note-${index}`} className="note-label">Ghi chú</label>
-                    <Input.TextArea
-                        id={`note-${index}`}
-                        name="note"
-                        value={meal.note}
-                        onChange={(e) => handleChange(timeOfDay, index, e)}
-                        placeholder="Enter notes"
-                        className="note-input"
-                        disabled={!meal.mode}
-                    />
-                </div>
-            </div>
-        ))
-    );
+            );
+        });
+    };
 
     return (
         <div className="meal-ticket-form">
@@ -233,26 +328,26 @@ const MealDetailsForm = ({ roomCode }) => {
 
             <Tabs defaultActiveKey="1">
                 <TabPane tab="Sáng" key="1">
-                    {renderMealEntries('morning')}
-                    <button className="add-row-button" onClick={() => handleAddMeal('morning')} disabled={!meals.morning[0].mode}>
+                    {renderMealEntries('caSang')}
+                    <button className="add-row-button" onClick={() => handleAddMeal('caSang')} disabled={!mealEntries.caSang[0]?.mode}>
                         <PlusOutlined />
                     </button>
                 </TabPane>
                 <TabPane tab="Chiều" key="2">
-                    {renderMealEntries('afternoon')}
-                    <button className="add-row-button" onClick={() => handleAddMeal('afternoon')} disabled={!meals.afternoon[0].mode}>
+                    {renderMealEntries('caTrua')}
+                    <button className="add-row-button" onClick={() => handleAddMeal('caTrua')} disabled={!mealEntries.caTrua[0]?.mode}>
                         <PlusOutlined />
                     </button>
                 </TabPane>
                 <TabPane tab="Tối" key="3">
-                    {renderMealEntries('evening')}
-                    <button className="add-row-button" onClick={() => handleAddMeal('evening')} disabled={!meals.evening[0].mode}>
+                    {renderMealEntries('caToi')}
+                    <button className="add-row-button" onClick={() => handleAddMeal('caToi')} disabled={!mealEntries.caToi[0]?.mode}>
                         <PlusOutlined />
                     </button>
                 </TabPane>
             </Tabs>
 
-            <button className="submit-button" onClick={handleSubmit} disabled={!meals.morning[0].mode && !meals.afternoon[0].mode && !meals.evening[0].mode}>
+            <button className="submit-button" onClick={handleSubmit} disabled={!mealEntries.caSang[0]?.mode && !mealEntries.caTrua[0]?.mode && !mealEntries.caToi[0]?.mode}>
                 Hoàn thành
             </button>
         </div>

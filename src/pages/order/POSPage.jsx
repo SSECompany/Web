@@ -45,6 +45,13 @@ const POSPage = () => {
             .build();
 
         connection.on("ReceiveNewOrder", (orderData) => {
+            const claims = jwt.getClaims?.() || {};
+            const isAdmin = claims?.IsAdmin === "True";
+
+            if (!isAdmin) {
+                return;
+            }
+
             if (!orderData || !orderData.master || !orderData.detail) {
                 console.warn("⚠️ Dữ liệu đơn hàng không hợp lệ:", orderData);
                 return;
@@ -163,8 +170,8 @@ const POSPage = () => {
 
     useEffect(() => {
         if (!internalActiveTabId && orders.length === 0) {
-            const defaultId = "POS";
-            const tableName = "Máy POS"
+            const defaultId = orderId || "POS";
+            const tableName = orderId || "Máy POS"
             const internalId = `${defaultId}_${Date.now()}`;
             dispatch(addTab({ tableName: tableName, tableId: defaultId }));
             dispatch(switchTab(internalId));

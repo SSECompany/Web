@@ -114,6 +114,12 @@ export default function OrderSummary({ total, itemCount }) {
     const handleSaveOrder = async () => {
         setIsPrinting(false);
         if (isCreatingOrder) return;
+
+        if (!printMaster || !printDetail.length) {
+            notification.warning({ message: "Chưa đủ dữ liệu để thực hiện thanh toán!" });
+            return;
+        }
+
         setIsCreatingOrder(true);
 
         try {
@@ -129,7 +135,6 @@ export default function OrderSummary({ total, itemCount }) {
                 if (sttRec) {
                     try {
                         await printOrderApi(sttRec, id);
-                        // await syncFastApi(sttRec, id);
                         notification.success({ message: "Thanh toán thành công !" });
                     } catch (error) {
                         notification.error({ message: "Có lỗi xảy ra khi thực hiện thanh toán hoặc đồng bộ!", description: error.message });
@@ -143,8 +148,9 @@ export default function OrderSummary({ total, itemCount }) {
             }
         } catch (error) {
             notification.error({ message: "Có lỗi xảy ra, vui lòng thử lại!" });
+        } finally {
+            setIsCreatingOrder(false);
         }
-        setIsCreatingOrder(false);
     };
 
     const handlePreparePrint = (selectedPayments = ["tien_mat", "chuyen_khoan"], paymentAmounts = { tien_mat: "0", chuyen_khoan: "0" }) => {
@@ -204,6 +210,7 @@ export default function OrderSummary({ total, itemCount }) {
                 onClose={handleClosePaymentModal}
                 onConfirm={handleConfirmPayment}
                 total={total}
+                isCreatingOrder={isCreatingOrder}
             />
 
             <div className="summary-actions">

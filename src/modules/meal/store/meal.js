@@ -1,124 +1,135 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-    mealDetails: {
-        mode: '',
-        name: '',
-        roomCode: '',
-        bed: '',
-        mealType: 'comGa',
-        quantity: 1,
-        price: 0,
-        note: '',
-        beds: [],
-        meals: {
-            morning: {
-                viemGanMan: [],
-                giamCan: [],
-                tieuDuong: []
-            },
-            afternoon: {
-                viemGanMan: [],
-                giamCan: [],
-                tieuDuong: []
-            },
-            evening: {
-                viemGanMan: [],
-                giamCan: [],
-                tieuDuong: []
-            }
+    meals: {
+        masterData: {
+            name: '',
+            roomCode: '',
+            quantity: 0,
+            price: 0,
+            beds: '',
         },
+        detailData: [
+            {
+                caSang: [],
+                caTrua: [],
+                caToi: []
+            }
+        ]
     },
-    showFormDetails: false,
+    selectedCategory: {
+        caSang: "",
+        caTrua: "",
+        caToi: "",
+    },
+    listBeds: [],
     showRoomSelection: true,
     showMealDetails: false,
-    selectedTimeOfDay: 'morning',
-    selectedMode: '',
-    isModeSelected: false,
+    currentBedIndex: 0,
+    submittedBeds: [],
 };
 
 const mealSlice = createSlice({
     name: 'meals',
     initialState,
     reducers: {
-        setMealDetails: (state, action) => {
-            state.mealDetails = { ...state.mealDetails, ...action.payload };
-        },
-        setShowFormDetails: (state, action) => {
-            state.showFormDetails = action.payload;
-        },
-        setShowRoomSelection: (state, action) => {
-            state.showRoomSelection = action.payload;
+        setMeal: (state, action) => {
+            const { mealEntries } = action.payload;
+            const bedIndex = action.payload.bedIndex !== undefined ? action.payload.bedIndex : state.currentBedIndex;
+
+            if (!Array.isArray(state.meals.detailData)) {
+                state.meals.detailData = [];
+            }
+
+            while (state.meals.detailData.length <= bedIndex) {
+                state.meals.detailData.push({
+                    caSang: [],
+                    caTrua: [],
+                    caToi: [],
+                });
+            }
+
+            if (mealEntries && typeof mealEntries === 'object') {
+                Object.keys(mealEntries).forEach((timeOfDay) => {
+                    state.meals.detailData[bedIndex][timeOfDay] = mealEntries[timeOfDay].map((meal) => ({
+                        ...meal,
+                        totalMoney: meal.collectMoney ? 0 : meal.price * meal.quantity || 0,
+                    }));
+                });
+
+            }
         },
         setShowMealDetails: (state, action) => {
             state.showMealDetails = action.payload;
         },
+        setShowRoomSelection: (state, action) => {
+            state.showRoomSelection = action.payload;
+        },
         setBeds: (state, action) => {
-            state.mealDetails.beds = Array.isArray(action.payload) ? action.payload : [];
-            state.mealDetails.bed = action.payload[0];
+            state.meals.masterData.beds = action.payload;
         },
         setRoomCode: (state, action) => {
-            state.mealDetails.roomCode = action.payload;
+            state.meals.masterData.roomCode = action.payload;
         },
         setMealType: (state, action) => {
-            state.mealDetails.mealType = action.payload;
+            state.meals.masterData.mealType = action.payload;
         },
         setQuantity: (state, action) => {
             const newQuantity = Math.max(action.payload, 1);
-            state.mealDetails.quantity = newQuantity;
-            if (state.isModeSelected) {
-                state.mealDetails.price = state.mealDetails.price / state.mealDetails.quantity * newQuantity; // Update price based on quantity
-            }
+            state.meals.masterData.quantity = newQuantity;
+            state.totalMoney = state.meals.masterData.price / state.meals.masterData.quantity * newQuantity;
         },
         setPrice: (state, action) => {
-            if (state.isModeSelected) {
-                state.mealDetails.price = action.payload; // Update price based on meal price and quantity
-            }
+            state.meals.masterData.price = action.payload;
+        },
+        setMasterData: (state, action) => {
+            state.meals.masterData = { ...state.meals.masterData, ...action.payload };
         },
         addMeal: (state, action) => {
-            const { mealTime, meal, mode } = action.payload;
-            if (state.mealDetails.meals[mealTime] && state.mealDetails.meals[mealTime][mode]) {
-                state.mealDetails.meals[mealTime][mode].push(meal);
+            const { mealTime, mealData, bedIndex = 0 } = action.payload;
+            if (state.meals.detailData[bedIndex] && state.meals.detailData[bedIndex][mealTime]) {
+                state.meals.detailData[bedIndex][mealTime].push({
+                    ...mealData,
+                    totalMoney: mealData.price * mealData.quantity // Calculate totalMoney for the new meal entry
+                });
+            } else if (state.meals.detailData[bedIndex]) {
+                state.meals.detailData[bedIndex][mealTime] = [{
+                    ...mealData,
+                    totalMoney: mealData.price * mealData.quantity // Calculate totalMoney for the new meal entry
+                }];
             }
+        },
+        removeMeal: (state, action) => {
+            const { mealTime, mode, mealIndex } = action.payload;
+            state.meals.detailData[mode].splice(mealIndex, 1);
         },
         clearMeals: (state) => {
-            state.mealDetails.meals = {
-                morning: {
-                    viemGanMan: [],
-                    giamCan: [],
-                    tieuDuong: []
-                },
-                afternoon: {
-                    viemGanMan: [],
-                    giamCan: [],
-                    tieuDuong: []
-                },
-                evening: {
-                    viemGanMan: [],
-                    giamCan: [],
-                    tieuDuong: []
-                }
+            state.meals.detailData = {
+                caSang: [],
+                caTrua: [],
+                caToi: []
             };
         },
-        filterMealsByModeAndTime: (state, action) => {
-            const { mealTime, mode } = action.payload;
-            const meals = state.mealDetails.meals[mealTime]?.[mode] || [];
-            if (meals.length === 0) {
-                // Handle case when there are no meals for the selected mode and time
-                console.log(`No meals available for ${mode} during ${mealTime}`);
-                return []; // Return an empty array to indicate no meals found
-            }
-            return meals;
+        setSelectedCategory: (state, action) => {
+            const { category, value } = action.payload;
+            state.selectedCategory[category] = value;
         },
-        setSelectedTimeOfDay: (state, action) => {
-            state.selectedTimeOfDay = action.payload;
+        setListBeds: (state, action) => {
+            const beds = action.payload;
+            state.listBeds = beds;
+            state.meals.detailData = beds.map(() => ({
+                caSang: [],
+                caTrua: [],
+                caToi: [],
+            }));
         },
-        setSelectedMode: (state, action) => {
-            state.selectedMode = action.payload;
-            state.isModeSelected = action.payload !== ''; // Update mode selection state
-            if (!state.isModeSelected) {
-                state.mealDetails.quantity = 1; // Reset quantity to 1 if no mode is selected
-                state.mealDetails.price = 0; // Reset price to 0 if no mode is selected
+        setCurrentBedIndex: (state, action) => { // New reducer to set current bed index
+            state.currentBedIndex = action.payload;
+        },
+        markBedAsSubmitted: (state, action) => { // New reducer to mark bed as submitted
+            const bedIndex = action.payload;
+            if (!state.submittedBeds.includes(bedIndex)) {
+                state.submittedBeds.push(bedIndex);
             }
         },
     },
@@ -126,19 +137,22 @@ const mealSlice = createSlice({
 
 export const {
     setMealDetails,
-    setShowFormDetails,
-    setShowRoomSelection,
     setShowMealDetails,
+    setShowRoomSelection,
     setBeds,
     setRoomCode,
     setMealType,
     setQuantity,
     setPrice,
+    setMasterData,
     addMeal,
+    removeMeal,
     clearMeals,
-    filterMealsByModeAndTime,
-    setSelectedTimeOfDay,
-    setSelectedMode,
+    setSelectedCategory,
+    setListBeds,
+    setMeal,
+    setCurrentBedIndex, // Exporting the new action
+    markBedAsSubmitted // Exporting the new action
 } = mealSlice.actions;
 
 export default mealSlice.reducer;
