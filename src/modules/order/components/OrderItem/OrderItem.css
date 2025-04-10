@@ -219,13 +219,11 @@
   height: 32px;
   font-size: 16px;
   padding: 4px 8px;
-  border: 1px solid #ced4da;
+  border: none !important;
   border-radius: 6px;
   width: 100px;
   text-align: right;
   color: #212529;
-  background-color: #ffffff;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 

@@ -18,7 +18,7 @@ const ProtectedRoute = () => {
     }
 
     if (!token && (location.pathname === "/" || location.pathname === "/meal-ticket")) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     if (token && /^\/order\/[\w-]+$/.test(location.pathname)) {

@@ -22,6 +22,7 @@ import router from "../../router/routes";
 import { setClaims } from "../../store/reducers/claimsSlice";
 import https from "../../utils/https";
 import jwt from "../../utils/jwt";
+import { useLocation } from "react-router-dom"; // Import useLocation
 import "./Login.css";
 
 const Login = () => {
@@ -36,6 +37,7 @@ const Login = () => {
   const [storeOptions, setStoreOptions] = useState([]);
 
   const dispatch = useDispatch();
+  const location = useLocation(); // Initialize useLocation
   const handleLoginButton = async () => {
     setLoginLoading(!loginLoading);
     if (!unitSelected?.value || !unitSelected) {
@@ -46,7 +48,6 @@ const Login = () => {
         icon: <UilExclamationOctagon size="25" color="#ffba00" />,
       });
     }
-
 
     await https
       .post("Authentication/Login", {
@@ -69,7 +70,8 @@ const Login = () => {
           jwt.setAccessToken(res.data.token);
           jwt.setRefreshToken(res.data.refreshToken);
           dispatch(setClaims(jwt.saveClaims(res.data.token)));
-          router.navigate("/");
+          const from = location.state?.from || "/"; // Nếu không có đường dẫn trước đó thì chuyển đến trang chủ
+          router.navigate(from, { replace: true });
           return notification.success({
             message: `Đăng nhập thành công`,
           });
