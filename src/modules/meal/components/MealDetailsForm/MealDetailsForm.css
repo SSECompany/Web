@@ -13,7 +13,6 @@
 .back-button-container {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
 }
 
 .back-button {
@@ -38,12 +37,6 @@
 /* Mode Selection */
 .mode-selection-group {
   margin-bottom: 15px;
-}
-
-.mode-label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 5px;
 }
 
 .mode-dropdown {
@@ -190,4 +183,31 @@
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 8px;
+}
+
+.mode-controls {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.mode-label {
+  font-weight: bold;
+  font-size: 16px;
+  margin-right: auto;
+}
+
+.mode-delete-button {
+  background: none;
+  border: none;
+  font-size: 18px;
+  box-shadow: none;
+  padding: 5px 4px;
+}
+
+.total-money {
+  font-size: 16px;
+  font-weight: bold;
+  margin-top: 15px;
+  text-align: right;
 }

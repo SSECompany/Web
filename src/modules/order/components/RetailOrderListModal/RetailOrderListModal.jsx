@@ -10,7 +10,7 @@ import "./RetailOrderListModal.css";
 
 const RetailOrderListModal = ({ isOpen, onClose }) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(6);
+  const [pageSize, setPageSize] = useState(20);
   const [totalRecords, setTotalRecords] = useState(0);
   const [allData, setAllData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -380,7 +380,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
     <>
       <Modal
         open={isOpen}
-        width={"80%"}
+        width={"95%"}
         title="Danh sách đơn hàng"
         destroyOnClose={true}
         onCancel={onClose}
@@ -397,6 +397,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
               dataSource={currentData}
               columns={columns}
               rowKey="id"
+              className="retail-order-table"
               pagination={{
                 current: currentPage,
                 pageSize: pageSize,

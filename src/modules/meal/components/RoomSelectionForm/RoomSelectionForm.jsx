@@ -64,20 +64,26 @@ const RoomSelectionForm = () => {
         if (selectedRoom) {
             dispatch(setRoomCode(value));
             const beds = getBedsByRoomCode(value);
-            dispatch(setListBeds(beds)); // Lưu giường vào listBeds
+            dispatch(setListBeds(beds));
         }
     };
 
     useEffect(() => {
         if (masterData.roomCode) {
             const beds = getBedsByRoomCode(masterData.roomCode);
-            dispatch(setBeds(beds)); // Đảm bảo danh sách giường được cập nhật khi quay lại
+            dispatch(setBeds(beds));
         }
     }, [masterData.roomCode, dispatch]);
 
+    const handleSubmit = () => {
+        console.log('gửi');
+    };
+
     return (
         <div className="form-container">
-            <h2>Meal Ticket Form</h2>
+            <h2 className='form-title'>
+                Đăng ký suất ăn
+            </h2>
             <div className="input-group">
                 <label htmlFor="name">Mã Khoa:</label>
                 <Select
@@ -85,8 +91,10 @@ const RoomSelectionForm = () => {
                     name="name"
                     value={masterData.name}
                     onChange={(value) => {
-                        dispatch(setMasterData({ name: value }));
+                        dispatch(setMasterData({ name: value, roomCode: '' }));
                         filterRoomsByDepartment(value);
+                        dispatch(setListBeds([]));
+                        dispatch(setBeds([]));
                     }}
                     required
                     className="custom-select"
@@ -200,7 +208,10 @@ const RoomSelectionForm = () => {
                     })}
                 </div>
             )}
-        </div>
+            <button className="submit-button" onClick={handleSubmit}>
+                Gửi
+            </button>
+        </div >
     );
 };
 

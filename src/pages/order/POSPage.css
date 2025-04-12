@@ -183,6 +183,10 @@
   justify-content: center;
 }
 
+::-webkit-scrollbar-button {
+  display: none;
+}
+
 /* Responsive cho Mobile */
 @media screen and (max-width: 768px) {
   .pos-page {
@@ -191,7 +195,7 @@
   .main-container {
     flex-direction: column;
     overflow: scroll;
-    padding-bottom: 20px;
+    padding-bottom: 120px;
   }
   .left-middle-panel {
     width: 100%;
@@ -206,9 +210,6 @@
   }
   .menu-item {
     padding: 12px;
-  }
-  .tool-tip {
-    display: none;
   }
   .order-list {
     height: 45vh;
@@ -233,6 +234,11 @@
   }
   .order-summary {
     margin-top: 30px;
+    height: 105px;
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
   .order-header {
     padding: 12px 0;
@@ -253,6 +259,12 @@
   }
   .login_form {
     justify-content: flex-start !important;
+  }
+  .tool-tip {
+    width: calc(100% - 19px);
+    position: absolute !important;
+    bottom: -111%;
+    left: 10px;
   }
 }
 
@@ -282,9 +294,7 @@
   .order-item-price {
     font-size: 12px;
   }
-  .main-container {
-    padding-bottom: 60px;
-  }
+
   .payment-option {
     padding: 10px 0px;
     font-size: 12px;

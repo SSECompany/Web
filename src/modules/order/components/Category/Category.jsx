@@ -6,7 +6,7 @@ import { setLoading } from "../../../../store/reducers/loadingSlice";
 import { setCurrentCategory, setMenuItems } from "../../store/order";
 import "./Category.css";
 
-export default function Category() {
+export default function Category({ drinkFilter, setDrinkFilter }) {
     const dispatch = useDispatch();
     const categories = useSelector((state) => state.orders.listCategory);
     const selectedCategory = useSelector((state) => state.orders.selectedCategory);
@@ -53,6 +53,10 @@ export default function Category() {
         }
     }, [categories, dispatch]);
 
+    useEffect(() => {
+
+    }, [drinkFilter]);
+
     const updateScrollButtons = () => {
         if (scrollRef.current) {
             const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
@@ -91,32 +95,54 @@ export default function Category() {
     };
 
     return (
-        <div className="category-container">
-            {showLeftArrow && (
-                <button className="scroll-btn left" onClick={scrollLeft}>
-                    <LeftOutlined />
+        <>
+            <div className="category-filter">
+                <button
+                    className={`category ${drinkFilter === "1" ? "active" : ""}`}
+                    onClick={() => setDrinkFilter(drinkFilter === "1" ? null : "1")}
+                >
+                    Đồ uống
                 </button>
-            )}
-
-            <div className="categories" ref={scrollRef}>
-                {Array.isArray(categories) && categories.length > 0 &&
-                    categories.map((category) => (
-                        <button
-                            key={category.ma_nh}
-                            className={`category ${category.ma_nh === selectedCategory?.ma_nh ? "active" : ""}`}
-                            onClick={() => handleCategorySelect(category)}
-                        >
-                            {category.ten_nh}
-                        </button>
-                    ))
-                }
+                <button
+                    className={`category ${drinkFilter === "0" ? "active" : ""}`}
+                    onClick={() => setDrinkFilter(drinkFilter === "0" ? null : "0")}
+                >
+                    Đồ ăn
+                </button>
+                <button
+                    className={`category ${drinkFilter === "" ? "active" : ""}`}
+                    onClick={() => setDrinkFilter(drinkFilter === "" ? null : "")}
+                >
+                    Tất cả
+                </button>
             </div>
+            <div className="category-container">
+                {showLeftArrow && (
+                    <button className="scroll-btn left" onClick={scrollLeft}>
+                        <LeftOutlined />
+                    </button>
+                )}
 
-            {showRightArrow && (
-                <button className="scroll-btn right" onClick={scrollRight}>
-                    <RightOutlined />
-                </button>
-            )}
-        </div>
+                <div className="categories" ref={scrollRef}>
+                    {Array.isArray(categories) && categories.length > 0 &&
+                        categories.map((category) => (
+                            <button
+                                key={category.ma_nh}
+                                className={`category ${category.ma_nh === selectedCategory?.ma_nh ? "active" : ""}`}
+                                onClick={() => handleCategorySelect(category)}
+                            >
+                                {category.ten_nh}
+                            </button>
+                        ))
+                    }
+                </div>
+
+                {showRightArrow && (
+                    <button className="scroll-btn right" onClick={scrollRight}>
+                        <RightOutlined />
+                    </button>
+                )}
+            </div>
+        </>
     );
 }
