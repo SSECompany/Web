@@ -12,12 +12,12 @@
   flex-direction: column;
 }
 
-h2 {
+.form-title {
   text-align: center;
   font-size: 22px;
   font-weight: 600;
+  margin-bottom: 20px;
 }
-
 
 /* Mobile Optimization */
 @media screen and (max-width: 600px) {

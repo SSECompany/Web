@@ -1,8 +1,10 @@
-import { ArrowLeftOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CloseOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
 import { Checkbox, Input, Select, Tabs } from 'antd';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { markBedAsSubmitted, setMeal, setShowMealDetails, setShowRoomSelection } from '../../store/meal';
+import { formatNumber } from '../../../../app/hook/dataFormatHelper';
+import showConfirm from '../../../../components/common/Modal/ModalConfirm';
+import { markBedAsSubmitted, removeMeal, setMeal, setShowMealDetails, setShowRoomSelection } from '../../store/meal';
 import './MealDetailsForm.css';
 
 const { TabPane } = Tabs;
@@ -63,20 +65,50 @@ const mealData = {
 
 const MealDetailsForm = () => {
     const dispatch = useDispatch();
-    const masterData = useSelector((state) => state.meals.meals.masterData || {});
     const meals = useSelector((state) => state.meals.meals.detailData || []);
     const currentBedIndex = useSelector((state) => state.meals.currentBedIndex);
-    const submittedBeds = useSelector((state) => state.meals.submittedBeds || []);
-
-    const defaultMealEntry = [{ mode: '', mealType: '', quantity: 1, note: '', collectMoney: false, totalMoney: 0 }];
+    const listBeds = useSelector((state) => state.meals.listBeds);
+    const bedName = listBeds[currentBedIndex];
+    const totalPrice = useSelector((state) => state.meals.meals.masterData.price);
+    const defaultMealEntry = [{ mode: '', mealType: '', quantity: 0, note: '', collectMoney: false, totalMoney: 0, isPaid: true }];
+    const [isPaid, setIsPaid] = useState(() => {
+        const currentMeals = meals[currentBedIndex];
+        if (!currentMeals) return false;
+        return ['caSang', 'caTrua', 'caToi'].some((shift) =>
+            currentMeals[shift]?.some((meal) => meal.isPaid)
+        );
+    });
     const [mealEntries, setMealEntries] = useState({
         caSang: meals[currentBedIndex]?.caSang?.length ? meals[currentBedIndex].caSang : defaultMealEntry,
         caTrua: meals[currentBedIndex]?.caTrua?.length ? meals[currentBedIndex].caTrua : defaultMealEntry,
         caToi: meals[currentBedIndex]?.caToi?.length ? meals[currentBedIndex].caToi : defaultMealEntry,
     });
 
+    useEffect(() => {
+        const currentMeals = meals[currentBedIndex];
+        if (!currentMeals) return;
+
+        const hasPaid = ['caSang', 'caTrua', 'caToi'].some((shift) =>
+            currentMeals[shift]?.some((meal) => meal.isPaid)
+        );
+
+        setIsPaid(hasPaid);
+    }, [currentBedIndex]);
+    useEffect(() => {
+        if (mealEntries) {
+            updateMealEntriesInRedux(mealEntries);
+        }
+    }, [mealEntries, isPaid]);
+
     const updateMealEntriesInRedux = (updatedMeals) => {
-        dispatch(setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex }));
+        const mealsWithPaymentStatus = {};
+        Object.entries(updatedMeals).forEach(([timeOfDay, meals]) => {
+            mealsWithPaymentStatus[timeOfDay] = meals.map((meal) => ({
+                ...meal,
+                isPaid: isPaid, // Apply current checkbox value to all meals
+            }));
+        });
+        dispatch(setMeal({ mealEntries: mealsWithPaymentStatus, bedIndex: currentBedIndex }));
     };
 
     const handleChange = (timeOfDay, index, e) => {
@@ -97,11 +129,13 @@ const MealDetailsForm = () => {
                 updatedMeal.quantity = 1;
                 updatedMeal.mealType = mealData[timeOfDay][updatedMeal.mode]?.name || value;
                 const price = mealData[timeOfDay][value]?.price || 0;
-                updatedMeal.price = price; // Set price
+                updatedMeal.price = price;
                 updatedMeal.totalMoney = price * updatedMeal.quantity || 0;
             }
 
-            updatedMeals[timeOfDay][index] = updatedMeal;
+            const updatedTimeOfDayMeals = Array.isArray(updatedMeals[timeOfDay]) ? [...updatedMeals[timeOfDay]] : [];
+            updatedTimeOfDayMeals[index] = updatedMeal;
+            updatedMeals[timeOfDay] = updatedTimeOfDayMeals;
 
             updateMealEntriesInRedux(updatedMeals);
 
@@ -115,12 +149,11 @@ const MealDetailsForm = () => {
             const updatedMealEntries = [...updatedMeals[timeOfDay]];
 
             const meal = updatedMealEntries[index];
-            const newQuantity = Math.max(1, meal.quantity + change); // Ensure quantity doesn't go below 1
+            const newQuantity = Math.max(1, meal.quantity + change);
             const price = mealData[timeOfDay] && mealData[timeOfDay][meal.mode]
                 ? mealData[timeOfDay][meal.mode].price
                 : 0;
 
-            // Recalculate totalMoney
             updatedMealEntries[index] = {
                 ...meal,
                 quantity: newQuantity,
@@ -130,8 +163,7 @@ const MealDetailsForm = () => {
 
             updatedMeals[timeOfDay] = updatedMealEntries;
 
-            updateMealEntriesInRedux(updatedMeals); // Update Redux
-            console.log("🚀 ~ setMealEntries ~ totalMoney:", updatedMealEntries)
+            updateMealEntriesInRedux(updatedMeals);
 
             return updatedMeals;
         });
@@ -143,7 +175,7 @@ const MealDetailsForm = () => {
                 ...prev,
                 [timeOfDay]: [
                     ...(prev[timeOfDay] || []),
-                    { mode: '', mealType: '', quantity: 1, note: '', collectMoney: false, totalMoney: 0 }
+                    { mode: '', mealType: '', quantity: 0, note: '', collectMoney: false, totalMoney: 0, isPaid: isPaid }
                 ],
             };
 
@@ -172,7 +204,7 @@ const MealDetailsForm = () => {
             updatedTimeOfDayMeals[index] = updatedMeal;
             updatedMeals[timeOfDay] = updatedTimeOfDayMeals;
 
-            updateMealEntriesInRedux(updatedMeals); // Cập nhật Redux
+            updateMealEntriesInRedux(updatedMeals);
 
             return updatedMeals;
         });
@@ -180,36 +212,84 @@ const MealDetailsForm = () => {
 
     const handleModeChange = (timeOfDay, index, value) => {
         setMealEntries((prev) => {
-            const updatedMeals = { ...prev };  // Sao chép mealEntries
+            const updatedMeals = { ...prev };
             if (!updatedMeals[timeOfDay]) {
                 updatedMeals[timeOfDay] = [];
             }
 
-            // Tạo bản sao của mảng `updatedMeals[timeOfDay]`
             const updatedTimeOfDayMeals = [...updatedMeals[timeOfDay]];
 
-            // Tạo một bản sao của meal tại index
             updatedTimeOfDayMeals[index] = {
                 mode: value,
-                mealType: '', // Đặt lại mealType khi thay đổi chế độ
+                mealType: '',
                 quantity: 0,
                 note: '',
                 price: 0,
                 collectMoney: false
             };
 
-            // Cập nhật lại mảng `timeOfDay` trong state
             updatedMeals[timeOfDay] = updatedTimeOfDayMeals;
 
-            updateMealEntriesInRedux(updatedMeals);  // Cập nhật Redux
+            updateMealEntriesInRedux(updatedMeals);
 
             return updatedMeals;
         });
     };
 
+    const handleDeleteMeal = (timeOfDay, index) => {
+        showConfirm({
+            title: 'Bạn có chắc chắn muốn xoá món ăn này?',
+            onOk: () => {
+                setMealEntries((prev) => {
+                    const updatedMeals = { ...prev };
+                    const newTimeOfDayMeals = updatedMeals[timeOfDay].filter((_, i) => i !== index);
+
+                    if (newTimeOfDayMeals.length === 0) {
+                        newTimeOfDayMeals.push({ mode: '', mealType: '', quantity: 0, note: '', collectMoney: false, totalMoney: 0 });
+                    }
+
+                    updatedMeals[timeOfDay] = newTimeOfDayMeals;
+
+                    dispatch(removeMeal({ mealTime: timeOfDay, mealIndex: index, bedIndex: currentBedIndex }));
+                    return updatedMeals;
+                });
+            },
+        });
+    };
+
     const handleSubmit = () => {
-        console.log('Submitted meal details:', mealEntries);
-        dispatch(markBedAsSubmitted(currentBedIndex)); // Dispatch to mark bed as submitted
+        const shiftLabels = {
+            caSang: 'Sáng',
+            caTrua: 'Chiều',
+            caToi: 'Tối',
+        };
+
+        const emptyShifts = Object.keys(shiftLabels).filter((shift) => {
+            const entries = mealEntries[shift] || [];
+            return !entries.some((meal) => meal.mode && meal.mealType);
+        });
+
+        if (emptyShifts.length > 0) {
+            showConfirm({
+                title: (
+                    <>
+                        Bạn chưa nhập liệu cho ca:{' '}
+                        <span style={{ color: '#fa541c' }}>
+                            {emptyShifts.map((key) => shiftLabels[key]).join(', ')}
+                        </span>
+                    </>
+                ),
+                onOk: () => {
+                    dispatch(markBedAsSubmitted(currentBedIndex));
+                    dispatch(setShowMealDetails(false));
+                    dispatch(setShowRoomSelection(true));
+                },
+                onCancel: () => { }
+            });
+            return;
+        }
+
+        dispatch(markBedAsSubmitted(currentBedIndex));
         dispatch(setShowMealDetails(false));
         dispatch(setShowRoomSelection(true));
     };
@@ -219,12 +299,18 @@ const MealDetailsForm = () => {
         dispatch(setShowRoomSelection(true));
     };
 
+
     const renderMealEntries = (timeOfDay) => {
         return mealEntries[timeOfDay].map((meal, index) => {
             return (
                 <div key={index} className="meal-entry">
                     <div className="mode-selection-group">
-                        <label htmlFor={`mode-${timeOfDay}-${index}`} className="mode-label">Chế độ</label>
+                        <div className="mode-controls">
+                            <label htmlFor={`mode-${timeOfDay}-${index}`} className="mode-label">Chế độ</label>
+                            <button className='mode-delete-button' onClick={() => handleDeleteMeal(timeOfDay, index)}>
+                                <CloseOutlined />
+                            </button>
+                        </div>
                         <Select
                             id={`mode-${timeOfDay}-${index}`}
                             name="mode"
@@ -246,7 +332,6 @@ const MealDetailsForm = () => {
                                 name="mealType"
                                 value={meal.mealType || ''}
                                 onChange={(value) => {
-                                    console.log('MealType changed:', value);
                                     handleChange(timeOfDay, index, { target: { name: 'mealType', value } });
                                 }}
                                 className="meal-dropdown"
@@ -269,11 +354,11 @@ const MealDetailsForm = () => {
                             </div>
                         </div>
                         <div className="quantity-controls">
-                            <button onClick={() => handleQuantityChange(timeOfDay, index, -1)} className="quantity-button" disabled={!meal.mode || meal.quantity <= 1}>
+                            <button onClick={() => handleQuantityChange(timeOfDay, index, -1)} className="quantity-button" disabled={!meal.mode || !meal.mealType || meal.quantity <= 1}>
                                 <MinusOutlined />
                             </button>
                             <span className="quantity-display">{meal.quantity}</span>
-                            <button onClick={() => handleQuantityChange(timeOfDay, index, 1)} className="quantity-button" disabled={!meal.mode}>
+                            <button onClick={() => handleQuantityChange(timeOfDay, index, 1)} className="quantity-button" disabled={!meal.mode || !meal.mealType}>
                                 <PlusOutlined />
                             </button>
                         </div>
@@ -295,7 +380,7 @@ const MealDetailsForm = () => {
                         <span className="price-display">
                             {meal.collectMoney
                                 ? 0
-                                : meal.totalMoney || 0
+                                : formatNumber(meal.totalMoney) || 0
                             } đ
                         </span>
                     </div>
@@ -324,8 +409,9 @@ const MealDetailsForm = () => {
                     <ArrowLeftOutlined />
                 </button>
             </div>
-            <h2 className="form-title">Meal Ticket Form</h2>
-
+            <h2 className='form-title'>
+                Giường {bedName}
+            </h2>
             <Tabs defaultActiveKey="1">
                 <TabPane tab="Sáng" key="1">
                     {renderMealEntries('caSang')}
@@ -346,11 +432,18 @@ const MealDetailsForm = () => {
                     </button>
                 </TabPane>
             </Tabs>
-
+            <div style={{ marginTop: 16 }}>
+                <Checkbox checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)}>
+                    Thu tiền
+                </Checkbox>
+            </div>
+            <div className='total-money'>
+                Tổng tiền: {formatNumber(totalPrice)} đ
+            </div>
             <button className="submit-button" onClick={handleSubmit} disabled={!mealEntries.caSang[0]?.mode && !mealEntries.caTrua[0]?.mode && !mealEntries.caToi[0]?.mode}>
                 Hoàn thành
             </button>
-        </div>
+        </div >
     );
 };
 

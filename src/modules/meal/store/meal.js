@@ -50,13 +50,26 @@ const mealSlice = createSlice({
             }
 
             if (mealEntries && typeof mealEntries === 'object') {
+                let totalQuantity = 0;
+                let totalPrice = 0;
+
                 Object.keys(mealEntries).forEach((timeOfDay) => {
-                    state.meals.detailData[bedIndex][timeOfDay] = mealEntries[timeOfDay].map((meal) => ({
-                        ...meal,
-                        totalMoney: meal.collectMoney ? 0 : meal.price * meal.quantity || 0,
-                    }));
+                    const meals = mealEntries[timeOfDay].map((meal) => {
+                        const totalMoney = meal.collectMoney ? 0 : meal.price * meal.quantity || 0;
+                        totalQuantity += meal.quantity;
+                        totalPrice += totalMoney;
+                        return {
+                            ...meal,
+                            totalMoney,
+                        };
+                    });
+
+                    state.meals.detailData[bedIndex][timeOfDay] = meals;
                 });
 
+                state.meals.masterData.quantity = totalQuantity;
+                state.meals.masterData.price = totalPrice;
+                state.totalMoney = totalPrice;
             }
         },
         setShowMealDetails: (state, action) => {
@@ -100,8 +113,14 @@ const mealSlice = createSlice({
             }
         },
         removeMeal: (state, action) => {
-            const { mealTime, mode, mealIndex } = action.payload;
-            state.meals.detailData[mode].splice(mealIndex, 1);
+            const { mealTime, mealIndex, bedIndex = state.currentBedIndex } = action.payload;
+            if (
+                Array.isArray(state.meals.detailData) &&
+                state.meals.detailData[bedIndex] &&
+                Array.isArray(state.meals.detailData[bedIndex][mealTime])
+            ) {
+                state.meals.detailData[bedIndex][mealTime].splice(mealIndex, 1);
+            }
         },
         clearMeals: (state) => {
             state.meals.detailData = {
@@ -123,8 +142,27 @@ const mealSlice = createSlice({
                 caToi: [],
             }));
         },
-        setCurrentBedIndex: (state, action) => { // New reducer to set current bed index
-            state.currentBedIndex = action.payload;
+        setCurrentBedIndex: (state, action) => {
+            const bedIndex = action.payload;
+            state.currentBedIndex = bedIndex;
+
+            const bedMeals = state.meals.detailData[bedIndex] || {};
+            let totalQuantity = 0;
+            let totalPrice = 0;
+
+            ['caSang', 'caTrua', 'caToi'].forEach((shift) => {
+                const meals = bedMeals[shift] || [];
+                meals.forEach((meal) => {
+                    if (!meal.collectMoney) {
+                        totalQuantity += meal.quantity;
+                        totalPrice += meal.price * meal.quantity;
+                    }
+                });
+            });
+
+            state.meals.masterData.quantity = totalQuantity;
+            state.meals.masterData.price = totalPrice;
+            state.totalMoney = totalPrice;
         },
         markBedAsSubmitted: (state, action) => { // New reducer to mark bed as submitted
             const bedIndex = action.payload;
