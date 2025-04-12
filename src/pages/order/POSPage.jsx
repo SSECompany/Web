@@ -2,7 +2,7 @@ import * as signalR from "@microsoft/signalr";
 import { Button, Modal, Tabs, Tooltip } from "antd";
 import React, { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { multipleTablePutApi } from "../../api";
 import Loading from "../../components/common/Loading/Loading";
 import SelectTableModal from "../../components/common/Modal/ModalSelectTable";
@@ -31,12 +31,14 @@ const POSPage = () => {
     const { activeTabId, internalActiveTabId, orders } = useSelector((state) => state.orders);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isOpenOrderList, setIsOpenOrderList] = useState(false);
+    const [drinkFilter, setDrinkFilter] = useState(null);
 
     const { id, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
     const { orderId } = useParams();
+    const location = useLocation();
 
     const token = localStorage.getItem("access_token");
-    const isOrderPage = window.location.pathname.includes("/order");
+    const isOrderPage = /^\/order(\/|$)/.test(location.pathname);
 
     useEffect(() => {
         const connection = new signalR.HubConnectionBuilder()
@@ -142,6 +144,7 @@ const POSPage = () => {
                             userId: id,
                             pageindex: 1,
                             pagesize: 1000,
+                            ...(drinkFilter !== null && { do_uong_yn: drinkFilter }),
                         },
                         data: {},
                     })
@@ -166,7 +169,7 @@ const POSPage = () => {
         };
 
         fetchData();
-    }, [unitId, id, dispatch]);
+    }, [unitId, id, dispatch, drinkFilter]);
 
     useEffect(() => {
         if (!internalActiveTabId && orders.length === 0) {
@@ -184,10 +187,10 @@ const POSPage = () => {
     }, [orders, activeTabId]);
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
         const isOrderPage = window.location.pathname.includes("/order");
+        const token = localStorage.getItem("token");
 
-        document.body.classList.toggle("hide-tabs-and-buttons", isOrderPage && !token);
+        document.body.classList.toggle("hide-tabs-and-buttons", isOrderPage);
     }, []);
 
     const addNewTab = (tableData) => {
@@ -266,7 +269,7 @@ const POSPage = () => {
                             >
                                 {orders.map((tab) => (
                                     <Tabs.TabPane tab={tab.tableName} key={tab.internalId} >
-                                        <Category />
+                                        <Category drinkFilter={drinkFilter} setDrinkFilter={setDrinkFilter} />
                                         <MenuGrid onAdd={addToOrder} />
                                     </Tabs.TabPane>
                                 ))}
@@ -274,13 +277,15 @@ const POSPage = () => {
                         </div>
                     </div>
 
-                    <div className="tool-tip">
-                        <Tooltip placement="topRight" title="Danh sách đơn">
-                            <Button className="default_button" onClick={handleOrderListModal} >
-                                <i className="pi pi-list sub_text_color"></i>
-                            </Button>
-                        </Tooltip>
-                    </div>
+                    {!isOrderPage && (
+                        <div className="tool-tip">
+                            <Tooltip placement="topRight" title="Danh sách đơn">
+                                <Button className="default_button" onClick={handleOrderListModal} >
+                                    <i className="pi pi-list sub_text_color"></i>
+                                </Button>
+                            </Tooltip>
+                        </div>
+                    )}
                 </div>
                 <div className="right-panel">
                     <OrderList
