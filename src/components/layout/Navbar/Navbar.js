@@ -10,6 +10,7 @@ import { setClaims, setIsBackgrouds } from "../../../store/reducers/claimsSlice"
 import { getUserInfo } from "../../../store/selectors/Selectors";
 import jwt from "../../../utils/jwt";
 
+import { resetOrders } from "../../../modules/order/store/order";
 import "./Navbar.css";
 
 const Navbar = () => {
@@ -23,7 +24,10 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     await jwt.resetAccessToken();
+    localStorage.removeItem("pos_activeTabId");
+    localStorage.removeItem("pos_orders");
     router.navigate("/login");
+    dispatch(resetOrders());
     dispatch(setClaims([]));
   };
 

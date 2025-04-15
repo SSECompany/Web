@@ -5,7 +5,6 @@ import MenuItem from "./MenuItem";
 
 export default function MenuGrid({ onAdd }) {
     const menuItems = useSelector((state) => state.orders.menuItems);
-    console.log("🚀 ~ MenuGrid ~ menuItems:", menuItems)
 
     return (
         <div className="menu-grid">

@@ -28,6 +28,7 @@ const orders = createSlice({
                 isRealtime,
                 master = {},
                 detail = [],
+                roleWeb,
             } = action.payload;
 
             const defaultMaster = {
@@ -63,12 +64,14 @@ const orders = createSlice({
                 };
             });
 
-            const internalId = `${tableId}_${Date.now()}`;
+            const resolvedTableName = roleWeb === "isPosMini" ? "POS Mini" : "POS";
+            const resolvedTableId = roleWeb === "isPosMini" ? "POS_Mini" : "POS";
+            const internalId = `${resolvedTableId}_${Date.now()}`;
 
             state.orders.push({
                 internalId,
-                tableName,
-                tableId,
+                tableName: resolvedTableName,
+                tableId: resolvedTableId,
                 master: {
                     ...defaultMaster,
                     ...master,
@@ -79,21 +82,20 @@ const orders = createSlice({
             });
 
             if (!isRealtime || state.orders.length === 0) {
-                state.activeTabId = tableId;
+                state.activeTabId = resolvedTableId;
                 state.internalActiveTabId = internalId;
             }
         },
 
         updateTabTableName: (state, action) => {
-            const { tableId, tableName } = action.payload;
+            const { tableId, tableName, roleWeb } = action.payload;
             const tab = state.orders.find((tab) => tab.tableId === state.activeTabId);
             if (tab) {
-                tab.tableName = tableName;
-                tab.tableId = tableId;
-                state.activeTabId = tableId;
+                tab.tableName = roleWeb === "isPosMini" ? "POS_Mini" : "POS";
+                tab.tableId = roleWeb === "isPosMini" ? "POS_Mini" : "POS";
+                state.activeTabId = tab.tableId;
             }
         },
-
         addProductToTab: (state, action) => {
             const { tableId, product } = action.payload;
             let tab = state.orders.find((tab) => tab.tableId === tableId && tab.internalId === state.internalActiveTabId);
@@ -342,6 +344,14 @@ const orders = createSlice({
                 tab.master.tong_sl = tongSl.toString();
             }
         },
+        resetOrders: (state) => {
+            Object.assign(state, {
+                ...initialState,
+                activeTabId: null,
+                internalActiveTabId: null,
+                orders: [],
+            });
+        },
     },
 });
 
@@ -363,7 +373,8 @@ export const {
     updateTabTableName,
     clearTabData,
     setListOrderInfo,
-    addOrderFromSignal
+    addOrderFromSignal,
+    resetOrders,
 } = orders.actions;
 
 export default orders.reducer;
