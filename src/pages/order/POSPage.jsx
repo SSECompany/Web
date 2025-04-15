@@ -39,6 +39,8 @@ const POSPage = () => {
 
     const token = localStorage.getItem("access_token");
     const isOrderPage = /^\/order(\/|$)/.test(location.pathname);
+    const claims = jwt.getClaims?.() || {};
+    const isPos = claims?.RoleWeb === "isPos";
 
     useEffect(() => {
         const connection = new signalR.HubConnectionBuilder()
@@ -47,10 +49,9 @@ const POSPage = () => {
             .build();
 
         connection.on("ReceiveNewOrder", (orderData) => {
-            const claims = jwt.getClaims?.() || {};
-            const isAdmin = claims?.IsAdmin === "True";
 
-            if (!isAdmin) {
+
+            if (!isPos) {
                 return;
             }
 
@@ -173,13 +174,14 @@ const POSPage = () => {
 
     useEffect(() => {
         if (!internalActiveTabId && orders.length === 0) {
-            const defaultId = orderId || "POS";
-            const tableName = orderId || "Máy POS"
+            const roleWeb = claims?.RoleWeb;
+            const defaultId = roleWeb === "isPosMini" ? "POS_Mini" : "POS";
+            const tableName = roleWeb === "isPosMini" ? "POS Mini" : "POS";
             const internalId = `${defaultId}_${Date.now()}`;
-            dispatch(addTab({ tableName: tableName, tableId: defaultId }));
+            dispatch(addTab({ tableName, tableId: defaultId, roleWeb }));
             dispatch(switchTab(internalId));
         }
-    }, [internalActiveTabId, orders, dispatch, orderId]);
+    }, [internalActiveTabId, orders, dispatch, claims]);
 
     useEffect(() => {
         localStorage.setItem("pos_orders", JSON.stringify(orders));
@@ -188,8 +190,6 @@ const POSPage = () => {
 
     useEffect(() => {
         const isOrderPage = window.location.pathname.includes("/order");
-        const token = localStorage.getItem("token");
-
         document.body.classList.toggle("hide-tabs-and-buttons", isOrderPage);
     }, []);
 
