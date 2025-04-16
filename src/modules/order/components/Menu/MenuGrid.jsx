@@ -10,7 +10,6 @@ export default function MenuGrid({ onAdd }) {
         <div className="menu-grid">
             {Array.isArray(menuItems) && menuItems.length > 0 &&
                 menuItems.map((item) => {
-                    console.log("🚀 ~ menuItems.map ~ item:", item)
                     return (
                         <MenuItem
                             key={item.value}

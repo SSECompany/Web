@@ -39,8 +39,8 @@ const POSPage = () => {
 
     const token = localStorage.getItem("access_token");
     const isOrderPage = /^\/order(\/|$)/.test(location.pathname);
-    const claims = jwt.getClaims?.() || {};
-    const isPos = claims?.RoleWeb === "isPos";
+    const rawToken = localStorage.getItem("access_token");
+    const claims = rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
 
     useEffect(() => {
         const connection = new signalR.HubConnectionBuilder()
@@ -49,8 +49,7 @@ const POSPage = () => {
             .build();
 
         connection.on("ReceiveNewOrder", (orderData) => {
-
-
+            const isPos = claims?.RoleWeb === "isPos";
             if (!isPos) {
                 return;
             }
@@ -173,15 +172,36 @@ const POSPage = () => {
     }, [unitId, id, dispatch, drinkFilter]);
 
     useEffect(() => {
-        if (!internalActiveTabId && orders.length === 0) {
+        const timestamp = Date.now();
+        const token = localStorage.getItem("access_token");
+        const isTokenValid = jwt.checkExistToken() && token;
+
+        if (!isTokenValid && orderId && !internalActiveTabId && orders.length === 0) {
+            const tableId = orderId;
+            const tableName = orderId;
+            const internalId = `${tableId}_${timestamp}`;
+            dispatch(addTab({ tableName, tableId, isRealtime: false }));
+            dispatch(switchTab(internalId));
+            return;
+        }
+
+        if (isTokenValid && !internalActiveTabId && orders.length === 0) {
             const roleWeb = claims?.RoleWeb;
-            const defaultId = roleWeb === "isPosMini" ? "POS_Mini" : "POS";
-            const tableName = roleWeb === "isPosMini" ? "POS Mini" : "POS";
-            const internalId = `${defaultId}_${Date.now()}`;
-            dispatch(addTab({ tableName, tableId: defaultId, roleWeb }));
+            let tableId, tableName;
+
+            if (roleWeb === "isPosMini") {
+                tableId = "POS_Mini";
+                tableName = "POS Mini";
+            } else {
+                tableId = "POS";
+                tableName = "POS";
+            }
+
+            const internalId = `${tableId}_${timestamp}`;
+            dispatch(addTab({ tableName, tableId, roleWeb, isRealtime: false }));
             dispatch(switchTab(internalId));
         }
-    }, [internalActiveTabId, orders, dispatch, claims]);
+    }, [internalActiveTabId, orders, dispatch, claims, orderId]);
 
     useEffect(() => {
         localStorage.setItem("pos_orders", JSON.stringify(orders));

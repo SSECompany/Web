@@ -6,7 +6,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi, printOrderApi } from "../../../../api";
-import { clearTabData } from "../../store/order";
+import { clearTabData, removeTab } from "../../store/order";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
 import PrintComponent from "./PrintComponent/PrintComponent";
@@ -142,7 +142,7 @@ export default function OrderSummary({ total, itemCount }) {
                 } else {
                     notification.warning({ message: "Không có `stt_rec` để thực hiện các API!" });
                 }
-                dispatch(clearTabData(internalActiveTabId));
+                dispatch(removeTab({ tableId: internalActiveTabId }));
             } else {
                 notification.warning({ message: response?.responseModel?.message });
             }
