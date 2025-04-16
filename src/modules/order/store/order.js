@@ -47,11 +47,16 @@ const orders = createSlice({
             let tong_tien = 0;
             let tong_sl = 0;
 
-            const normalizedDetail = detail.map(item => {
+            const normalizedDetail = detail.map((item) => {
                 const so_luong = parseInt(item.so_luong || 0);
                 const don_gia = parseFloat(item.don_gia || 0);
-                const extrasTotal = (item.extras || []).reduce((sum, extra) =>
-                    sum + parseFloat(extra.don_gia || 0) * parseInt(extra.so_luong || 0) * so_luong, 0
+                const extrasTotal = (item.extras || []).reduce(
+                    (sum, extra) =>
+                        sum +
+                        parseFloat(extra.don_gia || 0) *
+                        parseInt(extra.so_luong || 0) *
+                        so_luong,
+                    0
                 );
                 const thanh_tien = don_gia * so_luong + extrasTotal;
 
@@ -64,8 +69,8 @@ const orders = createSlice({
                 };
             });
 
-            const resolvedTableName = roleWeb === "isPosMini" ? "POS Mini" : "POS";
-            const resolvedTableId = roleWeb === "isPosMini" ? "POS_Mini" : "POS";
+            const resolvedTableName = tableName || (roleWeb === "isPosMini" ? "POS Mini" : "POS");
+            const resolvedTableId = tableId || (roleWeb === "isPosMini" ? "POS_Mini" : "POS");
             const internalId = `${resolvedTableId}_${Date.now()}`;
 
             state.orders.push({
