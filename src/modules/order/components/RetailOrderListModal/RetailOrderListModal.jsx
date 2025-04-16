@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../../api";
 import { addTab, setListOrderInfo, switchTab } from '../../store/order';
-import PrintComponent from '../OrderSummary/PrintComponent/PrintComponent';
+import PrintComponent from './PrintComponent/PrintComponent';
 import "./RetailOrderListModal.css";
 
 const RetailOrderListModal = ({ isOpen, onClose }) => {
@@ -288,15 +288,20 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         const groupedDetailData = [];
 
         flatDetailData.forEach(item => {
-          const { ma_vt_root } = item;
+          const { ma_vt_root, uniqueid } = item;
+          if (!ma_vt_root) {
+            groupedDetailData.push({ ...item, extras: [], uniqueid });
+          }
+        });
+
+        flatDetailData.forEach(item => {
+          const { ma_vt_root, uniqueid } = item;
           if (ma_vt_root) {
-            const parent = groupedDetailData.find(p => p.ma_vt === ma_vt_root);
+            const parent = groupedDetailData.find(p => p.uniqueid === uniqueid);
             if (parent) {
               parent.extras = parent.extras || [];
               parent.extras.push(item);
             }
-          } else {
-            groupedDetailData.push({ ...item, extras: [] });
           }
         });
 
