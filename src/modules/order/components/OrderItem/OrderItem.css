@@ -57,7 +57,7 @@
 .quantity-controls {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: center !important;
   gap: 8px;
 }
 

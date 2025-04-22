@@ -1,23 +1,53 @@
 .menu-item {
   display: flex;
   flex-direction: column;
-  align-items: center;
   text-align: center;
   cursor: pointer;
   border: 1px solid #ddd;
-  padding: 10px;
   border-radius: 8px;
   transition: all 0.2s;
+  overflow: hidden;
+  position: relative;
+  height: 140px;
+  padding: 0;
 }
 
 .menu-item:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
 }
 
 .menu-item img {
-  width: 80px;
-  height: 80px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: 4px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 8px;
+}
+
+.menu-item-overlay {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background: rgb(255 255 255 / 69%);
+  z-index: 1;
+  padding: 4px 0;
+}
+
+.menu-item h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 4px 0;
+  color: #333;
+  text-align: center;
+}
+
+.menu-item p {
+  font-size: 12px;
+  color: #333;
+  margin: 2px 0;
+  text-align: center;
+  font-weight: bold;
 }

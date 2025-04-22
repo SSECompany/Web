@@ -7,6 +7,7 @@
   margin: 20px auto;
   display: flex;
   flex-direction: column;
+  margin-bottom: 100px;
 }
 
 /* Back Button */
@@ -27,10 +28,10 @@
   font-size: 20px !important;
 }
 
-.form-title {
+.form-title_detail {
   text-align: center;
   font-size: 22px;
-  margin-bottom: 20px;
+  margin-bottom: 10px !important;
   font-weight: 600;
 }
 
@@ -54,7 +55,7 @@
 .meal-type-selection {
   display: flex;
   flex-direction: column;
-  width: 80%;
+  width: 55%;
 }
 
 .meal-dropdown {
@@ -67,16 +68,36 @@
   font-style: italic;
 }
 
-.quantity-controls {
-  align-items: flex-start !important;
+.meal-quantity-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  height: 30px;
 }
 
-.quantity-button:hover {
-  background-color: #ddd;
+.meal-quantity-controls .quantity-button {
+  background-color: #027bff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: white;
+}
+
+.meal-quantity-controls .quantity-button:hover {
+  background-color: #0056b3;
 }
 
 .quantity-display {
   font-size: 16px;
+  min-width: 20px;
+  text-align: center;
 }
 
 /* Price Input Group */
@@ -115,7 +136,8 @@
 
 /* Notes Section */
 .notes-input-group {
-  margin-bottom: 15px;
+  margin-top: 16px;
+  margin-bottom: 24px;
 }
 
 .note-label {
@@ -135,7 +157,7 @@
 }
 
 /* Submit Button */
-.submit-button {
+.total-money .submit-button {
   padding: 12px;
   background-color: #007bff;
   color: white;
@@ -149,7 +171,7 @@
   width: 100%;
 }
 
-.submit-button:hover {
+.total-money .submit-button:hover {
   background-color: #0056b3;
 }
 
@@ -210,4 +232,58 @@
   font-weight: bold;
   margin-top: 15px;
   text-align: right;
+}
+
+/* Styling the container for the date picker with a unique class */
+.meal-details-datepicker {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* Remove the default input text of the DatePicker */
+.meal-details-datepicker .meal-date-picker-input {
+  font-size: 16px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #fafafa;
+  width: 40%;
+  margin-top: 5px;
+}
+
+/* Customize the DatePicker dropdown to match the theme */
+.meal-details-datepicker .ant-picker-dropdown {
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom styling for the label */
+.meal-details-datepicker .date-label {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.meal-details-datepicker .meal-date-picker-input:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.meal-entry-wrapper {
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  padding-top: 12px;
+}
+
+.quantity-button:disabled {
+  background-color: #f5f5f5;
+  color: #bfbfbf;
+  border: 1px solid #d9d9d9;
+  cursor: not-allowed;
 }
