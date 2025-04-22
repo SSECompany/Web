@@ -11,22 +11,28 @@ const initialState = {
         },
         detailData: [
             {
-                caSang: [],
-                caTrua: [],
-                caToi: []
+                CA1: [{ mode: '', mealType: '', mealTypeName: '', quantity: 0, note: '', collectMoney: false, totalMoney: 0, isPaid: false, date: '' }],
+                CA2: [{ mode: '', mealType: '', mealTypeName: '', quantity: 0, note: '', collectMoney: false, totalMoney: 0, isPaid: false, date: '' }],
+                CA3: [{ mode: '', mealType: '', mealTypeName: '', quantity: 0, note: '', collectMoney: false, totalMoney: 0, isPaid: false, date: '' }]
             }
-        ]
+        ],
     },
     selectedCategory: {
-        caSang: "",
-        caTrua: "",
-        caToi: "",
+        CA1: "",
+        CA2: "",
+        CA3: "",
     },
     listBeds: [],
     showRoomSelection: true,
     showMealDetails: false,
     currentBedIndex: 0,
     submittedBeds: [],
+    listDietCategory: [],
+    listMealCode: [],
+    listFood: [],
+    listDepartment: [],
+    listRoom: [],
+    selectedDate: '',
 };
 
 const mealSlice = createSlice({
@@ -34,39 +40,36 @@ const mealSlice = createSlice({
     initialState,
     reducers: {
         setMeal: (state, action) => {
-            const { mealEntries } = action.payload;
-            const bedIndex = action.payload.bedIndex !== undefined ? action.payload.bedIndex : state.currentBedIndex;
+            const { mealEntries, bedIndex = state.currentBedIndex } = action.payload;
 
+            // Đảm bảo rằng detailData có cấu trúc đúng
             if (!Array.isArray(state.meals.detailData)) {
                 state.meals.detailData = [];
             }
 
             while (state.meals.detailData.length <= bedIndex) {
-                state.meals.detailData.push({
-                    caSang: [],
-                    caTrua: [],
-                    caToi: [],
-                });
+                state.meals.detailData.push({});
             }
 
+            // Cập nhật các món ăn cho giường và thời gian (CA1, CA2, CA3)
             if (mealEntries && typeof mealEntries === 'object') {
+                state.meals.detailData = mealEntries; // Cập nhật lại detailData vào store
                 let totalQuantity = 0;
                 let totalPrice = 0;
 
-                Object.keys(mealEntries).forEach((timeOfDay) => {
-                    const meals = mealEntries[timeOfDay].map((meal) => {
-                        const totalMoney = meal.collectMoney ? 0 : meal.price * meal.quantity || 0;
-                        totalQuantity += meal.quantity;
-                        totalPrice += totalMoney;
-                        return {
-                            ...meal,
-                            totalMoney,
-                        };
-                    });
+                const bedMeals = mealEntries[bedIndex] || {};
 
-                    state.meals.detailData[bedIndex][timeOfDay] = meals;
+                Object.keys(bedMeals).forEach((timeOfDay) => {
+                    const meals = bedMeals[timeOfDay];
+                    if (Array.isArray(meals)) {
+                        meals.forEach((meal) => {
+                            totalQuantity += meal.quantity;
+                            totalPrice += meal.totalMoney;
+                        });
+                    }
                 });
 
+                // Cập nhật lại tổng số lượng và giá trị vào masterData
                 state.meals.masterData.quantity = totalQuantity;
                 state.meals.masterData.price = totalPrice;
                 state.totalMoney = totalPrice;
@@ -78,9 +81,7 @@ const mealSlice = createSlice({
         setShowRoomSelection: (state, action) => {
             state.showRoomSelection = action.payload;
         },
-        setBeds: (state, action) => {
-            state.meals.masterData.beds = action.payload;
-        },
+
         setRoomCode: (state, action) => {
             state.meals.masterData.roomCode = action.payload;
         },
@@ -123,11 +124,7 @@ const mealSlice = createSlice({
             }
         },
         clearMeals: (state) => {
-            state.meals.detailData = {
-                caSang: [],
-                caTrua: [],
-                caToi: []
-            };
+            state.meals.detailData = [];
         },
         setSelectedCategory: (state, action) => {
             const { category, value } = action.payload;
@@ -135,22 +132,35 @@ const mealSlice = createSlice({
         },
         setListBeds: (state, action) => {
             const beds = action.payload;
-            state.listBeds = beds;
-            state.meals.detailData = beds.map(() => ({
-                caSang: [],
-                caTrua: [],
-                caToi: [],
-            }));
+            if (JSON.stringify(beds) !== JSON.stringify(state.listBeds)) {
+                const validBeds = Array.isArray(beds)
+                    ? beds.map(bed => ({
+                        ma_phong: typeof bed.ma_phong === 'string' ? bed.ma_phong.trim() : '',
+                        ma_giuong: typeof bed.ma_giuong === 'string' ? bed.ma_giuong.trim() : '',
+                        ten_giuong: typeof bed.ten_giuong === 'string' ? bed.ten_giuong.trim() : 'Không rõ tên giường',
+                    }))
+                    : [];
+                state.listBeds = validBeds;
+
+            }
         },
         setCurrentBedIndex: (state, action) => {
             const bedIndex = action.payload;
             state.currentBedIndex = bedIndex;
 
-            const bedMeals = state.meals.detailData[bedIndex] || {};
+            if (!state.meals.detailData[bedIndex]) {
+                state.meals.detailData[bedIndex] = {
+                    CA1: [{ mode: '', mealType: '', quantity: 0, note: '', collectMoney: false, totalMoney: 0, isPaid: false, date: '' }],
+                    CA2: [{ mode: '', mealType: '', quantity: 0, note: '', collectMoney: false, totalMoney: 0, isPaid: false, date: '' }],
+                    CA3: [{ mode: '', mealType: '', quantity: 0, note: '', collectMoney: false, totalMoney: 0, isPaid: false, date: '' }]
+                };
+            }
+
+            const bedMeals = state.meals.detailData[bedIndex];
             let totalQuantity = 0;
             let totalPrice = 0;
 
-            ['caSang', 'caTrua', 'caToi'].forEach((shift) => {
+            ['CA1', 'CA2', 'CA3'].forEach((shift) => {
                 const meals = bedMeals[shift] || [];
                 meals.forEach((meal) => {
                     if (!meal.collectMoney) {
@@ -162,13 +172,55 @@ const mealSlice = createSlice({
 
             state.meals.masterData.quantity = totalQuantity;
             state.meals.masterData.price = totalPrice;
-            state.totalMoney = totalPrice;
-        },
-        markBedAsSubmitted: (state, action) => { // New reducer to mark bed as submitted
+    state.totalMoney = totalPrice;
+    const hasMealData = ['CA1', 'CA2', 'CA3'].some(shift => bedMeals[shift]?.some(meal => meal.mode || meal.mealType));
+    if (!hasMealData) {
+        state.selectedDate = '';
+    }
+},
+        markBedAsSubmitted: (state, action) => {
             const bedIndex = action.payload;
             if (!state.submittedBeds.includes(bedIndex)) {
                 state.submittedBeds.push(bedIndex);
             }
+        },
+        setListDietCategory: (state, action) => {
+            state.listDietCategory = action.payload;
+        },
+        setListMealCode: (state, action) => {
+            state.listMealCode = action.payload;  // Lưu vào store
+        },
+        setListFood: (state, action) => {
+            state.listFood = action.payload;
+        },
+        setListDepartment: (state, action) => {
+            state.listDepartment = action.payload;
+        },
+        setListRoom: (state, action) => {
+            state.listRoom = action.payload;
+        },
+        setSelectedDate: (state, action) => {
+            state.selectedDate = action.payload;
+        },
+        resetAllMeals: (state) => {
+            state.meals.masterData = {
+                name: '',
+                roomCode: '',
+                quantity: 0,
+                price: 0,
+                beds: '',
+            };
+            state.meals.detailData = [
+                {
+                    CA1: [{ mode: '', mealType: '', mealTypeName: '', quantity: 0, note: '', collectMoney: false, totalMoney: 0, isPaid: false, date: '' }],
+                    CA2: [{ mode: '', mealType: '', mealTypeName: '', quantity: 0, note: '', collectMoney: false, totalMoney: 0, isPaid: false, date: '' }],
+                    CA3: [{ mode: '', mealType: '', mealTypeName: '', quantity: 0, note: '', collectMoney: false, totalMoney: 0, isPaid: false, date: '' }]
+                }
+            ];
+            state.listBeds = [];
+            state.listRoom = [];
+            state.submittedBeds = [];
+            state.selectedDate = '';
         },
     },
 });
@@ -177,7 +229,6 @@ export const {
     setMealDetails,
     setShowMealDetails,
     setShowRoomSelection,
-    setBeds,
     setRoomCode,
     setMealType,
     setQuantity,
@@ -189,8 +240,14 @@ export const {
     setSelectedCategory,
     setListBeds,
     setMeal,
-    setCurrentBedIndex, // Exporting the new action
-    markBedAsSubmitted // Exporting the new action
+    setCurrentBedIndex,
+    markBedAsSubmitted,
+    setListDietCategory,
+    setListMealCode,
+    setListFood,
+    setListDepartment,
+    setListRoom,
+    resetAllMeals
 } = mealSlice.actions;
 
 export default mealSlice.reducer;
