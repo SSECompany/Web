@@ -65,6 +65,24 @@ export const multipleTablePutApi = async (payload) => {
   });
 };
 
+export const addDataMultiObjectApi = async (payload) => {
+  const token = localStorage.getItem("access_token");
+
+  return await https.post(
+    `User/AddDataMutiObject`,
+    payload,
+    {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    }
+  ).then((res) => {
+    return res?.data || [];
+  });
+};
+
+
 export const printOrderApi = async (sttRec, userId) => {
   const token = localStorage.getItem("access_token");
   return await https.post(
