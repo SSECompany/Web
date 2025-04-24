@@ -158,7 +158,7 @@
   .main-container {
     flex-direction: column;
     overflow: scroll;
-    padding-bottom: 120px;
+    padding-bottom: 80px;
   }
   .left-middle-panel {
     width: 100%;
@@ -222,8 +222,7 @@
   }
   .tool-tip {
     width: calc(100% - 19px);
-    position: absolute !important;
-    bottom: -111%;
+    bottom: 1%;
     left: 10px;
   }
 }
@@ -262,5 +261,8 @@
   }
   .order-extra-item {
     grid-template-columns: 1fr 20px 120px;
+  }
+  .main-container {
+    padding-bottom: 110px;
   }
 }

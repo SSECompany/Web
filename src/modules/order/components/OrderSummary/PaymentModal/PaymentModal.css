@@ -132,3 +132,20 @@
   width: 50%;
   margin: auto;
 }
+
+.qr-info {
+  margin-top: 16px;
+  text-align: center;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1.6;
+  background-color: #f9f9f9;
+  padding: 10px 15px;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.qr-info-line {
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}

@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../../api";
+import jwt from '../../../../utils/jwt';
 import { addTab, setListOrderInfo, switchTab } from '../../store/order';
 import PrintComponent from './PrintComponent/PrintComponent';
 import "./RetailOrderListModal.css";
@@ -22,6 +23,9 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const [printMaster, setPrintMaster] = useState({});
   const [printDetail, setPrintDetail] = useState([]);
   const printContent = useRef();
+  const rawToken = localStorage.getItem("access_token");
+  const claims = rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
+  const roleWeb = claims?.RoleWeb;
 
   const fetchListOrderData = async (filterParams) => {
     setIsLoading(true);
@@ -158,6 +162,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div style={{ padding: 8 }}>
           <DatePicker
+            inputReadOnly
             onChange={(date) => {
               if (date) {
                 setSelectedKeys([date.format('DD/MM/YYYY')]);
@@ -237,15 +242,17 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       key: "action",
       render: (_, record) => (
         <div style={{ display: 'flex', gap: '10px' }}>
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            type="danger"
-            size="small"
-            className="edit_button"
-            disabled={record.status === "2"}
-            style={record.status === "2" ? { opacity: 0.5, pointerEvents: 'none' } : {}}
-          />
+          {roleWeb !== "isPosMini" && (
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+              type="danger"
+              size="small"
+              className="edit_button"
+              disabled={record.status === "2"}
+              style={record.status === "2" ? { opacity: 0.5, pointerEvents: 'none' } : {}}
+            />
+          )}
           <Button
             icon={<PrinterOutlined />}
             onClick={() => handleReprint(record)}

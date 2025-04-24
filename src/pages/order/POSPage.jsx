@@ -11,6 +11,7 @@ import Category from "../../modules/order/components/Category/Category";
 import MenuGrid from "../../modules/order/components/Menu/MenuGrid";
 import OrderList from "../../modules/order/components/OrderList/OrderList";
 import OrderSummary from "../../modules/order/components/OrderSummary/OrderSummary";
+import ReportModal from "../../modules/order/components/ReportModal/ReportModal";
 import RetailOrderListModal from "../../modules/order/components/RetailOrderListModal/RetailOrderListModal";
 
 import {
@@ -32,6 +33,7 @@ const POSPage = () => {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isOpenOrderList, setIsOpenOrderList] = useState(false);
     const [drinkFilter, setDrinkFilter] = useState(null);
+    const [isReportModalVisible, setIsReportModalVisible] = useState(false);
 
     const { id, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
     const { orderId } = useParams();
@@ -304,6 +306,13 @@ const POSPage = () => {
                                     <i className="pi pi-list sub_text_color"></i>
                                 </Button>
                             </Tooltip>
+                            {claims?.RoleWeb !== "isPosMini" && (
+                                <Tooltip placement="topRight" title="Báo cáo kết ca">
+                                    <Button className="default_button" onClick={() => setIsReportModalVisible(true)}>
+                                        <i className="pi pi-chart-line sub_text_color"></i>
+                                    </Button>
+                                </Tooltip>
+                            )}
                         </div>
                     )}
                 </div>
@@ -326,6 +335,10 @@ const POSPage = () => {
             <RetailOrderListModal
                 isOpen={isOpenOrderList}
                 onClose={handleOrderListModal}
+            />
+            <ReportModal
+                isOpen={isReportModalVisible}
+                onClose={() => setIsReportModalVisible(false)}
             />
             <Loading />
         </div >
