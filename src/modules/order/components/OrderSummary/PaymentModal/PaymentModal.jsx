@@ -15,8 +15,8 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
     const showQRCode = selectedPayments.length === 1 && selectedPayments.includes("chuyen_khoan");
 
     const account = process.env.REACT_APP_VIETQR_ACCOUNT;
-    const accountName = encodeURIComponent(process.env.REACT_APP_VIETQR_ACCOUNT_NAME);
-    const qrUrl = `https://img.vietqr.io/image/${account}-compact2.png?amount=${total}&accountName=${accountName}`;
+    const accountName = process.env.REACT_APP_VIETQR_ACCOUNT_NAME;
+    const qrUrl = `https://img.vietqr.io/image/${account}-qr_only.png?amount=${total}`;
 
     const handlePaymentSelection = (method) => {
         setSelectedPayments((prev) => {
@@ -91,6 +91,13 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
                 <div className="qr-code-container">
                     <p className="payment-text"><strong>Quét mã QR để thanh toán:</strong></p>
                     <img src={qrUrl} alt="QR Code" className="qr-code-image" />
+                    <div className="qr-info">
+                        {accountName?.split(" - ").map((line, index) => (
+                            <div key={index} className="qr-info-line">{line.trim()}</div>
+                        ))}
+                        <div className="qr-info-line">{account}</div>
+                        <div className="qr-info-line">Số tiền: {formatCurrency(total)}</div>
+                    </div>
                 </div>
             )}
 

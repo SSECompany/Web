@@ -3,7 +3,7 @@ import { Button, Dropdown, Menu } from "antd";
 import React, { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { formatNumber } from "../../../../app/hook/dataFormatHelper";
-import { updateProductPrice } from "../../store/order";
+import { updateProductPrice, applyVoucherToProduct } from "../../store/order";
 import AddNoteAndExtrasModal from "./modal/AddNoteAndExtrasModal";
 import "./OrderItem.css";
 
@@ -24,6 +24,7 @@ export default function OrderItem({ item, index, onUpdateQuantity, onDeleteItem,
 
     const handleApplyVoucher = () => {
         dispatch(updateProductPrice({ index, newPrice: 0 }));
+        dispatch(applyVoucherToProduct({ index }));
         setPriceInput("0");
     };
 

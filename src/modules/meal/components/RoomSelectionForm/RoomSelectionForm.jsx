@@ -3,7 +3,7 @@ import { notification, Select } from 'antd';
 import _ from 'lodash';
 import React, { useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addDataMultiObjectApi, multipleTablePutApi } from '../../../../api';
+import { addDataMultiObjectApi, multipleTablePutApi, syncFastMutiApi } from '../../../../api';
 import { resetAllMeals, setCurrentBedIndex, setListBeds, setListRoom, setMasterData, setMeal, setRoomCode, setShowMealDetails, setShowRoomSelection } from '../../store/meal';
 import './RoomSelectionForm.css';
 
@@ -166,7 +166,9 @@ const RoomSelectionForm = () => {
         try {
             const response = await multipleTablePutApi(payload);
             if (response?.responseModel?.isSucceded) {
-                notification.success({ message: "Đơn hàng đã được gửi thành công!" });
+                const sttRecList = JSON.parse(response?.listObject?.[1]?.[0]?.list_stt_rec || "[]");
+                await syncFastMutiApi(sttRecList, id);
+                notification.success({ message: "Đăng ký thành công !" });
                 setTimeout(() => {
                     dispatch(resetAllMeals());
                     dispatch(setShowMealDetails(false));

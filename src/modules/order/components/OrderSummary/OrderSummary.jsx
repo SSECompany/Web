@@ -5,7 +5,7 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
-import { multipleTablePutApi, printOrderApi } from "../../../../api";
+import { multipleTablePutApi, printOrderApi, syncFastApi } from "../../../../api";
 import { clearTabData, removeTab } from "../../store/order";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
@@ -58,7 +58,8 @@ export default function OrderSummary({ total, itemCount }) {
                 don_gia: (item.don_gia || 0).toString(),
                 thanh_tien: ((item.so_luong || 0) * (item.don_gia || 0)).toString(),
                 ghi_chu: item.ghi_chu || "",
-                uniqueid
+                uniqueid,
+                ap_voucher: item.ap_voucher || "0",
             };
             const extras = (item.extras || []).map((extra) => {
                 const quantity = parseFloat(extra.quantity || extra.so_luong || 0);
@@ -135,6 +136,7 @@ export default function OrderSummary({ total, itemCount }) {
                 if (sttRec) {
                     try {
                         await printOrderApi(sttRec, id);
+                        await syncFastApi(sttRec, id);
                         notification.success({ message: "Thanh toán thành công !" });
                     } catch (error) {
                         notification.error({ message: "Có lỗi xảy ra khi thực hiện thanh toán hoặc đồng bộ!", description: error.message });

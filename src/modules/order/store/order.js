@@ -118,6 +118,7 @@ const orders = createSlice({
                     thanh_tien: product.price,
                     ghi_chu: "",
                     extras: [],
+                    ap_voucher: "0",
                 });
 
                 tab.master.tong_tien = tab.detail
@@ -349,6 +350,13 @@ const orders = createSlice({
                 tab.master.tong_sl = tongSl.toString();
             }
         },
+        applyVoucherToProduct: (state, action) => {
+            const { index } = action.payload;
+            const tab = state.orders.find((tab) => tab.internalId === state.internalActiveTabId);
+            if (tab && tab.detail[index]) {
+                tab.detail[index].ap_voucher = "1";
+            }
+        },
         resetOrders: (state) => {
             Object.assign(state, {
                 ...initialState,
@@ -379,6 +387,7 @@ export const {
     clearTabData,
     setListOrderInfo,
     addOrderFromSignal,
+    applyVoucherToProduct,
     resetOrders,
 } = orders.actions;
 
