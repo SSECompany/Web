@@ -20,7 +20,8 @@ const nestedArray = (raw) => {
 
 const getRoutesAccess = async (routes) => {
   const userData = store.getState().claimsReducer.claims;
-  var routesToFlat = router.routes.find((r) => r.id == `1`).children;
+  var foundRoute = router.routes.find((r) => r.id == `1`);
+  var routesToFlat = foundRoute?.children || [];
 
   const childRoutes = _.flatMap(routesToFlat, (parent) => {
     return _.map(parent?.children, (child) => {
@@ -51,14 +52,14 @@ const getRoutesAccess = async (routes) => {
     //         claims: r.claims,
     //         isParent: r.children ? true : false,
     //       }));
-  [...routesToFlat, ...childRoutes]
-  .filter((route) => claims.includes(route.claims))
-  .map((r) => ({
-    label: r.label,
-    path: r.path,
-    claims: r.claims,
-    isParent: r.children ? true : false,
-  }))
+    [...routesToFlat, ...childRoutes]
+      .filter((route) => claims.includes(route.claims))
+      .map((r) => ({
+        label: r.label,
+        path: r.path,
+        claims: r.claims,
+        isParent: r.children ? true : false,
+      }))
   const userRoute = allRoutes.filter((route) => claims.includes(route.claims));
   // const userRoute =  userData?.RoleId == "1"
   //     ? [...allRoutes]
