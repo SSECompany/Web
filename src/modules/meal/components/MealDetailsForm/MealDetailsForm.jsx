@@ -59,6 +59,11 @@ const MealDetailsForm = ({ onDateChange }) => {
     // Initializing mealEntries from Redux state (detailData)
     const [mealEntries, setMealEntries] = useState(detailData);
 
+    // Sync mealEntries with detailData when detailData changes (e.g. when changing date from RoomSelectionForm)
+    useEffect(() => {
+        setMealEntries(detailData);
+    }, [detailData]);
+
     useEffect(() => {
         const bedMeals = detailData[currentBedIndex];
 

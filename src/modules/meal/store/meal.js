@@ -32,7 +32,8 @@ const initialState = {
     listFood: [],
     listDepartment: [],
     listRoom: [],
-    selectedDate: '',
+    roomSelectedDate: '',
+    mealHistory: [],
 };
 
 const mealSlice = createSlice({
@@ -172,12 +173,12 @@ const mealSlice = createSlice({
 
             state.meals.masterData.quantity = totalQuantity;
             state.meals.masterData.price = totalPrice;
-    state.totalMoney = totalPrice;
-    const hasMealData = ['CA1', 'CA2', 'CA3'].some(shift => bedMeals[shift]?.some(meal => meal.mode || meal.mealType));
-    if (!hasMealData) {
-        state.selectedDate = '';
-    }
-},
+            state.totalMoney = totalPrice;
+            const hasMealData = ['CA1', 'CA2', 'CA3'].some(shift => bedMeals[shift]?.some(meal => meal.mode || meal.mealType));
+            if (!hasMealData) {
+                state.selectedDate = '';
+            }
+        },
         markBedAsSubmitted: (state, action) => {
             const bedIndex = action.payload;
             if (!state.submittedBeds.includes(bedIndex)) {
@@ -222,6 +223,20 @@ const mealSlice = createSlice({
             state.submittedBeds = [];
             state.selectedDate = '';
         },
+        setRoomSelectedDate: (state, action) => {
+            state.roomSelectedDate = action.payload; // Store the date in DD/MM/YYYY format
+        },
+        setMealHistory: (state, action) => {
+            const historyData = action.payload;
+            if (Array.isArray(historyData)) {
+                // Flatten mảng nếu cần (vì backend trả về lồng [[...]])
+                const flattenedHistory = historyData.flat();
+                state.mealHistory = flattenedHistory;
+            } else {
+                state.mealHistory = [];
+            }
+        }
+
     },
 });
 
@@ -247,7 +262,9 @@ export const {
     setListFood,
     setListDepartment,
     setListRoom,
-    resetAllMeals
+    resetAllMeals,
+    setRoomSelectedDate,
+    setMealHistory
 } = mealSlice.actions;
 
 export default mealSlice.reducer;

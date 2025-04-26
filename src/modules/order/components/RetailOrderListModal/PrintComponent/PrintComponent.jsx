@@ -7,6 +7,13 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
   var now = new Date();
   return (
     <div className="print-content" style={{ fontFamily: "Arial", fontSize: "12px", padding: "10px", maxWidth: "260px", color: "#000" }} ref={ref}>
+      <div style={{ textAlign: "center", marginBottom: "10px" }}>
+        <img
+          src="/logo.png"
+          alt="Phenikaa MEC Logo"
+          style={{ width: "150px", height: "auto" }}
+        />
+      </div>
       <div style={{ textAlign: "center", marginBottom: "8px" }}>
         <label style={{ fontWeight: "bold", fontSize: "14px", color: "#000" }}>HÓA ĐƠN</label>
         <br />

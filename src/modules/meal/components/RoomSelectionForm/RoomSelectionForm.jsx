@@ -1,16 +1,19 @@
 import { RightOutlined } from '@ant-design/icons';
-import { notification, Select } from 'antd';
+import { DatePicker, notification, Select } from 'antd';
+import dayjs from 'dayjs';
 import _ from 'lodash';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addDataMultiObjectApi, multipleTablePutApi, syncFastMutiApi } from '../../../../api';
-import { resetAllMeals, setCurrentBedIndex, setListBeds, setListRoom, setMasterData, setMeal, setRoomCode, setShowMealDetails, setShowRoomSelection } from '../../store/meal';
+import { markBedAsSubmitted, resetAllMeals, setCurrentBedIndex, setListBeds, setListRoom, setMasterData, setMeal, setMealHistory, setRoomCode, setRoomSelectedDate, setShowMealDetails, setShowRoomSelection } from '../../store/meal';
 import './RoomSelectionForm.css';
 
 const { Option } = Select;
 
 const RoomSelectionForm = () => {
     const dispatch = useDispatch();
+    const dateFormat = 'DD/MM/YYYY';
+
     const {
         meals: { masterData = {}, detailData = [] },
         listDepartment = [],
@@ -19,49 +22,102 @@ const RoomSelectionForm = () => {
         submittedBeds = [],
         listFood = [],
         listDietCategory = [],
+        roomSelectedDate
     } = useSelector((state) => state.meals);
     const { userName, unitId, id } = useSelector((state) => state.claimsReducer.userInfo || {});
+    const lastLoadedDateRef = useRef(null);
+    const lastRoomCodeRef = useRef(null);
+
+    useEffect(() => {
+        if (!roomSelectedDate) {
+            const today = dayjs().format(dateFormat);
+            dispatch(setRoomSelectedDate(today));
+        }
+    }, []);
 
     const handleBedClick = useCallback((bed, index) => {
-        const currentMealEntries = JSON.parse(JSON.stringify(detailData));
-        const currentBedMeals = currentMealEntries[masterData.beds?.[0]?.index || 0];
-
-        if (currentBedMeals && Object.keys(currentBedMeals).some(key => currentBedMeals[key]?.some(m => m.mode || m.mealType))) {
-            dispatch(setMeal({ mealEntries: currentMealEntries, bedIndex: masterData.beds?.[0]?.index || 0 }));
-        }
-
         dispatch(setMasterData({ beds: [bed] }));
         dispatch(setCurrentBedIndex(index));
         dispatch(setShowMealDetails(true));
         dispatch(setShowRoomSelection(false));
-    }, [dispatch, detailData, masterData.beds]);
+    }, [dispatch]);
 
-    const handleRoomChange = useCallback(async (value) => {
-        if (masterData.roomCode === value) return;
-
-        dispatch(setListBeds([]));
-        dispatch(setRoomCode(value));
-
+    const loadBedsWithMeals = async (roomCode, date) => {
+        dispatch(setRoomCode(roomCode));
         try {
-            const response = await addDataMultiObjectApi({
-                store: "api_getDepartmentRoomService",
-                param: {
-                    mabp: masterData.name,
-                    maphong: value,
-                    searchValue: "",
-                    username: userName,
-                },
-                data: {},
-                resultSetNames: ["phong", "giuong", "list3"],
+            const [bedResponse, mealResponse] = await Promise.all([
+                addDataMultiObjectApi({
+                    store: "api_getDepartmentRoomService",
+                    param: {
+                        mabp: masterData.name,
+                        maphong: roomCode,
+                        searchValue: "",
+                        username: userName,
+                    },
+                    data: {},
+                    resultSetNames: ["phong", "giuong", "list3"],
+                }),
+                multipleTablePutApi({
+                    store: "api_getMealDetailsByDepartmentRoomBed",
+                    param: {
+                        ngay_ct: date,
+                        ma_bp: masterData.name,
+                        ma_phong: roomCode,
+                        username: userName,
+                    },
+                    data: {}
+                })
+            ]);
+
+            const bedList = bedResponse?.listObject?.dataLists?.list3 || [];
+            dispatch(setListBeds(bedList));
+
+            if (Array.isArray(mealResponse?.listObject)) {
+                dispatch(setMealHistory(mealResponse.listObject));
+            }
+            const bedMealMap = mealResponse?.listObject?.bedMealMap || [];
+
+            bedMealMap.forEach((meals, i) => {
+                const { CA1, CA2, CA3 } = meals || {};
+                if ([...(CA1 || []), ...(CA2 || []), ...(CA3 || [])].some(m => m.mode || m.mealType)) {
+                    dispatch(markBedAsSubmitted(i));
+                }
             });
 
-            const bedList = response?.listObject?.dataLists?.list3 || [];
-            dispatch(setListBeds(bedList));
-        } catch (err) {
-            console.error("❌ Error fetching bed data for room:", err);
+            const filteredMealMap = bedMealMap.map((m) => ({
+                CA1: Array.isArray(m?.CA1) ? m.CA1 : [],
+                CA2: Array.isArray(m?.CA2) ? m.CA2 : [],
+                CA3: Array.isArray(m?.CA3) ? m.CA3 : [],
+            }));
+
+            const hasAnyMeal = filteredMealMap.some(meals =>
+                [...meals.CA1, ...meals.CA2, ...meals.CA3].some(m => m.mode || m.mealType)
+            );
+
+            if (hasAnyMeal) {
+                dispatch(setMeal({ mealEntries: filteredMealMap }));
+            } else {
+                console.warn("⚠️ Không gọi setMeal vì không có suất ăn nào hợp lệ.");
+            }
+        } catch (error) {
+            console.error("❌ Lỗi khi gọi song song API:", error);
             dispatch(setListBeds([]));
         }
-    }, [dispatch, masterData]);
+    };
+
+    // handleRoomChange: luôn xử lý roomCode mới, gọi luôn API với đúng mã khoa và phòng
+    const handleRoomChange = useCallback((value) => {
+        dispatch(setListBeds([]));
+
+        const updatedMasterData = { ...masterData, roomCode: value };
+        dispatch(setMasterData(updatedMasterData));
+        lastRoomCodeRef.current = null;
+
+        const date = roomSelectedDate || dayjs().format(dateFormat);
+        if (updatedMasterData.name && value) {
+            loadBedsWithMeals(value, date);
+        }
+    }, [masterData, roomSelectedDate]);
 
     const handleDepartmentChange = useCallback(async (value) => {
         if (!userName) {
@@ -72,6 +128,8 @@ const RoomSelectionForm = () => {
         dispatch(setMasterData({ name: value, roomCode: '', beds: [] }));
         dispatch(setListBeds([]));
         dispatch(setListRoom([]));
+        lastRoomCodeRef.current = null;
+        lastLoadedDateRef.current = null;
 
         try {
             const response = await addDataMultiObjectApi({
@@ -104,6 +162,26 @@ const RoomSelectionForm = () => {
             }
         }
     }, [masterData.roomCode, listBeds, dispatch]);
+
+    useEffect(() => {
+        if (!roomSelectedDate || !masterData.roomCode) return;
+
+        const currentDate = roomSelectedDate;
+        const lastDate = lastLoadedDateRef.current;
+        const lastRoomCode = lastRoomCodeRef.current;
+
+        if (lastDate === null && lastRoomCode === null) {
+            lastLoadedDateRef.current = currentDate;
+            lastRoomCodeRef.current = masterData.roomCode;
+            return;
+        }
+
+        if (currentDate !== lastDate || masterData.roomCode !== lastRoomCode) {
+            lastLoadedDateRef.current = currentDate;
+            lastRoomCodeRef.current = masterData.roomCode;
+            loadBedsWithMeals(masterData.roomCode, currentDate);
+        }
+    }, [roomSelectedDate, masterData.roomCode]);
 
     const handleSubmit = useCallback(async () => {
         if (!masterData.name || !masterData.roomCode) {
@@ -166,11 +244,14 @@ const RoomSelectionForm = () => {
         try {
             const response = await multipleTablePutApi(payload);
             if (response?.responseModel?.isSucceded) {
-                const sttRecList = JSON.parse(response?.listObject?.[1]?.[0]?.list_stt_rec || "[]");
-                await syncFastMutiApi(sttRecList, id);
+                const sttRecList = JSON.parse(response?.listObject?.[0]?.[0]?.list_stt_rec || "[]");
+                if (Array.isArray(sttRecList) && sttRecList.length > 0) {
+                    await syncFastMutiApi(sttRecList, id);
+                }
                 notification.success({ message: "Đăng ký thành công !" });
                 setTimeout(() => {
                     dispatch(resetAllMeals());
+                    dispatch(setMasterData({ name: '', roomCode: '', beds: [] })); // 🔥 reset masterData
                     dispatch(setShowMealDetails(false));
                     dispatch(setShowRoomSelection(true));
                 }, 500);
@@ -182,9 +263,47 @@ const RoomSelectionForm = () => {
         }
     }, [masterData, detailData, listBeds]);
 
+
+    const handleDateChange = (date) => {
+        if (!date || !dayjs(date).isValid()) return;
+
+        const formattedDate = date.format(dateFormat);
+        dispatch(setRoomSelectedDate(formattedDate));
+
+        if (masterData.roomCode && Array.isArray(listBeds) && listBeds.length > 0) {
+            loadBedsWithMeals(masterData.roomCode, formattedDate);
+        } else {
+            console.warn("⚠️ Không gọi loadBedsWithMeals vì listBeds chưa có dữ liệu");
+        }
+    };
+
+
+    const mealHistory = useSelector((state) => state.meals.mealHistory || []);
+
+    const isBedInMealHistory = (ma_giuong) => {
+        return mealHistory.some(m => m.ma_giuong?.trim() === ma_giuong?.trim());
+    };
+
+    const getBedMealsFromHistory = (ma_giuong, caLabel) => {
+        return mealHistory.filter(
+            m => m.ma_giuong === ma_giuong && m.ten_ca?.trim() === caLabel
+        );
+    };
+
     return (
         <div className="form-container">
-            <h2 className="form-title">Đăng ký suất ăn</h2>
+            <div className="centered-group">
+                <h2 className="form-title" style={{ marginBottom: 8 }}>Đăng ký suất ăn</h2>
+                <div className="room-datepicker">
+                    <DatePicker
+                        id="date-picker"
+                        value={roomSelectedDate ? dayjs(roomSelectedDate, dateFormat) : null}
+                        onChange={handleDateChange}
+                        format={dateFormat}
+                        className="room-date-picker-input"
+                    />
+                </div>
+            </div>
 
             <div className="input-group">
                 <label htmlFor="name">Mã Khoa:</label>
@@ -220,7 +339,7 @@ const RoomSelectionForm = () => {
                         const maPhong = room?.ma_phong?.trim?.() || "";
                         return (
                             <Option key={maPhong} value={maPhong}>
-                                {room?.ten_phong || "Không tên"}
+                                {room?.ten_phong}
                             </Option>
                         );
                     })}
@@ -231,24 +350,61 @@ const RoomSelectionForm = () => {
                 <div className="list-items">
                     {listBeds.map((bed, index) => {
                         const isSubmitted = submittedBeds.includes(index);
-                        const meals = detailData[index] || {};
+                        const isDisabled = isBedInMealHistory(bed.ma_giuong);
 
                         return (
                             <div key={index}>
                                 <div
                                     className="list-item"
-                                    onClick={() => handleBedClick(bed, index)}
-                                    style={{ backgroundColor: isSubmitted ? '#e6fffb' : 'white' }}
+                                    onClick={() => !isDisabled && handleBedClick(bed, index)}
+                                    style={{
+                                        backgroundColor: isDisabled ? '#f5f5f5' : isSubmitted ? '#e6fffb' : 'white',
+                                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                        opacity: isDisabled ? 0.5 : 1
+                                    }}
                                 >
-                                    <span>{bed?.ten_giuong || 'Không rõ tên giường'}</span>
-                                    <RightOutlined style={{ fontSize: '18px' }} />
+                                    <span>{bed?.ten_giuong}</span>
+                                    {isDisabled && <span style={{ color: '#999', fontStyle: 'italic' }}>Đã đặt</span>}
+                                    {!isDisabled && <RightOutlined style={{ fontSize: '18px' }} />}
                                 </div>
 
-                                {isSubmitted && (
+                                {isDisabled && (
+                                    <div className="submitted-item">
+                                        {['Ca sáng', 'Ca trưa', 'Ca chiều'].map((caLabel) => {
+                                            const caMeals = getBedMealsFromHistory(bed.ma_giuong, caLabel);
+                                            if (!caMeals.length) return null;
+
+                                            return (
+                                                <div key={caLabel} style={{ marginBottom: '16px' }}>
+                                                    <p style={{ fontWeight: 'bold' }}>{caLabel}</p>
+                                                    {caMeals.map((m, idx) => (
+                                                        <div
+                                                            key={idx}
+                                                            style={{
+                                                                marginLeft: '16px',
+                                                                marginBottom: '8px',
+                                                                paddingBottom: '8px',
+                                                                borderBottom: '1px solid #ccc'
+                                                            }}
+                                                        >
+                                                            <p>+ Món ăn: {m.ten_mon || 'Không rõ'}</p>
+                                                            <p>+ Số lượng: {m.so_luong}</p>
+                                                            <p>+ Chế độ: {m.ten_che_do || 'Không rõ'}</p>
+                                                            <p>+ Thu tiền: {m.thu_tien ? 'Đã thu tiền' : 'Chưa thu tiền'}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Người dùng tự submit trên client */}
+                                {isSubmitted && !isDisabled && (
                                     <div className="submitted-item">
                                         {['CA1', 'CA2', 'CA3'].map((mealType) => {
-                                            const caMeals = meals[mealType] || [];
-                                            const hasMeals = caMeals.some(m => m.mode || m.mealType);
+                                            const meals = detailData[index]?.[mealType] || [];
+                                            const hasMeals = meals.some(m => m.mode || m.mealType);
 
                                             if (!hasMeals) return null;
 
@@ -258,7 +414,7 @@ const RoomSelectionForm = () => {
                                                         {mealType === 'CA1' ? 'Ca Sáng' : mealType === 'CA2' ? 'Ca Trưa' : 'Ca Tối'}
                                                     </p>
 
-                                                    {caMeals.map((m, idx) => {
+                                                    {meals.map((m, idx) => {
                                                         const foodName = listFood.find(food => food.ma_mon === m.mealType)?.ten_mon || m.mealType || 'Chưa chọn món';
                                                         const dietName = listDietCategory.find(d => d.ma_nh === m.mode)?.ten_nh || m.mode || 'Chưa chọn chế độ';
 
@@ -275,6 +431,9 @@ const RoomSelectionForm = () => {
                                                                 {m.mode && <p>+ Chế độ: {dietName}</p>}
                                                                 {m.mealType && <p>+ Món ăn: {foodName}</p>}
                                                                 {m.quantity > 0 && <p>+ Số lượng: {m.quantity}</p>}
+                                                                {typeof m.collectMoney === 'boolean' && (
+                                                                    <p>+ Thu tiền: {m.isPaid ? 'Đã thu tiền' : 'Chưa thu tiền'}</p>
+                                                                )}
                                                             </div>
                                                         );
                                                     })}
