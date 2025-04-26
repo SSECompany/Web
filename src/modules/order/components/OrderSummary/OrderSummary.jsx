@@ -26,6 +26,7 @@ export default function OrderSummary({ total, itemCount }) {
     const [printMaster, setPrintMaster] = useState({});
     const [printDetail, setPrintDetail] = useState([]);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [isPrinted, setIsPrinted] = useState(false); // Thêm cờ kiểm soát in
 
     const activeTab = orders?.find((tab) => tab.internalId === internalActiveTabId);
 
@@ -162,18 +163,40 @@ export default function OrderSummary({ total, itemCount }) {
         setPrintMaster(orderData.masterData);
         setPrintDetail(orderData.detailData);
         setIsPrinting(true);
+        setIsPrinted(false); // Reset cờ khi chuẩn bị in
     };
 
+    let hasPrinted = false; // Biến cục bộ để kiểm soát trạng thái in
+
     const handlePrint = useReactToPrint({
-        content: () => printContent.current,
+        content: () => {
+            console.log("handlePrint: Generating print content...");
+            return printContent.current;
+        },
         documentTitle: "Print This Document",
         copyStyles: false,
-        onAfterPrint: () => handleSaveOrder(),
+        onAfterPrint: () => {
+            console.log("handlePrint: onAfterPrint triggered. hasPrinted =", hasPrinted);
+            if (!hasPrinted) { // Kiểm tra nếu chưa in
+                hasPrinted = true; // Đánh dấu đã in
+                console.log("handlePrint: Calling handleSaveOrder...");
+                setTimeout(() => handleSaveOrder(), 100); // Trì hoãn xử lý để tránh gọi nhiều lần
+            } else {
+                console.log("handlePrint: Skipping handleSaveOrder as hasPrinted is true.");
+            }
+        },
     });
 
     useEffect(() => {
-        if (isPrinting && printMaster?.ma_ban && printDetail.length) handlePrint();
-    }, [printMaster, printDetail]);
+        console.log("useEffect: isPrinting =", isPrinting, ", isPrinted =", isPrinted);
+        if (isPrinting && !isPrinted) { // Chỉ gọi hàm in nếu chưa in
+            console.log("useEffect: Calling handlePrint...");
+            hasPrinted = false; // Reset biến cục bộ trước khi in
+            handlePrint();
+        } else {
+            console.log("useEffect: Skipping handlePrint.");
+        }
+    }, [printMaster, printDetail, isPrinting, isPrinted]);
 
     const handleOpenPaymentModal = () => {
         setIsPaymentModalVisible(true);
@@ -232,4 +255,4 @@ export default function OrderSummary({ total, itemCount }) {
             {contextHolder}
         </div>
     );
-}
+}           
