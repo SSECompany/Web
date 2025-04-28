@@ -163,38 +163,31 @@ export default function OrderSummary({ total, itemCount }) {
         setPrintMaster(orderData.masterData);
         setPrintDetail(orderData.detailData);
         setIsPrinting(true);
-        setIsPrinted(false); // Reset cờ khi chuẩn bị in
+        setIsPrinted(false);
     };
 
-    let hasPrinted = false; // Biến cục bộ để kiểm soát trạng thái in
+    let hasPrinted = false; 
 
     const handlePrint = useReactToPrint({
         content: () => {
-            console.log("handlePrint: Generating print content...");
             return printContent.current;
         },
         documentTitle: "Print This Document",
         copyStyles: false,
         onAfterPrint: () => {
-            console.log("handlePrint: onAfterPrint triggered. hasPrinted =", hasPrinted);
-            if (!hasPrinted) { // Kiểm tra nếu chưa in
-                hasPrinted = true; // Đánh dấu đã in
-                console.log("handlePrint: Calling handleSaveOrder...");
-                setTimeout(() => handleSaveOrder(), 100); // Trì hoãn xử lý để tránh gọi nhiều lần
+            if (!hasPrinted) { 
+                hasPrinted = true; 
+                setTimeout(() => handleSaveOrder(), 100); 
             } else {
-                console.log("handlePrint: Skipping handleSaveOrder as hasPrinted is true.");
             }
         },
     });
 
     useEffect(() => {
-        console.log("useEffect: isPrinting =", isPrinting, ", isPrinted =", isPrinted);
-        if (isPrinting && !isPrinted) { // Chỉ gọi hàm in nếu chưa in
-            console.log("useEffect: Calling handlePrint...");
-            hasPrinted = false; // Reset biến cục bộ trước khi in
+        if (isPrinting && !isPrinted) { 
+            hasPrinted = false; 
             handlePrint();
         } else {
-            console.log("useEffect: Skipping handlePrint.");
         }
     }, [printMaster, printDetail, isPrinting, isPrinted]);
 

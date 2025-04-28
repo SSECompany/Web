@@ -5,7 +5,7 @@ import _ from 'lodash';
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addDataMultiObjectApi, multipleTablePutApi, syncFastMutiApi } from '../../../../api';
-import { markBedAsSubmitted, resetAllMeals, setCurrentBedIndex, setListBeds, setListRoom, setMasterData, setMeal, setMealHistory, setRoomCode, setRoomSelectedDate, setShowMealDetails, setShowRoomSelection } from '../../store/meal';
+import { markBedAsSubmitted, resetAllMeals, setCurrentBedIndex, setListBeds, setListRoom, setMasterData, setMeal, setMealHistory, setRoomCode, setRoomSelectedDate, setShowMealDetails, setShowRoomSelection, setSubmittedBeds } from '../../store/meal';
 import './RoomSelectionForm.css';
 
 const { Option } = Select;
@@ -206,7 +206,7 @@ const RoomSelectionForm = () => {
 
         detailData.forEach((bedMeals, bedIndex) => {
             const bed = listBeds[bedIndex];
-            if (!bed) return;
+            if (!bed || !bedMeals) return;
 
             ['CA1', 'CA2', 'CA3'].forEach((shift) => {
                 const meals = bedMeals[shift] || [];
@@ -270,10 +270,14 @@ const RoomSelectionForm = () => {
         const formattedDate = date.format(dateFormat);
         dispatch(setRoomSelectedDate(formattedDate));
 
-        if (masterData.roomCode && Array.isArray(listBeds) && listBeds.length > 0) {
+        // 🔥 Clear detailData + submittedBeds
+        dispatch(setMeal({ mealEntries: [] }));
+        dispatch(setSubmittedBeds([])); // reset submittedBeds về rỗng
+
+        if (masterData.roomCode) {
             loadBedsWithMeals(masterData.roomCode, formattedDate);
         } else {
-            console.warn("⚠️ Không gọi loadBedsWithMeals vì listBeds chưa có dữ liệu");
+            console.warn("⚠️ Không gọi loadBedsWithMeals vì chưa chọn Mã phòng.");
         }
     };
 
@@ -448,7 +452,17 @@ const RoomSelectionForm = () => {
                 </div>
             )}
 
-            <button className="submit-button" onClick={handleSubmit}>
+            <button
+                className="submit-button"
+                onClick={handleSubmit}
+                disabled={
+                    !detailData.some(bedMeals =>
+                        ['CA1', 'CA2', 'CA3'].some(shift =>
+                            (bedMeals?.[shift] || []).some(m => m.mode || m.mealType)
+                        )
+                    )
+                }
+            >
                 Gửi
             </button>
         </div>
