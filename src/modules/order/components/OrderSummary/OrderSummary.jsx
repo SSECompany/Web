@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi, printOrderApi, syncFastApi } from "../../../../api";
+import jwt from '../../../../utils/jwt';
 import { clearTabData, removeTab } from "../../store/order";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
@@ -29,6 +30,9 @@ export default function OrderSummary({ total, itemCount }) {
     const [isPrinted, setIsPrinted] = useState(false); // Thêm cờ kiểm soát in
 
     const activeTab = orders?.find((tab) => tab.internalId === internalActiveTabId);
+    const rawToken = localStorage.getItem("access_token");
+    const claims = rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
+    const fullName = claims?.FullName;
 
     const generateOrderData = (status = "0", selectedPayments = [], paymentAmounts = {}) => {
         if (!activeTab) {
@@ -166,7 +170,7 @@ export default function OrderSummary({ total, itemCount }) {
         setIsPrinted(false);
     };
 
-    let hasPrinted = false; 
+    let hasPrinted = false;
 
     const handlePrint = useReactToPrint({
         content: () => {
@@ -175,17 +179,17 @@ export default function OrderSummary({ total, itemCount }) {
         documentTitle: "Print This Document",
         copyStyles: false,
         onAfterPrint: () => {
-            if (!hasPrinted) { 
-                hasPrinted = true; 
-                setTimeout(() => handleSaveOrder(), 100); 
+            if (!hasPrinted) {
+                hasPrinted = true;
+                setTimeout(() => handleSaveOrder(), 100);
             } else {
             }
         },
     });
 
     useEffect(() => {
-        if (isPrinting && !isPrinted) { 
-            hasPrinted = false; 
+        if (isPrinting && !isPrinted) {
+            hasPrinted = false;
             handlePrint();
         } else {
         }
@@ -242,7 +246,7 @@ export default function OrderSummary({ total, itemCount }) {
             </div>
 
             <div style={{ display: "none" }}>
-                <PrintComponent ref={printContent} master={printMaster} detail={printDetail} />
+                <PrintComponent ref={printContent} master={printMaster} detail={printDetail} fullName={fullName} />
             </div>
 
             {contextHolder}

@@ -3,15 +3,15 @@ import { formatNumber } from "../../../../../app/hook/dataFormatHelper";
 
 const account = process.env.REACT_APP_VIETQR_ACCOUNT;
 
-const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
+const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref, fullName = "") => {
   var now = new Date();
   return (
     <div className="print-content" style={{ fontFamily: "Arial", fontSize: "12px", padding: "10px", maxWidth: "260px", color: "#000" }} ref={ref}>
-      <div style={{ textAlign: "center", marginBottom: "10px" }}>
+      <div style={{ textAlign: "center" }}>
         <img
           src="/logo.png"
           alt="Phenikaa MEC Logo"
-          style={{ width: "150px", height: "auto" }}
+          style={{ width: "130px", height: "auto" }}
         />
       </div>
       <div style={{ textAlign: "center", marginBottom: "8px" }}>
@@ -22,8 +22,11 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
         </span>
       </div>
 
-      <div style={{ paddingBottom: "6px", marginBottom: "6px" }}>
-        <div><strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}</div>
+      <div style={{ paddingBottom: "6px" }}>
+        <div style={{ color: "#000" }}><strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}</div>
+      </div>
+      <div style={{ color: "#000", marginBottom: "6px" }}>
+        <strong>Nhân viên:</strong> {fullName || "Không xác định"}
       </div>
 
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "6px" }}>
