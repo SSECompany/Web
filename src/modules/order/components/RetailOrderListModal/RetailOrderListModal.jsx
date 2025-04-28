@@ -27,7 +27,6 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const claims = rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
   const roleWeb = claims?.RoleWeb;
   const fullName = claims?.FullName;
-  console.log("🚀 ~ OrderSummary ~ fullName:", fullName)
 
   const fetchListOrderData = async (filterParams) => {
     setIsLoading(true);

@@ -13344,10 +13344,12 @@ react-slick@~0.15.4:
     object-assign "^4.1.0"
     slick-carousel "^1.6.0"
 
-react-to-print@^2.15.1:
-  version "2.15.1"
-  resolved "https://registry.yarnpkg.com/react-to-print/-/react-to-print-2.15.1.tgz#c9a6732cadf1118fc90d886b54a9388c419561b9"
-  integrity sha512-1foogIFbCpzAVxydkhBiDfMiFYhIMphiagDOfcG4X/EcQ+fBPqJ0rby9Wv/emzY1YLkIQy/rEgOrWQT+rBKhjw==
+react-to-print@2.14.1:
+  version "2.14.1"
+  resolved "https://registry.yarnpkg.com/react-to-print/-/react-to-print-2.14.1.tgz#b6c74e9ed37520092a0863386ceb9b5525065941"
+  integrity sha512-2PWKhONAYHpWELAiclcGbyN3xG0Li37hnMVdNtSwGyOT3O6BpB+GiqaT4pqnvuDTPFTZdfjL4fmvY6HxcdQ6sw==
+  dependencies:
+    prop-types "^15.7.2"
 
 react-transition-group@^4.4.1:
   version "4.4.5"
