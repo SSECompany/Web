@@ -26,6 +26,8 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const rawToken = localStorage.getItem("access_token");
   const claims = rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
   const roleWeb = claims?.RoleWeb;
+  const fullName = claims?.FullName;
+  console.log("🚀 ~ OrderSummary ~ fullName:", fullName)
 
   const fetchListOrderData = async (filterParams) => {
     setIsLoading(true);
@@ -424,7 +426,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         </div>
       </Modal>
       <div style={{ display: "none" }}>
-        <PrintComponent ref={printContent} master={printMaster} detail={printDetail} />
+        <PrintComponent ref={printContent} master={printMaster} detail={printDetail} fullName={fullName} />
       </div>
     </>
   );
