@@ -185,6 +185,9 @@ const mealSlice = createSlice({
                 state.submittedBeds.push(bedIndex);
             }
         },
+        setSubmittedBeds: (state, action) => {
+            state.submittedBeds = action.payload;
+        },
         setListDietCategory: (state, action) => {
             state.listDietCategory = action.payload;
         },
@@ -257,6 +260,7 @@ export const {
     setMeal,
     setCurrentBedIndex,
     markBedAsSubmitted,
+    setSubmittedBeds,
     setListDietCategory,
     setListMealCode,
     setListFood,
