@@ -135,7 +135,6 @@ const MealTicketForm = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log(mealDetails);
     };
 
     useEffect(() => {
