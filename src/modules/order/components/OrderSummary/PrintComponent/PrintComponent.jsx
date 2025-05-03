@@ -1,9 +1,14 @@
 import React, { forwardRef } from "react";
 import { formatNumber } from "../../../../../app/hook/dataFormatHelper";
+import jwt from "../../../../../utils/jwt";
 
 const account = process.env.REACT_APP_VIETQR_ACCOUNT;
 
-const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref, fullName = "") => {
+const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
+  const rawToken = localStorage.getItem("access_token");
+  const claims = rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
+  const fullName = claims?.FullName;
+
   var now = new Date();
   return (
     <div className="print-content" style={{ fontFamily: "Arial", fontSize: "12px", padding: "10px", maxWidth: "260px", color: "#000" }} ref={ref}>
@@ -26,7 +31,7 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref, fullName =
         <div style={{ color: "#000" }}><strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}</div>
       </div>
       <div style={{ color: "#000", marginBottom: "6px" }}>
-        <strong>Nhân viên:</strong> {fullName || "Không xác định"}
+        <strong>Nhân viên:</strong> {fullName}
       </div>
 
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "6px" }}>
