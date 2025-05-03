@@ -95,4 +95,5 @@ const PrintComponent = forwardRef(({ master = {}, detail = [], fullName = "" }, 
   );
 });
 
+
 export default PrintComponent;

@@ -6,7 +6,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi, printOrderApi, syncFastApi } from "../../../../api";
-import jwt from '../../../../utils/jwt';
 import { clearTabData, removeTab } from "../../store/order";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
@@ -27,12 +26,9 @@ export default function OrderSummary({ total, itemCount }) {
     const [printMaster, setPrintMaster] = useState({});
     const [printDetail, setPrintDetail] = useState([]);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-    const [isPrinted, setIsPrinted] = useState(false); // Thêm cờ kiểm soát in
+    const [isPrinted, setIsPrinted] = useState(false);
 
     const activeTab = orders?.find((tab) => tab.internalId === internalActiveTabId);
-    const rawToken = localStorage.getItem("access_token");
-    const claims = rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
-    const fullName = claims?.FullName;
 
     const generateOrderData = (status = "0", selectedPayments = [], paymentAmounts = {}) => {
         if (!activeTab) {
@@ -246,7 +242,7 @@ export default function OrderSummary({ total, itemCount }) {
             </div>
 
             <div style={{ display: "none" }}>
-                <PrintComponent ref={printContent} master={printMaster} detail={printDetail} fullName={fullName} />
+                <PrintComponent ref={printContent} master={printMaster} detail={printDetail} />
             </div>
 
             {contextHolder}
