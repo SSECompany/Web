@@ -395,6 +395,7 @@ const RoomSelectionForm = () => {
                                                             <p>+ Số lượng: {m.so_luong}</p>
                                                             <p>+ Chế độ: {m.ten_che_do || 'Không rõ'}</p>
                                                             <p>+ Thu tiền: {m.thu_tien ? 'Đã thu tiền' : 'Chưa thu tiền'}</p>
+                                                            <p>+ Số chứng từ: {m.so_ct?.trim() || 'Không có'}</p>
                                                         </div>
                                                     ))}
                                                 </div>
