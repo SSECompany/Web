@@ -1,0 +1,72 @@
+/* Các style chung */
+.phieu-container {
+  padding: 16px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.phieu-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.phieu-back-button {
+  padding-left: 0;
+}
+
+.phieu-title {
+  margin: 0 !important;
+  flex: 1;
+  min-width: 200px;
+}
+
+.phieu-add-button {
+  background-color: #52c41a;
+  border-color: #52c41a;
+}
+
+.phieu-edit-button {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+.phieu-save-button {
+  width: 100%;
+  max-width: 200px;
+}
+
+.phieu-form-container {
+  background: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.phieu-form .ant-form-item {
+  margin-bottom: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .phieu-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .phieu-title {
+    width: 100%;
+  }
+
+  .phieu-add-button,
+  .phieu-edit-button {
+    width: 100%;
+  }
+
+  .phieu-form-container {
+    padding: 16px;
+  }
+}

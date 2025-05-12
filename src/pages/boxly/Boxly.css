@@ -1,0 +1,103 @@
+/* Boxly Component Styles */
+.boxly-container {
+  padding: 16px;
+}
+
+.boxly-button-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding: 16px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.boxly-button-tile {
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 24px 16px;
+  font-size: 16px;
+  font-weight: 500;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+}
+
+.boxly-button-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Color variants */
+.boxly-btn-color-1 {
+  background-color: #e0f2f1;
+  border-color: #009688;
+  color: #004d40;
+}
+.boxly-btn-color-1:hover {
+  background-color: #b2dfdb;
+}
+
+.boxly-btn-color-2 {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+  color: #0d47a1;
+}
+.boxly-btn-color-2:hover {
+  background-color: #bbdefb;
+}
+
+.boxly-btn-color-3 {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+  color: #e65100;
+}
+.boxly-btn-color-3:hover {
+  background-color: #ffe0b2;
+}
+
+.boxly-btn-color-4 {
+  background-color: #fce4ec;
+  border-color: #e91e63;
+  color: #880e4f;
+}
+.boxly-btn-color-4:hover {
+  background-color: #f8bbd0;
+}
+
+.boxly-button-grid-container {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .boxly-button-grid {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .boxly-button-tile {
+    padding: 20px 12px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 576px) {
+  .boxly-button-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .boxly-button-tile {
+    padding: 16px 10px;
+    font-size: 14px;
+  }
+}
