@@ -1,24 +1,26 @@
-import { Button, Input, Modal, Table, Tag } from "antd";
+import { Button, Input, Modal, Table, Tag, message } from "antd";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../../../api";
 import "./MergeOrder.css";
 
-const MergeOrder = ({ visible, onClose }) => {
+const MergeOrder = ({ visible, onClose, onSubmitCombineOrder }) => {
   const [orders, setOrders] = useState([]);
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
+  const [selectedOrderIdsAll, setSelectedOrderIdsAll] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [totalRecords, setTotalRecords] = useState(0);
   const [allData, setAllData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [filters, setFilters] = useState({});
+  console.log("🚀 ~ MergeOrder ~ filters:", filters.so_ct);
 
   const { id, storeId, unitId } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
   );
 
-  const fetchListOrderData = async () => {
+  const fetchListOrderData = async (customFilters = filters) => {
     setIsLoading(true);
     try {
       const res = await multipleTablePutApi({
@@ -30,6 +32,7 @@ const MergeOrder = ({ visible, onClose }) => {
           userId: id,
           unitId: unitId,
           storeId: storeId,
+          so_ct: customFilters?.so_ct || "",
         },
         data: {},
       });
@@ -52,7 +55,7 @@ const MergeOrder = ({ visible, onClose }) => {
 
   useEffect(() => {
     if (visible) {
-      fetchListOrderData();
+      fetchListOrderData({});
     }
   }, [visible, currentPage]);
 
@@ -64,14 +67,79 @@ const MergeOrder = ({ visible, onClose }) => {
     );
   };
 
+  useEffect(() => {
+    const currentPageIds = orders.map((o) => o.stt_rec);
+    let newAll = selectedOrderIdsAll.filter(
+      (id) => !currentPageIds.includes(id)
+    );
+    newAll = [...newAll, ...selectedOrderIds];
+    newAll = Array.from(new Set(newAll));
+    setSelectedOrderIdsAll(newAll);
+  }, [selectedOrderIds, orders]);
+
+  useEffect(() => {
+    const currentPageIds = orders.map((o) => o.stt_rec);
+    const checkedOnPage = selectedOrderIdsAll.filter((id) =>
+      currentPageIds.includes(id)
+    );
+    setSelectedOrderIds(checkedOnPage);
+  }, [orders]);
+
   const handleClose = () => {
     setSelectedOrderIds([]);
+    setSelectedOrderIdsAll([]);
+    setFilters({ so_ct: "" });
+    setCurrentPage(1);
+    fetchListOrderData({ so_ct: "" }); // Gọi API với filter rỗng
     onClose();
   };
 
   const handleMerge = async () => {
-    console.log("Gộp các đơn:", selectedOrderIds);
+    if (selectedOrderIdsAll.length < 2) return;
+
+    try {
+      const res = await multipleTablePutApi({
+        store: "api_get_data_detail_retail_combine_order",
+        param: {
+          list_stt_rec: selectedOrderIdsAll.join(","),
+        },
+        data: {},
+      });
+
+      if (res?.listObject?.[0] && res?.listObject?.[1]) {
+        const flatDetail = res.listObject[1];
+        const mainItems = [];
+        const mainMap = {};
+
+        flatDetail.forEach((item) => {
+          if (!item.ma_vt_root) {
+            const main = { ...item, extras: [] };
+            mainItems.push(main);
+            mainMap[item.uniqueid] = main;
+          }
+        });
+
+        flatDetail.forEach((item) => {
+          if (item.ma_vt_root) {
+            const main = mainMap[item.uniqueid];
+            if (main) {
+              main.extras.push(item);
+            }
+          }
+        });
+
+        onSubmitCombineOrder(res.listObject[0], mainItems);
+        message.success("Lấy dữ liệu đơn hàng gộp thành công!");
+      } else {
+        message.warning("Không tìm thấy dữ liệu để gộp!");
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy dữ liệu gộp:", error);
+      message.error("Lỗi khi lấy dữ liệu gộp!");
+    }
+
     setSelectedOrderIds([]);
+    setSelectedOrderIdsAll([]);
     onClose();
   };
 
@@ -89,73 +157,82 @@ const MergeOrder = ({ visible, onClose }) => {
         <Button
           key="merge"
           type="primary"
-          disabled={selectedOrderIds.length < 2}
+          disabled={selectedOrderIdsAll.length < 2}
           onClick={handleMerge}
         >
           Gộp đơn
         </Button>,
       ]}
     >
-      {orders.length === 0 ? (
-        <div style={{ textAlign: "center", color: "#888" }}>
-          Không có đơn hàng nào để gộp.
-        </div>
-      ) : (
-        <Table
-          className="merge-order_table"
-          rowKey="stt_rec"
-          dataSource={orders}
-          loading={isLoading}
-          pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            total: totalRecords,
-            showSizeChanger: false,
-            onChange: (page) => {
-              setCurrentPage(page);
-            },
-          }}
-          scroll={{ y: 400 }}
-          rowSelection={{
-            selectedRowKeys: selectedOrderIds,
-            onChange: (selectedRowKeys) => setSelectedOrderIds(selectedRowKeys),
-            hideSelectAll: true,
-          }}
-          columns={[
-            {
-              title: "Mã bàn",
-              dataIndex: "ma_ban",
-              key: "ma_ban",
-              align: "center",
-            },
-            {
-              title: "Số chứng từ",
-              dataIndex: "so_ct",
-              key: "so_ct",
-              align: "center",
-              className: "so-chung-tu-col",
-              filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-                <div style={{ padding: 8 }}>
-                  <Input
-                    placeholder={`Tìm kiếm Số CT`}
-                    value={selectedKeys[0]}
-                    onChange={(e) =>
-                      setSelectedKeys(e.target.value ? [e.target.value] : [])
+      <Table
+        className="merge-order_table"
+        rowKey="stt_rec"
+        dataSource={orders}
+        loading={isLoading}
+        pagination={{
+          current: currentPage,
+          pageSize: pageSize,
+          total: totalRecords,
+          showSizeChanger: false,
+          onChange: (page) => {
+            setCurrentPage(page);
+          },
+        }}
+        scroll={{ y: 400 }}
+        rowSelection={{
+          selectedRowKeys: selectedOrderIds,
+          onChange: setSelectedOrderIds,
+          hideSelectAll: true,
+        }}
+        columns={[
+          {
+            title: "Mã bàn",
+            dataIndex: "ma_ban",
+            key: "ma_ban",
+            align: "center",
+          },
+          {
+            title: "Số chứng từ",
+            dataIndex: "so_ct",
+            key: "so_ct",
+            align: "center",
+            className: "so-chung-tu-col",
+            filterDropdown: ({
+              setSelectedKeys,
+              selectedKeys,
+              confirm,
+              clearFilters,
+            }) => (
+              <div style={{ padding: 8 }}>
+                <Input
+                  placeholder={`Tìm kiếm Số CT`}
+                  value={selectedKeys[0]}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedKeys(value ? [value] : []);
+                    // Reset nếu input rỗng
+                    if (!value) {
+                      clearFilters();
+                      setFilters({ so_ct: "" });
+                      fetchListOrderData({ so_ct: "" });
                     }
-                    onPressEnter={() => {
-                      confirm();
-                      const newFilters = { ...filters, so_ct: selectedKeys[0] };
-                      setFilters(newFilters);
-                      fetchListOrderData(newFilters);
-                    }}
-                    style={{ marginBottom: 8, display: "block" }}
-                  />
+                  }}
+                  onPressEnter={() => {
+                    confirm();
+                    const newSoCt = selectedKeys[0] || "";
+                    const newFilters = { ...filters, so_ct: newSoCt };
+                    setFilters(newFilters);
+                    fetchListOrderData(newFilters);
+                  }}
+                  style={{ marginBottom: 8, display: "block" }}
+                />
+                <div style={{ display: "flex", gap: 8 }}>
                   <Button
                     className="search_button"
                     type="primary"
                     onClick={() => {
                       confirm();
-                      const newFilters = { ...filters, so_ct: selectedKeys[0] };
+                      const newFilters = { so_ct: selectedKeys[0] || "" };
                       setFilters(newFilters);
                       fetchListOrderData(newFilters);
                     }}
@@ -163,36 +240,53 @@ const MergeOrder = ({ visible, onClose }) => {
                   >
                     Tìm kiếm
                   </Button>
+                  <Button
+                    onClick={() => {
+                      clearFilters();
+                      setFilters({ so_ct: "" });
+                      fetchListOrderData({ so_ct: "" });
+                    }}
+                    size="small"
+                  >
+                    Reset
+                  </Button>
                 </div>
-              ),
-              onFilter: (value, record) => record.so_ct.includes(value),
-            },
-            {
-              title: "Ngày chứng từ",
-              dataIndex: "ngay_ct",
-              key: "ngay_ct",
-              align: "center",
-            },
-            {
-              title: "Tổng tiền",
-              dataIndex: "tien",
-              key: "tien",
-              align: "center",
-              render: (value) => `${Number(value || 0).toLocaleString()} đ`,
-            },
-            {
-              title: "Trạng thái",
-              dataIndex: "status",
-              key: "status",
-              align: "center",
-              render: (status) =>
-                status === "0" ? (
-                  <Tag color="warning">Chưa hoàn thành</Tag>
-                ) : null,
-            },
-          ]}
-        />
-      )}
+              </div>
+            ),
+            onFilter: (value, record) => record.so_ct.includes(value),
+          },
+          {
+            title: "Ngày chứng từ",
+            dataIndex: "ngay_ct",
+            key: "ngay_ct",
+            align: "center",
+          },
+          {
+            title: "Tổng tiền",
+            dataIndex: "tien",
+            key: "tien",
+            align: "center",
+            render: (value) => `${Number(value || 0).toLocaleString()} đ`,
+          },
+          {
+            title: "Trạng thái",
+            dataIndex: "status",
+            key: "status",
+            align: "center",
+            render: (status) =>
+              status === "0" ? (
+                <Tag color="warning">Chưa hoàn thành</Tag>
+              ) : null,
+          },
+        ]}
+        locale={{
+          emptyText: (
+            <div style={{ textAlign: "center", color: "#888" }}>
+              Không tìm thấy đơn hàng nào phù hợp.
+            </div>
+          ),
+        }}
+      />
     </Modal>
   );
 };

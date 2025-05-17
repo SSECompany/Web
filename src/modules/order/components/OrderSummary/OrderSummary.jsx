@@ -7,7 +7,7 @@ import {
   printOrderApi,
   syncFastApi,
 } from "../../../../api";
-import { clearTabData, removeTab } from "../../store/order";
+import { addTab, clearTabData, removeTab, switchTab } from "../../store/order";
 import MergeOrder from "./MergeOrders/MergeOrder";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
@@ -35,6 +35,7 @@ export default function OrderSummary({ total, itemCount }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isPrinted, setIsPrinted] = useState(false);
   const [isMergeModalVisible, setIsMergeModalVisible] = useState(false);
+  const [isCombining, setIsCombining] = useState(false);
 
   const activeTab = orders?.find(
     (tab) => tab.internalId === internalActiveTabId
@@ -255,6 +256,112 @@ export default function OrderSummary({ total, itemCount }) {
     setIsMobile(isOrderPage && !token);
   }, []);
 
+  const handleSubmitCombineOrder = (combineMaster, combineDetail) => {
+    if (!combineMaster || !combineDetail) return;
+
+    const internalId = `gop-don_${Date.now()}`;
+    dispatch(
+      addTab({
+        tableId: "gop-don",
+        tableName: "Gộp đơn",
+        isRealtime: false,
+        master: combineMaster,
+        detail: combineDetail,
+        internalId,
+      })
+    );
+    setTimeout(() => {
+      dispatch(switchTab(internalId));
+    }, 0);
+    setIsMergeModalVisible(false);
+  };
+
+  // Hàm xử lý hoàn thành gộp đơn
+  const handleCompleteCombineOrder = async () => {
+    if (activeTab?.tableId !== "gop-don" || !activeTab?.detail?.length) return;
+    setIsCombining(true);
+
+    // Lấy danh sách stt_rec từ master của tab gộp đơn (nếu có)
+    let listCombineSttRec = "";
+    if (activeTab.master?.list_combine_stt_rec) {
+      listCombineSttRec = activeTab.master.list_combine_stt_rec;
+    } else if (Array.isArray(activeTab.master)) {
+      listCombineSttRec = activeTab.master
+        .map((m) => m.stt_rec)
+        .filter(Boolean)
+        .join(",");
+    } else if (activeTab.master?.stt_rec) {
+      listCombineSttRec = activeTab.master.stt_rec;
+    } else {
+      const sttRecArr = (activeTab.detail || [])
+        .map((item) => item.stt_rec)
+        .filter(Boolean);
+      listCombineSttRec = Array.from(new Set(sttRecArr)).join(",");
+    }
+
+    // Chuẩn hóa detail: flatten extras thành các item cùng cấp và đảm bảo có ap_voucher
+    const formattedDetail = [];
+    (activeTab.detail || []).forEach((item) => {
+      // Món chính
+      const { extras, ...mainItem } = item;
+      formattedDetail.push({
+        ...mainItem,
+        ap_voucher: mainItem.ap_voucher ?? "0", // đảm bảo luôn có ap_voucher
+      });
+      // Món phụ (extras)
+      if (Array.isArray(extras)) {
+        extras.forEach((extra) => {
+          formattedDetail.push({
+            ...extra,
+            ap_voucher: extra.ap_voucher ?? "0", // đảm bảo luôn có ap_voucher
+          });
+        });
+      }
+    });
+
+    const masterPayload = {
+      ma_ban: "gop_don",
+      dien_giai: "",
+      tong_tien: "0",
+      tong_sl: formattedDetail.length.toString(),
+      tien_mat: "0",
+      chuyen_khoan: "0",
+      tong_tt: "0",
+      httt: "tien_mat",
+      stt_rec: "",
+      status: "0",
+      list_combine_stt_rec: listCombineSttRec,
+    };
+
+    const payload = {
+      store: "Api_create_retail_combine_order",
+      param: { StoreID: storeId, unitId: unitId, userId: id },
+      data: {
+        master: [masterPayload],
+        detail: formattedDetail,
+      },
+    };
+
+    try {
+      const res = await multipleTablePutApi(payload);
+      if (res?.responseModel?.isSucceded) {
+        notification.success({ message: "Gộp đơn thành công!" });
+        // Xóa tab gộp đơn sau khi gộp thành công
+        dispatch(removeTab({ tableId: activeTab.internalId }));
+      } else {
+        notification.warning({
+          message: res?.responseModel?.message || "Gộp đơn thất bại!",
+        });
+      }
+    } catch (err) {
+      notification.error({
+        message: "Lỗi khi gộp đơn!",
+        description: err.message,
+      });
+    }
+    setIsCombining(false);
+  };
+
   return (
     <div className="order-summary">
       <div className="summary-info">
@@ -273,23 +380,41 @@ export default function OrderSummary({ total, itemCount }) {
         isCreatingOrder={isCreatingOrder}
       />
 
-      <MergeOrder visible={isMergeModalVisible} onClose={closeMergeModal} />
+      <MergeOrder
+        visible={isMergeModalVisible}
+        onClose={closeMergeModal}
+        onSubmitCombineOrder={handleSubmitCombineOrder}
+      />
 
       <div className="summary-actions">
-        <button
-          className="summary-button secondary"
-          onClick={handleMergeOrders}
-          disabled={isCreatingOrder || isPrinting}
-        >
-          Gộp đơn
-        </button>
-        <button
-          className="summary-button primary"
-          onClick={isMobile ? handleSendOrderDirectly : handleOpenPaymentModal}
-          disabled={isCreatingOrder || isPrinting}
-        >
-          {isMobile ? "Gửi" : "Thanh toán"}
-        </button>
+        {activeTab?.tableId === "gop-don" ? (
+          <button
+            className="summary-button primary"
+            disabled={isCombining || !activeTab?.detail?.length}
+            onClick={handleCompleteCombineOrder}
+          >
+            {isCombining ? "Đang gộp..." : "Hoàn thành gộp đơn"}
+          </button>
+        ) : (
+          <>
+            <button
+              className="summary-button secondary"
+              onClick={handleMergeOrders}
+              disabled={isCreatingOrder || isPrinting}
+            >
+              Gộp đơn
+            </button>
+            <button
+              className="summary-button primary"
+              onClick={
+                isMobile ? handleSendOrderDirectly : handleOpenPaymentModal
+              }
+              disabled={isCreatingOrder || isPrinting}
+            >
+              {isMobile ? "Gửi" : "Thanh toán"}
+            </button>
+          </>
+        )}
       </div>
 
       <div style={{ display: "none" }}>
