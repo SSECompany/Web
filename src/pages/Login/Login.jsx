@@ -14,15 +14,15 @@ import {
   Select,
   Space,
 } from "antd";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
+import { useLocation } from "react-router-dom"; // Import useLocation
 import { useDebouncedCallback } from "use-debounce";
 import { apiGetStoreByUser } from "../../api";
 import router from "../../router/routes";
 import { setClaims } from "../../store/reducers/claimsSlice";
 import https from "../../utils/https";
 import jwt from "../../utils/jwt";
-import { useLocation } from "react-router-dom"; // Import useLocation
 import "./Login.css";
 
 const Login = () => {
@@ -79,7 +79,7 @@ const Login = () => {
       });
   };
 
-  const onLackInfoLogin = () => { };
+  const onLackInfoLogin = () => {};
   const onEnoughInfo = () => {
     handleLoginButton();
   };
@@ -166,7 +166,7 @@ const Login = () => {
       alt: "",
     },
     {
-      url: "https://balard-consulting.fr/wp-content/uploads/2022/11/ERP_Grand-1024x683.jpeg",
+      url: "https://granderp.com/wp-content/uploads/2024/01/homepagePNG.png",
       alt: "",
     },
     {
@@ -174,7 +174,7 @@ const Login = () => {
       alt: "",
     },
     {
-      url: "https://mlitqrsemjqz.i.optimole.com/w:auto/h:auto/q:mauto/https://www.technosip.com/wp-content/uploads/2022/05/7054182.jpg",
+      url: "https://www.technosip.com/wp-content/uploads/2021/04/Healthcare-App-Development-Services-of-Technosip-4.png",
       alt: "",
     },
   ];
@@ -252,7 +252,6 @@ const Login = () => {
                 options={units}
                 onSelect={handleChangeUnit}
               />
-
             </Space>
 
             <Space
