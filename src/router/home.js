@@ -59,7 +59,7 @@ const homeRoutes = [
       },
       {
         path: "*",
-        element: <Navigate to="/" replace />,
+        element: <Navigate to="/error" replace />,
       },
       {
         label: "Error",

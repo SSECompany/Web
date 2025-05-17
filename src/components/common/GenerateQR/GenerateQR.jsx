@@ -1,24 +1,29 @@
 import { QRCodeCanvas } from "qrcode.react";
-import React from "react";
 import { tableData } from "./tableDataQR";
 
 const GenerateQR = () => {
-
-    return (
-        <div className="flex flex-col items-center space-y-4 flex-wrap gap-7">
-            {tableData.map((table, index) => (
-                <div
-                    key={index}
-                    className="flex flex-col items-center space-y-2 border-2 border-blue-500 p-4 rounded-lg shadow-md bg-white text-center w-[220px]"
-                >
-                    <QRCodeCanvas
-                        value={`https://phenikaa-banhang.sse.net.vn/order/${table.value}?ma_qr=${table.ma_qr}`}
-                        size={200}
-                    />
-                </div>
-            ))}
+  return (
+    <div className="flex flex-col items-center space-y-4 flex-wrap gap-7">
+      {tableData.map((table, index) => (
+        <div
+          key={index}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            textAlign: "center",
+          }}
+        >
+          <div className="space-y-2 border-2 border-blue-500 p-4 rounded-lg shadow-md bg-white text-center w-[220px">
+            <QRCodeCanvas
+              value={`http://10.1.135.82:8002/order/${table.value}?ma_qr=${table.ma_qr}`}
+              size={200}
+            />
+          </div>
+          <div className="text-sm font-semibold mt-2">{`${table.value}`}</div>
         </div>
-    );
+      ))}
+    </div>
+  );
 };
 
 export default GenerateQR;
