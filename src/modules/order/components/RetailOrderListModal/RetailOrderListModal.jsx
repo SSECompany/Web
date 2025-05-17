@@ -104,7 +104,11 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       key: "username",
     },
     {
-      title: "Mã bàn",
+      title: () => (
+        <div>
+          Mã bàn {filters.ma_ban ? <Tag color="blue">{filters.ma_ban}</Tag> : null}
+        </div>
+      ),
       dataIndex: "ma_ban",
       key: "ma_ban",
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
@@ -138,10 +142,13 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           </Button>
         </div>
       ),
-      onFilter: (value, record) => record.ma_ban.includes(value),
     },
     {
-      title: "Số chứng từ",
+      title: () => (
+        <div>
+          Số chứng từ {filters.so_ct ? <Tag color="blue">{filters.so_ct}</Tag> : null}
+        </div>
+      ),
       dataIndex: "so_ct",
       key: "so_ct",
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
@@ -175,7 +182,6 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           </Button>
         </div>
       ),
-      onFilter: (value, record) => record.so_ct.includes(value),
     },
     {
       title: "Ngày chứng từ",
@@ -211,7 +217,6 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           </Button>
         </div>
       ),
-      onFilter: (value, record) => record.ngay_ct.includes(value),
     },
     {
       title: "Tổng tiền",
@@ -254,7 +259,6 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           </Button>
         </div>
       ),
-      onFilter: (value, record) => record.statusName.includes(value),
     },
     {
       title: "Chức năng",
@@ -369,6 +373,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           })
         );
         dispatch(switchTab(internalId));
+        onClose(); 
       } else {
         console.error("API không thành công:", res?.responseModel?.message);
       }
@@ -444,7 +449,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
               message: `Đơn hàng ${record.so_ct} đã được duyệt thành công!`,
               duration: 4,
             });
-            fetchListOrderData(filters); // Refresh lại danh sách
+            fetchListOrderData(filters);
           } else {
             notification.error({
               message: res?.responseModel?.message || "Duyệt đơn thất bại!",
