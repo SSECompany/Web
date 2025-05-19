@@ -105,8 +105,9 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
     },
     {
       title: () => (
-        <div>
-          Mã bàn {filters.ma_ban ? <Tag color="blue">{filters.ma_ban}</Tag> : null}
+        <div style={{ width: 100 }}>
+          Mã bàn{" "}
+          {filters.ma_ban ? <Tag color="blue">{filters.ma_ban}</Tag> : null}
         </div>
       ),
       dataIndex: "ma_ban",
@@ -145,12 +146,14 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
     },
     {
       title: () => (
-        <div>
-          Số chứng từ {filters.so_ct ? <Tag color="blue">{filters.so_ct}</Tag> : null}
+        <div style={{ width: 100 }}>
+          Số chứng từ{" "}
+          {filters.so_ct ? <Tag color="blue">{filters.so_ct}</Tag> : null}
         </div>
       ),
       dataIndex: "so_ct",
       key: "so_ct",
+      width: 200,
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div style={{ padding: 8 }}>
           <Input
@@ -184,9 +187,10 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       ),
     },
     {
-      title: "Ngày chứng từ",
+      title: "Ngày CT",
       dataIndex: "ngay_ct",
       key: "ngay_ct",
+      width: 200,
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div style={{ padding: 8 }}>
           <DatePicker
@@ -265,21 +269,21 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       key: "action",
       render: (_, record) => (
         <div style={{ display: "flex", gap: "10px" }}>
-          {roleWeb !== "isPosMini" && (
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-              type="danger"
-              size="small"
-              className="edit_button"
-              disabled={record.status === "2"}
-              style={
-                record.status === "2"
-                  ? { opacity: 0.5, pointerEvents: "none" }
-                  : {}
-              }
-            />
-          )}
+          {/* {roleWeb !== "isPosMini" && ( */}
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+            type="danger"
+            size="small"
+            className="edit_button"
+            disabled={record.status === "2"}
+            style={
+              record.status === "2"
+                ? { opacity: 0.5, pointerEvents: "none" }
+                : {}
+            }
+          />
+          {/* )} */}
           <Button
             icon={<PrinterOutlined />}
             onClick={() => handleReprint(record)}
@@ -373,7 +377,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           })
         );
         dispatch(switchTab(internalId));
-        onClose(); 
+        onClose();
       } else {
         console.error("API không thành công:", res?.responseModel?.message);
       }
