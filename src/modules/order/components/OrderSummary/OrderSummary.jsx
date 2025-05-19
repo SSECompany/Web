@@ -7,6 +7,7 @@ import {
   printOrderApi,
   syncFastApi,
 } from "../../../../api";
+import jwt from "../../../../utils/jwt";
 import { addTab, clearTabData, removeTab, switchTab } from "../../store/order";
 import MergeOrder from "./MergeOrders/MergeOrder";
 import "./OrderSummary.css";
@@ -24,6 +25,11 @@ export default function OrderSummary({ total, itemCount }) {
   const { id, storeId, unitId } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
   );
+  const rawToken = localStorage.getItem("access_token");
+  const claims =
+    rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
+  const roleWeb = claims?.RoleWeb;
+
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
   const [message, contextHolder] = messageAPI.useMessage();
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
@@ -276,12 +282,10 @@ export default function OrderSummary({ total, itemCount }) {
     setIsMergeModalVisible(false);
   };
 
-  // Hàm xử lý hoàn thành gộp đơn
   const handleCompleteCombineOrder = async () => {
     if (activeTab?.tableId !== "gop-don" || !activeTab?.detail?.length) return;
     setIsCombining(true);
 
-    // Lấy danh sách stt_rec từ master của tab gộp đơn (nếu có)
     let listCombineSttRec = "";
     if (activeTab.master?.list_combine_stt_rec) {
       listCombineSttRec = activeTab.master.list_combine_stt_rec;
@@ -299,21 +303,18 @@ export default function OrderSummary({ total, itemCount }) {
       listCombineSttRec = Array.from(new Set(sttRecArr)).join(",");
     }
 
-    // Chuẩn hóa detail: flatten extras thành các item cùng cấp và đảm bảo có ap_voucher
     const formattedDetail = [];
     (activeTab.detail || []).forEach((item) => {
-      // Món chính
       const { extras, ...mainItem } = item;
       formattedDetail.push({
         ...mainItem,
-        ap_voucher: mainItem.ap_voucher ?? "0", // đảm bảo luôn có ap_voucher
+        ap_voucher: mainItem.ap_voucher ?? "0",
       });
-      // Món phụ (extras)
       if (Array.isArray(extras)) {
         extras.forEach((extra) => {
           formattedDetail.push({
             ...extra,
-            ap_voucher: extra.ap_voucher ?? "0", // đảm bảo luôn có ap_voucher
+            ap_voucher: extra.ap_voucher ?? "0",
           });
         });
       }
@@ -346,7 +347,6 @@ export default function OrderSummary({ total, itemCount }) {
       const res = await multipleTablePutApi(payload);
       if (res?.responseModel?.isSucceded) {
         notification.success({ message: "Gộp đơn thành công!" });
-        // Xóa tab gộp đơn sau khi gộp thành công
         dispatch(removeTab({ tableId: activeTab.internalId }));
       } else {
         notification.warning({
@@ -397,13 +397,15 @@ export default function OrderSummary({ total, itemCount }) {
           </button>
         ) : (
           <>
-            <button
-              className="summary-button secondary"
-              onClick={handleMergeOrders}
-              disabled={isCreatingOrder || isPrinting}
-            >
-              Gộp đơn
-            </button>
+            {roleWeb !== "isPosMini" && (
+              <button
+                className="summary-button secondary"
+                onClick={handleMergeOrders}
+                disabled={isCreatingOrder || isPrinting}
+              >
+                Gộp đơn
+              </button>
+            )}
             <button
               className="summary-button primary"
               onClick={
