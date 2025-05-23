@@ -112,7 +112,7 @@ export default function OrderSummary({ total, itemCount }) {
     return { masterData, detailData };
   };
 
-  const handleSendOrderDirectly = async () => {
+  const handleSendOrderDirectly = async (isSaveOnly = false) => {
     const orderData = generateOrderData();
     if (!orderData) return;
 
@@ -126,7 +126,11 @@ export default function OrderSummary({ total, itemCount }) {
 
       const response = await multipleTablePutApi(payload);
       if (response?.responseModel?.isSucceded) {
-        notification.success({ message: "Đơn hàng đã được gửi thành công!" });
+        notification.success({
+          message: isSaveOnly
+            ? "Đã lưu đơn hàng thành công!"
+            : "Đơn hàng đã được gửi thành công!",
+        });
         setTimeout(() => dispatch(clearTabData(internalActiveTabId)), 500);
       } else {
         notification.warning({ message: response?.responseModel?.message });
@@ -397,7 +401,7 @@ export default function OrderSummary({ total, itemCount }) {
           </button>
         ) : (
           <>
-            {roleWeb !== "isPosMini" && (
+            {rawToken && roleWeb !== "isPosMini" && (
               <button
                 className="summary-button secondary"
                 onClick={handleMergeOrders}
@@ -406,10 +410,23 @@ export default function OrderSummary({ total, itemCount }) {
                 Gộp đơn
               </button>
             )}
+            {rawToken && (
+              <button
+                className="summary-button save"
+                onClick={() => handleSendOrderDirectly(true)}
+                disabled={
+                  isCreatingOrder || isPrinting || !activeTab?.detail?.length
+                }
+              >
+                Lưu lại
+              </button>
+            )}
             <button
               className="summary-button primary"
               onClick={
-                isMobile ? handleSendOrderDirectly : handleOpenPaymentModal
+                isMobile
+                  ? () => handleSendOrderDirectly(false)
+                  : handleOpenPaymentModal
               }
               disabled={isCreatingOrder || isPrinting}
             >
