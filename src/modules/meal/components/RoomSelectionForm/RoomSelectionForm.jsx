@@ -93,7 +93,6 @@ const RoomSelectionForm = () => {
           data: {},
         }),
       ]);
-      console.log("🚀 ~ loadBedsWithMeals ~ mealResponse:", mealResponse);
 
       const bedList = bedResponse?.listObject?.dataLists?.list3 || [];
       dispatch(setListBeds(bedList));
@@ -137,7 +136,6 @@ const RoomSelectionForm = () => {
     }
   };
 
-  // handleRoomChange: luôn xử lý roomCode mới, gọi luôn API với đúng mã khoa và phòng
   const handleRoomChange = useCallback(
     (value) => {
       dispatch(setListBeds([]));

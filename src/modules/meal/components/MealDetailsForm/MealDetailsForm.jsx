@@ -21,7 +21,7 @@ import { mealSchema } from "./validator/validationSchema";
 
 const { TabPane } = Tabs;
 
-const MealDetailsForm = ({ onDateChange }) => {
+const MealDetailsForm = () => {
   const firstMealInputRef = useRef(null);
   const tabsRef = useRef();
   const dispatch = useDispatch();
@@ -63,10 +63,8 @@ const MealDetailsForm = ({ onDateChange }) => {
     isPaid: false,
   });
 
-  // Initializing mealEntries from Redux state (detailData)
   const [mealEntries, setMealEntries] = useState(detailData);
 
-  // Sync mealEntries with detailData when detailData changes (e.g. when changing date from RoomSelectionForm)
   useEffect(() => {
     setMealEntries(detailData);
   }, [detailData]);
@@ -199,7 +197,13 @@ const MealDetailsForm = ({ onDateChange }) => {
       const bedMeals = { ...updatedMeals[currentBedIndex] };
       const meals = [...(bedMeals[timeOfDay] || [])];
 
-      meals.push(createDefaultMeal(selectedDate.format("DD/MM/YYYY")));
+      const mealDate =
+        selectedDate && typeof selectedDate === "string"
+          ? dayjs(selectedDate, "DD/MM/YYYY").format("DD/MM/YYYY")
+          : dayjs().format("DD/MM/YYYY");
+      console.log("🚀 ~ setMealEntries ~ mealDate:", mealDate);
+
+      meals.push(createDefaultMeal(mealDate));
 
       bedMeals[timeOfDay] = meals;
       updatedMeals[currentBedIndex] = bedMeals;
@@ -224,11 +228,13 @@ const MealDetailsForm = ({ onDateChange }) => {
           const bedMeals = { ...updatedMeals[currentBedIndex] };
           const meals = [...(bedMeals[timeOfDay] || [])];
 
+          const mealDate =
+            selectedDate && typeof selectedDate === "string"
+              ? dayjs(selectedDate, "DD/MM/YYYY").format("DD/MM/YYYY")
+              : dayjs().format("DD/MM/YYYY");
+
           if (meals.length === 1) {
-            // Nếu chỉ còn 1 phần tử thì clear mảng thành 1 phần tử trống mới
-            bedMeals[timeOfDay] = [
-              createDefaultMeal(selectedDate.format("DD/MM/YYYY")),
-            ];
+            bedMeals[timeOfDay] = [createDefaultMeal(mealDate)];
           } else {
             meals.splice(index, 1);
             bedMeals[timeOfDay] = meals;
@@ -486,11 +492,9 @@ const MealDetailsForm = ({ onDateChange }) => {
     selectedPatientInShift,
   ]);
 
-  // Đồng bộ paymentMethod với giá trị httt trong Redux khi detailData hoặc currentBedIndex thay đổi
   useEffect(() => {
     const bedMeals = detailData[currentBedIndex];
     if (bedMeals) {
-      // Tìm giá trị httt đầu tiên khác "" trong các suất ăn của giường này
       let foundHttt = "";
       ["CA1", "CA2", "CA3"].some((shift) => {
         const meals = bedMeals[shift] || [];
@@ -573,11 +577,10 @@ const MealDetailsForm = ({ onDateChange }) => {
                 ).map((meal) => ({
                   ...meal,
                   isPaid: newIsPaid,
-                  httt: newIsPaid ? meal.httt : "", // reset httt nếu bỏ chọn
+                  httt: newIsPaid ? meal.httt : "",
                 }));
               });
 
-              // Nếu bỏ chọn thì reset paymentMethod về ""
               if (!newIsPaid) setPaymentMethod("");
 
               dispatch(
