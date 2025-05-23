@@ -11,7 +11,6 @@ const MergeOrder = ({ visible, onClose, onSubmitCombineOrder }) => {
   const [selectedOrderIdsAll, setSelectedOrderIdsAll] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [totalRecords, setTotalRecords] = useState(0);
-  const [allData, setAllData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState({});
   const [searchText, setSearchText] = useState("");
@@ -28,7 +27,7 @@ const MergeOrder = ({ visible, onClose, onSubmitCombineOrder }) => {
         param: {
           status: "0",
           pageIndex: currentPage,
-          pageSize: 10,
+          pageSize: 20,
           userId: id,
           unitId: unitId,
           storeId: storeId,
@@ -44,7 +43,6 @@ const MergeOrder = ({ visible, onClose, onSubmitCombineOrder }) => {
       const totalRecords = paginationInfo.totalRecord || updatedData.length;
 
       setOrders(updatedData);
-      setAllData(updatedData);
       setTotalRecords(totalRecords);
     } catch (err) {
       console.error("Lỗi khi lấy danh sách đơn hàng:", err);
@@ -57,14 +55,6 @@ const MergeOrder = ({ visible, onClose, onSubmitCombineOrder }) => {
       fetchListOrderData({});
     }
   }, [visible, currentPage]);
-
-  const handleToggleOrder = (stt_rec) => {
-    setSelectedOrderIds((prev) =>
-      prev.includes(stt_rec)
-        ? prev.filter((item) => item !== stt_rec)
-        : [...prev, stt_rec]
-    );
-  };
 
   useEffect(() => {
     const currentPageIds = orders.map((o) => o.stt_rec);
@@ -89,13 +79,12 @@ const MergeOrder = ({ visible, onClose, onSubmitCombineOrder }) => {
     setSelectedOrderIdsAll([]);
     setFilters({ so_ct: "" });
     setCurrentPage(1);
-    fetchListOrderData({ so_ct: "" }); 
+    fetchListOrderData({ so_ct: "" });
     onClose();
   };
 
   const handleMerge = async () => {
     if (selectedOrderIdsAll.length < 2) return;
-
 
     const selectedOrders = orders.filter((order) =>
       selectedOrderIdsAll.includes(order.stt_rec)
@@ -181,11 +170,11 @@ const MergeOrder = ({ visible, onClose, onSubmitCombineOrder }) => {
                 setFilters(newFilters);
                 fetchListOrderData(newFilters);
               } else {
-                setFilters({}); 
+                setFilters({});
                 fetchListOrderData({});
               }
-              setSearchText(""); 
-              setSelectedKeys([]); 
+              setSearchText("");
+              setSelectedKeys([]);
             }}
             style={{ marginBottom: 8, display: "block" }}
           />
@@ -199,11 +188,11 @@ const MergeOrder = ({ visible, onClose, onSubmitCombineOrder }) => {
                 setFilters(newFilters);
                 fetchListOrderData(newFilters);
               } else {
-                setFilters({}); 
-                fetchListOrderData({}); 
+                setFilters({});
+                fetchListOrderData({});
               }
-              setSearchText(""); 
-              setSelectedKeys([]); 
+              setSearchText("");
+              setSelectedKeys([]);
             }}
             size="small"
           >
@@ -231,9 +220,7 @@ const MergeOrder = ({ visible, onClose, onSubmitCombineOrder }) => {
       key: "status",
       align: "center",
       render: (status) =>
-        status === "0" ? (
-          <Tag color="warning">Chưa hoàn thành</Tag>
-        ) : null,
+        status === "0" ? <Tag color="warning">Chưa hoàn thành</Tag> : null,
     },
   ];
 
@@ -265,7 +252,7 @@ const MergeOrder = ({ visible, onClose, onSubmitCombineOrder }) => {
         loading={isLoading}
         pagination={{
           current: currentPage,
-          pageSize: 10,
+          pageSize: 20,
           total: totalRecords,
           showSizeChanger: false,
           onChange: (page) => {

@@ -41,6 +41,22 @@
   cursor: not-allowed;
 }
 
+.summary-button.save {
+  background-color: #1677ff;
+  border-color: #1677ff;
+  color: white;
+}
+
+.summary-button.save:hover {
+  background-color: #4096ff;
+  border-color: #4096ff;
+}
+
+.summary-button.save:disabled {
+  background-color: #d9d9d9;
+  border-color: #d9d9d9;
+}
+
 .summary-total {
   display: flex;
   gap: 10px;
