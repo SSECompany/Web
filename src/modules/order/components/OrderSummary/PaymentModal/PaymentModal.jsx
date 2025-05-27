@@ -1,4 +1,5 @@
-import { Button, InputNumber, Modal } from "antd";
+import { DownOutlined, UpOutlined } from "@ant-design/icons";
+import { Button, Input, InputNumber, Modal } from "antd";
 import { useEffect, useState } from "react";
 import {
   formatCurrency,
@@ -15,6 +16,14 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
     chuyen_khoan: 0,
   });
   const [change, setChange] = useState(0);
+  const [customerInfo, setCustomerInfo] = useState({
+    ong_ba: "",
+    cccd: "",
+    dia_chi: "",
+    so_dt: "",
+  });
+  const [showCustomerInfo, setShowCustomerInfo] = useState(false);
+  const handleToggleCustomerInfo = () => setShowCustomerInfo((prev) => !prev);
 
   const showQRCode =
     selectedPayments.length === 1 && selectedPayments.includes("chuyen_khoan");
@@ -64,6 +73,13 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
     setSelectedPayments(["tien_mat"]);
     setPaymentAmounts({ tien_mat: 0, chuyen_khoan: 0 });
     setChange(0);
+    setCustomerInfo({
+      ong_ba: "",
+      cccd: "",
+      dia_chi: "",
+      so_dt: "",
+    });
+    setShowCustomerInfo(false);
     onClose();
   };
 
@@ -71,7 +87,14 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
     if (visible) {
       setSelectedPayments(["tien_mat"]);
       setPaymentAmounts({ tien_mat: 0, chuyen_khoan: 0 });
-      setChange(0);
+      setChange(0 - total);
+      setCustomerInfo({
+        ong_ba: "",
+        cccd: "",
+        dia_chi: "",
+        so_dt: "",
+      });
+      setShowCustomerInfo(false);
     }
   }, [visible, total]);
 
@@ -83,13 +106,70 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
       footer={null}
       className="payment-modal"
     >
-      <div className="payment-summary">
-        <span>Tổng tiền hàng:</span>
-        <strong>{total.toLocaleString()}đ</strong>
-      </div>
-
-      <div className="payment-divider"></div>
-
+      <p
+        className="payment-text"
+        onClick={handleToggleCustomerInfo}
+        style={{ cursor: "pointer", userSelect: "none" }}
+      >
+        <strong>
+          Thông tin khách hàng {showCustomerInfo ? <UpOutlined /> : <DownOutlined />}
+        </strong>
+      </p>
+      {showCustomerInfo && (
+        <div className="customer-info-section" style={{ margin: "16px 0" }}>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 500 }}>Tên khách:</label>
+                <Input
+                  style={{ width: "100%", marginTop: 4 }}
+                  value={customerInfo.ong_ba}
+                  placeholder="Nhập tên khách"
+                  onChange={(e) =>
+                    setCustomerInfo((prev) => ({ ...prev, ong_ba: e.target.value }))
+                  }
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 500 }}>CCCD:</label>
+                <Input
+                  style={{ width: "100%", marginTop: 4 }}
+                  value={customerInfo.cccd}
+                  placeholder="Nhập số CCCD"
+                  onChange={(e) =>
+                    setCustomerInfo((prev) => ({ ...prev, cccd: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 500 }}>Địa chỉ:</label>
+                <Input
+                  style={{ width: "100%", marginTop: 4 }}
+                  value={customerInfo.dia_chi}
+                  placeholder="Nhập địa chỉ"
+                  onChange={(e) =>
+                    setCustomerInfo((prev) => ({ ...prev, dia_chi: e.target.value }))
+                  }
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 500 }}>Số điện thoại:</label>
+                <Input
+                  style={{ width: "100%", marginTop: 4 }}
+                  value={customerInfo.so_dt}
+                  placeholder="Nhập số điện thoại"
+                  onChange={(e) =>
+                    setCustomerInfo((prev) => ({ ...prev, so_dt: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <div style={{ borderBottom: "1px solid #ccc", margin: "16px 0" }}></div>
       <p className="payment-text">
         <strong>Hình thức thanh toán:</strong>
       </p>
@@ -181,7 +261,7 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
           key="pay"
           type="primary"
           onClick={() => {
-            onConfirm(selectedPayments, paymentAmounts);
+            onConfirm(selectedPayments, paymentAmounts, customerInfo);
           }}
           className="payment-button primary"
           disabled={

@@ -50,7 +50,8 @@ export default function OrderSummary({ total, itemCount }) {
   const generateOrderData = (
     status = "0",
     selectedPayments = [],
-    paymentAmounts = {}
+    paymentAmounts = {},
+    customerInfo = {}
   ) => {
     if (!activeTab) {
       message.warning("Không có dữ liệu!");
@@ -71,6 +72,10 @@ export default function OrderSummary({ total, itemCount }) {
       httt: selectedPayments.join(","),
       stt_rec: status === "2" ? activeTab?.master?.stt_rec || "" : "",
       status,
+      cccd: customerInfo.cccd ?? activeTab?.master?.cccd ?? "",
+      ong_ba: customerInfo.ong_ba ?? activeTab?.master?.ong_ba ?? "",
+      so_dt: customerInfo.so_dt ?? activeTab?.master?.so_dt ?? "",
+      dia_chi: customerInfo.dia_chi ?? activeTab?.master?.dia_chi ?? "",
     };
 
     const detailData = activeTab?.detail?.flatMap((item) => {
@@ -196,9 +201,10 @@ export default function OrderSummary({ total, itemCount }) {
 
   const handlePreparePrint = (
     selectedPayments = ["tien_mat", "chuyen_khoan"],
-    paymentAmounts = { tien_mat: "0", chuyen_khoan: "0" }
+    paymentAmounts = { tien_mat: "0", chuyen_khoan: "0" },
+    customerInfo = {}
   ) => {
-    const orderData = generateOrderData("2", selectedPayments, paymentAmounts);
+    const orderData = generateOrderData("2", selectedPayments, paymentAmounts, customerInfo);
     if (!orderData) return;
 
     setPrintMaster(orderData.masterData);
@@ -240,12 +246,12 @@ export default function OrderSummary({ total, itemCount }) {
     setIsPaymentModalVisible(false);
   };
 
-  const handleConfirmPayment = (selectedPayments, paymentAmounts) => {
+  const handleConfirmPayment = (selectedPayments, paymentAmounts, customerInfo) => {
     handleClosePaymentModal();
     if (selectedPayments.includes("chuyen_khoan")) {
       setShowQR(true);
     }
-    handlePreparePrint(selectedPayments, paymentAmounts);
+    handlePreparePrint(selectedPayments, paymentAmounts, customerInfo);
   };
 
   const openMergeModal = () => {

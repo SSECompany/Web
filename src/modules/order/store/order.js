@@ -43,6 +43,10 @@ const orders = createSlice({
         stt_rec: "",
         status: "2",
         ma_ban: "",
+        ong_ba: "",
+        so_dt: "",
+        dia_chi: "",
+        cccd: "",
       };
 
       let tong_tien = 0;
@@ -393,6 +397,16 @@ const orders = createSlice({
         orders: [],
       });
     },
+    setCustomerInfo: (state, action) => {
+      const { ong_ba = "", cccd = "", dia_chi = "", so_dt = "" } = action.payload || {};
+      const tab = state.orders.find(tab => tab.internalId === state.internalActiveTabId);
+      if (tab) {
+        tab.master.ong_ba = ong_ba;
+        tab.master.cccd = cccd;
+        tab.master.dia_chi = dia_chi;
+        tab.master.so_dt = so_dt;
+      }
+    },
   },
 });
 
@@ -417,6 +431,7 @@ export const {
   addOrderFromSignal,
   applyVoucherToProduct,
   resetOrders,
+  setCustomerInfo,
 } = orders.actions;
 
 export default orders.reducer;
