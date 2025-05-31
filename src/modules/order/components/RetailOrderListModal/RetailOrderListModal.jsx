@@ -142,7 +142,6 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
 
     if (res?.responseModel?.isSucceded) {
       const masterData = res?.listObject[0]?.[0] || {};
-      console.log("🚀 ~ fetchOrderDetail ~ masterData:", masterData)
       const flatDetailData = res?.listObject[1] || [];
       return { masterData, flatDetailData };
     }

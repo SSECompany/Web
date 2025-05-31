@@ -193,7 +193,7 @@ export default function OrderSummary({ total, itemCount }) {
             message: "Không có `stt_rec` để thực hiện các API!",
           });
         }
-        dispatch(removeTab({ tableId: internalActiveTabId }));
+        dispatch(removeTab({ internalId: internalActiveTabId })); 
       } else {
         notification.warning({ message: response?.responseModel?.message });
       }
