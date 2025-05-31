@@ -42,7 +42,7 @@ const MealTicketForm = () => {
                 const [dietRes, mealCodeRes, foodRes, departmentRes] = await Promise.all([
                     multipleTablePutApi({
                         store: "[api_getListDietCategory]",
-                        param: { searchValue: "", pageindex: 1, pagesize: 10 },
+                        param: { searchValue: "", pageindex: 1, pagesize: 100 },
                         data: {},
                     }),
                     multipleTablePutApi({
@@ -59,7 +59,7 @@ const MealTicketForm = () => {
                             searchValue: "",
                             ngay_an: selectedDate,
                             pageindex: 1,
-                            pagesize: 10,
+                            pagesize: 100,
                         },
                         data: {},
                     }),
@@ -104,7 +104,7 @@ const MealTicketForm = () => {
                     searchValue: "",
                     ngay_an: date,
                     pageindex: 1,
-                    pagesize: 10,
+                    pagesize: 100,
                 },
                 data: {},
             });

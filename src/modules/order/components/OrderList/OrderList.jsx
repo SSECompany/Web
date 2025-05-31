@@ -8,6 +8,7 @@ import "./OrderList.css";
 export default function OrderList({ order }) {
     const dispatch = useDispatch();
     const activeTabId = useSelector((state) => state.orders.activeTabId);
+    const internalActiveTabId = useSelector((state) => state.orders.internalActiveTabId);
     const { id, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
 
     const handleAddNote = async (item) => {
@@ -39,11 +40,11 @@ export default function OrderList({ order }) {
     };
 
     const handleDeleteItem = (index) => {
-        dispatch(removeProductFromTab({ tableId: activeTabId, productIndex: index }));
+        dispatch(removeProductFromTab({ internalId: internalActiveTabId, productIndex: index }));
     };
 
     const handleUpdateQuantity = (index, increment) => {
-        dispatch(updateProductQuantity({ tableId: activeTabId, productIndex: index, increment }));
+        dispatch(updateProductQuantity({ internalId: internalActiveTabId, productIndex: index, increment }));
     };
 
     return (

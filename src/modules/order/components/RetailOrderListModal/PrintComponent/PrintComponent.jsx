@@ -50,6 +50,11 @@ const PrintComponent = forwardRef(
               .padStart(2, "0")}`}
           </span>
         </div>
+        {master?.ten_kh && master.ten_kh !== "KH CĂNG TIN" && (
+          <div style={{ color: "#000", marginBottom: "6px" }}>
+            <strong>Tên khách:</strong> {master.ten_kh}
+          </div>
+        )}
         <div style={{ paddingBottom: "6px" }}>
           <div style={{ color: "#000" }}>
             <strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}

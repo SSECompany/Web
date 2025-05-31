@@ -1,5 +1,5 @@
-import { ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
-import { Checkbox, DatePicker, Select, Tabs } from "antd";
+import { ArrowLeftOutlined } from "@ant-design/icons";
+import { DatePicker, Tabs } from "antd";
 import dayjs from "dayjs";
 import cloneDeep from "lodash.clonedeep";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -201,7 +201,6 @@ const MealDetailsForm = () => {
         selectedDate && typeof selectedDate === "string"
           ? dayjs(selectedDate, "DD/MM/YYYY").format("DD/MM/YYYY")
           : dayjs().format("DD/MM/YYYY");
-      console.log("🚀 ~ setMealEntries ~ mealDate:", mealDate);
 
       meals.push(createDefaultMeal(mealDate));
 
@@ -547,16 +546,16 @@ const MealDetailsForm = () => {
             key={meal.ma_ca}
           >
             {renderedMealEntries[meal.ma_ca]}
-            <button
+            {/* <button
               className="add-row-button"
               onClick={() => handleAddMeal(meal.ma_ca)}
             >
               <PlusOutlined />
-            </button>
+            </button> */}
           </TabPane>
         ))}
       </Tabs>
-      <div style={{ marginTop: 16 }}>
+      {/* <div style={{ marginTop: 16 }}>
         <Checkbox
           checked={isPaid}
           disabled={calculateTotalAllShift() === 0}
@@ -631,7 +630,7 @@ const MealDetailsForm = () => {
             { label: "Chuyển khoản", value: "chuyen_khoan" },
           ]}
         />
-      </div>
+      </div> */}
       <div className="total-money">
         Tổng tiền: {formatNumber(calculateTotalAllShift())} đ
       </div>

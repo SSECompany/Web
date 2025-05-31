@@ -1,5 +1,5 @@
 import { CloseOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
-import { Checkbox, Input, Select } from 'antd';
+import { Input, Select } from 'antd';
 import React from 'react';
 
 const MealEntryRow = ({ meal, index, timeOfDay, listDietCategory, listFood, handleDeleteMeal, handleModeChange, handleChange, handleQuantityChange, handleCollectMoneyChange, firstMealInputRef, isAnotherMealSelected }) => {
@@ -62,19 +62,25 @@ const MealEntryRow = ({ meal, index, timeOfDay, listDietCategory, listFood, hand
                         })()}
                     </div>
                     <div className="meal-quantity-controls">
-                        <button onClick={() => handleQuantityChange(timeOfDay, index, -1)} className="quantity-button" disabled={!meal.mealType || meal.quantity <= 1 || meal.collectMoney}>
+                        <button onClick={() => handleQuantityChange(timeOfDay, index, -1)} className="quantity-button" 
+                        // disabled={!meal.mealType || meal.quantity <= 1 || meal.collectMoney}
+                            disabled ={true}
+                        >
                             <MinusOutlined />
                         </button>
                         <span className="quantity-display">{meal.quantity}</span>
-                        <button onClick={() => handleQuantityChange(timeOfDay, index, 1)} className="quantity-button" disabled={!meal.mealType || meal.collectMoney}>
+                        <button onClick={() => handleQuantityChange(timeOfDay, index, 1)} className="quantity-button" 
+                        // disabled={!meal.mealType || meal.collectMoney}
+                        disabled ={true}
+                        >
                             <PlusOutlined />
                         </button>
                     </div>
                 </div>
 
                 <div className="price-input-group">
-                    <div>
-                        <span className="price-label">Bệnh nhân</span>
+                     <div>
+                        {/* <span className="price-label">Bệnh nhân</span>
                         <Checkbox
                             checked={meal.collectMoney || false}
                             onChange={(e) => {
@@ -88,8 +94,8 @@ const MealEntryRow = ({ meal, index, timeOfDay, listDietCategory, listFood, hand
                                 (!meal.mealType) || // Không có món ăn thì disable
                                 (!meal.collectMoney && isAnotherMealSelected) // Nếu đã có suất khác được chọn thì disable
                             }
-                        />
-                    </div>
+                        /> */}
+                    </div> 
                     <span className="price-display">
                         {(meal.totalMoney || 0).toLocaleString()} đ
                     </span>

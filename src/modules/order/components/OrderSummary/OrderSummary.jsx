@@ -1,4 +1,4 @@
-import { message as messageAPI, notification } from "antd";
+import { message as messageAPI, Modal, notification } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
@@ -42,6 +42,8 @@ export default function OrderSummary({ total, itemCount }) {
   const [isPrinted, setIsPrinted] = useState(false);
   const [isMergeModalVisible, setIsMergeModalVisible] = useState(false);
   const [isCombining, setIsCombining] = useState(false);
+  const [currentPrintData, setCurrentPrintData] = useState(null);
+  const [hasReprinted, setHasReprinted] = useState(false);
 
   const activeTab = orders?.find(
     (tab) => tab.internalId === internalActiveTabId
@@ -73,9 +75,10 @@ export default function OrderSummary({ total, itemCount }) {
       stt_rec: status === "2" ? activeTab?.master?.stt_rec || "" : "",
       status,
       cccd: customerInfo.cccd ?? activeTab?.master?.cccd ?? "",
-      ong_ba: customerInfo.ong_ba ?? activeTab?.master?.ong_ba ?? "",
+      ong_ba: (customerInfo.ong_ba?.trim() || activeTab?.master?.ong_ba?.trim()) || "KH CĂNG TIN",
       so_dt: customerInfo.so_dt ?? activeTab?.master?.so_dt ?? "",
       dia_chi: customerInfo.dia_chi ?? activeTab?.master?.dia_chi ?? "",
+      email: customerInfo.email ?? activeTab?.master?.email ?? "",
     };
 
     const detailData = activeTab?.detail?.flatMap((item) => {
@@ -151,6 +154,8 @@ export default function OrderSummary({ total, itemCount }) {
 
   const handleSaveOrder = async () => {
     setIsPrinting(false);
+    setCurrentPrintData(null);
+    setHasReprinted(false);
     if (isCreatingOrder) return;
 
     if (!printMaster || !printDetail.length) {
@@ -209,11 +214,28 @@ export default function OrderSummary({ total, itemCount }) {
 
     setPrintMaster(orderData.masterData);
     setPrintDetail(orderData.detailData);
+    setCurrentPrintData({ 
+      master: orderData.masterData, 
+      detail: orderData.detailData,
+      selectedPayments,
+      paymentAmounts,
+      customerInfo
+    });
+    setHasReprinted(false);
     setIsPrinting(true);
     setIsPrinted(false);
   };
 
   let hasPrinted = false;
+
+  const handleReprint = () => {
+    if (currentPrintData) {
+      setPrintMaster(currentPrintData.master);
+      setPrintDetail(currentPrintData.detail);
+      setIsPrinting(true);
+      setIsPrinted(false);
+    }
+  };
 
   const handlePrint = useReactToPrint({
     content: () => {
@@ -224,8 +246,27 @@ export default function OrderSummary({ total, itemCount }) {
     onAfterPrint: () => {
       if (!hasPrinted) {
         hasPrinted = true;
-        setTimeout(() => handleSaveOrder(), 100);
-      } else {
+        setIsPrinting(false);
+        
+        // Chỉ hỏi in thêm nếu chưa in thêm lần nào và có dữ liệu để in
+        if (currentPrintData && !hasReprinted) {
+          Modal.confirm({
+            title: 'In thêm bản khác?',
+            content: 'Bạn có muốn in thêm một bản nữa không?',
+            onOk: () => {
+              setHasReprinted(true); // Đánh dấu đã in thêm
+              handleReprint();
+            },
+            onCancel: () => {
+              setTimeout(() => handleSaveOrder(), 100);
+            },
+            okText: 'In thêm',
+            cancelText: 'Đóng',
+          });
+        } else {
+          // Đã in thêm rồi hoặc không có dữ liệu, lưu order luôn
+          setTimeout(() => handleSaveOrder(), 100);
+        }
       }
     },
   });
