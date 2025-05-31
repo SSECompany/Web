@@ -2,15 +2,15 @@ import { DownOutlined, UpOutlined } from "@ant-design/icons";
 import { Button, Input, InputNumber, Modal } from "antd";
 import { useEffect, useState } from "react";
 import {
-  formatCurrency,
-  formatNumber,
-  parserNumber,
+    formatCurrency,
+    formatNumber,
+    parserNumber,
 } from "../../../../../app/hook/dataFormatHelper";
 import { num2words } from "../../../../../app/Options/DataFomater";
 import "./PaymentModal.css";
 
 const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
-  const [selectedPayments, setSelectedPayments] = useState(["tien_mat"]);
+  const [selectedPayments, setSelectedPayments] = useState(["chuyen_khoan"]);
   const [paymentAmounts, setPaymentAmounts] = useState({
     tien_mat: 0,
     chuyen_khoan: 0,
@@ -21,6 +21,7 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
     cccd: "",
     dia_chi: "",
     so_dt: "",
+    email: "",
   });
   const [showCustomerInfo, setShowCustomerInfo] = useState(false);
   const handleToggleCustomerInfo = () => setShowCustomerInfo((prev) => !prev);
@@ -40,12 +41,20 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
 
       setPaymentAmounts((amounts) => {
         const updatedAmounts = { ...amounts };
+        
+        // Reset amounts for unselected methods
         if (!newSelectedPayments.includes("tien_mat")) {
           updatedAmounts["tien_mat"] = 0;
         }
         if (!newSelectedPayments.includes("chuyen_khoan")) {
           updatedAmounts["chuyen_khoan"] = 0;
         }
+        
+        // If only "chuyen_khoan" is selected, auto-set to total amount
+        if (newSelectedPayments.length === 1 && newSelectedPayments.includes("chuyen_khoan")) {
+          updatedAmounts["chuyen_khoan"] = total;
+        }
+        
         const totalAmount = Object.values(updatedAmounts).reduce(
           (sum, val) => sum + val,
           0
@@ -70,7 +79,7 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
   };
 
   const handleClose = () => {
-    setSelectedPayments(["tien_mat"]);
+    setSelectedPayments(["chuyen_khoan"]);
     setPaymentAmounts({ tien_mat: 0, chuyen_khoan: 0 });
     setChange(0);
     setCustomerInfo({
@@ -78,6 +87,7 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
       cccd: "",
       dia_chi: "",
       so_dt: "",
+      email: "",
     });
     setShowCustomerInfo(false);
     onClose();
@@ -85,14 +95,15 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
 
   useEffect(() => {
     if (visible) {
-      setSelectedPayments(["tien_mat"]);
-      setPaymentAmounts({ tien_mat: 0, chuyen_khoan: 0 });
-      setChange(0 - total);
+      setSelectedPayments(["chuyen_khoan"]);
+      setPaymentAmounts({ tien_mat: 0, chuyen_khoan: total });
+      setChange(0);
       setCustomerInfo({
         ong_ba: "",
         cccd: "",
         dia_chi: "",
         so_dt: "",
+        email: "",
       });
       setShowCustomerInfo(false);
     }
@@ -112,7 +123,8 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
         style={{ cursor: "pointer", userSelect: "none" }}
       >
         <strong>
-          Thông tin khách hàng {showCustomerInfo ? <UpOutlined /> : <DownOutlined />}
+          Thông tin khách hàng{" "}
+          {showCustomerInfo ? <UpOutlined /> : <DownOutlined />}
         </strong>
       </p>
       {showCustomerInfo && (
@@ -126,7 +138,10 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
                   value={customerInfo.ong_ba}
                   placeholder="Nhập tên khách"
                   onChange={(e) =>
-                    setCustomerInfo((prev) => ({ ...prev, ong_ba: e.target.value }))
+                    setCustomerInfo((prev) => ({
+                      ...prev,
+                      ong_ba: e.target.value,
+                    }))
                   }
                 />
               </div>
@@ -137,23 +152,15 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
                   value={customerInfo.cccd}
                   placeholder="Nhập số CCCD"
                   onChange={(e) =>
-                    setCustomerInfo((prev) => ({ ...prev, cccd: e.target.value }))
+                    setCustomerInfo((prev) => ({
+                      ...prev,
+                      cccd: e.target.value,
+                    }))
                   }
                 />
               </div>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontWeight: 500 }}>Địa chỉ:</label>
-                <Input
-                  style={{ width: "100%", marginTop: 4 }}
-                  value={customerInfo.dia_chi}
-                  placeholder="Nhập địa chỉ"
-                  onChange={(e) =>
-                    setCustomerInfo((prev) => ({ ...prev, dia_chi: e.target.value }))
-                  }
-                />
-              </div>
               <div style={{ flex: 1 }}>
                 <label style={{ fontWeight: 500 }}>Số điện thoại:</label>
                 <Input
@@ -161,10 +168,42 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
                   value={customerInfo.so_dt}
                   placeholder="Nhập số điện thoại"
                   onChange={(e) =>
-                    setCustomerInfo((prev) => ({ ...prev, so_dt: e.target.value }))
+                    setCustomerInfo((prev) => ({
+                      ...prev,
+                      so_dt: e.target.value,
+                    }))
                   }
                 />
               </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 500 }}>Email:</label>
+                <Input
+                  style={{ width: "100%", marginTop: 4 }}
+                  value={customerInfo.email}
+                  placeholder="Nhập email"
+                  type="email"
+                  onChange={(e) =>
+                    setCustomerInfo((prev) => ({
+                      ...prev,
+                      email: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <label style={{ fontWeight: 500 }}>Địa chỉ:</label>
+              <Input
+                style={{ width: "100%", marginTop: 4 }}
+                value={customerInfo.dia_chi}
+                placeholder="Nhập địa chỉ"
+                onChange={(e) =>
+                  setCustomerInfo((prev) => ({
+                    ...prev,
+                    dia_chi: e.target.value,
+                  }))
+                }
+              />
             </div>
           </div>
         </div>
@@ -261,7 +300,12 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
           key="pay"
           type="primary"
           onClick={() => {
-            onConfirm(selectedPayments, paymentAmounts, customerInfo);
+            // Nếu tên khách trống thì set mặc định là "KH CĂNG TIN"
+            const finalCustomerInfo = {
+              ...customerInfo,
+              ong_ba: customerInfo.ong_ba?.trim() || "KH CĂNG TIN",
+            };
+            onConfirm(selectedPayments, paymentAmounts, finalCustomerInfo);
           }}
           className="payment-button primary"
           disabled={

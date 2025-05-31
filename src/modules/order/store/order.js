@@ -43,10 +43,11 @@ const orders = createSlice({
         stt_rec: "",
         status: "2",
         ma_ban: "",
-        ong_ba: "",
+        ong_ba: "KH CĂNG TIN",
         so_dt: "",
         dia_chi: "",
         cccd: "",
+        email: "",
       };
 
       let tong_tien = 0;
@@ -110,11 +111,9 @@ const orders = createSlice({
       }
     },
     addProductToTab: (state, action) => {
-      const { tableId, product } = action.payload;
+      const { internalId, product } = action.payload;
       let tab = state.orders.find(
-        (tab) =>
-          tab.tableId === tableId &&
-          tab.internalId === state.internalActiveTabId
+        (tab) => tab.internalId === internalId
       );
       if (!tab) {
         tab = state.orders.find(
@@ -146,11 +145,9 @@ const orders = createSlice({
     },
 
     addExtrasToOrder: (state, action) => {
-      const { tableId, orderIndex, extras, note } = action.payload;
+      const { internalId, orderIndex, extras, note } = action.payload;
       let tab = state.orders.find(
-        (tab) =>
-          tab.tableId === tableId &&
-          tab.internalId === state.internalActiveTabId
+        (tab) => tab.internalId === internalId
       );
       if (!tab) {
         tab = state.orders.find(
@@ -199,8 +196,8 @@ const orders = createSlice({
     },
 
     updateProductQuantity: (state, action) => {
-      const { tableId, productIndex, increment } = action.payload;
-      const tab = state.orders.find((tab) => tab.tableId === tableId);
+      const { internalId, productIndex, increment } = action.payload;
+      const tab = state.orders.find((tab) => tab.internalId === internalId);
 
       if (tab && tab.detail[productIndex]) {
         const product = tab.detail[productIndex];
@@ -229,8 +226,8 @@ const orders = createSlice({
     },
 
     removeProductFromTab: (state, action) => {
-      const { tableId, productIndex } = action.payload;
-      const tab = state.orders.find((tab) => tab.tableId === tableId);
+      const { internalId, productIndex } = action.payload;
+      const tab = state.orders.find((tab) => tab.internalId === internalId);
 
       if (tab && tab.detail[productIndex]) {
         tab.detail.splice(productIndex, 1);
@@ -246,9 +243,9 @@ const orders = createSlice({
     },
 
     removeTab: (state, action) => {
-      const { tableId } = action.payload;
-      state.orders = state.orders.filter((tab) => tab.internalId !== tableId);
-      if (state.internalActiveTabId === tableId) {
+      const { internalId } = action.payload;
+      state.orders = state.orders.filter((tab) => tab.internalId !== internalId);
+      if (state.internalActiveTabId === internalId) {
         state.activeTabId = state.orders.length
           ? state.orders[0].tableId
           : null;
@@ -273,6 +270,11 @@ const orders = createSlice({
           stt_rec: "",
           status: "2",
           ma_ban: tab.tableId === "POS" ? "" : tab.master.ma_ban,
+          ong_ba: "KH CĂNG TIN",
+          so_dt: "",
+          dia_chi: "",
+          cccd: "",
+          email: "",
         };
         tab.detail = [];
       }
@@ -398,13 +400,22 @@ const orders = createSlice({
       });
     },
     setCustomerInfo: (state, action) => {
-      const { ong_ba = "", cccd = "", dia_chi = "", so_dt = "" } = action.payload || {};
-      const tab = state.orders.find(tab => tab.internalId === state.internalActiveTabId);
+      const {
+        ong_ba = "",
+        cccd = "",
+        dia_chi = "",
+        so_dt = "",
+        email = "",
+      } = action.payload || {};
+      const tab = state.orders.find(
+        (tab) => tab.internalId === state.internalActiveTabId
+      );
       if (tab) {
-        tab.master.ong_ba = ong_ba;
+        tab.master.ong_ba = ong_ba?.trim() || "KH CĂNG TIN";
         tab.master.cccd = cccd;
         tab.master.dia_chi = dia_chi;
         tab.master.so_dt = so_dt;
+        tab.master.email = email;
       }
     },
   },

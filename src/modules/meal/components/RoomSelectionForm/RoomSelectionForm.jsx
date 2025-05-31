@@ -258,7 +258,7 @@ const RoomSelectionForm = () => {
             so_luong: meal.quantity,
             don_gia: meal.price || 0,
             thanh_tien: meal.totalMoney || 0,
-            benh_nhan_yn: meal.collectMoney ? 1 : 0,
+            benh_nhan_yn: meal.collectMoney ? 0: 1,
             ghi_chu: meal.note || "",
             thu_tien_yn: meal.isPaid ? 1 : 0,
             httt: meal.httt || "",
