@@ -1,6 +1,6 @@
 import * as signalR from "@microsoft/signalr";
 import { Button, Modal, Tabs, Tooltip } from "antd";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useReducer, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useParams } from "react-router-dom";
 import { multipleTablePutApi } from "../../api";
@@ -27,101 +27,120 @@ import {
 import jwt from "../../utils/jwt";
 import "./POSPage.css";
 
-const POSPage = () => {
-    const dispatch = useDispatch();
-    const { activeTabId, internalActiveTabId, orders } = useSelector((state) => state.orders);
-    const [isModalVisible, setIsModalVisible] = useState(false);
-    const [isOpenOrderList, setIsOpenOrderList] = useState(false);
-    const [drinkFilter, setDrinkFilter] = useState(null);
-    const [isReportModalVisible, setIsReportModalVisible] = useState(false);
-
-    const { id, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
-    const { orderId } = useParams();
-    const location = useLocation();
-
-    const token = localStorage.getItem("access_token");
-    const isOrderPage = /^\/order(\/|$)/.test(location.pathname);
-    const rawToken = localStorage.getItem("access_token");
-    const claims = rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
-
+// Custom hook for SignalR connection
+const useSignalRConnection = (onNewOrder) => {
     useEffect(() => {
         const connection = new signalR.HubConnectionBuilder()
             .withUrl(`${process.env.REACT_APP_ROOT_API}Hub/orderHub`)
             .withAutomaticReconnect()
             .build();
 
-        connection.on("ReceiveNewOrder", (orderData) => {
-            const isPos = claims?.RoleWeb === "isPos";
-            if (!isPos) {
-                return;
-            }
+        connection.on("ReceiveNewOrder", onNewOrder);
 
-            if (!orderData || !orderData.master || !orderData.detail) {
-                console.warn("⚠️ Dữ liệu đơn hàng không hợp lệ:", orderData);
-                return;
-            }
-
-            const masterData = orderData.master[0] || {};
-            const flatDetailData = orderData.detail || [];
-            const groupedDetailData = [];
-            const groupedMap = {};
-
-            flatDetailData.forEach(item => {
-                const { uniqueid, ma_vt_root } = item;
-
-                if (ma_vt_root) {
-                    if (groupedMap[uniqueid]) {
-                        groupedMap[uniqueid].extras.push(item);
-                    }
-                } else {
-                    const mainItem = { ...item, extras: [] };
-                    groupedDetailData.push(mainItem);
-                    groupedMap[uniqueid] = mainItem;
-                }
-            });
-
-            const detailData = groupedDetailData;
-
-            const tableData = {
-                name: masterData.ma_ban ? `${masterData.ma_ban}` : "POS",
-                id: masterData.ma_ban || `order_${Date.now()}`
-            };
-
-            dispatch(addTab({
-                tableName: tableData.name,
-                tableId: tableData.id,
-                isRealtime: true,
-                master: masterData,
-                detail: detailData
-            }));
-
-            setTimeout(() => {
-                dispatch(addOrderFromSignal({ tableId: tableData.id, detailData }));
-            }, 100);
-        });
-
-        async function start() {
+        const startConnection = async () => {
             try {
-                if (token && !isOrderPage) {
-                    await connection.start();
-                    await connection.invoke("AddToGroup", "orderingArea");
-                } else {
-                    console.warn("⚠️ Không tham gia orderingArea do thiếu token hoặc đang ở trang /order");
-                }
+                await connection.start();
+                await connection.invoke("AddToGroup", "orderingArea");
             } catch (err) {
                 console.error("❌ SignalR Connection Error:", err);
-                setTimeout(start, 5000);
+                setTimeout(startConnection, 5000);
             }
-        }
+        };
 
-        start();
+        startConnection();
 
         return () => {
             connection.off("ReceiveNewOrder");
             connection.stop();
             console.log("🛑 SignalR Disconnected!");
         };
-    }, [dispatch]);
+    }, [onNewOrder]);
+};
+
+// State reducer
+const modalReducer = (state, action) => {
+    switch (action.type) {
+        case 'TOGGLE_ORDER_LIST':
+            return { ...state, isOpenOrderList: !state.isOpenOrderList };
+        case 'TOGGLE_SELECT_TABLE':
+            return { ...state, isModalVisible: !state.isModalVisible };
+        case 'TOGGLE_REPORT':
+            return { ...state, isReportModalVisible: !state.isReportModalVisible };
+        default:
+            return state;
+    }
+};
+
+const POSPage = () => {
+    const dispatch = useDispatch();
+    const { activeTabId, internalActiveTabId, orders } = useSelector((state) => state.orders);
+    const [modalState, dispatchModal] = useReducer(modalReducer, {
+        isModalVisible: false,
+        isOpenOrderList: false,
+        isReportModalVisible: false
+    });
+    const [drinkFilter, setDrinkFilter] = useState(null);
+
+    const { id, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
+    const { orderId } = useParams();
+    const location = useLocation();
+    const isOrderPage = /^\/order(\/|$)/.test(location.pathname);
+    const rawToken = localStorage.getItem("access_token");
+    const claims = rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
+
+    const listOrderTable = useSelector((state) => state.orders.listOrderTable || []);
+
+    const handleNewOrder = useCallback((orderData) => {
+        const isPos = claims?.RoleWeb === "isPos";
+        if (!isPos || !orderData?.master || !orderData?.detail) {
+            console.warn("⚠️ Invalid order data or not POS role:", orderData);
+            return;
+        }
+
+        const masterData = orderData.master[0] || {};
+        const flatDetailData = orderData.detail || [];
+        const groupedDetailData = [];
+        const groupedMap = {};
+
+        flatDetailData.forEach(item => {
+            const { uniqueid, ma_vt_root } = item;
+            if (ma_vt_root) {
+                if (groupedMap[uniqueid]) {
+                    groupedMap[uniqueid].extras.push(item);
+                }
+            } else {
+                const mainItem = { ...item, extras: [] };
+                groupedDetailData.push(mainItem);
+                groupedMap[uniqueid] = mainItem;
+            }
+        });
+
+        // Lấy label từ listOrderTable nếu có
+        let tableLabel = masterData.ma_ban;
+        if (masterData.ma_ban && listOrderTable.length > 0) {
+            const found = listOrderTable.find(t => t.id === masterData.ma_ban || t.value === masterData.ma_ban);
+            if (found) tableLabel = found.name || found.label || masterData.ma_ban;
+        }
+
+        const tableData = {
+            name: tableLabel ? `${tableLabel}` : "POS",
+            id: masterData.ma_ban || `order_${Date.now()}`
+        };
+
+        dispatch(addTab({
+            tableName: tableData.name,
+            tableId: tableData.id,
+            isRealtime: true,
+            master: masterData,
+            detail: groupedDetailData
+        }));
+
+        setTimeout(() => {
+            dispatch(addOrderFromSignal({ tableId: tableData.id, detailData: groupedDetailData }));
+        }, 100);
+    }, [claims?.RoleWeb, dispatch, listOrderTable]);
+
+    useSignalRConnection(handleNewOrder);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -180,10 +199,11 @@ const POSPage = () => {
 
         if (!isTokenValid && orderId && !internalActiveTabId && orders.length === 0) {
             const tableId = orderId;
-            const tableName = orderId;
+            const tableLabel = localStorage.getItem("pos_table_label") || orderId;
             const internalId = `${tableId}_${timestamp}`;
-            dispatch(addTab({ tableName, tableId, isRealtime: false }));
+            dispatch(addTab({ tableName: tableLabel, tableId: tableId, isRealtime: false }));
             dispatch(switchTab(internalId));
+            localStorage.removeItem("pos_table_label");
             return;
         }
 
@@ -217,7 +237,7 @@ const POSPage = () => {
 
     const addNewTab = (tableData) => {
         dispatch(addTab({ tableName: tableData.name, tableId: tableData.id }));
-        setIsModalVisible(false);
+        dispatchModal({ type: 'TOGGLE_SELECT_TABLE' });
     };
 
     const removeTabHandler = (targetTableId) => {
@@ -226,6 +246,7 @@ const POSPage = () => {
         if (!targetTab) return;
 
         const isPOS = targetTab?.tableId === "POS";
+        const isDefaultPOS = isPOS && (!targetTab.master?.stt_rec || targetTab.master?.stt_rec === "");
         const confirmTitle = isPOS ? "Xác nhận xóa dữ liệu" : "Xác nhận đóng tab";
         const confirmContent = isPOS
             ? "Bạn có chắc muốn xoá toàn bộ dữ liệu của tab POS?"
@@ -237,10 +258,10 @@ const POSPage = () => {
             okText: "Xác nhận",
             cancelText: "Hủy",
             onOk: () => {
-                if (isPOS) {
+                if (isDefaultPOS) {
                     dispatch(clearTabData(targetTableId));
                 } else {
-                    dispatch(removeTab({ tableId: targetTableId }));
+                    dispatch(removeTab({ internalId: targetTableId }));
                 }
             }
         });
@@ -251,7 +272,7 @@ const POSPage = () => {
     };
 
     const addToOrder = (product) => {
-        dispatch(addProductToTab({ tableId: activeTabId, product }));
+        dispatch(addProductToTab({ internalId: internalActiveTabId, product }));
     };
 
     const calculateTotal = () => {
@@ -265,11 +286,19 @@ const POSPage = () => {
     };
 
     const handleOrderListModal = useCallback(() => {
-        setIsOpenOrderList(!isOpenOrderList);
-    }, [isOpenOrderList]);
+        dispatchModal({ type: 'TOGGLE_ORDER_LIST' });
+    }, []);
+
+    const handleReportModal = useCallback(() => {
+        dispatchModal({ type: 'TOGGLE_REPORT' });
+    }, []);
+
+    const handleSelectTableModal = useCallback(() => {
+        dispatchModal({ type: 'TOGGLE_SELECT_TABLE' });
+    }, []);
 
     return (
-        <div div className="pos-page" >
+        <div className="pos-page">
             <div>
                 {jwt.checkExistToken() && <Navbar />}
             </div>
@@ -283,7 +312,7 @@ const POSPage = () => {
                                 onChange={switchTabHandler}
                                 onEdit={(targetKey, action) => {
                                     if (action === "add") {
-                                        setIsModalVisible(true);
+                                        dispatchModal({ type: 'TOGGLE_SELECT_TABLE' });
                                     } else {
                                         removeTabHandler(targetKey);
                                     }
@@ -302,13 +331,13 @@ const POSPage = () => {
                     {!isOrderPage && (
                         <div className="tool-tip">
                             <Tooltip placement="topRight" title="Danh sách đơn">
-                                <Button className="default_button" onClick={handleOrderListModal} >
+                                <Button className="default_button" onClick={handleOrderListModal}>
                                     <i className="pi pi-list sub_text_color"></i>
                                 </Button>
                             </Tooltip>
                             {claims?.RoleWeb !== "isPosMini" && (
                                 <Tooltip placement="topRight" title="Báo cáo kết ca">
-                                    <Button className="default_button" onClick={() => setIsReportModalVisible(true)}>
+                                    <Button className="default_button" onClick={handleReportModal}>
                                         <i className="pi pi-chart-line sub_text_color"></i>
                                     </Button>
                                 </Tooltip>
@@ -328,21 +357,21 @@ const POSPage = () => {
             </div>
 
             <SelectTableModal
-                visible={isModalVisible}
-                onCancel={() => setIsModalVisible(false)}
+                visible={modalState.isModalVisible}
+                onCancel={handleSelectTableModal}
                 onConfirm={addNewTab}
             />
             <RetailOrderListModal
-                isOpen={isOpenOrderList}
+                isOpen={modalState.isOpenOrderList}
                 onClose={handleOrderListModal}
             />
             <ReportModal
-                isOpen={isReportModalVisible}
-                onClose={() => setIsReportModalVisible(false)}
+                isOpen={modalState.isReportModalVisible}
+                onClose={handleReportModal}
             />
             <Loading />
-        </div >
+        </div>
     );
 };
 
-export default POSPage;
+export default React.memo(POSPage);

@@ -48,7 +48,9 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
             .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`}
         </span>
       </div>
-
+      <div style={{ color: "#000", marginBottom: "6px" }}>
+        <strong>Tên khách:</strong> {(master?.ong_ba && master.ong_ba.trim()) ? master.ong_ba : "KH CĂNG TIN"}
+      </div>
       <div style={{ paddingBottom: "6px" }}>
         <div style={{ color: "#000" }}>
           <strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}

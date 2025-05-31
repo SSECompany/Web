@@ -106,9 +106,9 @@ export const printOrderApi = async (sttRec, userId) => {
 export const syncFastApi = async (sttRec, userId) => {
   const token = localStorage.getItem("access_token");
   return await https.post(
-    `SynchronousFAST/CreateInvoiceFromMTT`,
+    `SynchronousFAST/InvoiceReceipt`,
     {
-      stt_rec: sttRec,
+      stt_rec: [sttRec],
       action: "",
       userId: userId.toString(),
     },
