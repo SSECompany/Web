@@ -21,6 +21,7 @@ import { multipleTablePutApi } from "../../../../api";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import jwt from "../../../../utils/jwt";
 import { addTab, setListOrderInfo, switchTab } from "../../store/order";
+import "../OrderSummary/PaymentModal/PaymentModal.css";
 import PrintComponent from "./PrintComponent/PrintComponent";
 import "./RetailOrderListModal.css";
 
@@ -46,6 +47,8 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const fullName = claims?.FullName;
 
   const [isEditingOrder, setIsEditingOrder] = useState(false);
+  const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  const [pendingApproveRecord, setPendingApproveRecord] = useState(null);
 
   const fetchListOrderData = async (filterParams = {}) => {
     setIsLoading(true);
@@ -380,36 +383,49 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
 
   const handleApprove = async (record) => {
     showConfirm({
-      title: `Bạn có chắc chắn muốn duyệt đơn hàng có số chứng từ: ${record.so_ct}?`,
+      title: `Bạn có chắc chắn muốn thanh toán đơn hàng có số chứng từ: ${record.so_ct}?`,
       onOk: async () => {
+        if (isEditingOrder) return;
+        setIsEditingOrder(true);
         try {
-          const res = await multipleTablePutApi({
-            store: "Api_approve_retail_combine_order",
-            param: {
-              stt_rec: record.stt_rec,
-              userId: id,
-            },
-            data: {},
-          });
-
-          if (res?.responseModel?.isSucceded) {
-            notification.success({
-              message: `Đơn hàng ${record.so_ct} đã được duyệt thành công!`,
-              duration: 4,
-            });
-            fetchListOrderData(filters);
-          } else {
+          const existingTab = tabs.some(
+            (tab) => tab.master.stt_rec === record.stt_rec
+          );
+          if (existingTab) {
             notification.error({
-              message: res?.responseModel?.message || "Duyệt đơn thất bại!",
-              duration: 4,
+              message: "Tab đã tồn tại!",
+              duration: 3,
             });
+            setIsEditingOrder(false);
+            return;
           }
+          const { masterData, flatDetailData } = await fetchOrderDetail(record.stt_rec);
+          const detailData = groupDetailData(flatDetailData, true);
+          const tableData = {
+            name: masterData.ma_ban,
+            id: masterData.ma_ban,
+          };
+          const internalId = `${tableData.id}_${Date.now()}`;
+          dispatch(
+            addTab({
+              tableName: tableData.name,
+              tableId: tableData.id,
+              isRealtime: false,
+              internalId,
+              master: masterData,
+              detail: detailData,
+              autoOpenPayment: true
+            })
+          );
+          dispatch(switchTab(internalId));
+          onClose();
         } catch (err) {
-          console.error("Lỗi khi duyệt đơn hàng:", err);
           notification.error({
-            message: "Lỗi khi duyệt đơn!",
+            message: "Lỗi khi tải chi tiết đơn hàng hoặc mở tab mới",
             duration: 4,
           });
+        } finally {
+          setIsEditingOrder(false);
         }
       },
     });

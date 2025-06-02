@@ -8,7 +8,7 @@ import {
   syncFastApi,
 } from "../../../../api";
 import jwt from "../../../../utils/jwt";
-import { addTab, clearTabData, removeTab, switchTab } from "../../store/order";
+import { addTab, clearTabData, removeTab, switchTab, updateTabExtraProps } from "../../store/order";
 import MergeOrder from "./MergeOrders/MergeOrder";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
@@ -48,6 +48,15 @@ export default function OrderSummary({ total, itemCount }) {
   const activeTab = orders?.find(
     (tab) => tab.internalId === internalActiveTabId
   );
+
+  useEffect(() => {
+    if (activeTab && activeTab.autoOpenPayment) {
+      setIsPaymentModalVisible(true);
+      // Xóa flag ngay sau khi mở modal
+      dispatch(updateTabExtraProps({ internalId: activeTab.internalId, autoOpenPayment: false }));
+    }
+  }, [activeTab, dispatch]);
+
 
   const generateOrderData = (
     status = "0",
@@ -398,8 +407,9 @@ export default function OrderSummary({ total, itemCount }) {
       const res = await multipleTablePutApi(payload);
       if (res?.responseModel?.isSucceded) {
         notification.success({ message: "Gộp đơn thành công!" });
-        dispatch(removeTab({ tableId: activeTab.internalId }));
-      } else {
+        dispatch(removeTab({ internalId: activeTab.internalId }));
+        dispatch(clearTabData(activeTab.internalId));
+            } else {
         notification.warning({
           message: res?.responseModel?.message || "Gộp đơn thất bại!",
         });
