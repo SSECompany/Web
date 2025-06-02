@@ -111,12 +111,12 @@ export const syncFastApi = async (sttRec, userId) => {
       stt_rec: [sttRec],
       action: "",
       userId: userId.toString(),
-    },
+    }, 
     {
       headers: {
         Authorization: token ? `Bearer ${token}` : "",
         "Content-Type": "application/json",
-      },
+      },  
     }
   ).then((res) => {
     return res?.data || [];
