@@ -59,7 +59,7 @@ const MealTicketForm = () => {
                             searchValue: "",
                             ngay_an: selectedDate,
                             pageindex: 1,
-                            pagesize: 100,
+                            pagesize: 50,
                         },
                         data: {},
                     }),
@@ -104,7 +104,7 @@ const MealTicketForm = () => {
                     searchValue: "",
                     ngay_an: date,
                     pageindex: 1,
-                    pagesize: 100,
+                    pagesize: 50,
                 },
                 data: {},
             });

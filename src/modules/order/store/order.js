@@ -93,6 +93,19 @@ const orders = createSlice({
           tong_sl: tong_sl.toString(),
         },
         detail: normalizedDetail,
+        ...Object.fromEntries(
+          Object.entries(action.payload).filter(
+            ([key]) => ![
+              'tableName',
+              'tableId',
+              'isRealtime',
+              'master',
+              'detail',
+              'roleWeb',
+              'internalId'
+            ].includes(key)
+          )
+        )
       });
 
       if (!isRealtime || state.orders.length === 0) {
@@ -418,6 +431,14 @@ const orders = createSlice({
         tab.master.email = email;
       }
     },
+    updateTabExtraProps: (state, action) => {
+      const { internalId, ...rest } = action.payload;
+      const tab = state.orders.find(tab => tab.internalId === internalId);
+      if (tab) {
+        Object.assign(tab, rest);
+      }
+    },
+
   },
 });
 
@@ -443,6 +464,7 @@ export const {
   applyVoucherToProduct,
   resetOrders,
   setCustomerInfo,
+  updateTabExtraProps
 } = orders.actions;
 
 export default orders.reducer;
