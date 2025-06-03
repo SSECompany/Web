@@ -34,16 +34,22 @@ const MealEntryRow = ({ meal, index, timeOfDay, listDietCategory, listFood, hand
                             value={meal.mealType || ''}
                             onChange={(value) => handleChange(timeOfDay, index, { target: { name: 'mealType', value } })}
                             placeholder="Chọn món ăn"
+                            disabled={!meal.mode}
                         >
                             <Select.Option value="">Chọn món ăn</Select.Option>
                             {listFood
-                                .filter(food => food.ma_ca === timeOfDay)
+                                .filter(food => food.ma_ca === timeOfDay && food.ma_nh === meal.mode)
                                 .map((food) => (
                                     <Select.Option key={food.ma_mon} value={food.ma_mon}>
                                         {food.ten_mon}
                                     </Select.Option>
                                 ))}
                         </Select>
+                        {!meal.mode && (
+                            <div style={{ color: '#ff4d4f', fontSize: 12, marginTop: 4 }}>
+                                Vui lòng chọn chế độ trước
+                            </div>
+                        )}
                         {meal.errors?.mealType && (
                             <div style={{ color: 'red', fontSize: 12, marginTop: 4 }}>
                                 {meal.errors.mealType}
@@ -96,9 +102,9 @@ const MealEntryRow = ({ meal, index, timeOfDay, listDietCategory, listFood, hand
                             }
                         /> */}
                     </div> 
-                    <span className="price-display">
+                    {/* <span className="price-display">
                         {(meal.totalMoney || 0).toLocaleString()} đ
-                    </span>
+                    </span> */}
                 </div>
 
                 {/* Notes */}

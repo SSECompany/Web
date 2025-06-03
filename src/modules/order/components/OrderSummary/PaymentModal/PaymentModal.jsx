@@ -300,18 +300,28 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
           key="pay"
           type="primary"
           onClick={() => {
-            // Nếu tên khách trống thì set mặc định là "KH CĂNG TIN"
             const finalCustomerInfo = {
               ...customerInfo,
-              ong_ba: customerInfo.ong_ba?.trim() || "KH CĂNG TIN",
+              ong_ba: customerInfo.ong_ba?.trim() || "Khách hàng căng tin",
             };
-            onConfirm(selectedPayments, paymentAmounts, finalCustomerInfo);
+
+            const adjustedPaymentAmounts = { ...paymentAmounts };
+            if (selectedPayments.includes("tien_mat")) {
+              if (selectedPayments.length === 1) {
+                adjustedPaymentAmounts.tien_mat = total;
+              } else {
+                adjustedPaymentAmounts.tien_mat = total - (adjustedPaymentAmounts.chuyen_khoan || 0);
+              }
+            }
+
+            onConfirm(selectedPayments, adjustedPaymentAmounts, finalCustomerInfo);
           }}
           className="payment-button primary"
           disabled={
             selectedPayments.length === 0 ||
-            Object.values(paymentAmounts).reduce((sum, val) => sum + val, 0) <
-              total
+            (selectedPayments.length === 2 
+              ? Object.values(paymentAmounts).reduce((sum, val) => sum + val, 0) !== total
+              : Object.values(paymentAmounts).reduce((sum, val) => sum + val, 0) < total)
           }
         >
           Thanh toán

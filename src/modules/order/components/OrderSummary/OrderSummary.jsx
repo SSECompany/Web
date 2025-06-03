@@ -4,8 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import {
   multipleTablePutApi,
-  printOrderApi,
-  syncFastApi,
+  printOrderApi
 } from "../../../../api";
 import jwt from "../../../../utils/jwt";
 import { addTab, clearTabData, removeTab, switchTab, updateTabExtraProps } from "../../store/order";
@@ -69,22 +68,37 @@ export default function OrderSummary({ total, itemCount }) {
       return null;
     }
 
+    // Xử lý tiền thanh toán
+    let finalTienMat = 0;
+    let finalChuyenKhoan = 0;
+    const totalAmount = Number(activeTab?.master?.tong_tien || 0);
+
+    if (selectedPayments.length === 1) {
+      // Nếu chỉ chọn 1 phương thức
+      if (selectedPayments[0] === "tien_mat") {
+        finalTienMat = totalAmount; // Luôn gửi đúng tổng tiền cần thanh toán
+      } else {
+        finalChuyenKhoan = totalAmount;
+      }
+    } else {
+      // Nếu chọn cả 2 phương thức
+      finalChuyenKhoan = Number(paymentAmounts.chuyen_khoan || 0);
+      finalTienMat = totalAmount - finalChuyenKhoan;
+    }
+
     const masterData = {
       ma_ban: activeTab?.tableId,
       dien_giai: activeTab?.master?.dien_giai || "",
-      tong_tien: Number(activeTab?.master?.tong_tien || 0).toString(),
+      tong_tien: totalAmount.toString(),
       tong_sl: Number(activeTab?.master?.tong_sl || 0).toString(),
-      tien_mat: Number(paymentAmounts.tien_mat || 0).toString(),
-      chuyen_khoan: Number(paymentAmounts.chuyen_khoan || 0).toString(),
-      tong_tt: (
-        Number(paymentAmounts.tien_mat || 0) +
-        Number(paymentAmounts.chuyen_khoan || 0)
-      ).toString(),
+      tien_mat: finalTienMat.toString(),
+      chuyen_khoan: finalChuyenKhoan.toString(),
+      tong_tt: totalAmount.toString(), // Tổng thanh toán luôn bằng tổng tiền
       httt: selectedPayments.join(","),
       stt_rec: status === "2" ? activeTab?.master?.stt_rec || "" : "",
       status,
       cccd: customerInfo.cccd ?? activeTab?.master?.cccd ?? "",
-      ong_ba: (customerInfo.ong_ba?.trim() || activeTab?.master?.ong_ba?.trim()) || "KH CĂNG TIN",
+      ong_ba: (customerInfo.ong_ba?.trim() || activeTab?.master?.ong_ba?.trim()) || "Khách hàng căng tin",
       so_dt: customerInfo.so_dt ?? activeTab?.master?.so_dt ?? "",
       dia_chi: customerInfo.dia_chi ?? activeTab?.master?.dia_chi ?? "",
       email: customerInfo.email ?? activeTab?.master?.email ?? "",

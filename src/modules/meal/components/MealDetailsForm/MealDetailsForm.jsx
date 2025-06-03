@@ -5,7 +5,6 @@ import cloneDeep from "lodash.clonedeep";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../../api";
-import { formatNumber } from "../../../../app/hook/dataFormatHelper";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import {
   markBedAsSubmitted,
@@ -215,8 +214,41 @@ const MealDetailsForm = () => {
   const handleModeChange = useCallback((timeOfDay, index, value) => {
     updateMealEntry(timeOfDay, index, (meal) => {
       meal.mode = value;
+      // Reset meal type when mode changes
+      meal.mealType = "";
+      meal.mealTypeName = "";
+      meal.quantity = 0;
+      meal.totalMoney = 0;
     });
-  }, []);
+
+    // Fetch food list when mode changes
+    const fetchListFood = async () => {
+      if (!selectedDate || !value) return;
+
+      try {
+        const response = await multipleTablePutApi({
+          store: "[api_getListFood]",
+          param: {
+            bn_yn: "",
+            ma_ca: timeOfDay,
+            ma_nh: value,
+            searchValue: "",
+            ngay_an: selectedDate,
+            pageindex: 1,
+            pagesize: 50,
+          },
+          data: {},
+        });
+
+        const foodList = response?.listObject?.[0] || [];
+        dispatch(setListFood(foodList));
+      } catch (error) {
+        console.error("Lỗi lấy listFood theo chế độ:", error);
+      }
+    };
+
+    fetchListFood();
+  }, [selectedDate, dispatch]);
 
   const handleDeleteMeal = (timeOfDay, index) => {
     showConfirm({
@@ -540,9 +572,14 @@ const MealDetailsForm = () => {
       >
         {listMealCode.map((meal) => (
           <TabPane
-            tab={`${meal.ten_ca} - ${formatNumber(
-              calculateTotalByShift(meal.ma_ca)
-            )} đ`}
+          //   tab={`${meal.ten_ca} 
+          //   - ${formatNumber(
+          //     calculateTotalByShift(meal.ma_ca)
+          //   )} đ
+          //   `
+          // }
+          tab={`${meal.ten_ca}`
+        }
             key={meal.ma_ca}
           >
             {renderedMealEntries[meal.ma_ca]}
@@ -631,9 +668,9 @@ const MealDetailsForm = () => {
           ]}
         />
       </div> */}
-      <div className="total-money">
+      {/* <div className="total-money">
         Tổng tiền: {formatNumber(calculateTotalAllShift())} đ
-      </div>
+      </div> */}
 
       <button
         className="submit-button"

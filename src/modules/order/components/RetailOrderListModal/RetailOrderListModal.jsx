@@ -364,7 +364,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const handleReprint = async (record) => {
     try {
       const { masterData, flatDetailData } = await fetchOrderDetail(record.stt_rec);
-      const groupedDetailData = groupDetailData(flatDetailData, false);
+      const groupedDetailData = groupDetailData(flatDetailData, true);
 
       setPrintMaster(masterData);
       setPrintDetail(groupedDetailData);
