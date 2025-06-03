@@ -43,7 +43,7 @@ const orders = createSlice({
         stt_rec: "",
         status: "2",
         ma_ban: "",
-        ong_ba: "KH CĂNG TIN",
+        ong_ba: "Khách hàng căng tin",
         so_dt: "",
         dia_chi: "",
         cccd: "",
@@ -283,7 +283,7 @@ const orders = createSlice({
           stt_rec: "",
           status: "2",
           ma_ban: tab.tableId === "POS" ? "" : tab.master.ma_ban,
-          ong_ba: "KH CĂNG TIN",
+          ong_ba: "Khách hàng căng tin",
           so_dt: "",
           dia_chi: "",
           cccd: "",
@@ -424,7 +424,7 @@ const orders = createSlice({
         (tab) => tab.internalId === state.internalActiveTabId
       );
       if (tab) {
-        tab.master.ong_ba = ong_ba?.trim() || "KH CĂNG TIN";
+        tab.master.ong_ba = ong_ba?.trim() || "Khách hàng căng tin";
         tab.master.cccd = cccd;
         tab.master.dia_chi = dia_chi;
         tab.master.so_dt = so_dt;
