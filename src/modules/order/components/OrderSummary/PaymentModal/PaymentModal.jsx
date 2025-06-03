@@ -302,7 +302,7 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
           onClick={() => {
             const finalCustomerInfo = {
               ...customerInfo,
-              ong_ba: customerInfo.ong_ba?.trim() || "KH CĂNG TIN",
+              ong_ba: customerInfo.ong_ba?.trim() || "Khách hàng căng tin",
             };
 
             const adjustedPaymentAmounts = { ...paymentAmounts };

@@ -4,8 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import {
   multipleTablePutApi,
-  printOrderApi,
-  syncFastApi,
+  printOrderApi
 } from "../../../../api";
 import jwt from "../../../../utils/jwt";
 import { addTab, clearTabData, removeTab, switchTab, updateTabExtraProps } from "../../store/order";
@@ -99,7 +98,7 @@ export default function OrderSummary({ total, itemCount }) {
       stt_rec: status === "2" ? activeTab?.master?.stt_rec || "" : "",
       status,
       cccd: customerInfo.cccd ?? activeTab?.master?.cccd ?? "",
-      ong_ba: (customerInfo.ong_ba?.trim() || activeTab?.master?.ong_ba?.trim()) || "KH CĂNG TIN",
+      ong_ba: (customerInfo.ong_ba?.trim() || activeTab?.master?.ong_ba?.trim()) || "Khách hàng căng tin",
       so_dt: customerInfo.so_dt ?? activeTab?.master?.so_dt ?? "",
       dia_chi: customerInfo.dia_chi ?? activeTab?.master?.dia_chi ?? "",
       email: customerInfo.email ?? activeTab?.master?.email ?? "",

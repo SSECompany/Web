@@ -2,7 +2,8 @@ import { RightOutlined } from "@ant-design/icons";
 import { DatePicker, notification, Select } from "antd";
 import dayjs from "dayjs";
 import _ from "lodash";
-import { useCallback, useEffect, useRef } from "react";
+import debounce from "lodash/debounce";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   addDataMultiObjectApi,
@@ -14,6 +15,7 @@ import {
   resetAllMeals,
   setCurrentBedIndex,
   setListBeds,
+  setListDepartment,
   setListRoom,
   setMasterData,
   setMeal,
@@ -31,6 +33,10 @@ const { Option } = Select;
 const RoomSelectionForm = () => {
   const dispatch = useDispatch();
   const dateFormat = "DD/MM/YYYY";
+  const [searchDepartment, setSearchDepartment] = useState("");
+  const [searchRoom, setSearchRoom] = useState("");
+  const [loadingDepartment, setLoadingDepartment] = useState(false);
+  const [loadingRoom, setLoadingRoom] = useState(false);
 
   const {
     meals: { masterData = {}, detailData = [] },
@@ -47,6 +53,92 @@ const RoomSelectionForm = () => {
   );
   const lastLoadedDateRef = useRef(null);
   const lastRoomCodeRef = useRef(null);
+
+  // Đặt handleDepartmentSearch và handleRoomSearch lên trước useEffect debounce
+  const handleDepartmentSearch = useCallback(
+    async (value) => {
+      if (!userName) {
+        console.warn("⚠️ Username chưa load xong, không gọi API.");
+        return;
+      }
+
+      setSearchDepartment(value);
+      setLoadingDepartment(true);
+
+      try {
+        const response = await addDataMultiObjectApi({
+          store: "api_getDepartmentRoomService",
+          param: {
+            mabp: "",
+            maphong: "",
+            searchValue: value,
+            username: userName,
+          },
+          data: {},
+          resultSetNames: ["phong", "giuong", "list3"],
+        });
+
+        const departmentList = response?.listObject?.dataLists?.phong || [];
+        dispatch(setListDepartment(departmentList));
+      } catch (error) {
+        console.error("❌ Error searching departments:", error);
+      } finally {
+        setLoadingDepartment(false);
+      }
+    },
+    [dispatch, userName]
+  );
+
+  const handleRoomSearch = useCallback(
+    async (value) => {
+      if (!userName || !masterData.name) {
+        console.warn("⚠️ Username hoặc Mã khoa chưa load xong, không gọi API.");
+        return;
+      }
+
+      setSearchRoom(value);
+      setLoadingRoom(true);
+
+      try {
+        const response = await addDataMultiObjectApi({
+          store: "api_getDepartmentRoomService",
+          param: {
+            mabp: masterData.name,
+            maphong: "",
+            searchValue: value,
+            username: userName,
+          },
+          data: {},
+          resultSetNames: ["phong", "giuong", "list3"],
+        });
+
+        const roomList = response?.listObject?.dataLists?.giuong || [];
+        dispatch(setListRoom(roomList));
+      } catch (error) {
+        console.error("❌ Error searching rooms:", error);
+      } finally {
+        setLoadingRoom(false);
+      }
+    },
+    [dispatch, userName, masterData.name]
+  );
+
+  // Debounced search handlers
+  const debouncedDepartmentSearch = useRef();
+  const debouncedRoomSearch = useRef();
+
+  useEffect(() => {
+    debouncedDepartmentSearch.current = debounce((value) => {
+      handleDepartmentSearch(value);
+    }, 400);
+    debouncedRoomSearch.current = debounce((value) => {
+      handleRoomSearch(value);
+    }, 400);
+    return () => {
+      debouncedDepartmentSearch.current.cancel();
+      debouncedRoomSearch.current.cancel();
+    };
+  }, [handleDepartmentSearch, handleRoomSearch]);
 
   useEffect(() => {
     if (!roomSelectedDate) {
@@ -364,8 +456,12 @@ const RoomSelectionForm = () => {
           name="name"
           value={masterData.name}
           onChange={handleDepartmentChange}
-          required
+          onSearch={debouncedDepartmentSearch.current}
+          showSearch
+          filterOption={false}
+          loading={loadingDepartment}
           className="custom-select"
+          placeholder="Tìm kiếm Mã Khoa"
         >
           <Option value="">Select Mã Khoa</Option>
           {listDepartment.map((dept) => (
@@ -383,8 +479,13 @@ const RoomSelectionForm = () => {
           name="roomCode"
           value={masterData.roomCode}
           onChange={handleRoomChange}
-          required
+          onSearch={debouncedRoomSearch.current}
+          showSearch
+          filterOption={false}
+          loading={loadingRoom}
           className="custom-select"
+          placeholder="Tìm kiếm Mã Phòng"
+          disabled={!masterData.name}
         >
           <Option value="">Select Mã Phòng</Option>
           {listRoom.map((room) => {

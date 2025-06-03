@@ -50,7 +50,7 @@ const PrintComponent = forwardRef(
               .padStart(2, "0")}`}
           </span>
         </div>
-        {master?.ten_kh && master.ten_kh !== "KH CĂNG TIN" && (
+        {master?.ten_kh && master.ten_kh !== "Khách hàng căng tin" && (
           <div style={{ color: "#000", marginBottom: "6px" }}>
             <strong>Tên khách:</strong> {master.ten_kh}
           </div>

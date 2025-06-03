@@ -49,7 +49,7 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
         </span>
       </div>
       <div style={{ color: "#000", marginBottom: "6px" }}>
-        <strong>Tên khách:</strong> {(master?.ong_ba && master.ong_ba.trim()) ? master.ong_ba : "KH CĂNG TIN"}
+        <strong>Tên khách:</strong> {(master?.ong_ba && master.ong_ba.trim()) ? master.ong_ba : "Khách hàng căng tin"}
       </div>
       <div style={{ paddingBottom: "6px" }}>
         <div style={{ color: "#000" }}>
@@ -116,7 +116,9 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
             .filter((item) => !item?.ma_vt_root)
             .map((item, index) => {
               const subItems = detail.filter(
-                (sub) => sub?.ma_vt_root === item?.ma_vt
+                (sub) =>
+                  sub?.ma_vt_root === item?.ma_vt &&
+                  sub?.uniqueid === item?.uniqueid
               );
               return (
                 <React.Fragment key={index}>
