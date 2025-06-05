@@ -10,6 +10,17 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
     rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
   const fullName = claims?.FullName;
 
+  const formatPaymentMethod = (method) => {
+    switch(method) {
+      case 'chuyen_khoan':
+        return 'Chuyển khoản';
+      case 'tien_mat':
+        return 'Tiền mặt';
+      default:
+        return 'Tiền mặt';
+    }
+  };
+
   var now = new Date();
   return (
     <div
@@ -36,7 +47,6 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
         </label>
         <br />
         <span>
-          Ngày bán:{" "}
           {`${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1)
             .toString()
             .padStart(2, "0")}/${now.getFullYear()} ${now
@@ -48,6 +58,11 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
             .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`}
         </span>
       </div>
+
+      <div style={{ color: "#000", marginBottom: "6px" }}>
+        <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
+      </div>
+
       <div style={{ color: "#000", marginBottom: "6px" }}>
         <strong>Tên khách:</strong> {(master?.ong_ba && master.ong_ba.trim()) ? master.ong_ba : "Khách hàng căng tin"}
       </div>
@@ -276,5 +291,6 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
     </div>
   );
 });
+
 
 export default PrintComponent;

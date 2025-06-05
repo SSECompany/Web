@@ -5,7 +5,18 @@ const account = process.env.REACT_APP_VIETQR_ACCOUNT;
 
 const PrintComponent = forwardRef(
   ({ master = {}, detail = [], fullName = "" }, ref) => {
-    var now = new Date();
+    const formatPaymentMethod = (method) => {
+      switch (method) {
+        case "chuyen_khoan":
+          return "Chuyển khoản";
+        case "tien_mat":
+          return "Tiền mặt";
+        default:
+          return "Tiền mặt";
+      }
+    };
+
+    const now = master?.datetime2 ? new Date(master.datetime2) : new Date();
     return (
       <div
         className="print-content"
@@ -33,7 +44,6 @@ const PrintComponent = forwardRef(
           </label>
           <br />
           <span>
-            Ngày bán:{" "}
             {`${now.getDate().toString().padStart(2, "0")}/${(
               now.getMonth() + 1
             )
@@ -50,6 +60,7 @@ const PrintComponent = forwardRef(
               .padStart(2, "0")}`}
           </span>
         </div>
+
         {master?.ten_kh && master.ten_kh !== "Khách hàng căng tin" && (
           <div style={{ color: "#000", marginBottom: "6px" }}>
             <strong>Tên khách:</strong> {master.ten_kh}
@@ -59,6 +70,13 @@ const PrintComponent = forwardRef(
           <div style={{ color: "#000" }}>
             <strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}
           </div>
+        </div>
+        <div style={{ color: "#000", marginBottom: "6px" }}>
+          <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
+        </div>
+
+        <div style={{ color: "#000", marginBottom: "6px" }}>
+          <strong>Số CT:</strong> {master?.so_ct}
         </div>
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Nhân viên:</strong> {fullName || "Không xác định"}

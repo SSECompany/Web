@@ -4,10 +4,17 @@ import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import {
   multipleTablePutApi,
-  printOrderApi
+  printOrderApi,
+  syncFastApi,
 } from "../../../../api";
 import jwt from "../../../../utils/jwt";
-import { addTab, clearTabData, removeTab, switchTab, updateTabExtraProps } from "../../store/order";
+import {
+  addTab,
+  clearTabData,
+  removeTab,
+  switchTab,
+  updateTabExtraProps,
+} from "../../store/order";
 import MergeOrder from "./MergeOrders/MergeOrder";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
@@ -52,10 +59,14 @@ export default function OrderSummary({ total, itemCount }) {
     if (activeTab && activeTab.autoOpenPayment) {
       setIsPaymentModalVisible(true);
       // Xóa flag ngay sau khi mở modal
-      dispatch(updateTabExtraProps({ internalId: activeTab.internalId, autoOpenPayment: false }));
+      dispatch(
+        updateTabExtraProps({
+          internalId: activeTab.internalId,
+          autoOpenPayment: false,
+        })
+      );
     }
   }, [activeTab, dispatch]);
-
 
   const generateOrderData = (
     status = "0",
@@ -98,7 +109,10 @@ export default function OrderSummary({ total, itemCount }) {
       stt_rec: status === "2" ? activeTab?.master?.stt_rec || "" : "",
       status,
       cccd: customerInfo.cccd ?? activeTab?.master?.cccd ?? "",
-      ong_ba: (customerInfo.ong_ba?.trim() || activeTab?.master?.ong_ba?.trim()) || "Khách hàng căng tin",
+      ong_ba:
+        customerInfo.ong_ba?.trim() ||
+        activeTab?.master?.ong_ba?.trim() ||
+        "Khách hàng căng tin",
       so_dt: customerInfo.so_dt ?? activeTab?.master?.so_dt ?? "",
       dia_chi: customerInfo.dia_chi ?? activeTab?.master?.dia_chi ?? "",
       email: customerInfo.email ?? activeTab?.master?.email ?? "",
@@ -146,6 +160,14 @@ export default function OrderSummary({ total, itemCount }) {
   const handleSendOrderDirectly = async (isSaveOnly = false) => {
     const orderData = generateOrderData();
     if (!orderData) return;
+
+    // Khi lưu đơn thì tien_mat phải bằng rỗng
+    if (isSaveOnly) {
+      orderData.masterData.tien_mat = "";
+      orderData.masterData.chuyen_khoan = "";
+      orderData.masterData.tong_tt = "";
+      orderData.masterData.httt = "";
+    }
 
     setIsCreatingOrder(true);
     try {
@@ -216,7 +238,7 @@ export default function OrderSummary({ total, itemCount }) {
             message: "Không có `stt_rec` để thực hiện các API!",
           });
         }
-        dispatch(removeTab({ internalId: internalActiveTabId })); 
+        dispatch(removeTab({ internalId: internalActiveTabId }));
       } else {
         notification.warning({ message: response?.responseModel?.message });
       }
@@ -232,17 +254,22 @@ export default function OrderSummary({ total, itemCount }) {
     paymentAmounts = { tien_mat: "0", chuyen_khoan: "0" },
     customerInfo = {}
   ) => {
-    const orderData = generateOrderData("2", selectedPayments, paymentAmounts, customerInfo);
+    const orderData = generateOrderData(
+      "2",
+      selectedPayments,
+      paymentAmounts,
+      customerInfo
+    );
     if (!orderData) return;
 
     setPrintMaster(orderData.masterData);
     setPrintDetail(orderData.detailData);
-    setCurrentPrintData({ 
-      master: orderData.masterData, 
+    setCurrentPrintData({
+      master: orderData.masterData,
       detail: orderData.detailData,
       selectedPayments,
       paymentAmounts,
-      customerInfo
+      customerInfo,
     });
     setHasReprinted(false);
     setIsPrinting(true);
@@ -270,12 +297,12 @@ export default function OrderSummary({ total, itemCount }) {
       if (!hasPrinted) {
         hasPrinted = true;
         setIsPrinting(false);
-        
+
         // Chỉ hỏi in thêm nếu chưa in thêm lần nào và có dữ liệu để in
         if (currentPrintData && !hasReprinted) {
           Modal.confirm({
-            title: 'In thêm bản khác?',
-            content: 'Bạn có muốn in thêm một bản nữa không?',
+            title: "In thêm bản khác?",
+            content: "Bạn có muốn in thêm một bản nữa không?",
             onOk: () => {
               setHasReprinted(true); // Đánh dấu đã in thêm
               handleReprint();
@@ -283,8 +310,8 @@ export default function OrderSummary({ total, itemCount }) {
             onCancel: () => {
               setTimeout(() => handleSaveOrder(), 100);
             },
-            okText: 'In thêm',
-            cancelText: 'Đóng',
+            okText: "In thêm",
+            cancelText: "Đóng",
           });
         } else {
           // Đã in thêm rồi hoặc không có dữ liệu, lưu order luôn
@@ -310,7 +337,11 @@ export default function OrderSummary({ total, itemCount }) {
     setIsPaymentModalVisible(false);
   };
 
-  const handleConfirmPayment = (selectedPayments, paymentAmounts, customerInfo) => {
+  const handleConfirmPayment = (
+    selectedPayments,
+    paymentAmounts,
+    customerInfo
+  ) => {
     handleClosePaymentModal();
     if (selectedPayments.includes("chuyen_khoan")) {
       setShowQR(true);
@@ -423,7 +454,7 @@ export default function OrderSummary({ total, itemCount }) {
         notification.success({ message: "Gộp đơn thành công!" });
         dispatch(removeTab({ internalId: activeTab.internalId }));
         dispatch(clearTabData(activeTab.internalId));
-            } else {
+      } else {
         notification.warning({
           message: res?.responseModel?.message || "Gộp đơn thất bại!",
         });
