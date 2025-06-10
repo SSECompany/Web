@@ -11,14 +11,22 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
   const fullName = claims?.FullName;
 
   const formatPaymentMethod = (method) => {
-    switch(method) {
-      case 'chuyen_khoan':
-        return 'Chuyển khoản';
-      case 'tien_mat':
-        return 'Tiền mặt';
-      default:
-        return 'Tiền mặt';
-    }
+    if (!method) return "Tiền mặt";
+
+    // Xử lý trường hợp có nhiều hình thức thanh toán
+    const methods = method.split(",").map((m) => m.trim());
+    const formattedMethods = methods.map((m) => {
+      switch (m) {
+        case "chuyen_khoan":
+          return "Chuyển khoản";
+        case "tien_mat":
+          return "Tiền mặt";
+        default:
+          return "Tiền mặt";
+      }
+    });
+
+    return formattedMethods.join(" + ");
   };
 
   var now = new Date();
@@ -64,7 +72,10 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
       </div>
 
       <div style={{ color: "#000", marginBottom: "6px" }}>
-        <strong>Tên khách:</strong> {(master?.ong_ba && master.ong_ba.trim()) ? master.ong_ba : "Khách hàng căng tin"}
+        <strong>Tên khách:</strong>{" "}
+        {master?.ong_ba && master.ong_ba.trim()
+          ? master.ong_ba
+          : "Khách hàng căng tin"}
       </div>
       <div style={{ paddingBottom: "6px" }}>
         <div style={{ color: "#000" }}>
@@ -291,6 +302,5 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
     </div>
   );
 });
-
 
 export default PrintComponent;

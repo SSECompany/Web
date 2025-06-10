@@ -6,14 +6,22 @@ const account = process.env.REACT_APP_VIETQR_ACCOUNT;
 const PrintComponent = forwardRef(
   ({ master = {}, detail = [], fullName = "" }, ref) => {
     const formatPaymentMethod = (method) => {
-      switch (method) {
-        case "chuyen_khoan":
-          return "Chuyển khoản";
-        case "tien_mat":
-          return "Tiền mặt";
-        default:
-          return "Tiền mặt";
-      }
+      if (!method) return "Tiền mặt";
+
+      // Xử lý trường hợp có nhiều hình thức thanh toán
+      const methods = method.split(",").map((m) => m.trim());
+      const formattedMethods = methods.map((m) => {
+        switch (m) {
+          case "chuyen_khoan":
+            return "Chuyển khoản";
+          case "tien_mat":
+            return "Tiền mặt";
+          default:
+            return "Tiền mặt";
+        }
+      });
+
+      return formattedMethods.join(" + ");
     };
 
     const now = master?.datetime2 ? new Date(master.datetime2) : new Date();
