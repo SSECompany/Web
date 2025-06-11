@@ -2,9 +2,9 @@ import { DownOutlined, UpOutlined } from "@ant-design/icons";
 import { Button, Input, InputNumber, Modal } from "antd";
 import { useEffect, useState } from "react";
 import {
-    formatCurrency,
-    formatNumber,
-    parserNumber,
+  formatCurrency,
+  formatNumber,
+  parserNumber,
 } from "../../../../../app/hook/dataFormatHelper";
 import { num2words } from "../../../../../app/Options/DataFomater";
 import "./PaymentModal.css";
@@ -41,7 +41,7 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
 
       setPaymentAmounts((amounts) => {
         const updatedAmounts = { ...amounts };
-        
+
         // Reset amounts for unselected methods
         if (!newSelectedPayments.includes("tien_mat")) {
           updatedAmounts["tien_mat"] = 0;
@@ -49,12 +49,32 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
         if (!newSelectedPayments.includes("chuyen_khoan")) {
           updatedAmounts["chuyen_khoan"] = 0;
         }
-        
+
         // If only "chuyen_khoan" is selected, auto-set to total amount
-        if (newSelectedPayments.length === 1 && newSelectedPayments.includes("chuyen_khoan")) {
+        if (
+          newSelectedPayments.length === 1 &&
+          newSelectedPayments.includes("chuyen_khoan")
+        ) {
           updatedAmounts["chuyen_khoan"] = total;
         }
-        
+
+        // If only "tien_mat" is selected, auto-set to total amount
+        if (
+          newSelectedPayments.length === 1 &&
+          newSelectedPayments.includes("tien_mat")
+        ) {
+          updatedAmounts["tien_mat"] = total;
+        }
+
+        // If both payment methods are selected, set both to 0
+        if (
+          newSelectedPayments.includes("tien_mat") &&
+          newSelectedPayments.includes("chuyen_khoan")
+        ) {
+          updatedAmounts["tien_mat"] = 0;
+          updatedAmounts["chuyen_khoan"] = 0;
+        }
+
         const totalAmount = Object.values(updatedAmounts).reduce(
           (sum, val) => sum + val,
           0
@@ -310,18 +330,29 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
               if (selectedPayments.length === 1) {
                 adjustedPaymentAmounts.tien_mat = total;
               } else {
-                adjustedPaymentAmounts.tien_mat = total - (adjustedPaymentAmounts.chuyen_khoan || 0);
+                adjustedPaymentAmounts.tien_mat =
+                  total - (adjustedPaymentAmounts.chuyen_khoan || 0);
               }
             }
 
-            onConfirm(selectedPayments, adjustedPaymentAmounts, finalCustomerInfo);
+            onConfirm(
+              selectedPayments,
+              adjustedPaymentAmounts,
+              finalCustomerInfo
+            );
           }}
           className="payment-button primary"
           disabled={
             selectedPayments.length === 0 ||
-            (selectedPayments.length === 2 
-              ? Object.values(paymentAmounts).reduce((sum, val) => sum + val, 0) !== total
-              : Object.values(paymentAmounts).reduce((sum, val) => sum + val, 0) < total)
+            (selectedPayments.length === 2
+              ? Object.values(paymentAmounts).reduce(
+                  (sum, val) => sum + val,
+                  0
+                ) !== total
+              : Object.values(paymentAmounts).reduce(
+                  (sum, val) => sum + val,
+                  0
+                ) < total)
           }
         >
           Thanh toán

@@ -38,6 +38,13 @@ const MealDetailsForm = () => {
   const [activeTab, setActiveTab] = useState(listMealCode[0]?.ma_ca || "CA1");
   const [selectedPatientInShift, setSelectedPatientInShift] = useState({});
 
+  const [mealEntries, setMealEntries] = useState(detailData);
+  const [localFoodList, setLocalFoodList] = useState({});
+
+  useEffect(() => {
+    setMealEntries(detailData);
+  }, [detailData]);
+
   useEffect(() => {
     const bedMeals = detailData[currentBedIndex];
     if (bedMeals) {
@@ -49,24 +56,6 @@ const MealDetailsForm = () => {
       setIsPaid(false);
     }
   }, [detailData, currentBedIndex]);
-
-  const createDefaultMeal = (date) => ({
-    date: date || dayjs().format("DD/MM/YYYY"),
-    mode: "",
-    mealType: "",
-    mealTypeName: "",
-    quantity: 0,
-    note: "",
-    collectMoney: false,
-    totalMoney: 0,
-    isPaid: false,
-  });
-
-  const [mealEntries, setMealEntries] = useState(detailData);
-
-  useEffect(() => {
-    setMealEntries(detailData);
-  }, [detailData]);
 
   useEffect(() => {
     const fetchListFood = async () => {
@@ -211,44 +200,102 @@ const MealDetailsForm = () => {
     });
   };
 
-  const handleModeChange = useCallback((timeOfDay, index, value) => {
-    updateMealEntry(timeOfDay, index, (meal) => {
-      meal.mode = value;
-      // Reset meal type when mode changes
-      meal.mealType = "";
-      meal.mealTypeName = "";
-      meal.quantity = 0;
-      meal.totalMoney = 0;
-    });
+  const handleModeChange = useCallback(
+    (timeOfDay, index, value) => {
+      console.log("handleModeChange called with:", timeOfDay, index, value);
 
-    // Fetch food list when mode changes
-    const fetchListFood = async () => {
-      if (!selectedDate || !value) return;
+      updateMealEntry(timeOfDay, index, (meal) => {
+        meal.mode = value;
+        // Reset meal type when mode changes
+        meal.mealType = "";
+        meal.mealTypeName = "";
+        meal.quantity = 0;
+        meal.totalMoney = 0;
+      });
 
-      try {
-        const response = await multipleTablePutApi({
-          store: "[api_getListFood]",
-          param: {
-            bn_yn: "",
-            ma_ca: timeOfDay,
-            ma_nh: value,
-            searchValue: "",
-            ngay_an: selectedDate,
-            pageindex: 1,
-            pagesize: 50,
-          },
-          data: {},
-        });
+      // Fetch food list when mode changes
+      const fetchListFood = async () => {
+        if (!selectedDate || !value) return;
 
-        const foodList = response?.listObject?.[0] || [];
-        dispatch(setListFood(foodList));
-      } catch (error) {
-        console.error("Lỗi lấy listFood theo chế độ:", error);
+        console.log("Fetching food list for:", timeOfDay, value, selectedDate);
+
+        try {
+          const response = await multipleTablePutApi({
+            store: "[api_getListFood]",
+            param: {
+              bn_yn: "",
+              ma_ca: timeOfDay,
+              ma_nh: value,
+              searchValue: "",
+              ngay_an: selectedDate,
+              pageindex: 1,
+              pagesize: 50,
+            },
+            data: {},
+          });
+
+          const foodList = response?.listObject?.[0] || [];
+          console.log("API response food list:", foodList);
+
+          // Lưu vào state local thay vì Redux
+          setLocalFoodList((prev) => {
+            const key = `${timeOfDay}_${value}`;
+            return {
+              ...prev,
+              [key]: foodList,
+            };
+          });
+
+          // Cập nhật danh sách món ăn trong redux để component MealInputBlock có thể truy cập
+          const currentFoodList = [...listFood];
+
+          // Lọc ra các món ăn đã tồn tại trong danh sách hiện tại để tránh trùng lặp
+          const newFoodItems = foodList.filter(
+            (newFood) =>
+              !currentFoodList.some(
+                (existingFood) =>
+                  existingFood.ma_mon === newFood.ma_mon &&
+                  existingFood.ma_ca === newFood.ma_ca &&
+                  existingFood.ma_nh === newFood.ma_nh
+              )
+          );
+
+          // Nếu có món ăn mới, thêm vào danh sách và cập nhật Redux
+          if (newFoodItems.length > 0) {
+            const updatedFoodList = [...currentFoodList, ...newFoodItems];
+            console.log("Updating Redux with:", updatedFoodList);
+            dispatch(setListFood(updatedFoodList));
+          }
+        } catch (error) {
+          console.error("Lỗi lấy listFood theo chế độ:", error);
+        }
+      };
+
+      fetchListFood();
+    },
+    [selectedDate, dispatch, listFood]
+  );
+
+  // Thêm hàm helper để lấy danh sách món ăn theo ca và chế độ
+  const getFoodListByShiftAndMode = useCallback(
+    (timeOfDay, mode) => {
+      if (!timeOfDay || !mode) return [];
+
+      const key = `${timeOfDay}_${mode}`;
+      const localList = localFoodList[key] || [];
+
+      // Nếu đã có trong local state, trả về từ đó
+      if (localList.length > 0) {
+        return localList;
       }
-    };
 
-    fetchListFood();
-  }, [selectedDate, dispatch]);
+      // Nếu không, lọc từ listFood trong redux
+      return listFood.filter(
+        (food) => food.ma_ca === timeOfDay && food.ma_nh === mode
+      );
+    },
+    [localFoodList, listFood]
+  );
 
   const handleDeleteMeal = (timeOfDay, index) => {
     showConfirm({
@@ -499,6 +546,7 @@ const MealDetailsForm = () => {
           timeOfDay={shift}
           listDietCategory={listDietCategory}
           listFood={listFood}
+          foodListForSelection={getFoodListByShiftAndMode(shift, meal.mode)}
           handleDeleteMeal={handleDeleteMeal}
           handleModeChange={handleModeChange}
           handleChange={handleChange}
@@ -521,6 +569,7 @@ const MealDetailsForm = () => {
     listFood,
     listDietCategory,
     selectedPatientInShift,
+    getFoodListByShiftAndMode,
   ]);
 
   useEffect(() => {
@@ -542,6 +591,18 @@ const MealDetailsForm = () => {
       setPaymentMethod("");
     }
   }, [detailData, currentBedIndex]);
+
+  const createDefaultMeal = (date) => ({
+    date: date || dayjs().format("DD/MM/YYYY"),
+    mode: "",
+    mealType: "",
+    mealTypeName: "",
+    quantity: 0,
+    note: "",
+    collectMoney: false,
+    totalMoney: 0,
+    isPaid: false,
+  });
 
   return (
     <div className="meal-ticket-form">
@@ -572,14 +633,13 @@ const MealDetailsForm = () => {
       >
         {listMealCode.map((meal) => (
           <TabPane
-          //   tab={`${meal.ten_ca} 
-          //   - ${formatNumber(
-          //     calculateTotalByShift(meal.ma_ca)
-          //   )} đ
-          //   `
-          // }
-          tab={`${meal.ten_ca}`
-        }
+            //   tab={`${meal.ten_ca}
+            //   - ${formatNumber(
+            //     calculateTotalByShift(meal.ma_ca)
+            //   )} đ
+            //   `
+            // }
+            tab={`${meal.ten_ca}`}
             key={meal.ma_ca}
           >
             {renderedMealEntries[meal.ma_ca]}
