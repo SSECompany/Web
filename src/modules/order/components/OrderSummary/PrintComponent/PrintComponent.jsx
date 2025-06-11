@@ -10,6 +10,25 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
     rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
   const fullName = claims?.FullName;
 
+  const formatPaymentMethod = (method) => {
+    if (!method) return "Tiền mặt";
+
+    // Xử lý trường hợp có nhiều hình thức thanh toán
+    const methods = method.split(",").map((m) => m.trim());
+    const formattedMethods = methods.map((m) => {
+      switch (m) {
+        case "chuyen_khoan":
+          return "Chuyển khoản";
+        case "tien_mat":
+          return "Tiền mặt";
+        default:
+          return "Tiền mặt";
+      }
+    });
+
+    return formattedMethods.join(" + ");
+  };
+
   var now = new Date();
   return (
     <div
@@ -36,7 +55,6 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
         </label>
         <br />
         <span>
-          Ngày bán:{" "}
           {`${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1)
             .toString()
             .padStart(2, "0")}/${now.getFullYear()} ${now
@@ -48,8 +66,16 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
             .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`}
         </span>
       </div>
+
       <div style={{ color: "#000", marginBottom: "6px" }}>
-        <strong>Tên khách:</strong> {(master?.ong_ba && master.ong_ba.trim()) ? master.ong_ba : "Khách hàng căng tin"}
+        <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
+      </div>
+
+      <div style={{ color: "#000", marginBottom: "6px" }}>
+        <strong>Tên khách:</strong>{" "}
+        {master?.ong_ba && master.ong_ba.trim()
+          ? master.ong_ba
+          : "Khách hàng căng tin"}
       </div>
       <div style={{ paddingBottom: "6px" }}>
         <div style={{ color: "#000" }}>

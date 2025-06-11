@@ -4,14 +4,53 @@ import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import {
   multipleTablePutApi,
-  printOrderApi
+  printOrderApi,
+  syncFastApi,
 } from "../../../../api";
 import jwt from "../../../../utils/jwt";
-import { addTab, clearTabData, removeTab, switchTab, updateTabExtraProps } from "../../store/order";
+import {
+  addTab,
+  clearTabData,
+  removeTab,
+  switchTab,
+  updateTabExtraProps,
+} from "../../store/order";
 import MergeOrder from "./MergeOrders/MergeOrder";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
 import PrintComponent from "./PrintComponent/PrintComponent";
+
+const checkInternetConnection = async () => {
+  try {
+    if (!navigator.onLine) {
+      return false;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const response = await fetch("https://www.google.com/favicon.ico", {
+      method: "HEAD",
+      mode: "no-cors",
+      signal: controller.signal,
+      cache: "no-cache",
+    });
+
+    clearTimeout(timeoutId);
+    return true;
+  } catch (error) {
+    console.warn("Internet connection check failed:", error);
+    return false;
+  }
+};
+
+const showOfflineWarning = () => {
+  notification.warning({
+    message: "Không có kết nối internet!",
+    description: "Vui lòng kiểm tra kết nối mạng và thử lại.",
+    duration: 5,
+  });
+};
 
 const generateRandomId = () =>
   Array.from({ length: 16 }, () =>
@@ -43,6 +82,7 @@ export default function OrderSummary({ total, itemCount }) {
   const [isCombining, setIsCombining] = useState(false);
   const [currentPrintData, setCurrentPrintData] = useState(null);
   const [hasReprinted, setHasReprinted] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   const activeTab = orders?.find(
     (tab) => tab.internalId === internalActiveTabId
@@ -51,11 +91,14 @@ export default function OrderSummary({ total, itemCount }) {
   useEffect(() => {
     if (activeTab && activeTab.autoOpenPayment) {
       setIsPaymentModalVisible(true);
-      // Xóa flag ngay sau khi mở modal
-      dispatch(updateTabExtraProps({ internalId: activeTab.internalId, autoOpenPayment: false }));
+      dispatch(
+        updateTabExtraProps({
+          internalId: activeTab.internalId,
+          autoOpenPayment: false,
+        })
+      );
     }
   }, [activeTab, dispatch]);
-
 
   const generateOrderData = (
     status = "0",
@@ -68,20 +111,17 @@ export default function OrderSummary({ total, itemCount }) {
       return null;
     }
 
-    // Xử lý tiền thanh toán
     let finalTienMat = 0;
     let finalChuyenKhoan = 0;
     const totalAmount = Number(activeTab?.master?.tong_tien || 0);
 
     if (selectedPayments.length === 1) {
-      // Nếu chỉ chọn 1 phương thức
       if (selectedPayments[0] === "tien_mat") {
-        finalTienMat = totalAmount; // Luôn gửi đúng tổng tiền cần thanh toán
+        finalTienMat = totalAmount;
       } else {
         finalChuyenKhoan = totalAmount;
       }
     } else {
-      // Nếu chọn cả 2 phương thức
       finalChuyenKhoan = Number(paymentAmounts.chuyen_khoan || 0);
       finalTienMat = totalAmount - finalChuyenKhoan;
     }
@@ -93,12 +133,15 @@ export default function OrderSummary({ total, itemCount }) {
       tong_sl: Number(activeTab?.master?.tong_sl || 0).toString(),
       tien_mat: finalTienMat.toString(),
       chuyen_khoan: finalChuyenKhoan.toString(),
-      tong_tt: totalAmount.toString(), // Tổng thanh toán luôn bằng tổng tiền
+      tong_tt: totalAmount.toString(),
       httt: selectedPayments.join(","),
-      stt_rec: status === "2" ? activeTab?.master?.stt_rec || "" : "",
+      stt_rec: activeTab?.master?.stt_rec || "",
       status,
       cccd: customerInfo.cccd ?? activeTab?.master?.cccd ?? "",
-      ong_ba: (customerInfo.ong_ba?.trim() || activeTab?.master?.ong_ba?.trim()) || "Khách hàng căng tin",
+      ong_ba:
+        customerInfo.ong_ba?.trim() ||
+        activeTab?.master?.ong_ba?.trim() ||
+        "Khách hàng căng tin",
       so_dt: customerInfo.so_dt ?? activeTab?.master?.so_dt ?? "",
       dia_chi: customerInfo.dia_chi ?? activeTab?.master?.dia_chi ?? "",
       email: customerInfo.email ?? activeTab?.master?.email ?? "",
@@ -144,8 +187,21 @@ export default function OrderSummary({ total, itemCount }) {
   };
 
   const handleSendOrderDirectly = async (isSaveOnly = false) => {
+    const hasInternet = await checkInternetConnection();
+    if (!hasInternet) {
+      showOfflineWarning();
+      return;
+    }
+
     const orderData = generateOrderData();
     if (!orderData) return;
+
+    if (isSaveOnly) {
+      orderData.masterData.tien_mat = "";
+      orderData.masterData.chuyen_khoan = "";
+      orderData.masterData.tong_tt = "";
+      orderData.masterData.httt = "";
+    }
 
     setIsCreatingOrder(true);
     try {
@@ -177,76 +233,65 @@ export default function OrderSummary({ total, itemCount }) {
 
   const handleSaveOrder = async () => {
     setIsPrinting(false);
+
+    const sttRec = currentPrintData?.sttRec;
+
+    if (sttRec) {
+      let printSuccess = false;
+      let syncSuccess = false;
+
+      try {
+        await syncFastApi(sttRec, id);
+        syncSuccess = true;
+      } catch (syncError) {
+        console.error("syncFastApi failed:", {
+          error: syncError,
+          sttRec,
+          userId: id,
+          message: syncError.message,
+          stack: syncError.stack,
+        });
+        notification.error({
+          message: "Có lỗi xảy ra khi đồng bộ với FAST!",
+          description: syncError.message,
+        });
+      }
+
+      try {
+        await printOrderApi(sttRec, id);
+        printSuccess = true;
+      } catch (printError) {
+        console.error("printOrderApi failed:", {
+          error: printError,
+          sttRec,
+          userId: id,
+          message: printError.message,
+          stack: printError.stack,
+        });
+        notification.error({
+          message: "Có lỗi xảy ra khi in đơn hàng!",
+          description: printError.message,
+        });
+      }
+
+      if (printSuccess || syncSuccess) {
+        const successMessage = [];
+        if (syncSuccess) successMessage.push("Đồng bộ FAST");
+        if (printSuccess) successMessage.push("In đơn hàng");
+
+        notification.success({
+          message: `Hoàn tất! (${successMessage.join(", ")})`,
+        });
+      } else {
+        notification.warning({
+          message: "Đơn đã lưu nhưng có lỗi xảy ra với các dịch vụ phụ trợ!",
+        });
+      }
+    }
+
     setCurrentPrintData(null);
     setHasReprinted(false);
-    if (isCreatingOrder) return;
-
-    if (!printMaster || !printDetail.length) {
-      notification.warning({
-        message: "Chưa đủ dữ liệu để thực hiện thanh toán!",
-      });
-      return;
-    }
-
-    setIsCreatingOrder(true);
-
-    try {
-      const payload = {
-        store: "Api_create_retail_order",
-        param: { StoreID: storeId, unitId: unitId, userId: id },
-        data: { master: [printMaster], detail: printDetail },
-      };
-
-      const response = await multipleTablePutApi(payload);
-      if (response?.responseModel?.isSucceded) {
-        const sttRec = response?.listObject[0][0]?.stt_rec;
-        if (sttRec) {
-          try {
-            await printOrderApi(sttRec, id);
-            await syncFastApi(sttRec, id);
-            notification.success({ message: "Thanh toán thành công !" });
-          } catch (error) {
-            notification.error({
-              message: "Có lỗi xảy ra khi thực hiện thanh toán hoặc đồng bộ!",
-              description: error.message,
-            });
-          }
-        } else {
-          notification.warning({
-            message: "Không có `stt_rec` để thực hiện các API!",
-          });
-        }
-        dispatch(removeTab({ internalId: internalActiveTabId })); 
-      } else {
-        notification.warning({ message: response?.responseModel?.message });
-      }
-    } catch (error) {
-      notification.error({ message: "Có lỗi xảy ra, vui lòng thử lại!" });
-    } finally {
-      setIsCreatingOrder(false);
-    }
-  };
-
-  const handlePreparePrint = (
-    selectedPayments = ["tien_mat", "chuyen_khoan"],
-    paymentAmounts = { tien_mat: "0", chuyen_khoan: "0" },
-    customerInfo = {}
-  ) => {
-    const orderData = generateOrderData("2", selectedPayments, paymentAmounts, customerInfo);
-    if (!orderData) return;
-
-    setPrintMaster(orderData.masterData);
-    setPrintDetail(orderData.detailData);
-    setCurrentPrintData({ 
-      master: orderData.masterData, 
-      detail: orderData.detailData,
-      selectedPayments,
-      paymentAmounts,
-      customerInfo
-    });
-    setHasReprinted(false);
-    setIsPrinting(true);
-    setIsPrinted(false);
+    dispatch(removeTab({ internalId: internalActiveTabId }));
   };
 
   let hasPrinted = false;
@@ -270,24 +315,22 @@ export default function OrderSummary({ total, itemCount }) {
       if (!hasPrinted) {
         hasPrinted = true;
         setIsPrinting(false);
-        
-        // Chỉ hỏi in thêm nếu chưa in thêm lần nào và có dữ liệu để in
+
         if (currentPrintData && !hasReprinted) {
           Modal.confirm({
-            title: 'In thêm bản khác?',
-            content: 'Bạn có muốn in thêm một bản nữa không?',
+            title: "In thêm bản khác?",
+            content: "Bạn có muốn in thêm một bản nữa không?",
             onOk: () => {
-              setHasReprinted(true); // Đánh dấu đã in thêm
+              setHasReprinted(true);
               handleReprint();
             },
             onCancel: () => {
               setTimeout(() => handleSaveOrder(), 100);
             },
-            okText: 'In thêm',
-            cancelText: 'Đóng',
+            okText: "In thêm",
+            cancelText: "Đóng",
           });
         } else {
-          // Đã in thêm rồi hoặc không có dữ liệu, lưu order luôn
           setTimeout(() => handleSaveOrder(), 100);
         }
       }
@@ -310,12 +353,76 @@ export default function OrderSummary({ total, itemCount }) {
     setIsPaymentModalVisible(false);
   };
 
-  const handleConfirmPayment = (selectedPayments, paymentAmounts, customerInfo) => {
+  const handleConfirmPayment = async (
+    selectedPayments,
+    paymentAmounts,
+    customerInfo
+  ) => {
     handleClosePaymentModal();
+
+    const hasInternet = await checkInternetConnection();
+    if (!hasInternet) {
+      showOfflineWarning();
+      return;
+    }
+
     if (selectedPayments.includes("chuyen_khoan")) {
       setShowQR(true);
     }
-    handlePreparePrint(selectedPayments, paymentAmounts, customerInfo);
+
+    const orderData = generateOrderData(
+      "2",
+      selectedPayments,
+      paymentAmounts,
+      customerInfo
+    );
+    if (!orderData) return;
+
+    setIsCreatingOrder(true);
+
+    try {
+      const payload = {
+        store: "Api_create_retail_order",
+        param: { StoreID: storeId, unitId: unitId, userId: id },
+        data: { master: [orderData.masterData], detail: orderData.detailData },
+      };
+
+      const response = await multipleTablePutApi(payload);
+
+      if (response?.responseModel?.isSucceded) {
+        const sttRec = response?.listObject[0][0]?.stt_rec;
+
+        setPrintMaster(orderData.masterData);
+        setPrintDetail(orderData.detailData);
+        setCurrentPrintData({
+          master: orderData.masterData,
+          detail: orderData.detailData,
+          selectedPayments,
+          paymentAmounts,
+          customerInfo,
+          sttRec,
+        });
+        setHasReprinted(false);
+        setIsPrinting(true);
+        setIsPrinted(false);
+
+        notification.success({
+          message: "Thanh toán thành công! Đang chuẩn bị in...",
+        });
+      } else {
+        notification.warning({
+          message: "Thanh toán thất bại!",
+          description: response?.responseModel?.message,
+        });
+      }
+    } catch (error) {
+      notification.error({
+        message: "Có lỗi xảy ra khi thanh toán!",
+        description: error.message,
+      });
+    } finally {
+      setIsCreatingOrder(false);
+    }
   };
 
   const openMergeModal = () => {
@@ -334,6 +441,33 @@ export default function OrderSummary({ total, itemCount }) {
     const token = localStorage.getItem("access_token");
     const isOrderPage = window.location.pathname.includes("/order");
     setIsMobile(isOrderPage && !token);
+  }, []);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      notification.success({
+        message: "Đã kết nối internet!",
+        duration: 2,
+      });
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      notification.warning({
+        message: "Mất kết nối internet!",
+        description: "Vui lòng kiểm tra kết nối mạng.",
+        duration: 0,
+      });
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
   }, []);
 
   const handleSubmitCombineOrder = (combineMaster, combineDetail) => {
@@ -358,6 +492,13 @@ export default function OrderSummary({ total, itemCount }) {
 
   const handleCompleteCombineOrder = async () => {
     if (activeTab?.tableId !== "gop-don" || !activeTab?.detail?.length) return;
+
+    const hasInternet = await checkInternetConnection();
+    if (!hasInternet) {
+      showOfflineWarning();
+      return;
+    }
+
     setIsCombining(true);
 
     let listCombineSttRec = "";
@@ -423,7 +564,7 @@ export default function OrderSummary({ total, itemCount }) {
         notification.success({ message: "Gộp đơn thành công!" });
         dispatch(removeTab({ internalId: activeTab.internalId }));
         dispatch(clearTabData(activeTab.internalId));
-            } else {
+      } else {
         notification.warning({
           message: res?.responseModel?.message || "Gộp đơn thất bại!",
         });
@@ -465,8 +606,9 @@ export default function OrderSummary({ total, itemCount }) {
         {activeTab?.tableId === "gop-don" ? (
           <button
             className="summary-button primary"
-            disabled={isCombining || !activeTab?.detail?.length}
+            disabled={isCombining || !activeTab?.detail?.length || !isOnline}
             onClick={handleCompleteCombineOrder}
+            title={!isOnline ? "Không có kết nối internet" : ""}
           >
             {isCombining ? "Đang gộp..." : "Hoàn thành gộp đơn"}
           </button>
@@ -476,7 +618,8 @@ export default function OrderSummary({ total, itemCount }) {
               <button
                 className="summary-button secondary"
                 onClick={handleMergeOrders}
-                disabled={isCreatingOrder || isPrinting}
+                disabled={isCreatingOrder || isPrinting || !isOnline}
+                title={!isOnline ? "Không có kết nối internet" : ""}
               >
                 Gộp đơn
               </button>
@@ -486,8 +629,12 @@ export default function OrderSummary({ total, itemCount }) {
                 className="summary-button save"
                 onClick={() => handleSendOrderDirectly(true)}
                 disabled={
-                  isCreatingOrder || isPrinting || !activeTab?.detail?.length
+                  isCreatingOrder ||
+                  isPrinting ||
+                  !activeTab?.detail?.length ||
+                  !isOnline
                 }
+                title={!isOnline ? "Không có kết nối internet" : ""}
               >
                 Lưu lại
               </button>
@@ -499,7 +646,8 @@ export default function OrderSummary({ total, itemCount }) {
                   ? () => handleSendOrderDirectly(false)
                   : handleOpenPaymentModal
               }
-              disabled={isCreatingOrder || isPrinting}
+              disabled={isCreatingOrder || isPrinting || !isOnline}
+              title={!isOnline ? "Không có kết nối internet" : ""}
             >
               {isMobile ? "Gửi" : "Thanh toán"}
             </button>
