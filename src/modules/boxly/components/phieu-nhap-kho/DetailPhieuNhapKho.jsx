@@ -2,6 +2,7 @@ import { EditOutlined, LeftOutlined, QrcodeOutlined } from "@ant-design/icons";
 import {
   Button,
   Col,
+  DatePicker,
   Form,
   Input,
   message,
@@ -12,7 +13,7 @@ import {
   Typography,
 } from "antd";
 import moment from "moment/moment";
-import React, { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import "./phieu-nhap-kho.css";
 
@@ -28,7 +29,9 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   const [isEditMode, setIsEditMode] = useState(initialEditMode);
   const [vatTuInput, setVatTuInput] = useState(undefined);
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
+  const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
   const [dataSource, setDataSource] = useState([]);
+  const vatTuSelectRef = useRef();
 
   const vatTuOptions = [
     { label: "QSP0915 - Dem M3 SÉNY", value: "QSP0915" },
@@ -54,7 +57,8 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
           key: prev.length + 1,
           maHang: value,
           soLuong: 1,
-          noiDung: vatTuOptions.find((v) => v.value === value)?.label || value,
+          ten_mat_hang:
+            vatTuOptions.find((v) => v.value === value)?.label || value,
         };
         return [...prev, newItem];
       }
@@ -63,6 +67,13 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
     message.success(`Đã thêm vật tư: ${value}`);
     setTimeout(() => setVatTuInput(undefined), 0); // reset lại Select
   };
+
+  useEffect(() => {
+    if (barcodeJustEnabled && vatTuSelectRef.current) {
+      vatTuSelectRef.current.focus();
+      setBarcodeJustEnabled(false);
+    }
+  }, [barcodeJustEnabled]);
 
   useEffect(() => {
     const isEditPath = location.pathname.includes("/edit/");
@@ -79,6 +90,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             ngay: "2023-01-01",
             soPhieu: "PNK-001",
             maKhach: "KH001",
+            dienGiai: "Diễn giải mẫu",
             tenKhach: "Công ty A",
             khoNhap: "kho1",
             ghiChu: "Giao hàng trước ngày 15",
@@ -89,14 +101,19 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
                 key: 1,
                 maHang: "QSP0915",
                 soLuong: 1,
-                noiDung:
+                ten_mat_hang:
                   "QSP0915 - Dem M3 SÉNY 180*200*9,Bo,80,A30...$2690000!",
+                dvt: "Cái",
+                maKho: "KHO1",
               },
               {
                 key: 2,
                 maHang: "DS209",
                 soLuong: 1,
-                noiDung: "DS209 - Dem M3 SÉNY 200*220*9,Bo,80,C00...$3190000!",
+                ten_mat_hang:
+                  "DS209 - Dem M3 SÉNY 200*220*9,Bo,80,C00...$3190000!",
+                dvt: "Cái",
+                maKho: "KHO2",
               },
             ],
           };
@@ -174,21 +191,43 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
           disabled={!isEditMode}
         >
           <Row gutter={16}>
-            <Col span={8}>
+            <Col span={12}>
+              <Form.Item name="maKhach" label="Mã khách">
+                <Input readOnly />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
               <Form.Item name="soPhieu" label="Số phiếu">
                 <Input readOnly />
               </Form.Item>
             </Col>
-            <Col span={8}>
-              <Form.Item name="ngay" label="Ngày">
-                <Input readOnly />
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="dienGiai" label="Diễn giải">
+                <Input />
               </Form.Item>
             </Col>
+            <Col span={12}>
+              <Form.Item name="ngay" label="Ngày lập">
+                <DatePicker
+                  style={{ width: "100%" }}
+                  format="DD/MM/YYYY"
+                  placeholder="Chọn ngày"
+                  inputReadOnly
+                  disabled={!isEditMode}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
 
+          <Row gutter={16}>
             <Col span={24}>
               <Form.Item label="Vật tư">
                 <Input.Group compact>
                   <Select
+                    ref={vatTuSelectRef}
                     value={vatTuInput}
                     onChange={setVatTuInput}
                     allowClear
@@ -197,55 +236,53 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
                     style={{ width: "calc(100% - 40px)" }}
                     options={vatTuOptions}
                     onSelect={handleVatTuSelect}
+                    // open={!barcodeEnabled} // Đã tắt, không tự động mở Select nữa
                   />
                   <Button
                     icon={<QrcodeOutlined />}
                     type={barcodeEnabled ? "primary" : "default"}
-                    onClick={() => setBarcodeEnabled((prev) => !prev)}
+                    onClick={() => {
+                      setBarcodeEnabled((prev) => {
+                        const next = !prev;
+                        if (next) setBarcodeJustEnabled(true);
+                        return next;
+                      });
+                    }}
                   />
                 </Input.Group>
               </Form.Item>
             </Col>
-
-            <Col span={12}>
-              <Form.Item name="tenKhach" label="Tạo bởi">
-                <Input readOnly />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="maKhach" label="Đối tượng tạo phiếu xuất">
-                <Input readOnly />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item name="xe" label="Xe vận chuyển">
-                <Input readOnly />
-              </Form.Item>
-            </Col>
           </Row>
-
-          <Space style={{ marginBottom: 16 }}> 
-            <Button type="primary">Lưu</Button>
-            <Button danger>Xoá phiếu</Button>
-          </Space>
 
           <Table
             bordered
             dataSource={dataSource}
             columns={[
               { title: "STT", dataIndex: "key", key: "key", width: 60 },
-              { title: "Nội dung", dataIndex: "noiDung", key: "noiDung" },
-              { title: "SL", dataIndex: "soLuong", key: "soLuong", width: 80 },
+              { title: "Mã hàng", dataIndex: "maHang", key: "maHang" },
               {
-                title: "Mã hàng",
-                dataIndex: "maHang",
-                key: "maHang",
+                title: "Tên mặt hàng",
+                dataIndex: "ten_mat_hang",
+                key: "ten_mat_hang",
+              },
+              { title: "Đvt", dataIndex: "dvt", key: "dvt", width: 80 },
+              {
+                title: "Số lượng",
+                dataIndex: "soLuong",
+                key: "soLuong",
                 width: 100,
               },
+              { title: "Mã kho", dataIndex: "maKho", key: "maKho", width: 100 },
             ]}
             pagination={false}
           />
+          <Space style={{ marginTop: 16 }}>
+            <Button type="primary" onClick={handleSubmit}>
+              Lưu
+            </Button>
+            <Button danger>Xóa</Button>
+            <Button>Mới</Button>
+          </Space>
         </Form>
       </div>
     </div>

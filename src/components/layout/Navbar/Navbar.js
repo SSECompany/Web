@@ -1,6 +1,6 @@
 import { MoreOutlined } from "@ant-design/icons";
 import { Dropdown, Menu } from "antd";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
 
@@ -18,16 +18,22 @@ import "./Navbar.css";
 const Navbar = () => {
   const dispatch = useDispatch();
   const userInfo = useSelector(getUserInfo);
+  const [userFromStorage, setUserFromStorage] = useState(null);
   const routeLocation = useLocation();
 
   useEffect(() => {
     dispatch(setClaims(jwt.getClaims() || {}));
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUserFromStorage(JSON.parse(storedUser));
+    }
   }, [dispatch]);
 
   const handleLogout = async () => {
     await jwt.resetAccessToken();
     localStorage.removeItem("pos_activeTabId");
     localStorage.removeItem("pos_orders");
+    localStorage.clear();
     router.navigate("/login");
     dispatch(setClaims([]));
   };
@@ -87,7 +93,7 @@ const Navbar = () => {
 
       <div className="first_navbar_row_right flex gap-1">
         <div className="px-1 text-center flex full-name">
-          <div className="primary_bold_text">{userInfo?.fullName || ""}</div>
+          <div className="primary_bold_text">{userFromStorage?.fullName || ""}</div>
         </div>
 
         <ul>

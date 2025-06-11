@@ -5,28 +5,78 @@ import {
   LeftOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { Button, Col, Row, Space, Table, Typography, message } from "antd";
-import React, { useState } from "react";
+import {
+  Button,
+  Col,
+  DatePicker,
+  Input,
+  message,
+  Row,
+  Space,
+  Table,
+  Tag,
+  Typography,
+} from "antd";
+import dayjs from "dayjs";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import https from "../../../../utils/https";
 import "./phieu-nhap-kho.css";
 
 const { Title } = Typography;
 
 const ListPhieuNhapKho = () => {
   const navigate = useNavigate();
-  const [data, setData] = useState([
-    { id: 1, date: "01-Thg1", so: "1a", maKhach: "1a", tenKhach: "a" },
-    { id: 2, date: "02-Thg2", so: "2a", maKhach: "2a", tenKhach: "b" },
-    { id: 3, date: "03-Thg3", so: "3a", maKhach: "3a", tenKhach: "c" },
-    { id: 4, date: "04-Thg4", so: "4a", maKhach: "4a", tenKhach: "d" },
-  ]);
+  const token = localStorage.getItem("access_token");
+  const [allData, setAllData] = useState([]);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filters, setFilters] = useState({
+    so_ct: "",
+    ma_kh: "",
+    ten_kh: "",
+    ngay_ct: null,
+  });
+
+  const pageSize = 20;
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedData = allData.slice(startIndex, endIndex);
+
+  const fetchPhieuNhapKho = async (filterParams = filters) => {
+    const body = {
+      dateForm: dayjs().startOf("month").format("YYYY-MM-DD"),
+      dateTo: dayjs().endOf("month").format("YYYY-MM-DD"),
+      page_index: 1,
+      page_count: 50,
+      ...filterParams,
+    };
+    if (filterParams.ngay_ct) {
+      body.ngay_ct = filterParams.ngay_ct.format("DD/MM/YYYY"); // Sửa lại định dạng ngày
+    }
+    try {
+      const res = await https.post("v1/web/danh-sach-phieu-nhap-kho", body, {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      });
+      setAllData(res.data.data || []);
+      setTotalRecords((res.data.data || []).length);
+    } catch (err) {
+      console.error("Lỗi gọi API danh sách phiếu nhập kho:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchPhieuNhapKho();
+  }, []);
 
   const handleDelete = (id) => {
     // Xử lý xóa phiếu
-    setData(data.filter((item) => item.id !== id));
+    setAllData(allData.filter((item) => item.id !== id));
     message.success("Xóa phiếu thành công");
   };
 
+  // Sửa lại filter ngày chứng từ để truyền đúng kiểu cho API
   const columns = [
     {
       title: "STT",
@@ -36,28 +86,208 @@ const ListPhieuNhapKho = () => {
       align: "center",
     },
     {
-      title: "Ngày",
-      dataIndex: "date",
-      key: "date",
-      align: "center",
+      title: "Ngày CT",
+      dataIndex: "ngay_ct",
+      key: "ngay_ct",
+      width: 200,
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div style={{ padding: 8 }}>
+          <DatePicker
+            inputReadOnly
+            value={
+              selectedKeys[0] ? dayjs(selectedKeys[0], "DD/MM/YYYY") : null
+            }
+            onChange={(date) => {
+              if (date) {
+                setSelectedKeys([date.format("DD/MM/YYYY")]);
+              } else {
+                setSelectedKeys([]);
+              }
+            }}
+            style={{ marginBottom: 8, display: "block" }}
+            format="DD/MM/YYYY"
+            placeholder="Chọn ngày CT"
+          />
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => {
+              confirm();
+              const newFilters = {
+                ...filters,
+                ngay_ct: selectedKeys[0]
+                  ? dayjs(selectedKeys[0], "DD/MM/YYYY")
+                  : null,
+              };
+              setFilters(newFilters);
+              fetchPhieuNhapKho(newFilters);
+            }}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
+      filteredValue: filters.ngay_ct
+        ? [filters.ngay_ct.format("DD/MM/YYYY")]
+        : null,
+      render: (text) => dayjs(text).format("DD/MM/YYYY"),
+      // Bỏ onFilter, chỉ search bằng API
     },
     {
-      title: "Số",
-      dataIndex: "so",
-      key: "so",
+      title: () => (
+        <div style={{ width: 120 }}>
+          Số chứng từ{" "}
+          {filters.so_ct ? <Tag color="blue">{filters.so_ct}</Tag> : null}
+        </div>
+      ),
+      dataIndex: "so_ct",
+      key: "so_ct",
+      width: 150,
       align: "center",
+      render: (text) => (text ? text.trim() : ""),
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm Số CT"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => {
+              confirm();
+              const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
+              setFilters(newFilters);
+              fetchPhieuNhapKho(newFilters);
+            }}
+            style={{ marginBottom: 8, display: "block" }}
+          />
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => {
+              confirm();
+              const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
+              setFilters(newFilters);
+              fetchPhieuNhapKho(newFilters);
+            }}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
+      filteredValue: filters.so_ct ? [filters.so_ct] : null,
     },
     {
-      title: "Mã khách",
-      dataIndex: "maKhach",
-      key: "maKhach",
+      title: () => (
+        <div style={{ width: 120 }}>
+          Mã khách{" "}
+          {filters.ma_kh ? <Tag color="blue">{filters.ma_kh}</Tag> : null}
+        </div>
+      ),
+      dataIndex: "ma_kh",
+      key: "ma_kh",
+      width: 150,
       align: "center",
+      render: (text) => (text ? text.trim() : ""),
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm Mã khách"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => {
+              confirm();
+              const newFilters = { ...filters, ma_kh: selectedKeys[0] || "" };
+              setFilters(newFilters);
+              fetchPhieuNhapKho(newFilters);
+            }}
+            style={{ marginBottom: 8, display: "block" }}
+          />
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => {
+              confirm();
+              const newFilters = { ...filters, ma_kh: selectedKeys[0] || "" };
+              setFilters(newFilters);
+              fetchPhieuNhapKho(newFilters);
+            }}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
+      filteredValue: filters.ma_kh ? [filters.ma_kh] : null,
     },
     {
-      title: "Tên khách",
-      dataIndex: "tenKhach",
-      key: "tenKhach",
+      title: () => (
+        <div style={{ width: 180 }}>
+          Tên khách{" "}
+          {filters.ten_kh ? <Tag color="blue">{filters.ten_kh}</Tag> : null}
+        </div>
+      ),
+      dataIndex: "ten_kh",
+      key: "ten_kh",
+      width: 250,
+      align: "left",
+      render: (text) => (text ? text.trim() : ""),
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder="Tìm Tên khách"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => {
+              confirm();
+              const newFilters = { ...filters, ten_kh: selectedKeys[0] || "" };
+              setFilters(newFilters);
+              fetchPhieuNhapKho(newFilters);
+            }}
+            style={{ marginBottom: 8, display: "block" }}
+          />
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => {
+              confirm();
+              const newFilters = { ...filters, ten_kh: selectedKeys[0] || "" };
+              setFilters(newFilters);
+              fetchPhieuNhapKho(newFilters);
+            }}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
+      filteredValue: filters.ten_kh ? [filters.ten_kh] : null,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      width: 120,
       align: "center",
+      render: (status) => {
+        const statusMap = {
+          0: { text: "Lập chứng từ", color: "orange" },
+          2: { text: "Nhập kho", color: "blue" },
+          3: { text: "Chuyển số cái", color: "green" },
+          5: { text: "Đề nghị nhập kho", color: "purple" },
+        };
+        const statusInfo = statusMap[status] || {
+          text: "Không xác định",
+          color: "default",
+        };
+        return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
+      },
     },
     {
       title: "Hành động",
@@ -123,12 +353,16 @@ const ListPhieuNhapKho = () => {
       <div className="phieu-table-container">
         <Table
           columns={columns}
-          dataSource={data}
-          pagination={false}
+          dataSource={paginatedData}
+          pagination={{
+            current: currentPage,
+            pageSize: pageSize,
+            total: totalRecords,
+            onChange: (page) => setCurrentPage(page),
+          }}
           bordered
           rowKey="id"
-          size="middle"
-          scroll={{ x: true }}
+          scroll={{ x: true, y: 600 }}
           className="phieu-data-table"
         />
       </div>

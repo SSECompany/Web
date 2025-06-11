@@ -16,27 +16,14 @@ const Boxly = () => {
       },
       {
         id: 2,
-        label: "Phiếu xuất kho",
-        path: "phieu-xuat-kho",
+        label: "Phiếu xuất kho bán hàng",
+        path: "phieu-xuat-kho-ban-hang",
         colorClass: "boxly-btn-color-2",
-      },
-      {
-        id: 3,
-        label: "Phiếu nhập điều chuyển",
-        path: "phieu-nhap-dieu-chuyen",
-        colorClass: "boxly-btn-color-3",
-      },
-      {
-        id: 4,
-        label: "Phiếu xuất điều chuyển",
-        path: "phieu-xuat-dieu-chuyen",
-        colorClass: "boxly-btn-color-4",
       },
     ],
     []
   );
 
-  // Kiểm tra xem có đang ở route con nào không
   const isSubRoute = location.pathname !== "/boxly";
 
   return (

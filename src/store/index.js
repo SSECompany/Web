@@ -1,11 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
+import boxlys from "../modules/boxly/store/boxly";
 import claimsReducer from "./reducers/claimsSlice";
 import loadingReducer from "./reducers/loadingSlice";
-import boxlys from "../modules/boxly/store/boxly";
+import authReducer from "./slices/authSlice";
 
 //store
-const store = configureStore({
+export const store = configureStore({
   reducer: {
+    auth: authReducer,
     loadingReducer,
     claimsReducer,
     boxly: boxlys,

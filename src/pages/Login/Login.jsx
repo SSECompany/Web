@@ -14,15 +14,13 @@ import {
   Select,
   Space,
 } from "antd";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useDebouncedCallback } from "use-debounce";
-import { apiGetStoreByUser } from "../../api";
 import router from "../../router/routes";
 import { setClaims } from "../../store/reducers/claimsSlice";
 import https from "../../utils/https";
 import jwt from "../../utils/jwt";
-import { useLocation } from "react-router-dom"; // Import useLocation
 import "./Login.css";
 
 const Login = () => {
@@ -34,82 +32,167 @@ const Login = () => {
     value: "",
     label: "Không",
   });
-  const [storeOptions, setStoreOptions] = useState([]);
+  const [token, setToken] = useState(""); // store token after login
+  const [unitsLoaded, setUnitsLoaded] = useState(false);
+  const [loginWaitingUnits, setLoginWaitingUnits] = useState(false);
 
   const dispatch = useDispatch();
-  const location = useLocation(); // Initialize useLocation
+
+  const preFetchUserMetadata = async () => {
+    if (!userName || !password || token) return;
+    try {
+      const response = await https.post("v1/users/signin", {
+        hostId: "https://vikosan-cloud.sse.net.vn",
+        userName,
+        password,
+        devideToken: "",
+        language: "V",
+      });
+      const { accessToken, refreshToken, user } = response.data;
+      setToken(accessToken);
+      localStorage.setItem("user", JSON.stringify(user));
+      dispatch(setClaims(jwt.saveClaims(accessToken)));
+      await fetchCompanies(accessToken);
+      await fetchUnits(accessToken);
+    } catch (error) {
+      // silent fail
+    }
+  };
+
+  // Handle login and fetch token
   const handleLoginButton = async () => {
-    setLoginLoading(!loginLoading);
-    if (!unitSelected?.value || !unitSelected) {
+    setLoginLoading(true);
+    if (!userName || !password) {
       setLoginLoading(false);
-      return notification.warning({
-        message: `Vui lòng chọn đơn vị`,
+      notification.warning({
+        message: `Vui lòng nhập tài khoản và mật khẩu`,
         placement: "topLeft",
         icon: <UilExclamationOctagon size="25" color="#ffba00" />,
       });
     }
-
-    await https
-      .post("Authentication/Login", {
-        userName: userName,
-        password: password,
-        DVCS: unitSelected.value.toString().trim(),
-        Store: "",
-      })
-      .then((res) => {
-        setLoginLoading(false);
-        if (typeof res.data == "string") {
-          if (res?.status == 203) {
-            return notification.warning({
-              message: `Sai tài khoản hoặc mật khẩu`,
-              placement: "topLeft",
-              icon: <UilExclamationOctagon size="25" color="#ffba00" />,
-            });
-          }
-        } else {
-          jwt.setAccessToken(res.data.token);
-          jwt.setRefreshToken(res.data.refreshToken);
-          dispatch(setClaims(jwt.saveClaims(res.data.token)));
-          const from = location.state?.from || "/"; // Nếu không có đường dẫn trước đó thì chuyển đến trang chủ
-          router.navigate(from, { replace: true });
-          return notification.success({
-            message: `Đăng nhập thành công`,
-          });
-        }
+    try {
+      // Step 1: Login to get token
+      const response = await https.post("v1/users/signin", {
+        hostId: "https://vikosan-cloud.sse.net.vn",
+        userName,
+        password,
+        devideToken: "",
+        language: "V",
       });
-  };
+      const { accessToken, refreshToken, user } = response.data;
 
-  const onLackInfoLogin = () => { };
-  const onEnoughInfo = () => {
-    handleLoginButton();
-  };
-
-  const handleInputUserName = useDebouncedCallback((userName) => {
-    setUserName((value) => {
-      return (value = userName);
-    });
-  }, 300);
-
-  const fetchStoreData = async () => {
-    setLoginLoading(true);
-    await apiGetStoreByUser({
-      unitId: unitSelected?.value.trim() || "",
-      userName: userName,
-    }).then((res) => {
+      jwt.setAccessToken(accessToken);
+      jwt.setRefreshToken(refreshToken);
+      setToken(accessToken);
+      localStorage.setItem("user", JSON.stringify(user));
+      await dispatch(setClaims(jwt.saveClaims(accessToken)));
+      setTimeout(() => router.navigate("/"), 0);
+      await fetchCompanies(accessToken);
       setLoginLoading(false);
-      setStoreOptions([
-        ...res.map((item) => {
-          return {
-            value: item.ma_bp,
-            label: item.ten_bp,
-          };
-        }),
-      ]);
-    });
+      notification.success({
+        message: `Đăng nhập thành công`,
+      });
+    } catch (error) {
+      setLoginLoading(false);
+      notification.warning({
+        message: `Sai tài khoản hoặc mật khẩu`,
+        placement: "topLeft",
+        icon: <UilExclamationOctagon size="25" color="#ffba00" />,
+      });
+    }
+  };
+
+  const fetchCompanies = async (accessToken) => {
+    try {
+      const companiesResponse = await https.get(
+        "v1/users/companies",
+        {},
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      const companies = companiesResponse.data;
+      if (companies && companies.length > 0) {
+        await fetchUnits(accessToken);
+      } else {
+        setUnits([{ value: "", label: "Không" }]);
+        setUnitSelected({ value: "", label: "Không" });
+      }
+    } catch (error) {
+      setUnits([{ value: "", label: "Không" }]);
+      setUnitSelected({ value: "", label: "Không" });
+      notification.warning({
+        message: `Lấy đơn vị thất bại`,
+        placement: "topLeft",
+        icon: <UilExclamationOctagon size="25" color="#ffba00" />,
+      });
+    }
+  };
+
+  const fetchUnits = async (accessToken) => {
+    setUnitsLoaded(false);
+    try {
+      const unitsResponse = await https.get(
+        "v1/users/units",
+        {},
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      localStorage.setItem("unitsResponse", JSON.stringify(unitsResponse.data.units[0]));
+      const unitsData = unitsResponse.data?.units || [];
+      if (unitsData && unitsData.length > 0) {
+        const firstUnit = unitsData[0];
+        const new_Unit = [{ value: firstUnit.unitId, label: firstUnit.unitName }];
+        setUnits(new_Unit);
+        setUnitSelected(new_Unit[0]);
+        setUnitsLoaded(true);
+      } else {
+        setUnits([{ value: "", label: "Không" }]);
+        setUnitSelected({ value: "", label: "Không" });
+        setUnitsLoaded(false);
+      }
+    } catch (error) {
+      setUnits([{ value: "", label: "Không" }]);
+      setUnitSelected({ value: "", label: "Không" });
+      setUnitsLoaded(false);
+      notification.warning({
+        message: `Lấy đơn vị thất bại`,
+        placement: "topLeft",
+        icon: <UilExclamationOctagon size="25" color="#ffba00" />,
+      });
+    }
+  };
+
+  // Fetch stores when unit changes
+  const fetchStoreData = async () => {
+    if (!unitSelected?.value) {
+      return;
+    }
+    setLoginLoading(true);
+    try {
+      const response = await https.get(
+        `v1/users/stores?unitId=${unitSelected.value}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const res = response.data;
+
+      setLoginLoading(false);
+    } catch (error) {
+      setLoginLoading(false);
+      notification.warning({
+        message: `Lấy cửa hàng thất bại`,
+        placement: "topLeft",
+        icon: <UilExclamationOctagon size="25" color="#ffba00" />,
+      });
+    }
   };
 
   useEffect(() => {
-    if (unitSelected?.value) {
+    if (unitSelected?.value && token) {
       fetchStoreData();
     }
   }, [unitSelected]);
@@ -117,36 +200,7 @@ const Login = () => {
   useEffect(() => {
     setUnits([{ value: "", label: "Không" }]);
     setUnitSelected({ value: "", label: "Không" });
-    setStoreOptions([{ value: "", label: "Không" }]);
-
-    const getUnits = async () => {
-      setLoginLoading(true);
-      await https
-        .get("Authentication/DVCS", {
-          username: userName,
-        })
-        .then((res) => {
-          if (res.data) {
-            const new_Units = [];
-            res.data.map((item) => {
-              return new_Units.push({ value: item.dvcsCode, label: item.name });
-            });
-            setUnits(new_Units);
-            setUnitSelected(new_Units[0]);
-          } else {
-            setUnits([{ value: "", label: "Không" }]);
-            setUnitSelected({ value: "", label: "Không" });
-          }
-          setLoginLoading(false);
-        });
-    };
-
-    if (userName) {
-      getUnits();
-    } else {
-      setUnits([{ value: "", label: "Không" }]);
-      setUnitSelected({ value: "", label: "Không" });
-    }
+    setToken("");
   }, [JSON.stringify(userName)]);
 
   useEffect(() => {
@@ -156,9 +210,39 @@ const Login = () => {
     }
   }, [dispatch]);
 
+  const debouncedPreFetch = useDebouncedCallback(() => {
+    if (userName && password && !token) {
+      preFetchUserMetadata();
+    }
+  }, 800);
+
+  useEffect(() => {
+    debouncedPreFetch();
+  }, [userName, password]);
+
   const handleChangeUnit = (item) => {
     setUnitSelected(units.find((unit) => unit.value == item));
   };
+
+  const handleInputUserName = useDebouncedCallback((userName) => {
+    setUserName(userName);
+  }, 300);
+
+  const onLackInfoLogin = () => {};
+  const onEnoughInfo = () => {
+    if (!unitsLoaded) {
+      setLoginWaitingUnits(true);
+      return;
+    }
+    handleLoginButton();
+  };
+
+  useEffect(() => {
+    if (unitsLoaded && loginWaitingUnits) {
+      setLoginWaitingUnits(false);
+      handleLoginButton();
+    }
+  }, [unitsLoaded, loginWaitingUnits]);
 
   const images = [
     {
@@ -166,7 +250,7 @@ const Login = () => {
       alt: "",
     },
     {
-      url: "https://balard-consulting.fr/wp-content/uploads/2022/11/ERP_Grand-1024x683.jpeg",
+      url: "https://granderp.com/wp-content/uploads/2024/01/homepagePNG.png",
       alt: "",
     },
     {
@@ -174,7 +258,7 @@ const Login = () => {
       alt: "",
     },
     {
-      url: "https://mlitqrsemjqz.i.optimole.com/w:auto/h:auto/q:mauto/https://www.technosip.com/wp-content/uploads/2022/05/7054182.jpg",
+      url: "https://www.technosip.com/wp-content/uploads/2021/04/Healthcare-App-Development-Services-of-Technosip-4.png",
       alt: "",
     },
   ];
@@ -187,7 +271,7 @@ const Login = () => {
           initialValues={{ remember: true }}
           autoComplete="off"
           className="login_form"
-          onFinishFailed={onLackInfoLogin()}
+          onFinishFailed={onLackInfoLogin}
           onFinish={onEnoughInfo}
         >
           <div className="login_logo_container">
@@ -252,7 +336,6 @@ const Login = () => {
                 options={units}
                 onSelect={handleChangeUnit}
               />
-
             </Space>
 
             <Space
@@ -280,8 +363,9 @@ const Login = () => {
                   className="default_button"
                   type="primary"
                   htmlType="submit"
-                  loading={loginLoading}
+                  loading={loginLoading || loginWaitingUnits}
                   style={{ flexShrink: "0", color: "white", width: "100%" }}
+                  disabled={!unitsLoaded && !loginWaitingUnits}
                 >
                   Đăng nhập
                 </Button>
