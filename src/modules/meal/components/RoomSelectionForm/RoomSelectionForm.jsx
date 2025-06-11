@@ -142,8 +142,8 @@ const RoomSelectionForm = () => {
 
   useEffect(() => {
     if (!roomSelectedDate) {
-      const today = dayjs().format(dateFormat);
-      dispatch(setRoomSelectedDate(today));
+      const tomorrow = dayjs().add(1, 'day').format(dateFormat);
+      dispatch(setRoomSelectedDate(tomorrow));
     } else if (masterData.roomCode) {
       loadBedsWithMeals(masterData.roomCode, roomSelectedDate);
     }
