@@ -1,0 +1,145 @@
+/* CSS for Phiếu Xuất Kho Bán Hàng */
+.phieu-container {
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.phieu-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.phieu-back-button {
+  position: absolute;
+  left: 0;
+}
+
+.phieu-edit-button {
+  position: absolute;
+  right: 0;
+}
+
+.phieu-title {
+  margin: 0 auto !important;
+  text-align: center;
+  font-weight: bold !important;
+}
+
+.phieu-form-container {
+  margin-top: 20px;
+}
+
+.phieu-form .ant-form-item-label {
+  font-weight: 500;
+}
+
+.phieu-form .ant-table-wrapper {
+  margin: 16px 0;
+}
+
+.phieu-form .ant-table-bordered .ant-table-container {
+  border: 1px solid #f0f0f0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.phieu-form .ant-table-cell {
+  padding: 8px 16px;
+}
+
+/* Styles for actions column */
+.action-column {
+  display: flex;
+  justify-content: space-around;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .phieu-form .ant-col {
+    margin-bottom: 8px;
+  }
+
+  .phieu-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .phieu-title {
+    margin: 16px 0 !important;
+  }
+
+  .phieu-back-button,
+  .phieu-edit-button {
+    position: relative;
+    margin-bottom: 8px;
+  }
+}
+
+/* Custom form controls */
+.quantity-control {
+  display: flex;
+  align-items: center;
+}
+
+.quantity-control button {
+  height: 32px;
+  width: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quantity-control .quantity-input {
+  width: 50px;
+  text-align: center;
+  margin: 0 4px;
+}
+
+/* Custom styles for the inventory selection */
+.inventory-select .ant-select-selector {
+  border-radius: 4px 0 0 4px !important;
+}
+
+.inventory-select-button {
+  border-radius: 0 4px 4px 0 !important;
+  margin-left: -1px;
+}
+
+/* Print styles */
+@media print {
+  .phieu-container {
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .phieu-back-button,
+  .phieu-edit-button,
+  .action-buttons {
+    display: none !important;
+  }
+
+  .phieu-form .ant-table-wrapper {
+    page-break-inside: avoid;
+  }
+
+  .phieu-form .ant-table {
+    border: 1px solid #000;
+  }
+
+  .phieu-form .ant-table-cell {
+    border: 1px solid #000;
+  }
+
+  .phieu-title {
+    font-size: 18px !important;
+  }
+
+  .ant-form-item-label > label {
+    color: #000 !important;
+  }
+}

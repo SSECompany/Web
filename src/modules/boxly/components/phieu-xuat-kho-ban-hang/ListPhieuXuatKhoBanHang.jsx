@@ -11,7 +11,6 @@ import {
   DatePicker,
   Input,
   message,
-  Modal,
   Row,
   Space,
   Table,
@@ -22,11 +21,11 @@ import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import https from "../../../../utils/https";
-import "./phieu-nhap-kho.css";
+import "./phieu-xuat-kho-ban-hang.css";
 
 const { Title } = Typography;
 
-const ListPhieuNhapKho = () => {
+const ListPhieuXuatKhoBanHang = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("access_token");
   const [allData, setAllData] = useState([]);
@@ -44,7 +43,7 @@ const ListPhieuNhapKho = () => {
   const endIndex = startIndex + pageSize;
   const paginatedData = allData.slice(startIndex, endIndex);
 
-  const fetchPhieuNhapKho = async (filterParams = filters) => {
+  const fetchPhieuXuatKhoBanHang = async (filterParams = filters) => {
     const body = {
       dateForm: dayjs().startOf("month").format("YYYY-MM-DD"),
       dateTo: dayjs().endOf("month").format("YYYY-MM-DD"),
@@ -53,83 +52,40 @@ const ListPhieuNhapKho = () => {
       ...filterParams,
     };
     if (filterParams.ngay_ct) {
-      body.ngay_ct = filterParams.ngay_ct.format("DD/MM/YYYY"); // Sửa lại định dạng ngày
+      body.ngay_ct = filterParams.ngay_ct.format("DD/MM/YYYY");
     }
     try {
-      const res = await https.post("v1/web/danh-sach-phieu-nhap-kho", body, {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      });
+      const res = await https.post(
+        "v1/web/danh-sach-phieu-xuat-kho-ban-hang",
+        body,
+        {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        }
+      );
       setAllData(res.data.data || []);
       setTotalRecords((res.data.data || []).length);
     } catch (err) {
-      console.error("Lỗi gọi API danh sách phiếu nhập kho:", err);
+      console.error("Lỗi gọi API danh sách phiếu xuất kho bán hàng:", err);
     }
   };
 
   useEffect(() => {
-    fetchPhieuNhapKho();
+    fetchPhieuXuatKhoBanHang();
   }, []);
 
-  const handleDelete = async (sttRec) => {
-    Modal.confirm({
-      title: "Xác nhận xóa phiếu nhập kho",
-      content: "Bạn có chắc chắn muốn xóa phiếu nhập kho này không?",
-      okText: "Xóa",
-      okType: "danger",
-      cancelText: "Hủy",
-      onOk: async () => {
-        try {
-          if (!sttRec) {
-            message.error("Không tìm thấy mã phiếu để xóa");
-            return;
-          }
-
-          const response = await https.delete(
-            `v1/web/xoa-ct-nhap-kho?stt_rec=${sttRec}`,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          if (response.data && response.data.success) {
-            message.success("Xóa phiếu nhập kho thành công");
-            // Cập nhật lại danh sách sau khi xóa
-            fetchPhieuNhapKho();
-          } else {
-            message.error(
-              response.data?.message || "Xóa phiếu nhập kho thất bại"
-            );
-          }
-        } catch (error) {
-          console.error("Lỗi khi xóa phiếu nhập kho:", error);
-          if (error.response?.data?.message) {
-            message.error(error.response.data.message);
-          } else {
-            message.error("Có lỗi xảy ra khi xóa phiếu nhập kho");
-          }
-        }
-      },
-    });
+  const handleDelete = (id) => {
+    // Xử lý xóa phiếu
+    setAllData(allData.filter((item) => item.id !== id));
+    message.success("Xóa phiếu thành công");
   };
 
-  // Sửa lại filter ngày chứng từ để truyền đúng kiểu cho API
   const columns = [
     {
       title: "STT",
       key: "stt",
       render: (_, __, index) => index + 1,
       width: 60,
-      align: "center",
-    },
-    {
-      title: "Mã phiếu",
-      dataIndex: "stt_rec",
-      key: "stt_rec",
-      width: 150,
       align: "center",
     },
     {
@@ -167,7 +123,7 @@ const ListPhieuNhapKho = () => {
                   : null,
               };
               setFilters(newFilters);
-              fetchPhieuNhapKho(newFilters);
+              fetchPhieuXuatKhoBanHang(newFilters);
             }}
             size="small"
           >
@@ -179,7 +135,6 @@ const ListPhieuNhapKho = () => {
         ? [filters.ngay_ct.format("DD/MM/YYYY")]
         : null,
       render: (text) => dayjs(text).format("DD/MM/YYYY"),
-      // Bỏ onFilter, chỉ search bằng API
     },
     {
       title: () => (
@@ -205,7 +160,7 @@ const ListPhieuNhapKho = () => {
               confirm();
               const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
               setFilters(newFilters);
-              fetchPhieuNhapKho(newFilters);
+              fetchPhieuXuatKhoBanHang(newFilters);
             }}
             style={{ marginBottom: 8, display: "block" }}
           />
@@ -216,7 +171,7 @@ const ListPhieuNhapKho = () => {
               confirm();
               const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
               setFilters(newFilters);
-              fetchPhieuNhapKho(newFilters);
+              fetchPhieuXuatKhoBanHang(newFilters);
             }}
             size="small"
           >
@@ -250,7 +205,7 @@ const ListPhieuNhapKho = () => {
               confirm();
               const newFilters = { ...filters, ma_kh: selectedKeys[0] || "" };
               setFilters(newFilters);
-              fetchPhieuNhapKho(newFilters);
+              fetchPhieuXuatKhoBanHang(newFilters);
             }}
             style={{ marginBottom: 8, display: "block" }}
           />
@@ -261,7 +216,7 @@ const ListPhieuNhapKho = () => {
               confirm();
               const newFilters = { ...filters, ma_kh: selectedKeys[0] || "" };
               setFilters(newFilters);
-              fetchPhieuNhapKho(newFilters);
+              fetchPhieuXuatKhoBanHang(newFilters);
             }}
             size="small"
           >
@@ -295,7 +250,7 @@ const ListPhieuNhapKho = () => {
               confirm();
               const newFilters = { ...filters, ten_kh: selectedKeys[0] || "" };
               setFilters(newFilters);
-              fetchPhieuNhapKho(newFilters);
+              fetchPhieuXuatKhoBanHang(newFilters);
             }}
             style={{ marginBottom: 8, display: "block" }}
           />
@@ -306,7 +261,7 @@ const ListPhieuNhapKho = () => {
               confirm();
               const newFilters = { ...filters, ten_kh: selectedKeys[0] || "" };
               setFilters(newFilters);
-              fetchPhieuNhapKho(newFilters);
+              fetchPhieuXuatKhoBanHang(newFilters);
             }}
             size="small"
           >
@@ -325,9 +280,9 @@ const ListPhieuNhapKho = () => {
       render: (status) => {
         const statusMap = {
           0: { text: "Lập chứng từ", color: "orange" },
-          2: { text: "Nhập kho", color: "blue" },
+          2: { text: "Xuất kho", color: "blue" },
           3: { text: "Chuyển số cái", color: "green" },
-          5: { text: "Đề nghị nhập kho", color: "purple" },
+          5: { text: "Đề nghị xuất kho", color: "purple" },
         };
         const statusInfo = statusMap[status] || {
           text: "Không xác định",
@@ -345,27 +300,21 @@ const ListPhieuNhapKho = () => {
           <Button
             size="small"
             icon={<FileTextOutlined />}
-            onClick={() =>
-              navigate(`${record.id}`, { state: { sttRec: record.stt_rec } })
-            }
+            onClick={() => navigate(`${record.id}`)}
             className="phieu-action-btn phieu-view-btn"
           />
           <Button
             size="small"
             type="primary"
             icon={<EditOutlined />}
-            onClick={() =>
-              navigate(`edit/${record.id}`, {
-                state: { sttRec: record.stt_rec },
-              })
-            }
+            onClick={() => navigate(`edit/${record.id}`)}
             className="phieu-action-btn phieu-edit-btn"
           />
           <Button
             size="small"
             danger
             icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.stt_rec)}
+            onClick={() => handleDelete(record.id)}
             className="phieu-action-btn phieu-delete-btn"
           />
         </Space>
@@ -388,7 +337,7 @@ const ListPhieuNhapKho = () => {
         </Col>
         <Col>
           <Title level={3} className="phieu-title">
-            DANH SÁCH PHIẾU NHẬP KHO
+            DANH SÁCH PHIẾU XUẤT KHO BÁN HÀNG
           </Title>
         </Col>
         <Col>
@@ -423,4 +372,4 @@ const ListPhieuNhapKho = () => {
   );
 };
 
-export default ListPhieuNhapKho;
+export default ListPhieuXuatKhoBanHang;

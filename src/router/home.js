@@ -18,6 +18,23 @@ const DetailPhieuNhapKho = lazy(() =>
   import("../modules/boxly/components/phieu-nhap-kho/DetailPhieuNhapKho")
 );
 
+// Thêm import cho phiếu xuất kho bán hàng
+const ListPhieuXuatKhoBanHang = lazy(() =>
+  import(
+    "../modules/boxly/components/phieu-xuat-kho-ban-hang/ListPhieuXuatKhoBanHang"
+  )
+);
+const AddPhieuXuatKhoBanHang = lazy(() =>
+  import(
+    "../modules/boxly/components/phieu-xuat-kho-ban-hang/AddPhieuXuatKhoBanHang"
+  )
+);
+const DetailPhieuXuatKhoBanHang = lazy(() =>
+  import(
+    "../modules/boxly/components/phieu-xuat-kho-ban-hang/DetailPhieuXuatKhoBanHang"
+  )
+);
+
 const protectedChildrenRoutes = [
   {
     index: true,
@@ -47,6 +64,27 @@ const protectedChildrenRoutes = [
         label: "Sửa phiếu nhập kho",
         path: "phieu-nhap-kho/edit/:id",
         element: <DetailPhieuNhapKho isEditMode={true} />,
+      },
+      // Thêm routes cho phiếu xuất kho bán hàng
+      {
+        label: "Danh sách phiếu xuất kho bán hàng",
+        path: "phieu-xuat-kho-ban-hang",
+        element: <ListPhieuXuatKhoBanHang />,
+      },
+      {
+        label: "Thêm phiếu xuất kho bán hàng",
+        path: "phieu-xuat-kho-ban-hang/add",
+        element: <AddPhieuXuatKhoBanHang />,
+      },
+      {
+        label: "Chi tiết phiếu xuất kho bán hàng",
+        path: "phieu-xuat-kho-ban-hang/:id",
+        element: <DetailPhieuXuatKhoBanHang />,
+      },
+      {
+        label: "Sửa phiếu xuất kho bán hàng",
+        path: "phieu-xuat-kho-ban-hang/edit/:id",
+        element: <DetailPhieuXuatKhoBanHang isEditMode={true} />,
       },
     ],
   },
