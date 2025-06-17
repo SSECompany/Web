@@ -304,7 +304,9 @@ const PrintComponent = forwardRef(
 
         <div style={{ textAlign: "center", marginTop: "10px" }}>
           <img
-            src={`https://img.vietqr.io/image/${account}-qr_only.png?amount=${master?.tong_tien}`}
+            src={`https://img.vietqr.io/image/${account}-qr_only.png?amount=${
+              master?.chuyen_khoan || master?.tong_tien
+            }`}
             alt="QR Code"
             style={{ width: "100px", height: "100px" }}
           />
