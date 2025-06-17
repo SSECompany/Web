@@ -1,5 +1,5 @@
 import { DownOutlined, UpOutlined } from "@ant-design/icons";
-import { Button, Input, InputNumber, Modal } from "antd";
+import { Button, Input, InputNumber, Modal, message } from "antd";
 import { useEffect, useState } from "react";
 import {
   formatCurrency,
@@ -9,7 +9,13 @@ import {
 import { num2words } from "../../../../../app/Options/DataFomater";
 import "./PaymentModal.css";
 
-const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
+const PaymentModal = ({
+  visible,
+  onClose,
+  onConfirm,
+  total,
+  isCreatingOrder,
+}) => {
   const [selectedPayments, setSelectedPayments] = useState(["chuyen_khoan"]);
   const [paymentAmounts, setPaymentAmounts] = useState({
     tien_mat: 0,
@@ -22,8 +28,17 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
     dia_chi: "",
     so_dt: "",
     email: "",
+    ma_so_thue_kh: "",
+    ten_dv_kh: "",
+  });
+  const [errors, setErrors] = useState({
+    cccd: "",
+    so_dt: "",
+    ma_so_thue_kh: "",
   });
   const [showCustomerInfo, setShowCustomerInfo] = useState(false);
+  const [showQRImage, setShowQRImage] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const handleToggleCustomerInfo = () => setShowCustomerInfo((prev) => !prev);
 
   const showQRCode =
@@ -31,7 +46,10 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
 
   const account = process.env.REACT_APP_VIETQR_ACCOUNT;
   const accountName = process.env.REACT_APP_VIETQR_ACCOUNT_NAME;
-  const qrUrl = `https://img.vietqr.io/image/${account}-qr_only.png?amount=${total}`;
+  const transferContent = `thanh toan Phenikaa : ${formatCurrency(total)}vnd`;
+  const qrUrl = `https://img.vietqr.io/image/${account}-qr_only.png?amount=${total}&addInfo=${encodeURIComponent(
+    transferContent
+  )}&t=${Date.now()}`;
 
   const handlePaymentSelection = (method) => {
     setSelectedPayments((prev) => {
@@ -42,7 +60,6 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
       setPaymentAmounts((amounts) => {
         const updatedAmounts = { ...amounts };
 
-        // Reset amounts for unselected methods
         if (!newSelectedPayments.includes("tien_mat")) {
           updatedAmounts["tien_mat"] = 0;
         }
@@ -50,7 +67,6 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
           updatedAmounts["chuyen_khoan"] = 0;
         }
 
-        // If only "chuyen_khoan" is selected, auto-set to total amount
         if (
           newSelectedPayments.length === 1 &&
           newSelectedPayments.includes("chuyen_khoan")
@@ -58,7 +74,6 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
           updatedAmounts["chuyen_khoan"] = total;
         }
 
-        // If only "tien_mat" is selected, auto-set to total amount
         if (
           newSelectedPayments.length === 1 &&
           newSelectedPayments.includes("tien_mat")
@@ -66,7 +81,6 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
           updatedAmounts["tien_mat"] = total;
         }
 
-        // If both payment methods are selected, set both to 0
         if (
           newSelectedPayments.includes("tien_mat") &&
           newSelectedPayments.includes("chuyen_khoan")
@@ -98,6 +112,67 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
     setChange(totalAmount - total);
   };
 
+  const validateCCCD = (value) => {
+    if (!value) return "";
+    if (!/^\d{9}$|^\d{12}$/.test(value)) {
+      return "CCCD phải có 9 hoặc 12 số";
+    }
+    return "";
+  };
+
+  const validatePhoneNumber = (value) => {
+    if (!value) return "";
+    if (!/^(0|\+84)[3|5|7|8|9][0-9]{8}$/.test(value)) {
+      return "Số điện thoại phải có 10 số và bắt đầu bằng 0";
+    }
+    return "";
+  };
+
+  const validateMaSoThue = (value) => {
+    if (!value) return "";
+    if (!/^\d{10}(-\d{3})?$/.test(value)) {
+      return "Mã số thuế phải có 10 số hoặc 10-3 số";
+    }
+    return "";
+  };
+
+  const handleInputChange = (field, value) => {
+    // Chỉ cho phép nhập số cho các trường cần validate
+    if (field === "cccd" || field === "so_dt") {
+      // Chỉ cho phép nhập số
+      if (value !== "" && !/^\d*$/.test(value)) {
+        return;
+      }
+    } else if (field === "ma_so_thue_kh") {
+      // Cho phép số và dấu gạch ngang cho mã số thuế
+      if (value !== "" && !/^[\d-]*$/.test(value)) {
+        return;
+      }
+    }
+
+    setCustomerInfo((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    if (field === "cccd") {
+      setErrors((prev) => ({
+        ...prev,
+        cccd: validateCCCD(value),
+      }));
+    } else if (field === "so_dt") {
+      setErrors((prev) => ({
+        ...prev,
+        so_dt: validatePhoneNumber(value),
+      }));
+    } else if (field === "ma_so_thue_kh") {
+      setErrors((prev) => ({
+        ...prev,
+        ma_so_thue_kh: validateMaSoThue(value),
+      }));
+    }
+  };
+
   const handleClose = () => {
     setSelectedPayments(["chuyen_khoan"]);
     setPaymentAmounts({ tien_mat: 0, chuyen_khoan: 0 });
@@ -108,8 +183,17 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
       dia_chi: "",
       so_dt: "",
       email: "",
+      ma_so_thue_kh: "",
+      ten_dv_kh: "",
+    });
+    setErrors({
+      cccd: "",
+      so_dt: "",
+      ma_so_thue_kh: "",
     });
     setShowCustomerInfo(false);
+    setShowQRImage(false);
+    setIsSubmitting(false);
     onClose();
   };
 
@@ -124,15 +208,30 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
         dia_chi: "",
         so_dt: "",
         email: "",
+        ma_so_thue_kh: "",
+        ten_dv_kh: "",
+      });
+      setErrors({
+        cccd: "",
+        so_dt: "",
+        ma_so_thue_kh: "",
       });
       setShowCustomerInfo(false);
+      setShowQRImage(false);
+      setIsSubmitting(false);
+
+      const timer = setTimeout(() => {
+        setShowQRImage(true);
+      }, 200);
+
+      return () => clearTimeout(timer);
     }
   }, [visible, total]);
 
   return (
     <Modal
       title={<p className="payment-title">Phiếu thanh toán</p>}
-      visible={visible}
+      open={visible}
       onCancel={handleClose}
       footer={null}
       className="payment-modal"
@@ -157,12 +256,7 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
                   style={{ width: "100%", marginTop: 4 }}
                   value={customerInfo.ong_ba}
                   placeholder="Nhập tên khách"
-                  onChange={(e) =>
-                    setCustomerInfo((prev) => ({
-                      ...prev,
-                      ong_ba: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => handleInputChange("ong_ba", e.target.value)}
                 />
               </div>
               <div style={{ flex: 1 }}>
@@ -171,12 +265,66 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
                   style={{ width: "100%", marginTop: 4 }}
                   value={customerInfo.cccd}
                   placeholder="Nhập số CCCD"
+                  onChange={(e) => handleInputChange("cccd", e.target.value)}
+                  status={errors.cccd ? "error" : ""}
+                  maxLength={12}
+                  onKeyPress={(e) => {
+                    if (!/\d/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
+                {errors.cccd && (
+                  <div style={{ color: "red", fontSize: 12 }}>
+                    {errors.cccd}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 500 }}>Mã số thuế:</label>
+                <Input
+                  style={{ width: "100%", marginTop: 4 }}
+                  value={customerInfo.ma_so_thue_kh}
+                  placeholder="Nhập mã số thuế"
                   onChange={(e) =>
-                    setCustomerInfo((prev) => ({
-                      ...prev,
-                      cccd: e.target.value,
-                    }))
+                    handleInputChange("ma_so_thue_kh", e.target.value)
                   }
+                  status={errors.ma_so_thue_kh ? "error" : ""}
+                  maxLength={14}
+                  onKeyPress={(e) => {
+                    if (!/[\d-]/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
+                {errors.ma_so_thue_kh && (
+                  <div style={{ color: "red", fontSize: 12 }}>
+                    {errors.ma_so_thue_kh}
+                  </div>
+                )}
+                {customerInfo.ma_so_thue_kh && (
+                  <div style={{ marginTop: 8 }}>
+                    <label style={{ fontWeight: 500 }}>Tên công ty:</label>
+                    <Input
+                      style={{ width: "100%", marginTop: 4 }}
+                      value={customerInfo.ten_dv_kh}
+                      placeholder="Nhập tên công ty"
+                      onChange={(e) =>
+                        handleInputChange("ten_dv_kh", e.target.value)
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 500 }}>Địa chỉ:</label>
+                <Input
+                  style={{ width: "100%", marginTop: 4 }}
+                  value={customerInfo.dia_chi}
+                  placeholder="Nhập địa chỉ"
+                  onChange={(e) => handleInputChange("dia_chi", e.target.value)}
                 />
               </div>
             </div>
@@ -187,13 +335,20 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
                   style={{ width: "100%", marginTop: 4 }}
                   value={customerInfo.so_dt}
                   placeholder="Nhập số điện thoại"
-                  onChange={(e) =>
-                    setCustomerInfo((prev) => ({
-                      ...prev,
-                      so_dt: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => handleInputChange("so_dt", e.target.value)}
+                  status={errors.so_dt ? "error" : ""}
+                  maxLength={12}
+                  onKeyPress={(e) => {
+                    if (!/[\d+]/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
                 />
+                {errors.so_dt && (
+                  <div style={{ color: "red", fontSize: 12 }}>
+                    {errors.so_dt}
+                  </div>
+                )}
               </div>
               <div style={{ flex: 1 }}>
                 <label style={{ fontWeight: 500 }}>Email:</label>
@@ -202,28 +357,9 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
                   value={customerInfo.email}
                   placeholder="Nhập email"
                   type="email"
-                  onChange={(e) =>
-                    setCustomerInfo((prev) => ({
-                      ...prev,
-                      email: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => handleInputChange("email", e.target.value)}
                 />
               </div>
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <label style={{ fontWeight: 500 }}>Địa chỉ:</label>
-              <Input
-                style={{ width: "100%", marginTop: 4 }}
-                value={customerInfo.dia_chi}
-                placeholder="Nhập địa chỉ"
-                onChange={(e) =>
-                  setCustomerInfo((prev) => ({
-                    ...prev,
-                    dia_chi: e.target.value,
-                  }))
-                }
-              />
             </div>
           </div>
         </div>
@@ -251,7 +387,21 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
           <p className="payment-text">
             <strong>Quét mã QR để thanh toán:</strong>
           </p>
-          <img src={qrUrl} alt="QR Code" className="qr-code-image" />
+          {showQRImage ? (
+            <img
+              src={qrUrl}
+              alt="QR Code"
+              className="qr-code-image"
+              key={`qr-${total}`}
+            />
+          ) : (
+            <div
+              className="qr-loading"
+              style={{ textAlign: "center", padding: "20px" }}
+            >
+              Đang tải mã QR...
+            </div>
+          )}
           <div className="qr-info">
             {accountName?.split(" - ").map((line, index) => (
               <div key={index} className="qr-info-line">
@@ -259,7 +409,9 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
               </div>
             ))}
             <div className="qr-info-line">{account}</div>
-            <div className="qr-info-line">Số tiền: {formatCurrency(total)}</div>
+            <div className="qr-info-line">
+              Số tiền: {formatCurrency(total)}đ
+            </div>
           </div>
         </div>
       )}
@@ -313,6 +465,7 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
           key="cancel"
           onClick={handleClose}
           className="payment-button secondary"
+          disabled={isCreatingOrder || isSubmitting}
         >
           Huỷ
         </Button>
@@ -320,6 +473,15 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
           key="pay"
           type="primary"
           onClick={() => {
+            // Kiểm tra lỗi trước khi thanh toán
+            const hasErrors = Object.values(errors).some((error) => error);
+            if (hasErrors) {
+              message.error("Vui lòng kiểm tra lại thông tin khách hàng");
+              return;
+            }
+
+            setIsSubmitting(true);
+
             const finalCustomerInfo = {
               ...customerInfo,
               ong_ba: customerInfo.ong_ba?.trim() || "Khách hàng căng tin",
@@ -343,6 +505,8 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
           }}
           className="payment-button primary"
           disabled={
+            isCreatingOrder ||
+            isSubmitting ||
             selectedPayments.length === 0 ||
             (selectedPayments.length === 2
               ? Object.values(paymentAmounts).reduce(
@@ -354,6 +518,7 @@ const PaymentModal = ({ visible, onClose, onConfirm, total }) => {
                   0
                 ) < total)
           }
+          loading={isCreatingOrder || isSubmitting}
         >
           Thanh toán
         </Button>

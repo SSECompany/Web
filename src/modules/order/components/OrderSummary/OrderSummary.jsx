@@ -73,6 +73,7 @@ export default function OrderSummary({ total, itemCount }) {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const printContent = useRef();
   const [printMaster, setPrintMaster] = useState({});
   const [printDetail, setPrintDetail] = useState([]);
@@ -145,6 +146,9 @@ export default function OrderSummary({ total, itemCount }) {
       so_dt: customerInfo.so_dt ?? activeTab?.master?.so_dt ?? "",
       dia_chi: customerInfo.dia_chi ?? activeTab?.master?.dia_chi ?? "",
       email: customerInfo.email ?? activeTab?.master?.email ?? "",
+      ma_so_thue_kh:
+        customerInfo.ma_so_thue_kh ?? activeTab?.master?.ma_so_thue_kh ?? "",
+      ten_dv_kh: customerInfo.ten_dv_kh ?? activeTab?.master?.ten_dv_kh ?? "",
     };
 
     const detailData = activeTab?.detail?.flatMap((item) => {
@@ -351,6 +355,7 @@ export default function OrderSummary({ total, itemCount }) {
 
   const handleClosePaymentModal = () => {
     setIsPaymentModalVisible(false);
+    setIsProcessingPayment(false);
   };
 
   const handleConfirmPayment = async (
@@ -358,11 +363,16 @@ export default function OrderSummary({ total, itemCount }) {
     paymentAmounts,
     customerInfo
   ) => {
-    handleClosePaymentModal();
+    if (isProcessingPayment) {
+      return;
+    }
+
+    setIsProcessingPayment(true);
 
     const hasInternet = await checkInternetConnection();
     if (!hasInternet) {
       showOfflineWarning();
+      setIsProcessingPayment(false);
       return;
     }
 
@@ -376,7 +386,10 @@ export default function OrderSummary({ total, itemCount }) {
       paymentAmounts,
       customerInfo
     );
-    if (!orderData) return;
+    if (!orderData) {
+      setIsProcessingPayment(false);
+      return;
+    }
 
     setIsCreatingOrder(true);
 
@@ -391,6 +404,7 @@ export default function OrderSummary({ total, itemCount }) {
 
       if (response?.responseModel?.isSucceded) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
+        const orderNumber = response?.listObject[0][0]?.so_ct;
 
         setPrintMaster(orderData.masterData);
         setPrintDetail(orderData.detailData);
@@ -401,6 +415,7 @@ export default function OrderSummary({ total, itemCount }) {
           paymentAmounts,
           customerInfo,
           sttRec,
+          orderNumber,
         });
         setHasReprinted(false);
         setIsPrinting(true);
@@ -409,17 +424,21 @@ export default function OrderSummary({ total, itemCount }) {
         notification.success({
           message: "Thanh toán thành công! Đang chuẩn bị in...",
         });
+
+        handleClosePaymentModal();
       } else {
         notification.warning({
           message: "Thanh toán thất bại!",
           description: response?.responseModel?.message,
         });
+        setIsProcessingPayment(false);
       }
     } catch (error) {
       notification.error({
         message: "Có lỗi xảy ra khi thanh toán!",
         description: error.message,
       });
+      setIsProcessingPayment(false);
     } finally {
       setIsCreatingOrder(false);
     }
@@ -660,6 +679,7 @@ export default function OrderSummary({ total, itemCount }) {
           ref={printContent}
           master={printMaster}
           detail={printDetail}
+          orderNumber={currentPrintData?.orderNumber || ""}
         />
       </div>
 
