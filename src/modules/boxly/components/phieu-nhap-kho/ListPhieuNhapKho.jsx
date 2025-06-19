@@ -60,8 +60,12 @@ const ListPhieuNhapKho = () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       });
-      setAllData(res.data.data || []);
-      setTotalRecords((res.data.data || []).length);
+      // Lọc bỏ các dòng có status là "*" hoặc null
+      const filteredData = (res.data.data || []).filter(
+        (item) => item.status !== "*" && item.status !== null
+      );
+      setAllData(filteredData);
+      setTotalRecords(filteredData.length);
     } catch (err) {
       console.error("Lỗi gọi API danh sách phiếu nhập kho:", err);
     }
@@ -71,7 +75,7 @@ const ListPhieuNhapKho = () => {
     fetchPhieuNhapKho();
   }, []);
 
-  const handleDelete = async (sttRec) => {
+  const handleDelete = async (sctRec) => {
     Modal.confirm({
       title: "Xác nhận xóa phiếu nhập kho",
       content: "Bạn có chắc chắn muốn xóa phiếu nhập kho này không?",
@@ -80,13 +84,14 @@ const ListPhieuNhapKho = () => {
       cancelText: "Hủy",
       onOk: async () => {
         try {
-          if (!sttRec) {
+          if (!sctRec) {
             message.error("Không tìm thấy mã phiếu để xóa");
             return;
           }
 
-          const response = await https.delete(
-            `v1/web/xoa-ct-nhap-kho?stt_rec=${sttRec}`,
+          const response = await https.post(
+            `v1/web/xoa-ct-nhap-kho?sctRec=${sctRec}`,
+            {},
             {
               headers: {
                 "Content-Type": "application/json",
@@ -95,10 +100,11 @@ const ListPhieuNhapKho = () => {
             }
           );
 
-          if (response.data && response.data.success) {
+          // Kiểm tra response theo đúng cấu trúc trả về
+          if (response.data && response.data.statusCode === 200) {
             message.success("Xóa phiếu nhập kho thành công");
             // Cập nhật lại danh sách sau khi xóa
-            fetchPhieuNhapKho();
+            await fetchPhieuNhapKho();
           } else {
             message.error(
               response.data?.message || "Xóa phiếu nhập kho thất bại"
@@ -323,6 +329,10 @@ const ListPhieuNhapKho = () => {
       width: 120,
       align: "center",
       render: (status) => {
+        if (status === "*" || status === null) {
+          return "";
+        }
+
         const statusMap = {
           0: { text: "Lập chứng từ", color: "orange" },
           2: { text: "Nhập kho", color: "blue" },
@@ -346,7 +356,9 @@ const ListPhieuNhapKho = () => {
             size="small"
             icon={<FileTextOutlined />}
             onClick={() =>
-              navigate(`${record.id}`, { state: { sttRec: record.stt_rec } })
+              navigate(`${record.stt_rec}`, {
+                state: { sctRec: record.stt_rec },
+              })
             }
             className="phieu-action-btn phieu-view-btn"
           />
@@ -355,8 +367,8 @@ const ListPhieuNhapKho = () => {
             type="primary"
             icon={<EditOutlined />}
             onClick={() =>
-              navigate(`edit/${record.id}`, {
-                state: { sttRec: record.stt_rec },
+              navigate(`edit/${record.stt_rec}`, {
+                state: { sctRec: record.stt_rec },
               })
             }
             className="phieu-action-btn phieu-edit-btn"
@@ -414,7 +426,7 @@ const ListPhieuNhapKho = () => {
             onChange: (page) => setCurrentPage(page),
           }}
           bordered
-          rowKey="id"
+          rowKey="stt_rec"
           scroll={{ x: true, y: 600 }}
           className="phieu-data-table"
         />

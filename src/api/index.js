@@ -45,100 +45,105 @@ export const multipleTablePutApi = async (payload) => {
 
   let apiUrl;
 
-
   if (isCustomerView && !token) {
     apiUrl = `User/AddDataCustomerPre`;
   } else if (!isCustomerView && token) {
     apiUrl = `User/AddData`;
   } else {
-    console.warn("⚠️ Không xác định endpoint phù hợp, sử dụng mặc định AddDataCustomerPre");
+    console.warn(
+      "⚠️ Không xác định endpoint phù hợp, sử dụng mặc định AddDataCustomerPre"
+    );
     apiUrl = `User/AddDataCustomerPre`;
   }
 
-  return await https.post(apiUrl, payload, {
-
-    headers: {
-      Authorization: token ? `Bearer ${token}` : "",
-    },
-  }).then((res) => {
-    return res?.data || [];
-  });
+  return await https
+    .post(apiUrl, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    })
+    .then((res) => {
+      return res?.data || [];
+    });
 };
 
 export const addDataMultiObjectApi = async (payload) => {
   const token = localStorage.getItem("access_token");
 
-  return await https.post(
-    `User/AddDataMutiObject`,
-    payload,
-    {
+  return await https
+    .post(`User/AddDataMutiObject`, payload, {
       headers: {
         Authorization: token ? `Bearer ${token}` : "",
         "Content-Type": "application/json",
       },
-    }
-  ).then((res) => {
-    return res?.data || [];
-  });
+    })
+    .then((res) => {
+      return res?.data || [];
+    });
 };
-
 
 export const printOrderApi = async (sttRec, userId) => {
   const token = localStorage.getItem("access_token");
-  return await https.post(
-    `Print/print-order`,
-    {
-      stt_rec: sttRec,
-      action: "0",
-      userId: userId,
-    },
-    {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-        "Content-Type": "application/json",
+  return await https
+    .post(
+      `Print/print-order`,
+      {
+        stt_rec: sttRec,
+        action: "0",
+        userId: userId,
       },
-    }
-  ).then((res) => {
-    return res?.data || [];
-  });
+      {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+          "Content-Type": "application/json",
+        },
+      }
+    )
+    .then((res) => {
+      return res?.data || [];
+    });
 };
 
 export const syncFastApi = async (sttRec, userId) => {
   const token = localStorage.getItem("access_token");
-  return await https.post(
-    `SynchronousFAST/CreateInvoiceFromMTT`,
-    {
-      stt_rec: sttRec,
-      action: "",
-      userId: userId.toString(),
-    },
-    {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-        "Content-Type": "application/json",
+  return await https
+    .post(
+      `SynchronousFAST/CreateInvoiceFromMTT`,
+      {
+        stt_rec: sttRec,
+        action: "",
+        userId: userId.toString(),
       },
-    }
-  ).then((res) => {
-    return res?.data || [];
-  });
+      {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+          "Content-Type": "application/json",
+        },
+      }
+    )
+    .then((res) => {
+      return res?.data || [];
+    });
 };
 
 export const syncFastMutiApi = async (sttRecList, userId) => {
   const token = localStorage.getItem("access_token");
-  return await https.post(
-    `SynchronousFAST/CreateInvoiceMutiFromMTT`,
-    {
-      stt_rec: sttRecList,
-      action: "",
-      userId: userId.toString(),
-    },
-    {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-        "Content-Type": "application/json",
+  return await https
+    .post(
+      `SynchronousFAST/CreateInvoiceMutiFromMTT`,
+      {
+        stt_rec: sttRecList,
+        action: "",
+        userId: userId.toString(),
       },
-    }
-  ).then((res) => {
-    return res?.data || [];
-  });
+      {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+          "Content-Type": "application/json",
+        },
+      }
+    )
+    .then((res) => {
+      return res?.data || [];
+    });
 };

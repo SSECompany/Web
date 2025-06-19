@@ -159,3 +159,12 @@
     max-width: 450px !important;
   }
 }
+
+/* Custom styles for action column */
+.ant-table-thead > tr > th {
+  white-space: nowrap;
+}
+
+.ant-table-tbody > tr > td {
+  white-space: nowrap;
+}

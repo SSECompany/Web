@@ -52,6 +52,7 @@ const initialState = {
         tk_du: "",
         tk_vt: "",
         so_luong: 0,
+        sl_td3: 0,
         gia_nt: 0,
         gia: 0,
         tien_nt: 0,
@@ -165,10 +166,15 @@ const boxlySlice = createSlice({
         state.dataSource.push({
           key: state.dataSource.length + 1,
           maHang: vatTu.ma_vt.trim(),
-          soLuong: soLuong,
+          soLuong: vatTu.soLuong || soLuong,
+          soLuong_goc: vatTu.soLuong_goc || 1,
+          he_so: vatTu.he_so || 1,
           noiDung: vatTu.ten_vt,
           dvt: vatTu.dvt,
+          dvt_goc: vatTu.dvt_goc || vatTu.dvt,
           tk_vt: vatTu.tk_vt || "",
+          ma_kho: vatTu.ma_kho || "",
+          donViTinhList: vatTu.donViTinhList || [],
           vatTuInfo: vatTu,
         });
       }
@@ -178,6 +184,15 @@ const boxlySlice = createSlice({
       if (state.dataSource[index]) {
         state.dataSource[index][field] = value;
       }
+    },
+    removeDataSourceItem: (state, action) => {
+      const { index } = action.payload;
+      state.dataSource = state.dataSource.filter((_, i) => i !== index);
+      // Cập nhật lại key cho các item
+      state.dataSource = state.dataSource.map((item, i) => ({
+        ...item,
+        key: i + 1,
+      }));
     },
 
     // Trạng thái khởi tạo và loading
@@ -210,6 +225,7 @@ export const {
   setDataSource,
   addVatTuToDataSource,
   updateDataSourceItem,
+  removeDataSourceItem,
   setInitialized,
   setGlobalLoading,
   clearStore,

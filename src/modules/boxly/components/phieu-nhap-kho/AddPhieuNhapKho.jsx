@@ -1,4 +1,9 @@
-import { LeftOutlined, QrcodeOutlined, SaveOutlined } from "@ant-design/icons";
+import {
+  DeleteOutlined,
+  LeftOutlined,
+  QrcodeOutlined,
+  SaveOutlined,
+} from "@ant-design/icons";
 import {
   Button,
   Col,
@@ -21,6 +26,7 @@ import https from "../../../../utils/https";
 import {
   addVatTuToDataSource,
   clearStore,
+  removeDataSourceItem,
   setBoxlyData,
   setFormData,
   setInitialized,
@@ -208,6 +214,32 @@ const AddPhieuNhapKho = () => {
     }
   };
 
+  // Thêm hàm mới để fetch danh sách đơn vị tính
+  const fetchDonViTinh = async (maVatTu) => {
+    try {
+      const response = await https.get(
+        "v1/web/danh-sach-dv",
+        {
+          ma_vt: maVatTu,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data && response.data.data) {
+        return response.data.data;
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching don vi tinh:", error);
+      return [];
+    }
+  };
+
   const fetchVoucherInfo = async () => {
     try {
       const response = await https.get(
@@ -258,7 +290,7 @@ const AddPhieuNhapKho = () => {
     try {
       const response = await https.get(
         "v1/web/danh-sach-ma-gd",
-        {},
+        { ma_ct: "PND" },
         {
           headers: {
             "Content-Type": "application/json",
@@ -306,7 +338,7 @@ const AddPhieuNhapKho = () => {
     try {
       const response = await https.get(
         "v1/web/danh-sach-kho",
-        { keyWord: keyword },
+        { keyword: keyword },
         {
           headers: {
             "Content-Type": "application/json",
@@ -377,6 +409,10 @@ const AddPhieuNhapKho = () => {
         if (!item.tk_co) {
           missingData.push(`Dòng ${index + 1}: Chưa chọn tài khoản có`);
         }
+        const soLuong = parseFloat(item.soLuong || 0);
+        if (soLuong <= 0) {
+          missingData.push(`Dòng ${index + 1}: Số lượng phải lớn hơn 0`);
+        }
       });
 
       if (missingData.length > 0) {
@@ -415,7 +451,7 @@ const AddPhieuNhapKho = () => {
         orderDate: orderDate,
         master: {
           stt_rec: "",
-          ma_dvcs: userInfo.unitId || "VIKOSAN",
+          ma_dvcs: userInfo.unitId,
           ma_ct: "PND",
           loai_ct: "2",
           so_lo: "",
@@ -435,7 +471,7 @@ const AddPhieuNhapKho = () => {
           t_tien: 0.0,
           nam: new Date(orderDate).getFullYear(),
           ky: new Date(orderDate).getMonth() + 1,
-          status: values.trangThai || "3",
+          status: values.trangThai,
           datetime0: orderDate,
           datetime2: orderDate,
           user_id0: userInfo.userId || 4061,
@@ -516,14 +552,51 @@ const AddPhieuNhapKho = () => {
         ? vatTuDetail[0]
         : vatTuDetail;
 
-      // Thêm vật tư vào dataSource trong Redux
-      dispatch(addVatTuToDataSource({ vatTu: vatTuInfo, soLuong: 1 }));
+      // Gọi API lấy danh sách đơn vị tính
+      const donViTinhList = await fetchDonViTinh(vatTuValue.trim());
+
+      // Lấy đơn vị tính từ API response (đã được trim spaces)
+      const defaultDvt = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
+
+      // Thêm vật tư vào dataSource trong Redux với thông tin đơn vị tính
+      const vatTuData = {
+        ma_vt: vatTuInfo.ma_vt,
+        ten_vt: vatTuInfo.ten_vt || vatTuInfo.ma_vt,
+        dvt: defaultDvt,
+        dvt_goc: defaultDvt,
+        tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",
+        ma_kho: vatTuInfo.ma_kho ? vatTuInfo.ma_kho.trim() : "",
+        donViTinhList: donViTinhList,
+        he_so: 1,
+        soLuong: 1,
+        soLuong_goc: 1,
+      };
+
+      dispatch(
+        addVatTuToDataSource({
+          vatTu: vatTuData,
+          soLuong: 1,
+        })
+      );
+
       message.success(`Đã thêm vật tư: ${vatTuValue}`);
-      setTimeout(() => setVatTuInput(undefined), 0);
+
+      // Clear input và load lại danh sách vật tư
+      setVatTuInput("");
+      setVatTuList([]);
+      setTimeout(() => {
+        fetchVatTuList("");
+      }, 100);
     } catch (error) {
       console.error("Error adding vat tu:", error);
       message.error("Có lỗi xảy ra khi thêm vật tư");
     }
+  };
+
+  // Hàm xử lý xóa dòng vật tư
+  const handleDeleteItem = (index) => {
+    dispatch(removeDataSourceItem({ index }));
+    message.success("Đã xóa vật tư");
   };
 
   return (
@@ -736,13 +809,114 @@ const AddPhieuNhapKho = () => {
                 dataIndex: "dvt",
                 key: "dvt",
                 width: 80,
-                render: (text, record) => record.dvt || "cái",
+                render: (text, record) => {
+                  // Lấy danh sách đơn vị tính từ record
+                  const dvtOptions = record.donViTinhList || [];
+
+                  return (
+                    <Select
+                      value={text || record.dvt || "cái"}
+                      onChange={(newValue) => {
+                        // Tìm thông tin đơn vị tính được chọn
+                        const selectedDvt = dvtOptions.find(
+                          (dvt) => dvt.dvt.trim() === newValue.trim()
+                        );
+                        const heSo = selectedDvt
+                          ? parseFloat(selectedDvt.he_so) || 1
+                          : 1;
+
+                        // Lấy số lượng gốc (luôn giữ nguyên)
+                        const soLuongGoc = record.soLuong_goc || 1;
+
+                        // Tính số lượng mới = số lượng gốc × hệ số
+                        const soLuongMoi = soLuongGoc * heSo;
+
+                        // Làm tròn đến 3 chữ số thập phân
+                        const soLuongLamTron =
+                          Math.round(soLuongMoi * 1000) / 1000;
+
+                        dispatch(
+                          updateDataSourceItem({
+                            index: dataSource.findIndex(
+                              (item) => item.key === record.key
+                            ),
+                            field: "dvt",
+                            value: newValue,
+                          })
+                        );
+
+                        // Cập nhật hệ số và số lượng
+                        dispatch(
+                          updateDataSourceItem({
+                            index: dataSource.findIndex(
+                              (item) => item.key === record.key
+                            ),
+                            field: "he_so",
+                            value: heSo,
+                          })
+                        );
+
+                        dispatch(
+                          updateDataSourceItem({
+                            index: dataSource.findIndex(
+                              (item) => item.key === record.key
+                            ),
+                            field: "soLuong",
+                            value: soLuongLamTron,
+                          })
+                        );
+                      }}
+                      style={{ width: "100%" }}
+                      size="small"
+                    >
+                      {dvtOptions.length > 0 ? (
+                        dvtOptions.map((dvt) => (
+                          <Select.Option key={dvt.dvt} value={dvt.dvt}>
+                            {dvt.dvt.trim()}
+                          </Select.Option>
+                        ))
+                      ) : (
+                        <Select.Option value={text || record.dvt || "cái"}>
+                          {text || record.dvt || "cái"}
+                        </Select.Option>
+                      )}
+                    </Select>
+                  );
+                },
               },
               {
                 title: "Số lượng",
                 dataIndex: "soLuong",
                 key: "soLuong",
-                width: 100,
+                width: 120,
+                render: (value, record, rowIndex) => (
+                  <Input
+                    type="text"
+                    value={value}
+                    onChange={(e) => {
+                      // Cho phép nhập số và dấu chấm thập phân
+                      const val = e.target.value.replace(/[^0-9.]/g, "");
+                      // Đảm bảo chỉ có 1 dấu chấm
+                      const parts = val.split(".");
+                      const formattedVal =
+                        parts.length > 2
+                          ? parts[0] + "." + parts.slice(1).join("")
+                          : val;
+                      dispatch(
+                        updateDataSourceItem({
+                          index: rowIndex,
+                          field: "soLuong",
+                          value: formattedVal ? parseFloat(formattedVal) : 0,
+                        })
+                      );
+                    }}
+                    style={{
+                      width: "100%",
+                      textAlign: "center",
+                      fontWeight: "bold",
+                    }}
+                  />
+                ),
               },
               {
                 title: "Tk nợ",
@@ -816,6 +990,22 @@ const AddPhieuNhapKho = () => {
                         })
                       );
                     }}
+                  />
+                ),
+              },
+              {
+                title: "Thao tác",
+                key: "action",
+                width: 100,
+                align: "center",
+                render: (_, record, index) => (
+                  <Button
+                    type="text"
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleDeleteItem(index)}
+                    title="Xóa dòng"
                   />
                 ),
               },

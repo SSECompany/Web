@@ -11,6 +11,7 @@ import {
   DatePicker,
   Input,
   message,
+  Modal,
   Row,
   Space,
   Table,
@@ -35,7 +36,8 @@ const ListPhieuXuatKhoBanHang = () => {
     so_ct: "",
     ma_kh: "",
     ten_kh: "",
-    ngay_ct: null,
+    ngay_ct: "",
+    status: "",
   });
 
   const pageSize = 20;
@@ -45,18 +47,18 @@ const ListPhieuXuatKhoBanHang = () => {
 
   const fetchPhieuXuatKhoBanHang = async (filterParams = filters) => {
     const body = {
-      dateForm: dayjs().startOf("month").format("YYYY-MM-DD"),
-      dateTo: dayjs().endOf("month").format("YYYY-MM-DD"),
-      page_index: 1,
-      page_count: 50,
+      DateFrom: dayjs().startOf("month").format("YYYY-MM-DD"),
+      DateTo: dayjs().endOf("month").format("YYYY-MM-DD"),
+      PageIndex: 1,
+      PageSize: 50,
       ...filterParams,
     };
     if (filterParams.ngay_ct) {
       body.ngay_ct = filterParams.ngay_ct.format("DD/MM/YYYY");
     }
     try {
-      const res = await https.post(
-        "v1/web/danh-sach-phieu-xuat-kho-ban-hang",
+      const res = await https.get(
+        "v1/web/danh-sach-chung-tu-xuat-kho-ban-hang",
         body,
         {
           "Content-Type": "application/json",
@@ -74,10 +76,43 @@ const ListPhieuXuatKhoBanHang = () => {
     fetchPhieuXuatKhoBanHang();
   }, []);
 
-  const handleDelete = (id) => {
-    // Xử lý xóa phiếu
-    setAllData(allData.filter((item) => item.id !== id));
-    message.success("Xóa phiếu thành công");
+  const handleDelete = async (stt_rec) => {
+    Modal.confirm({
+      title: "Xác nhận xóa phiếu",
+      content: "Bạn có chắc chắn muốn xóa phiếu này không?",
+      okText: "Xóa",
+      okType: "danger",
+      cancelText: "Hủy",
+      onOk: async () => {
+        try {
+          const response = await https.post(
+            "v1/web/xoa-ct-kho-hang-ban",
+            {},
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              params: {
+                sctRec: stt_rec,
+              },
+            }
+          );
+
+          if (response.data && response.data.statusCode === 200) {
+            setAllData(allData.filter((item) => item.stt_rec !== stt_rec));
+            message.success("Xóa phiếu thành công");
+          } else {
+            message.error(
+              response.data?.message || "Có lỗi xảy ra khi xóa phiếu"
+            );
+          }
+        } catch (error) {
+          console.error("Lỗi khi xóa phiếu:", error);
+          message.error("Không thể xóa phiếu. Vui lòng thử lại sau.");
+        }
+      },
+    });
   };
 
   const columns = [
@@ -273,22 +308,33 @@ const ListPhieuXuatKhoBanHang = () => {
     },
     {
       title: "Trạng thái",
-      dataIndex: "status",
+      dataIndex: "statusname",
       key: "status",
       width: 120,
       align: "center",
-      render: (status) => {
-        const statusMap = {
-          0: { text: "Lập chứng từ", color: "orange" },
-          2: { text: "Xuất kho", color: "blue" },
-          3: { text: "Chuyển số cái", color: "green" },
-          5: { text: "Đề nghị xuất kho", color: "purple" },
-        };
-        const statusInfo = statusMap[status] || {
-          text: "Không xác định",
-          color: "default",
-        };
-        return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
+      render: (statusname, record) => {
+        // Xác định màu dựa trên status
+        let color = "default";
+        switch (record.status) {
+          case "0":
+            color = "orange";
+            break;
+          case "4":
+            color = "green";
+            break;
+          case "5":
+            color = "blue";
+            break;
+          case "6":
+            color = "purple";
+            break;
+          case "2":
+            color = "cyan";
+            break;
+          default:
+            color = "default";
+        }
+        return <Tag color={color}>{statusname}</Tag>;
       },
     },
     {
@@ -300,21 +346,21 @@ const ListPhieuXuatKhoBanHang = () => {
           <Button
             size="small"
             icon={<FileTextOutlined />}
-            onClick={() => navigate(`${record.id}`)}
+            onClick={() => navigate(`${record.stt_rec}`)}
             className="phieu-action-btn phieu-view-btn"
           />
           <Button
             size="small"
             type="primary"
             icon={<EditOutlined />}
-            onClick={() => navigate(`edit/${record.id}`)}
+            onClick={() => navigate(`edit/${record.stt_rec}`)}
             className="phieu-action-btn phieu-edit-btn"
           />
           <Button
             size="small"
             danger
             icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.id)}
+            onClick={() => handleDelete(record.stt_rec)}
             className="phieu-action-btn phieu-delete-btn"
           />
         </Space>
@@ -363,7 +409,7 @@ const ListPhieuXuatKhoBanHang = () => {
             onChange: (page) => setCurrentPage(page),
           }}
           bordered
-          rowKey="id"
+          rowKey="stt_rec"
           scroll={{ x: true, y: 600 }}
           className="phieu-data-table"
         />

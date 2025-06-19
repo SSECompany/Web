@@ -51,6 +51,15 @@
   padding: 8px 16px;
 }
 
+/* Custom styles for action column */
+.ant-table-thead > tr > th {
+  white-space: nowrap;
+}
+
+.ant-table-tbody > tr > td {
+  white-space: nowrap;
+}
+
 /* Styles for actions column */
 .action-column {
   display: flex;

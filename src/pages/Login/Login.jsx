@@ -15,10 +15,22 @@ import {
   Space,
 } from "antd";
 import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useDebouncedCallback } from "use-debounce";
 import router from "../../router/routes";
-import { setClaims } from "../../store/reducers/claimsSlice";
+import {
+  setClaims,
+  setRefreshToken,
+  setTokenExpiry,
+} from "../../store/reducers/claimsSlice";
+import {
+  login,
+  logout,
+  refreshToken,
+  selectIsValidSession,
+  selectNeedsTokenRefresh,
+  selectRefreshToken,
+} from "../../store/slices/authSlice";
 import https from "../../utils/https";
 import jwt from "../../utils/jwt";
 import "./Login.css";
@@ -35,11 +47,88 @@ const Login = () => {
   const [token, setToken] = useState(""); // store token after login
   const [unitsLoaded, setUnitsLoaded] = useState(false);
   const [loginWaitingUnits, setLoginWaitingUnits] = useState(false);
+  const [isLoginInProgress, setIsLoginInProgress] = useState(false); // Thêm state để track login progress
+  const [allUnitsData, setAllUnitsData] = useState([]); // Lưu toàn bộ dữ liệu units từ API
 
   const dispatch = useDispatch();
+  const isValidSession = useSelector(selectIsValidSession);
+  const needsTokenRefresh = useSelector(selectNeedsTokenRefresh);
+  const storedRefreshToken = useSelector(selectRefreshToken);
+
+  // Kiểm tra token hết hạn và refresh nếu cần
+  const checkAndRefreshToken = async () => {
+    if (!isValidSession && storedRefreshToken) {
+      try {
+        const response = await https.post("v1/users/refresh-token", {
+          refreshToken: storedRefreshToken,
+        });
+
+        const { accessToken, refreshToken: newRefreshToken } = response.data;
+
+        if (accessToken) {
+          jwt.setAccessToken(accessToken);
+          if (newRefreshToken) jwt.setRefreshToken(newRefreshToken);
+
+          // Cập nhật token mới vào store
+          dispatch(
+            refreshToken({
+              token: accessToken,
+              refreshToken: newRefreshToken || storedRefreshToken,
+            })
+          );
+
+          // Cập nhật claims từ token mới
+          dispatch(setClaims(jwt.saveClaims(accessToken)));
+
+          // Thiết lập thời gian hết hạn (1 ngày)
+          const expiryDate = new Date();
+          expiryDate.setDate(expiryDate.getDate() + 1);
+          dispatch(setTokenExpiry(expiryDate.getTime()));
+
+          return true;
+        }
+      } catch (error) {
+        console.error("Failed to refresh token:", error);
+        // Xóa token hết hạn và yêu cầu đăng nhập lại
+        dispatch(logout());
+        return false;
+      }
+    }
+
+    return isValidSession;
+  };
+
+  // Kiểm tra token sắp hết hạn để refresh trước
+  const checkTokenNearExpiry = async () => {
+    if (needsTokenRefresh && storedRefreshToken) {
+      try {
+        const response = await https.post("v1/users/refresh-token", {
+          refreshToken: storedRefreshToken,
+        });
+
+        const { accessToken, refreshToken: newRefreshToken } = response.data;
+
+        if (accessToken) {
+          jwt.setAccessToken(accessToken);
+          if (newRefreshToken) jwt.setRefreshToken(newRefreshToken);
+
+          dispatch(
+            refreshToken({
+              token: accessToken,
+              refreshToken: newRefreshToken || storedRefreshToken,
+            })
+          );
+
+          dispatch(setClaims(jwt.saveClaims(accessToken)));
+        }
+      } catch (error) {
+        console.error("Failed to proactively refresh token:", error);
+      }
+    }
+  };
 
   const preFetchUserMetadata = async () => {
-    if (!userName || !password || token) return;
+    if (!userName || !password || token || isLoginInProgress) return; // Thêm check isLoginInProgress
     try {
       const response = await https.post("v1/users/signin", {
         hostId: "https://vikosan-cloud.sse.net.vn",
@@ -50,6 +139,12 @@ const Login = () => {
       });
       const { accessToken, refreshToken, user } = response.data;
       setToken(accessToken);
+
+      // Lưu refreshToken vào jwt utils
+      if (refreshToken) {
+        jwt.setRefreshToken(refreshToken);
+      }
+
       localStorage.setItem("user", JSON.stringify(user));
       dispatch(setClaims(jwt.saveClaims(accessToken)));
       await fetchCompanies(accessToken);
@@ -61,6 +156,7 @@ const Login = () => {
 
   // Handle login and fetch token
   const handleLoginButton = async () => {
+    setIsLoginInProgress(true); // Set flag khi bắt đầu login
     setLoginLoading(true);
     if (!userName || !password) {
       setLoginLoading(false);
@@ -69,29 +165,73 @@ const Login = () => {
         placement: "topLeft",
         icon: <UilExclamationOctagon size="25" color="#ffba00" />,
       });
+      setIsLoginInProgress(false);
+      return;
     }
-    try {
-      // Step 1: Login to get token
-      const response = await https.post("v1/users/signin", {
-        hostId: "https://vikosan-cloud.sse.net.vn",
-        userName,
-        password,
-        devideToken: "",
-        language: "V",
-      });
-      const { accessToken, refreshToken, user } = response.data;
 
-      jwt.setAccessToken(accessToken);
-      jwt.setRefreshToken(refreshToken);
-      setToken(accessToken);
-      localStorage.setItem("user", JSON.stringify(user));
+    try {
+      // Kiểm tra xem đã có token từ preFetch chưa
+      let accessToken = token;
+      let newRefreshToken;
+      let user;
+
+      // Nếu chưa có token (preFetch chưa chạy hoặc failed), thì mới gọi signin
+      if (!accessToken) {
+        const response = await https.post("v1/users/signin", {
+          hostId: "https://vikosan-cloud.sse.net.vn",
+          userName,
+          password,
+          devideToken: "",
+          language: "V",
+        });
+
+        accessToken = response.data.accessToken;
+        newRefreshToken = response.data.refreshToken;
+        user = response.data.user;
+
+        jwt.setAccessToken(accessToken);
+        jwt.setRefreshToken(newRefreshToken);
+        setToken(accessToken);
+
+        // Lưu thông tin user
+        localStorage.setItem("user", JSON.stringify(user));
+      } else {
+        // Nếu đã có token từ preFetch, lấy thông tin từ localStorage
+        user = JSON.parse(localStorage.getItem("user") || "{}");
+        newRefreshToken = jwt.getRefreshToken();
+      }
+
+      // Thiết lập thời gian hết hạn (1 ngày)
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + 1);
+      const tokenExpiry = expiryDate.getTime();
+
+      // Cập nhật redux store
       await dispatch(setClaims(jwt.saveClaims(accessToken)));
-      setTimeout(() => router.navigate("/"), 0);
-      await fetchCompanies(accessToken);
+      await dispatch(setRefreshToken(newRefreshToken));
+      await dispatch(setTokenExpiry(tokenExpiry));
+
+      // Cập nhật auth store
+      await dispatch(
+        login({
+          token: accessToken,
+          refreshToken: newRefreshToken,
+          user,
+        })
+      );
+
+      // Chỉ gọi fetchCompanies nếu chưa load units (units chỉ có giá trị mặc định "Không")
+      if (!unitsLoaded && units.length === 1 && units[0].value === "") {
+        await fetchCompanies(accessToken);
+      }
+
       setLoginLoading(false);
       notification.success({
         message: `Đăng nhập thành công`,
       });
+
+      // Navigate sau khi mọi thứ hoàn tất
+      setTimeout(() => router.navigate("/"), 100);
     } catch (error) {
       setLoginLoading(false);
       notification.warning({
@@ -99,6 +239,8 @@ const Login = () => {
         placement: "topLeft",
         icon: <UilExclamationOctagon size="25" color="#ffba00" />,
       });
+    } finally {
+      setIsLoginInProgress(false); // Reset flag sau khi hoàn tất
     }
   };
 
@@ -139,22 +281,32 @@ const Login = () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
-      localStorage.setItem("unitsResponse", JSON.stringify(unitsResponse.data.units[0]));
       const unitsData = unitsResponse.data?.units || [];
       if (unitsData && unitsData.length > 0) {
-        const firstUnit = unitsData[0];
-        const new_Unit = [{ value: firstUnit.unitId, label: firstUnit.unitName }];
-        setUnits(new_Unit);
-        setUnitSelected(new_Unit[0]);
+        // Lưu toàn bộ dữ liệu units
+        setAllUnitsData(unitsData);
+
+        // Lưu unit đầu tiên vào localStorage làm mặc định
+        localStorage.setItem("unitsResponse", JSON.stringify(unitsData[0]));
+
+        // Map tất cả units thay vì chỉ lấy unit đầu tiên
+        const new_Units = unitsData.map((unit) => ({
+          value: unit.unitId,
+          label: unit.unitName,
+        }));
+        setUnits(new_Units);
+        setUnitSelected(new_Units[0]); // Chọn unit đầu tiên làm mặc định
         setUnitsLoaded(true);
       } else {
         setUnits([{ value: "", label: "Không" }]);
         setUnitSelected({ value: "", label: "Không" });
+        setAllUnitsData([]);
         setUnitsLoaded(false);
       }
     } catch (error) {
       setUnits([{ value: "", label: "Không" }]);
       setUnitSelected({ value: "", label: "Không" });
+      setAllUnitsData([]);
       setUnitsLoaded(false);
       notification.warning({
         message: `Lấy đơn vị thất bại`,
@@ -166,9 +318,25 @@ const Login = () => {
 
   // Fetch stores when unit changes
   const fetchStoreData = async () => {
-    if (!unitSelected?.value) {
+    if (!unitSelected?.value || !token || isLoginInProgress) {
+      // Thêm check isLoginInProgress
       return;
     }
+
+    // Kiểm tra xem đã có stores data cho unit này chưa
+    const existingStoresData = localStorage.getItem("storesData");
+    if (existingStoresData) {
+      try {
+        const stores = JSON.parse(existingStoresData);
+        // Nếu đã có data và cùng unitId thì không cần gọi lại
+        if (stores && stores.unitId === unitSelected.value) {
+          return;
+        }
+      } catch (error) {
+        // Continue to fetch if parse error
+      }
+    }
+
     setLoginLoading(true);
     try {
       const response = await https.get(
@@ -179,6 +347,11 @@ const Login = () => {
         }
       );
       const res = response.data;
+      // Lưu store data vào localStorage hoặc state nếu cần
+      localStorage.setItem(
+        "storesData",
+        JSON.stringify({ ...res, unitId: unitSelected.value })
+      );
 
       setLoginLoading(false);
     } catch (error) {
@@ -192,36 +365,62 @@ const Login = () => {
   };
 
   useEffect(() => {
-    if (unitSelected?.value && token) {
+    if (unitSelected?.value && token && !isLoginInProgress) {
+      // Thêm check isLoginInProgress
       fetchStoreData();
     }
-  }, [unitSelected]);
+  }, [unitSelected, token]); // Thêm token vào dependencies
 
   useEffect(() => {
     setUnits([{ value: "", label: "Không" }]);
     setUnitSelected({ value: "", label: "Không" });
     setToken("");
-  }, [JSON.stringify(userName)]);
+    setIsLoginInProgress(false); // Reset flag khi thay đổi username
+    setUnitsLoaded(false); // Reset units loaded state
+    setAllUnitsData([]); // Reset toàn bộ dữ liệu units
+  }, [userName]); // Chỉ depend vào userName, không cần JSON.stringify
 
   useEffect(() => {
     if (jwt.checkExistToken()) {
-      dispatch(setClaims(jwt.saveClaims(jwt.getAccessToken())));
-      router.navigate("/");
+      // Kiểm tra token hết hạn
+      checkAndRefreshToken().then((isValid) => {
+        if (isValid) {
+          dispatch(setClaims(jwt.saveClaims(jwt.getAccessToken())));
+          router.navigate("/");
+        }
+      });
     }
   }, [dispatch]);
 
+  // Kiểm tra token sắp hết hạn mỗi khi component mount
+  useEffect(() => {
+    if (jwt.checkExistToken()) {
+      checkTokenNearExpiry();
+    }
+  }, []);
+
   const debouncedPreFetch = useDebouncedCallback(() => {
-    if (userName && password && !token) {
+    if (userName && password && !token && !isLoginInProgress) {
       preFetchUserMetadata();
     }
   }, 800);
 
   useEffect(() => {
-    debouncedPreFetch();
-  }, [userName, password]);
+    if (!isLoginInProgress) {
+      debouncedPreFetch();
+    }
+  }, [userName, password, isLoginInProgress]);
 
   const handleChangeUnit = (item) => {
-    setUnitSelected(units.find((unit) => unit.value == item));
+    const selectedUnit = units.find((unit) => unit.value == item);
+    setUnitSelected(selectedUnit);
+
+    // Tìm dữ liệu đầy đủ của unit được chọn từ allUnitsData
+    const fullUnitData = allUnitsData.find((unit) => unit.unitId == item);
+    if (fullUnitData) {
+      // Cập nhật localStorage với dữ liệu của unit được chọn
+      localStorage.setItem("unitsResponse", JSON.stringify(fullUnitData));
+    }
   };
 
   const handleInputUserName = useDebouncedCallback((userName) => {
@@ -332,7 +531,7 @@ const Login = () => {
                 }}
                 size="large"
                 className="default_select"
-                value={unitSelected}
+                value={unitSelected?.value}
                 options={units}
                 onSelect={handleChangeUnit}
               />

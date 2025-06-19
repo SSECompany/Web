@@ -1,4 +1,9 @@
-import { EditOutlined, LeftOutlined, QrcodeOutlined } from "@ant-design/icons";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  LeftOutlined,
+  QrcodeOutlined,
+} from "@ant-design/icons";
 import {
   Button,
   Col,
@@ -25,7 +30,7 @@ const { Title } = Typography;
 const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { stt_rec } = useParams();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [phieuData, setPhieuData] = useState(null);
@@ -49,8 +54,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   const [maKhachList, setMaKhachList] = useState([]);
   const [loadingMaKhach, setLoadingMaKhach] = useState(false);
 
-  // Lấy stt_rec từ state của location nếu có
-  const sttRec = location.state?.sttRec || id;
+  const sctRec = location.state?.sctRec || stt_rec;
   const token = localStorage.getItem("access_token");
 
   // Tạo các hàm debounce cho tìm kiếm
@@ -128,12 +132,38 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
     }
   };
 
+  // Thêm hàm mới để fetch danh sách đơn vị tính
+  const fetchDonViTinh = async (maVatTu) => {
+    try {
+      const response = await https.get(
+        "v1/web/danh-sach-dv",
+        {
+          ma_vt: maVatTu,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data && response.data.data) {
+        return response.data.data;
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching don vi tinh:", error);
+      return [];
+    }
+  };
+
   // Hàm fetch danh sách mã giao dịch
   const fetchMaGiaoDichList = async () => {
     try {
       const response = await https.get(
         "v1/web/danh-sach-ma-gd",
-        {},
+        { ma_ct: "PND" },
         {
           headers: {
             "Content-Type": "application/json",
@@ -259,6 +289,12 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
         ? vatTuDetail[0]
         : vatTuDetail;
 
+      // Gọi API lấy danh sách đơn vị tính
+      const donViTinhList = await fetchDonViTinh(vatTuValue.trim());
+
+      // Lấy đơn vị tính từ API response (đã được trim spaces)
+      const defaultDvt = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
+
       // Thêm vật tư vào dataSource
       setDataSource((prev) => {
         const existing = prev.find((item) => item.maHang === vatTuInfo.ma_vt);
@@ -273,17 +309,28 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             key: prev.length + 1,
             maHang: vatTuInfo.ma_vt,
             soLuong: 1,
+            soLuong_goc: 1,
+            he_so: 1,
             ten_mat_hang: vatTuInfo.ten_vt || vatTuInfo.ma_vt,
-            dvt: vatTuInfo.dvt || "cái",
-            tk_vt: vatTuInfo.tk_vt || "",
+            dvt: defaultDvt,
+            dvt_goc: defaultDvt,
+            tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",
+            ma_kho: vatTuInfo.ma_kho ? vatTuInfo.ma_kho.trim() : "",
             noiDung: vatTuInfo.ten_vt || vatTuInfo.ma_vt || "",
+            donViTinhList: donViTinhList,
           };
           return [...prev, newItem];
         }
       });
 
       message.success(`Đã thêm vật tư: ${vatTuValue}`);
-      setTimeout(() => setVatTuInput(undefined), 0);
+
+      // Clear input và load lại danh sách vật tư
+      setVatTuInput("");
+      setVatTuList([]);
+      setTimeout(() => {
+        fetchVatTuList("");
+      }, 100);
     } catch (error) {
       console.error("Error adding vat tu:", error);
       message.error("Có lỗi xảy ra khi thêm vật tư");
@@ -336,7 +383,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
       try {
         // Gọi API thực để lấy thông tin phiếu nhập kho
         const response = await https.get(`v1/web/thong-tin-phieu-nhap-kho`, {
-          stt_rec: sttRec,
+          stt_rec: sctRec,
         });
 
         console.log("Kết quả API thông tin phiếu:", response.data);
@@ -352,9 +399,15 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
           const vatTuList = apiData.data2 || [];
 
           if (phieuInfo) {
+            // Xử lý trạng thái đặc biệt
+            let statusValue = phieuInfo.status;
+            if (statusValue === "*" || statusValue === null) {
+              statusValue = "0"; // Gán giá trị mặc định nếu status là "*" hoặc null
+            }
+
             // Chuyển đổi dữ liệu từ API sang định dạng phù hợp với component
             const formattedData = {
-              id: id,
+              stt_rec: stt_rec,
               sttRec: phieuInfo.stt_rec,
               ngay: phieuInfo.ngay_ct
                 ? moment(phieuInfo.ngay_ct).format("YYYY-MM-DD")
@@ -364,24 +417,35 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
               dienGiai: phieuInfo.dien_giai || "",
               tenKhach: phieuInfo.ong_ba || "",
               khoNhap: vatTuList.length > 0 ? vatTuList[0].ma_kho || "" : "",
-              status: phieuInfo.status || "0",
+              status: statusValue,
               maGiaoDich: phieuInfo.ma_gd || "",
               ghiChu: "",
               xe: "",
               maSanPham: "",
-              danhSachVatTu: vatTuList.map((item, index) => ({
-                key: index + 1,
-                maHang: item.ma_vt || "",
-                soLuong: item.so_luong || 0,
-                ten_mat_hang: item.ten_vt || item.ma_vt || "",
-                dvt: item.dvt || "cái",
-                maKho: item.ma_kho || "",
-                ma_kho: item.ma_kho || "", // Thêm trường ma_kho để đảm bảo tương thích
-                tk_vt: item.tk_vt || "",
-                tk_co: item.tk_du || "",
-                tk_du: item.tk_du || "", // Thêm trường tk_du để đảm bảo tương thích
-                noiDung: item.ten_vt || item.ma_vt || "",
-              })),
+              danhSachVatTu: await Promise.all(
+                vatTuList.map(async (item, index) => {
+                  // Gọi API lấy danh sách đơn vị tính cho mỗi vật tư
+                  const donViTinhList = await fetchDonViTinh(item.ma_vt);
+
+                  return {
+                    key: index + 1,
+                    maHang: item.ma_vt || "",
+                    soLuong: item.so_luong || 0,
+                    soLuong_goc: item.so_luong || 0,
+                    he_so: item.he_so || 1,
+                    ten_mat_hang: item.ten_vt || item.ma_vt || "",
+                    dvt: item.dvt ? item.dvt.trim() : "cái",
+                    dvt_goc: item.dvt ? item.dvt.trim() : "cái",
+                    maKho: item.ma_kho || "",
+                    ma_kho: item.ma_kho || "",
+                    tk_vt: item.tk_vt || "",
+                    tk_co: item.tk_du || "",
+                    tk_du: item.tk_du || "",
+                    noiDung: item.ten_vt || item.ma_vt || "",
+                    donViTinhList: donViTinhList,
+                  };
+                })
+              ),
             };
 
             console.log("Dữ liệu đã xử lý:", formattedData);
@@ -409,10 +473,10 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
     };
 
     // Chỉ gọi API khi có sttRec và chưa gọi API
-    if (sttRec && !apiCalled) {
+    if (sctRec && !apiCalled) {
       fetchPhieuDetail();
     }
-  }, [sttRec, form, apiCalled]);
+  }, [sctRec, form, apiCalled]);
 
   const handleSubmit = async () => {
     try {
@@ -432,6 +496,10 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
         }
         if (!item.tk_co && !item.tk_du) {
           missingData.push(`Dòng ${index + 1}: Chưa chọn tài khoản có`);
+        }
+        const soLuong = parseFloat(item.soLuong || 0);
+        if (soLuong <= 0) {
+          missingData.push(`Dòng ${index + 1}: Số lượng phải lớn hơn 0`);
         }
       });
 
@@ -586,8 +654,12 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   };
 
   const handleEdit = () => {
-    navigate(`/boxly/phieu-nhap-kho/edit/${id}`);
+    navigate(`/boxly/phieu-nhap-kho/edit/${stt_rec}`);
     setIsEditMode(true);
+  };
+
+  const handleNew = () => {
+    navigate("/boxly/phieu-nhap-kho/add");
   };
 
   const handleDelete = async () => {
@@ -606,8 +678,9 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             return;
           }
 
-          const response = await https.delete(
-            `v1/web/xoa-ct-nhap-kho?stt_rec=${phieuData.sttRec}`,
+          const response = await https.post(
+            `v1/web/xoa-ct-nhap-kho?sctRec=${phieuData.sttRec}`,
+            {},
             {
               headers: {
                 "Content-Type": "application/json",
@@ -616,7 +689,8 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             }
           );
 
-          if (response.data && response.data.success) {
+          // Kiểm tra response theo đúng cấu trúc trả về
+          if (response.data && response.data.statusCode === 200) {
             message.success("Xóa phiếu nhập kho thành công");
             navigate("../phieu-nhap-kho");
           } else {
@@ -645,6 +719,33 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
     }
 
     handleAddVatTu(value, option);
+  };
+
+  // Thêm hàm xử lý thay đổi số lượng
+  const handleQuantityChange = (value, record, field) => {
+    const newValue = value || 0;
+    setDataSource((prev) =>
+      prev.map((item) =>
+        item.key === record.key ? { ...item, [field]: newValue } : item
+      )
+    );
+  };
+
+  // Hàm xử lý xóa dòng vật tư
+  const handleDeleteItem = (index) => {
+    if (!isEditMode) {
+      message.warning("Bạn cần bật chế độ chỉnh sửa");
+      return;
+    }
+
+    const newDataSource = dataSource.filter((_, i) => i !== index);
+    // Cập nhật lại key cho các item
+    const reIndexedDataSource = newDataSource.map((item, i) => ({
+      ...item,
+      key: i + 1,
+    }));
+    setDataSource(reIndexedDataSource);
+    message.success("Đã xóa vật tư");
   };
 
   return (
@@ -836,13 +937,110 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
                 dataIndex: "dvt",
                 key: "dvt",
                 width: 80,
-                render: (text, record) => record.dvt || "cái",
+                render: (text, record) => {
+                  // Nếu không phải edit mode, chỉ hiển thị text
+                  if (!isEditMode) {
+                    return text || record.dvt || "cái";
+                  }
+
+                  // Lấy danh sách đơn vị tính từ record
+                  const dvtOptions = record.donViTinhList || [];
+
+                  return (
+                    <Select
+                      value={text || record.dvt || "cái"}
+                      onChange={(newValue) => {
+                        // Tìm thông tin đơn vị tính được chọn
+                        const selectedDvt = dvtOptions.find(
+                          (dvt) => dvt.dvt.trim() === newValue.trim()
+                        );
+                        const heSo = selectedDvt
+                          ? parseFloat(selectedDvt.he_so) || 1
+                          : 1;
+
+                        // Lấy số lượng gốc (luôn giữ nguyên)
+                        const soLuongGoc = record.soLuong_goc || 1;
+
+                        // Tính số lượng mới = số lượng gốc × hệ số
+                        const soLuongMoi = soLuongGoc * heSo;
+
+                        // Làm tròn đến 3 chữ số thập phân
+                        const soLuongLamTron =
+                          Math.round(soLuongMoi * 1000) / 1000;
+
+                        setDataSource((prev) =>
+                          prev.map((item) =>
+                            item.key === record.key
+                              ? {
+                                  ...item,
+                                  dvt: newValue,
+                                  he_so: heSo,
+                                  soLuong: soLuongLamTron,
+                                }
+                              : item
+                          )
+                        );
+                      }}
+                      style={{ width: "100%" }}
+                      size="small"
+                    >
+                      {dvtOptions.length > 0 ? (
+                        dvtOptions.map((dvt) => (
+                          <Select.Option key={dvt.dvt} value={dvt.dvt}>
+                            {dvt.dvt.trim()}
+                          </Select.Option>
+                        ))
+                      ) : (
+                        <Select.Option value={text || record.dvt || "cái"}>
+                          {text || record.dvt || "cái"}
+                        </Select.Option>
+                      )}
+                    </Select>
+                  );
+                },
               },
               {
                 title: "Số lượng",
                 dataIndex: "soLuong",
                 key: "soLuong",
-                width: 100,
+                width: 120,
+                render: (value, record) =>
+                  isEditMode ? (
+                    <Input
+                      type="text"
+                      value={value}
+                      onChange={(e) => {
+                        // Cho phép nhập số và dấu chấm thập phân
+                        const val = e.target.value.replace(/[^0-9.]/g, "");
+                        // Đảm bảo chỉ có 1 dấu chấm
+                        const parts = val.split(".");
+                        const formattedVal =
+                          parts.length > 2
+                            ? parts[0] + "." + parts.slice(1).join("")
+                            : val;
+                        handleQuantityChange(
+                          formattedVal ? parseFloat(formattedVal) : 0,
+                          record,
+                          "soLuong"
+                        );
+                      }}
+                      style={{
+                        width: "100%",
+                        textAlign: "center",
+                        fontWeight: "bold",
+                      }}
+                    />
+                  ) : (
+                    <span
+                      style={{
+                        fontWeight: "bold",
+                        display: "block",
+                        textAlign: "center",
+                      }}
+                    >
+                      {value ? Number(value).toFixed(3) : "0.000"}
+                    </span>
+                  ),
               },
               {
                 title: "Tk nợ",
@@ -933,18 +1131,43 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
                     record.tk_co || record.tk_du
                   ),
               },
+              {
+                title: "Thao tác",
+                key: "action",
+                width: 80,
+                align: "center",
+                render: (_, record, index) => (
+                  <Button
+                    type="text"
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleDeleteItem(index)}
+                    title="Xóa dòng"
+                    disabled={!isEditMode}
+                  />
+                ),
+              },
             ]}
             pagination={false}
           />
-          <Space style={{ marginTop: 16 }}>
-            <Button type="primary" onClick={handleSubmit}>
-              Lưu
-            </Button>
-            <Button danger onClick={handleDelete}>
-              Xóa
-            </Button>
-            <Button>Mới</Button>
-          </Space>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-start",
+              marginTop: 16,
+            }}
+          >
+            <Space>
+              <Button type="primary" onClick={handleSubmit}>
+                Lưu
+              </Button>
+              <Button danger onClick={handleDelete}>
+                Xóa
+              </Button>
+              <Button onClick={handleNew}>Mới</Button>
+            </Space>
+          </div>
         </Form>
       </div>
     </div>

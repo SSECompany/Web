@@ -57,15 +57,14 @@ const protectedChildrenRoutes = [
       },
       {
         label: "Chi tiết phiếu nhập kho",
-        path: "phieu-nhap-kho/:id",
+        path: "phieu-nhap-kho/:stt_rec",
         element: <DetailPhieuNhapKho />,
       },
       {
         label: "Sửa phiếu nhập kho",
-        path: "phieu-nhap-kho/edit/:id",
+        path: "phieu-nhap-kho/edit/:stt_rec",
         element: <DetailPhieuNhapKho isEditMode={true} />,
       },
-      // Thêm routes cho phiếu xuất kho bán hàng
       {
         label: "Danh sách phiếu xuất kho bán hàng",
         path: "phieu-xuat-kho-ban-hang",
@@ -78,12 +77,12 @@ const protectedChildrenRoutes = [
       },
       {
         label: "Chi tiết phiếu xuất kho bán hàng",
-        path: "phieu-xuat-kho-ban-hang/:id",
+        path: "phieu-xuat-kho-ban-hang/:stt_rec",
         element: <DetailPhieuXuatKhoBanHang />,
       },
       {
         label: "Sửa phiếu xuất kho bán hàng",
-        path: "phieu-xuat-kho-ban-hang/edit/:id",
+        path: "phieu-xuat-kho-ban-hang/edit/:stt_rec",
         element: <DetailPhieuXuatKhoBanHang isEditMode={true} />,
       },
     ],

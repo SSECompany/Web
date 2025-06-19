@@ -28,12 +28,11 @@ const instance = axios.create({
   },
 });
 
-
 instance.interceptors.request.use((req) => {
   // Only set Authorization header if not present in any case (uppercase or lowercase)
   if (
     !req.headers ||
-    (!req.headers['Authorization'] && !req.headers['authorization'])
+    (!req.headers["Authorization"] && !req.headers["authorization"])
   ) {
     req.headers.Authorization = `Bearer ${jwt.getAccessToken()}`;
   }

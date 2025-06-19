@@ -28,7 +28,10 @@ const getRoutesAccess = async (routes) => {
       return { ...child, path: parent.path + "/" + child.path, children: null };
     });
   });
-  const claims = userData.Permision;
+
+  // Thêm fallback để tránh lỗi undefined
+  const claims = userData?.Permision || [];
+
   // const claims = Object.keys(userData).filter((key) => {
   //   if (key.includes("Permissions.")) return userData[key];
   // });
@@ -53,14 +56,18 @@ const getRoutesAccess = async (routes) => {
     //         isParent: r.children ? true : false,
     //       }));
     [...routesToFlat, ...childRoutes]
-      .filter((route) => claims.includes(route.claims))
+      .filter((route) => Array.isArray(claims) && claims.includes(route.claims))
       .map((r) => ({
         label: r.label,
         path: r.path,
         claims: r.claims,
         isParent: r.children ? true : false,
-      }))
-  const userRoute = allRoutes.filter((route) => claims.includes(route.claims));
+      }));
+
+  const userRoute = allRoutes.filter(
+    (route) => Array.isArray(claims) && claims.includes(route.claims)
+  );
+
   // const userRoute =  userData?.RoleId == "1"
   //     ? [...allRoutes]
   //     : allRoutes.filter((route) => claims.includes(route.claims));

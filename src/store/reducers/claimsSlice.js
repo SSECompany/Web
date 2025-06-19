@@ -17,11 +17,11 @@ const claims = createSlice({
       isPremium: false,
       id: 0,
     },
-    userSetting: {
-
-    },
+    userSetting: {},
     isBackgound: false,
     isHideNav: false,
+    refreshToken: "",
+    tokenExpiry: null,
   },
   reducers: {
     setClaims(state, action) {
@@ -48,14 +48,31 @@ const claims = createSlice({
     setText(state, action) {
       state.textTest = action?.payload;
     },
-
     setIsHideNav(state, action) {
       state.isHideNav = action?.payload;
+    },
+    setRefreshToken(state, action) {
+      state.refreshToken = action?.payload;
+    },
+    setTokenExpiry(state, action) {
+      state.tokenExpiry = action?.payload;
+    },
+    clearTokenData(state) {
+      state.refreshToken = "";
+      state.tokenExpiry = null;
     },
   },
 });
 
 const claimsReducer = claims.reducer;
 export default claimsReducer;
-export const { setClaims, setText, setIsBackgrouds, setIsHideNav, setUserSetting } =
-  claims.actions;
+export const {
+  setClaims,
+  setText,
+  setIsBackgrouds,
+  setIsHideNav,
+  setUserSetting,
+  setRefreshToken,
+  setTokenExpiry,
+  clearTokenData,
+} = claims.actions;
