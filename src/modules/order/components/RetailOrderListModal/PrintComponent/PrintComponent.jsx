@@ -291,7 +291,17 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
       </div>
       <div style={{ textAlign: "center", marginTop: "10px" }}>
         <img
-          src={`https://img.vietqr.io/image/${account}-qr_only.png?amount=${master?.tong_tien}`}
+          src={`https://img.vietqr.io/image/${account}-qr_only.png?amount=${
+            master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
+              ? master.chuyen_khoan
+              : master?.tong_tien
+          }&addInfo=${encodeURIComponent(
+            `thanh toan Phenikaa so CT ${master?.so_ct}: ${formatNumber(
+              master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
+                ? master.chuyen_khoan
+                : master?.tong_tien
+            )}vnd`
+          )}`}
           alt="QR Code"
           style={{ width: "100px", height: "100px" }}
         />

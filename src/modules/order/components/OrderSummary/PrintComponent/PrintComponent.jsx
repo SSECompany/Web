@@ -76,11 +76,6 @@ const PrintComponent = forwardRef(
               .padStart(2, "0")}`}
           </span>
         </div>
-
-        <div style={{ color: "#000", marginBottom: "6px" }}>
-          <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
-        </div>
-
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Tên khách:</strong>{" "}
           {master?.ong_ba && master.ong_ba.trim()
@@ -91,6 +86,12 @@ const PrintComponent = forwardRef(
           <div style={{ color: "#000" }}>
             <strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}
           </div>
+        </div>
+        <div style={{ color: "#000", marginBottom: "6px" }}>
+          <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
+        </div>
+        <div style={{ color: "#000", marginBottom: "6px" }}>
+          <strong>Số CT:</strong> {orderNumber || "Chưa có"}
         </div>
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Nhân viên:</strong> {fullName}
@@ -305,8 +306,16 @@ const PrintComponent = forwardRef(
         <div style={{ textAlign: "center", marginTop: "10px" }}>
           <img
             src={`https://img.vietqr.io/image/${account}-qr_only.png?amount=${
-              master?.chuyen_khoan || master?.tong_tien
-            }`}
+              master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
+                ? master.chuyen_khoan
+                : master?.tong_tien
+            }&addInfo=${encodeURIComponent(
+              `thanh toan Phenikaa so CT ${orderNumber}: ${formatNumber(
+                master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
+                  ? master.chuyen_khoan
+                  : master?.tong_tien
+              )}vnd`
+            )}`}
             alt="QR Code"
             style={{ width: "100px", height: "100px" }}
           />
