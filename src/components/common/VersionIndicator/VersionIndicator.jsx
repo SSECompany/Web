@@ -5,15 +5,22 @@ import useVersionCheck from "../../../hooks/useVersionCheck";
 import "./VersionIndicator.css";
 
 const VersionIndicator = ({ showDetails = false, size = "small" }) => {
-  const { hasNewVersion, newVersionInfo, checkVersionNow, currentVersion } =
-    useVersionCheck();
+  const {
+    hasNewVersion,
+    newVersionInfo,
+    checkVersionNow,
+    currentVersion,
+    isChecking,
+  } = useVersionCheck();
 
   if (!showDetails && !hasNewVersion) {
     return null;
   }
 
   const handleCheckVersion = () => {
-    checkVersionNow();
+    if (!isChecking) {
+      checkVersionNow();
+    }
   };
 
   if (showDetails) {
@@ -32,11 +39,15 @@ const VersionIndicator = ({ showDetails = false, size = "small" }) => {
             }
           />
         </div>
-        <Tooltip title="Kiểm tra cập nhật">
+        <Tooltip title={isChecking ? "Đang kiểm tra..." : "Kiểm tra cập nhật"}>
           <ReloadOutlined
             className="refresh-icon"
             onClick={handleCheckVersion}
-            spin={false}
+            spin={isChecking}
+            style={{
+              opacity: isChecking ? 0.6 : 1,
+              cursor: isChecking ? "not-allowed" : "pointer",
+            }}
           />
         </Tooltip>
       </div>

@@ -202,7 +202,6 @@ const MealDetailsForm = () => {
 
   const handleModeChange = useCallback(
     (timeOfDay, index, value) => {
-      console.log("handleModeChange called with:", timeOfDay, index, value);
 
       updateMealEntry(timeOfDay, index, (meal) => {
         meal.mode = value;
@@ -216,8 +215,6 @@ const MealDetailsForm = () => {
       // Fetch food list when mode changes
       const fetchListFood = async () => {
         if (!selectedDate || !value) return;
-
-        console.log("Fetching food list for:", timeOfDay, value, selectedDate);
 
         try {
           const response = await multipleTablePutApi({
@@ -235,7 +232,6 @@ const MealDetailsForm = () => {
           });
 
           const foodList = response?.listObject?.[0] || [];
-          console.log("API response food list:", foodList);
 
           // Lưu vào state local thay vì Redux
           setLocalFoodList((prev) => {
@@ -263,7 +259,6 @@ const MealDetailsForm = () => {
           // Nếu có món ăn mới, thêm vào danh sách và cập nhật Redux
           if (newFoodItems.length > 0) {
             const updatedFoodList = [...currentFoodList, ...newFoodItems];
-            console.log("Updating Redux with:", updatedFoodList);
             dispatch(setListFood(updatedFoodList));
           }
         } catch (error) {

@@ -23,8 +23,7 @@ const MealEntryRow = ({
       (food) => food.ma_ca === timeOfDay && food.ma_nh === meal.mode
     );
 
-  console.log("MealInputBlock rendered for:", timeOfDay, meal.mode);
-  console.log("Available foods:", availableFoods);
+ 
 
   // Determine shift name for display
   const shiftName =

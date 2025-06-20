@@ -1,16 +1,23 @@
 import { Modal, notification } from "antd";
 import { useEffect, useRef, useState } from "react";
 
+// Global flags để tránh duplicate notifications
+let globalHasNotified = false;
+let globalCurrentNotificationKey = null;
+
 const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
   // 10 phút
   const [hasNewVersion, setHasNewVersion] = useState(false);
   const [newVersionInfo, setNewVersionInfo] = useState(null);
   const [currentVersion, setCurrentVersion] = useState(null);
+  const [isChecking, setIsChecking] = useState(false);
+
   const intervalRef = useRef(null);
   const currentVersionRef = useRef(null);
   const hasNotifiedRef = useRef(false); // Flag để tránh thông báo nhiều lần
   const isCheckingRef = useRef(false); // Flag để tránh check đồng thời
   const lastCheckTimeRef = useRef(0); // Thời gian check cuối cùng
+  const currentNotificationKeyRef = useRef(null); // Track current notification
 
   // Lấy version hiện tại khi component mount
   const getCurrentVersion = async () => {
@@ -27,16 +34,24 @@ const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
   };
 
   // Kiểm tra version mới
-  const checkForNewVersion = async () => {
+  const checkForNewVersion = async (forceShow = false) => {
     // Tránh check đồng thời
     if (isCheckingRef.current) return;
 
-    // Tránh check quá thường xuyên (ít nhất 30 giây giữa các lần check)
-    const now = Date.now();
-    if (now - lastCheckTimeRef.current < 30000) return;
+    // Chỉ throttle cho automatic check, không throttle cho manual check
+    if (!forceShow) {
+      // Tránh check quá thường xuyên (ít nhất 30 giây giữa các lần check)
+      const now = Date.now();
+      if (now - lastCheckTimeRef.current < 30000) return;
+    }
 
     isCheckingRef.current = true;
-    lastCheckTimeRef.current = now;
+    if (forceShow) {
+      setIsChecking(true); // Chỉ hiển thị loading cho manual check
+    }
+    if (!forceShow) {
+      lastCheckTimeRef.current = Date.now();
+    }
 
     try {
       const newVersion = await getCurrentVersion();
@@ -48,6 +63,7 @@ const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
         currentVersionRef.current = newVersion;
         setCurrentVersion(newVersion);
         localStorage.setItem("app_version", JSON.stringify(newVersion));
+        globalHasNotified = false; // Reset global flag
         hasNotifiedRef.current = false; // Reset notification flag
         return;
       }
@@ -57,25 +73,60 @@ const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
         currentVersionRef.current.version !== newVersion.version ||
         currentVersionRef.current.buildHash !== newVersion.buildHash;
 
-      if (isDifferent && !hasNotifiedRef.current) {
-        // Đánh dấu đã thông báo để tránh spam
-        hasNotifiedRef.current = true;
+      // Cho phép hiển thị nếu:
+      // 1. Manual check (forceShow = true) và có version khác biệt
+      // 2. Automatic check và chưa từng thông báo và chưa có notification active
+      const shouldShowNotification =
+        isDifferent &&
+        (forceShow || (!globalHasNotified && !globalCurrentNotificationKey));
+
+      if (shouldShowNotification) {
+        // Đối với manual check, kiểm tra xem đã có notification cùng version hay chưa
+        const key = `version-update-${newVersion.version}-${newVersion.buildHash}`;
+        if (forceShow && globalCurrentNotificationKey === key) {
+          // Đã có notification cho version này rồi, không tạo mới
+          return;
+        }
+
+        // Đánh dấu đã thông báo để tránh spam (chỉ với automatic check)
+        if (!forceShow) {
+          globalHasNotified = true;
+          hasNotifiedRef.current = true;
+        }
 
         setHasNewVersion(true);
         setNewVersionInfo(newVersion);
 
-        // Hiển thị notification - CHỈ 1 LẦN
-        const key = `version-update-${newVersion.version}-${newVersion.buildHash}`;
+        // Destroy notification cũ nếu có (chỉ khi khác version)
+        if (
+          globalCurrentNotificationKey &&
+          globalCurrentNotificationKey !== key
+        ) {
+          notification.destroy(globalCurrentNotificationKey);
+        }
+
+        // Hiển thị notification với key cố định
+        globalCurrentNotificationKey = key;
+        currentNotificationKeyRef.current = key;
+
         notification.info({
-          message: "Có phiên bản mới!",
+          message: forceShow
+            ? "Kết quả kiểm tra cập nhật"
+            : "Có phiên bản mới!",
           description: `Phiên bản ${newVersion.version} đã có sẵn. Bạn có muốn cập nhật ngay?`,
           duration: 0, // Không tự động đóng
           key: key,
+          onClose: () => {
+            globalCurrentNotificationKey = null;
+            currentNotificationKeyRef.current = null;
+          },
           btn: (
             <div>
               <button
                 onClick={() => {
                   notification.destroy(key);
+                  globalCurrentNotificationKey = null;
+                  currentNotificationKeyRef.current = null;
                   handleUpdateApp(newVersion);
                 }}
                 style={{
@@ -93,8 +144,14 @@ const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
               <button
                 onClick={() => {
                   notification.destroy(key);
+                  globalCurrentNotificationKey = null;
+                  currentNotificationKeyRef.current = null;
                   setHasNewVersion(false);
-                  hasNotifiedRef.current = false; // Reset để có thể thông báo version tiếp theo
+                  // Chỉ reset flag với automatic check
+                  if (!forceShow) {
+                    globalHasNotified = false;
+                    hasNotifiedRef.current = false;
+                  }
                 }}
                 style={{
                   background: "#f5f5f5",
@@ -109,11 +166,28 @@ const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
             </div>
           ),
         });
+      } else if (forceShow && !isDifferent) {
+        // Manual check nhưng không có version mới
+        notification.success({
+          message: "Đã cập nhật mới nhất",
+          description: `Bạn đang sử dụng phiên bản mới nhất: v${newVersion.version}`,
+          duration: 3,
+        });
       }
     } catch (error) {
       console.warn("Lỗi khi kiểm tra version:", error);
+      if (forceShow) {
+        notification.error({
+          message: "Lỗi kiểm tra cập nhật",
+          description: "Không thể kết nối để kiểm tra phiên bản mới.",
+          duration: 3,
+        });
+      }
     } finally {
       isCheckingRef.current = false;
+      if (forceShow) {
+        setIsChecking(false); // Tắt loading cho manual check
+      }
     }
   };
 
@@ -138,7 +212,9 @@ const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
       okText: "Cập nhật ngay",
       cancelText: "Hủy",
       onOk: async () => {
-        // Reset notification flag
+        // Reset notification flag khi user đồng ý update
+        globalHasNotified = false;
+        globalCurrentNotificationKey = null;
         hasNotifiedRef.current = false;
 
         try {
@@ -148,7 +224,6 @@ const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
             await Promise.all(
               cacheNames.map((cacheName) => caches.delete(cacheName))
             );
-            console.log("✅ Đã xóa browser caches");
           }
 
           // 2. Xóa service worker cache (nếu có)
@@ -158,13 +233,11 @@ const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
             await Promise.all(
               registrations.map((registration) => registration.unregister())
             );
-            console.log("✅ Đã xóa service worker");
           }
 
           // 3. Clear tất cả storage
           localStorage.clear();
           sessionStorage.clear();
-          console.log("✅ Đã xóa localStorage & sessionStorage");
 
           // 4. Set version mới vào localStorage
           localStorage.setItem("app_version", JSON.stringify(newVersion));
@@ -182,7 +255,6 @@ const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
                   });
                 })
               );
-              console.log("✅ Đã xóa IndexedDB");
             } catch (error) {
               console.warn("Không thể xóa IndexedDB:", error);
             }
@@ -195,7 +267,6 @@ const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
             document.cookie =
               name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
           });
-          console.log("✅ Đã xóa cookies");
         } catch (error) {
           console.warn("Một số cache không thể xóa:", error);
         }
@@ -207,9 +278,9 @@ const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
     });
   };
 
-  // Kiểm tra version ngay lập tức khi có update
+  // Kiểm tra version ngay lập tức khi có update (manual check)
   const checkVersionNow = () => {
-    checkForNewVersion();
+    checkForNewVersion(true); // forceShow = true để luôn hiển thị kết quả
   };
 
   useEffect(() => {
@@ -260,6 +331,7 @@ const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
     newVersionInfo,
     checkVersionNow,
     currentVersion,
+    isChecking,
   };
 };
 
