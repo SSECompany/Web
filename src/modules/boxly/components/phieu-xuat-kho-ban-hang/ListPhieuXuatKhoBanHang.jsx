@@ -7,12 +7,10 @@ import {
 } from "@ant-design/icons";
 import {
   Button,
-  Col,
   DatePicker,
   Input,
   message,
   Modal,
-  Row,
   Space,
   Table,
   Tag,
@@ -32,6 +30,7 @@ const ListPhieuXuatKhoBanHang = () => {
   const [allData, setAllData] = useState([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isMobile, setIsMobile] = useState(false);
   const [filters, setFilters] = useState({
     so_ct: "",
     ma_kh: "",
@@ -40,10 +39,22 @@ const ListPhieuXuatKhoBanHang = () => {
     status: "",
   });
 
-  const pageSize = 20;
+  const pageSize = isMobile ? 10 : 20;
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const paginatedData = allData.slice(startIndex, endIndex);
+
+  // Detect screen size
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const fetchPhieuXuatKhoBanHang = async (filterParams = filters) => {
     const body = {
@@ -83,6 +94,7 @@ const ListPhieuXuatKhoBanHang = () => {
       okText: "Xóa",
       okType: "danger",
       cancelText: "Hủy",
+      centered: true,
       onOk: async () => {
         try {
           const response = await https.post(
@@ -115,11 +127,135 @@ const ListPhieuXuatKhoBanHang = () => {
     });
   };
 
-  const columns = [
+  const renderFilterDropdown =
+    (placeholder, filterKey, onSearch) =>
+    ({ setSelectedKeys, selectedKeys, confirm }) =>
+      (
+        <div style={{ padding: 8, minWidth: 200 }}>
+          <Input
+            placeholder={placeholder}
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => onSearch(selectedKeys, confirm, filterKey)}
+            style={{ marginBottom: 8, display: "block" }}
+            size={isMobile ? "small" : "middle"}
+          />
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => onSearch(selectedKeys, confirm, filterKey)}
+            size={isMobile ? "small" : "middle"}
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      );
+
+  const handleSearch = (selectedKeys, confirm, filterKey) => {
+    confirm();
+    const newFilters = { ...filters, [filterKey]: selectedKeys[0] || "" };
+    setFilters(newFilters);
+    fetchPhieuXuatKhoBanHang(newFilters);
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "0":
+        return "orange";
+      case "4":
+        return "green";
+      case "5":
+        return "blue";
+      case "6":
+        return "purple";
+      case "2":
+        return "cyan";
+      default:
+        return "default";
+    }
+  };
+
+  const mobileColumns = [
     {
       title: "STT",
       key: "stt",
-      render: (_, __, index) => index + 1,
+      render: (_, __, index) => startIndex + index + 1,
+      width: 50,
+      align: "center",
+    },
+    {
+      title: "Ngày CT",
+      dataIndex: "ngay_ct",
+      key: "ngay_ct",
+      width: 100,
+      render: (text) => dayjs(text).format("DD/MM"),
+    },
+    {
+      title: "Số CT",
+      dataIndex: "so_ct",
+      key: "so_ct",
+      width: 120,
+      render: (text) => (
+        <div style={{ fontSize: "12px", lineHeight: "1.2" }}>
+          {text ? text.trim() : ""}
+        </div>
+      ),
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "statusname",
+      key: "status",
+      width: 100,
+      render: (statusname, record) => (
+        <Tag color={getStatusColor(record.status)} size="small">
+          {statusname}
+        </Tag>
+      ),
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      width: 100,
+      align: "center",
+      render: (_, record) => (
+        <Space size="small" direction="vertical">
+          <Button
+            size="small"
+            icon={<FileTextOutlined />}
+            onClick={() => navigate(`${record.stt_rec}`)}
+            className="phieu-action-btn phieu-view-btn"
+            style={{ width: "100%" }}
+          >
+            Xem
+          </Button>
+          <Space size={4}>
+            <Button
+              size="small"
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => navigate(`edit/${record.stt_rec}`)}
+              className="phieu-action-btn phieu-edit-btn"
+            />
+            <Button
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record.stt_rec)}
+              className="phieu-action-btn phieu-delete-btn"
+            />
+          </Space>
+        </Space>
+      ),
+    },
+  ];
+
+  const desktopColumns = [
+    {
+      title: "STT",
+      key: "stt",
+      render: (_, __, index) => startIndex + index + 1,
       width: 60,
       align: "center",
     },
@@ -127,7 +263,7 @@ const ListPhieuXuatKhoBanHang = () => {
       title: "Ngày CT",
       dataIndex: "ngay_ct",
       key: "ngay_ct",
-      width: 200,
+      width: 150,
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div style={{ padding: 8 }}>
           <DatePicker
@@ -175,7 +311,11 @@ const ListPhieuXuatKhoBanHang = () => {
       title: () => (
         <div style={{ width: 120 }}>
           Số chứng từ{" "}
-          {filters.so_ct ? <Tag color="blue">{filters.so_ct}</Tag> : null}
+          {filters.so_ct ? (
+            <Tag color="blue" size="small">
+              {filters.so_ct}
+            </Tag>
+          ) : null}
         </div>
       ),
       dataIndex: "so_ct",
@@ -183,44 +323,18 @@ const ListPhieuXuatKhoBanHang = () => {
       width: 150,
       align: "center",
       render: (text) => (text ? text.trim() : ""),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Input
-            placeholder="Tìm Số CT"
-            value={selectedKeys[0]}
-            onChange={(e) =>
-              setSelectedKeys(e.target.value ? [e.target.value] : [])
-            }
-            onPressEnter={() => {
-              confirm();
-              const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
-              setFilters(newFilters);
-              fetchPhieuXuatKhoBanHang(newFilters);
-            }}
-            style={{ marginBottom: 8, display: "block" }}
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => {
-              confirm();
-              const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
-              setFilters(newFilters);
-              fetchPhieuXuatKhoBanHang(newFilters);
-            }}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
+      filterDropdown: renderFilterDropdown("Tìm Số CT", "so_ct", handleSearch),
       filteredValue: filters.so_ct ? [filters.so_ct] : null,
     },
     {
       title: () => (
         <div style={{ width: 120 }}>
           Mã khách{" "}
-          {filters.ma_kh ? <Tag color="blue">{filters.ma_kh}</Tag> : null}
+          {filters.ma_kh ? (
+            <Tag color="blue" size="small">
+              {filters.ma_kh}
+            </Tag>
+          ) : null}
         </div>
       ),
       dataIndex: "ma_kh",
@@ -228,36 +342,10 @@ const ListPhieuXuatKhoBanHang = () => {
       width: 150,
       align: "center",
       render: (text) => (text ? text.trim() : ""),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Input
-            placeholder="Tìm Mã khách"
-            value={selectedKeys[0]}
-            onChange={(e) =>
-              setSelectedKeys(e.target.value ? [e.target.value] : [])
-            }
-            onPressEnter={() => {
-              confirm();
-              const newFilters = { ...filters, ma_kh: selectedKeys[0] || "" };
-              setFilters(newFilters);
-              fetchPhieuXuatKhoBanHang(newFilters);
-            }}
-            style={{ marginBottom: 8, display: "block" }}
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => {
-              confirm();
-              const newFilters = { ...filters, ma_kh: selectedKeys[0] || "" };
-              setFilters(newFilters);
-              fetchPhieuXuatKhoBanHang(newFilters);
-            }}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
+      filterDropdown: renderFilterDropdown(
+        "Tìm Mã khách",
+        "ma_kh",
+        handleSearch
       ),
       filteredValue: filters.ma_kh ? [filters.ma_kh] : null,
     },
@@ -265,7 +353,11 @@ const ListPhieuXuatKhoBanHang = () => {
       title: () => (
         <div style={{ width: 180 }}>
           Tên khách{" "}
-          {filters.ten_kh ? <Tag color="blue">{filters.ten_kh}</Tag> : null}
+          {filters.ten_kh ? (
+            <Tag color="blue" size="small">
+              {filters.ten_kh}
+            </Tag>
+          ) : null}
         </div>
       ),
       dataIndex: "ten_kh",
@@ -273,36 +365,10 @@ const ListPhieuXuatKhoBanHang = () => {
       width: 250,
       align: "left",
       render: (text) => (text ? text.trim() : ""),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Input
-            placeholder="Tìm Tên khách"
-            value={selectedKeys[0]}
-            onChange={(e) =>
-              setSelectedKeys(e.target.value ? [e.target.value] : [])
-            }
-            onPressEnter={() => {
-              confirm();
-              const newFilters = { ...filters, ten_kh: selectedKeys[0] || "" };
-              setFilters(newFilters);
-              fetchPhieuXuatKhoBanHang(newFilters);
-            }}
-            style={{ marginBottom: 8, display: "block" }}
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => {
-              confirm();
-              const newFilters = { ...filters, ten_kh: selectedKeys[0] || "" };
-              setFilters(newFilters);
-              fetchPhieuXuatKhoBanHang(newFilters);
-            }}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
+      filterDropdown: renderFilterDropdown(
+        "Tìm Tên khách",
+        "ten_kh",
+        handleSearch
       ),
       filteredValue: filters.ten_kh ? [filters.ten_kh] : null,
     },
@@ -312,35 +378,16 @@ const ListPhieuXuatKhoBanHang = () => {
       key: "status",
       width: 120,
       align: "center",
-      render: (statusname, record) => {
-        // Xác định màu dựa trên status
-        let color = "default";
-        switch (record.status) {
-          case "0":
-            color = "orange";
-            break;
-          case "4":
-            color = "green";
-            break;
-          case "5":
-            color = "blue";
-            break;
-          case "6":
-            color = "purple";
-            break;
-          case "2":
-            color = "cyan";
-            break;
-          default:
-            color = "default";
-        }
-        return <Tag color={color}>{statusname}</Tag>;
-      },
+      render: (statusname, record) => (
+        <Tag color={getStatusColor(record.status)}>{statusname}</Tag>
+      ),
     },
     {
       title: "Hành động",
       key: "action",
+      width: 150,
       align: "center",
+      fixed: "right",
       render: (_, record) => (
         <Space size="small">
           <Button
@@ -348,6 +395,7 @@ const ListPhieuXuatKhoBanHang = () => {
             icon={<FileTextOutlined />}
             onClick={() => navigate(`${record.stt_rec}`)}
             className="phieu-action-btn phieu-view-btn"
+            title="Xem chi tiết"
           />
           <Button
             size="small"
@@ -355,6 +403,7 @@ const ListPhieuXuatKhoBanHang = () => {
             icon={<EditOutlined />}
             onClick={() => navigate(`edit/${record.stt_rec}`)}
             className="phieu-action-btn phieu-edit-btn"
+            title="Chỉnh sửa"
           />
           <Button
             size="small"
@@ -362,6 +411,7 @@ const ListPhieuXuatKhoBanHang = () => {
             icon={<DeleteOutlined />}
             onClick={() => handleDelete(record.stt_rec)}
             className="phieu-action-btn phieu-delete-btn"
+            title="Xóa"
           />
         </Space>
       ),
@@ -370,48 +420,49 @@ const ListPhieuXuatKhoBanHang = () => {
 
   return (
     <div className="phieu-container">
-      <Row justify="space-between" align="middle" className="phieu-header">
-        <Col>
-          <Button
-            type="text"
-            icon={<LeftOutlined />}
-            onClick={() => navigate("..")}
-            className="phieu-back-button"
-          >
-            Trở về
-          </Button>
-        </Col>
-        <Col>
-          <Title level={3} className="phieu-title">
-            DANH SÁCH PHIẾU XUẤT KHO BÁN HÀNG
-          </Title>
-        </Col>
-        <Col>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate("add")}
-            className="phieu-add-button"
-          >
-            Thêm mới
-          </Button>
-        </Col>
-      </Row>
+      <div className="phieu-header">
+        <Button
+          type="text"
+          icon={<LeftOutlined />}
+          onClick={() => navigate("..")}
+          className="phieu-back-button"
+        >
+          Trở về
+        </Button>
+
+        <Title level={isMobile ? 4 : 3} className="phieu-title">
+          DANH SÁCH PHIẾU XUẤT KHO BÁN HÀNG
+        </Title>
+
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => navigate("add")}
+          className="phieu-add-button"
+        >
+          {isMobile ? "Thêm" : "Thêm mới"}
+        </Button>
+      </div>
 
       <div className="phieu-table-container">
         <Table
-          columns={columns}
+          columns={isMobile ? mobileColumns : desktopColumns}
           dataSource={paginatedData}
           pagination={{
             current: currentPage,
             pageSize: pageSize,
             total: totalRecords,
             onChange: (page) => setCurrentPage(page),
+            showSizeChanger: false,
+            showQuickJumper: false,
+            size: isMobile ? "small" : "default",
           }}
-          bordered
+          bordered={!isMobile}
           rowKey="stt_rec"
-          scroll={{ x: true, y: 600 }}
+          scroll={isMobile ? { x: 600, y: 400 } : { x: 1200, y: 600 }}
           className="phieu-data-table"
+          size={isMobile ? "small" : "middle"}
+          loading={false}
         />
       </div>
     </div>

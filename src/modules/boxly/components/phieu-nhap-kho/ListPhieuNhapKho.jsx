@@ -32,6 +32,7 @@ const ListPhieuNhapKho = () => {
   const [allData, setAllData] = useState([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [screenSize, setScreenSize] = useState("desktop");
   const [filters, setFilters] = useState({
     so_ct: "",
     ma_kh: "",
@@ -44,6 +45,26 @@ const ListPhieuNhapKho = () => {
   const endIndex = startIndex + pageSize;
   const paginatedData = allData.slice(startIndex, endIndex);
 
+  // Detect screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      if (width < 480) {
+        setScreenSize("mobile");
+      } else if (width < 768) {
+        setScreenSize("mobileLandscape");
+      } else if (width < 1024) {
+        setScreenSize("tablet");
+      } else {
+        setScreenSize("desktop");
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
   const fetchPhieuNhapKho = async (filterParams = filters) => {
     const body = {
       dateForm: dayjs().startOf("month").format("YYYY-MM-DD"),
@@ -53,14 +74,13 @@ const ListPhieuNhapKho = () => {
       ...filterParams,
     };
     if (filterParams.ngay_ct) {
-      body.ngay_ct = filterParams.ngay_ct.format("DD/MM/YYYY"); // Sửa lại định dạng ngày
+      body.ngay_ct = filterParams.ngay_ct.format("DD/MM/YYYY");
     }
     try {
       const res = await https.post("v1/web/danh-sach-phieu-nhap-kho", body, {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       });
-      // Lọc bỏ các dòng có status là "*" hoặc null
       const filteredData = (res.data.data || []).filter(
         (item) => item.status !== "*" && item.status !== null
       );
@@ -100,10 +120,8 @@ const ListPhieuNhapKho = () => {
             }
           );
 
-          // Kiểm tra response theo đúng cấu trúc trả về
           if (response.data && response.data.statusCode === 200) {
             message.success("Xóa phiếu nhập kho thành công");
-            // Cập nhật lại danh sách sau khi xóa
             await fetchPhieuNhapKho();
           } else {
             message.error(
@@ -122,211 +140,233 @@ const ListPhieuNhapKho = () => {
     });
   };
 
-  // Sửa lại filter ngày chứng từ để truyền đúng kiểu cho API
-  const columns = [
-    {
-      title: "STT",
-      key: "stt",
-      render: (_, __, index) => index + 1,
-      width: 60,
-      align: "center",
-    },
-    {
-      title: "Mã phiếu",
-      dataIndex: "stt_rec",
-      key: "stt_rec",
-      width: 150,
-      align: "center",
-    },
-    {
-      title: "Ngày CT",
-      dataIndex: "ngay_ct",
-      key: "ngay_ct",
-      width: 200,
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
-          <DatePicker
-            inputReadOnly
-            value={
-              selectedKeys[0] ? dayjs(selectedKeys[0], "DD/MM/YYYY") : null
-            }
-            onChange={(date) => {
-              if (date) {
-                setSelectedKeys([date.format("DD/MM/YYYY")]);
-              } else {
-                setSelectedKeys([]);
+  const getColumns = () => {
+    const baseColumns = [
+      {
+        title: "STT",
+        key: "stt",
+        render: (_, __, index) => index + 1,
+        width: 60,
+        align: "center",
+      },
+      {
+        title: "Mã phiếu",
+        dataIndex: "stt_rec",
+        key: "stt_rec",
+        width: 150,
+        align: "center",
+      },
+      {
+        title: "Ngày CT",
+        dataIndex: "ngay_ct",
+        key: "ngay_ct",
+        width: 150,
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+          <div style={{ padding: 8 }}>
+            <DatePicker
+              inputReadOnly
+              value={
+                selectedKeys[0] ? dayjs(selectedKeys[0], "DD/MM/YYYY") : null
               }
-            }}
-            style={{ marginBottom: 8, display: "block" }}
-            format="DD/MM/YYYY"
-            placeholder="Chọn ngày CT"
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => {
-              confirm();
-              const newFilters = {
-                ...filters,
-                ngay_ct: selectedKeys[0]
-                  ? dayjs(selectedKeys[0], "DD/MM/YYYY")
-                  : null,
-              };
-              setFilters(newFilters);
-              fetchPhieuNhapKho(newFilters);
-            }}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
-      filteredValue: filters.ngay_ct
-        ? [filters.ngay_ct.format("DD/MM/YYYY")]
-        : null,
-      render: (text) => dayjs(text).format("DD/MM/YYYY"),
-      // Bỏ onFilter, chỉ search bằng API
-    },
-    {
-      title: () => (
-        <div style={{ width: 120 }}>
-          Số chứng từ{" "}
-          {filters.so_ct ? <Tag color="blue">{filters.so_ct}</Tag> : null}
-        </div>
-      ),
-      dataIndex: "so_ct",
-      key: "so_ct",
-      width: 150,
-      align: "center",
-      render: (text) => (text ? text.trim() : ""),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Input
-            placeholder="Tìm Số CT"
-            value={selectedKeys[0]}
-            onChange={(e) =>
-              setSelectedKeys(e.target.value ? [e.target.value] : [])
-            }
-            onPressEnter={() => {
-              confirm();
-              const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
-              setFilters(newFilters);
-              fetchPhieuNhapKho(newFilters);
-            }}
-            style={{ marginBottom: 8, display: "block" }}
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => {
-              confirm();
-              const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
-              setFilters(newFilters);
-              fetchPhieuNhapKho(newFilters);
-            }}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
-      filteredValue: filters.so_ct ? [filters.so_ct] : null,
-    },
-    {
-      title: () => (
-        <div style={{ width: 120 }}>
-          Mã khách{" "}
-          {filters.ma_kh ? <Tag color="blue">{filters.ma_kh}</Tag> : null}
-        </div>
-      ),
-      dataIndex: "ma_kh",
-      key: "ma_kh",
-      width: 150,
-      align: "center",
-      render: (text) => (text ? text.trim() : ""),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Input
-            placeholder="Tìm Mã khách"
-            value={selectedKeys[0]}
-            onChange={(e) =>
-              setSelectedKeys(e.target.value ? [e.target.value] : [])
-            }
-            onPressEnter={() => {
-              confirm();
-              const newFilters = { ...filters, ma_kh: selectedKeys[0] || "" };
-              setFilters(newFilters);
-              fetchPhieuNhapKho(newFilters);
-            }}
-            style={{ marginBottom: 8, display: "block" }}
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => {
-              confirm();
-              const newFilters = { ...filters, ma_kh: selectedKeys[0] || "" };
-              setFilters(newFilters);
-              fetchPhieuNhapKho(newFilters);
-            }}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
-      filteredValue: filters.ma_kh ? [filters.ma_kh] : null,
-    },
-    {
-      title: () => (
-        <div style={{ width: 180 }}>
-          Tên khách{" "}
-          {filters.ten_kh ? <Tag color="blue">{filters.ten_kh}</Tag> : null}
-        </div>
-      ),
-      dataIndex: "ten_kh",
-      key: "ten_kh",
-      width: 250,
-      align: "left",
-      render: (text) => (text ? text.trim() : ""),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Input
-            placeholder="Tìm Tên khách"
-            value={selectedKeys[0]}
-            onChange={(e) =>
-              setSelectedKeys(e.target.value ? [e.target.value] : [])
-            }
-            onPressEnter={() => {
-              confirm();
-              const newFilters = { ...filters, ten_kh: selectedKeys[0] || "" };
-              setFilters(newFilters);
-              fetchPhieuNhapKho(newFilters);
-            }}
-            style={{ marginBottom: 8, display: "block" }}
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => {
-              confirm();
-              const newFilters = { ...filters, ten_kh: selectedKeys[0] || "" };
-              setFilters(newFilters);
-              fetchPhieuNhapKho(newFilters);
-            }}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
-      filteredValue: filters.ten_kh ? [filters.ten_kh] : null,
-    },
-    {
+              onChange={(date) => {
+                if (date) {
+                  setSelectedKeys([date.format("DD/MM/YYYY")]);
+                } else {
+                  setSelectedKeys([]);
+                }
+              }}
+              style={{ marginBottom: 8, display: "block" }}
+              format="DD/MM/YYYY"
+              placeholder="Chọn ngày CT"
+            />
+            <Button
+              className="search_button"
+              type="primary"
+              onClick={() => {
+                confirm();
+                const newFilters = {
+                  ...filters,
+                  ngay_ct: selectedKeys[0]
+                    ? dayjs(selectedKeys[0], "DD/MM/YYYY")
+                    : null,
+                };
+                setFilters(newFilters);
+                fetchPhieuNhapKho(newFilters);
+              }}
+              size="small"
+            >
+              Tìm kiếm
+            </Button>
+          </div>
+        ),
+        filteredValue: filters.ngay_ct
+          ? [filters.ngay_ct.format("DD/MM/YYYY")]
+          : null,
+        render: (text) =>
+          dayjs(text).format(screenSize === "mobile" ? "DD/MM" : "DD/MM/YYYY"),
+      },
+    ];
+
+    if (screenSize !== "mobile") {
+      baseColumns.push({
+        title: () => (
+          <div style={{ width: 120 }}>
+            Số chứng từ{" "}
+            {filters.so_ct ? <Tag color="blue">{filters.so_ct}</Tag> : null}
+          </div>
+        ),
+        dataIndex: "so_ct",
+        key: "so_ct",
+        width: 150,
+        align: "center",
+        render: (text) => (text ? text.trim() : ""),
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+          <div style={{ padding: 8 }}>
+            <Input
+              placeholder="Tìm Số CT"
+              value={selectedKeys[0]}
+              onChange={(e) =>
+                setSelectedKeys(e.target.value ? [e.target.value] : [])
+              }
+              onPressEnter={() => {
+                confirm();
+                const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
+                setFilters(newFilters);
+                fetchPhieuNhapKho(newFilters);
+              }}
+              style={{ marginBottom: 8, display: "block" }}
+            />
+            <Button
+              className="search_button"
+              type="primary"
+              onClick={() => {
+                confirm();
+                const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
+                setFilters(newFilters);
+                fetchPhieuNhapKho(newFilters);
+              }}
+              size="small"
+            >
+              Tìm kiếm
+            </Button>
+          </div>
+        ),
+        filteredValue: filters.so_ct ? [filters.so_ct] : null,
+      });
+    }
+
+    if (screenSize === "desktop") {
+      baseColumns.push(
+        {
+          title: () => (
+            <div style={{ width: 120 }}>
+              Mã khách{" "}
+              {filters.ma_kh ? <Tag color="blue">{filters.ma_kh}</Tag> : null}
+            </div>
+          ),
+          dataIndex: "ma_kh",
+          key: "ma_kh",
+          width: 150,
+          align: "center",
+          render: (text) => (text ? text.trim() : ""),
+          filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+            <div style={{ padding: 8 }}>
+              <Input
+                placeholder="Tìm Mã khách"
+                value={selectedKeys[0]}
+                onChange={(e) =>
+                  setSelectedKeys(e.target.value ? [e.target.value] : [])
+                }
+                onPressEnter={() => {
+                  confirm();
+                  const newFilters = {
+                    ...filters,
+                    ma_kh: selectedKeys[0] || "",
+                  };
+                  setFilters(newFilters);
+                  fetchPhieuNhapKho(newFilters);
+                }}
+                style={{ marginBottom: 8, display: "block" }}
+              />
+              <Button
+                className="search_button"
+                type="primary"
+                onClick={() => {
+                  confirm();
+                  const newFilters = {
+                    ...filters,
+                    ma_kh: selectedKeys[0] || "",
+                  };
+                  setFilters(newFilters);
+                  fetchPhieuNhapKho(newFilters);
+                }}
+                size="small"
+              >
+                Tìm kiếm
+              </Button>
+            </div>
+          ),
+          filteredValue: filters.ma_kh ? [filters.ma_kh] : null,
+        },
+        {
+          title: () => (
+            <div style={{ width: 180 }}>
+              Tên khách{" "}
+              {filters.ten_kh ? <Tag color="blue">{filters.ten_kh}</Tag> : null}
+            </div>
+          ),
+          dataIndex: "ten_kh",
+          key: "ten_kh",
+          width: 250,
+          align: "left",
+          render: (text) => (text ? text.trim() : ""),
+          filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+            <div style={{ padding: 8 }}>
+              <Input
+                placeholder="Tìm Tên khách"
+                value={selectedKeys[0]}
+                onChange={(e) =>
+                  setSelectedKeys(e.target.value ? [e.target.value] : [])
+                }
+                onPressEnter={() => {
+                  confirm();
+                  const newFilters = {
+                    ...filters,
+                    ten_kh: selectedKeys[0] || "",
+                  };
+                  setFilters(newFilters);
+                  fetchPhieuNhapKho(newFilters);
+                }}
+                style={{ marginBottom: 8, display: "block" }}
+              />
+              <Button
+                className="search_button"
+                type="primary"
+                onClick={() => {
+                  confirm();
+                  const newFilters = {
+                    ...filters,
+                    ten_kh: selectedKeys[0] || "",
+                  };
+                  setFilters(newFilters);
+                  fetchPhieuNhapKho(newFilters);
+                }}
+                size="small"
+              >
+                Tìm kiếm
+              </Button>
+            </div>
+          ),
+          filteredValue: filters.ten_kh ? [filters.ten_kh] : null,
+        }
+      );
+    }
+
+    baseColumns.push({
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      width: 120,
+      width: screenSize === "mobile" ? 80 : 120,
       align: "center",
       render: (status) => {
         if (status === "*" || status === null) {
@@ -334,10 +374,22 @@ const ListPhieuNhapKho = () => {
         }
 
         const statusMap = {
-          0: { text: "Lập chứng từ", color: "orange" },
-          2: { text: "Nhập kho", color: "blue" },
-          3: { text: "Chuyển số cái", color: "green" },
-          5: { text: "Đề nghị nhập kho", color: "purple" },
+          0: {
+            text: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
+            color: "orange",
+          },
+          2: {
+            text: screenSize === "mobile" ? "Nhập" : "Nhập kho",
+            color: "blue",
+          },
+          3: {
+            text: screenSize === "mobile" ? "Chuyển" : "Chuyển số cái",
+            color: "green",
+          },
+          5: {
+            text: screenSize === "mobile" ? "Đề nghị" : "Đề nghị nhập kho",
+            color: "purple",
+          },
         };
         const statusInfo = statusMap[status] || {
           text: "Không xác định",
@@ -345,11 +397,14 @@ const ListPhieuNhapKho = () => {
         };
         return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
       },
-    },
-    {
+    });
+
+    baseColumns.push({
       title: "Hành động",
       key: "action",
+      width: screenSize === "mobile" ? 80 : 150,
       align: "center",
+      fixed: screenSize === "desktop" ? "right" : false,
       render: (_, record) => (
         <Space size="small">
           <Button
@@ -361,6 +416,7 @@ const ListPhieuNhapKho = () => {
               })
             }
             className="phieu-action-btn phieu-view-btn"
+            title="Xem chi tiết"
           />
           <Button
             size="small"
@@ -372,6 +428,7 @@ const ListPhieuNhapKho = () => {
               })
             }
             className="phieu-action-btn phieu-edit-btn"
+            title="Chỉnh sửa"
           />
           <Button
             size="small"
@@ -379,11 +436,46 @@ const ListPhieuNhapKho = () => {
             icon={<DeleteOutlined />}
             onClick={() => handleDelete(record.stt_rec)}
             className="phieu-action-btn phieu-delete-btn"
+            title="Xóa"
           />
         </Space>
       ),
-    },
-  ];
+    });
+
+    return baseColumns;
+  };
+
+  const getTableProps = () => {
+    const baseProps = {
+      columns: getColumns(),
+      dataSource: paginatedData,
+      pagination: {
+        current: currentPage,
+        pageSize: pageSize,
+        total: totalRecords,
+        onChange: (page) => setCurrentPage(page),
+        showSizeChanger: false,
+        showQuickJumper: false,
+      },
+      bordered: true,
+      rowKey: "stt_rec",
+      className: "phieu-data-table",
+    };
+
+    if (screenSize === "mobile") {
+      baseProps.scroll = { x: 400 };
+      baseProps.size = "small";
+    } else if (screenSize === "mobileLandscape") {
+      baseProps.scroll = { x: 600, y: 400 };
+      baseProps.size = "small";
+    } else if (screenSize === "tablet") {
+      baseProps.scroll = { x: 800, y: 500 };
+    } else {
+      baseProps.scroll = { x: 1200, y: 600 };
+    }
+
+    return baseProps;
+  };
 
   return (
     <div className="phieu-container">
@@ -392,15 +484,17 @@ const ListPhieuNhapKho = () => {
           <Button
             type="text"
             icon={<LeftOutlined />}
-            onClick={() => navigate("..")}
+            onClick={() => navigate(-1)}
             className="phieu-back-button"
           >
-            Trở về
+            {screenSize === "mobile" ? "" : "Trở về"}
           </Button>
         </Col>
         <Col>
           <Title level={3} className="phieu-title">
-            DANH SÁCH PHIẾU NHẬP KHO
+            {screenSize === "mobile"
+              ? "PHIẾU NHẬP KHO"
+              : "DANH SÁCH PHIẾU NHẬP KHO"}
           </Title>
         </Col>
         <Col>
@@ -410,26 +504,13 @@ const ListPhieuNhapKho = () => {
             onClick={() => navigate("add")}
             className="phieu-add-button"
           >
-            Thêm mới
+            {screenSize === "mobile" ? "Thêm" : "Thêm mới"}
           </Button>
         </Col>
       </Row>
 
       <div className="phieu-table-container">
-        <Table
-          columns={columns}
-          dataSource={paginatedData}
-          pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            total: totalRecords,
-            onChange: (page) => setCurrentPage(page),
-          }}
-          bordered
-          rowKey="stt_rec"
-          scroll={{ x: true, y: 600 }}
-          className="phieu-data-table"
-        />
+        <Table {...getTableProps()} />
       </div>
     </div>
   );

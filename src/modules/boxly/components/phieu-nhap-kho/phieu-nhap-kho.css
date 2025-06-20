@@ -1,170 +1,1110 @@
-/* Các style chung */
+/* CSS for Phiếu Nhập Kho */
 .phieu-container {
-  padding: 16px;
-  max-width: 100%;
-  margin: 0 auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-height: calc(100vh - 40px);
 }
 
+/* ========== HEADER STYLES ========== */
 .phieu-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 24px;
-  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #f0f0f0;
+  position: relative;
   flex-wrap: wrap;
+  gap: 16px;
 }
 
 .phieu-back-button {
-  padding-left: 0;
+  color: #1890ff;
+  border: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.phieu-back-button:hover {
+  color: #40a9ff;
+  background-color: #f0f8ff;
 }
 
 .phieu-title {
   margin: 0 !important;
+  text-align: center;
+  font-weight: 600 !important;
+  color: #262626;
+  font-size: 20px;
   flex: 1;
-  min-width: 200px;
+}
+
+/* ========== HEADER BUTTONS ========== */
+.phieu-add-button,
+.phieu-edit-button,
+.phieu-save-button {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  transition: all 0.3s;
 }
 
 .phieu-add-button {
-  background-color: #52c41a;
-  border-color: #52c41a;
-}
-
-.phieu-edit-button {
-  background-color: #1890ff;
+  background: #1890ff;
   border-color: #1890ff;
 }
 
+.phieu-add-button:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
+}
+
+.phieu-edit-button {
+  background: #52c41a;
+  border-color: #52c41a;
+}
+
+.phieu-edit-button:hover {
+  background: #73d13d;
+  border-color: #73d13d;
+}
+
 .phieu-save-button {
-  width: 100%;
-  max-width: 200px;
+  background: #1890ff;
+  border-color: #1890ff;
+  padding: 0 24px;
 }
 
-.phieu-form-container {
-  background: #fff;
-  padding: 24px;
+.phieu-save-button:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
+}
+
+/* ========== SEARCH FILTERS ========== */
+.search-filters-container {
+  background: #fafafa;
+  padding: 16px;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
+  border: 1px solid #f0f0f0;
 }
 
-.phieu-form .ant-form-item {
-  margin-bottom: 16px;
+.search-filters-row {
+  margin-bottom: 12px;
 }
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.filter-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.search-filters-actions {
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.active-filters {
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.active-filters-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+  margin-right: 8px;
+}
+
+/* ========== TABLE STYLES ========== */
+.phieu-table-container,
+.vat-tu-table {
+  background: #fff;
+  border-radius: 8px;
+  overflow: visible !important;
+  border: 1px solid #f0f0f0;
+}
+
+.phieu-data-table,
+.vat-tu-table .ant-table {
+  border-radius: 8px;
+  overflow: visible !important;
+}
+
+.vat-tu-table {
+  margin-top: 16px;
+}
+
+.phieu-data-table .ant-table-thead > tr > th,
+.vat-tu-table .ant-table-thead > tr > th {
+  background: #fafafa;
+  border-bottom: 2px solid #f0f0f0;
+  font-weight: 600;
+  color: #262626;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.phieu-data-table .ant-table-thead > tr > th {
+  padding: 16px 12px;
+}
+
+.vat-tu-table .ant-table-thead > tr > th {
+  padding: 12px 8px;
+}
+
+.phieu-data-table .ant-table-tbody > tr > td,
+.vat-tu-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid #f5f5f5;
+  text-align: center;
+  vertical-align: middle;
+  transition: all 0.3s;
+}
+
+.phieu-data-table .ant-table-tbody > tr > td {
+  padding: 12px;
+}
+
+.vat-tu-table .ant-table-tbody > tr > td {
+  padding: 8px 4px;
+  overflow: visible !important;
+}
+
+.phieu-data-table .ant-table-tbody > tr:hover > td,
+.vat-tu-table .ant-table-tbody > tr:hover > td {
+  background: #f0f8ff;
+}
+
+.phieu-data-table .ant-table-tbody > tr:last-child > td,
+.vat-tu-table .ant-table-tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+/* ========== ACTION BUTTONS ========== */
+.phieu-action-btn {
+  border-radius: 4px;
+  height: 32px;
+  width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  min-width: 32px;
+  transition: none;
+}
+
+.phieu-view-btn {
+  color: #1890ff;
+  border-color: #d9d9d9;
+  background: #fff;
+}
+
+.phieu-edit-btn {
+  background-color: #fff2e8 !important;
+  border-color: #fa8c16 !important;
+  color: #fa8c16 !important;
+}
+
+.phieu-delete-btn {
+  background: #ff4d4f;
+  border-color: #ff4d4f;
+  color: #fff;
+}
+
+.vat-tu-delete-btn:hover {
+  background: #fff2f0;
+  color: #ff4d4f;
+  border-color: #ffccc7;
+}
+
+.vat-tu-delete-btn:disabled {
+  color: #d9d9d9;
+  background: transparent;
+  cursor: not-allowed;
+}
+
+/* Disable hover effects for action buttons */
+.phieu-action-btn:hover,
+.phieu-view-btn:hover,
+.phieu-edit-btn:hover,
+.phieu-delete-btn:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+/* Ensure delete button and icon are always visible */
+.phieu-delete-btn,
+.phieu-delete-btn .anticon,
+.phieu-delete-btn .anticon-delete {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+}
+
+.phieu-action-btn .anticon {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+}
+
+/* Force all icons to be visible */
+.phieu-data-table .anticon-delete,
+.phieu-data-table .anticon-edit,
+.phieu-data-table .anticon-file-text {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline !important;
+  color: inherit !important;
+}
+/* Extra strong selectors for delete icon */
+.phieu-data-table td[data-column-key="action"] .ant-btn-danger .anticon-delete,
+.phieu-data-table .phieu-delete-btn .anticon-delete,
+.phieu-data-table .phieu-action-btn .anticon {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline !important;
+  font-size: 14px !important;
+  color: #ff4d4f !important; /* Red color for delete icon */
+}
+
+/* Specific color fixes for all action icons */
+.phieu-data-table .phieu-view-btn .anticon-file-text {
+  color: #1890ff !important; /* Blue for view */
+}
+
+.phieu-data-table .phieu-edit-btn .anticon-edit {
+  color: #fa8c16 !important; /* Orange for edit */
+}
+
+.phieu-data-table .phieu-delete-btn .anticon-delete {
+  color: #ff4d4f !important; /* Red for delete */
+}
+
+/* Ensure all button icons are visible at all times */
+.phieu-data-table .ant-btn .anticon {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Global override to prevent any CSS from hiding icons */
+.phieu-container .anticon,
+.phieu-container .ant-btn .anticon,
+.phieu-container [class*="anticon"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline !important;
+}
+
+/* Override any white color that might be applied to icons */
+.phieu-data-table .ant-btn .anticon {
+  color: inherit !important;
+}
+
+.phieu-data-table .ant-btn-danger .anticon {
+  color: #ff4d4f !important;
+}
+
+.phieu-data-table .ant-btn-primary .anticon {
+  color: #fff !important;
+}
+
+/* Force delete icon color - strongest selector */
+.phieu-data-table .ant-btn-dangerous .anticon-delete,
+.phieu-data-table .ant-btn[danger] .anticon-delete,
+.phieu-data-table .phieu-delete-btn .anticon,
+.phieu-data-table button[class*="delete"] .anticon {
+  color: #ff4d4f !important;
+  fill: #ff4d4f !important;
+}
+
+/* Backup for any icon that might still be white */
+.phieu-data-table [class*="anticon"]:not([class*="primary"]) {
+  color: #666 !important;
+}
+
+.phieu-data-table [class*="anticon-delete"] {
+  color: #ff4d4f !important;
+}
+
+/* Enhanced styling for edit button */
+.phieu-data-table .phieu-edit-btn {
+  background-color: #fff2e8 !important;
+  border-color: #fa8c16 !important;
+  color: #fa8c16 !important;
+}
+
+/* ========== ACTION COLUMN STYLING ========== */
+.phieu-data-table .ant-table-cell-fix-right {
+  min-width: 150px !important;
+  width: 150px !important;
+}
+
+.phieu-data-table td[data-column-key="action"] {
+  padding: 8px 4px !important;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.phieu-data-table td[data-column-key="action"] .ant-space,
+.phieu-data-table [data-column-key="action"] .ant-space {
+  justify-content: center;
+  width: 100%;
+  gap: 4px !important;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+}
+
+.phieu-data-table td[data-column-key="action"] .ant-space-item {
+  display: flex;
+  justify-content: center;
+  margin: 0 !important;
+}
+
+.phieu-data-table .ant-space-horizontal > .ant-space-item:not(:last-child) {
+  margin-right: 4px !important;
+}
+
+/* Fix for action buttons in fixed column */
+.phieu-data-table .ant-table-cell-fix-right .ant-space {
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+
+/* Ensure buttons are aligned properly */
+.phieu-data-table [data-column-key="action"] .ant-space {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: row;
+}
+
+.phieu-data-table [data-column-key="action"] .ant-btn {
+  flex-shrink: 0;
+}
+
+/* ========== FILTER DROPDOWN ========== */
 .search_button {
   width: 100%;
+  height: 32px;
+  background: #1890ff;
+  border-color: #1890ff;
+  transition: all 0.3s;
 }
 
-/* Custom styles cho dropdown Tk có */
-.custom-tkco-dropdown {
-  min-width: 450px !important;
-  max-width: 600px !important;
+.search_button:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
 }
 
-.custom-tkco-dropdown .ant-select-item {
-  min-height: 50px !important;
-  padding: 8px 16px !important;
-  border-radius: 6px;
-  margin: 2px 8px;
+.ant-table-filter-dropdown {
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.ant-table-filter-dropdown .ant-input,
+.ant-table-filter-dropdown .ant-picker {
+  border-radius: 4px;
+}
+
+/* ========== FORM STYLES ========== */
+.phieu-form-container {
+  margin-top: 20px;
+}
+
+.phieu-form .ant-form-item-label {
+  font-weight: 500;
+  text-align: left;
+}
+
+.phieu-form .ant-table-wrapper {
+  margin: 16px 0;
+}
+
+.phieu-form .ant-table-bordered .ant-table-container {
+  border: 1px solid #f0f0f0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 8px;
+}
+
+.phieu-form .ant-table-cell {
+  padding: 8px 16px;
+}
+
+/* ========== CUSTOM CONTROLS ========== */
+.quantity-control {
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
-.custom-tkco-dropdown .ant-select-item-option-content {
-  white-space: normal !important;
-  word-break: break-word !important;
-  font-size: 14px !important;
-  line-height: 1.6 !important;
-  color: #333;
-  width: 100%;
-}
-
-.custom-tkco-dropdown .ant-select-item:hover {
-  background-color: #f0f9ff !important;
-  border-radius: 6px;
-}
-
-.custom-tkco-dropdown .ant-select-item-option-selected {
-  background-color: #e6f7ff !important;
-  font-weight: 500;
-}
-
-.custom-tkco-dropdown .ant-select-item-option-active {
-  background-color: #f0f9ff !important;
-}
-
-/* Custom styles cho dropdown chung (mã kho, mã khách) */
-.custom-dropdown {
-  min-width: 500px !important;
-  max-width: 700px !important;
-}
-
-.custom-dropdown .ant-select-item {
-  min-height: 50px !important;
-  padding: 8px 16px !important;
-  border-radius: 6px;
-  margin: 2px 8px;
+.quantity-control button {
+  height: 32px;
+  width: 32px;
+  padding: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
-.custom-dropdown .ant-select-item-option-content {
-  white-space: normal !important;
-  word-break: break-word !important;
-  font-size: 14px !important;
-  line-height: 1.5 !important;
-  color: #333;
-  width: 100%;
+.quantity-control .quantity-input {
+  width: 50px;
+  text-align: center;
+  margin: 0 4px;
 }
 
-.custom-dropdown .ant-select-item:hover {
-  background-color: #f0f9ff !important;
-  border-radius: 6px;
+.inventory-select .ant-select-selector {
+  border-radius: 4px 0 0 4px !important;
 }
 
-.custom-dropdown .ant-select-item-option-selected {
-  background-color: #e6f7ff !important;
+.inventory-select-button {
+  border-radius: 0 4px 4px 0 !important;
+  margin-left: -1px;
+}
+
+/* ========== STATUS TAGS ========== */
+.ant-tag {
+  border-radius: 4px;
   font-weight: 500;
+  font-size: 12px;
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.custom-dropdown .ant-select-item-option-active {
-  background-color: #f0f9ff !important;
+/* ========== FIXED COLUMNS ========== */
+.phieu-data-table .ant-table-cell-fix-left,
+.phieu-data-table .ant-table-cell-fix-right {
+  background: #fafafa;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  z-index: 2;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .phieu-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+.phieu-data-table .ant-table-cell-fix-left-last {
+  border-right: 1px solid #f0f0f0;
+}
+
+.phieu-data-table .ant-table-cell-fix-right-first {
+  border-left: 1px solid #f0f0f0;
+}
+
+.phieu-data-table .ant-table-tbody > tr > td.ant-table-cell-fix-left,
+.phieu-data-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+  background: #fff;
+}
+
+.phieu-data-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-left,
+.phieu-data-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right {
+  background: #f0f8ff;
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+
+/* Tablet Portrait */
+@media (max-width: 1024px) {
+  .phieu-container {
+    padding: 16px;
   }
 
   .phieu-title {
-    width: 100%;
+    font-size: 18px;
+  }
+
+  .phieu-data-table .ant-table-thead > tr > th,
+  .phieu-data-table .ant-table-tbody > tr > td,
+  .vat-tu-table .ant-table-thead > tr > th,
+  .vat-tu-table .ant-table-tbody > tr > td {
+    padding: 6px 4px;
+    font-size: 13px;
+  }
+
+  .search-filters-container {
+    padding: 12px;
+  }
+
+  .filter-group {
+    min-width: 100px;
+  }
+
+  .vat-tu-table-select {
+    min-width: 120px;
+  }
+
+  .vat-tu-table-input {
+    min-width: 80px;
+  }
+}
+
+/* Mobile Landscape */
+@media (max-width: 768px) {
+  .phieu-container {
+    padding: 12px;
+  }
+
+  .phieu-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .phieu-title {
+    font-size: 16px;
+    order: 1;
+  }
+
+  .phieu-back-button {
+    order: 0;
+    align-self: flex-start;
   }
 
   .phieu-add-button,
   .phieu-edit-button {
+    order: 2;
+    align-self: stretch;
+    justify-content: center;
+    height: 44px;
+  }
+
+  .search-filters-container {
+    padding: 10px;
+    margin-bottom: 12px;
+  }
+
+  .search-filters-row .ant-space {
     width: 100%;
   }
 
-  .phieu-form-container {
-    padding: 16px;
+  .filter-group {
+    width: 100%;
+    min-width: auto;
   }
 
-  .custom-tkco-dropdown {
-    min-width: 300px !important;
-    max-width: 400px !important;
+  .search-filters-actions {
+    text-align: center;
   }
 
-  .custom-dropdown {
-    min-width: 300px !important;
-    max-width: 450px !important;
+  .phieu-data-table,
+  .vat-tu-table {
+    font-size: 12px;
+  }
+
+  .phieu-action-btn {
+    height: 28px;
+    width: 28px;
+  }
+
+  .vat-tu-table-select {
+    min-width: 100px;
+  }
+
+  .vat-tu-table-input {
+    min-width: 60px;
+    font-size: 12px;
+  }
+
+  .vat-tu-delete-btn {
+    width: 24px;
+    height: 24px;
+  }
+
+  .vat-tu-delete-btn .anticon {
+    font-size: 12px;
   }
 }
 
-/* Custom styles for action column */
-.ant-table-thead > tr > th {
+/* Mobile Portrait */
+@media (max-width: 480px) {
+  .phieu-container {
+    padding: 8px;
+    margin: 8px;
+    border-radius: 4px;
+  }
+
+  .phieu-header {
+    margin-bottom: 16px;
+    padding: 12px 0;
+  }
+
+  .phieu-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .phieu-add-button,
+  .phieu-edit-button {
+    height: 40px;
+    font-size: 14px;
+  }
+
+  .search-filters-container {
+    padding: 8px;
+    border-radius: 4px;
+  }
+
+  .search-filters-row {
+    margin-bottom: 8px;
+  }
+
+  .search-filters-actions {
+    margin-bottom: 8px;
+  }
+
+  .filter-label {
+    font-size: 11px;
+  }
+
+  .active-filters {
+    padding-top: 8px;
+  }
+
+  .active-filters-label {
+    font-size: 11px;
+  }
+
+  .phieu-table-container,
+  .vat-tu-table {
+    margin: 0 -8px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .phieu-data-table,
+  .vat-tu-table .ant-table {
+    border-radius: 0;
+  }
+
+  .phieu-data-table .ant-table-thead > tr > th,
+  .phieu-data-table .ant-table-tbody > tr > td,
+  .vat-tu-table .ant-table-thead > tr > th,
+  .vat-tu-table .ant-table-tbody > tr > td {
+    padding: 2px 1px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .vat-tu-table .ant-table-container {
+    overflow-x: auto;
+  }
+
+  .phieu-action-btn {
+    height: 24px;
+    width: 24px;
+  }
+
+  .ant-table-filter-dropdown {
+    padding: 8px;
+    width: 200px;
+  }
+
+  .ant-table-filter-dropdown .ant-input,
+  .ant-table-filter-dropdown .ant-picker {
+    font-size: 14px;
+  }
+
+  .vat-tu-table-select,
+  .vat-tu-table-input {
+    min-width: 80px;
+    font-size: 11px;
+  }
+}
+
+/* ========== FORM BOTTOM ACTIONS ========== */
+.phieu-form-actions {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.phieu-form-actions .ant-btn {
+  height: 40px;
+  padding: 0 24px;
+  border-radius: 6px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.phieu-form-actions .ant-btn-primary {
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+.phieu-form-actions .ant-btn-primary:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
+}
+
+.phieu-form-actions .ant-btn-dangerous {
+  background: #ff4d4f;
+  border-color: #ff4d4f;
+  color: #fff;
+}
+
+.phieu-form-actions .ant-btn-dangerous:hover {
+  background: #ff7875;
+  border-color: #ff7875;
+}
+
+.phieu-form-actions .ant-btn:not(.ant-btn-primary):not(.ant-btn-dangerous) {
+  border-color: #d9d9d9;
+  color: #595959;
+}
+
+.phieu-form-actions
+  .ant-btn:not(.ant-btn-primary):not(.ant-btn-dangerous):hover {
+  border-color: #40a9ff;
+  color: #1890ff;
+}
+
+/* ========== VAT TU TABLE STYLES ========== */
+.vat-tu-table .ant-table-container {
+  overflow: visible !important;
+}
+
+.vat-tu-table .ant-table-body {
+  overflow: visible !important;
+}
+
+.vat-tu-table .ant-table-thead > tr > th {
+  background: #fafafa;
+  border-bottom: 2px solid #f0f0f0;
+  font-weight: 600;
+  color: #262626;
+  padding: 12px 8px;
+  text-align: center;
   white-space: nowrap;
 }
 
-.ant-table-tbody > tr > td {
-  white-space: nowrap;
+.vat-tu-table .ant-table-tbody > tr > td {
+  padding: 8px 4px;
+  border-bottom: 1px solid #f5f5f5;
+  text-align: center;
+  vertical-align: middle;
+  overflow: visible !important;
+}
+
+.vat-tu-table .ant-table-tbody > tr:hover > td {
+  background: #f0f8ff;
+}
+
+/* ========== SELECT DROPDOWN STYLES ========== */
+.vat-tu-table-select {
+  width: 100%;
+  min-width: 180px;
+  z-index: 1000;
+}
+
+.vat-tu-table-select .ant-select-selector,
+.vat-tu-table .ant-table-cell .ant-select-selector {
+  border: 1px solid #d9d9d9 !important;
+  border-radius: 4px !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  padding: 4px 11px !important;
+  display: flex !important;
+  align-items: center !important;
+  transition: all 0.3s;
+}
+
+.vat-tu-table-select:hover .ant-select-selector,
+.vat-tu-table .ant-table-cell .ant-select:hover .ant-select-selector {
+  border-color: #40a9ff !important;
+}
+
+.vat-tu-table-select.ant-select-focused .ant-select-selector,
+.vat-tu-table
+  .ant-table-cell
+  .ant-select.ant-select-focused
+  .ant-select-selector {
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+.vat-tu-table-select .ant-select-selection-item,
+.vat-tu-table .ant-table-cell .ant-select-selection-item {
+  line-height: 24px !important;
+  height: 24px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.vat-tu-table-select .ant-select-selection-search,
+.vat-tu-table .ant-table-cell .ant-select-selection-search {
+  height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.vat-tu-table-select .ant-select-selection-search-input,
+.vat-tu-table .ant-table-cell .ant-select-selection-search-input {
+  height: 24px !important;
+  line-height: 24px !important;
+}
+
+/* ========== INPUT STYLES ========== */
+.vat-tu-table-input {
+  border-radius: 4px;
+  border: 1px solid #d9d9d9;
+  text-align: center;
+  font-weight: 400;
+  min-height: 32px;
+  height: 32px;
+  line-height: 24px;
+  padding: 4px 11px;
+  width: 100%;
+  transition: all 0.3s;
+  background-color: #fff;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vat-tu-table-input:hover {
+  border-color: #40a9ff;
+}
+
+.vat-tu-table-input:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  outline: none;
+}
+
+/* Specific styling for quantity input to match select components exactly */
+.vat-tu-table .ant-table-cell input[type="number"],
+.vat-tu-table .ant-table-cell .ant-input-number,
+.vat-tu-table .ant-table-cell .ant-input-number-input-wrap {
+  border: 1px solid #d9d9d9 !important;
+  border-radius: 4px !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  padding: 4px 11px !important;
+  text-align: center !important;
+  font-weight: 400 !important;
+  font-size: 14px !important;
+  line-height: 24px !important;
+  background-color: #fff !important;
+  transition: all 0.3s !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Override specific Ant Design InputNumber wrapper styling */
+.vat-tu-table .ant-table-cell .ant-input-number {
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.vat-tu-table .ant-table-cell input[type="number"]:hover,
+.vat-tu-table .ant-table-cell .ant-input-number:hover,
+.vat-tu-table .ant-table-cell .ant-input-number:hover .ant-input-number-input {
+  border-color: #40a9ff !important;
+}
+
+.vat-tu-table .ant-table-cell input[type="number"]:focus,
+.vat-tu-table .ant-table-cell .ant-input-number:focus,
+.vat-tu-table .ant-table-cell .ant-input-number-focused,
+.vat-tu-table .ant-table-cell .ant-input-number:focus .ant-input-number-input {
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+  outline: none !important;
+}
+
+/* Remove spinner arrows from number input */
+.vat-tu-table .ant-table-cell input[type="number"]::-webkit-outer-spin-button,
+.vat-tu-table .ant-table-cell input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.vat-tu-table .ant-table-cell input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Ant Design InputNumber specific styling - make it look exactly like select */
+.vat-tu-table .ant-table-cell .ant-input-number-input {
+  border: none !important;
+  padding: 0 !important;
+  text-align: center !important;
+  font-weight: 400 !important;
+  font-size: 14px !important;
+  line-height: 24px !important;
+  height: 24px !important;
+  width: 100% !important;
+  background: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.vat-tu-table .ant-table-cell .ant-input-number-handler-wrap {
+  display: none !important;
+}
+
+/* Force consistent height for all table cell inputs */
+.vat-tu-table .ant-table-cell > div,
+.vat-tu-table .ant-table-cell > input,
+.vat-tu-table .ant-table-cell > .ant-input-number,
+.vat-tu-table .ant-table-cell > .ant-select {
+  height: 32px !important;
+  min-height: 32px !important;
+}
+
+/* ========== DROPDOWN MENU STYLES ========== */
+.vat-tu-dropdown,
+.phieu-form-dropdown {
+  border-radius: 6px;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08),
+    0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  min-width: 300px !important;
+  max-width: 450px !important;
+  z-index: 9999 !important;
+}
+
+.phieu-form-dropdown {
+  max-width: 500px !important;
+  max-height: 300px !important;
+}
+
+.vat-tu-dropdown .ant-select-item,
+.phieu-form-dropdown .ant-select-item {
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  min-height: auto !important;
+  border: none !important;
+  background: white !important;
+  transition: all 0.3s;
+}
+
+.vat-tu-dropdown .ant-select-item-option-active,
+.phieu-form-dropdown .ant-select-item-option-active,
+.vat-tu-dropdown .ant-select-item:hover,
+.phieu-form-dropdown .ant-select-item:hover {
+  background: #f0f8ff !important;
+  color: black !important;
+}
+
+.phieu-container .ant-select-dropdown,
+.ant-select-dropdown.phieu-form-dropdown,
+.ant-select-dropdown.vat-tu-dropdown {
+  min-width: 300px !important;
+  z-index: 9999 !important;
+}
+
+/* ========== REQUIRED FIELD ASTERISK ========== */
+.vat-tu-table .ant-table-thead th span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ========== RESPONSIVE DESIGN FOR VAT TU TABLE ========== */
+@media (max-width: 1024px) {
+  .vat-tu-table .ant-table-thead > tr > th,
+  .vat-tu-table .ant-table-tbody > tr > td {
+    padding: 6px 4px;
+    font-size: 13px;
+  }
+
+  .vat-tu-table-select {
+    min-width: 120px;
+  }
+
+  .vat-tu-table-input {
+    min-width: 80px;
+  }
+}
+
+@media (max-width: 768px) {
+  .vat-tu-table {
+    font-size: 12px;
+  }
+
+  .vat-tu-table .ant-table-thead > tr > th,
+  .vat-tu-table .ant-table-tbody > tr > td {
+    padding: 4px 2px;
+  }
+
+  .vat-tu-table-select {
+    min-width: 100px;
+  }
+
+  .vat-tu-table-input {
+    min-width: 60px;
+    font-size: 12px;
+  }
+
+  .vat-tu-delete-btn {
+    width: 24px;
+    height: 24px;
+  }
+
+  .vat-tu-delete-btn .anticon {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .vat-tu-table .ant-table-container {
+    overflow-x: auto;
+  }
+
+  .vat-tu-table .ant-table-thead > tr > th,
+  .vat-tu-table .ant-table-tbody > tr > td {
+    padding: 2px 1px;
+    white-space: nowrap;
+  }
+
+  .vat-tu-table-select,
+  .vat-tu-table-input {
+    min-width: 80px;
+    font-size: 11px;
+  }
 }
