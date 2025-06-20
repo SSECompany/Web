@@ -6,11 +6,15 @@ import { Link, useLocation } from "react-router-dom";
 
 import { getRoutesAccess } from "../../../app/Functions/getRouteAccess";
 import router, { routes } from "../../../router/routes";
-import { setClaims, setIsBackgrouds } from "../../../store/reducers/claimsSlice";
+import {
+  setClaims,
+  setIsBackgrouds,
+} from "../../../store/reducers/claimsSlice";
 import { getUserInfo } from "../../../store/selectors/Selectors";
 import jwt from "../../../utils/jwt";
 
 import { resetOrders } from "../../../modules/order/store/order";
+import VersionIndicator from "../../common/VersionIndicator/VersionIndicator";
 import "./Navbar.css";
 
 const Navbar = () => {
@@ -41,7 +45,9 @@ const Navbar = () => {
 
     if (
       !validRoutes.includes(data?.pathname?.substring(1)) &&
-      flatRoutes.findIndex((item) => item.path === data?.pathname?.substring(1)) < 0
+      flatRoutes.findIndex(
+        (item) => item.path === data?.pathname?.substring(1)
+      ) < 0
     ) {
     }
   };
@@ -83,6 +89,10 @@ const Navbar = () => {
       </div>
 
       <div className="first_navbar_row_right flex gap-1">
+        <div className="px-1 text-center flex items-center">
+          <VersionIndicator showDetails={true} size="small" />
+        </div>
+
         <div className="px-1 text-center flex full-name">
           <div className="primary_bold_text">{userInfo?.fullName || ""}</div>
         </div>
