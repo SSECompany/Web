@@ -39,19 +39,15 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   // Custom hooks
   const {
     maGiaoDichList,
-    tkCoList,
-    loadingTkCo,
     maKhoList,
     loadingMaKho,
     maKhachList,
     loadingMaKhach,
     vatTuList,
     loadingVatTu,
-    fetchTkCoListDebounced,
     fetchMaKhoListDebounced,
     fetchMaKhachListDebounced,
     fetchMaGiaoDichList,
-    fetchTkCoList,
     fetchMaKhoList,
     fetchMaKhachList,
     fetchVatTuList,
@@ -76,7 +72,6 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
       // Load master data
       await Promise.all([
         fetchMaGiaoDichList(),
-        fetchTkCoList(),
         fetchMaKhoList(),
         fetchMaKhachList(),
         fetchVatTuList(),
@@ -134,19 +129,71 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             // Process vật tư list
             const processedVatTu = await Promise.all(
               vatTuList.map(async (item, index) => {
+                // Lấy danh sách đơn vị tính và thông tin vật tư từ API
                 const donViTinhList = await fetchDonViTinh(item.ma_vt);
+                const vatTuDetail = await fetchVatTuDetail(item.ma_vt.trim());
+
+                // Lấy hệ số gốc từ API vật tư thay vì từ database
+                const vatTuInfo = Array.isArray(vatTuDetail)
+                  ? vatTuDetail[0]
+                  : vatTuDetail;
+                const heSoGocFromAPI = vatTuInfo
+                  ? parseFloat(vatTuInfo.he_so) || 1
+                  : 1;
+                const dvtGocFromAPI = vatTuInfo
+                  ? vatTuInfo.dvt
+                    ? vatTuInfo.dvt.trim()
+                    : "cái"
+                  : "cái";
+
+                // Sử dụng nullish coalescing để xử lý đúng giá trị 0
+                const soLuongHienThi = item.so_luong ?? 0;
+                const dvtHienTai = item.dvt ? item.dvt.trim() : dvtGocFromAPI;
+
+                let soLuongGoc;
+                let heSoHienTai = item.he_so || 1;
+
+                // Nếu đang ở đơn vị gốc, tính ngược soLuong_goc từ hệ số gốc
+                if (dvtHienTai === dvtGocFromAPI) {
+                  soLuongGoc =
+                    heSoGocFromAPI !== 0
+                      ? soLuongHienThi / heSoGocFromAPI
+                      : soLuongHienThi;
+                  heSoHienTai = heSoGocFromAPI;
+                } else {
+                  // Nếu ở đơn vị khác, soLuongHienThi chính là soLuongGoc
+                  soLuongGoc = soLuongHienThi;
+                  // Tìm hệ số của đơn vị hiện tại từ danh sách đơn vị tính
+                  const dvtHienTaiInfo = donViTinhList.find(
+                    (dvt) => dvt.dvt.trim() === dvtHienTai
+                  );
+                  heSoHienTai = dvtHienTaiInfo
+                    ? parseFloat(dvtHienTaiInfo.he_so) || 1
+                    : 1;
+                }
+
+                // Tính lại soLuong hiển thị dựa trên soLuong_goc và hệ số
+                let soLuongHienThiMoi;
+                if (dvtHienTai === dvtGocFromAPI) {
+                  // Ở đơn vị gốc: soLuong = soLuong_goc * he_so_goc
+                  soLuongHienThiMoi = soLuongGoc * heSoGocFromAPI;
+                } else {
+                  // Ở đơn vị khác: soLuong = soLuong_goc (số nguyên)
+                  soLuongHienThiMoi = soLuongGoc;
+                }
+
                 return {
                   key: index + 1,
                   maHang: item.ma_vt || "",
-                  soLuong: item.so_luong || 0,
-                  soLuong_goc: item.so_luong || 0,
-                  he_so: item.he_so || 1,
+                  soLuong: Math.round(soLuongHienThiMoi * 1000) / 1000,
+                  soLuong_goc: Math.round(soLuongGoc * 1000) / 1000,
+                  he_so: heSoHienTai,
+                  he_so_goc: heSoGocFromAPI, // Lưu hệ số gốc từ API
                   ten_mat_hang: item.ten_vt || item.ma_vt || "",
-                  dvt: item.dvt ? item.dvt.trim() : "cái",
-                  dvt_goc: item.dvt ? item.dvt.trim() : "cái",
+                  dvt: dvtHienTai,
+                  dvt_goc: dvtGocFromAPI,
                   ma_kho: item.ma_kho || "",
                   tk_vt: item.tk_vt || "",
-                  tk_co: item.tk_du || "",
                   donViTinhList: donViTinhList,
                 };
               })
@@ -245,14 +292,12 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
         true
       );
 
-
       // Submit
       const result = await submitPhieuNhapKho(
         "v1/web/update-stock-voucher",
         payload,
         "Cập nhật phiếu nhập kho thành công"
       );
-
 
       if (result.success) {
         message.success(
@@ -331,9 +376,6 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             handleSelectChange={handleSelectChange}
             handleDeleteItem={handleDeleteItem}
             handleDvtChange={handleDvtChange}
-            tkCoList={tkCoList}
-            loadingTkCo={loadingTkCo}
-            fetchTkCoListDebounced={fetchTkCoListDebounced}
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}

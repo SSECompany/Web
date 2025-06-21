@@ -683,8 +683,6 @@
   min-height: 32px !important;
 }
 
-
-
 .vat-tu-delete-btn:hover {
   background: #fff2f0;
   color: #ff4d4f;
@@ -708,7 +706,6 @@
   box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08),
     0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
   min-width: 300px !important;
-  max-width: 450px !important;
   z-index: 9999 !important;
 }
 
@@ -738,13 +735,6 @@
 .phieu-form-dropdown .ant-select-item:hover {
   background: #f0f8ff !important;
   color: #1890ff !important;
-}
-
-.vat-tu-dropdown .ant-select-item-option-selected,
-.phieu-form-dropdown .ant-select-item-option-selected {
-  background: #595959 !important;
-  color: white !important;
-  font-weight: normal !important;
 }
 
 /* ========== GLOBAL DROPDOWN POSITIONING ========== */

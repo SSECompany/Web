@@ -8,9 +8,6 @@ const VatTuNhapKhoTable = ({
   handleSelectChange,
   handleDeleteItem,
   handleDvtChange,
-  tkCoList,
-  loadingTkCo,
-  fetchTkCoListDebounced,
   maKhoList,
   loadingMaKho,
   fetchMaKhoListDebounced,
@@ -151,39 +148,7 @@ const VatTuNhapKhoTable = ({
           value
         ),
     },
-    {
-      title: (
-        <span>
-          Tk có <span style={{ color: "red" }}>*</span>
-        </span>
-      ),
-      dataIndex: "tk_co",
-      key: "tk_co",
-      width: 180,
-      align: "center",
-      render: (value, record) =>
-        isEditMode ? (
-          <Select
-            value={value}
-            onChange={(newValue) =>
-              handleSelectChange(newValue, record, "tk_co")
-            }
-            placeholder="Chọn TK có"
-            showSearch
-            loading={loadingTkCo}
-            filterOption={false}
-            onSearch={fetchTkCoListDebounced}
-            options={tkCoList}
-            style={{ width: "100%" }}
-            size="small"
-            className="vat-tu-table-select"
-            dropdownClassName="vat-tu-dropdown"
-            popupMatchSelectWidth={false}
-          />
-        ) : (
-          value
-        ),
-    },
+
     {
       title: "Thao tác",
       key: "action",

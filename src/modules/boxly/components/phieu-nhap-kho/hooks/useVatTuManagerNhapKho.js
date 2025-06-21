@@ -38,15 +38,50 @@ export const useVatTuManagerNhapKho = () => {
 
       // Nếu đã có vật tư thì tăng số lượng, chưa có thì thêm mới
       setDataSource((prev) => {
-        const existing = prev.find((item) => item.maHang === value);
-        if (existing) {
-          return prev.map((item) => {
-            if (item.maHang === value) {
-              // Luôn cộng 1 vào số lượng gốc
-              const soLuongGocMoi = (item.soLuong_goc || 1) + 1;
-              // Tính lại số lượng hiển thị dựa trên hệ số hiện tại
-              const soLuongMoi = soLuongGocMoi * (item.he_so || 1);
+        console.log("DEBUG NHẬP KHO: Current dataSource:", prev);
+        console.log("DEBUG NHẬP KHO: Adding value:", `"${value}"`);
+
+        // Debug từng dòng trong dataSource
+        prev.forEach((item, index) => {
+          console.log(
+            `DEBUG NHẬP KHO: Row ${index}: maHang = "${
+              item.maHang
+            }", comparison = ${item.maHang === value}, trimmed comparison = ${
+              item.maHang.trim() === value.trim()
+            }`
+          );
+        });
+
+        // Tìm dòng đầu tiên có cùng mã vật tư để merge (trim để tránh lỗi whitespace)
+        const existingIndex = prev.findIndex(
+          (item) => item.maHang.trim() === value.trim()
+        );
+        console.log("DEBUG NHẬP KHO: Found existing at index:", existingIndex);
+
+        if (existingIndex !== -1) {
+          // Merge vào dòng đầu tiên và xóa các dòng trùng lặp khác
+          const updatedData = prev.map((item, index) => {
+            if (index === existingIndex) {
+              // Cộng thêm 1 lần hệ số vào số lượng hiện tại
+              const dvtHienTai = (item.dvt || "").trim();
+              const dvtGoc = (item.dvt_goc || "").trim();
+
+              let soLuongThemVao;
+              // Nếu đang ở đơn vị tính gốc, thêm theo hệ số gốc
+              if (dvtHienTai === dvtGoc) {
+                const heSoApDung = item.he_so_goc ?? item.he_so ?? 1;
+                soLuongThemVao = 1 * heSoApDung;
+              } else {
+                // Nếu đang ở đơn vị khác, thêm 1 đơn vị
+                soLuongThemVao = 1;
+              }
+
+              const soLuongHienTai = item.soLuong || 0;
+              const soLuongMoi = soLuongHienTai + soLuongThemVao;
               const soLuongLamTron = Math.round(soLuongMoi * 1000) / 1000;
+
+              // Cập nhật soLuong_goc để đồng bộ
+              const soLuongGocMoi = (item.soLuong_goc ?? 0) + 1;
 
               return {
                 ...item,
@@ -56,18 +91,33 @@ export const useVatTuManagerNhapKho = () => {
             }
             return item;
           });
+
+          // Xóa các dòng trùng lặp (giữ chỉ dòng đầu tiên)
+          const filteredData = updatedData.filter(
+            (item, index) =>
+              index === existingIndex || item.maHang.trim() !== value.trim()
+          );
+
+          // Cập nhật lại key cho các dòng
+          return filteredData.map((item, index) => ({
+            ...item,
+            key: index + 1,
+          }));
         } else {
+          // Lấy hệ số từ API response
+          const heSo = parseFloat(vatTuInfo.he_so) || 1;
+
           const newItem = {
             key: prev.length + 1,
             maHang: value,
-            soLuong: 1,
-            soLuong_goc: 1,
-            he_so: 1,
+            soLuong: 0, // Số lượng = 0 khi thêm mới
+            soLuong_goc: 0, // Số lượng gốc = 0
+            he_so: heSo,
+            he_so_goc: heSo, // Lưu hệ số gốc để dùng khi chuyển đổi đơn vị
             ten_mat_hang: vatTuInfo.ten_vt || value,
             dvt: defaultDvt,
             dvt_goc: defaultDvt,
             tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",
-            tk_co: "",
             ma_kho: "",
             donViTinhList: donViTinhList,
           };
@@ -78,11 +128,11 @@ export const useVatTuManagerNhapKho = () => {
       message.success(`Đã thêm vật tư: ${value}`);
 
       // Clear input và reset danh sách ngay lập tức
-      setVatTuInput(undefined);
-      setVatTuList([]);
+      if (setVatTuInput) setVatTuInput(undefined);
+      if (setVatTuList) setVatTuList([]);
 
       // Load lại toàn bộ danh sách vật tư ngay lập tức
-      fetchVatTuList("");
+      if (fetchVatTuList) fetchVatTuList("");
     } catch (error) {
       console.error("Error adding vat tu:", error);
       message.error("Có lỗi xảy ra khi thêm vật tư");
@@ -95,20 +145,20 @@ export const useVatTuManagerNhapKho = () => {
     setDataSource((prev) =>
       prev.map((item) => {
         if (item.key === record.key) {
-          // Nếu đang ở đơn vị tính gốc, cập nhật luôn soLuong_goc
+          // Nếu đang ở đơn vị tính gốc, tính ngược lại soLuong_goc từ số lượng nhập
           if (item.dvt === item.dvt_goc) {
-            return {
-              ...item,
-              [field]: newValue,
-              soLuong_goc: newValue,
-            };
-          } else {
-            // Nếu không phải đơn vị tính gốc, tính ngược lại soLuong_goc
-            const soLuongGocMoi = newValue / (item.he_so || 1);
+            const soLuongGocMoi = newValue / (item.he_so_goc ?? 1);
             return {
               ...item,
               [field]: newValue,
               soLuong_goc: Math.round(soLuongGocMoi * 1000) / 1000,
+            };
+          } else {
+            // Nếu đang ở đơn vị khác, số lượng nhập chính là soLuong_goc
+            return {
+              ...item,
+              [field]: newValue,
+              soLuong_goc: newValue,
             };
           }
         }
@@ -154,9 +204,16 @@ export const useVatTuManagerNhapKho = () => {
     );
     const heSoMoi = selectedDvt ? parseFloat(selectedDvt.he_so) || 1 : 1;
 
-    // Tính số lượng mới dựa trên số lượng gốc
-    const soLuongGoc = record.soLuong_goc || 1;
-    const soLuongMoi = soLuongGoc * heSoMoi;
+    const soLuongGoc = record.soLuong_goc ?? 1;
+    let soLuongMoi;
+
+    // Nếu chuyển về đơn vị tính gốc, áp dụng hệ số gốc
+    if (newValue.trim() === record.dvt_goc.trim()) {
+      soLuongMoi = soLuongGoc * record.he_so_goc;
+    } else {
+      // Nếu chuyển sang đơn vị khác, hiển thị số lượng gốc (số nguyên)
+      soLuongMoi = soLuongGoc;
+    }
 
     // Làm tròn đến 3 chữ số thập phân
     const soLuongLamTron = Math.round(soLuongMoi * 1000) / 1000;

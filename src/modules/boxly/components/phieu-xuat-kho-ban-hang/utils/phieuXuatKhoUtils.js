@@ -79,8 +79,8 @@ export const buildPayload = (
       ma_kho: item.ma_kho || "",
       so_luong: parseFloat(item.so_luong) || 0,
       sl_td3: parseFloat(item.sl_td3) || 0,
+      he_so: parseFloat(item.he_so) || 1,
       tk_vt: item.tk_vt || "",
-      tk_co: item.tk_co || "",
     })),
   };
 

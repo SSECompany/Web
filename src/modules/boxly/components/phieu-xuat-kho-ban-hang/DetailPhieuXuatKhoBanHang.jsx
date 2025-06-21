@@ -57,6 +57,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
   const {
     dataSource,
     setDataSource,
+    handleVatTuSelect: vatTuSelectHandler,
     handleQuantityChange,
     handleDeleteItem,
     handleDvtChange,
@@ -140,20 +141,90 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         if (phieuDetails.length > 0) {
           const mappedItems = await Promise.all(
             phieuDetails.map(async (item, index) => {
+              // Lấy danh sách đơn vị tính và thông tin vật tư từ API
               const donViTinhList = await fetchDonViTinh(item.ma_vt);
+              const vatTuDetail = await fetchVatTuDetail(item.ma_vt.trim());
+
+              // Lấy hệ số gốc từ API vật tư thay vì từ database
+              const vatTuInfo = Array.isArray(vatTuDetail)
+                ? vatTuDetail[0]
+                : vatTuDetail;
+              const heSoGocFromAPI = vatTuInfo
+                ? parseFloat(vatTuInfo.he_so) || 1
+                : 1;
+              const dvtGocFromAPI = vatTuInfo
+                ? vatTuInfo.dvt
+                  ? vatTuInfo.dvt.trim()
+                  : "cái"
+                : "cái";
+
+              // Sử dụng nullish coalescing để xử lý đúng giá trị 0
+              const sl_td3_hienThi = item.sl_td3 ?? item.so_luong ?? 0;
+              const so_luong_hienThi = item.so_luong ?? 0;
+              const dvtHienTai = item.dvt || dvtGocFromAPI;
+
+              let sl_td3_goc, so_luong_goc;
+              let heSoHienTai = item.he_so || 1;
+
+              // Nếu đang ở đơn vị gốc, tính ngược từ hệ số gốc
+              if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
+                sl_td3_goc =
+                  heSoGocFromAPI !== 0
+                    ? sl_td3_hienThi / heSoGocFromAPI
+                    : sl_td3_hienThi;
+                // Nếu so_luong = 0, sử dụng sl_td3_goc làm so_luong_goc
+                if (so_luong_hienThi === 0) {
+                  so_luong_goc = sl_td3_goc;
+                } else {
+                  so_luong_goc =
+                    heSoGocFromAPI !== 0
+                      ? so_luong_hienThi / heSoGocFromAPI
+                      : so_luong_hienThi;
+                }
+                heSoHienTai = heSoGocFromAPI;
+              } else {
+                // Nếu ở đơn vị khác, giá trị hiển thị chính là giá trị gốc
+                sl_td3_goc = sl_td3_hienThi;
+                // Nếu so_luong = 0, sử dụng sl_td3_goc làm so_luong_goc
+                so_luong_goc =
+                  so_luong_hienThi === 0 ? sl_td3_hienThi : so_luong_hienThi;
+                // Tìm hệ số của đơn vị hiện tại từ danh sách đơn vị tính
+                const dvtHienTaiInfo = donViTinhList.find(
+                  (dvt) => dvt.dvt.trim() === dvtHienTai.trim()
+                );
+                heSoHienTai = dvtHienTaiInfo
+                  ? parseFloat(dvtHienTaiInfo.he_so) || 1
+                  : 1;
+              }
+
+              // Đảm bảo số lượng gốc không bằng 0 để tránh lỗi khi đổi đơn vị tính
+              if (sl_td3_goc === 0) sl_td3_goc = 1;
+              if (so_luong_goc === 0) so_luong_goc = 1;
+
+              // Tính lại so_luong hiển thị dựa trên so_luong_goc và hệ số
+              let so_luong_hienThi_moi;
+              if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
+                // Ở đơn vị gốc: so_luong = so_luong_goc * he_so_goc
+                so_luong_hienThi_moi = so_luong_goc * heSoGocFromAPI;
+              } else {
+                // Ở đơn vị khác: so_luong = so_luong_goc (số nguyên)
+                so_luong_hienThi_moi = so_luong_goc;
+              }
+
               return {
                 key: index + 1,
                 maHang: item.ma_vt,
-                so_luong: item.so_luong || 0,
-                sl_td3: item.sl_td3 || item.so_luong || 0,
-                sl_td3_goc: item.sl_td3 || item.so_luong || 0,
-                he_so: item.he_so || 1,
+                so_luong: Math.round(so_luong_hienThi_moi * 1000) / 1000,
+                so_luong_goc: Math.round(so_luong_goc * 1000) / 1000,
+                sl_td3: sl_td3_hienThi,
+                sl_td3_goc: Math.round(sl_td3_goc * 1000) / 1000,
+                he_so: heSoHienTai,
+                he_so_goc: heSoGocFromAPI, // Lưu hệ số gốc từ API
                 ten_mat_hang: item.ten_vt || item.ma_vt,
-                dvt: item.dvt,
-                dvt_goc: item.dvt,
+                dvt: dvtHienTai,
+                dvt_goc: dvtGocFromAPI,
                 tk_vt: item.tk_vt || "",
                 ma_kho: item.ma_kho || "",
-                tk_co: item.tk_co || "",
                 donViTinhList: donViTinhList,
               };
             })
@@ -169,65 +240,15 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
   };
 
   const handleVatTuSelect = async (value) => {
-    if (!isEditMode) return;
-
-    try {
-      const vatTuDetail = await fetchVatTuDetail(value.trim());
-      if (!vatTuDetail) return;
-
-      const vatTuInfo = Array.isArray(vatTuDetail)
-        ? vatTuDetail[0]
-        : vatTuDetail;
-      const donViTinhList = await fetchDonViTinh(value.trim());
-      const defaultDvt = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
-
-      setDataSource((prev) => {
-        const existing = prev.find((item) => item.maHang === value);
-        if (existing) {
-          return prev.map((item) => {
-            if (item.maHang === value) {
-              // Luôn cộng 1 vào số lượng gốc
-              const sl_td3_goc_moi = (item.sl_td3_goc || 1) + 1;
-              // Tính lại số lượng hiển thị dựa trên hệ số hiện tại
-              const sl_td3_moi = sl_td3_goc_moi * (item.he_so || 1);
-              const sl_td3_lam_tron = Math.round(sl_td3_moi * 1000) / 1000;
-
-              return {
-                ...item,
-                sl_td3: sl_td3_lam_tron,
-                sl_td3_goc: sl_td3_goc_moi,
-              };
-            }
-            return item;
-          });
-        } else {
-          const newItem = {
-            key: prev.length + 1,
-            maHang: value,
-            so_luong: 0,
-            sl_td3: 1,
-            sl_td3_goc: 1,
-            he_so: 1,
-            ten_mat_hang: vatTuInfo.ten_vt || value,
-            dvt: defaultDvt,
-            dvt_goc: defaultDvt,
-            tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",
-            ma_kho: vatTuInfo.ma_kho ? vatTuInfo.ma_kho.trim() : "",
-            donViTinhList: donViTinhList,
-          };
-          return [...prev, newItem];
-        }
-      });
-
-      // Clear input và reset danh sách ngay lập tức
-      setVatTuInput(undefined);
-      setVatTuList([]);
-
-      // Load lại toàn bộ danh sách vật tư ngay lập tức
-      fetchVatTuList("");
-    } catch (error) {
-      console.error("Error adding vat tu:", error);
-    }
+    await vatTuSelectHandler(
+      value,
+      isEditMode,
+      fetchVatTuDetail,
+      fetchDonViTinh,
+      setVatTuInput,
+      setVatTuList,
+      fetchVatTuList
+    );
   };
 
   const handleSubmit = async () => {

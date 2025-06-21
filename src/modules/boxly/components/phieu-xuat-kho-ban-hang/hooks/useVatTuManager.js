@@ -30,40 +30,94 @@ export const useVatTuManager = () => {
         ? vatTuDetail[0]
         : vatTuDetail;
 
+      if (!vatTuInfo) {
+        message.error("Thông tin vật tư không hợp lệ");
+        return;
+      }
+
       // Gọi API lấy danh sách đơn vị tính
       const donViTinhList = await fetchDonViTinh(value.trim());
 
+      // Kiểm tra donViTinhList có hợp lệ không
+      if (!Array.isArray(donViTinhList)) {
+        message.error("Không thể lấy danh sách đơn vị tính");
+        return;
+      }
+
       // Lấy đơn vị tính từ API response (đã được trim spaces)
-      const defaultDvt = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
+      const defaultDvt =
+        vatTuInfo && vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
 
       // Nếu đã có vật tư thì tăng số lượng, chưa có thì thêm mới
       setDataSource((prev) => {
-        const existing = prev.find((item) => item.maHang === value);
-        if (existing) {
-          return prev.map((item) => {
-            if (item.maHang === value) {
-              // Luôn cộng 1 vào số lượng gốc
-              const sl_td3_goc_moi = (item.sl_td3_goc || 1) + 1;
-              // Tính lại số lượng hiển thị dựa trên hệ số hiện tại
-              const sl_td3_moi = sl_td3_goc_moi * (item.he_so || 1);
+        // Tìm dòng đầu tiên có cùng mã vật tư để merge (trim để tránh lỗi whitespace)
+        const existingIndex = prev.findIndex(
+          (item) => item.maHang.trim() === value.trim()
+        );
+
+        if (existingIndex !== -1) {
+          // Merge vào dòng đầu tiên và xóa các dòng trùng lặp khác
+          const updatedData = prev.map((item, index) => {
+            if (index === existingIndex) {
+              // Cộng thêm 1 lần hệ số vào số lượng xuất hiện tại
+              const dvtHienTai = (item.dvt || "").trim();
+              const dvtGoc = (item.dvt_goc || "").trim();
+
+              let soLuongThemVao;
+              // Nếu đang ở đơn vị tính gốc, thêm theo hệ số gốc
+              if (dvtHienTai === dvtGoc) {
+                const heSoApDung = item.he_so_goc ?? item.he_so ?? 1;
+                soLuongThemVao = 1 * heSoApDung;
+              } else {
+                // Nếu đang ở đơn vị khác, thêm 1 đơn vị
+                soLuongThemVao = 1;
+              }
+
+              const sl_td3_hienTai = item.sl_td3 || 0;
+              const sl_td3_moi = sl_td3_hienTai + soLuongThemVao;
               const sl_td3_lam_tron = Math.round(sl_td3_moi * 1000) / 1000;
+
+              // Cập nhật sl_td3_goc để đồng bộ
+              const sl_td3_goc_moi = (item.sl_td3_goc ?? 0) + 1;
 
               return {
                 ...item,
+                so_luong: item.so_luong, // Giữ nguyên số lượng đề nghị hiện tại
+                so_luong_goc: item.so_luong_goc, // Giữ nguyên số lượng đề nghị gốc
                 sl_td3: sl_td3_lam_tron,
                 sl_td3_goc: sl_td3_goc_moi,
               };
             }
             return item;
           });
+
+          // Xóa các dòng trùng lặp (giữ chỉ dòng đầu tiên)
+          const filteredData = updatedData.filter(
+            (item, index) =>
+              index === existingIndex || item.maHang.trim() !== value.trim()
+          );
+
+          // Cập nhật lại key cho các dòng
+          return filteredData.map((item, index) => ({
+            ...item,
+            key: index + 1,
+          }));
         } else {
+          // Lấy hệ số từ API response
+          const heSo = parseFloat(vatTuInfo.he_so) || 1;
+          const sl_td3_goc = 1;
+          const sl_td3_hienThi = sl_td3_goc * heSo;
+          const sl_td3_lamTron = Math.round(sl_td3_hienThi * 1000) / 1000;
+
           const newItem = {
             key: prev.length + 1,
             maHang: value,
-            so_luong: 0,
-            sl_td3: 1,
-            sl_td3_goc: 1,
-            he_so: 1,
+            so_luong: 0, // Số lượng đề nghị = 0 khi thêm mới
+            so_luong_goc: 0, // Số lượng đề nghị gốc = 0
+            sl_td3: sl_td3_lamTron,
+            sl_td3_goc: sl_td3_goc,
+            he_so: heSo,
+            he_so_goc: heSo, // Lưu hệ số gốc để dùng khi chuyển đổi đơn vị
             ten_mat_hang: vatTuInfo.ten_vt || value,
             dvt: defaultDvt,
             dvt_goc: defaultDvt,
@@ -78,11 +132,11 @@ export const useVatTuManager = () => {
       message.success(`Đã thêm vật tư: ${value}`);
 
       // Clear input và reset danh sách ngay lập tức
-      setVatTuInput(undefined);
-      setVatTuList([]);
+      if (setVatTuInput) setVatTuInput(undefined);
+      if (setVatTuList) setVatTuList([]);
 
       // Load lại toàn bộ danh sách vật tư ngay lập tức
-      fetchVatTuList("");
+      if (fetchVatTuList) fetchVatTuList("");
     } catch (error) {
       console.error("Error adding vat tu:", error);
       message.error("Có lỗi xảy ra khi thêm vật tư");
@@ -95,20 +149,20 @@ export const useVatTuManager = () => {
     setDataSource((prev) =>
       prev.map((item) => {
         if (item.key === record.key) {
-          // Nếu đang ở đơn vị tính gốc, cập nhật luôn sl_td3_goc
+          // Nếu đang ở đơn vị tính gốc, tính ngược lại sl_td3_goc từ số lượng nhập
           if (item.dvt === item.dvt_goc) {
-            return {
-              ...item,
-              [field]: newValue,
-              sl_td3_goc: newValue,
-            };
-          } else {
-            // Nếu không phải đơn vị tính gốc, tính ngược lại sl_td3_goc
-            const sl_td3_goc_moi = newValue / (item.he_so || 1);
+            const sl_td3_goc_moi = newValue / (item.he_so_goc ?? 1);
             return {
               ...item,
               [field]: newValue,
               sl_td3_goc: Math.round(sl_td3_goc_moi * 1000) / 1000,
+            };
+          } else {
+            // Nếu đang ở đơn vị khác, số lượng nhập chính là sl_td3_goc
+            return {
+              ...item,
+              [field]: newValue,
+              sl_td3_goc: newValue,
             };
           }
         }
@@ -134,19 +188,35 @@ export const useVatTuManager = () => {
   };
 
   const handleDvtChange = (newValue, record) => {
+    // Kiểm tra record có hợp lệ không
+    if (!record || !record.donViTinhList) {
+      message.error("Thông tin vật tư không hợp lệ");
+      return;
+    }
+
     // Tìm thông tin đơn vị tính được chọn
     const dvtOptions = record.donViTinhList || [];
     const selectedDvt = dvtOptions.find(
-      (dvt) => dvt.dvt.trim() === newValue.trim()
+      (dvt) => dvt && dvt.dvt && dvt.dvt.trim() === newValue.trim()
     );
     const heSoMoi = selectedDvt ? parseFloat(selectedDvt.he_so) || 1 : 1;
 
-    // Tính số lượng mới dựa trên số lượng gốc
-    const sl_td3_goc = record.sl_td3_goc || 1;
-    const sl_td3_moi = sl_td3_goc * heSoMoi;
+    // Copy logic từ phiếu nhập kho - xử lý sl_td3
+    const sl_td3_goc = record.sl_td3_goc ?? 1;
+    let sl_td3_moi;
+
+    // Nếu chuyển về đơn vị tính gốc, áp dụng hệ số gốc
+    if (newValue.trim() === record.dvt_goc.trim()) {
+      sl_td3_moi = sl_td3_goc * record.he_so_goc;
+    } else {
+      // Nếu chuyển sang đơn vị khác, hiển thị số lượng gốc (số nguyên)
+      sl_td3_moi = sl_td3_goc;
+    }
 
     // Làm tròn đến 3 chữ số thập phân
     const sl_td3_lam_tron = Math.round(sl_td3_moi * 1000) / 1000;
+    // Giữ nguyên số lượng đề nghị, không tự động tính lại
+    const so_luong_hien_tai = record.so_luong || 0;
 
     setDataSource((prev) =>
       prev.map((item) =>
@@ -155,6 +225,7 @@ export const useVatTuManager = () => {
               ...item,
               dvt: newValue,
               he_so: heSoMoi,
+              so_luong: so_luong_hien_tai, // Giữ nguyên số lượng đề nghị
               sl_td3: sl_td3_lam_tron,
             }
           : item

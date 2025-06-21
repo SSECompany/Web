@@ -42,9 +42,6 @@ export const validateDataSource = (dataSource) => {
     if (!item.ma_kho) {
       missingData.push(`Dòng ${index + 1}: Chưa chọn mã kho`);
     }
-    if (!item.tk_co) {
-      missingData.push(`Dòng ${index + 1}: Chưa chọn tài khoản có`);
-    }
     const soLuong = parseFloat(item.soLuong || 0);
     if (soLuong <= 0) {
       missingData.push(`Dòng ${index + 1}: Số lượng phải lớn hơn 0`);
@@ -131,7 +128,7 @@ export const buildPhieuNhapKhoPayload = (
       ma_lo: "",
       ma_vv: "",
       ma_nx: "",
-      tk_du: item.tk_co || "",
+      tk_du: "",
       tk_vt: item.tk_vt || "",
       so_luong: parseFloat(item.soLuong),
       gia_nt: 0.0,

@@ -52,6 +52,7 @@ const AddPhieuXuatKhoBanHang = () => {
   const {
     dataSource,
     setDataSource,
+    handleVatTuSelect: vatTuSelectHandler,
     handleQuantityChange,
     handleDeleteItem,
     handleDvtChange,
@@ -126,63 +127,15 @@ const AddPhieuXuatKhoBanHang = () => {
   };
 
   const handleVatTuSelect = async (value) => {
-    try {
-      const vatTuDetail = await fetchVatTuDetail(value.trim());
-      if (!vatTuDetail) return;
-
-      const vatTuInfo = Array.isArray(vatTuDetail)
-        ? vatTuDetail[0]
-        : vatTuDetail;
-      const donViTinhList = await fetchDonViTinh(value.trim());
-      const defaultDvt = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
-
-      setDataSource((prev) => {
-        const existing = prev.find((item) => item.maHang === value);
-        if (existing) {
-          return prev.map((item) => {
-            if (item.maHang === value) {
-              // Luôn cộng 1 vào số lượng gốc
-              const sl_td3_goc_moi = (item.sl_td3_goc || 1) + 1;
-              // Tính lại số lượng hiển thị dựa trên hệ số hiện tại
-              const sl_td3_moi = sl_td3_goc_moi * (item.he_so || 1);
-              const sl_td3_lam_tron = Math.round(sl_td3_moi * 1000) / 1000;
-
-              return {
-                ...item,
-                sl_td3: sl_td3_lam_tron,
-                sl_td3_goc: sl_td3_goc_moi,
-              };
-            }
-            return item;
-          });
-        } else {
-          const newItem = {
-            key: prev.length + 1,
-            maHang: value,
-            so_luong: 0,
-            sl_td3: 1,
-            sl_td3_goc: 1,
-            he_so: 1,
-            ten_mat_hang: vatTuInfo.ten_vt || value,
-            dvt: defaultDvt,
-            dvt_goc: defaultDvt,
-            tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",
-            ma_kho: vatTuInfo.ma_kho ? vatTuInfo.ma_kho.trim() : "",
-            donViTinhList: donViTinhList,
-          };
-          return [...prev, newItem];
-        }
-      });
-
-      // Clear input và reset danh sách ngay lập tức
-      setVatTuInput(undefined);
-      setVatTuList([]);
-
-      // Load lại toàn bộ danh sách vật tư ngay lập tức
-      fetchVatTuList("");
-    } catch (error) {
-      console.error("Error adding vat tu:", error);
-    }
+    await vatTuSelectHandler(
+      value,
+      true, // isEditMode
+      fetchVatTuDetail,
+      fetchDonViTinh,
+      setVatTuInput,
+      setVatTuList,
+      fetchVatTuList
+    );
   };
 
   const handleSubmit = async () => {

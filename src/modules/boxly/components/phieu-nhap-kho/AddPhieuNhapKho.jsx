@@ -33,20 +33,16 @@ const AddPhieuNhapKho = () => {
     loading,
     setLoading,
     maGiaoDichList,
-    tkCoList,
-    loadingTkCo,
     maKhoList,
     loadingMaKho,
     maKhachList,
     loadingMaKhach,
     vatTuList,
     loadingVatTu,
-    fetchTkCoListDebounced,
     fetchMaKhoListDebounced,
     fetchMaKhachListDebounced,
     fetchVatTuListDebounced,
     fetchMaGiaoDichList,
-    fetchTkCoList,
     fetchMaKhoList,
     fetchMaKhachList,
     fetchVatTuList,
@@ -71,7 +67,6 @@ const AddPhieuNhapKho = () => {
       // Load master data
       await Promise.all([
         fetchMaGiaoDichList(),
-        fetchTkCoList(),
         fetchMaKhoList(),
         fetchMaKhachList(),
         fetchVatTuList(),
@@ -208,9 +203,6 @@ const AddPhieuNhapKho = () => {
             handleSelectChange={handleSelectChange}
             handleDeleteItem={handleDeleteItem}
             handleDvtChange={handleDvtChange}
-            tkCoList={tkCoList}
-            loadingTkCo={loadingTkCo}
-            fetchTkCoListDebounced={fetchTkCoListDebounced}
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}

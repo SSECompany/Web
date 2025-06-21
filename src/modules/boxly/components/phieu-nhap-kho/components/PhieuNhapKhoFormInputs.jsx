@@ -137,16 +137,16 @@ const PhieuNhapKhoFormInputs = ({
                       }, 500);
                     }}
                     onDropdownVisibleChange={(open) => {
-                      // Chỉ load khi mở dropdown, input trống và danh sách rỗng
-                      if (open && !vatTuInput && vatTuList.length === 0) {
+                      // Khi mở dropdown và input trống, luôn load lại toàn bộ danh sách
+                      if (open && !vatTuInput) {
                         fetchVatTuList("");
                       }
                     }}
                     filterOption={false}
                     onSelect={handleVatTuSelect}
                     disabled={!isEditMode}
-                    dropdownClassName="phieu-form-dropdown"
-                    popupMatchSelectWidth={false}
+                    dropdownClassName="vat-tu-dropdown"
+                    popupMatchSelectWidth={true}
                   />
                 ) : (
                   <Input
