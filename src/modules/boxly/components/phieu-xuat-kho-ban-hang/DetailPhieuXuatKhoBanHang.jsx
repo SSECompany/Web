@@ -197,18 +197,27 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
                   : 1;
               }
 
-              // Đảm bảo số lượng gốc không bằng 0 để tránh lỗi khi đổi đơn vị tính
-              if (sl_td3_goc === 0) sl_td3_goc = 1;
-              if (so_luong_goc === 0) so_luong_goc = 1;
+              // Lưu giá trị thực tế từ API cho việc hiển thị
+              const so_luong_thuc_te = so_luong_hienThi;
+
+              // Chỉ điều chỉnh giá trị gốc cho việc tính toán đơn vị tính nếu cần thiết
+              // Nhưng vẫn giữ nguyên giá trị thực tế để hiển thị
+              const sl_td3_goc_tinh_toan = sl_td3_goc === 0 ? 1 : sl_td3_goc;
+              const so_luong_goc_tinh_toan =
+                so_luong_goc === 0 ? 1 : so_luong_goc;
 
               // Tính lại so_luong hiển thị dựa trên so_luong_goc và hệ số
               let so_luong_hienThi_moi;
               if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
-                // Ở đơn vị gốc: so_luong = so_luong_goc * he_so_goc
-                so_luong_hienThi_moi = so_luong_goc * heSoGocFromAPI;
+                // Ở đơn vị gốc: nếu so_luong_thuc_te = 0 thì giữ nguyên 0
+                so_luong_hienThi_moi =
+                  so_luong_thuc_te === 0
+                    ? 0
+                    : so_luong_goc_tinh_toan * heSoGocFromAPI;
               } else {
-                // Ở đơn vị khác: so_luong = so_luong_goc (số nguyên)
-                so_luong_hienThi_moi = so_luong_goc;
+                // Ở đơn vị khác: nếu so_luong_thuc_te = 0 thì giữ nguyên 0
+                so_luong_hienThi_moi =
+                  so_luong_thuc_te === 0 ? 0 : so_luong_goc_tinh_toan;
               }
 
               return {

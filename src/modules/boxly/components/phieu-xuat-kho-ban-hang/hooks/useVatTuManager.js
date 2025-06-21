@@ -202,15 +202,18 @@ export const useVatTuManager = () => {
     const heSoMoi = selectedDvt ? parseFloat(selectedDvt.he_so) || 1 : 1;
 
     // Copy logic từ phiếu nhập kho - xử lý sl_td3
-    const sl_td3_goc = record.sl_td3_goc ?? 1;
+    const sl_td3_goc_thuc_te = record.sl_td3_goc ?? 0;
+    const sl_td3_goc_tinh_toan =
+      sl_td3_goc_thuc_te === 0 ? 1 : sl_td3_goc_thuc_te;
     let sl_td3_moi;
 
     // Nếu chuyển về đơn vị tính gốc, áp dụng hệ số gốc
     if (newValue.trim() === record.dvt_goc.trim()) {
-      sl_td3_moi = sl_td3_goc * record.he_so_goc;
+      sl_td3_moi =
+        sl_td3_goc_thuc_te === 0 ? 0 : sl_td3_goc_tinh_toan * record.he_so_goc;
     } else {
       // Nếu chuyển sang đơn vị khác, hiển thị số lượng gốc (số nguyên)
-      sl_td3_moi = sl_td3_goc;
+      sl_td3_moi = sl_td3_goc_thuc_te === 0 ? 0 : sl_td3_goc_tinh_toan;
     }
 
     // Làm tròn đến 3 chữ số thập phân
