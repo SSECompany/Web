@@ -23,8 +23,34 @@ const MealEntryRow = ({
       (food) => food.ma_ca === timeOfDay && food.ma_nh === meal.mode
     );
 
+ 
+
+  // Determine shift name for display
+  const shiftName =
+    timeOfDay === "CA1"
+      ? "Ca Sáng"
+      : timeOfDay === "CA2"
+      ? "Ca Trưa"
+      : "Ca Chiều";
+
   return (
     <div className="meal-entry-wrapper" key={index}>
+      {index === 0 && (
+        <div
+          style={{
+            backgroundColor: "#f6ffed",
+            padding: "8px",
+            marginBottom: "12px",
+            borderRadius: "4px",
+            border: "1px solid #b7eb8f",
+          }}
+        >
+          <p style={{ margin: 0, color: "#52c41a", fontWeight: "bold" }}>
+            Lưu ý: Bạn cần nhập đủ món ăn cho cả 3 ca (Sáng, Trưa, Chiều) để
+            hoàn thành
+          </p>
+        </div>
+      )}
       <div className="meal-entry">
         <div className="mode-selection-group">
           <div className="mode-controls">
@@ -32,7 +58,8 @@ const MealEntryRow = ({
               htmlFor={`mode-${timeOfDay}-${index}`}
               className="mode-label"
             >
-              Chế độ
+              <span style={{ color: "#ff4d4f", marginRight: "4px" }}>*</span>
+              Chế độ - {shiftName}
             </label>
             <button
               className="mode-delete-button"
