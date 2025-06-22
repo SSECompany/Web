@@ -142,7 +142,7 @@ const RoomSelectionForm = () => {
 
   useEffect(() => {
     if (!roomSelectedDate) {
-      const tomorrow = dayjs().add(1, 'day').format(dateFormat);
+      const tomorrow = dayjs().add(1, "day").format(dateFormat);
       dispatch(setRoomSelectedDate(tomorrow));
     } else if (masterData.roomCode) {
       loadBedsWithMeals(masterData.roomCode, roomSelectedDate);
@@ -350,7 +350,7 @@ const RoomSelectionForm = () => {
             so_luong: meal.quantity,
             don_gia: meal.price || 0,
             thanh_tien: meal.totalMoney || 0,
-            benh_nhan_yn: meal.collectMoney ? 0: 1,
+            benh_nhan_yn: meal.collectMoney ? 0 : 1,
             ghi_chu: meal.note || "",
             thu_tien_yn: meal.isPaid ? 1 : 0,
             httt: meal.httt || "",
@@ -399,6 +399,12 @@ const RoomSelectionForm = () => {
   const handleDateChange = (date) => {
     if (!date || !dayjs(date).isValid()) return;
 
+    // Check if the selected date is before today
+    if (date.isBefore(dayjs().startOf("day"))) {
+      notification.warning({ message: "Không thể chọn ngày trong quá khứ!" });
+      return;
+    }
+
     const formattedDate = date.format(dateFormat);
     dispatch(setRoomSelectedDate(formattedDate));
 
@@ -445,6 +451,9 @@ const RoomSelectionForm = () => {
             onChange={handleDateChange}
             format={dateFormat}
             className="room-date-picker-input"
+            disabledDate={(current) =>
+              current && current < dayjs().startOf("day")
+            }
           />
         </div>
       </div>

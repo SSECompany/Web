@@ -1,6 +1,6 @@
 {
   "name": "phenika",
-  "version": "0.1.0",
+  "version": "1.1.10",
   "private": true,
   "dependencies": {
     "@ant-design/charts": "^2.1.1",
@@ -85,7 +85,20 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "node scripts/auto-build.js",
+    "build:patch": "node scripts/auto-build.js patch",
+    "build:minor": "node scripts/auto-build.js minor",
+    "build:major": "node scripts/auto-build.js major",
+    "build:no-bump": "node scripts/auto-build.js --skip-bump",
+    "build:detect": "node scripts/detect-package-manager.js build",
+    "build:yarn": "yarn update-version && react-scripts build",
+    "build:npm": "npm run update-version && react-scripts build",
+    "build:original": "react-scripts build",
+    "update-version": "node scripts/update-version.js",
+    "version:patch": "node scripts/bump-version.js patch",
+    "version:minor": "node scripts/bump-version.js minor",
+    "version:major": "node scripts/bump-version.js major",
+    "version": "node scripts/bump-version.js patch",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

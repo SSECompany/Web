@@ -57,6 +57,80 @@ const generateRandomId = () =>
     Math.floor(Math.random() * 36).toString(36)
   ).join("");
 
+const addPendingSync = (sttRec, userId) => {
+  try {
+    const pending = JSON.parse(localStorage.getItem("pending_syncs") || "[]");
+    const exists = pending.find((item) => item.sttRec === sttRec);
+    if (!exists) {
+      pending.push({
+        sttRec,
+        userId,
+        timestamp: Date.now(),
+        attempts: 0,
+      });
+      localStorage.setItem("pending_syncs", JSON.stringify(pending));
+    }
+  } catch (error) {
+    console.error("Error adding pending sync:", error);
+  }
+};
+
+const removePendingSync = (sttRec) => {
+  try {
+    const pending = JSON.parse(localStorage.getItem("pending_syncs") || "[]");
+    const filtered = pending.filter((item) => item.sttRec !== sttRec);
+    localStorage.setItem("pending_syncs", JSON.stringify(filtered));
+  } catch (error) {
+    console.error("Error removing pending sync:", error);
+  }
+};
+
+const retryPendingSyncs = async () => {
+  try {
+    const pending = JSON.parse(localStorage.getItem("pending_syncs") || "[]");
+    if (pending.length === 0) return;
+
+    for (const item of pending) {
+      const { sttRec, userId, attempts } = item;
+
+      // Skip if too many attempts (max 10)
+      if (attempts >= 10) {
+        removePendingSync(sttRec);
+        continue;
+      }
+
+      try {
+        await syncFastApi(sttRec, userId);
+        removePendingSync(sttRec);
+
+        notification.success({
+          message: `✅ Đồng bộ FAST thành công (retry)`,
+          description: `Đơn: ${sttRec}`,
+          duration: 3,
+        });
+      } catch (error) {
+        console.error(`❌ Retry sync failed: ${sttRec}`, error);
+        // Update attempts count
+        const updated = pending.map((p) =>
+          p.sttRec === sttRec ? { ...p, attempts: p.attempts + 1 } : p
+        );
+        localStorage.setItem("pending_syncs", JSON.stringify(updated));
+      }
+    }
+  } catch (error) {
+    console.error("Error retrying pending syncs:", error);
+  }
+};
+
+const getPendingSyncCount = () => {
+  try {
+    const pending = JSON.parse(localStorage.getItem("pending_syncs") || "[]");
+    return pending.length;
+  } catch (error) {
+    return 0;
+  }
+};
+
 export default function OrderSummary({ total, itemCount }) {
   const dispatch = useDispatch();
   const { internalActiveTabId, orders } = useSelector((state) => state.orders);
@@ -217,12 +291,17 @@ export default function OrderSummary({ total, itemCount }) {
 
       const response = await multipleTablePutApi(payload);
       if (response?.responseModel?.isSucceded) {
-        notification.success({
-          message: isSaveOnly
-            ? "Đã lưu đơn hàng thành công!"
-            : "Đơn hàng đã được gửi thành công!",
-        });
-        setTimeout(() => dispatch(clearTabData(internalActiveTabId)), 500);
+        const sttRec = response?.listObject[0][0]?.stt_rec;
+
+        if (sttRec) {
+          notification.success({
+            message: isSaveOnly
+              ? "Đã lưu đơn hàng thành công!"
+              : "Đơn hàng đã được tạo thành công!",
+          });
+
+          setTimeout(() => dispatch(clearTabData(internalActiveTabId)), 500);
+        }
       } else {
         notification.warning({ message: response?.responseModel?.message });
       }
@@ -239,43 +318,51 @@ export default function OrderSummary({ total, itemCount }) {
     setIsPrinting(false);
 
     const sttRec = currentPrintData?.sttRec;
+    const alreadySynced = currentPrintData?.syncSuccess;
+    const alreadyPrinted = currentPrintData?.printSuccess;
 
     if (sttRec) {
-      let printSuccess = false;
-      let syncSuccess = false;
+      let printSuccess = alreadyPrinted || false;
+      let syncSuccess = alreadySynced || false;
 
-      try {
-        await syncFastApi(sttRec, id);
-        syncSuccess = true;
-      } catch (syncError) {
-        console.error("syncFastApi failed:", {
-          error: syncError,
-          sttRec,
-          userId: id,
-          message: syncError.message,
-          stack: syncError.stack,
-        });
-        notification.error({
-          message: "Có lỗi xảy ra khi đồng bộ với FAST!",
-          description: syncError.message,
-        });
+      if (!alreadySynced) {
+        try {
+          await syncFastApi(sttRec, id);
+          syncSuccess = true;
+          removePendingSync(sttRec);
+        } catch (syncError) {
+          console.error("syncFastApi failed:", {
+            error: syncError,
+            sttRec,
+            userId: id,
+            message: syncError.message,
+            stack: syncError.stack,
+          });
+          notification.error({
+            message: "Có lỗi xảy ra khi đồng bộ với FAST!",
+            description: syncError.message,
+          });
+        }
       }
 
-      try {
-        await printOrderApi(sttRec, id);
-        printSuccess = true;
-      } catch (printError) {
-        console.error("printOrderApi failed:", {
-          error: printError,
-          sttRec,
-          userId: id,
-          message: printError.message,
-          stack: printError.stack,
-        });
-        notification.error({
-          message: "Có lỗi xảy ra khi in đơn hàng!",
-          description: printError.message,
-        });
+      // Chỉ chạy printOrderApi nếu chưa thành công trước đó
+      if (!alreadyPrinted) {
+        try {
+          await printOrderApi(sttRec, id);
+          printSuccess = true;
+        } catch (printError) {
+          console.error("printOrderApi failed:", {
+            error: printError,
+            sttRec,
+            userId: id,
+            message: printError.message,
+            stack: printError.stack,
+          });
+          notification.error({
+            message: "Có lỗi xảy ra khi in đơn hàng!",
+            description: printError.message,
+          });
+        }
       }
 
       if (printSuccess || syncSuccess) {
@@ -406,6 +493,66 @@ export default function OrderSummary({ total, itemCount }) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
         const orderNumber = response?.listObject[0][0]?.so_ct;
 
+        addPendingSync(sttRec, id);
+
+        let syncSuccess = false;
+        let printSuccess = false;
+
+        try {
+          await syncFastApi(sttRec, id);
+          syncSuccess = true;
+          removePendingSync(sttRec);
+        } catch (syncError) {
+          console.error("syncFastApi failed:", {
+            error: syncError,
+            sttRec,
+            userId: id,
+            message: syncError.message,
+            stack: syncError.stack,
+          });
+          notification.error({
+            message: "Có lỗi xảy ra khi đồng bộ với FAST!",
+            description: syncError.message,
+          });
+        }
+
+        try {
+          await printOrderApi(sttRec, id);
+          printSuccess = true;
+        } catch (printError) {
+          console.error("printOrderApi failed:", {
+            error: printError,
+            sttRec,
+            userId: id,
+            message: printError.message,
+            stack: printError.stack,
+          });
+          notification.error({
+            message: "Có lỗi xảy ra khi in đơn hàng!",
+            description: printError.message,
+          });
+        }
+
+        // Thông báo kết quả
+        if (syncSuccess && printSuccess) {
+          notification.success({
+            message: "Thanh toán thành công! Đã đồng bộ FAST và gửi lệnh in.",
+          });
+        } else if (syncSuccess || printSuccess) {
+          const successMessage = [];
+          if (syncSuccess) successMessage.push("Đồng bộ FAST");
+          if (printSuccess) successMessage.push("Gửi lệnh in");
+
+          notification.success({
+            message: `Thanh toán thành công! (${successMessage.join(", ")})`,
+          });
+        } else {
+          notification.warning({
+            message:
+              "Thanh toán thành công nhưng có lỗi với các dịch vụ phụ trợ!",
+          });
+        }
+
         setPrintMaster(orderData.masterData);
         setPrintDetail(orderData.detailData);
         setCurrentPrintData({
@@ -416,14 +563,12 @@ export default function OrderSummary({ total, itemCount }) {
           customerInfo,
           sttRec,
           orderNumber,
+          syncSuccess,
+          printSuccess,
         });
         setHasReprinted(false);
         setIsPrinting(true);
         setIsPrinted(false);
-
-        notification.success({
-          message: "Thanh toán thành công! Đang chuẩn bị in...",
-        });
 
         handleClosePaymentModal();
       } else {
@@ -469,6 +614,8 @@ export default function OrderSummary({ total, itemCount }) {
         message: "Đã kết nối internet!",
         duration: 2,
       });
+      // Retry pending syncs khi có mạng trở lại
+      setTimeout(() => retryPendingSyncs(), 1000);
     };
 
     const handleOffline = () => {
@@ -483,9 +630,20 @@ export default function OrderSummary({ total, itemCount }) {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
+    // Retry pending syncs khi component mount
+    retryPendingSyncs();
+
+    // Setup interval để check pending syncs định kỳ (mỗi 2 phút)
+    const syncInterval = setInterval(() => {
+      if (navigator.onLine) {
+        retryPendingSyncs();
+      }
+    }, 120000);
+
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      clearInterval(syncInterval);
     };
   }, []);
 

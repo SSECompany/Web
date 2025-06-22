@@ -202,7 +202,6 @@ const MealDetailsForm = () => {
 
   const handleModeChange = useCallback(
     (timeOfDay, index, value) => {
-      console.log("handleModeChange called with:", timeOfDay, index, value);
 
       updateMealEntry(timeOfDay, index, (meal) => {
         meal.mode = value;
@@ -216,8 +215,6 @@ const MealDetailsForm = () => {
       // Fetch food list when mode changes
       const fetchListFood = async () => {
         if (!selectedDate || !value) return;
-
-        console.log("Fetching food list for:", timeOfDay, value, selectedDate);
 
         try {
           const response = await multipleTablePutApi({
@@ -235,7 +232,6 @@ const MealDetailsForm = () => {
           });
 
           const foodList = response?.listObject?.[0] || [];
-          console.log("API response food list:", foodList);
 
           // Lưu vào state local thay vì Redux
           setLocalFoodList((prev) => {
@@ -263,7 +259,6 @@ const MealDetailsForm = () => {
           // Nếu có món ăn mới, thêm vào danh sách và cập nhật Redux
           if (newFoodItems.length > 0) {
             const updatedFoodList = [...currentFoodList, ...newFoodItems];
-            console.log("Updating Redux with:", updatedFoodList);
             dispatch(setListFood(updatedFoodList));
           }
         } catch (error) {
@@ -386,100 +381,19 @@ const MealDetailsForm = () => {
     const bedMeals = mealEntries[currentBedIndex] || {};
 
     const updatedMeals = cloneDeep(mealEntries);
-    const emptyShifts = [];
 
-    for (const shift of ["CA1", "CA2", "CA3"]) {
+    // Check if all shifts have meals
+    const allShiftsHaveMeals = ["CA1", "CA2", "CA3"].every((shift) => {
       const meals = bedMeals[shift] || [];
-      const hasMeal = meals.some((meal) => meal.mealType);
-      if (!hasMeal) {
-        emptyShifts.push(shift);
-      }
-    }
+      return meals.some((meal) => meal.mealType);
+    });
 
-    const shiftLabels = { CA1: "Ca Sáng", CA2: "Ca Trưa", CA3: "Ca Chiều" };
-
-    if (emptyShifts.length > 0) {
-      const emptyShiftNames = emptyShifts
-        .map((shift) => shiftLabels[shift])
-        .join(", ");
-
-      showConfirm({
-        title: (
-          <>
-            Bạn chưa nhập liệu cho các ca:{" "}
-            <span style={{ color: "#fa541c" }}>{emptyShiftNames}</span>. Bạn có
-            chắc chắn muốn tiếp tục?
-          </>
-        ),
-        onOk: async () => {
-          let needValidate = false;
-
-          for (const shift of Object.keys(bedMeals)) {
-            for (
-              let index = 0;
-              index < (bedMeals[shift]?.length || 0);
-              index++
-            ) {
-              const meal = bedMeals[shift][index];
-              if (meal.mode && !meal.mealType) {
-                needValidate = true;
-                break;
-              }
-            }
-            if (needValidate) break;
-          }
-
-          if (needValidate) {
-            let hasError = false;
-
-            for (const shift of Object.keys(bedMeals)) {
-              for (
-                let index = 0;
-                index < (bedMeals[shift]?.length || 0);
-                index++
-              ) {
-                const meal = bedMeals[shift][index];
-
-                if (!meal.mode && !meal.mealType) continue;
-
-                try {
-                  await mealSchema.validate(meal, { abortEarly: false });
-                  updatedMeals[currentBedIndex][shift][index] = {
-                    ...meal,
-                    errors: {},
-                  };
-                } catch (validationError) {
-                  hasError = true;
-                  const errors = {};
-                  validationError.inner.forEach((err) => {
-                    errors[err.path] = err.message;
-                  });
-                  updatedMeals[currentBedIndex][shift][index] = {
-                    ...meal,
-                    errors: errors,
-                  };
-                }
-              }
-            }
-
-            if (hasError) {
-              setMealEntries(updatedMeals);
-              return;
-            }
-          }
-
-          dispatch(
-            setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex })
-          );
-          dispatch(markBedAsSubmitted(currentBedIndex));
-          dispatch(setShowMealDetails(false));
-          dispatch(setShowRoomSelection(true));
-        },
-        onCancel: () => {
-          if (emptyShifts.length > 0) {
-            setActiveTab(emptyShifts[0]);
-          }
-        },
+    if (!allShiftsHaveMeals) {
+      // This should not happen because the submit button is disabled
+      // But we add this check as a safeguard
+      notification.error({
+        message: "Lỗi",
+        description: "Vui lòng nhập đủ món ăn cho cả 3 ca (Sáng, Trưa, Chiều)",
       });
       return;
     }
@@ -489,6 +403,9 @@ const MealDetailsForm = () => {
     for (const shift of Object.keys(bedMeals)) {
       for (let index = 0; index < (bedMeals[shift]?.length || 0); index++) {
         const meal = bedMeals[shift][index];
+
+        if (!meal.mode && !meal.mealType) continue;
+
         try {
           await mealSchema.validate(meal, { abortEarly: false });
           updatedMeals[currentBedIndex][shift][index] = {
@@ -737,9 +654,9 @@ const MealDetailsForm = () => {
         onClick={handleSubmit}
         disabled={
           !(
-            mealEntries[currentBedIndex]?.CA1?.length ||
-            mealEntries[currentBedIndex]?.CA2?.length ||
-            mealEntries[currentBedIndex]?.CA3?.length
+            mealEntries[currentBedIndex]?.CA1?.some((meal) => meal.mealType) &&
+            mealEntries[currentBedIndex]?.CA2?.some((meal) => meal.mealType) &&
+            mealEntries[currentBedIndex]?.CA3?.some((meal) => meal.mealType)
           )
         }
       >
