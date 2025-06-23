@@ -195,6 +195,25 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
                   ma_kho: item.ma_kho || "",
                   tk_vt: item.tk_vt || "",
                   donViTinhList: donViTinhList,
+
+                  // Lưu thêm các trường từ API để gửi lại khi update
+                  stt_rec0: item.stt_rec0 || "",
+                  ma_sp: item.ma_sp || "",
+                  ma_bp: item.ma_bp || "",
+                  so_lsx: item.so_lsx || "",
+                  ma_vi_tri: item.ma_vi_tri || "",
+                  ma_lo: item.ma_lo || "",
+                  ma_vv: item.ma_vv || "",
+                  ma_nx: item.ma_nx || "",
+                  tk_du: item.tk_du || "",
+                  gia_nt: item.gia_nt || 0,
+                  gia: item.gia || 0,
+                  tien_nt: item.tien_nt || 0,
+                  tien: item.tien || 0,
+                  pn_gia_tb: item.pn_gia_tb || false,
+                  stt_rec_px: item.stt_rec_px || "",
+                  stt_rec0px: item.stt_rec0px || "",
+                  line_nbr: item.line_nbr || index + 1,
                 };
               })
             );
