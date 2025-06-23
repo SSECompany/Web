@@ -127,12 +127,8 @@ export const useVatTuManagerNhapKho = () => {
 
       message.success(`Đã thêm vật tư: ${value}`);
 
-      // Clear input và reset danh sách ngay lập tức
+      // Only clear input, don't reset list or reload
       if (setVatTuInput) setVatTuInput(undefined);
-      if (setVatTuList) setVatTuList([]);
-
-      // Load lại toàn bộ danh sách vật tư ngay lập tức
-      if (fetchVatTuList) fetchVatTuList("");
     } catch (error) {
       console.error("Error adding vat tu:", error);
       message.error("Có lỗi xảy ra khi thêm vật tư");

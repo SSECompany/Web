@@ -124,6 +124,27 @@ export const useVatTuManager = () => {
             tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",
             ma_kho: vatTuInfo.ma_kho ? vatTuInfo.ma_kho.trim() : "",
             donViTinhList: donViTinhList,
+
+            // ✅ Add default values for additional fields when adding new item
+            gia_nt2: 0,
+            gia2: 0,
+            thue: 0,
+            thue_nt: 0,
+            tien2: 0,
+            tien_nt2: 0,
+            tl_ck: 0,
+            ck: 0,
+            ck_nt: 0,
+            tk_gv: "",
+            tk_dt: "",
+            ma_thue: "",
+            thue_suat: 0,
+            tk_thue: "",
+            tl_ck_khac: 0,
+            gia_ck: 0,
+            tien_ck_khac: 0,
+            sl_td1: 0,
+            sl_td2: 0,
           };
           return [...prev, newItem];
         }
@@ -131,12 +152,8 @@ export const useVatTuManager = () => {
 
       message.success(`Đã thêm vật tư: ${value}`);
 
-      // Clear input và reset danh sách ngay lập tức
+      // Only clear input, don't reset list or reload
       if (setVatTuInput) setVatTuInput(undefined);
-      if (setVatTuList) setVatTuList([]);
-
-      // Load lại toàn bộ danh sách vật tư ngay lập tức
-      if (fetchVatTuList) fetchVatTuList("");
     } catch (error) {
       console.error("Error adding vat tu:", error);
       message.error("Có lỗi xảy ra khi thêm vật tư");

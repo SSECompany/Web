@@ -81,8 +81,34 @@ export const buildPayload = (
       sl_td3: parseFloat(item.sl_td3) || 0,
       he_so: parseFloat(item.he_so) || 1,
       tk_vt: item.tk_vt || "",
+
+      // ✅ Add additional fields for complete payload
+      gia_nt2: parseFloat(item.gia_nt2) || 0,
+      gia2: parseFloat(item.gia2) || 0,
+      thue: parseFloat(item.thue) || 0,
+      thue_nt: parseFloat(item.thue_nt) || 0,
+      tien2: parseFloat(item.tien2) || 0,
+      tien_nt2: parseFloat(item.tien_nt2) || 0,
+      tl_ck: parseFloat(item.tl_ck) || 0,
+      ck: parseFloat(item.ck) || 0,
+      ck_nt: parseFloat(item.ck_nt) || 0,
+      tk_gv: item.tk_gv || "",
+      tk_dt: item.tk_dt || "",
+      ma_thue: item.ma_thue || "",
+      thue_suat: parseFloat(item.thue_suat) || 0,
+      tk_thue: item.tk_thue || "",
+      tl_ck_khac: parseFloat(item.tl_ck_khac) || 0,
+      gia_ck: parseFloat(item.gia_ck) || 0,
+      tien_ck_khac: parseFloat(item.tien_ck_khac) || 0,
+      sl_td1: parseFloat(item.sl_td1) || 0,
+      sl_td2: parseFloat(item.sl_td2) || 0,
     })),
   };
+
+  // ✅ Debug payload in development mode
+  if (process.env.NODE_ENV === "development") {
+    console.log("📦 Payload being sent:", JSON.stringify(payload, null, 2));
+  }
 
   return isUpdate ? { Data: payload } : { Data: payload };
 };

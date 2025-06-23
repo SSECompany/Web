@@ -1,7 +1,7 @@
 import { EditOutlined, LeftOutlined } from "@ant-design/icons";
 import { Button, Form, Modal, Space, Typography } from "antd";
 import moment from "moment/moment";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import https from "../../../../utils/https";
 import PhieuFormInputs from "./components/PhieuFormInputs";
@@ -32,9 +32,16 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
   const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
 
-  // Refs
+  // Refs for preventing multiple calls and caching
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
+  const donViTinhCache = useRef(new Map()); // Keep cache for donViTinh only
+
+  // Flags to prevent duplicate calls
+  const masterDataLoadedRef = useRef(false);
+  const phieuDetailLoadedRef = useRef(null); // Store loaded stt_rec
+  const isLoadingMasterDataRef = useRef(false);
+  const isLoadingPhieuDetailRef = useRef(false);
 
   // Custom hooks
   const {
@@ -63,39 +70,78 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
     handleDvtChange,
   } = useVatTuManager();
 
-  // Effects
-  useEffect(() => {
-    if (barcodeJustEnabled && vatTuSelectRef.current) {
-      vatTuSelectRef.current.focus();
-      setBarcodeJustEnabled(false);
-    }
-  }, [barcodeJustEnabled]);
+  // Batch fetch don vi tinh only (still needed for dropdown)
+  const fetchDonViTinhBatch = useCallback(
+    async (maVatTuList) => {
+      if (!maVatTuList.length) return [];
 
-  useEffect(() => {
-    const isEditPath = location.pathname.includes("/edit/");
-    setIsEditMode(isEditPath);
+      // Filter out already cached items
+      const uncachedItems = maVatTuList.filter(
+        (ma_vt) => !donViTinhCache.current.has(ma_vt.trim())
+      );
 
-    // Tải danh sách
-    fetchMaGiaoDichList();
-    fetchMaKhachList();
-    fetchVatTuList();
+      if (uncachedItems.length > 0) {
+        try {
+          // Batch API calls for uncached don vi tinh only
+          await Promise.all(
+            uncachedItems.map(async (ma_vt) => {
+              const donViTinhList = await fetchDonViTinh(ma_vt);
 
-    if (!phieuData || phieuData.stt_rec !== stt_rec) {
-      fetchPhieuDetail();
-    }
-  }, [stt_rec, location.pathname]);
-
-  useEffect(() => {
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+              // Cache results
+              donViTinhCache.current.set(ma_vt.trim(), donViTinhList);
+            })
+          );
+        } catch (error) {
+          console.error("Error in batch fetch don vi tinh:", error);
+        }
       }
-    };
-  }, []);
 
-  // Functions
-  const fetchPhieuDetail = async () => {
+      // Return results from cache
+      return maVatTuList.map((ma_vt) => ({
+        ma_vt,
+        donViTinhList: donViTinhCache.current.get(ma_vt.trim()) || [],
+      }));
+    },
+    [fetchDonViTinh]
+  );
+
+  // Load master data only once
+  const loadMasterData = useCallback(async () => {
+    if (masterDataLoadedRef.current || isLoadingMasterDataRef.current) {
+      return;
+    }
+
+    isLoadingMasterDataRef.current = true;
+
+    try {
+      // Call APIs in parallel
+      await Promise.all([
+        fetchMaGiaoDichList(),
+        fetchMaKhachList(),
+        fetchVatTuList(),
+      ]);
+
+      masterDataLoadedRef.current = true;
+    } catch (error) {
+      console.error("Error loading master data:", error);
+    } finally {
+      isLoadingMasterDataRef.current = false;
+    }
+  }, [fetchMaGiaoDichList, fetchMaKhachList, fetchVatTuList]);
+
+  // Load phieu detail - OPTIMIZED: Use existing vat tu data, only fetch don vi tinh
+  const fetchPhieuDetail = useCallback(async () => {
+    // Prevent duplicate calls for same stt_rec
+    if (
+      phieuDetailLoadedRef.current === stt_rec ||
+      isLoadingPhieuDetailRef.current
+    ) {
+      return;
+    }
+
+    isLoadingPhieuDetailRef.current = true;
     setLoading(true);
+
     try {
       const token = localStorage.getItem("access_token");
       const res = await https.get(
@@ -109,13 +155,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
 
       const data = res.data;
 
-      if (
-        data &&
-        data.data &&
-        data.data.length > 0 &&
-        data.data2 &&
-        data.data2.length > 0
-      ) {
+      if (data?.data?.length > 0 && data?.data2?.length > 0) {
         const phieuHeader = data.data[0];
         const phieuDetails = data.data2;
 
@@ -139,128 +179,197 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         });
 
         if (phieuDetails.length > 0) {
-          const mappedItems = await Promise.all(
-            phieuDetails.map(async (item, index) => {
-              // Lấy danh sách đơn vị tính và thông tin vật tư từ API
-              const donViTinhList = await fetchDonViTinh(item.ma_vt);
-              const vatTuDetail = await fetchVatTuDetail(item.ma_vt.trim());
+          // ✅ OPTIMIZED: Only fetch don vi tinh (needed for dropdown), use existing vat tu data
+          const uniqueMaVatTu = [
+            ...new Set(phieuDetails.map((item) => item.ma_vt)),
+          ];
 
-              // Lấy hệ số gốc từ API vật tư thay vì từ database
-              const vatTuInfo = Array.isArray(vatTuDetail)
-                ? vatTuDetail[0]
-                : vatTuDetail;
-              const heSoGocFromAPI = vatTuInfo
-                ? parseFloat(vatTuInfo.he_so) || 1
+          // Batch fetch don vi tinh only
+          const batchResults = await fetchDonViTinhBatch(uniqueMaVatTu);
+
+          // Create lookup map for don vi tinh
+          const donViTinhMap = new Map();
+          batchResults.forEach((result) => {
+            if (result?.ma_vt) {
+              donViTinhMap.set(result.ma_vt.trim(), result.donViTinhList);
+            }
+          });
+
+          const mappedItems = phieuDetails.map((item, index) => {
+            // ✅ Use existing vat tu data from API response
+            const heSoFromAPI = parseFloat(item.he_so) || 1;
+            const dvtFromAPI = item.dvt?.trim() || "cái";
+
+            // ✅ Get don vi tinh list from API (needed for dropdown)
+            const donViTinhList = donViTinhMap.get(item.ma_vt.trim()) || [
+              { dvt: dvtFromAPI, he_so: heSoFromAPI }, // Fallback if API fails
+            ];
+
+            // Process quantities using existing data
+            const sl_td3_hienThi = item.sl_td3 ?? item.so_luong ?? 0;
+            const so_luong_hienThi = item.so_luong ?? 0;
+            const dvtHienTai = dvtFromAPI;
+
+            // Get he_so_goc from don vi tinh list (find the base unit)
+            const baseUnit = donViTinhList.find(
+              (dvt) => dvt.dvt.trim() === dvtFromAPI.trim()
+            );
+            const heSoGocFromAPI = baseUnit
+              ? parseFloat(baseUnit.he_so) || 1
+              : heSoFromAPI;
+
+            // Calculate quantities based on current unit vs base unit
+            let sl_td3_goc, so_luong_goc;
+            let heSoHienTai = heSoFromAPI;
+
+            if (dvtHienTai.trim() === dvtFromAPI.trim()) {
+              // Same unit as in database
+              sl_td3_goc =
+                heSoGocFromAPI !== 0
+                  ? sl_td3_hienThi / heSoGocFromAPI
+                  : sl_td3_hienThi;
+              so_luong_goc =
+                so_luong_hienThi === 0
+                  ? sl_td3_goc
+                  : heSoGocFromAPI !== 0
+                  ? so_luong_hienThi / heSoGocFromAPI
+                  : so_luong_hienThi;
+              heSoHienTai = heSoGocFromAPI;
+            } else {
+              // Different unit
+              sl_td3_goc = sl_td3_hienThi;
+              so_luong_goc =
+                so_luong_hienThi === 0 ? sl_td3_hienThi : so_luong_hienThi;
+              const dvtHienTaiInfo = donViTinhList.find(
+                (dvt) => dvt.dvt.trim() === dvtHienTai.trim()
+              );
+              heSoHienTai = dvtHienTaiInfo
+                ? parseFloat(dvtHienTaiInfo.he_so) || 1
                 : 1;
-              const dvtGocFromAPI = vatTuInfo
-                ? vatTuInfo.dvt
-                  ? vatTuInfo.dvt.trim()
-                  : "cái"
-                : "cái";
+            }
 
-              // Sử dụng nullish coalescing để xử lý đúng giá trị 0
-              const sl_td3_hienThi = item.sl_td3 ?? item.so_luong ?? 0;
-              const so_luong_hienThi = item.so_luong ?? 0;
-              const dvtHienTai = item.dvt || dvtGocFromAPI;
+            return {
+              key: index + 1,
+              maHang: item.ma_vt,
+              so_luong: Math.round(so_luong_hienThi * 1000) / 1000,
+              so_luong_goc: Math.round(so_luong_goc * 1000) / 1000,
+              sl_td3: sl_td3_hienThi,
+              sl_td3_goc: Math.round(sl_td3_goc * 1000) / 1000,
+              he_so: heSoHienTai,
+              he_so_goc: heSoGocFromAPI,
+              ten_mat_hang: item.ten_vt || item.ma_vt,
+              dvt: dvtHienTai,
+              dvt_goc: dvtFromAPI,
+              tk_vt: item.tk_vt || "",
+              ma_kho: item.ma_kho || "",
+              donViTinhList: donViTinhList, // ✅ Real don vi tinh list from API
 
-              let sl_td3_goc, so_luong_goc;
-              let heSoHienTai = item.he_so || 1;
+              // ✅ Add additional fields from API response for payload
+              gia_nt2: parseFloat(item.gia_nt2) || 0,
+              gia2: parseFloat(item.gia2) || 0,
+              thue: parseFloat(item.thue) || 0,
+              thue_nt: parseFloat(item.thue_nt) || 0,
+              tien2: parseFloat(item.tien2) || 0,
+              tien_nt2: parseFloat(item.tien_nt2) || 0,
+              tl_ck: parseFloat(item.tl_ck) || 0,
+              ck: parseFloat(item.ck) || 0,
+              ck_nt: parseFloat(item.ck_nt) || 0,
+              tk_gv: item.tk_gv || "",
+              tk_dt: item.tk_dt || "",
+              ma_thue: item.ma_thue || "",
+              thue_suat: parseFloat(item.thue_suat) || 0,
+              tk_thue: item.tk_thue || "",
+              tl_ck_khac: parseFloat(item.tl_ck_khac) || 0,
+              gia_ck: parseFloat(item.gia_ck) || 0,
+              tien_ck_khac: parseFloat(item.tien_ck_khac) || 0,
+              sl_td1: parseFloat(item.sl_td1) || 0,
+              sl_td2: parseFloat(item.sl_td2) || 0,
+            };
+          });
 
-              // Nếu đang ở đơn vị gốc, tính ngược từ hệ số gốc
-              if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
-                sl_td3_goc =
-                  heSoGocFromAPI !== 0
-                    ? sl_td3_hienThi / heSoGocFromAPI
-                    : sl_td3_hienThi;
-                // Nếu so_luong = 0, sử dụng sl_td3_goc làm so_luong_goc
-                if (so_luong_hienThi === 0) {
-                  so_luong_goc = sl_td3_goc;
-                } else {
-                  so_luong_goc =
-                    heSoGocFromAPI !== 0
-                      ? so_luong_hienThi / heSoGocFromAPI
-                      : so_luong_hienThi;
-                }
-                heSoHienTai = heSoGocFromAPI;
-              } else {
-                // Nếu ở đơn vị khác, giá trị hiển thị chính là giá trị gốc
-                sl_td3_goc = sl_td3_hienThi;
-                // Nếu so_luong = 0, sử dụng sl_td3_goc làm so_luong_goc
-                so_luong_goc =
-                  so_luong_hienThi === 0 ? sl_td3_hienThi : so_luong_hienThi;
-                // Tìm hệ số của đơn vị hiện tại từ danh sách đơn vị tính
-                const dvtHienTaiInfo = donViTinhList.find(
-                  (dvt) => dvt.dvt.trim() === dvtHienTai.trim()
-                );
-                heSoHienTai = dvtHienTaiInfo
-                  ? parseFloat(dvtHienTaiInfo.he_so) || 1
-                  : 1;
-              }
-
-              // Lưu giá trị thực tế từ API cho việc hiển thị
-              const so_luong_thuc_te = so_luong_hienThi;
-
-              // Chỉ điều chỉnh giá trị gốc cho việc tính toán đơn vị tính nếu cần thiết
-              // Nhưng vẫn giữ nguyên giá trị thực tế để hiển thị
-              const sl_td3_goc_tinh_toan = sl_td3_goc === 0 ? 1 : sl_td3_goc;
-              const so_luong_goc_tinh_toan =
-                so_luong_goc === 0 ? 1 : so_luong_goc;
-
-              // Tính lại so_luong hiển thị dựa trên so_luong_goc và hệ số
-              let so_luong_hienThi_moi;
-              if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
-                // Ở đơn vị gốc: nếu so_luong_thuc_te = 0 thì giữ nguyên 0
-                so_luong_hienThi_moi =
-                  so_luong_thuc_te === 0
-                    ? 0
-                    : so_luong_goc_tinh_toan * heSoGocFromAPI;
-              } else {
-                // Ở đơn vị khác: nếu so_luong_thuc_te = 0 thì giữ nguyên 0
-                so_luong_hienThi_moi =
-                  so_luong_thuc_te === 0 ? 0 : so_luong_goc_tinh_toan;
-              }
-
-              return {
-                key: index + 1,
-                maHang: item.ma_vt,
-                so_luong: Math.round(so_luong_hienThi_moi * 1000) / 1000,
-                so_luong_goc: Math.round(so_luong_goc * 1000) / 1000,
-                sl_td3: sl_td3_hienThi,
-                sl_td3_goc: Math.round(sl_td3_goc * 1000) / 1000,
-                he_so: heSoHienTai,
-                he_so_goc: heSoGocFromAPI, // Lưu hệ số gốc từ API
-                ten_mat_hang: item.ten_vt || item.ma_vt,
-                dvt: dvtHienTai,
-                dvt_goc: dvtGocFromAPI,
-                tk_vt: item.tk_vt || "",
-                ma_kho: item.ma_kho || "",
-                donViTinhList: donViTinhList,
-              };
-            })
-          );
           setDataSource(mappedItems);
         }
+
+        // Mark as loaded
+        phieuDetailLoadedRef.current = stt_rec;
       }
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu phiếu:", error);
     } finally {
       setLoading(false);
+      isLoadingPhieuDetailRef.current = false;
     }
-  };
+  }, [stt_rec, fetchDonViTinhBatch, setLoading, form, setDataSource]);
 
-  const handleVatTuSelect = async (value) => {
-    await vatTuSelectHandler(
-      value,
+  // Effects with minimal dependencies
+  useEffect(() => {
+    if (barcodeJustEnabled && vatTuSelectRef.current) {
+      vatTuSelectRef.current.focus();
+      setBarcodeJustEnabled(false);
+    }
+  }, [barcodeJustEnabled]);
+
+  // Load data only when stt_rec changes or component mounts
+  useEffect(() => {
+    const isEditPath = location.pathname.includes("/edit/");
+    setIsEditMode(isEditPath);
+
+    // Load master data only once
+    if (!masterDataLoadedRef.current) {
+      loadMasterData();
+    }
+
+    // Load phieu detail only if stt_rec changed
+    if (phieuDetailLoadedRef.current !== stt_rec) {
+      fetchPhieuDetail();
+    }
+  }, [stt_rec, location.pathname]);
+
+  // Cleanup timeout
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Reset cache when component unmounts
+  useEffect(() => {
+    return () => {
+      // Reset flags on unmount
+      masterDataLoadedRef.current = false;
+      phieuDetailLoadedRef.current = null;
+      isLoadingMasterDataRef.current = false;
+      isLoadingPhieuDetailRef.current = false;
+    };
+  }, []);
+
+  // Handlers
+  const handleVatTuSelect = useCallback(
+    async (value) => {
+      await vatTuSelectHandler(
+        value,
+        isEditMode,
+        fetchVatTuDetail,
+        fetchDonViTinh,
+        setVatTuInput,
+        setVatTuList,
+        fetchVatTuList
+      );
+    },
+    [
       isEditMode,
+      vatTuSelectHandler,
       fetchVatTuDetail,
       fetchDonViTinh,
       setVatTuInput,
       setVatTuList,
-      fetchVatTuList
-    );
-  };
+      fetchVatTuList,
+    ]
+  );
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     try {
       setLoading(true);
       const values = await form.validateFields();
@@ -282,18 +391,18 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [form, dataSource, phieuData, isEditMode, navigate, setLoading]);
 
-  const handleEdit = () => {
+  const handleEdit = useCallback(() => {
     navigate(`/boxly/phieu-xuat-kho-ban-hang/edit/${stt_rec}`);
     setIsEditMode(true);
-  };
+  }, [navigate, stt_rec]);
 
-  const handleNew = () => {
+  const handleNew = useCallback(() => {
     navigate("/boxly/phieu-xuat-kho-ban-hang/add");
-  };
+  }, [navigate]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     Modal.confirm({
       title: "Xác nhận xóa phiếu",
       content: "Bạn có chắc chắn muốn xóa phiếu này không?",
@@ -310,7 +419,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         }
       },
     });
-  };
+  }, [stt_rec, navigate, setLoading]);
 
   return (
     <div className="phieu-container">
@@ -318,7 +427,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         <Button
           type="text"
           icon={<LeftOutlined />}
-          onClick={() => navigate("/boxly/phieu-xuat-kho-ban-hang")}
+          onClick={() => navigate(-1)}
           className="phieu-back-button"
         >
           Trở về
@@ -378,23 +487,25 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
             handleDvtChange={handleDvtChange}
           />
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-start",
-              marginTop: 16,
-            }}
-          >
-            <Space>
-              <Button type="primary" onClick={handleSubmit} loading={loading}>
-                Lưu
-              </Button>
-              <Button danger onClick={handleDelete}>
-                Xóa
-              </Button>
-              <Button onClick={handleNew}>Mới</Button>
-            </Space>
-          </div>
+          {isEditMode && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-start",
+                marginTop: 16,
+              }}
+            >
+              <Space>
+                <Button type="primary" onClick={handleSubmit} loading={loading}>
+                  Lưu
+                </Button>
+                <Button danger onClick={handleDelete}>
+                  Xóa
+                </Button>
+                <Button onClick={handleNew}>Mới</Button>
+              </Space>
+            </div>
+          )}
         </Form>
       </div>
     </div>

@@ -181,7 +181,7 @@ const AddPhieuXuatKhoBanHang = () => {
         <Button
           type="text"
           icon={<LeftOutlined />}
-          onClick={() => navigate("/boxly/phieu-xuat-kho-ban-hang")}
+          onClick={() => navigate(-1)}
           className="phieu-back-button"
         >
           Trở về
@@ -235,11 +235,7 @@ const AddPhieuXuatKhoBanHang = () => {
               <Button type="primary" onClick={handleSubmit} loading={loading}>
                 Lưu
               </Button>
-              <Button
-                onClick={() => navigate("/boxly/phieu-xuat-kho-ban-hang")}
-              >
-                Hủy
-              </Button>
+              <Button onClick={() => navigate(-1)}>Hủy</Button>
             </Space>
           </div>
         </Form>

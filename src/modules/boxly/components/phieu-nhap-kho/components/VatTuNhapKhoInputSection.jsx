@@ -1,5 +1,6 @@
 import { QrcodeOutlined } from "@ant-design/icons";
 import { Button, Col, Form, Input, Row, Select } from "antd";
+import { useRef } from "react";
 
 const VatTuNhapKhoInputSection = ({
   isEditMode = true,
@@ -15,6 +16,36 @@ const VatTuNhapKhoInputSection = ({
   fetchVatTuList,
   handleVatTuSelect,
 }) => {
+  // Refs to prevent unnecessary API calls
+  const dropdownOpenedRef = useRef(false);
+  const lastSearchValueRef = useRef("");
+
+  const handleSearch = (value) => {
+    // Avoid duplicate searches
+    if (lastSearchValueRef.current === value) {
+      return;
+    }
+    lastSearchValueRef.current = value;
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      fetchVatTuList(value);
+    }, 500);
+  };
+
+  const handleDropdownVisibleChange = (open) => {
+    if (open && !dropdownOpenedRef.current) {
+      // Only fetch if dropdown hasn't been opened before and no search value
+      if (!vatTuInput && vatTuList.length === 0) {
+        fetchVatTuList("");
+      }
+      dropdownOpenedRef.current = true;
+    }
+  };
+
   return (
     <Row gutter={16}>
       <Col span={24}>
@@ -31,25 +62,19 @@ const VatTuNhapKhoInputSection = ({
                 placeholder="Tìm kiếm hoặc chọn vật tư"
                 style={{ width: "calc(100% - 40px)" }}
                 options={vatTuList}
-                onSearch={(value) => {
-                  if (searchTimeoutRef.current) {
-                    clearTimeout(searchTimeoutRef.current);
-                  }
-                  searchTimeoutRef.current = setTimeout(() => {
-                    fetchVatTuList(value);
-                  }, 500);
-                }}
-                onDropdownVisibleChange={(open) => {
-                  // Khi mở dropdown và input trống, luôn load lại toàn bộ danh sách
-                  if (open && !vatTuInput) {
-                    fetchVatTuList("");
-                  }
-                }}
+                onSearch={handleSearch}
+                onDropdownVisibleChange={handleDropdownVisibleChange}
                 filterOption={false}
                 onSelect={handleVatTuSelect}
                 disabled={!isEditMode}
                 dropdownClassName="vat-tu-dropdown"
                 popupMatchSelectWidth={true}
+                // Add these props to improve performance
+                showArrow={true}
+                optionFilterProp="label"
+                notFoundContent={
+                  loadingVatTu ? "Đang tải..." : "Không tìm thấy"
+                }
               />
             ) : (
               <Input
@@ -78,6 +103,9 @@ const VatTuNhapKhoInputSection = ({
                   if (next) {
                     setBarcodeJustEnabled(true);
                     setVatTuInput(undefined);
+                    // Reset refs when switching to barcode mode
+                    dropdownOpenedRef.current = false;
+                    lastSearchValueRef.current = "";
                   }
                   return next;
                 });
