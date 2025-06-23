@@ -63,15 +63,11 @@ export const useVatTuManager = () => {
               const dvtHienTai = (item.dvt || "").trim();
               const dvtGoc = (item.dvt_goc || "").trim();
 
-              let soLuongThemVao;
-              // Nếu đang ở đơn vị tính gốc, thêm theo hệ số gốc
-              if (dvtHienTai === dvtGoc) {
-                const heSoApDung = item.he_so_goc ?? item.he_so ?? 1;
-                soLuongThemVao = 1 * heSoApDung;
-              } else {
-                // Nếu đang ở đơn vị khác, thêm 1 đơn vị
-                soLuongThemVao = 1;
-              }
+              // Công thức tổng quát: Thêm 1 đơn vị gốc được quy đổi sang đơn vị hiện tại
+              // Số lượng thêm = 1 × (hệ số đơn vị gốc / hệ số đơn vị hiện tại)
+              const heSoGoc = item.he_so_goc ?? 1;
+              const heSoHienTai = item.he_so ?? 1;
+              const soLuongThemVao = (1 * heSoGoc) / heSoHienTai;
 
               const sl_td3_hienTai = item.sl_td3 || 0;
               const sl_td3_moi = sl_td3_hienTai + soLuongThemVao;
@@ -124,6 +120,7 @@ export const useVatTuManager = () => {
             tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",
             ma_kho: vatTuInfo.ma_kho ? vatTuInfo.ma_kho.trim() : "",
             donViTinhList: donViTinhList,
+            isNewlyAdded: true, // Flag để phân biệt dữ liệu mới thêm
 
             // ✅ Add default values for additional fields when adding new item
             gia_nt2: 0,
@@ -218,39 +215,101 @@ export const useVatTuManager = () => {
     );
     const heSoMoi = selectedDvt ? parseFloat(selectedDvt.he_so) || 1 : 1;
 
-    // Copy logic từ phiếu nhập kho - xử lý sl_td3
-    const sl_td3_goc_thuc_te = record.sl_td3_goc ?? 0;
-    const sl_td3_goc_tinh_toan =
-      sl_td3_goc_thuc_te === 0 ? 1 : sl_td3_goc_thuc_te;
-    let sl_td3_moi;
+    // Phân biệt giữa dữ liệu từ API và dữ liệu mới thêm
+    // Sử dụng flag isNewlyAdded để phân biệt
+    const isDataFromAPI = !record.isNewlyAdded;
 
-    // Nếu chuyển về đơn vị tính gốc, áp dụng hệ số gốc
-    if (newValue.trim() === record.dvt_goc.trim()) {
-      sl_td3_moi =
-        sl_td3_goc_thuc_te === 0 ? 0 : sl_td3_goc_tinh_toan * record.he_so_goc;
+    if (isDataFromAPI) {
+      // Logic mới cho dữ liệu từ API - chuyển đổi theo tỷ lệ hệ số
+      const heSoHienTai = record.he_so || 1;
+      const sl_td3_hienTai = record.sl_td3 || 0;
+      const so_luong_hien_tai = record.so_luong || 0;
+
+      let sl_td3_moi;
+      let so_luong_moi;
+
+      if (sl_td3_hienTai === 0) {
+        // Nếu số lượng hiện tại là 0, giữ nguyên
+        sl_td3_moi = 0;
+        so_luong_moi = 0;
+      } else {
+        // Áp dụng công thức chuyển đổi: Số lượng mới = Số lượng hiện tại * Hệ số hiện tại / Hệ số mới
+        sl_td3_moi = (sl_td3_hienTai * heSoHienTai) / heSoMoi;
+        so_luong_moi = (so_luong_hien_tai * heSoHienTai) / heSoMoi;
+      }
+
+      // Làm tròn đến 4 chữ số thập phân
+      const sl_td3_lam_tron = Math.round(sl_td3_moi * 10000) / 10000;
+      const so_luong_lam_tron = Math.round(so_luong_moi * 10000) / 10000;
+
+      // Cập nhật sl_td3_goc để đồng bộ với đơn vị gốc
+      let sl_td3_goc_moi = record.sl_td3_goc;
+      if (newValue.trim() === record.dvt_goc?.trim()) {
+        // Nếu chuyển về đơn vị gốc, sl_td3_goc = sl_td3_moi / he_so_goc
+        const he_so_goc = record.he_so_goc || 1;
+        sl_td3_goc_moi = sl_td3_lam_tron / he_so_goc;
+      } else {
+        // Nếu chuyển sang đơn vị khác, tính sl_td3_goc từ đơn vị hiện tại
+        if (record.dvt?.trim() === record.dvt_goc?.trim()) {
+          // Từ đơn vị gốc sang đơn vị khác
+          sl_td3_goc_moi = sl_td3_hienTai / (record.he_so_goc || 1);
+        } else {
+          // Từ đơn vị khác sang đơn vị khác, giữ nguyên sl_td3_goc
+          sl_td3_goc_moi = record.sl_td3_goc;
+        }
+      }
+
+      setDataSource((prev) =>
+        prev.map((item) =>
+          item.key === record.key
+            ? {
+                ...item,
+                dvt: newValue,
+                he_so: heSoMoi,
+                so_luong: so_luong_lam_tron,
+                sl_td3: sl_td3_lam_tron,
+                sl_td3_goc: Math.round((sl_td3_goc_moi || 0) * 10000) / 10000,
+              }
+            : item
+        )
+      );
     } else {
-      // Nếu chuyển sang đơn vị khác, hiển thị số lượng gốc (số nguyên)
-      sl_td3_moi = sl_td3_goc_thuc_te === 0 ? 0 : sl_td3_goc_tinh_toan;
+      // Logic cũ cho dữ liệu mới thêm - giữ nguyên
+      const sl_td3_goc_thuc_te = record.sl_td3_goc ?? 0;
+      const sl_td3_goc_tinh_toan =
+        sl_td3_goc_thuc_te === 0 ? 1 : sl_td3_goc_thuc_te;
+      let sl_td3_moi;
+
+      // Nếu chuyển về đơn vị tính gốc, áp dụng hệ số gốc
+      if (newValue.trim() === record.dvt_goc.trim()) {
+        sl_td3_moi =
+          sl_td3_goc_thuc_te === 0
+            ? 0
+            : sl_td3_goc_tinh_toan * record.he_so_goc;
+      } else {
+        // Nếu chuyển sang đơn vị khác, hiển thị số lượng gốc (số nguyên)
+        sl_td3_moi = sl_td3_goc_thuc_te === 0 ? 0 : sl_td3_goc_tinh_toan;
+      }
+
+      // Làm tròn đến 3 chữ số thập phân
+      const sl_td3_lam_tron = Math.round(sl_td3_moi * 1000) / 1000;
+      // Giữ nguyên số lượng đề nghị, không tự động tính lại
+      const so_luong_hien_tai = record.so_luong || 0;
+
+      setDataSource((prev) =>
+        prev.map((item) =>
+          item.key === record.key
+            ? {
+                ...item,
+                dvt: newValue,
+                he_so: heSoMoi,
+                so_luong: so_luong_hien_tai, // Giữ nguyên số lượng đề nghị
+                sl_td3: sl_td3_lam_tron,
+              }
+            : item
+        )
+      );
     }
-
-    // Làm tròn đến 3 chữ số thập phân
-    const sl_td3_lam_tron = Math.round(sl_td3_moi * 1000) / 1000;
-    // Giữ nguyên số lượng đề nghị, không tự động tính lại
-    const so_luong_hien_tai = record.so_luong || 0;
-
-    setDataSource((prev) =>
-      prev.map((item) =>
-        item.key === record.key
-          ? {
-              ...item,
-              dvt: newValue,
-              he_so: heSoMoi,
-              so_luong: so_luong_hien_tai, // Giữ nguyên số lượng đề nghị
-              sl_td3: sl_td3_lam_tron,
-            }
-          : item
-      )
-    );
   };
 
   return {
