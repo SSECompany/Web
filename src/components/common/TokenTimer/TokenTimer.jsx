@@ -128,7 +128,7 @@ const TokenTimer = () => {
       className={`token-timer token-timer--${className} token-timer--expanded`}
       style={{
         position: "fixed",
-        zIndex: 1000,
+        zIndex: 10000,
       }}
     >
       <div className="token-timer-header">

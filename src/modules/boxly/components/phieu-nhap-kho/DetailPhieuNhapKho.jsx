@@ -154,7 +154,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
                 let heSoHienTai = item.he_so || 1;
 
                 // Nếu đang ở đơn vị gốc, tính ngược soLuong_goc từ hệ số gốc
-                if (dvtHienTai === dvtGocFromAPI) {
+                if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
                   soLuongGoc =
                     heSoGocFromAPI !== 0
                       ? soLuongHienThi / heSoGocFromAPI
@@ -174,7 +174,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
 
                 // Tính lại soLuong hiển thị dựa trên soLuong_goc và hệ số
                 let soLuongHienThiMoi;
-                if (dvtHienTai === dvtGocFromAPI) {
+                if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
                   // Ở đơn vị gốc: soLuong = soLuong_goc * he_so_goc
                   soLuongHienThiMoi = soLuongGoc * heSoGocFromAPI;
                 } else {

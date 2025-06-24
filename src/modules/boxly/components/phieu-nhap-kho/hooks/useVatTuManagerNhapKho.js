@@ -59,7 +59,11 @@ export const useVatTuManagerNhapKho = () => {
         console.log("DEBUG NHẬP KHO: Found existing at index:", existingIndex);
 
         if (existingIndex !== -1) {
+          // ===== TRƯỜNG HỢP MERGE VÀO VẬT TƯ ĐÃ CÓ =====
           // Merge vào dòng đầu tiên và xóa các dòng trùng lặp khác
+          console.log("🔄 DEBUG MERGE VÀO VẬT TƯ ĐÃ CÓ - START");
+          console.log("📦 Existing item:", prev[existingIndex]);
+          
           const updatedData = prev.map((item, index) => {
             if (index === existingIndex) {
               // Logic sửa: Thêm đúng theo đơn vị hiện tại
@@ -67,15 +71,25 @@ export const useVatTuManagerNhapKho = () => {
               const dvtGoc = (item.dvt_goc || "").trim();
               const heSoGoc = item.he_so_goc ?? 1;
               const heSoHienTai = item.he_so ?? 1;
+              
+              console.log("🔍 So sánh DVT trong merge:", {
+                dvtHienTai,
+                dvtGoc,
+                heSoGoc,
+                heSoHienTai,
+                isEqual: dvtHienTai === dvtGoc
+              });
 
               let soLuongThemVao;
 
               // Nếu đang ở đơn vị gốc (kg): thêm 1 đơn vị gốc (tức là +hệ số gốc)
-              if (dvtHienTai === dvtGoc) {
+              if (dvtHienTai.trim() === dvtGoc.trim()) {
                 soLuongThemVao = heSoGoc; // VD: +11kg nếu hệ số gốc = 11
+                console.log("✅ Đang ở đơn vị gốc, thêm hệ số gốc:", soLuongThemVao);
               } else {
                 // Nếu đang ở đơn vị khác (Bộ): thêm 1 đơn vị hiện tại
                 soLuongThemVao = 1; // VD: +1 Bộ
+                console.log("⚠️ Đang ở đơn vị khác, thêm 1 đơn vị:", soLuongThemVao);
               }
 
               const soLuongHienTai = item.soLuong || 0;
@@ -84,8 +98,16 @@ export const useVatTuManagerNhapKho = () => {
 
               // Cập nhật soLuong_goc để đồng bộ - luôn +1 đơn vị gốc
               const soLuongGocMoi = (item.soLuong_goc ?? 0) + 1;
+              
+              console.log("🧮 Tính toán merge:", {
+                soLuongHienTai,
+                soLuongThemVao,
+                soLuongMoi,
+                soLuongLamTron,
+                soLuongGocMoi
+              });
 
-              return {
+              const updatedItem = {
                 ...item,
                 soLuong: soLuongLamTron,
                 soLuong_goc: soLuongGocMoi,
@@ -93,6 +115,11 @@ export const useVatTuManagerNhapKho = () => {
                 isNewlyAdded: item.isNewlyAdded,
                 // Giữ nguyên tất cả các trường từ API
               };
+              
+              console.log("🎯 Item sau khi merge:", updatedItem);
+              console.log("🔄 DEBUG MERGE VÀO VẬT TƯ ĐÃ CÓ - END\n");
+              
+              return updatedItem;
             }
             return item;
           });
@@ -109,24 +136,85 @@ export const useVatTuManagerNhapKho = () => {
             key: index + 1,
           }));
         } else {
-          // Lấy hệ số từ API response
-          const heSo = parseFloat(vatTuInfo.he_so) || 1;
+          // ===== TRƯỜNG HỢP THÊM VẬT TƯ MỚI =====
+          // Áp dụng logic tính toán giống như load từ API
+          
+          console.log("🆕 DEBUG THÊM VẬT TƯ MỚI - START");
+          console.log("📦 Thông tin vật tư từ API:", vatTuInfo);
+          console.log("📋 Danh sách đơn vị tính:", donViTinhList);
 
-          // Khi thêm mới, số lượng mặc định là 1 đơn vị gốc
-          const soLuongGoc = 1;
-          const soLuongHienThi = soLuongGoc * heSo; // Số lượng hiển thị = số lượng gốc × hệ số
-          const soLuongLamTron = Math.round(soLuongHienThi * 1000) / 1000;
+          // ✅ LOGIC ĐÚNG: Lấy đơn vị gốc và hệ số gốc từ API vật tư detail
+          const heSoGocFromAPI = parseFloat(vatTuInfo.he_so) || 1;
+          const dvtGocFromAPI = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
+          const defaultDvt = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
+          
+          console.log("🔍 Thông tin từ API vật tư detail:", {
+            vatTuInfo_dvt: vatTuInfo.dvt,
+            vatTuInfo_he_so: vatTuInfo.he_so,
+            dvtGocFromAPI,
+            heSoGocFromAPI,
+            defaultDvt,
+            donViTinhList,
+            isEqual: dvtGocFromAPI === defaultDvt
+          });
+          
+          // DVT hiện tại ban đầu = DVT gốc từ API
+          const dvtHienTai = dvtGocFromAPI;
+          
+          // Tính toán số lượng giống logic load từ API
+          let soLuongGoc, soLuongHienThi;
+          let heSoHienTai = heSoGocFromAPI;
+
+          // So sánh DVT hiện tại với DVT gốc (giống logic load từ API)
+          console.log("🔄 So sánh DVT để tính toán số lượng:", {
+            dvtHienTai_trim: dvtHienTai.trim(),
+            dvtGocFromAPI_trim: dvtGocFromAPI.trim(),
+            isEqual: dvtHienTai.trim() === dvtGocFromAPI.trim()
+          });
+          
+          if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
+            // Đang ở đơn vị gốc: Khi thêm mới, số lượng mặc định là 1 đơn vị gốc
+            soLuongGoc = 1;
+            soLuongHienThi = soLuongGoc * heSoGocFromAPI; // soLuong = soLuong_goc * he_so_goc
+            heSoHienTai = heSoGocFromAPI;
+            
+            console.log("✅ Đang ở đơn vị gốc:", {
+              soLuongGoc,
+              formula: `${soLuongGoc} * ${heSoGocFromAPI}`,
+              soLuongHienThi,
+              heSoHienTai
+            });
+          } else {
+            // Đang ở đơn vị khác (trường hợp hiếm khi thêm mới)
+            soLuongGoc = 1;
+            soLuongHienThi = soLuongGoc; // soLuong = soLuong_goc
+            
+            // Tìm hệ số của đơn vị hiện tại từ danh sách đơn vị tính
+            const dvtHienTaiInfo = donViTinhList.find(
+              (dvt) => dvt.dvt.trim() === dvtHienTai.trim()
+            );
+            heSoHienTai = dvtHienTaiInfo
+              ? parseFloat(dvtHienTaiInfo.he_so) || 1
+              : 1;
+              
+            console.log("⚠️ Đang ở đơn vị khác:", {
+              soLuongGoc,
+              soLuongHienThi,
+              dvtHienTaiInfo,
+              heSoHienTai
+            });
+          }
 
           const newItem = {
             key: prev.length + 1,
             maHang: value,
-            soLuong: soLuongLamTron, // Số lượng = 1 × hệ số khi thêm mới
-            soLuong_goc: soLuongGoc, // Số lượng gốc = 1
-            he_so: heSo,
-            he_so_goc: heSo, // Lưu hệ số gốc để dùng khi chuyển đổi đơn vị
+            soLuong: Math.round(soLuongHienThi * 1000) / 1000,
+            soLuong_goc: Math.round(soLuongGoc * 1000) / 1000,
+            he_so: heSoHienTai,
+            he_so_goc: heSoGocFromAPI, // Lưu hệ số gốc từ API
             ten_mat_hang: vatTuInfo.ten_vt || value,
-            dvt: defaultDvt,
-            dvt_goc: defaultDvt,
+            dvt: dvtHienTai,
+            dvt_goc: dvtGocFromAPI,
             tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",
             ma_kho: "",
             donViTinhList: donViTinhList,
@@ -151,6 +239,10 @@ export const useVatTuManagerNhapKho = () => {
             stt_rec0px: "",
             line_nbr: 0,
           };
+          
+          console.log("🎯 Item mới được tạo:", newItem);
+          console.log("🆕 DEBUG THÊM VẬT TƯ MỚI - END\n");
+          
           return [...prev, newItem];
         }
       });
@@ -172,7 +264,7 @@ export const useVatTuManagerNhapKho = () => {
       prev.map((item) => {
         if (item.key === record.key) {
           // Nếu đang ở đơn vị tính gốc, tính ngược lại soLuong_goc từ số lượng nhập
-          if (item.dvt === item.dvt_goc) {
+          if (item.dvt?.trim() === item.dvt_goc?.trim()) {
             const soLuongGocMoi = newValue / (item.he_so_goc ?? 1);
             return {
               ...item,
@@ -223,62 +315,126 @@ export const useVatTuManagerNhapKho = () => {
   };
 
   const handleDvtChange = (newValue, record) => {
+    console.log("🔧 DEBUG handleDvtChange - START");
+    console.log("📥 Input:", { newValue, record });
+    
     // Kiểm tra record có hợp lệ không
     if (!record || !record.donViTinhList) {
+      console.log("❌ Record không hợp lệ:", record);
       message.error("Thông tin vật tư không hợp lệ");
       return;
     }
 
     // Tìm thông tin đơn vị tính được chọn
     const dvtOptions = record.donViTinhList || [];
+    console.log("📋 DVT Options:", dvtOptions);
+    
     const selectedDvt = dvtOptions.find(
       (dvt) => dvt && dvt.dvt && dvt.dvt.trim() === newValue.trim()
     );
+    console.log("🎯 Selected DVT:", selectedDvt);
+    
     const heSoMoi = selectedDvt ? parseFloat(selectedDvt.he_so) || 1 : 1;
+    console.log("📊 Hệ số mới:", heSoMoi);
 
-    // Áp dụng công thức chuyển đổi: Số lượng mới = Số lượng hiện tại * Hệ số hiện tại / Hệ số mới
-    const heSoHienTai = record.he_so || 1;
+    // ✅ SỬA: Tìm hệ số hiện tại từ donViTinhList thay vì dùng record.he_so
+    const currentDvtInList = dvtOptions.find(
+      (dvt) => dvt && dvt.dvt && dvt.dvt.trim() === record.dvt?.trim()
+    );
+    const heSoHienTai = currentDvtInList ? parseFloat(currentDvtInList.he_so) || 1 : (record.he_so || 1);
     const soLuongHienTai = record.soLuong || 0;
+    
+    console.log("🔢 Dữ liệu hiện tại:", {
+      record_he_so_old: record.he_so,
+      currentDvtInList,
+      heSoHienTai_new: heSoHienTai,
+      soLuongHienTai,
+      dvt_current: record.dvt,
+      dvt_goc: record.dvt_goc,
+      soLuong_goc: record.soLuong_goc
+    });
 
     let soLuongMoi;
 
     // ✅ Sửa logic: Luôn áp dụng công thức chuyển đổi
     // Số lượng có thể bằng 0 nhưng vẫn cần chuyển đổi theo tỷ lệ đơn vị
     soLuongMoi = (soLuongHienTai * heSoHienTai) / heSoMoi;
+    
+    console.log("🧮 Công thức chuyển đổi:", {
+      formula: `(${soLuongHienTai} * ${heSoHienTai}) / ${heSoMoi}`,
+      result: soLuongMoi
+    });
 
     // Làm tròn đến 4 chữ số thập phân
     const soLuongLamTron = Math.round(soLuongMoi * 10000) / 10000;
+    console.log("🎯 Số lượng sau làm tròn:", soLuongLamTron);
 
     // Cập nhật soLuong_goc để đồng bộ với đơn vị gốc
     let soLuongGocMoi = record.soLuong_goc;
+    
+    console.log("🔄 Logic cập nhật soLuong_goc:");
+    console.log("So sánh DVT:", {
+      newValue_trim: newValue.trim(),
+      dvt_goc_trim: record.dvt_goc?.trim(),
+      isEqual: newValue.trim() === record.dvt_goc?.trim()
+    });
+    
     if (newValue.trim() === record.dvt_goc?.trim()) {
       // Nếu chuyển về đơn vị gốc, soLuong_goc = soLuongMoi / he_so_goc
       const he_so_goc = record.he_so_goc || 1;
       soLuongGocMoi = soLuongLamTron / he_so_goc;
+      console.log("✅ Chuyển về đơn vị gốc:", {
+        formula: `${soLuongLamTron} / ${he_so_goc}`,
+        result: soLuongGocMoi
+      });
     } else {
       // Nếu chuyển sang đơn vị khác, tính soLuong_goc từ đơn vị hiện tại
+      console.log("🔄 So sánh DVT hiện tại với gốc:", {
+        dvt_current_trim: record.dvt?.trim(),
+        dvt_goc_trim: record.dvt_goc?.trim(),
+        isCurrentEqualsRoot: record.dvt?.trim() === record.dvt_goc?.trim()
+      });
+      
       if (record.dvt?.trim() === record.dvt_goc?.trim()) {
         // Từ đơn vị gốc sang đơn vị khác
         soLuongGocMoi = soLuongHienTai / (record.he_so_goc || 1);
+        console.log("⬆️ Từ đơn vị gốc sang đơn vị khác:", {
+          formula: `${soLuongHienTai} / ${record.he_so_goc || 1}`,
+          result: soLuongGocMoi
+        });
       } else {
         // Từ đơn vị khác sang đơn vị khác, giữ nguyên soLuong_goc
         soLuongGocMoi = record.soLuong_goc;
+        console.log("↔️ Từ đơn vị khác sang đơn vị khác, giữ nguyên:", soLuongGocMoi);
       }
     }
 
-    setDataSource((prev) =>
-      prev.map((item) =>
+    const finalResult = {
+      dvt: newValue,
+      he_so: heSoMoi,
+      soLuong: soLuongLamTron,
+      soLuong_goc: Math.round((soLuongGocMoi || 0) * 10000) / 10000,
+      // ✅ Force re-render bằng cách thêm timestamp
+      _lastUpdated: Date.now(),
+    };
+    
+    console.log("🎯 Kết quả cuối cùng:", finalResult);
+    console.log("🔧 DEBUG handleDvtChange - END\n");
+
+    setDataSource((prev) => {
+      // ✅ Tạo array mới hoàn toàn để force re-render
+      const newDataSource = prev.map((item) =>
         item.key === record.key
           ? {
               ...item, // Giữ nguyên tất cả các trường hiện có
-              dvt: newValue,
-              he_so: heSoMoi,
-              soLuong: soLuongLamTron,
-              soLuong_goc: Math.round((soLuongGocMoi || 0) * 10000) / 10000,
+              ...finalResult,
             }
-          : item
-      )
-    );
+          : { ...item } // Clone cả các item khác để đảm bao reference mới
+      );
+      
+      console.log("🔄 DataSource updated:", newDataSource);
+      return newDataSource;
+    });
   };
 
   return {
