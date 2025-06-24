@@ -1,5 +1,6 @@
 import { DeleteOutlined } from "@ant-design/icons";
 import { Button, Empty, Input, Select, Table } from "antd";
+import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
 
 const VatTuNhapKhoTable = ({
   dataSource,
@@ -101,7 +102,7 @@ const VatTuNhapKhoTable = ({
               textAlign: "center",
             }}
           >
-            {Number(value).toFixed(3)}
+            {formatQuantityDisplay(value)}
           </span>
         ) : (
           <span
@@ -111,7 +112,7 @@ const VatTuNhapKhoTable = ({
               textAlign: "center",
             }}
           >
-            0.000
+            0
           </span>
         ),
     },

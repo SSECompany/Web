@@ -28,29 +28,16 @@ export const useVatTuManagerNhapKho = () => {
         ? vatTuDetail[0]
         : vatTuDetail;
 
-      // Gọi API lấy danh sách đơn vị tính
       const donViTinhList = await fetchDonViTinh(value.trim());
 
-      // Lấy đơn vị tính từ API response (đã được trim spaces)
-      const defaultDvt = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
 
-      // Nếu đã có vật tư thì tăng số lượng, chưa có thì thêm mới
       setDataSource((prev) => {
-        console.log("DEBUG NHẬP KHO: Current dataSource:", prev);
-        console.log("DEBUG NHẬP KHO: Adding value:", `"${value}"`);
+   
 
-        // Debug từng dòng trong dataSource
         prev.forEach((item, index) => {
-          console.log(
-            `DEBUG NHẬP KHO: Row ${index}: maHang = "${
-              item.maHang
-            }", comparison = ${item.maHang === value}, trimmed comparison = ${
-              item.maHang.trim() === value.trim()
-            }`
-          );
+    
         });
 
-        // Tìm dòng đầu tiên có cùng mã vật tư để merge (trim để tránh lỗi whitespace)
         const existingIndex = prev.findIndex(
           (item) => item.maHang.trim() === value.trim()
         );
@@ -59,7 +46,6 @@ export const useVatTuManagerNhapKho = () => {
   
           const updatedData = prev.map((item, index) => {
             if (index === existingIndex) {
-              // Logic sửa: Thêm đúng theo đơn vị hiện tại
               const dvtHienTai = (item.dvt || "").trim();
               const dvtGoc = (item.dvt_goc || "").trim();
               const heSoGoc = item.he_so_goc ?? 1;
@@ -68,10 +54,9 @@ export const useVatTuManagerNhapKho = () => {
               let soLuongThemVao;
 
               if (dvtHienTai.trim() === dvtGoc.trim()) {
-                soLuongThemVao = heSoGoc; // VD: +11kg nếu hệ số gốc = 11
+                soLuongThemVao = heSoGoc; 
               } else {
-                // Nếu đang ở đơn vị khác (Bộ): thêm 1 đơn vị hiện tại
-                soLuongThemVao = 1; // VD: +1 Bộ
+                soLuongThemVao = 1; 
               }
 
               const soLuongHienTai = item.soLuong || 0;
@@ -118,18 +103,14 @@ export const useVatTuManagerNhapKho = () => {
 
       
           if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
-            // Đang ở đơn vị gốc: Khi thêm mới, số lượng mặc định là 1 đơn vị gốc
             soLuongGoc = 1;
-            soLuongHienThi = soLuongGoc * heSoGocFromAPI; // soLuong = soLuong_goc * he_so_goc
+            soLuongHienThi = soLuongGoc * heSoGocFromAPI; 
             heSoHienTai = heSoGocFromAPI;
             
          
           } else {
-            // Đang ở đơn vị khác (trường hợp hiếm khi thêm mới)
             soLuongGoc = 1;
-            soLuongHienThi = soLuongGoc; // soLuong = soLuong_goc
-            
-            // Tìm hệ số của đơn vị hiện tại từ danh sách đơn vị tính
+            soLuongHienThi = soLuongGoc; 
             const dvtHienTaiInfo = donViTinhList.find(
               (dvt) => dvt.dvt.trim() === dvtHienTai.trim()
             );
@@ -146,7 +127,7 @@ export const useVatTuManagerNhapKho = () => {
             soLuong: Math.round(soLuongHienThi * 1000) / 1000,
             soLuong_goc: Math.round(soLuongGoc * 1000) / 1000,
             he_so: heSoHienTai,
-            he_so_goc: heSoGocFromAPI, // Lưu hệ số gốc từ API
+            he_so_goc: heSoGocFromAPI, 
             ten_mat_hang: vatTuInfo.ten_vt || value,
             dvt: dvtHienTai,
             dvt_goc: dvtGocFromAPI,
@@ -173,7 +154,6 @@ export const useVatTuManagerNhapKho = () => {
             line_nbr: 0,
           };
           
-    
           
           return [...prev, newItem];
         }
@@ -181,7 +161,6 @@ export const useVatTuManagerNhapKho = () => {
 
       message.success(`Đã thêm vật tư: ${value}`);
 
-      // Only clear input, don't reset list or reload
       if (setVatTuInput) setVatTuInput(undefined);
     } catch (error) {
       console.error("Error adding vat tu:", error);
@@ -195,7 +174,6 @@ export const useVatTuManagerNhapKho = () => {
     setDataSource((prev) =>
       prev.map((item) => {
         if (item.key === record.key) {
-          // Nếu đang ở đơn vị tính gốc, tính ngược lại soLuong_goc từ số lượng nhập
           if (item.dvt?.trim() === item.dvt_goc?.trim()) {
             const soLuongGocMoi = newValue / (item.he_so_goc ?? 1);
             return {
@@ -204,7 +182,6 @@ export const useVatTuManagerNhapKho = () => {
               soLuong_goc: Math.round(soLuongGocMoi * 1000) / 1000,
             };
           } else {
-            // Nếu đang ở đơn vị khác, số lượng nhập chính là soLuong_goc
             return {
               ...item,
               [field]: newValue,
@@ -237,7 +214,6 @@ export const useVatTuManagerNhapKho = () => {
     }
 
     const newDataSource = dataSource.filter((_, i) => i !== index);
-    // Cập nhật lại key cho các item
     const reIndexedDataSource = newDataSource.map((item, i) => ({
       ...item,
       key: i + 1,
@@ -247,97 +223,54 @@ export const useVatTuManagerNhapKho = () => {
   };
 
   const handleDvtChange = (newValue, record) => {
-    console.log("🔧 DEBUG handleDvtChange - START");
-    console.log("📥 Input:", { newValue, record });
+ 
     
-    // Kiểm tra record có hợp lệ không
     if (!record || !record.donViTinhList) {
-      console.log("❌ Record không hợp lệ:", record);
       message.error("Thông tin vật tư không hợp lệ");
       return;
     }
 
     // Tìm thông tin đơn vị tính được chọn
     const dvtOptions = record.donViTinhList || [];
-    console.log("📋 DVT Options:", dvtOptions);
     
     const selectedDvt = dvtOptions.find(
       (dvt) => dvt && dvt.dvt && dvt.dvt.trim() === newValue.trim()
     );
-    console.log("🎯 Selected DVT:", selectedDvt);
     
     const heSoMoi = selectedDvt ? parseFloat(selectedDvt.he_so) || 1 : 1;
-    console.log("📊 Hệ số mới:", heSoMoi);
 
-    // ✅ SỬA: Tìm hệ số hiện tại từ donViTinhList thay vì dùng record.he_so
     const currentDvtInList = dvtOptions.find(
       (dvt) => dvt && dvt.dvt && dvt.dvt.trim() === record.dvt?.trim()
     );
     const heSoHienTai = currentDvtInList ? parseFloat(currentDvtInList.he_so) || 1 : (record.he_so || 1);
     const soLuongHienTai = record.soLuong || 0;
     
-    console.log("🔢 Dữ liệu hiện tại:", {
-      record_he_so_old: record.he_so,
-      currentDvtInList,
-      heSoHienTai_new: heSoHienTai,
-      soLuongHienTai,
-      dvt_current: record.dvt,
-      dvt_goc: record.dvt_goc,
-      soLuong_goc: record.soLuong_goc
-    });
+    
 
     let soLuongMoi;
 
-    // ✅ Sửa logic: Luôn áp dụng công thức chuyển đổi
-    // Số lượng có thể bằng 0 nhưng vẫn cần chuyển đổi theo tỷ lệ đơn vị
     soLuongMoi = (soLuongHienTai * heSoHienTai) / heSoMoi;
     
-    console.log("🧮 Công thức chuyển đổi:", {
-      formula: `(${soLuongHienTai} * ${heSoHienTai}) / ${heSoMoi}`,
-      result: soLuongMoi
-    });
+ 
 
-    // Làm tròn đến 4 chữ số thập phân
     const soLuongLamTron = Math.round(soLuongMoi * 10000) / 10000;
-    console.log("🎯 Số lượng sau làm tròn:", soLuongLamTron);
 
-    // Cập nhật soLuong_goc để đồng bộ với đơn vị gốc
     let soLuongGocMoi = record.soLuong_goc;
     
-    console.log("🔄 Logic cập nhật soLuong_goc:");
-    console.log("So sánh DVT:", {
-      newValue_trim: newValue.trim(),
-      dvt_goc_trim: record.dvt_goc?.trim(),
-      isEqual: newValue.trim() === record.dvt_goc?.trim()
-    });
+    
     
     if (newValue.trim() === record.dvt_goc?.trim()) {
-      // Nếu chuyển về đơn vị gốc, soLuong_goc = soLuongMoi / he_so_goc
       const he_so_goc = record.he_so_goc || 1;
       soLuongGocMoi = soLuongLamTron / he_so_goc;
-      console.log("✅ Chuyển về đơn vị gốc:", {
-        formula: `${soLuongLamTron} / ${he_so_goc}`,
-        result: soLuongGocMoi
-      });
+     
     } else {
-      // Nếu chuyển sang đơn vị khác, tính soLuong_goc từ đơn vị hiện tại
-      console.log("🔄 So sánh DVT hiện tại với gốc:", {
-        dvt_current_trim: record.dvt?.trim(),
-        dvt_goc_trim: record.dvt_goc?.trim(),
-        isCurrentEqualsRoot: record.dvt?.trim() === record.dvt_goc?.trim()
-      });
+      
       
       if (record.dvt?.trim() === record.dvt_goc?.trim()) {
-        // Từ đơn vị gốc sang đơn vị khác
         soLuongGocMoi = soLuongHienTai / (record.he_so_goc || 1);
-        console.log("⬆️ Từ đơn vị gốc sang đơn vị khác:", {
-          formula: `${soLuongHienTai} / ${record.he_so_goc || 1}`,
-          result: soLuongGocMoi
-        });
+      
       } else {
-        // Từ đơn vị khác sang đơn vị khác, giữ nguyên soLuong_goc
         soLuongGocMoi = record.soLuong_goc;
-        console.log("↔️ Từ đơn vị khác sang đơn vị khác, giữ nguyên:", soLuongGocMoi);
       }
     }
 
@@ -346,25 +279,21 @@ export const useVatTuManagerNhapKho = () => {
       he_so: heSoMoi,
       soLuong: soLuongLamTron,
       soLuong_goc: Math.round((soLuongGocMoi || 0) * 10000) / 10000,
-      // ✅ Force re-render bằng cách thêm timestamp
       _lastUpdated: Date.now(),
     };
     
-    console.log("🎯 Kết quả cuối cùng:", finalResult);
-    console.log("🔧 DEBUG handleDvtChange - END\n");
+    
 
     setDataSource((prev) => {
-      // ✅ Tạo array mới hoàn toàn để force re-render
       const newDataSource = prev.map((item) =>
         item.key === record.key
           ? {
-              ...item, // Giữ nguyên tất cả các trường hiện có
+              ...item, 
               ...finalResult,
             }
-          : { ...item } // Clone cả các item khác để đảm bao reference mới
+          : { ...item } 
       );
       
-      console.log("🔄 DataSource updated:", newDataSource);
       return newDataSource;
     });
   };

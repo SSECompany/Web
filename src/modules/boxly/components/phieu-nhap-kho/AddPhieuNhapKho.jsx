@@ -1,5 +1,5 @@
 import { LeftOutlined } from "@ant-design/icons";
-import { Button, Col, Form, message, Row, Space, Typography } from "antd";
+import { Button, Form, message, Space, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -155,24 +155,19 @@ const AddPhieuNhapKho = () => {
 
   return (
     <div className="phieu-container">
-      <Row justify="space-between" align="middle" className="phieu-header">
-        <Col>
-          <Button
-            type="text"
-            icon={<LeftOutlined />}
-            onClick={() => navigate(-1)}
-            className="phieu-back-button"
-          >
-            Trở về
-          </Button>
-        </Col>
-        <Col>
-          <Title level={3} className="phieu-title">
-            THÊM PHIẾU NHẬP KHO MỚI
-          </Title>
-        </Col>
-        <Col></Col>
-      </Row>
+      <div className="phieu-header">
+        <Button
+          type="text"
+          icon={<LeftOutlined />}
+          onClick={() => navigate(-1)}
+          className="phieu-back-button"
+        >
+          Trở về
+        </Button>
+        <Title level={3} className="phieu-title">
+          THÊM PHIẾU NHẬP KHO MỚI
+        </Title>
+      </div>
 
       <div className="phieu-form-container">
         <Form form={form} layout="vertical" className="phieu-form">
@@ -207,21 +202,20 @@ const AddPhieuNhapKho = () => {
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
           />
 
-          <Row className="phieu-form-actions">
-            <Col>
-              <Space>
-                <Button
-                  type="primary"
-                  onClick={handleSubmit}
-                  loading={loading}
-                  className="phieu-save-button"
-                >
-                  Lưu
-                </Button>
-                <Button onClick={() => navigate(-1)}>Hủy</Button>
-              </Space>
-            </Col>
-          </Row>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-start",
+              marginTop: 16,
+            }}
+          >
+            <Space>
+              <Button type="primary" onClick={handleSubmit} loading={loading}>
+                Lưu
+              </Button>
+              <Button onClick={() => navigate(-1)}>Hủy</Button>
+            </Space>
+          </div>
         </Form>
       </div>
     </div>

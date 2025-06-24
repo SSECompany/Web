@@ -35,6 +35,40 @@ const DetailPhieuXuatKhoBanHang = lazy(() =>
   )
 );
 
+// Thêm import cho phiếu xuất điều chuyển
+const ListPhieuXuatDieuChuyen = lazy(() =>
+  import(
+    "../modules/boxly/components/phieu-xuat-dieu-chuyen/ListPhieuXuatDieuChuyen"
+  )
+);
+const AddPhieuXuatDieuChuyen = lazy(() =>
+  import(
+    "../modules/boxly/components/phieu-xuat-dieu-chuyen/AddPhieuXuatDieuChuyen"
+  )
+);
+const DetailPhieuXuatDieuChuyen = lazy(() =>
+  import(
+    "../modules/boxly/components/phieu-xuat-dieu-chuyen/DetailPhieuXuatDieuChuyen"
+  )
+);
+
+// Thêm import cho phiếu xuất nội bộ
+const ListPhieuXuatNoiBo = lazy(() =>
+  import(
+    "../modules/boxly/components/phieu-xuat-noi-bo/ListPhieuXuatNoiBo"
+  )
+);
+const AddPhieuXuatNoiBo = lazy(() =>
+  import(
+    "../modules/boxly/components/phieu-xuat-noi-bo/AddPhieuXuatNoiBo"
+  )
+);
+const DetailPhieuXuatNoiBo = lazy(() =>
+  import(
+    "../modules/boxly/components/phieu-xuat-noi-bo/DetailPhieuXuatNoiBo"
+  )
+);
+
 const protectedChildrenRoutes = [
   {
     index: true,
@@ -84,6 +118,46 @@ const protectedChildrenRoutes = [
         label: "Sửa phiếu xuất kho bán hàng",
         path: "phieu-xuat-kho-ban-hang/edit/:stt_rec",
         element: <DetailPhieuXuatKhoBanHang isEditMode={true} />,
+      },
+      {
+        label: "Danh sách phiếu xuất điều chuyển",
+        path: "phieu-xuat-dieu-chuyen",
+        element: <ListPhieuXuatDieuChuyen />,
+      },
+      {
+        label: "Thêm phiếu xuất điều chuyển",
+        path: "phieu-xuat-dieu-chuyen/add",
+        element: <AddPhieuXuatDieuChuyen />,
+      },
+      {
+        label: "Chi tiết phiếu xuất điều chuyển",
+        path: "phieu-xuat-dieu-chuyen/:stt_rec",
+        element: <DetailPhieuXuatDieuChuyen />,
+      },
+      {
+        label: "Sửa phiếu xuất điều chuyển",
+        path: "phieu-xuat-dieu-chuyen/edit/:stt_rec",
+        element: <DetailPhieuXuatDieuChuyen isEditMode={true} />,
+      },
+      {
+        label: "Danh sách phiếu xuất nội bộ",
+        path: "phieu-xuat-noi-bo",
+        element: <ListPhieuXuatNoiBo />,
+      },
+      {
+        label: "Thêm phiếu xuất nội bộ",
+        path: "phieu-xuat-noi-bo/add",
+        element: <AddPhieuXuatNoiBo />,
+      },
+      {
+        label: "Chi tiết phiếu xuất nội bộ",
+        path: "phieu-xuat-noi-bo/:stt_rec",
+        element: <DetailPhieuXuatNoiBo />,
+      },
+      {
+        label: "Sửa phiếu xuất nội bộ",
+        path: "phieu-xuat-noi-bo/edit/:stt_rec",
+        element: <DetailPhieuXuatNoiBo isEditMode={true} />,
       },
     ],
   },

@@ -1,10 +1,32 @@
-/* CSS for Phiếu Xuất Kho Bán Hàng */
+/* CSS for Phiếu Xuất Kho Bán Hàng - Modern Design */
 .phieu-container {
-  padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  min-height: calc(100vh - 40px);
+  padding: 24px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 20px;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  min-height: calc(100vh - 48px);
+  margin: 16px;
+  position: relative;
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+}
+
+.phieu-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 25px 25px, rgba(255,255,255,0.15) 2%, transparent 50%),
+    radial-gradient(circle at 75px 75px, rgba(255,255,255,0.1) 2%, transparent 50%);
+  background-size: 100px 100px;
+  pointer-events: none;
+  opacity: 0.6;
 }
 
 /* ========== HEADER STYLES ========== */
@@ -12,144 +34,280 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
-  padding: 16px 0;
-  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 32px;
+  padding: 20px 24px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 16px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
   position: relative;
   flex-wrap: wrap;
   gap: 16px;
+  z-index: 2;
 }
 
 .phieu-back-button {
-  color: #1890ff;
-  border: none;
-  box-shadow: none;
+  color: #667eea;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+  border-radius: 12px;
+  padding: 8px 16px;
+  height: 40px;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 500;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .phieu-back-button:hover {
-  color: #40a9ff;
-  background-color: #f0f8ff;
+  color: #764ba2;
+  background: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
 }
 
 .phieu-title {
   margin: 0 !important;
   text-align: center;
-  font-weight: 600 !important;
-  color: #262626;
-  font-size: 20px;
+  font-weight: 700 !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 24px;
   flex: 1;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .phieu-add-button {
-  background: #1890ff;
-  border-color: #1890ff;
+  background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+  color: white;
   height: 40px;
   padding: 0 20px;
-  border-radius: 6px;
-  font-weight: 500;
+  border-radius: 12px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
+  border: none;
+  box-shadow: 
+    0 8px 24px rgba(102, 126, 234, 0.3),
+    0 2px 8px rgba(102, 126, 234, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .phieu-add-button:hover {
-  background: #40a9ff;
-  border-color: #40a9ff;
+  background: linear-gradient(145deg, #7c8ce8 0%, #8a5aa7 100%);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 32px rgba(102, 126, 234, 0.4),
+    0 4px 12px rgba(102, 126, 234, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .phieu-edit-button {
-  background: #52c41a;
-  border-color: #52c41a;
+  background: linear-gradient(145deg, #11998e 0%, #38ef7d 100%);
+  color: white;
   height: 40px;
   padding: 0 20px;
-  border-radius: 6px;
-  font-weight: 500;
+  border-radius: 12px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
+  border: none;
+  box-shadow: 
+    0 8px 24px rgba(17, 153, 142, 0.3),
+    0 2px 8px rgba(17, 153, 142, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .phieu-edit-button:hover {
-  background: #73d13d;
-  border-color: #73d13d;
+  background: linear-gradient(145deg, #26a69a 0%, #4cff8a 100%);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 32px rgba(17, 153, 142, 0.4),
+    0 4px 12px rgba(17, 153, 142, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 /* ========== SEARCH FILTERS ========== */
 .search-filters-container {
-  background: #fafafa;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  border: 1px solid #f0f0f0;
+  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%);
+  backdrop-filter: blur(20px);
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255,255,255,0.3);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  position: relative;
+  z-index: 2;
 }
 
 .search-filters-row {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   min-width: 120px;
 }
 
 .filter-label {
   font-size: 12px;
-  font-weight: 500;
-  color: #666;
+  font-weight: 600;
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .search-filters-actions {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  text-align: center;
 }
 
 .active-filters {
-  padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.3);
 }
 
 .active-filters-label {
   font-size: 12px;
-  font-weight: 500;
-  color: #666;
+  font-weight: 600;
+  color: #64748b;
   margin-right: 8px;
 }
 
 /* ========== TABLE STYLES ========== */
 .phieu-table-container {
-  background: #fff;
-  border-radius: 8px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid #f0f0f0;
+  border: 1px solid rgba(255,255,255,0.3);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  position: relative;
+  z-index: 2;
 }
 
 .phieu-data-table {
-  border-radius: 8px;
+  border-radius: 16px;
+  background: transparent;
 }
 
 .phieu-data-table .ant-table-thead > tr > th {
-  background: #fafafa;
-  border-bottom: 2px solid #f0f0f0;
-  font-weight: 600;
-  color: #262626;
+  background: linear-gradient(145deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+  font-weight: 700;
   padding: 16px 12px;
   white-space: nowrap;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 12px;
+  color: #667eea;
+}
+
+/* Column header text styling */
+.phieu-data-table .ant-table-thead > tr > th > div,
+.phieu-data-table .ant-table-thead > tr > th .ant-table-column-title,
+.phieu-data-table .ant-table-thead > tr > th span {
+  color: #667eea !important; /* Fallback color */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
+/* Ensure gradient text works on all text elements */
+.phieu-data-table .ant-table-thead > tr > th,
+.phieu-data-table .ant-table-thead > tr > th {
+  position: relative;
+}
+
+.phieu-data-table .ant-table-thead > tr > th *:not(.ant-table-filter-trigger):not(.ant-table-column-sorter) {
+  color: #667eea !important;
+}
+
+/* Filter icons styling */
+.phieu-data-table .ant-table-thead > tr > th .ant-table-filter-trigger {
+  color: #667eea !important;
+  opacity: 0.8;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.phieu-data-table .ant-table-thead > tr > th .ant-table-filter-trigger:hover {
+  color: #764ba2 !important;
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Filter trigger active state */
+.phieu-data-table .ant-table-thead > tr > th .ant-table-filter-trigger.ant-table-filter-trigger-active {
+  color: #764ba2 !important;
+  opacity: 1;
+}
+
+/* Column sorter styling */
+.phieu-data-table .ant-table-thead > tr > th .ant-table-column-sorters {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.phieu-data-table .ant-table-thead > tr > th .ant-table-column-sorter {
+  color: #667eea !important;
+  opacity: 0.6;
+  margin-left: 4px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.phieu-data-table .ant-table-thead > tr > th .ant-table-column-sorter:hover {
+  color: #764ba2 !important;
+  opacity: 1;
 }
 
 .phieu-data-table .ant-table-tbody > tr > td {
   padding: 12px;
-  border-bottom: 1px solid #f5f5f5;
-  transition: all 0.3s;
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
+  font-weight: 500;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .phieu-data-table .ant-table-tbody > tr:hover > td {
-  background: #f0f8ff;
+  background: linear-gradient(145deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.04) 100%);
+  transform: scale(1.01);
 }
 
 .phieu-data-table .ant-table-tbody > tr:last-child > td {
@@ -158,43 +316,57 @@
 
 /* ========== ACTION BUTTONS ========== */
 .phieu-action-btn {
-  border-radius: 4px;
-  height: 32px;
-  width: 32px;
+  border-radius: 8px;
+  height: 36px;
+  width: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid transparent;
-  transition: none;
-  min-width: 32px;
+  border: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 36px;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
 }
 
 .phieu-view-btn {
+  background: linear-gradient(145deg, rgba(24, 144, 255, 0.1) 0%, rgba(64, 169, 255, 0.05) 100%);
   color: #1890ff;
-  border-color: #d9d9d9;
-  background: #fff;
+  border: 1px solid rgba(24, 144, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+}
+
+.phieu-view-btn:hover {
+  background: linear-gradient(145deg, rgba(24, 144, 255, 0.2) 0%, rgba(64, 169, 255, 0.1) 100%);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(24, 144, 255, 0.3);
 }
 
 .phieu-edit-btn {
-  background: #52c41a;
-  border-color: #52c41a;
-  color: #fff;
+  background: linear-gradient(145deg, rgba(250, 140, 22, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+  color: #fa8c16;
+  border: 1px solid rgba(250, 140, 22, 0.2);
+  box-shadow: 0 4px 12px rgba(250, 140, 22, 0.2);
+}
+
+.phieu-edit-btn:hover {
+  background: linear-gradient(145deg, rgba(250, 140, 22, 0.2) 0%, rgba(255, 193, 7, 0.1) 100%);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(250, 140, 22, 0.3);
 }
 
 .phieu-delete-btn {
-  background: #ff4d4f;
-  border-color: #ff4d4f;
-  color: #fff;
+  background: linear-gradient(145deg, rgba(255, 77, 79, 0.1) 0%, rgba(255, 120, 117, 0.05) 100%);
+  color: #ff4d4f;
+  border: 1px solid rgba(255, 77, 79, 0.2);
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.2);
 }
 
-/* Disable hover effects for action buttons */
-.phieu-action-btn:hover,
-.phieu-view-btn:hover,
-.phieu-edit-btn:hover,
 .phieu-delete-btn:hover {
-  transform: none !important;
-  box-shadow: none !important;
-  opacity: 1 !important;
+  background: linear-gradient(145deg, rgba(255, 77, 79, 0.2) 0%, rgba(255, 120, 117, 0.1) 100%);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(255, 77, 79, 0.3);
 }
 
 /* Ensure delete button and icon are always visible */
@@ -210,276 +382,107 @@
   opacity: 1 !important;
   visibility: visible !important;
   display: inline-flex !important;
+  font-size: 14px;
 }
 
-/* Force all icons to be visible */
-.phieu-data-table .anticon-delete,
-.phieu-data-table .anticon-edit,
-.phieu-data-table .anticon-file-text {
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: inline !important;
-  color: inherit !important;
-}
-
-/* Override any Ant Design default hiding behavior */
-.ant-btn-dangerous .anticon,
-.ant-btn-danger .anticon {
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-/* Extra strong selectors for delete icon */
-.phieu-data-table td[data-column-key="action"] .ant-btn-danger .anticon-delete,
-.phieu-data-table .phieu-delete-btn .anticon-delete,
-.phieu-data-table .phieu-action-btn .anticon {
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: inline !important;
-  font-size: 14px !important;
-  color: #ff4d4f !important; /* Red color for delete icon */
-}
-
-/* Specific color fixes for all action icons */
-.phieu-data-table .phieu-view-btn .anticon-file-text {
-  color: #1890ff !important; /* Blue for view */
-}
-
-.phieu-data-table .phieu-edit-btn .anticon-edit {
-  color: #fa8c16 !important; /* Orange for edit */
-}
-
-.phieu-data-table .phieu-delete-btn .anticon-delete {
-  color: #ff4d4f !important; /* Red for delete */
-}
-
-/* Ensure all button icons are visible at all times */
-.phieu-data-table .ant-btn .anticon {
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-/* Global override to prevent any CSS from hiding icons */
-.phieu-container .anticon,
-.phieu-container .ant-btn .anticon,
-.phieu-container [class*="anticon"] {
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: inline !important;
-}
-
-/* Override any white color that might be applied to icons */
-.phieu-data-table .ant-btn .anticon {
-  color: inherit !important;
-}
-
-.phieu-data-table .ant-btn-danger .anticon {
-  color: #ff4d4f !important;
-}
-
-.phieu-data-table .ant-btn-primary .anticon {
-  color: #fff !important;
-}
-
-/* Force delete icon color - strongest selector */
-.phieu-data-table .ant-btn-dangerous .anticon-delete,
-.phieu-data-table .ant-btn[danger] .anticon-delete,
-.phieu-data-table .phieu-delete-btn .anticon,
-.phieu-data-table button[class*="delete"] .anticon {
-  color: #ff4d4f !important;
-  fill: #ff4d4f !important;
-}
-
-/* Backup for any icon that might still be white */
-.phieu-data-table [class*="anticon"]:not([class*="primary"]) {
-  color: #666 !important;
-}
-
-.phieu-data-table [class*="anticon-delete"] {
-  color: #ff4d4f !important;
-}
-
-/* Enhanced styling for edit button */
-.phieu-data-table .phieu-edit-btn {
-  background-color: #fff2e8 !important;
-  border-color: #fa8c16 !important;
-  color: #fa8c16 !important;
-}
-
-/* ========== ACTION COLUMN STYLING ========== */
-.phieu-data-table .ant-table-cell-fix-right {
-  min-width: 150px !important;
-  width: 150px !important;
-}
-
-.phieu-data-table td[data-column-key="action"] {
-  padding: 8px 4px !important;
-  text-align: center;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-
-.phieu-data-table td[data-column-key="action"] .ant-space {
-  justify-content: center;
-  width: 100%;
-  gap: 4px !important;
-}
-
-.phieu-data-table td[data-column-key="action"] .ant-space-item {
-  display: flex;
-  justify-content: center;
-  margin: 0 !important;
-}
-
-.phieu-data-table .ant-space-horizontal > .ant-space-item:not(:last-child) {
-  margin-right: 4px !important;
-}
-
-/* Fix for action buttons in fixed column */
-.phieu-data-table .ant-table-cell-fix-right .ant-space {
-  flex-wrap: nowrap;
-  overflow: visible;
-}
-
-/* Ensure buttons are aligned properly */
-.phieu-data-table [data-column-key="action"] .ant-space {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: row;
-}
-
-.phieu-data-table [data-column-key="action"] .ant-btn {
-  flex-shrink: 0;
-}
-
-/* ========== FILTER DROPDOWN ========== */
+/* ========== SEARCH BUTTON ========== */
 .search_button {
   width: 100%;
-  height: 32px;
-  background: #1890ff;
-  border-color: #1890ff;
+  height: 40px;
+  background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+  box-shadow: 
+    0 8px 24px rgba(102, 126, 234, 0.3),
+    0 2px 8px rgba(102, 126, 234, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .search_button:hover {
-  background: #40a9ff;
-  border-color: #40a9ff;
+  background: linear-gradient(145deg, #7c8ce8 0%, #8a5aa7 100%);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 32px rgba(102, 126, 234, 0.4),
+    0 4px 12px rgba(102, 126, 234, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
+/* ========== FILTER DROPDOWN ========== */
 .ant-table-filter-dropdown {
-  padding: 12px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.3);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .ant-table-filter-dropdown .ant-input {
-  border-radius: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%);
+  backdrop-filter: blur(10px);
 }
 
 .ant-table-filter-dropdown .ant-picker {
-  border-radius: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%);
+  backdrop-filter: blur(10px);
 }
 
 /* ========== FORM STYLES ========== */
 .phieu-form-container {
-  margin-top: 20px;
+  margin-top: 24px;
+  position: relative;
+  z-index: 2;
 }
 
 .phieu-form .ant-form-item-label {
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .phieu-form .ant-table-wrapper {
-  margin: 16px 0;
+  margin: 20px 0;
 }
 
 .phieu-form .ant-table-bordered .ant-table-container {
-  border: 1px solid #f0f0f0;
+  border: 1px solid rgba(255,255,255,0.3);
   border-right: 0;
   border-bottom: 0;
-  border-radius: 8px;
+  border-radius: 16px;
+  background: transparent;
 }
 
 .phieu-form .ant-table-cell {
   padding: 8px 16px;
 }
 
-/* ========== CUSTOM CONTROLS ========== */
-.quantity-control {
-  display: flex;
-  align-items: center;
-}
-
-.quantity-control button {
-  height: 32px;
-  width: 32px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.quantity-control .quantity-input {
-  width: 50px;
-  text-align: center;
-  margin: 0 4px;
-}
-
-.inventory-select .ant-select-selector {
-  border-radius: 4px 0 0 4px !important;
-}
-
-.inventory-select-button {
-  border-radius: 0 4px 4px 0 !important;
-  margin-left: -1px;
-}
-
-/* ========== STATUS TAGS ========== */
-.ant-tag {
-  border-radius: 4px;
-  font-weight: 500;
-  font-size: 12px;
-  padding: 2px 8px;
-}
-
-/* ========== FIXED COLUMNS ========== */
-.phieu-data-table .ant-table-cell-fix-left,
-.phieu-data-table .ant-table-cell-fix-right {
-  background: #fafafa;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+/* ========== VAT TU TABLE STYLES ========== */
+.vat-tu-table {
+  background: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.3);
+  margin-top: 20px;
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  position: relative;
   z-index: 2;
 }
 
-.phieu-data-table .ant-table-cell-fix-left-last {
-  border-right: 1px solid #f0f0f0;
-}
-
-.phieu-data-table .ant-table-cell-fix-right-first {
-  border-left: 1px solid #f0f0f0;
-}
-
-.phieu-data-table .ant-table-tbody > tr > td.ant-table-cell-fix-left,
-.phieu-data-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
-  background: #fff;
-}
-
-.phieu-data-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-left,
-.phieu-data-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right {
-  background: #f0f8ff;
-}
-
-/* ========== VAT TU TABLE STYLES ========== */
-.vat-tu-table {
-  background: #fff;
-  border-radius: 8px;
-  overflow: visible !important;
-  border: 1px solid #f0f0f0;
-  margin-top: 16px;
-}
-
 .vat-tu-table .ant-table {
-  border-radius: 8px;
-  overflow: visible !important;
+  border-radius: 16px;
+  overflow: hidden;
+  background: transparent;
 }
 
 .vat-tu-table .ant-table-container,
@@ -488,407 +491,306 @@
 }
 
 .vat-tu-table .ant-table-thead > tr > th {
-  background: #fafafa;
-  border-bottom: 2px solid #f0f0f0;
-  font-weight: 600;
-  color: #262626;
+  background: linear-gradient(145deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+  font-weight: 700;
   padding: 12px 8px;
   text-align: center;
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 12px;
+  color: #667eea;
 }
 
-.vat-tu-table .ant-table-tbody > tr > td {
-  padding: 8px 4px;
-  border-bottom: 1px solid #f5f5f5;
-  text-align: center;
-  vertical-align: middle;
-  overflow: visible !important;
+/* VatTu Table column header text styling */
+.vat-tu-table .ant-table-thead > tr > th > div,
+.vat-tu-table .ant-table-thead > tr > th .ant-table-column-title,
+.vat-tu-table .ant-table-thead > tr > th span {
+  color: #667eea !important; /* Fallback color */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
 }
 
-.vat-tu-table .ant-table-tbody > tr:hover > td {
-  background: #f0f8ff;
+/* VatTu Table filter icons styling */
+.vat-tu-table .ant-table-thead > tr > th .ant-table-filter-trigger {
+  color: #667eea !important;
+  opacity: 0.8;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.vat-tu-table .ant-table-tbody > tr:last-child > td {
-  border-bottom: none;
+.vat-tu-table .ant-table-thead > tr > th .ant-table-filter-trigger:hover {
+  color: #764ba2 !important;
+  opacity: 1;
+  transform: scale(1.1);
 }
 
-/* ========== SELECT COMPONENTS ========== */
-.vat-tu-table-select {
-  width: 100%;
-  min-width: 180px;
-  z-index: 1000;
+/* VatTu Table filter trigger active state */
+.vat-tu-table .ant-table-thead > tr > th .ant-table-filter-trigger.ant-table-filter-trigger-active {
+  color: #764ba2 !important;
+  opacity: 1;
 }
 
-.vat-tu-table-select .ant-select-selector,
-.vat-tu-table .ant-table-cell .ant-select-selector {
-  border: 1px solid #d9d9d9 !important;
-  border-radius: 4px !important;
-  min-height: 32px !important;
-  height: 32px !important;
-  padding: 4px 11px !important;
-  display: flex !important;
-  align-items: center !important;
-  transition: all 0.3s;
-}
-
-.vat-tu-table-select:hover .ant-select-selector,
-.vat-tu-table .ant-table-cell .ant-select:hover .ant-select-selector {
-  border-color: #40a9ff !important;
-}
-
-.vat-tu-table-select.ant-select-focused .ant-select-selector,
-.vat-tu-table
-  .ant-table-cell
-  .ant-select.ant-select-focused
-  .ant-select-selector {
-  border-color: #1890ff !important;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
-}
-
-.vat-tu-table-select .ant-select-selection-item,
-.vat-tu-table .ant-table-cell .ant-select-selection-item {
-  line-height: 24px !important;
-  height: 24px !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-  display: flex !important;
-  align-items: center !important;
-}
-
-.vat-tu-table-select .ant-select-selection-search,
-.vat-tu-table .ant-table-cell .ant-select-selection-search {
-  height: 24px;
-  display: flex;
-  align-items: center;
-}
-
-.vat-tu-table-select .ant-select-selection-search-input,
-.vat-tu-table .ant-table-cell .ant-select-selection-search-input {
-  height: 24px !important;
-  line-height: 24px !important;
-}
-
-/* ========== INPUT STYLES ========== */
-.vat-tu-table-input {
-  border-radius: 4px;
-  border: 1px solid #d9d9d9;
-  text-align: center;
-  font-weight: 400;
-  min-height: 32px;
-  height: 32px;
-  line-height: 24px;
-  padding: 4px 11px;
-  width: 100%;
-  transition: all 0.3s;
-  background-color: #fff;
-  font-size: 14px;
+/* VatTu Table column sorter styling */
+.vat-tu-table .ant-table-thead > tr > th .ant-table-column-sorters {
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.vat-tu-table .ant-table-thead > tr > th .ant-table-column-sorter {
+  color: #667eea !important;
+  opacity: 0.6;
+  margin-left: 4px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.vat-tu-table .ant-table-thead > tr > th .ant-table-column-sorter:hover {
+  color: #764ba2 !important;
+  opacity: 1;
+}
+
+.vat-tu-table .ant-table-tbody > tr > td {
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+  text-align: center;
+  vertical-align: middle;
+  overflow: visible !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
+  font-weight: 500;
+}
+
+.vat-tu-table .ant-table-tbody > tr:hover > td {
+  background: linear-gradient(145deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.04) 100%);
+  transform: scale(1.01);
+}
+
+/* ========== ENHANCED INPUT STYLES ========== */
+.vat-tu-table-select,
+.vat-tu-table-input {
+  border-radius: 8px !important;
+  border: 1px solid rgba(255,255,255,0.3) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.vat-tu-table-select:hover,
 .vat-tu-table-input:hover {
-  border-color: #40a9ff;
+  border-color: rgba(102, 126, 234, 0.4) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%) !important;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2) !important;
 }
 
+.vat-tu-table-select:focus,
 .vat-tu-table-input:focus {
-  border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
-  outline: none;
-}
-
-/* Specific styling for quantity input to match select components exactly */
-.vat-tu-table .ant-table-cell input[type="number"],
-.vat-tu-table .ant-table-cell .ant-input-number,
-.vat-tu-table .ant-table-cell .ant-input-number-input-wrap {
-  border: 1px solid #d9d9d9 !important;
-  border-radius: 4px !important;
-  min-height: 32px !important;
-  height: 32px !important;
-  padding: 4px 11px !important;
-  text-align: center !important;
-  font-weight: 400 !important;
-  font-size: 14px !important;
-  line-height: 24px !important;
-  background-color: #fff !important;
-  transition: all 0.3s !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-/* Override specific Ant Design InputNumber wrapper styling */
-.vat-tu-table .ant-table-cell .ant-input-number {
-  padding: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-.vat-tu-table .ant-table-cell input[type="number"]:hover,
-.vat-tu-table .ant-table-cell .ant-input-number:hover,
-.vat-tu-table .ant-table-cell .ant-input-number:hover .ant-input-number-input {
-  border-color: #40a9ff !important;
-}
-
-.vat-tu-table .ant-table-cell input[type="number"]:focus,
-.vat-tu-table .ant-table-cell .ant-input-number:focus,
-.vat-tu-table .ant-table-cell .ant-input-number-focused,
-.vat-tu-table .ant-table-cell .ant-input-number:focus .ant-input-number-input {
-  border-color: #1890ff !important;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+  border-color: rgba(102, 126, 234, 0.6) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 100%) !important;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1), 0 4px 16px rgba(102, 126, 234, 0.2) !important;
   outline: none !important;
-}
-
-/* Remove spinner arrows from number input */
-.vat-tu-table .ant-table-cell input[type="number"]::-webkit-outer-spin-button,
-.vat-tu-table .ant-table-cell input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.vat-tu-table .ant-table-cell input[type="number"] {
-  -moz-appearance: textfield;
-}
-
-/* Ant Design InputNumber specific styling - make it look exactly like select */
-.vat-tu-table .ant-table-cell .ant-input-number-input {
-  border: none !important;
-  padding: 0 !important;
-  text-align: center !important;
-  font-weight: 400 !important;
-  font-size: 14px !important;
-  line-height: 24px !important;
-  height: 24px !important;
-  width: 100% !important;
-  background: transparent !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-.vat-tu-table .ant-table-cell .ant-input-number-handler-wrap {
-  display: none !important;
-}
-
-/* Force consistent height for all table cell inputs */
-.vat-tu-table .ant-table-cell > div,
-.vat-tu-table .ant-table-cell > input,
-.vat-tu-table .ant-table-cell > .ant-input-number,
-.vat-tu-table .ant-table-cell > .ant-select {
-  height: 32px !important;
-  min-height: 32px !important;
 }
 
 .vat-tu-delete-btn:hover {
-  background: #fff2f0;
+  background: linear-gradient(145deg, rgba(255, 77, 79, 0.15) 0%, rgba(255, 120, 117, 0.08) 100%);
   color: #ff4d4f;
-  border-color: #ffccc7;
+  border-color: rgba(255, 77, 79, 0.3);
 }
 
 .vat-tu-delete-btn:disabled {
   color: #d9d9d9;
   background: transparent;
   cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .vat-tu-delete-btn .anticon {
   font-size: 14px;
 }
 
-/* ========== DROPDOWN STYLES ========== */
-.vat-tu-dropdown,
-.phieu-form-dropdown {
-  border-radius: 6px;
-  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08),
-    0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
-  min-width: 300px !important;
-  z-index: 9999 !important;
-}
-
-.phieu-form-dropdown {
-  max-width: 500px !important;
-  max-height: 300px !important;
-}
-
-.vat-tu-dropdown .ant-select-item,
-.phieu-form-dropdown .ant-select-item {
-  padding: 8px 12px !important;
-  font-size: 14px !important;
-  line-height: 1.5 !important;
-  border-radius: 0 !important;
-  margin: 0 !important;
-  white-space: normal !important;
-  word-wrap: break-word !important;
-  min-height: auto !important;
-  border: none !important;
-  background: white !important;
-  transition: all 0.3s;
-}
-
-.vat-tu-dropdown .ant-select-item-option-active,
-.phieu-form-dropdown .ant-select-item-option-active,
-.vat-tu-dropdown .ant-select-item:hover,
-.phieu-form-dropdown .ant-select-item:hover {
-  background: #f0f8ff !important;
-  color: #1890ff !important;
-}
-
-/* ========== GLOBAL DROPDOWN POSITIONING ========== */
-.phieu-container .ant-select-dropdown,
-.ant-select-dropdown.phieu-form-dropdown,
-.ant-select-dropdown.vat-tu-dropdown {
-  min-width: 300px !important;
-  z-index: 9999 !important;
-}
-
 /* ========== FORM ACTIONS ========== */
 .phieu-form-actions {
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
   display: flex;
-  gap: 12px;
-  justify-content: flex-start;
-  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.3);
+  margin-top: 24px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .phieu-form-actions .ant-btn {
-  height: 40px;
+  height: 44px;
   padding: 0 24px;
-  border-radius: 6px;
-  font-weight: 500;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  font-size: 14px;
-  transition: all 0.3s;
 }
 
 .phieu-form-actions .ant-btn-primary {
-  background: #1890ff;
-  border-color: #1890ff;
+  background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 
+    0 8px 24px rgba(102, 126, 234, 0.3),
+    0 2px 8px rgba(102, 126, 234, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .phieu-form-actions .ant-btn-primary:hover {
-  background: #40a9ff;
-  border-color: #40a9ff;
+  background: linear-gradient(145deg, #7c8ce8 0%, #8a5aa7 100%);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 32px rgba(102, 126, 234, 0.4),
+    0 4px 12px rgba(102, 126, 234, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .phieu-form-actions .ant-btn-dangerous {
-  background: #ff4d4f;
-  border-color: #ff4d4f;
-  color: #fff;
+  background: linear-gradient(145deg, #ff4d4f 0%, #ff7875 100%);
+  color: white;
+  box-shadow: 
+    0 8px 24px rgba(255, 77, 79, 0.3),
+    0 2px 8px rgba(255, 77, 79, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .phieu-form-actions .ant-btn-dangerous:hover {
-  background: #ff7875;
-  border-color: #ff7875;
+  background: linear-gradient(145deg, #ff7875 0%, #ffa39e 100%);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 32px rgba(255, 77, 79, 0.4),
+    0 4px 12px rgba(255, 77, 79, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .phieu-form-actions .ant-btn:not(.ant-btn-primary):not(.ant-btn-dangerous) {
-  border-color: #d9d9d9;
-  color: #595959;
+  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%);
+  color: #64748b;
+  border: 1px solid rgba(255,255,255,0.3);
+  backdrop-filter: blur(10px);
 }
 
-.phieu-form-actions
-  .ant-btn:not(.ant-btn-primary):not(.ant-btn-dangerous):hover {
-  border-color: #40a9ff;
-  color: #1890ff;
+.phieu-form-actions .ant-btn:not(.ant-btn-primary):not(.ant-btn-dangerous):hover {
+  background: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
 /* ========== RESPONSIVE DESIGN ========== */
-
-/* Tablet Portrait */
 @media (max-width: 1024px) {
   .phieu-container {
+    padding: 20px;
+    margin: 12px;
+    border-radius: 16px;
+  }
+
+  .phieu-title {
+    font-size: 20px;
+  }
+
+  .phieu-data-table .ant-table-thead > tr > th,
+  .vat-tu-table .ant-table-thead > tr > th {
+    padding: 12px 8px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 768px) {
+  .phieu-container {
     padding: 16px;
+    margin: 8px;
+    border-radius: 12px;
+  }
+
+  .phieu-header {
+    padding: 16px 20px;
+    border-radius: 12px;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .phieu-title {
     font-size: 18px;
+    order: -1;
   }
 
-  .phieu-data-table .ant-table-thead > tr > th,
-  .phieu-data-table .ant-table-tbody > tr > td,
-  .vat-tu-table .ant-table-thead > tr > th,
-  .vat-tu-table .ant-table-tbody > tr > td {
-    padding: 6px 4px;
+  .phieu-back-button {
+    align-self: flex-start;
+  }
+
+  .phieu-add-button,
+  .phieu-edit-button {
+    height: 36px;
+    padding: 0 16px;
     font-size: 13px;
   }
 
   .search-filters-container {
-    padding: 12px;
+    padding: 16px;
+    border-radius: 12px;
   }
 
-  .filter-group {
-    min-width: 100px;
+  .phieu-table-container,
+  .vat-tu-table {
+    border-radius: 12px;
   }
 
-  .vat-tu-table-select {
-    min-width: 120px;
-  }
-
-  .vat-tu-table-input {
-    min-width: 80px;
+  .phieu-action-btn {
+    height: 32px;
+    width: 32px;
   }
 }
 
-/* Mobile Landscape */
-@media (max-width: 768px) {
+@media (max-width: 480px) {
   .phieu-container {
     padding: 12px;
+    margin: 4px;
+    border-radius: 8px;
   }
 
   .phieu-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-    text-align: center;
+    padding: 12px 16px;
+    border-radius: 8px;
   }
 
   .phieu-title {
     font-size: 16px;
-    order: 1;
   }
 
-  .phieu-back-button {
-    order: 0;
-    align-self: flex-start;
-  }
-
-  .phieu-add-button {
-    order: 2;
-    align-self: stretch;
-    justify-content: center;
-    height: 44px;
+  .phieu-add-button,
+  .phieu-edit-button {
+    height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
   }
 
   .search-filters-container {
-    padding: 10px;
-    margin-bottom: 12px;
+    padding: 12px;
+    border-radius: 8px;
   }
 
-  .search-filters-row .ant-space {
-    width: 100%;
-  }
-
-  .filter-group {
-    width: 100%;
-    min-width: auto;
-  }
-
-  .search-filters-actions {
-    text-align: center;
-  }
-
-  .phieu-data-table,
+  .phieu-table-container,
   .vat-tu-table {
-    font-size: 12px;
+    border-radius: 8px;
   }
 
   .phieu-action-btn {
@@ -896,117 +798,9 @@
     width: 28px;
   }
 
-  .vat-tu-table-select {
-    min-width: 100px;
-  }
-
-  .vat-tu-table-input {
-    min-width: 60px;
-    font-size: 12px;
-  }
-
-  .vat-tu-delete-btn {
-    width: 24px;
-    height: 24px;
-  }
-
-  .vat-tu-delete-btn .anticon {
-    font-size: 12px;
-  }
-}
-
-/* Mobile Portrait */
-@media (max-width: 480px) {
-  .phieu-container {
-    padding: 8px;
-    margin: 8px;
-    border-radius: 4px;
-  }
-
-  .phieu-header {
-    margin-bottom: 16px;
-    padding: 12px 0;
-  }
-
-  .phieu-title {
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .phieu-add-button {
+  .phieu-form-actions .ant-btn {
     height: 40px;
-    font-size: 14px;
-  }
-
-  .search-filters-container {
-    padding: 8px;
-    border-radius: 4px;
-  }
-
-  .search-filters-row {
-    margin-bottom: 8px;
-  }
-
-  .search-filters-actions {
-    margin-bottom: 8px;
-  }
-
-  .filter-label {
-    font-size: 11px;
-  }
-
-  .active-filters {
-    padding-top: 8px;
-  }
-
-  .active-filters-label {
-    font-size: 11px;
-  }
-
-  .phieu-table-container,
-  .vat-tu-table {
-    margin: 0 -8px;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-  }
-
-  .phieu-data-table,
-  .vat-tu-table .ant-table {
-    border-radius: 0;
-  }
-
-  .phieu-data-table .ant-table-thead > tr > th,
-  .phieu-data-table .ant-table-tbody > tr > td,
-  .vat-tu-table .ant-table-thead > tr > th,
-  .vat-tu-table .ant-table-tbody > tr > td {
-    padding: 2px 1px;
-    font-size: 11px;
-    white-space: nowrap;
-  }
-
-  .vat-tu-table .ant-table-container {
-    overflow-x: auto;
-  }
-
-  .phieu-action-btn {
-    height: 24px;
-    width: 24px;
-  }
-
-  .ant-table-filter-dropdown {
-    padding: 8px;
-    width: 200px;
-  }
-
-  .ant-table-filter-dropdown .ant-input,
-  .ant-table-filter-dropdown .ant-picker {
-    font-size: 14px;
-  }
-
-  .vat-tu-table-select,
-  .vat-tu-table-input {
-    min-width: 80px;
-    font-size: 11px;
+    padding: 0 20px;
+    font-size: 13px;
   }
 }

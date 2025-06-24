@@ -95,6 +95,21 @@ const ListPhieuNhapKho = () => {
     fetchPhieuNhapKho();
   }, []);
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "0":
+        return "orange";
+      case "2":
+        return "blue";
+      case "3":
+        return "green";
+      case "5":
+        return "purple";
+      default:
+        return "default";
+    }
+  };
+
   const handleDelete = async (sctRec) => {
     Modal.confirm({
       title: "Xác nhận xóa phiếu nhập kho",
@@ -212,7 +227,11 @@ const ListPhieuNhapKho = () => {
         title: () => (
           <div style={{ width: 120 }}>
             Số chứng từ{" "}
-            {filters.so_ct ? <Tag color="blue">{filters.so_ct}</Tag> : null}
+            {filters.so_ct ? (
+              <Tag color="blue" size="small">
+                {filters.so_ct}
+              </Tag>
+            ) : null}
           </div>
         ),
         dataIndex: "so_ct",
@@ -255,13 +274,17 @@ const ListPhieuNhapKho = () => {
       });
     }
 
-    if (screenSize === "desktop") {
+    if (screenSize !== "mobile") {
       baseColumns.push(
         {
           title: () => (
             <div style={{ width: 120 }}>
               Mã khách{" "}
-              {filters.ma_kh ? <Tag color="blue">{filters.ma_kh}</Tag> : null}
+              {filters.ma_kh ? (
+                <Tag color="blue" size="small">
+                  {filters.ma_kh}
+                </Tag>
+              ) : null}
             </div>
           ),
           dataIndex: "ma_kh",
@@ -312,7 +335,11 @@ const ListPhieuNhapKho = () => {
           title: () => (
             <div style={{ width: 180 }}>
               Tên khách{" "}
-              {filters.ten_kh ? <Tag color="blue">{filters.ten_kh}</Tag> : null}
+              {filters.ten_kh ? (
+                <Tag color="blue" size="small">
+                  {filters.ten_kh}
+                </Tag>
+              ) : null}
             </div>
           ),
           dataIndex: "ten_kh",
@@ -364,38 +391,30 @@ const ListPhieuNhapKho = () => {
 
     baseColumns.push({
       title: "Trạng thái",
-      dataIndex: "status",
+      dataIndex: "statusname",
       key: "status",
       width: screenSize === "mobile" ? 80 : 120,
       align: "center",
-      render: (status) => {
-        if (status === "*" || status === null) {
+      render: (statusname, record) => {
+        if (record.status === "*" || record.status === null) {
           return "";
         }
 
-        const statusMap = {
-          0: {
-            text: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
-            color: "orange",
-          },
-          2: {
-            text: screenSize === "mobile" ? "Nhập" : "Nhập kho",
-            color: "blue",
-          },
-          3: {
-            text: screenSize === "mobile" ? "Chuyển" : "Chuyển số cái",
-            color: "green",
-          },
-          5: {
-            text: screenSize === "mobile" ? "Đề nghị" : "Đề nghị nhập kho",
-            color: "purple",
-          },
+        // Fallback cho statusname nếu API không trả về
+        const getStatusText = (status) => {
+          const statusMap = {
+            0: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
+            2: screenSize === "mobile" ? "Nhập" : "Nhập kho",
+            3: screenSize === "mobile" ? "Chuyển" : "Chuyển số cài",
+            5: screenSize === "mobile" ? "Đề nghị" : "Đề nghị nhập kho",
+          };
+          return statusMap[status] || "Không xác định";
         };
-        const statusInfo = statusMap[status] || {
-          text: "Không xác định",
-          color: "default",
-        };
-        return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
+
+        const displayText = statusname || getStatusText(record.status);
+        const statusColor = getStatusColor(record.status);
+
+        return <Tag color={statusColor}>{displayText}</Tag>;
       },
     });
 

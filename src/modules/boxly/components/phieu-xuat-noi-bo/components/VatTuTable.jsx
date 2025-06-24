@@ -1,5 +1,6 @@
 import { DeleteOutlined } from "@ant-design/icons";
 import { Button, Empty, Input, Select, Table } from "antd";
+import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
 
 const VatTuTable = ({
   dataSource,
@@ -73,24 +74,6 @@ const VatTuTable = ({
       width: 150,
       align: "center",
       render: (value) => {
-        if (!value)
-          return (
-            <span
-              style={{
-                fontWeight: "bold",
-                display: "block",
-                textAlign: "center",
-              }}
-            >
-              0
-            </span>
-          );
-
-        const num = Number(value);
-        // Nếu là số nguyên thì hiển thị không có phần thập phân
-        const displayValue =
-          num === Math.floor(num) ? num.toString() : num.toFixed(3);
-
         return (
           <span
             style={{
@@ -99,7 +82,7 @@ const VatTuTable = ({
               textAlign: "center",
             }}
           >
-            {displayValue}
+            {formatQuantityDisplay(value)}
           </span>
         );
       },
@@ -141,7 +124,7 @@ const VatTuTable = ({
               textAlign: "center",
             }}
           >
-            {Number(value).toFixed(3)}
+            {formatQuantityDisplay(value)}
           </span>
         ) : (
           <span
@@ -151,7 +134,7 @@ const VatTuTable = ({
               textAlign: "center",
             }}
           >
-            0.000
+            0
           </span>
         ),
     },

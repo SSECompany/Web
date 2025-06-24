@@ -1,74 +1,232 @@
 /* Boxly Component Styles */
 .boxly-container {
-  padding: 16px;
+  padding: 24px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  position: relative;
+}
+
+.boxly-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 25px 25px, rgba(255,255,255,0.2) 2%, transparent 50%),
+    radial-gradient(circle at 75px 75px, rgba(255,255,255,0.1) 2%, transparent 50%);
+  background-size: 100px 100px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.boxly-content {
+  position: relative;
+  z-index: 2;
+}
+
+.boxly-header {
+  text-align: center;
+  margin-bottom: 48px;
+  padding-top: 32px;
+}
+
+.boxly-title {
+  font-size: 42px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 12px 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.boxly-subtitle {
+  font-size: 18px;
+  color: #6c757d;
+  margin: 0;
+  font-weight: 400;
+  opacity: 0.8;
 }
 
 .boxly-button-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  padding: 16px;
-  max-width: 800px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  padding: 32px;
+  max-width: 1000px;
   margin: 0 auto;
+  position: relative;
+  z-index: 2;
 }
 
 .boxly-button-tile {
-  border: 1px solid #ccc;
-  border-radius: 12px;
-  padding: 24px 16px;
-  font-size: 16px;
-  font-weight: 500;
-  background-color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  height: 100%;
+  position: relative;
+  border: none;
+  border-radius: 20px;
+  padding: 40px 24px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: white;
+  background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.1),
+    0 1px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  height: auto;
+  min-height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   cursor: pointer;
+  overflow: hidden;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.boxly-button-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.boxly-button-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+  opacity: 0.9;
+  transition: all 0.3s ease;
+}
+
+.boxly-button-label {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.boxly-button-description {
+  font-size: 13px;
+  opacity: 0.8;
+  font-weight: 400;
+  text-align: center;
+  margin-top: -4px;
+}
+
+.boxly-button-tile:hover .boxly-button-icon {
+  transform: scale(1.1);
+  opacity: 1;
+}
+
+.boxly-button-tile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.boxly-button-tile::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  transform: scale(0);
+  transition: transform 0.6s ease;
 }
 
 .boxly-button-tile:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.15),
+    0 5px 15px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-/* Color variants */
-.boxly-btn-color-1 {
-  background-color: #e0f2f1;
-  border-color: #009688;
-  color: #004d40;
+.boxly-button-tile:hover::before {
+  opacity: 1;
 }
+
+.boxly-button-tile:hover::after {
+  transform: scale(1);
+}
+
+.boxly-button-tile:active {
+  transform: translateY(-4px) scale(1.01);
+  transition: all 0.1s ease;
+}
+
+/* Color variants with beautiful gradients */
+.boxly-btn-color-1 {
+  background: linear-gradient(145deg, #11998e 0%, #38ef7d 100%);
+  box-shadow: 
+    0 10px 30px rgba(17, 153, 142, 0.3),
+    0 1px 8px rgba(17, 153, 142, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
 .boxly-btn-color-1:hover {
-  background-color: #b2dfdb;
+  box-shadow: 
+    0 20px 40px rgba(17, 153, 142, 0.4),
+    0 5px 15px rgba(17, 153, 142, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .boxly-btn-color-2 {
-  background-color: #e3f2fd;
-  border-color: #2196f3;
-  color: #0d47a1;
+  background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 
+    0 10px 30px rgba(102, 126, 234, 0.3),
+    0 1px 8px rgba(102, 126, 234, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
+
 .boxly-btn-color-2:hover {
-  background-color: #bbdefb;
+  box-shadow: 
+    0 20px 40px rgba(102, 126, 234, 0.4),
+    0 5px 15px rgba(102, 126, 234, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .boxly-btn-color-3 {
-  background-color: #fff3e0;
-  border-color: #ff9800;
-  color: #e65100;
+  background: linear-gradient(145deg, #f093fb 0%, #f5576c 100%);
+  box-shadow: 
+    0 10px 30px rgba(240, 147, 251, 0.3),
+    0 1px 8px rgba(240, 147, 251, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
+
 .boxly-btn-color-3:hover {
-  background-color: #ffe0b2;
+  box-shadow: 
+    0 20px 40px rgba(240, 147, 251, 0.4),
+    0 5px 15px rgba(240, 147, 251, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .boxly-btn-color-4 {
-  background-color: #fce4ec;
-  border-color: #e91e63;
-  color: #880e4f;
+  background: linear-gradient(145deg, #4facfe 0%, #00f2fe 100%);
+  box-shadow: 
+    0 10px 30px rgba(79, 172, 254, 0.3),
+    0 1px 8px rgba(79, 172, 254, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
+
 .boxly-btn-color-4:hover {
-  background-color: #f8bbd0;
+  box-shadow: 
+    0 20px 40px rgba(79, 172, 254, 0.4),
+    0 5px 15px rgba(79, 172, 254, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .boxly-button-grid-container {
@@ -77,27 +235,123 @@
   padding: 20px;
 }
 
+/* Add a subtle animation on page load */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.boxly-button-tile {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.boxly-button-tile:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.boxly-button-tile:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.boxly-button-tile:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.boxly-button-tile:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
 /* Responsive */
 @media (max-width: 992px) {
   .boxly-button-grid {
-    gap: 12px;
-    padding: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    padding: 24px;
   }
 
   .boxly-button-tile {
-    padding: 20px 12px;
-    font-size: 15px;
+    padding: 32px 20px;
+    font-size: 16px;
+    min-height: 120px;
   }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 768px) {
+  .boxly-container {
+    padding: 16px;
+  }
+
+  .boxly-header {
+    margin-bottom: 32px;
+    padding-top: 16px;
+  }
+
+  .boxly-title {
+    font-size: 32px;
+  }
+
+  .boxly-subtitle {
+    font-size: 16px;
+  }
+
   .boxly-button-grid {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 16px;
+    padding: 16px;
   }
 
   .boxly-button-tile {
-    padding: 16px 10px;
-    font-size: 14px;
+    padding: 28px 16px;
+    min-height: 100px;
+  }
+
+  .boxly-button-label {
+    font-size: 16px;
+  }
+
+  .boxly-button-description {
+    font-size: 12px;
+  }
+
+  .boxly-button-icon {
+    font-size: 32px;
+  }
+
+  .boxly-button-tile:hover {
+    transform: translateY(-4px) scale(1.01);
   }
 }
+
+@media (max-width: 480px) {
+  .boxly-title {
+    font-size: 28px;
+  }
+
+  .boxly-subtitle {
+    font-size: 14px;
+  }
+
+  .boxly-button-tile {
+    padding: 24px 12px;
+    border-radius: 16px;
+  }
+
+  .boxly-button-label {
+    font-size: 15px;
+  }
+
+  .boxly-button-description {
+    font-size: 11px;
+  }
+
+  .boxly-button-icon {
+    font-size: 28px;
+  }
+}
+
