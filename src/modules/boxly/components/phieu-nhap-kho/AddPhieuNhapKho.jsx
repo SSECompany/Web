@@ -41,7 +41,6 @@ const AddPhieuNhapKho = () => {
     loadingVatTu,
     fetchMaKhoListDebounced,
     fetchMaKhachListDebounced,
-    fetchVatTuListDebounced,
     fetchMaGiaoDichList,
     fetchMaKhoList,
     fetchMaKhachList,

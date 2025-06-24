@@ -16,17 +16,18 @@ const getRefreshToken = () => {
   return localStorage.getItem(REFRESH_TOKEN_KEY);
 };
 
-const setAccessToken = (token) => {
+const setAccessToken = (token, skipExpiryUpdate = false) => {
   if (token) {
     localStorage.setItem(ACCESS_TOKEN_KEY, token);
 
-    // Thiết lập thời gian hết hạn (1 ngày)
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 1);
-    localStorage.setItem(TOKEN_EXPIRY_KEY, expiryDate.getTime().toString());
+    // Chỉ set expiry time khi không skip (tức là lần đầu login)
+    if (!skipExpiryUpdate) {
+      const expiryTime = calculateTokenExpiry();
+      setTokenExpiry(expiryTime);
+    }
   } else {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(TOKEN_EXPIRY_KEY);
+    setTokenExpiry(null);
   }
 };
 
@@ -52,32 +53,21 @@ const claimNewToken = async () => {
   };
 };
 
-const getTokenExpiry = () => {
-  const expiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
-  return expiry ? parseInt(expiry) : null;
-};
-
-const setTokenExpiry = (expiryTime) => {
-  if (expiryTime) {
-    localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
-  } else {
-    localStorage.removeItem(TOKEN_EXPIRY_KEY);
-  }
-};
+// Import utilities từ tokenUtils để tránh duplicate
+import {
+  checkExistToken as checkToken,
+  getTokenExpiry,
+  isTokenExpired as isExpired,
+  setTokenExpiry,
+} from "./tokenUtils";
 
 const isTokenExpired = () => {
   const expiry = getTokenExpiry();
-  if (!expiry) return true;
-
-  return Date.now() > expiry;
+  return isExpired(expiry);
 };
 
 const checkExistToken = () => {
-  const token = getAccessToken();
-  if (!token) return false;
-
-  // Kiểm tra token còn hạn không
-  return !isTokenExpired();
+  return checkToken();
 };
 
 const saveClaims = (token) => {
@@ -131,6 +121,13 @@ const clearTokens = () => {
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
 };
 
+// Function riêng để set initial token expiry (chỉ gọi khi login lần đầu)
+const setInitialTokenExpiry = () => {
+  const expiryTime = calculateTokenExpiry();
+  setTokenExpiry(expiryTime);
+  return expiryTime;
+};
+
 const jwt = {
   getAccessToken,
   getRefreshToken,
@@ -151,5 +148,6 @@ const jwt = {
   setTokenExpiry,
   isTokenExpired,
   clearTokens,
+  setInitialTokenExpiry,
 };
 export default jwt;

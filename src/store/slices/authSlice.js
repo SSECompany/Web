@@ -37,17 +37,15 @@ const safeRemoveLocalStorage = (key) => {
   }
 };
 
-// Tính toán thời gian hết hạn token (1 ngày)
-const calculateTokenExpiry = () => {
-  const expiryDate = new Date();
-  expiryDate.setDate(expiryDate.getDate() + 1); // Thêm 1 ngày
-  return expiryDate.getTime();
-};
+// Import utilities để tránh duplicate code
+import {
+  calculateTokenExpiry,
+  isTokenExpired as checkTokenExpired,
+} from "../../utils/tokenUtils";
 
-// Kiểm tra token có hết hạn chưa
+// Local wrapper để maintain API consistency
 const isTokenExpired = (expiryTime) => {
-  if (!expiryTime) return true;
-  return Date.now() > expiryTime;
+  return checkTokenExpired(expiryTime);
 };
 
 // 🔥 Initialize với safe parsing
@@ -95,10 +93,8 @@ const authSlice = createSlice({
       state.error = null;
 
       if (token) {
-        const tokenExpiry = calculateTokenExpiry();
-        state.tokenExpiry = tokenExpiry;
+        // Không tự động set expiry mới, giữ nguyên expiry từ localStorage
         safeSetLocalStorage("access_token", token);
-        safeSetLocalStorage("token_expiry", tokenExpiry.toString());
         safeSetLocalStorage("last_login", new Date().toISOString());
         state.lastLogin = new Date().toISOString();
       } else {
@@ -160,7 +156,7 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.lastLogin = new Date().toISOString();
 
-      // Thiết lập thời gian hết hạn token (1 ngày)
+      // Thiết lập thời gian hết hạn token (1 ngày) - CHỈ KHI LOGIN LẦN ĐẦU
       const tokenExpiry = calculateTokenExpiry();
       state.tokenExpiry = tokenExpiry;
 
@@ -229,11 +225,7 @@ const authSlice = createSlice({
       if (token) {
         state.token = token;
         safeSetLocalStorage("access_token", token);
-
-        // Cập nhật thời gian hết hạn mới
-        const tokenExpiry = calculateTokenExpiry();
-        state.tokenExpiry = tokenExpiry;
-        safeSetLocalStorage("token_expiry", tokenExpiry.toString());
+        // KHÔNG cập nhật expiry time khi refresh token, giữ nguyên thời gian gốc
       }
 
       if (refreshToken) {

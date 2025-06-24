@@ -66,7 +66,7 @@ const Login = () => {
         const { accessToken, refreshToken: newRefreshToken } = response.data;
 
         if (accessToken) {
-          jwt.setAccessToken(accessToken);
+          jwt.setAccessToken(accessToken, true); // Skip expiry update khi refresh token
           if (newRefreshToken) jwt.setRefreshToken(newRefreshToken);
 
           // Cập nhật token mới vào store
@@ -80,10 +80,10 @@ const Login = () => {
           // Cập nhật claims từ token mới
           dispatch(setClaims(jwt.saveClaims(accessToken)));
 
-          // Thiết lập thời gian hết hạn (1 ngày)
-          const expiryDate = new Date();
-          expiryDate.setDate(expiryDate.getDate() + 1);
-          dispatch(setTokenExpiry(expiryDate.getTime()));
+          // KHÔNG set lại expiry khi refresh token, giữ nguyên thời gian gốc
+          // const expiryDate = new Date();
+          // expiryDate.setDate(expiryDate.getDate() + 1);
+          // dispatch(setTokenExpiry(expiryDate.getTime()));
 
           return true;
         }
@@ -109,7 +109,7 @@ const Login = () => {
         const { accessToken, refreshToken: newRefreshToken } = response.data;
 
         if (accessToken) {
-          jwt.setAccessToken(accessToken);
+          jwt.setAccessToken(accessToken, true); // Skip expiry update khi refresh token
           if (newRefreshToken) jwt.setRefreshToken(newRefreshToken);
 
           dispatch(
@@ -189,7 +189,7 @@ const Login = () => {
         newRefreshToken = response.data.refreshToken;
         user = response.data.user;
 
-        jwt.setAccessToken(accessToken);
+        jwt.setAccessToken(accessToken); // Set expiry cho lần đầu login
         jwt.setRefreshToken(newRefreshToken);
         setToken(accessToken);
 
@@ -201,7 +201,7 @@ const Login = () => {
         newRefreshToken = jwt.getRefreshToken();
       }
 
-      // Thiết lập thời gian hết hạn (1 ngày)
+      // Thiết lập thời gian hết hạn (1 ngày) - CHỈ KHI LOGIN LẦN ĐẦU
       const expiryDate = new Date();
       expiryDate.setDate(expiryDate.getDate() + 1);
       const tokenExpiry = expiryDate.getTime();
