@@ -226,13 +226,8 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
             const so_luong_hienThi = item.so_luong ?? 0;
             const dvtHienTai = dvtFromAPI;
 
-            // Get he_so_goc from don vi tinh list (find the base unit)
-            const baseUnit = donViTinhList.find(
-              (dvt) => dvt.dvt.trim() === dvtFromAPI.trim()
-            );
-            const heSoGocFromAPI = baseUnit
-              ? parseFloat(baseUnit.he_so) || 1
-              : heSoFromAPI;
+            // ✅ APPROACH 2: Sử dụng hệ số trực tiếp từ API response
+            const heSoGocFromAPI = heSoFromAPI;
 
             // Calculate quantities based on current unit vs base unit
             let sl_td3_goc, so_luong_goc;

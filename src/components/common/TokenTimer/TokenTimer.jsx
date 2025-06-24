@@ -17,7 +17,6 @@ const TokenTimer = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
 
-  // Tự động thu nhỏ sau 5 phút
   useEffect(() => {
     if (isMinimized || !isAuthenticated) return;
 
@@ -64,7 +63,7 @@ const TokenTimer = () => {
     };
 
     const totalSeconds = Math.floor(timeLeft / 1000);
-    const isExpiring = totalSeconds <= 300; // 5 phút cuối
+    const isExpiring = totalSeconds <= 300; 
     const isExpired = totalSeconds <= 0;
 
     let status = {

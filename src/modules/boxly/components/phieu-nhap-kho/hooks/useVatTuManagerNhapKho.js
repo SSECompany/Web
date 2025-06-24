@@ -10,8 +10,6 @@ export const useVatTuManagerNhapKho = () => {
     fetchVatTuDetail,
     fetchDonViTinh,
     setVatTuInput,
-    setVatTuList,
-    fetchVatTuList
   ) => {
     if (!isEditMode) {
       message.warning("Bạn cần bật chế độ chỉnh sửa");
@@ -56,134 +54,76 @@ export const useVatTuManagerNhapKho = () => {
         const existingIndex = prev.findIndex(
           (item) => item.maHang.trim() === value.trim()
         );
-        console.log("DEBUG NHẬP KHO: Found existing at index:", existingIndex);
 
         if (existingIndex !== -1) {
-          // ===== TRƯỜNG HỢP MERGE VÀO VẬT TƯ ĐÃ CÓ =====
-          // Merge vào dòng đầu tiên và xóa các dòng trùng lặp khác
-          console.log("🔄 DEBUG MERGE VÀO VẬT TƯ ĐÃ CÓ - START");
-          console.log("📦 Existing item:", prev[existingIndex]);
-          
+  
           const updatedData = prev.map((item, index) => {
             if (index === existingIndex) {
               // Logic sửa: Thêm đúng theo đơn vị hiện tại
               const dvtHienTai = (item.dvt || "").trim();
               const dvtGoc = (item.dvt_goc || "").trim();
               const heSoGoc = item.he_so_goc ?? 1;
-              const heSoHienTai = item.he_so ?? 1;
               
-              console.log("🔍 So sánh DVT trong merge:", {
-                dvtHienTai,
-                dvtGoc,
-                heSoGoc,
-                heSoHienTai,
-                isEqual: dvtHienTai === dvtGoc
-              });
-
+          
               let soLuongThemVao;
 
-              // Nếu đang ở đơn vị gốc (kg): thêm 1 đơn vị gốc (tức là +hệ số gốc)
               if (dvtHienTai.trim() === dvtGoc.trim()) {
                 soLuongThemVao = heSoGoc; // VD: +11kg nếu hệ số gốc = 11
-                console.log("✅ Đang ở đơn vị gốc, thêm hệ số gốc:", soLuongThemVao);
               } else {
                 // Nếu đang ở đơn vị khác (Bộ): thêm 1 đơn vị hiện tại
                 soLuongThemVao = 1; // VD: +1 Bộ
-                console.log("⚠️ Đang ở đơn vị khác, thêm 1 đơn vị:", soLuongThemVao);
               }
 
               const soLuongHienTai = item.soLuong || 0;
               const soLuongMoi = soLuongHienTai + soLuongThemVao;
               const soLuongLamTron = Math.round(soLuongMoi * 1000) / 1000;
 
-              // Cập nhật soLuong_goc để đồng bộ - luôn +1 đơn vị gốc
               const soLuongGocMoi = (item.soLuong_goc ?? 0) + 1;
               
-              console.log("🧮 Tính toán merge:", {
-                soLuongHienTai,
-                soLuongThemVao,
-                soLuongMoi,
-                soLuongLamTron,
-                soLuongGocMoi
-              });
-
               const updatedItem = {
                 ...item,
                 soLuong: soLuongLamTron,
                 soLuong_goc: soLuongGocMoi,
-                // Giữ nguyên flag isNewlyAdded nếu có
                 isNewlyAdded: item.isNewlyAdded,
-                // Giữ nguyên tất cả các trường từ API
               };
               
-              console.log("🎯 Item sau khi merge:", updatedItem);
-              console.log("🔄 DEBUG MERGE VÀO VẬT TƯ ĐÃ CÓ - END\n");
               
               return updatedItem;
             }
             return item;
           });
 
-          // Xóa các dòng trùng lặp (giữ chỉ dòng đầu tiên)
           const filteredData = updatedData.filter(
             (item, index) =>
               index === existingIndex || item.maHang.trim() !== value.trim()
           );
 
-          // Cập nhật lại key cho các dòng
           return filteredData.map((item, index) => ({
             ...item,
             key: index + 1,
           }));
         } else {
-          // ===== TRƯỜNG HỢP THÊM VẬT TƯ MỚI =====
-          // Áp dụng logic tính toán giống như load từ API
+   
           
-          console.log("🆕 DEBUG THÊM VẬT TƯ MỚI - START");
-          console.log("📦 Thông tin vật tư từ API:", vatTuInfo);
-          console.log("📋 Danh sách đơn vị tính:", donViTinhList);
-
-          // ✅ LOGIC ĐÚNG: Lấy đơn vị gốc và hệ số gốc từ API vật tư detail
+   
           const heSoGocFromAPI = parseFloat(vatTuInfo.he_so) || 1;
           const dvtGocFromAPI = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
-          const defaultDvt = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
           
-          console.log("🔍 Thông tin từ API vật tư detail:", {
-            vatTuInfo_dvt: vatTuInfo.dvt,
-            vatTuInfo_he_so: vatTuInfo.he_so,
-            dvtGocFromAPI,
-            heSoGocFromAPI,
-            defaultDvt,
-            donViTinhList,
-            isEqual: dvtGocFromAPI === defaultDvt
-          });
+      
           
-          // DVT hiện tại ban đầu = DVT gốc từ API
           const dvtHienTai = dvtGocFromAPI;
           
-          // Tính toán số lượng giống logic load từ API
           let soLuongGoc, soLuongHienThi;
           let heSoHienTai = heSoGocFromAPI;
 
-          // So sánh DVT hiện tại với DVT gốc (giống logic load từ API)
-          console.log("🔄 So sánh DVT để tính toán số lượng:", {
-            dvtHienTai_trim: dvtHienTai.trim(),
-            dvtGocFromAPI_trim: dvtGocFromAPI.trim(),
-            isEqual: dvtHienTai.trim() === dvtGocFromAPI.trim()
-          });
-          
+      
           if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
             // Đang ở đơn vị gốc: Khi thêm mới, số lượng mặc định là 1 đơn vị gốc
             soLuongGoc = 1;
             soLuongHienThi = soLuongGoc * heSoGocFromAPI; // soLuong = soLuong_goc * he_so_goc
             heSoHienTai = heSoGocFromAPI;
             
-            console.log("✅ Đang ở đơn vị gốc:", {
-              soLuongGoc,
-              formula: `${soLuongGoc} * ${heSoGocFromAPI}`,
-              soLuongHienThi,
-              heSoHienTai
-            });
+         
           } else {
             // Đang ở đơn vị khác (trường hợp hiếm khi thêm mới)
             soLuongGoc = 1;
@@ -197,12 +137,7 @@ export const useVatTuManagerNhapKho = () => {
               ? parseFloat(dvtHienTaiInfo.he_so) || 1
               : 1;
               
-            console.log("⚠️ Đang ở đơn vị khác:", {
-              soLuongGoc,
-              soLuongHienThi,
-              dvtHienTaiInfo,
-              heSoHienTai
-            });
+        
           }
 
           const newItem = {
@@ -218,9 +153,7 @@ export const useVatTuManagerNhapKho = () => {
             tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",
             ma_kho: "",
             donViTinhList: donViTinhList,
-            isNewlyAdded: true, // Flag để phân biệt dữ liệu mới thêm
-
-            // Khởi tạo các trường mặc định cho vật tư mới
+            isNewlyAdded: true, 
             stt_rec0: "",
             ma_sp: "",
             ma_bp: "",
@@ -240,8 +173,7 @@ export const useVatTuManagerNhapKho = () => {
             line_nbr: 0,
           };
           
-          console.log("🎯 Item mới được tạo:", newItem);
-          console.log("🆕 DEBUG THÊM VẬT TƯ MỚI - END\n");
+    
           
           return [...prev, newItem];
         }

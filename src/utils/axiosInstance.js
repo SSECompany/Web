@@ -57,11 +57,9 @@ instance.interceptors.response.use(
     PENDING_REQUESTS = Math.max(0, PENDING_REQUESTS - 1);
 
     if (error?.response?.status === 401) {
-      console.log("401 error - Token có thể đã hết hạn");
 
       // Kiểm tra xem token có thực sự hết hạn không
       if (jwt.isTokenExpired()) {
-        console.log("Token đã hết hạn, đang clear và redirect to login");
 
         // Clear tất cả tokens và localStorage
         jwt.clearTokens();
@@ -93,7 +91,6 @@ instance.interceptors.response.use(
         } catch (innerError) {
           // if original req failed with 401 again - it means server returned not valid token for refresh request
           if (innerError?.response?.status === 401) {
-            console.log("Refresh token cũng hết hạn, logout user");
             jwt.clearTokens();
             localStorage.clear();
 
@@ -111,7 +108,6 @@ instance.interceptors.response.use(
           }
         }
       } catch (error) {
-        console.log("Lỗi khi refresh token, logout user");
         jwt.clearTokens();
         localStorage.clear();
 

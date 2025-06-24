@@ -249,7 +249,6 @@ export const useInitializeApp = () => {
 
   useEffect(() => {
     if (isAuthenticated && !allDataLoaded) {
-      console.log("🚀 Initializing app data...");
       fetchAllData();
     }
   }, [isAuthenticated, allDataLoaded, fetchAllData]);

@@ -110,7 +110,6 @@ const AddPhieuXuatNoiBo = () => {
         response.data.data.length > 0
       ) {
         const voucherData = response.data.data[0];
-        console.log("Voucher data:", voucherData);
 
         form.setFieldsValue({
           soPhieu: voucherData.so_phieu_nhap,
