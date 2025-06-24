@@ -1,4 +1,5 @@
-import { Tag, Typography } from "antd";
+import { ClockCircleOutlined, EyeInvisibleOutlined } from "@ant-design/icons";
+import { Button, Tag, Typography } from "antd";
 import React, { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import {
@@ -14,6 +15,18 @@ const TokenTimer = () => {
   const tokenExpiry = useSelector(selectTokenExpiry);
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [isMinimized, setIsMinimized] = useState(false);
+
+  // Tự động thu nhỏ sau 5 phút
+  useEffect(() => {
+    if (isMinimized || !isAuthenticated) return;
+
+    const timer = setTimeout(() => {
+      setIsMinimized(true);
+    }, 1 * 60 * 1000);
+
+    return () => clearTimeout(timer);
+  }, [isMinimized, isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated || !tokenExpiry) {
@@ -83,19 +96,59 @@ const TokenTimer = () => {
     };
   }, [timeLeft]);
 
-  // Ẩn component khi không cần thiết
+  const toggleMinimized = () => {
+    setIsMinimized(!isMinimized);
+  };
+
   if (!isAuthenticated || !tokenExpiry) return null;
 
   const { color, statusText, statusIcon, className } = statusInfo;
 
+  if (isMinimized) {
+    return (
+      <div
+        className="token-timer token-timer--minimized"
+        onClick={toggleMinimized}
+      >
+        <div className="token-timer-minimized-content">
+          <span className="token-timer-status-icon">{statusIcon}</span>
+          <ClockCircleOutlined style={{ marginLeft: "4px" }} />
+        </div>
+        <div className="token-timer-tooltip">
+          Phiên đăng nhập - {displayTime}
+          <br />
+          <small>Click để mở rộng</small>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`token-timer token-timer--${className}`}>
+    <div
+      className={`token-timer token-timer--${className} token-timer--expanded`}
+      style={{
+        position: "fixed",
+        zIndex: 1000,
+      }}
+    >
       <div className="token-timer-header">
-        <span className="token-timer-status-icon">{statusIcon}</span>
-        <Text className="token-timer-title">Phiên đăng nhập</Text>
-        <Tag color={color} className="token-timer-tag">
-          {statusText}
-        </Tag>
+        <div className="token-timer-info">
+          <span className="token-timer-status-icon">{statusIcon}</span>
+          <Text className="token-timer-title">Phiên đăng nhập</Text>
+        </div>
+        <div className="token-timer-controls">
+          <Tag color={color} className="token-timer-tag">
+            {statusText}
+          </Tag>
+          <Button
+            type="text"
+            size="small"
+            icon={<EyeInvisibleOutlined />}
+            onClick={toggleMinimized}
+            className="token-timer-minimize-button"
+            title="Thu nhỏ"
+          />
+        </div>
       </div>
 
       <div className="token-timer-content">

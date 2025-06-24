@@ -62,21 +62,27 @@ export const useVatTuManagerNhapKho = () => {
           // Merge vào dòng đầu tiên và xóa các dòng trùng lặp khác
           const updatedData = prev.map((item, index) => {
             if (index === existingIndex) {
-              // Cộng thêm 1 lần hệ số vào số lượng hiện tại
+              // Logic sửa: Thêm đúng theo đơn vị hiện tại
               const dvtHienTai = (item.dvt || "").trim();
               const dvtGoc = (item.dvt_goc || "").trim();
-
-              // Công thức tổng quát: Thêm 1 đơn vị gốc được quy đổi sang đơn vị hiện tại
-              // Số lượng thêm = 1 × (hệ số đơn vị gốc / hệ số đơn vị hiện tại)
               const heSoGoc = item.he_so_goc ?? 1;
               const heSoHienTai = item.he_so ?? 1;
-              const soLuongThemVao = (1 * heSoGoc) / heSoHienTai;
+
+              let soLuongThemVao;
+
+              // Nếu đang ở đơn vị gốc (kg): thêm 1 đơn vị gốc (tức là +hệ số gốc)
+              if (dvtHienTai === dvtGoc) {
+                soLuongThemVao = heSoGoc; // VD: +11kg nếu hệ số gốc = 11
+              } else {
+                // Nếu đang ở đơn vị khác (Bộ): thêm 1 đơn vị hiện tại
+                soLuongThemVao = 1; // VD: +1 Bộ
+              }
 
               const soLuongHienTai = item.soLuong || 0;
               const soLuongMoi = soLuongHienTai + soLuongThemVao;
               const soLuongLamTron = Math.round(soLuongMoi * 1000) / 1000;
 
-              // Cập nhật soLuong_goc để đồng bộ
+              // Cập nhật soLuong_goc để đồng bộ - luôn +1 đơn vị gốc
               const soLuongGocMoi = (item.soLuong_goc ?? 0) + 1;
 
               return {
@@ -236,13 +242,9 @@ export const useVatTuManagerNhapKho = () => {
 
     let soLuongMoi;
 
-    if (soLuongHienTai === 0) {
-      // Nếu số lượng hiện tại là 0, giữ nguyên
-      soLuongMoi = 0;
-    } else {
-      // Áp dụng công thức chuyển đổi
-      soLuongMoi = (soLuongHienTai * heSoHienTai) / heSoMoi;
-    }
+    // ✅ Sửa logic: Luôn áp dụng công thức chuyển đổi
+    // Số lượng có thể bằng 0 nhưng vẫn cần chuyển đổi theo tỷ lệ đơn vị
+    soLuongMoi = (soLuongHienTai * heSoHienTai) / heSoMoi;
 
     // Làm tròn đến 4 chữ số thập phân
     const soLuongLamTron = Math.round(soLuongMoi * 10000) / 10000;

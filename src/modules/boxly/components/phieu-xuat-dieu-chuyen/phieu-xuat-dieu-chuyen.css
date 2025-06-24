@@ -1,0 +1,210 @@
+/* CSS for Phiếu Xuất Điều Chuyển */
+.phieu-container {
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-height: calc(100vh - 40px);
+}
+
+/* ========== HEADER STYLES ========== */
+.phieu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid #f0f0f0;
+  position: relative;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.phieu-back-button {
+  color: #1890ff;
+  border: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.phieu-back-button:hover {
+  color: #40a9ff;
+  background-color: #f0f8ff;
+}
+
+.phieu-title {
+  margin: 0 !important;
+  text-align: center;
+  font-weight: 600 !important;
+  color: #262626;
+  font-size: 20px;
+  flex: 1;
+}
+
+.phieu-add-button {
+  background: #1890ff;
+  border-color: #1890ff;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.phieu-add-button:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
+}
+
+.phieu-edit-button {
+  background: #52c41a;
+  border-color: #52c41a;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.phieu-edit-button:hover {
+  background: #73d13d;
+  border-color: #73d13d;
+}
+
+/* ========== TABLE STYLES ========== */
+.phieu-table-container {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
+}
+
+.phieu-data-table {
+  border-radius: 8px;
+}
+
+.phieu-data-table .ant-table-thead > tr > th {
+  background: #fafafa;
+  border-bottom: 2px solid #f0f0f0;
+  font-weight: 600;
+  color: #262626;
+  padding: 16px 12px;
+  white-space: nowrap;
+}
+
+.phieu-data-table .ant-table-tbody > tr > td {
+  padding: 12px;
+  border-bottom: 1px solid #f5f5f5;
+  transition: all 0.3s;
+}
+
+.phieu-data-table .ant-table-tbody > tr:hover > td {
+  background: #f0f8ff;
+}
+
+.phieu-data-table .ant-table-tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+/* ========== ACTION BUTTONS ========== */
+.phieu-action-btn {
+  border-radius: 4px;
+  height: 32px;
+  width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  transition: none;
+  min-width: 32px;
+}
+
+.phieu-view-btn {
+  color: #1890ff;
+  border-color: #d9d9d9;
+  background: #fff;
+}
+
+.phieu-edit-btn {
+  background: #52c41a;
+  border-color: #52c41a;
+  color: #fff;
+}
+
+.phieu-delete-btn {
+  background: #ff4d4f;
+  border-color: #ff4d4f;
+  color: #fff;
+}
+
+/* ========== FORM STYLES ========== */
+.phieu-form-container {
+  margin-top: 20px;
+}
+
+.phieu-form .ant-form-item-label {
+  font-weight: 500;
+}
+
+/* ========== VAT TU TABLE STYLES ========== */
+.vat-tu-table {
+  background: #fff;
+  border-radius: 8px;
+  overflow: visible !important;
+  border: 1px solid #f0f0f0;
+  margin-top: 16px;
+}
+
+.vat-tu-table .ant-table-thead > tr > th {
+  background: #fafafa;
+  border-bottom: 2px solid #f0f0f0;
+  font-weight: 600;
+  color: #262626;
+  padding: 12px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.vat-tu-table-select {
+  width: 100%;
+  min-width: 80px;
+}
+
+.vat-tu-table-input {
+  width: 100%;
+  text-align: center;
+  font-weight: bold;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+  background-color: #fff;
+  transition: border-color 0.3s;
+}
+
+.vat-tu-delete-btn {
+  color: #ff4d4f;
+  border-color: #ff4d4f;
+  background: transparent;
+}
+
+.search_button {
+  width: 100%;
+  height: 32px;
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+.search_button:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
+}
+
+/* Additional styles (truncated for token limit) */

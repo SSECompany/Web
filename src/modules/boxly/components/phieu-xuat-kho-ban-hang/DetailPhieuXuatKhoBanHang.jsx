@@ -184,14 +184,30 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
             ...new Set(phieuDetails.map((item) => item.ma_vt)),
           ];
 
-          // Batch fetch don vi tinh only
+          // Batch fetch don vi tinh AND vat tu detail (like phieu nhap kho)
           const batchResults = await fetchDonViTinhBatch(uniqueMaVatTu);
 
-          // Create lookup map for don vi tinh
+          // ✅ ADDED: Fetch vat tu detail for each item (like phieu nhap kho)
+          const vatTuDetailResults = await Promise.all(
+            uniqueMaVatTu.map(async (ma_vt) => {
+              const vatTuDetail = await fetchVatTuDetail(ma_vt.trim());
+              return { ma_vt, vatTuDetail };
+            })
+          );
+
+          // Create lookup maps
           const donViTinhMap = new Map();
+          const vatTuDetailMap = new Map();
+
           batchResults.forEach((result) => {
             if (result?.ma_vt) {
               donViTinhMap.set(result.ma_vt.trim(), result.donViTinhList);
+            }
+          });
+
+          vatTuDetailResults.forEach((result) => {
+            if (result?.ma_vt && result?.vatTuDetail) {
+              vatTuDetailMap.set(result.ma_vt.trim(), result.vatTuDetail);
             }
           });
 
