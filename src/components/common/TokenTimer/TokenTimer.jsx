@@ -6,6 +6,7 @@ import {
   selectTokenExpiry,
 } from "../../../store/slices/authSlice";
 import { getTimeLeft } from "../../../utils/tokenUtils";
+import "./TokenTimer.css";
 
 const { Text } = Typography;
 
@@ -55,27 +56,24 @@ const TokenTimer = () => {
 
     let status = {
       color: "green",
-      bgColor: "rgba(255, 255, 255, 0.95)",
       statusText: "Hoạt động",
       statusIcon: "🟢",
-      borderColor: "#52c41a",
+      className: "active",
     };
 
     if (isExpired) {
       status = {
         color: "red",
-        bgColor: "rgba(255, 230, 230, 0.95)",
         statusText: "Hết hạn",
         statusIcon: "🔴",
-        borderColor: "#ff4d4f",
+        className: "expired",
       };
     } else if (isExpiring) {
       status = {
         color: "orange",
-        bgColor: "rgba(255, 247, 230, 0.95)",
         statusText: "Sắp hết hạn",
         statusIcon: "🟡",
-        borderColor: "#fa8c16",
+        className: "expiring",
       };
     }
 
@@ -88,104 +86,22 @@ const TokenTimer = () => {
   // Ẩn component khi không cần thiết
   if (!isAuthenticated || !tokenExpiry) return null;
 
-  const { color, bgColor, statusText, statusIcon, borderColor } = statusInfo;
+  const { color, statusText, statusIcon, className } = statusInfo;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 20,
-        left: 20,
-        zIndex: 1000,
-        background: bgColor,
-        padding: "12px 16px",
-        borderRadius: "8px",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-        border: `2px solid ${borderColor}`,
-        fontFamily: "system-ui, -apple-system, sans-serif",
-        backdropFilter: "blur(8px)",
-        minWidth: "220px",
-        maxWidth: "280px",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          marginBottom: "4px",
-        }}
-      >
-        <span style={{ fontSize: "14px" }}>{statusIcon}</span>
-        <Text
-          style={{
-            fontWeight: "600",
-            fontSize: "13px",
-            margin: 0,
-            color: "#333",
-          }}
-        >
-          Phiên đăng nhập
-        </Text>
-        <Tag
-          color={color}
-          style={{
-            fontSize: "11px",
-            fontWeight: "500",
-            margin: 0,
-            padding: "2px 8px",
-            borderRadius: "4px",
-          }}
-        >
+    <div className={`token-timer token-timer--${className}`}>
+      <div className="token-timer-header">
+        <span className="token-timer-status-icon">{statusIcon}</span>
+        <Text className="token-timer-title">Phiên đăng nhập</Text>
+        <Tag color={color} className="token-timer-tag">
           {statusText}
         </Tag>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <Text
-          style={{
-            fontSize: "12px",
-            color: "#666",
-            margin: 0,
-            minWidth: "65px",
-          }}
-        >
-          Còn lại:
-        </Text>
-        <div
-          style={{
-            background:
-              color === "green"
-                ? "#f6ffed"
-                : color === "orange"
-                ? "#fff7e6"
-                : "#fff2f0",
-            padding: "4px 8px",
-            borderRadius: "4px",
-            border: `1px solid ${
-              color === "green"
-                ? "#b7eb8f"
-                : color === "orange"
-                ? "#ffd591"
-                : "#ffb3b3"
-            }`,
-            flex: 1,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: "monospace",
-              fontSize: "13px",
-              fontWeight: "600",
-              margin: 0,
-              color:
-                color === "green"
-                  ? "#389e0d"
-                  : color === "orange"
-                  ? "#d48806"
-                  : "#cf1322",
-            }}
-          >
+      <div className="token-timer-content">
+        <Text className="token-timer-label">Còn lại:</Text>
+        <div className={`token-timer-value token-timer-value--${className}`}>
+          <Text className={`token-timer-time token-timer-time--${className}`}>
             {displayTime}
           </Text>
         </div>

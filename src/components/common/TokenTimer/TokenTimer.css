@@ -1,0 +1,227 @@
+.token-timer {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 9999;
+  background: rgba(255, 255, 255, 0.98);
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border: 2px solid #52c41a;
+  font-family: system-ui, -apple-system, sans-serif;
+  backdrop-filter: blur(10px);
+  min-width: 220px;
+  max-width: 280px;
+  transition: all 0.3s ease;
+}
+
+.token-timer-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.token-timer-status-icon {
+  font-size: 14px;
+}
+
+.token-timer-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin: 0;
+  color: #333;
+}
+
+.token-timer-tag {
+  font-size: 11px;
+  font-weight: 500;
+  margin: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.token-timer-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.token-timer-label {
+  font-size: 12px;
+  color: #666;
+  margin: 0;
+  min-width: 65px;
+}
+
+.token-timer-value {
+  padding: 4px 8px;
+  border-radius: 4px;
+  flex: 1;
+}
+
+.token-timer-time {
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Status Colors */
+.token-timer--active {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #52c41a;
+}
+
+.token-timer--expiring {
+  background: rgba(255, 247, 230, 0.95);
+  border-color: #fa8c16;
+}
+
+.token-timer--expired {
+  background: rgba(255, 230, 230, 0.95);
+  border-color: #ff4d4f;
+}
+
+.token-timer-value--active {
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+}
+
+.token-timer-value--expiring {
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+}
+
+.token-timer-value--expired {
+  background: #fff2f0;
+  border: 1px solid #ffb3b3;
+}
+
+.token-timer-time--active {
+  color: #389e0d;
+}
+
+.token-timer-time--expiring {
+  color: #d48806;
+}
+
+.token-timer-time--expired {
+  color: #cf1322;
+}
+
+/* Responsive CSS cho Tablet Portrait */
+@media screen and (min-width: 600px) and (max-width: 1024px) and (orientation: portrait) {
+  .token-timer {
+    position: fixed !important;
+    bottom: 15px;
+    left: 15px;
+    top: auto;
+    right: auto;
+    padding: 8px 12px;
+    min-width: 180px;
+    max-width: 220px;
+    border-radius: 6px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    z-index: 9999 !important;
+    transform: none;
+  }
+
+  .token-timer-header {
+    gap: 6px;
+    margin-bottom: 3px;
+  }
+
+  .token-timer-status-icon {
+    font-size: 13px;
+  }
+
+  .token-timer-title {
+    font-size: 12px;
+  }
+
+  .token-timer-tag {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+
+  .token-timer-content {
+    gap: 6px;
+  }
+
+  .token-timer-label {
+    font-size: 11px;
+    min-width: 60px;
+  }
+
+  .token-timer-value {
+    padding: 3px 6px;
+  }
+
+  .token-timer-time {
+    font-size: 12px;
+  }
+}
+
+/* Responsive cho Tablet Portrait nhỏ */
+@media screen and (min-width: 600px) and (max-width: 767px) and (orientation: portrait) {
+  .token-timer {
+    position: fixed !important;
+    bottom: 12px;
+    left: 12px;
+    top: auto;
+    right: auto;
+    padding: 6px 10px;
+    min-width: 160px;
+    max-width: 200px;
+    border-radius: 5px;
+    z-index: 9999 !important;
+    transform: none;
+  }
+
+  .token-timer-header {
+    gap: 5px;
+    margin-bottom: 2px;
+  }
+
+  .token-timer-status-icon {
+    font-size: 12px;
+  }
+
+  .token-timer-title {
+    font-size: 11px;
+  }
+
+  .token-timer-tag {
+    font-size: 9px;
+    padding: 1px 5px;
+  }
+
+  .token-timer-content {
+    gap: 5px;
+  }
+
+  .token-timer-label {
+    font-size: 10px;
+    min-width: 55px;
+  }
+
+  .token-timer-value {
+    padding: 2px 5px;
+  }
+
+  .token-timer-time {
+    font-size: 11px;
+  }
+}
+
+/* CSS cho mobile landscape để tránh che navbar */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+  .token-timer {
+    bottom: 10px;
+    right: 10px;
+    left: auto;
+    min-width: 160px;
+    max-width: 200px;
+  }
+}

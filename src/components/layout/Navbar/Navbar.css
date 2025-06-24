@@ -230,3 +230,195 @@
   width: 20px;
   height: 20px;
 }
+
+/* Responsive CSS cho Tablet Portrait (768px - 1024px chiều rộng, chế độ dọc) */
+@media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .navbar {
+    padding: 8px 12px;
+    border-radius: 6px;
+  }
+
+  .navbar .navbar_logo_functions {
+    gap: 15px;
+  }
+
+  .navbar .navbar_logo_functions img {
+    height: 26px;
+  }
+
+  .navbar .first_navbar_row {
+    padding: 8px;
+  }
+
+  .navbar_search_function {
+    gap: 0px 12px;
+  }
+
+  .default_header_label {
+    font-size: 1.3rem;
+    padding-right: 16px;
+  }
+
+  .first_navbar_row_right {
+    gap: 8px;
+  }
+
+  .first_navbar_row_right ul {
+    gap: 0px 10px;
+  }
+
+  .navbar_avatar_container {
+    height: 28px;
+    width: 28px;
+  }
+
+  .navbar_avatar_container svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .full-name {
+    max-width: 150px;
+  }
+
+  .full-name .primary_bold_text {
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sec_navbar_row {
+    margin-top: 8px;
+    padding: 0px 8px;
+  }
+
+  .sec_navbar_row li,
+  .sec_navbar_row span,
+  .sec_navbar_row a {
+    font-size: 15px;
+  }
+
+  .navbar_notification_dropdown_container {
+    max-width: 350px;
+    min-width: 180px;
+  }
+
+  .navbar_notification_dropdown_item {
+    padding: 4px 8px;
+  }
+
+  .navbar_notification_dropdown_item_content {
+    font-size: 13px;
+  }
+
+  .modal_home_search .modal_search_results {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    padding: 0px 4px;
+  }
+
+  .modal_home_search .modal_search_results_item {
+    padding: 8px 16px;
+  }
+
+  .modal_search_results p {
+    font-size: 26px;
+  }
+}
+
+/* Responsive CSS cho Tablet Portrait nhỏ (600px - 767px) */
+@media screen and (min-width: 600px) and (max-width: 767px) and (orientation: portrait) {
+  .navbar {
+    padding: 6px 10px;
+    border-radius: 4px;
+  }
+
+  .navbar .navbar_logo_functions {
+    gap: 10px;
+  }
+
+  .navbar .navbar_logo_functions img {
+    height: 24px;
+  }
+
+  .navbar .first_navbar_row {
+    padding: 6px;
+  }
+
+  .navbar_search_function {
+    gap: 0px 10px;
+  }
+
+  .default_header_label {
+    font-size: 1.2rem;
+    padding-right: 14px;
+  }
+
+  .first_navbar_row_right {
+    gap: 6px;
+  }
+
+  .first_navbar_row_right ul {
+    gap: 0px 8px;
+  }
+
+  .navbar_avatar_container {
+    height: 26px;
+    width: 26px;
+  }
+
+  .navbar_avatar_container svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .full-name {
+    max-width: 120px;
+  }
+
+  .full-name .primary_bold_text {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sec_navbar_row {
+    margin-top: 6px;
+    padding: 0px 6px;
+  }
+
+  .sec_navbar_row li,
+  .sec_navbar_row span,
+  .sec_navbar_row a {
+    font-size: 14px;
+  }
+
+  .navbar_notification_dropdown_container {
+    max-width: 320px;
+    min-width: 160px;
+  }
+
+  .navbar_notification_dropdown_item {
+    padding: 3px 6px;
+  }
+
+  .navbar_notification_dropdown_item_content {
+    font-size: 12px;
+  }
+
+  .modal_home_search .modal_search_results {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    padding: 0px 3px;
+  }
+
+  .modal_home_search .modal_search_results_item {
+    padding: 6px 12px;
+  }
+
+  .modal_search_results p {
+    font-size: 24px;
+  }
+}
