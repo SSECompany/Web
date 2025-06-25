@@ -1,8 +1,9 @@
 import { EditOutlined, LeftOutlined } from "@ant-design/icons";
-import { Button, Form, Modal, Space, Typography } from "antd";
+import { Button, Form, Space, Typography } from "antd";
 import moment from "moment/moment";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuInputSection from "./components/VatTuInputSection";
@@ -295,6 +296,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
               tien_ck_khac: parseFloat(item.tien_ck_khac) || 0,
               sl_td1: parseFloat(item.sl_td1) || 0,
               sl_td2: parseFloat(item.sl_td2) || 0,
+              sl_dh: parseFloat(item.sl_dh) || 0,
             };
           });
 
@@ -414,12 +416,10 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
   }, [navigate]);
 
   const handleDelete = useCallback(() => {
-    Modal.confirm({
+    showConfirm({
       title: "Xác nhận xóa phiếu",
       content: "Bạn có chắc chắn muốn xóa phiếu này không?",
-      okText: "Xóa",
-      okType: "danger",
-      cancelText: "Hủy",
+      type: "warning",
       onOk: async () => {
         setLoading(true);
         const result = await deletePhieu(stt_rec);

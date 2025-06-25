@@ -10,10 +10,10 @@ export const getUserInfo = () => {
     const unitsResponse = unitsResponseStr ? JSON.parse(unitsResponseStr) : {};
 
     return {
-      userId: user.userId || 4061,
-      userName: user.userName || "",
-      unitId: user.unitId || unitsResponse.unitId || "VIKOSAN",
-      unitName: user.unitName || unitsResponse.unitName || "VIKOSAN",
+      userId: user.userId,
+      userName: user.userName,
+      unitId: user.unitId,
+      unitName: user.unitName || unitsResponse.unitName,
     };
   } catch (error) {
     console.error("Error parsing localStorage:", error);
@@ -28,7 +28,7 @@ export const getUserInfo = () => {
 
 export const formatDate = (date) => {
   const d = date ? new Date(date) : new Date();
-  return d.toISOString().split(".")[0]; // Bỏ milliseconds và Z
+  return d.toISOString().split(".")[0];
 };
 
 export const validateDataSource = (dataSource) => {
@@ -81,8 +81,6 @@ export const buildPayload = (
       sl_td3: parseFloat(item.sl_td3) || 0,
       he_so: parseFloat(item.he_so) || 1,
       tk_vt: item.tk_vt || "",
-
-      // ✅ Add additional fields for complete payload
       gia_nt2: parseFloat(item.gia_nt2) || 0,
       gia2: parseFloat(item.gia2) || 0,
       thue: parseFloat(item.thue) || 0,
@@ -102,6 +100,7 @@ export const buildPayload = (
       tien_ck_khac: parseFloat(item.tien_ck_khac) || 0,
       sl_td1: parseFloat(item.sl_td1) || 0,
       sl_td2: parseFloat(item.sl_td2) || 0,
+      sl_dh: parseFloat(item.sl_dh) || 0,
     })),
   };
 

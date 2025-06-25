@@ -11,7 +11,6 @@ import {
   DatePicker,
   Input,
   message,
-  Modal,
   Row,
   Space,
   Table,
@@ -21,6 +20,7 @@ import {
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
 import "./phieu-nhap-kho.css";
 
@@ -111,12 +111,10 @@ const ListPhieuNhapKho = () => {
   };
 
   const handleDelete = async (sctRec) => {
-    Modal.confirm({
+    showConfirm({
       title: "Xác nhận xóa phiếu nhập kho",
       content: "Bạn có chắc chắn muốn xóa phiếu nhập kho này không?",
-      okText: "Xóa",
-      okType: "danger",
-      cancelText: "Hủy",
+      type: "warning",
       onOk: async () => {
         try {
           if (!sctRec) {
@@ -225,7 +223,7 @@ const ListPhieuNhapKho = () => {
     if (screenSize !== "mobile") {
       baseColumns.push({
         title: () => (
-          <div style={{ width: 120 }}>
+          <div className="filter-column-header">
             Số chứng từ{" "}
             {filters.so_ct ? (
               <Tag color="blue" size="small">
@@ -278,7 +276,7 @@ const ListPhieuNhapKho = () => {
       baseColumns.push(
         {
           title: () => (
-            <div style={{ width: 120 }}>
+            <div className="filter-column-header">
               Mã khách{" "}
               {filters.ma_kh ? (
                 <Tag color="blue" size="small">
@@ -333,8 +331,8 @@ const ListPhieuNhapKho = () => {
         },
         {
           title: () => (
-            <div style={{ width: 180 }}>
-              Tên khách{" "}
+            <div className="filter-column-header-wide">
+              Tên khách
               {filters.ten_kh ? (
                 <Tag color="blue" size="small">
                   {filters.ten_kh}
@@ -345,7 +343,7 @@ const ListPhieuNhapKho = () => {
           dataIndex: "ten_kh",
           key: "ten_kh",
           width: 250,
-          align: "left",
+          align: "center",
           render: (text) => (text ? text.trim() : ""),
           filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
             <div style={{ padding: 8 }}>

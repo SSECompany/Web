@@ -1,7 +1,8 @@
 import { EditOutlined, LeftOutlined } from "@ant-design/icons";
-import { Button, Form, Modal, Space, Typography } from "antd";
+import { Button, Form, Space, Typography } from "antd";
 import { useCallback, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuInputSection from "./components/VatTuInputSection";
 import VatTuTable from "./components/VatTuTable";
@@ -114,12 +115,10 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
   }, [navigate, stt_rec]);
 
   const handleDelete = useCallback(() => {
-    Modal.confirm({
+    showConfirm({
       title: "Xác nhận xóa phiếu",
       content: "Bạn có chắc chắn muốn xóa phiếu này không?",
-      okText: "Xóa",
-      okType: "danger",
-      cancelText: "Hủy",
+      type: "warning",
       onOk: async () => {
         setLoading(true);
         const result = await deletePhieu(stt_rec);

@@ -1,8 +1,9 @@
 import { EditOutlined, LeftOutlined } from "@ant-design/icons";
-import { Button, Form, message, Modal, Space, Typography } from "antd";
+import { Button, Form, message, Space, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
 import PhieuNhapKhoFormInputs from "./components/PhieuNhapKhoFormInputs";
 import VatTuNhapKhoTable from "./components/VatTuNhapKhoTable";
@@ -274,12 +275,10 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   };
 
   const handleDelete = async () => {
-    Modal.confirm({
+    showConfirm({
       title: "Xác nhận xóa phiếu nhập kho",
       content: "Bạn có chắc chắn muốn xóa phiếu nhập kho này không?",
-      okText: "Xóa",
-      okType: "danger",
-      cancelText: "Hủy",
+      type: "warning",
       onOk: async () => {
         setLoading(true);
         const result = await deletePhieuNhapKho(sctRec);

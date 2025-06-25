@@ -3,9 +3,7 @@
   padding: 24px;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   border-radius: 20px;
-  box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.08),
-    0 8px 24px rgba(0, 0, 0, 0.06),
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
   min-height: calc(100vh - 48px);
   margin: 16px;
@@ -15,15 +13,22 @@
 }
 
 .phieu-container::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
-    radial-gradient(circle at 25px 25px, rgba(255,255,255,0.15) 2%, transparent 50%),
-    radial-gradient(circle at 75px 75px, rgba(255,255,255,0.1) 2%, transparent 50%);
+  background-image: radial-gradient(
+      circle at 25px 25px,
+      rgba(255, 255, 255, 0.15) 2%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 75px 75px,
+      rgba(255, 255, 255, 0.1) 2%,
+      transparent 50%
+    );
   background-size: 100px 100px;
   pointer-events: none;
   opacity: 0.6;
@@ -36,13 +41,15 @@
   justify-content: space-between;
   margin-bottom: 32px;
   padding: 20px 24px;
-  background: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.7) 100%
+  );
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 16px;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.08),
-    0 2px 8px rgba(0, 0, 0, 0.04),
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   position: relative;
   flex-wrap: wrap;
@@ -53,7 +60,11 @@
 .phieu-back-button {
   color: #667eea;
   border: 1px solid rgba(102, 126, 234, 0.3);
-  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.6) 100%
+  );
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
   border-radius: 12px;
@@ -68,7 +79,11 @@
 
 .phieu-back-button:hover {
   color: #764ba2;
-  background: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.8) 100%
+  );
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
 }
@@ -83,7 +98,7 @@
   background-clip: text;
   font-size: 24px;
   flex: 1;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .phieu-add-button {
@@ -97,21 +112,17 @@
   align-items: center;
   gap: 8px;
   border: none;
-  box-shadow: 
-    0 8px 24px rgba(102, 126, 234, 0.3),
-    0 2px 8px rgba(102, 126, 234, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3),
+    0 2px 8px rgba(102, 126, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .phieu-add-button:hover {
   background: linear-gradient(145deg, #7c8ce8 0%, #8a5aa7 100%);
   transform: translateY(-2px);
-  box-shadow: 
-    0 12px 32px rgba(102, 126, 234, 0.4),
-    0 4px 12px rgba(102, 126, 234, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4),
+    0 4px 12px rgba(102, 126, 234, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .phieu-edit-button {
@@ -125,34 +136,32 @@
   align-items: center;
   gap: 8px;
   border: none;
-  box-shadow: 
-    0 8px 24px rgba(17, 153, 142, 0.3),
-    0 2px 8px rgba(17, 153, 142, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 24px rgba(17, 153, 142, 0.3),
+    0 2px 8px rgba(17, 153, 142, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .phieu-edit-button:hover {
   background: linear-gradient(145deg, #26a69a 0%, #4cff8a 100%);
   transform: translateY(-2px);
-  box-shadow: 
-    0 12px 32px rgba(17, 153, 142, 0.4),
-    0 4px 12px rgba(17, 153, 142, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 12px 32px rgba(17, 153, 142, 0.4),
+    0 4px 12px rgba(17, 153, 142, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 /* ========== SEARCH FILTERS ========== */
 .search-filters-container {
-  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.6) 100%
+  );
   backdrop-filter: blur(20px);
   padding: 20px;
   border-radius: 16px;
   margin-bottom: 20px;
-  border: 1px solid rgba(255,255,255,0.3);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.06),
-    0 2px 8px rgba(0, 0, 0, 0.04),
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
   position: relative;
   z-index: 2;
@@ -188,7 +197,7 @@
 
 .active-filters {
   padding-top: 16px;
-  border-top: 1px solid rgba(255,255,255,0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .active-filters-label {
@@ -200,14 +209,16 @@
 
 /* ========== TABLE STYLES ========== */
 .phieu-table-container {
-  background: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.85) 100%
+  );
   backdrop-filter: blur(20px);
   border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.3);
-  box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.08),
-    0 4px 16px rgba(0, 0, 0, 0.06),
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   position: relative;
   z-index: 2;
@@ -219,7 +230,6 @@
 }
 
 .phieu-data-table .ant-table-thead > tr > th {
-  background: linear-gradient(145deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.05) 100%);
   border-bottom: 2px solid rgba(102, 126, 234, 0.2);
   font-weight: 700;
   padding: 16px 12px;
@@ -252,7 +262,11 @@
   position: relative;
 }
 
-.phieu-data-table .ant-table-thead > tr > th *:not(.ant-table-filter-trigger):not(.ant-table-column-sorter) {
+.phieu-data-table
+  .ant-table-thead
+  > tr
+  > th
+  *:not(.ant-table-filter-trigger):not(.ant-table-column-sorter) {
   color: #667eea !important;
 }
 
@@ -270,7 +284,11 @@
 }
 
 /* Filter trigger active state */
-.phieu-data-table .ant-table-thead > tr > th .ant-table-filter-trigger.ant-table-filter-trigger-active {
+.phieu-data-table
+  .ant-table-thead
+  > tr
+  > th
+  .ant-table-filter-trigger.ant-table-filter-trigger-active {
   color: #764ba2 !important;
   opacity: 1;
 }
@@ -297,16 +315,19 @@
 
 .phieu-data-table .ant-table-tbody > tr > td {
   padding: 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: transparent;
   font-weight: 500;
   text-align: center;
   vertical-align: middle;
 }
 
 .phieu-data-table .ant-table-tbody > tr:hover > td {
-  background: linear-gradient(145deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.04) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(102, 126, 234, 0.08) 0%,
+    rgba(118, 75, 162, 0.04) 100%
+  );
   transform: scale(1.01);
 }
 
@@ -331,40 +352,64 @@
 }
 
 .phieu-view-btn {
-  background: linear-gradient(145deg, rgba(24, 144, 255, 0.1) 0%, rgba(64, 169, 255, 0.05) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(24, 144, 255, 0.1) 0%,
+    rgba(64, 169, 255, 0.05) 100%
+  );
   color: #1890ff;
   border: 1px solid rgba(24, 144, 255, 0.2);
   box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
 }
 
 .phieu-view-btn:hover {
-  background: linear-gradient(145deg, rgba(24, 144, 255, 0.2) 0%, rgba(64, 169, 255, 0.1) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(24, 144, 255, 0.2) 0%,
+    rgba(64, 169, 255, 0.1) 100%
+  );
   transform: translateY(-2px) scale(1.05);
   box-shadow: 0 8px 20px rgba(24, 144, 255, 0.3);
 }
 
 .phieu-edit-btn {
-  background: linear-gradient(145deg, rgba(250, 140, 22, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(250, 140, 22, 0.1) 0%,
+    rgba(255, 193, 7, 0.05) 100%
+  );
   color: #fa8c16;
   border: 1px solid rgba(250, 140, 22, 0.2);
   box-shadow: 0 4px 12px rgba(250, 140, 22, 0.2);
 }
 
 .phieu-edit-btn:hover {
-  background: linear-gradient(145deg, rgba(250, 140, 22, 0.2) 0%, rgba(255, 193, 7, 0.1) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(250, 140, 22, 0.2) 0%,
+    rgba(255, 193, 7, 0.1) 100%
+  );
   transform: translateY(-2px) scale(1.05);
   box-shadow: 0 8px 20px rgba(250, 140, 22, 0.3);
 }
 
 .phieu-delete-btn {
-  background: linear-gradient(145deg, rgba(255, 77, 79, 0.1) 0%, rgba(255, 120, 117, 0.05) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 77, 79, 0.1) 0%,
+    rgba(255, 120, 117, 0.05) 100%
+  );
   color: #ff4d4f;
   border: 1px solid rgba(255, 77, 79, 0.2);
   box-shadow: 0 4px 12px rgba(255, 77, 79, 0.2);
 }
 
 .phieu-delete-btn:hover {
-  background: linear-gradient(145deg, rgba(255, 77, 79, 0.2) 0%, rgba(255, 120, 117, 0.1) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 77, 79, 0.2) 0%,
+    rgba(255, 120, 117, 0.1) 100%
+  );
   transform: translateY(-2px) scale(1.05);
   box-shadow: 0 8px 20px rgba(255, 77, 79, 0.3);
 }
@@ -394,45 +439,51 @@
   border-radius: 12px;
   color: white;
   font-weight: 600;
-  box-shadow: 
-    0 8px 24px rgba(102, 126, 234, 0.3),
-    0 2px 8px rgba(102, 126, 234, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3),
+    0 2px 8px rgba(102, 126, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .search_button:hover {
   background: linear-gradient(145deg, #7c8ce8 0%, #8a5aa7 100%);
   transform: translateY(-2px);
-  box-shadow: 
-    0 12px 32px rgba(102, 126, 234, 0.4),
-    0 4px 12px rgba(102, 126, 234, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4),
+    0 4px 12px rgba(102, 126, 234, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 /* ========== FILTER DROPDOWN ========== */
 .ant-table-filter-dropdown {
   padding: 16px;
   border-radius: 12px;
-  background: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.85) 100%
+  );
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.3);
-  box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.15),
-    0 4px 16px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .ant-table-filter-dropdown .ant-input {
   border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.3);
-  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.6) 100%
+  );
   backdrop-filter: blur(10px);
 }
 
 .ant-table-filter-dropdown .ant-picker {
   border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.3);
-  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.6) 100%
+  );
   backdrop-filter: blur(10px);
 }
 
@@ -452,7 +503,7 @@
 }
 
 .phieu-form .ant-table-bordered .ant-table-container {
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-right: 0;
   border-bottom: 0;
   border-radius: 16px;
@@ -465,15 +516,17 @@
 
 /* ========== VAT TU TABLE STYLES ========== */
 .vat-tu-table {
-  background: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.85) 100%
+  );
   backdrop-filter: blur(20px);
   border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   margin-top: 20px;
-  box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.08),
-    0 4px 16px rgba(0, 0, 0, 0.06),
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   position: relative;
   z-index: 2;
@@ -491,7 +544,11 @@
 }
 
 .vat-tu-table .ant-table-thead > tr > th {
-  background: linear-gradient(145deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.05) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(102, 126, 234, 0.1) 0%,
+    rgba(118, 75, 162, 0.05) 100%
+  );
   border-bottom: 2px solid rgba(102, 126, 234, 0.2);
   font-weight: 700;
   padding: 12px 8px;
@@ -532,7 +589,11 @@
 }
 
 /* VatTu Table filter trigger active state */
-.vat-tu-table .ant-table-thead > tr > th .ant-table-filter-trigger.ant-table-filter-trigger-active {
+.vat-tu-table
+  .ant-table-thead
+  > tr
+  > th
+  .ant-table-filter-trigger.ant-table-filter-trigger-active {
   color: #764ba2 !important;
   opacity: 1;
 }
@@ -559,7 +620,7 @@
 
 .vat-tu-table .ant-table-tbody > tr > td {
   padding: 8px 4px;
-  border-bottom: 1px solid rgba(255,255,255,0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   text-align: center;
   vertical-align: middle;
   overflow: visible !important;
@@ -569,7 +630,11 @@
 }
 
 .vat-tu-table .ant-table-tbody > tr:hover > td {
-  background: linear-gradient(145deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.04) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(102, 126, 234, 0.08) 0%,
+    rgba(118, 75, 162, 0.04) 100%
+  );
   transform: scale(1.01);
 }
 
@@ -577,8 +642,12 @@
 .vat-tu-table-select,
 .vat-tu-table-input {
   border-radius: 8px !important;
-  border: 1px solid rgba(255,255,255,0.3) !important;
-  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.6) 100%
+  ) !important;
   backdrop-filter: blur(10px) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -587,20 +656,33 @@
 .vat-tu-table-select:hover,
 .vat-tu-table-input:hover {
   border-color: rgba(102, 126, 234, 0.4) !important;
-  background: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%) !important;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.7) 100%
+  ) !important;
   box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2) !important;
 }
 
 .vat-tu-table-select:focus,
 .vat-tu-table-input:focus {
   border-color: rgba(102, 126, 234, 0.6) !important;
-  background: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 100%) !important;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1), 0 4px 16px rgba(102, 126, 234, 0.2) !important;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.8) 100%
+  ) !important;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1),
+    0 4px 16px rgba(102, 126, 234, 0.2) !important;
   outline: none !important;
 }
 
 .vat-tu-delete-btn:hover {
-  background: linear-gradient(145deg, rgba(255, 77, 79, 0.15) 0%, rgba(255, 120, 117, 0.08) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 77, 79, 0.15) 0%,
+    rgba(255, 120, 117, 0.08) 100%
+  );
   color: #ff4d4f;
   border-color: rgba(255, 77, 79, 0.3);
 }
@@ -622,14 +704,16 @@
   justify-content: center;
   gap: 16px;
   padding: 24px;
-  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.6) 100%
+  );
   backdrop-filter: blur(20px);
   border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   margin-top: 24px;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.06),
-    0 2px 8px rgba(0, 0, 0, 0.04),
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
@@ -649,48 +733,49 @@
 .phieu-form-actions .ant-btn-primary {
   background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
   color: white;
-  box-shadow: 
-    0 8px 24px rgba(102, 126, 234, 0.3),
-    0 2px 8px rgba(102, 126, 234, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3),
+    0 2px 8px rgba(102, 126, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .phieu-form-actions .ant-btn-primary:hover {
   background: linear-gradient(145deg, #7c8ce8 0%, #8a5aa7 100%);
   transform: translateY(-2px);
-  box-shadow: 
-    0 12px 32px rgba(102, 126, 234, 0.4),
-    0 4px 12px rgba(102, 126, 234, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4),
+    0 4px 12px rgba(102, 126, 234, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .phieu-form-actions .ant-btn-dangerous {
   background: linear-gradient(145deg, #ff4d4f 0%, #ff7875 100%);
   color: white;
-  box-shadow: 
-    0 8px 24px rgba(255, 77, 79, 0.3),
-    0 2px 8px rgba(255, 77, 79, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(255, 77, 79, 0.3),
+    0 2px 8px rgba(255, 77, 79, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .phieu-form-actions .ant-btn-dangerous:hover {
   background: linear-gradient(145deg, #ff7875 0%, #ffa39e 100%);
   transform: translateY(-2px);
-  box-shadow: 
-    0 12px 32px rgba(255, 77, 79, 0.4),
-    0 4px 12px rgba(255, 77, 79, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 12px 32px rgba(255, 77, 79, 0.4),
+    0 4px 12px rgba(255, 77, 79, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .phieu-form-actions .ant-btn:not(.ant-btn-primary):not(.ant-btn-dangerous) {
-  background: linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.6) 100%
+  );
   color: #64748b;
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(10px);
 }
 
-.phieu-form-actions .ant-btn:not(.ant-btn-primary):not(.ant-btn-dangerous):hover {
-  background: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+.phieu-form-actions
+  .ant-btn:not(.ant-btn-primary):not(.ant-btn-dangerous):hover {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.7) 100%
+  );
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
@@ -803,4 +888,10 @@
     padding: 0 20px;
     font-size: 13px;
   }
+}
+
+/* ========== FILTER COLUMN HEADER ========== */
+.filter-column-header {
+  display: flex;
+  flex-direction: column;
 }

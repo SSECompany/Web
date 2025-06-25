@@ -10,7 +10,6 @@ import {
   DatePicker,
   Input,
   message,
-  Modal,
   Space,
   Table,
   Tag,
@@ -19,6 +18,7 @@ import {
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
 import "./phieu-xuat-dieu-chuyen.css";
 
@@ -88,13 +88,10 @@ const ListPhieuXuatDieuChuyen = () => {
   }, []);
 
   const handleDelete = async (stt_rec) => {
-    Modal.confirm({
+    showConfirm({
       title: "Xác nhận xóa phiếu",
       content: "Bạn có chắc chắn muốn xóa phiếu này không?",
-      okText: "Xóa",
-      okType: "danger",
-      cancelText: "Hủy",
-      centered: true,
+      type: "warning",
       onOk: async () => {
         try {
           const response = await https.post(
@@ -309,7 +306,7 @@ const ListPhieuXuatDieuChuyen = () => {
     },
     {
       title: () => (
-        <div style={{ width: 120 }}>
+        <div className="filter-column-header">
           Số chứng từ{" "}
           {filters.so_ct ? (
             <Tag color="blue" size="small">
@@ -328,7 +325,7 @@ const ListPhieuXuatDieuChuyen = () => {
     },
     {
       title: () => (
-        <div style={{ width: 120 }}>
+        <div className="filter-column-header">
           Mã khách{" "}
           {filters.ma_kh ? (
             <Tag color="blue" size="small">
@@ -351,8 +348,8 @@ const ListPhieuXuatDieuChuyen = () => {
     },
     {
       title: () => (
-        <div style={{ width: 180 }}>
-          Tên khách{" "}
+        <div className="filter-column-header-wide">
+          Tên khách
           {filters.ten_kh ? (
             <Tag color="blue" size="small">
               {filters.ten_kh}
@@ -363,7 +360,7 @@ const ListPhieuXuatDieuChuyen = () => {
       dataIndex: "ten_kh",
       key: "ten_kh",
       width: 250,
-      align: "left",
+      align: "center",
       render: (text) => (text ? text.trim() : ""),
       filterDropdown: renderFilterDropdown(
         "Tìm Tên khách",
