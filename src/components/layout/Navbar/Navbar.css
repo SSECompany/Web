@@ -1,10 +1,46 @@
+/* Modern Glassmorphism Navbar - Unified Design */
 .navbar {
   display: flex;
-  background: white;
-  padding: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  border: 2px solid #ddd;
-  border-radius: 8px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.85) 100%
+  );
+  backdrop-filter: blur(20px);
+  padding: 16px 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  margin: 16px;
+  position: relative;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.navbar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(
+      circle at 25px 25px,
+      rgba(255, 255, 255, 0.15) 2%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 75px 75px,
+      rgba(255, 255, 255, 0.1) 2%,
+      transparent 50%
+    );
+  background-size: 50px 50px;
+  pointer-events: none;
+  opacity: 0.6;
+  border-radius: 16px;
 }
 
 .navbar.hiden {
@@ -12,6 +48,7 @@
   height: 0 !important;
   opacity: 0 !important;
   pointer-events: none;
+  transform: translateY(-20px);
 }
 
 .navbar .navbar_logo_functions {
@@ -20,10 +57,13 @@
   align-items: center;
   gap: 20px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .navbar .navbar_logo_functions img {
-  height: 30px;
+  height: 34px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .navbar .first_navbar_row {
@@ -33,6 +73,7 @@
   align-items: center;
   position: relative;
   padding: 10px;
+  width: 100%;
 }
 
 .first_navbar_row_center {
@@ -50,42 +91,74 @@
 }
 
 .default_header_label {
-  border-right: 2px solid #ccc;
-  padding-right: 20px;
-  font-size: 1.5rem;
-  color: #fff;
-  background: url(/public/gradient.jpg) center;
-  background-size: cover;
+  border-right: 2px solid rgba(102, 126, 234, 0.3);
+  padding-right: 24px;
+  font-size: 24px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   background-clip: text;
-  color: transparent;
-  animation: animate 10s linear infinite;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 2;
+  animation: none;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
-@keyframes animate {
-  to {
-    background-position-x: -100px;
-  }
+.navbar_routes {
+  position: relative;
+  z-index: 2;
 }
 
 .navbar_routes span {
-  color: #0c122f !important;
-  font-weight: bold;
+  color: #667eea !important;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.navbar_routes span:hover {
+  color: #764ba2 !important;
+  transform: translateY(-1px);
 }
 
 .navbar_child_route {
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .navbar_avatar_container {
-  height: 30px;
-  width: 30px;
+  height: 40px;
+  width: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: linear-gradient(
+    145deg,
+    rgba(102, 126, 234, 0.1) 0%,
+    rgba(118, 75, 162, 0.05) 100%
+  );
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+}
+
+.navbar_avatar_container:hover {
+  background: linear-gradient(
+    145deg,
+    rgba(102, 126, 234, 0.2) 0%,
+    rgba(118, 75, 162, 0.1) 100%
+  );
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
 }
 
 .navbar_avatar_container img {
-  border-radius: 50%;
+  border-radius: 8px;
   object-fit: cover;
   user-select: none;
   cursor: pointer;
@@ -93,6 +166,8 @@
 
 .first_navbar_row_right {
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .first_navbar_row_right ul {
@@ -101,19 +176,30 @@
   align-items: center;
   list-style: none;
   padding: 0;
+  margin: 0;
   flex-direction: row-reverse;
-  gap: 0px 12px;
+  gap: 16px;
 }
 
 .first_navbar_row_left {
   display: flex;
   align-items: center;
   width: 100%;
+  position: relative;
+  z-index: 2;
 }
 
 .navbar_input_search input {
   font-weight: 600;
-  color: #1677ff;
+  color: #667eea;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.6) 100%
+  );
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
 }
 
 .navbar_notification_dropdown {
@@ -125,22 +211,39 @@
 .navbar_notification_dropdown_container {
   max-width: 400px;
   min-width: 200px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.85) 100%
+  );
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .navbar_notification_dropdown_item {
-  padding: 5px 10px;
-  border-bottom: 1px solid #ccc;
-  transition: all 0.15s ease;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  margin: 4px;
 }
 
 .navbar_notification_dropdown_item:hover {
-  background-color: white;
-  border-radius: 10px;
-  border-right: 3px solid #1677ff;
+  background: linear-gradient(
+    145deg,
+    rgba(102, 126, 234, 0.08) 0%,
+    rgba(118, 75, 162, 0.04) 100%
+  );
+  border-right: 3px solid #667eea;
+  transform: translateX(4px);
 }
 
 .navbar_notification_dropdown_item_content {
   font-size: 14px;
+  font-weight: 500;
+  color: #374151;
 }
 
 .sec_navbar_row {
@@ -149,12 +252,6 @@
   position: relative;
   margin-top: 10px;
   padding: 0px 10px;
-}
-
-.sec_navbar_row div {
-}
-
-.sec_navbar_row ul {
 }
 
 .sec_navbar_row_right .ant-menu-item-only-child,
@@ -171,6 +268,8 @@
 .sec_navbar_row a {
   user-select: none;
   font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sec_navbar_row_left {
@@ -198,8 +297,11 @@
 .modal_search_results p {
   text-align: center;
   font-weight: bold;
-  color: rgba(22, 119, 255, 0.8);
-  font-size: 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 28px;
 }
 
 .modal_home_search .modal_search_results_item {
@@ -207,14 +309,26 @@
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  background-color: rgba(22, 119, 255, 0.1);
-  border-radius: 10px;
-  padding: 10px 20px;
-  transition: 0.2s all ease;
+  background: linear-gradient(
+    145deg,
+    rgba(102, 126, 234, 0.1) 0%,
+    rgba(118, 75, 162, 0.05) 100%
+  );
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 12px 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .modal_home_search .modal_search_results_item:hover {
-  background-color: rgba(22, 119, 255, 0.4);
+  background: linear-gradient(
+    145deg,
+    rgba(102, 126, 234, 0.2) 0%,
+    rgba(118, 75, 162, 0.1) 100%
+  );
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
 }
 
 .modal_home_search .modal_search_results_item:hover span {
@@ -224,26 +338,116 @@
 .full-name {
   display: flex;
   align-items: center;
+  padding: 8px 16px;
+  background: linear-gradient(
+    145deg,
+    rgba(102, 126, 234, 0.05) 0%,
+    rgba(118, 75, 162, 0.02) 100%
+  );
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.full-name:hover {
+  background: linear-gradient(
+    145deg,
+    rgba(102, 126, 234, 0.1) 0%,
+    rgba(118, 75, 162, 0.05) 100%
+  );
+  transform: translateY(-1px);
+}
+
+.full-name .primary_bold_text {
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 14px;
 }
 
 .navbar_avatar_container svg {
   width: 20px;
   height: 20px;
+  color: #667eea;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Responsive CSS cho Tablet Portrait (768px - 1024px chiều rộng, chế độ dọc) */
+.navbar_avatar_container:hover svg {
+  color: #764ba2;
+  transform: scale(1.1);
+}
+
+/* ========== DROPDOWN MENU STYLING ========== */
+.navbar_avatar_dropdown {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.85) 100%
+  ) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+  overflow: hidden !important;
+}
+
+.navbar_avatar_dropdown .ant-dropdown-menu {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.navbar_avatar_dropdown .ant-dropdown-menu-item {
+  background: transparent !important;
+  color: #374151 !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  margin: 4px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.navbar_avatar_dropdown .ant-dropdown-menu-item:hover {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 77, 79, 0.1) 0%,
+    rgba(255, 120, 117, 0.05) 100%
+  ) !important;
+  color: #ff4d4f !important;
+  transform: translateX(4px) !important;
+}
+
+.navbar_avatar_dropdown .ant-dropdown-menu-item-danger {
+  color: #ff4d4f !important;
+}
+
+.navbar_avatar_dropdown .ant-dropdown-menu-item-danger:hover {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 77, 79, 0.15) 0%,
+    rgba(255, 120, 117, 0.08) 100%
+  ) !important;
+  color: #ff4d4f !important;
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+
+/* Tablet Portrait (768px - 1024px) */
 @media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
   .navbar {
-    padding: 8px 12px;
-    border-radius: 6px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin: 12px;
   }
 
   .navbar .navbar_logo_functions {
-    gap: 15px;
+    gap: 16px;
   }
 
   .navbar .navbar_logo_functions img {
-    height: 26px;
+    height: 30px;
   }
 
   .navbar .first_navbar_row {
@@ -255,21 +459,21 @@
   }
 
   .default_header_label {
-    font-size: 1.3rem;
-    padding-right: 16px;
+    font-size: 24px;
+    padding-right: 20px;
   }
 
   .first_navbar_row_right {
-    gap: 8px;
+    gap: 12px;
   }
 
   .first_navbar_row_right ul {
-    gap: 0px 10px;
+    gap: 12px;
   }
 
   .navbar_avatar_container {
-    height: 28px;
-    width: 28px;
+    height: 36px;
+    width: 36px;
   }
 
   .navbar_avatar_container svg {
@@ -279,10 +483,11 @@
 
   .full-name {
     max-width: 150px;
+    padding: 6px 12px;
   }
 
   .full-name .primary_bold_text {
-    font-size: 14px;
+    font-size: 13px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -305,7 +510,7 @@
   }
 
   .navbar_notification_dropdown_item {
-    padding: 4px 8px;
+    padding: 8px 12px;
   }
 
   .navbar_notification_dropdown_item_content {
@@ -319,27 +524,28 @@
   }
 
   .modal_home_search .modal_search_results_item {
-    padding: 8px 16px;
+    padding: 10px 16px;
   }
 
   .modal_search_results p {
-    font-size: 26px;
+    font-size: 24px;
   }
 }
 
-/* Responsive CSS cho Tablet Portrait nhỏ (600px - 767px) */
+/* Tablet Portrait nhỏ (600px - 767px) */
 @media screen and (min-width: 600px) and (max-width: 767px) and (orientation: portrait) {
   .navbar {
-    padding: 6px 10px;
-    border-radius: 4px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin: 8px;
   }
 
   .navbar .navbar_logo_functions {
-    gap: 10px;
+    gap: 12px;
   }
 
   .navbar .navbar_logo_functions img {
-    height: 24px;
+    height: 26px;
   }
 
   .navbar .first_navbar_row {
@@ -347,25 +553,25 @@
   }
 
   .navbar_search_function {
-    gap: 0px 10px;
-  }
-
-  .default_header_label {
-    font-size: 1.2rem;
-    padding-right: 14px;
-  }
-
-  .first_navbar_row_right {
-    gap: 6px;
-  }
-
-  .first_navbar_row_right ul {
     gap: 0px 8px;
   }
 
+  .default_header_label {
+    font-size: 20px;
+    padding-right: 16px;
+  }
+
+  .first_navbar_row_right {
+    gap: 8px;
+  }
+
+  .first_navbar_row_right ul {
+    gap: 8px;
+  }
+
   .navbar_avatar_container {
-    height: 26px;
-    width: 26px;
+    height: 32px;
+    width: 32px;
   }
 
   .navbar_avatar_container svg {
@@ -375,10 +581,11 @@
 
   .full-name {
     max-width: 120px;
+    padding: 4px 8px;
   }
 
   .full-name .primary_bold_text {
-    font-size: 13px;
+    font-size: 12px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -396,12 +603,12 @@
   }
 
   .navbar_notification_dropdown_container {
-    max-width: 320px;
-    min-width: 160px;
+    max-width: 300px;
+    min-width: 150px;
   }
 
   .navbar_notification_dropdown_item {
-    padding: 3px 6px;
+    padding: 6px 8px;
   }
 
   .navbar_notification_dropdown_item_content {
@@ -409,16 +616,89 @@
   }
 
   .modal_home_search .modal_search_results {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px;
     padding: 0px 3px;
   }
 
   .modal_home_search .modal_search_results_item {
-    padding: 6px 12px;
+    padding: 8px 12px;
   }
 
   .modal_search_results p {
-    font-size: 24px;
+    font-size: 20px;
+  }
+}
+
+/* Mobile Landscape & Portrait (max-width: 599px) */
+@media screen and (max-width: 599px) {
+  .navbar {
+    padding: 8px;
+    border-radius: 6px;
+    margin: 4px;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .first_navbar_row_left,
+  .first_navbar_row_right {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .navbar .navbar_logo_functions {
+    gap: 8px;
+  }
+
+  .navbar .navbar_logo_functions img {
+    height: 24px;
+  }
+
+  .default_header_label {
+    font-size: 18px;
+    padding-right: 12px;
+    border-right: none;
+    text-align: center;
+  }
+
+  .navbar_avatar_container {
+    height: 28px;
+    width: 28px;
+  }
+
+  .navbar_avatar_container svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .full-name {
+    max-width: 100px;
+    padding: 2px 6px;
+  }
+
+  .full-name .primary_bold_text {
+    font-size: 11px;
+  }
+
+  .first_navbar_row_right ul {
+    gap: 6px;
+  }
+
+  .navbar_notification_dropdown_container {
+    max-width: 250px;
+    min-width: 120px;
+  }
+
+  .modal_home_search .modal_search_results {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .modal_home_search .modal_search_results_item {
+    padding: 6px 8px;
+  }
+
+  .modal_search_results p {
+    font-size: 16px;
   }
 }
