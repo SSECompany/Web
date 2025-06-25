@@ -24,6 +24,8 @@ import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
 import "./phieu-nhap-kho.css";
 
+const { RangePicker } = DatePicker;
+
 const { Title } = Typography;
 
 const ListPhieuNhapKho = () => {
@@ -37,7 +39,7 @@ const ListPhieuNhapKho = () => {
     so_ct: "",
     ma_kh: "",
     ten_kh: "",
-    ngay_ct: null,
+    dateRange: null,
   });
 
   const pageSize = 20;
@@ -67,15 +69,18 @@ const ListPhieuNhapKho = () => {
 
   const fetchPhieuNhapKho = async (filterParams = filters) => {
     const body = {
-      dateForm: dayjs().startOf("month").format("YYYY-MM-DD"),
-      dateTo: dayjs().endOf("month").format("YYYY-MM-DD"),
+      dateForm:
+        filterParams.dateRange && filterParams.dateRange[0]
+          ? filterParams.dateRange[0].format("YYYY-MM-DD")
+          : dayjs().startOf("month").format("YYYY-MM-DD"),
+      dateTo:
+        filterParams.dateRange && filterParams.dateRange[1]
+          ? filterParams.dateRange[1].format("YYYY-MM-DD")
+          : dayjs().endOf("month").format("YYYY-MM-DD"),
       page_index: 1,
       page_count: 50,
       ...filterParams,
     };
-    if (filterParams.ngay_ct) {
-      body.ngay_ct = filterParams.ngay_ct.format("DD/MM/YYYY");
-    }
     try {
       const res = await https.post("v1/web/danh-sach-phieu-nhap-kho", body, {
         "Content-Type": "application/json",
@@ -176,21 +181,29 @@ const ListPhieuNhapKho = () => {
         width: 150,
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <div style={{ padding: 8 }}>
-            <DatePicker
+            <RangePicker
               inputReadOnly
               value={
-                selectedKeys[0] ? dayjs(selectedKeys[0], "DD/MM/YYYY") : null
+                selectedKeys[0] && selectedKeys[1]
+                  ? [
+                      dayjs(selectedKeys[0], "DD/MM/YYYY"),
+                      dayjs(selectedKeys[1], "DD/MM/YYYY"),
+                    ]
+                  : null
               }
-              onChange={(date) => {
-                if (date) {
-                  setSelectedKeys([date.format("DD/MM/YYYY")]);
+              onChange={(dates) => {
+                if (dates && dates.length === 2) {
+                  setSelectedKeys([
+                    dates[0].format("DD/MM/YYYY"),
+                    dates[1].format("DD/MM/YYYY"),
+                  ]);
                 } else {
                   setSelectedKeys([]);
                 }
               }}
               style={{ marginBottom: 8, display: "block" }}
               format="DD/MM/YYYY"
-              placeholder="Chọn ngày CT"
+              placeholder={["Từ ngày", "Đến ngày"]}
             />
             <Button
               className="search_button"
@@ -199,9 +212,13 @@ const ListPhieuNhapKho = () => {
                 confirm();
                 const newFilters = {
                   ...filters,
-                  ngay_ct: selectedKeys[0]
-                    ? dayjs(selectedKeys[0], "DD/MM/YYYY")
-                    : null,
+                  dateRange:
+                    selectedKeys.length === 2
+                      ? [
+                          dayjs(selectedKeys[0], "DD/MM/YYYY"),
+                          dayjs(selectedKeys[1], "DD/MM/YYYY"),
+                        ]
+                      : null,
                 };
                 setFilters(newFilters);
                 fetchPhieuNhapKho(newFilters);
@@ -212,9 +229,13 @@ const ListPhieuNhapKho = () => {
             </Button>
           </div>
         ),
-        filteredValue: filters.ngay_ct
-          ? [filters.ngay_ct.format("DD/MM/YYYY")]
-          : null,
+        filteredValue:
+          filters.dateRange && filters.dateRange.length === 2
+            ? [
+                filters.dateRange[0].format("DD/MM/YYYY"),
+                filters.dateRange[1].format("DD/MM/YYYY"),
+              ]
+            : null,
         render: (text) =>
           dayjs(text).format(screenSize === "mobile" ? "DD/MM" : "DD/MM/YYYY"),
       },
@@ -476,7 +497,7 @@ const ListPhieuNhapKho = () => {
       },
       bordered: true,
       rowKey: "stt_rec",
-      className: "phieu-data-table",
+      className: "phieu-data-table hidden_scroll_bar",
     };
 
     if (screenSize === "mobile") {

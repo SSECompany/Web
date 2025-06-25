@@ -1095,6 +1095,22 @@ body > iframe {
   /* Safari and Chrome */
 }
 
+/* Apply hidden scrollbar to all scrollable table elements */
+.hidden_scroll_bar .ant-table-content,
+.hidden_scroll_bar .ant-table-body,
+.hidden_scroll_bar .ant-table-container,
+.hidden_scroll_bar .ant-table-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hidden_scroll_bar .ant-table-content::-webkit-scrollbar,
+.hidden_scroll_bar .ant-table-body::-webkit-scrollbar,
+.hidden_scroll_bar .ant-table-container::-webkit-scrollbar,
+.hidden_scroll_bar .ant-table-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .deselect_button {
   cursor: pointer;
 }

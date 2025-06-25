@@ -161,7 +161,7 @@ const VatTuTable = ({
   return (
     <Table
       bordered
-      className="vat-tu-table"
+      className="vat-tu-table hidden_scroll_bar"
       dataSource={dataSource}
       columns={columns}
       locale={{

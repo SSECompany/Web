@@ -191,6 +191,10 @@ export const useVatTuManager = () => {
             sl_td1: 0,
             sl_td2: 0,
             sl_dh: 0,
+            stt_rec_dh: "",
+            stt_rec0dh: "",
+            stt_rec_px: "",
+            stt_rec0px: "",
             _lastUpdated: Date.now(),
           };
 

@@ -22,6 +22,8 @@ import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
 import "./phieu-xuat-noi-bo.css";
 
+const { RangePicker } = DatePicker;
+
 const { Title } = Typography;
 
 const ListPhieuXuatNoiBo = () => {
@@ -35,7 +37,7 @@ const ListPhieuXuatNoiBo = () => {
     so_ct: "",
     ma_kh: "",
     ten_kh: "",
-    ngay_ct: "",
+    dateRange: null,
     status: "",
   });
 
@@ -58,15 +60,18 @@ const ListPhieuXuatNoiBo = () => {
 
   const fetchPhieuXuatNoiBo = async (filterParams = filters) => {
     const body = {
-      DateFrom: dayjs().startOf("month").format("YYYY-MM-DD"),
-      DateTo: dayjs().endOf("month").format("YYYY-MM-DD"),
+      DateFrom:
+        filterParams.dateRange && filterParams.dateRange[0]
+          ? filterParams.dateRange[0].format("YYYY-MM-DD")
+          : dayjs().startOf("month").format("YYYY-MM-DD"),
+      DateTo:
+        filterParams.dateRange && filterParams.dateRange[1]
+          ? filterParams.dateRange[1].format("YYYY-MM-DD")
+          : dayjs().endOf("month").format("YYYY-MM-DD"),
       PageIndex: 1,
       PageSize: 50,
       ...filterParams,
     };
-    if (filterParams.ngay_ct) {
-      body.ngay_ct = filterParams.ngay_ct.format("DD/MM/YYYY");
-    }
     try {
       const res = await https.get(
         "v1/web/danh-sach-chung-tu-xuat-noi-bo",
@@ -263,21 +268,29 @@ const ListPhieuXuatNoiBo = () => {
       width: 150,
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div style={{ padding: 8 }}>
-          <DatePicker
+          <RangePicker
             inputReadOnly
             value={
-              selectedKeys[0] ? dayjs(selectedKeys[0], "DD/MM/YYYY") : null
+              selectedKeys[0] && selectedKeys[1]
+                ? [
+                    dayjs(selectedKeys[0], "DD/MM/YYYY"),
+                    dayjs(selectedKeys[1], "DD/MM/YYYY"),
+                  ]
+                : null
             }
-            onChange={(date) => {
-              if (date) {
-                setSelectedKeys([date.format("DD/MM/YYYY")]);
+            onChange={(dates) => {
+              if (dates && dates.length === 2) {
+                setSelectedKeys([
+                  dates[0].format("DD/MM/YYYY"),
+                  dates[1].format("DD/MM/YYYY"),
+                ]);
               } else {
                 setSelectedKeys([]);
               }
             }}
             style={{ marginBottom: 8, display: "block" }}
             format="DD/MM/YYYY"
-            placeholder="Chọn ngày CT"
+            placeholder={["Từ ngày", "Đến ngày"]}
           />
           <Button
             className="search_button"
@@ -286,9 +299,13 @@ const ListPhieuXuatNoiBo = () => {
               confirm();
               const newFilters = {
                 ...filters,
-                ngay_ct: selectedKeys[0]
-                  ? dayjs(selectedKeys[0], "DD/MM/YYYY")
-                  : null,
+                dateRange:
+                  selectedKeys.length === 2
+                    ? [
+                        dayjs(selectedKeys[0], "DD/MM/YYYY"),
+                        dayjs(selectedKeys[1], "DD/MM/YYYY"),
+                      ]
+                    : null,
               };
               setFilters(newFilters);
               fetchPhieuXuatNoiBo(newFilters);
@@ -299,9 +316,13 @@ const ListPhieuXuatNoiBo = () => {
           </Button>
         </div>
       ),
-      filteredValue: filters.ngay_ct
-        ? [filters.ngay_ct.format("DD/MM/YYYY")]
-        : null,
+      filteredValue:
+        filters.dateRange && filters.dateRange.length === 2
+          ? [
+              filters.dateRange[0].format("DD/MM/YYYY"),
+              filters.dateRange[1].format("DD/MM/YYYY"),
+            ]
+          : null,
       render: (text) => dayjs(text).format("DD/MM/YYYY"),
     },
     {
@@ -457,7 +478,7 @@ const ListPhieuXuatNoiBo = () => {
           bordered={!isMobile}
           rowKey="stt_rec"
           scroll={isMobile ? { x: 600, y: 400 } : { x: 1200, y: 600 }}
-          className="phieu-data-table"
+          className="phieu-data-table hidden_scroll_bar"
           size={isMobile ? "small" : "middle"}
           loading={false}
         />

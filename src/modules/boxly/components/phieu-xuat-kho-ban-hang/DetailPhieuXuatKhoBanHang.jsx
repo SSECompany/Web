@@ -297,6 +297,10 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
               sl_td1: parseFloat(item.sl_td1) || 0,
               sl_td2: parseFloat(item.sl_td2) || 0,
               sl_dh: parseFloat(item.sl_dh) || 0,
+              stt_rec_dh: item.stt_rec_dh || "",
+              stt_rec0dh: item.stt_rec0dh || "",
+              stt_rec_px: item.stt_rec_px || "",
+              stt_rec0px: item.stt_rec0px || "",
             };
           });
 

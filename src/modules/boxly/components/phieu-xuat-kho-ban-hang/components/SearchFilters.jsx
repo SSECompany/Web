@@ -1,6 +1,8 @@
 import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
 import { Button, DatePicker, Input, Space, Tag } from "antd";
 
+const { RangePicker } = DatePicker;
+
 const SearchFilters = ({
   filters,
   onFiltersChange,
@@ -15,10 +17,10 @@ const SearchFilters = ({
     });
   };
 
-  const handleDateChange = (date) => {
+  const handleDateRangeChange = (dates) => {
     onFiltersChange({
       ...filters,
-      ngay_ct: date,
+      dateRange: dates,
     });
   };
 
@@ -36,13 +38,13 @@ const SearchFilters = ({
           wrap
         >
           <div className="filter-group">
-            <label className="filter-label">Ngày CT:</label>
-            <DatePicker
-              value={filters.ngay_ct}
-              onChange={handleDateChange}
+            <label className="filter-label">Từ ngày - Đến ngày:</label>
+            <RangePicker
+              value={filters.dateRange}
+              onChange={handleDateRangeChange}
               format="DD/MM/YYYY"
-              placeholder="Chọn ngày"
-              style={{ width: isMobile ? "100%" : 140 }}
+              placeholder={["Từ ngày", "Đến ngày"]}
+              style={{ width: isMobile ? "100%" : 280 }}
               size={isMobile ? "small" : "middle"}
               inputReadOnly
             />
@@ -113,14 +115,15 @@ const SearchFilters = ({
         <div className="active-filters">
           <span className="active-filters-label">Bộ lọc đang áp dụng:</span>
           <Space size={4} wrap>
-            {filters.ngay_ct && (
+            {filters.dateRange && filters.dateRange.length === 2 && (
               <Tag
                 color="blue"
                 closable
-                onClose={() => handleInputChange("ngay_ct", null)}
+                onClose={() => handleInputChange("dateRange", null)}
                 size="small"
               >
-                Ngày: {filters.ngay_ct.format("DD/MM/YYYY")}
+                Từ: {filters.dateRange[0].format("DD/MM/YYYY")} - Đến:{" "}
+                {filters.dateRange[1].format("DD/MM/YYYY")}
               </Tag>
             )}
             {filters.so_ct && (

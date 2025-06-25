@@ -181,7 +181,7 @@ const VatTuNhapKhoTable = ({
         ),
       }}
       pagination={false}
-      className="vat-tu-table"
+      className="vat-tu-table hidden_scroll_bar"
     />
   );
 };
