@@ -5,9 +5,9 @@ import { useReactToPrint } from "react-to-print";
 import {
   multipleTablePutApi,
   printOrderApi,
-  syncFastApi,
 } from "../../../../api";
 import jwt from "../../../../utils/jwt";
+import simpleSyncGuard from "../../../../utils/simpleSyncGuard";
 import {
   addTab,
   clearTabData,
@@ -57,79 +57,16 @@ const generateRandomId = () =>
     Math.floor(Math.random() * 36).toString(36)
   ).join("");
 
+// SimpleSyncGuard functions - đơn giản ensure syncFastApi được call
 const addPendingSync = (sttRec, userId) => {
-  try {
-    const pending = JSON.parse(localStorage.getItem("pending_syncs") || "[]");
-    const exists = pending.find((item) => item.sttRec === sttRec);
-    if (!exists) {
-      pending.push({
-        sttRec,
-        userId,
-        timestamp: Date.now(),
-        attempts: 0,
-      });
-      localStorage.setItem("pending_syncs", JSON.stringify(pending));
-    }
-  } catch (error) {
-    console.error("Error adding pending sync:", error);
-  }
-};
-
-const removePendingSync = (sttRec) => {
-  try {
-    const pending = JSON.parse(localStorage.getItem("pending_syncs") || "[]");
-    const filtered = pending.filter((item) => item.sttRec !== sttRec);
-    localStorage.setItem("pending_syncs", JSON.stringify(filtered));
-  } catch (error) {
-    console.error("Error removing pending sync:", error);
-  }
+  return simpleSyncGuard.markForSync(sttRec, userId);
 };
 
 const retryPendingSyncs = async () => {
-  try {
-    const pending = JSON.parse(localStorage.getItem("pending_syncs") || "[]");
-    if (pending.length === 0) return;
-
-    for (const item of pending) {
-      const { sttRec, userId, attempts } = item;
-
-      // Skip if too many attempts (max 10)
-      if (attempts >= 10) {
-        removePendingSync(sttRec);
-        continue;
-      }
-
-      try {
-        await syncFastApi(sttRec, userId);
-        removePendingSync(sttRec);
-
-        notification.success({
-          message: `✅ Đồng bộ FAST thành công (retry)`,
-          description: `Đơn: ${sttRec}`,
-          duration: 3,
-        });
-      } catch (error) {
-        console.error(`❌ Retry sync failed: ${sttRec}`, error);
-        // Update attempts count
-        const updated = pending.map((p) =>
-          p.sttRec === sttRec ? { ...p, attempts: p.attempts + 1 } : p
-        );
-        localStorage.setItem("pending_syncs", JSON.stringify(updated));
-      }
-    }
-  } catch (error) {
-    console.error("Error retrying pending syncs:", error);
-  }
+  return await simpleSyncGuard.checkAndRetry();
 };
 
-const getPendingSyncCount = () => {
-  try {
-    const pending = JSON.parse(localStorage.getItem("pending_syncs") || "[]");
-    return pending.length;
-  } catch (error) {
-    return 0;
-  }
-};
+
 
 export default function OrderSummary({ total, itemCount }) {
   const dispatch = useDispatch();
@@ -294,10 +231,23 @@ export default function OrderSummary({ total, itemCount }) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
 
         if (sttRec) {
+          // ✅ LOGIC MỚI: Chỉ sync cho đơn "Thanh toán", không sync cho "Lưu lại"
+          if (!isSaveOnly) {
+            // BƯỚC 1: Mark pending trước
+            addPendingSync(sttRec, id);
+            
+            // BƯỚC 2: Thử sync ngay
+            try {
+              await simpleSyncGuard.triggerSync(sttRec);
+            } catch (error) {
+              // Sync failed, nhưng đã marked → background sẽ retry
+            }
+          }
+
           notification.success({
             message: isSaveOnly
               ? "Đã lưu đơn hàng thành công!"
-              : "Đơn hàng đã được tạo thành công!",
+              : "Đơn hàng đã được tạo thành công và sẽ được đồng bộ tự động!",
           });
 
           setTimeout(() => dispatch(clearTabData(internalActiveTabId)), 500);
@@ -326,21 +276,15 @@ export default function OrderSummary({ total, itemCount }) {
       let syncSuccess = alreadySynced || false;
 
       if (!alreadySynced) {
-        try {
-          await syncFastApi(sttRec, id);
+        // Check nếu order vẫn pending trong SimpleSyncGuard
+        if (!simpleSyncGuard.isPending(sttRec)) {
           syncSuccess = true;
-          removePendingSync(sttRec);
-        } catch (syncError) {
-          console.error("syncFastApi failed:", {
-            error: syncError,
-            sttRec,
-            userId: id,
-            message: syncError.message,
-            stack: syncError.stack,
-          });
-          notification.error({
-            message: "Có lỗi xảy ra khi đồng bộ với FAST!",
-            description: syncError.message,
+        } else {
+          // Order vẫn pending → đồng bộ đang được xử lý bởi SimpleSyncGuard
+          notification.info({
+            message: "🔄 Đồng bộ FAST đang được xử lý...",
+            description: `Đơn ${sttRec} đang được đồng bộ tự động. Hệ thống sẽ thử lại cho đến khi thành công.`,
+            duration: 4
           });
         }
       }
@@ -493,26 +437,25 @@ export default function OrderSummary({ total, itemCount }) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
         const orderNumber = response?.listObject[0][0]?.so_ct;
 
+        // ✅ BƯỚC 1: LUÔN LUÔN mark pending trước (đảm bảo không miss)
         addPendingSync(sttRec, id);
 
         let syncSuccess = false;
         let printSuccess = false;
 
+        // ✅ BƯỚC 2: Thử sync ngay (có thể miss nhưng order đã được marked)
         try {
-          await syncFastApi(sttRec, id);
-          syncSuccess = true;
-          removePendingSync(sttRec);
-        } catch (syncError) {
-          console.error("syncFastApi failed:", {
-            error: syncError,
-            sttRec,
-            userId: id,
-            message: syncError.message,
-            stack: syncError.stack,
-          });
-          notification.error({
-            message: "Có lỗi xảy ra khi đồng bộ với FAST!",
-            description: syncError.message,
+          await simpleSyncGuard.triggerSync(sttRec);
+          // Check nếu sync thành công
+          if (!simpleSyncGuard.isPending(sttRec)) {
+            syncSuccess = true;
+          }
+        } catch (error) {
+          // Sync failed, nhưng order đã được marked → sẽ retry tự động
+          notification.info({
+            message: "🔄 Đồng bộ FAST đang được xử lý...",
+            description: `Đơn ${sttRec} sẽ được đồng bộ tự động. Hệ thống sẽ thử lại cho đến khi thành công.`,
+            duration: 4
           });
         }
 
