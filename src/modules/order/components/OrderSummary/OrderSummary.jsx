@@ -2,10 +2,7 @@ import { message as messageAPI, Modal, notification } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
-import {
-  multipleTablePutApi,
-  printOrderApi,
-} from "../../../../api";
+import { multipleTablePutApi, printOrderApi } from "../../../../api";
 import jwt from "../../../../utils/jwt";
 import simpleSyncGuard from "../../../../utils/simpleSyncGuard";
 import {
@@ -65,8 +62,6 @@ const addPendingSync = (sttRec, userId) => {
 const retryPendingSyncs = async () => {
   return await simpleSyncGuard.checkAndRetry();
 };
-
-
 
 export default function OrderSummary({ total, itemCount }) {
   const dispatch = useDispatch();
@@ -235,7 +230,7 @@ export default function OrderSummary({ total, itemCount }) {
           if (!isSaveOnly) {
             // BƯỚC 1: Mark pending trước
             addPendingSync(sttRec, id);
-            
+
             // BƯỚC 2: Thử sync ngay
             try {
               await simpleSyncGuard.triggerSync(sttRec);
@@ -284,7 +279,7 @@ export default function OrderSummary({ total, itemCount }) {
           notification.info({
             message: "🔄 Đồng bộ FAST đang được xử lý...",
             description: `Đơn ${sttRec} đang được đồng bộ tự động. Hệ thống sẽ thử lại cho đến khi thành công.`,
-            duration: 4
+            duration: 4,
           });
         }
       }
@@ -455,7 +450,7 @@ export default function OrderSummary({ total, itemCount }) {
           notification.info({
             message: "🔄 Đồng bộ FAST đang được xử lý...",
             description: `Đơn ${sttRec} sẽ được đồng bộ tự động. Hệ thống sẽ thử lại cho đến khi thành công.`,
-            duration: 4
+            duration: 4,
           });
         }
 
