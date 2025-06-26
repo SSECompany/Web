@@ -4,6 +4,104 @@ import { useState } from "react";
 export const useVatTuManager = () => {
   const [dataSource, setDataSource] = useState([]);
 
+  // Function để load dữ liệu từ phiếu đã có (data2)
+  const loadDataFromPhieu = (data2, fetchDonViTinh) => {
+    if (!Array.isArray(data2) || data2.length === 0) {
+      setDataSource([]);
+      return;
+    }
+
+    const processedData = data2.map((item, index) => {
+      return {
+        key: index + 1,
+        maHang: item.ma_vt || "",
+        ten_mat_hang: item.ten_vt || item.ma_vt || "",
+
+        // Sử dụng dữ liệu đã lưu trong phiếu
+        so_luong: parseFloat(item.so_luong) || 0,
+        soLuong: parseFloat(item.so_luong) || 0,
+        so_luong_goc: parseFloat(item.so_luong) || 0,
+        soLuong_goc: parseFloat(item.so_luong) || 0,
+
+        sl_td3: parseFloat(item.sl_td3) || 0,
+        sl_td3_goc: parseFloat(item.sl_td3) || 0,
+
+        // Hệ số: ưu tiên dùng từ data2 (đã được xác định và lưu)
+        he_so: parseFloat(item.he_so) || 1,
+        he_so_goc: parseFloat(item.he_so) || 1,
+
+        // Đơn vị tính
+        dvt: item.dvt ? item.dvt.trim() : "cái",
+        dvt_goc: item.dvt ? item.dvt.trim() : "cái",
+
+        // Thông tin kho và tài khoản
+        ma_kho: item.ma_kho ? item.ma_kho.trim() : "",
+        tk_vt: item.tk_vt ? item.tk_vt.trim() : "",
+        tk_gv: item.tk_gv ? item.tk_gv.trim() : "",
+        tk_dt: item.tk_dt ? item.tk_dt.trim() : "",
+        tk_thue: item.tk_thue ? item.tk_thue.trim() : "",
+
+        // Thông tin giá và thuế
+        gia_nt2: parseFloat(item.gia_nt2) || 0,
+        gia2: parseFloat(item.gia2) || 0,
+        thue: parseFloat(item.thue) || 0,
+        thue_nt: parseFloat(item.thue_nt) || 0,
+        tien2: parseFloat(item.tien2) || 0,
+        tien_nt2: parseFloat(item.tien_nt2) || 0,
+
+        // Thông tin chiết khấu
+        tl_ck: parseFloat(item.tl_ck) || 0,
+        ck: parseFloat(item.ck) || 0,
+        ck_nt: parseFloat(item.ck_nt) || 0,
+        tl_ck_khac: parseFloat(item.tl_ck_khac) || 0,
+        gia_ck: parseFloat(item.gia_ck) || 0,
+        tien_ck_khac: parseFloat(item.tien_ck_khac) || 0,
+
+        // Thông tin thuế
+        ma_thue: item.ma_thue ? item.ma_thue.trim() : "",
+        thue_suat: parseFloat(item.thue_suat) || 0,
+
+        // Số lượng theo đơn vị khác
+        sl_td1: parseFloat(item.sl_td1) || 0,
+        sl_td2: parseFloat(item.sl_td2) || 0,
+        sl_dh: parseFloat(item.sl_dh) || 0,
+
+        // Thông tin liên kết đơn hàng và phiếu xuất
+        stt_rec_dh: item.stt_rec_dh ? item.stt_rec_dh.trim() : "",
+        stt_rec0dh: item.stt_rec0dh ? item.stt_rec0dh.trim() : "",
+        stt_rec_px: item.stt_rec_px ? item.stt_rec_px.trim() : "",
+        stt_rec0px: item.stt_rec0px ? item.stt_rec0px.trim() : "",
+
+        // Đánh dấu không phải là item mới thêm
+        isNewlyAdded: false,
+        _lastUpdated: Date.now(),
+
+        // Sẽ được load async
+        donViTinhList: [],
+      };
+    });
+
+    setDataSource(processedData);
+
+    // Load async đơn vị tính cho từng item
+    if (fetchDonViTinh) {
+      processedData.forEach(async (item, index) => {
+        try {
+          const donViTinhList = await fetchDonViTinh(item.maHang);
+          if (Array.isArray(donViTinhList)) {
+            setDataSource((prev) =>
+              prev.map((prevItem, prevIndex) =>
+                prevIndex === index ? { ...prevItem, donViTinhList } : prevItem
+              )
+            );
+          }
+        } catch (error) {
+          console.error(`Error loading don vi tinh for ${item.maHang}:`, error);
+        }
+      });
+    }
+  };
+
   const handleVatTuSelect = async (
     value,
     isEditMode,
@@ -54,19 +152,36 @@ export const useVatTuManager = () => {
               const dvtHienTai = (item.dvt || "").trim();
               const dvtGoc = (item.dvt_goc || "").trim();
 
-              const heSoGoc =
-                item.he_so_goc !== undefined && item.he_so_goc !== null
-                  ? item.he_so_goc
-                  : parseFloat(vatTuInfo.he_so) || 1;
-
-              const heSoHienTai =
-                item.he_so !== undefined && item.he_so !== null
-                  ? item.he_so
-                  : heSoGoc;
-
+              const heSoGoc = item.he_so_goc;
+              const heSoHienTai = item.he_so;
+              const heSoAPI = isNaN(parseFloat(vatTuInfo.he_so))
+                ? 1
+                : parseFloat(vatTuInfo.he_so);
+              const dvtAPI = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
               let soLuongThemVao;
 
-              soLuongThemVao = heSoGoc / heSoHienTai;
+              if (dvtHienTai.trim() === dvtGoc.trim()) {
+                if (dvtAPI.trim() === dvtGoc.trim()) {
+                  soLuongThemVao = heSoAPI;
+                } else {
+                  const dvtAPIInfo = donViTinhList.find(
+                    (dvt) => dvt.dvt.trim() === dvtAPI.trim()
+                  );
+                  const heSoDVTAPI = isNaN(parseFloat(dvtAPIInfo.he_so))
+                    ? 1
+                    : parseFloat(dvtAPIInfo.he_so);
+
+                  soLuongThemVao = heSoDVTAPI;
+                }
+              } else {
+                if (dvtAPI.trim() === dvtHienTai.trim()) {
+                  soLuongThemVao = heSoAPI;
+                } else {
+                  const soLuongGoc = heSoGoc / heSoAPI;
+                  soLuongThemVao = soLuongGoc * (heSoHienTai / heSoGoc);
+                  
+                }
+              }
 
               const sl_td3_hienTai =
                 item.sl_td3 !== undefined ? item.sl_td3 : item.soLuong || 0;
@@ -126,7 +241,10 @@ export const useVatTuManager = () => {
 
           return result;
         } else {
-          const heSoGocFromAPI = parseFloat(vatTuInfo.he_so) || 1;
+          // Khi thêm vật tư mới: dùng hệ số từ API chi tiết vật tư
+          const heSoGocFromAPI = isNaN(parseFloat(vatTuInfo.he_so))
+            ? 1
+            : parseFloat(vatTuInfo.he_so);
           const dvtGocFromAPI = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
 
           const dvtHienTai = dvtGocFromAPI;
@@ -140,6 +258,7 @@ export const useVatTuManager = () => {
           if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
             sl_td3_hienThi = sl_td3_goc * heSoGocFromAPI;
             so_luong_hienThi = so_luong_goc * heSoGocFromAPI;
+
             heSoHienTai = heSoGocFromAPI;
           } else {
             sl_td3_hienThi = 1;
@@ -149,7 +268,9 @@ export const useVatTuManager = () => {
               (dvt) => dvt.dvt.trim() === dvtHienTai.trim()
             );
             heSoHienTai = dvtHienTaiInfo
-              ? parseFloat(dvtHienTaiInfo.he_so) || 1
+              ? isNaN(parseFloat(dvtHienTaiInfo.he_so))
+                ? 1
+                : parseFloat(dvtHienTaiInfo.he_so)
               : 1;
           }
 
@@ -266,13 +387,16 @@ export const useVatTuManager = () => {
       (dvt) => dvt && dvt.dvt && dvt.dvt.trim() === newValue.trim()
     );
 
+    // Khi thay đổi đơn vị tính: dùng hệ số từ danh sách đơn vị tính
     const heSoMoi = selectedDvt ? parseFloat(selectedDvt.he_so) || 1 : 1;
 
     const currentDvtInList = dvtOptions.find(
       (dvt) => dvt && dvt.dvt && dvt.dvt.trim() === record.dvt?.trim()
     );
     const heSoHienTai = currentDvtInList
-      ? parseFloat(currentDvtInList.he_so) || 1
+      ? isNaN(parseFloat(currentDvtInList.he_so))
+        ? 1
+        : parseFloat(currentDvtInList.he_so)
       : record.he_so || 1;
     const sl_td3_hienTai = record.sl_td3 || 0;
     const so_luong_hien_tai = record.so_luong || 0;
@@ -331,6 +455,7 @@ export const useVatTuManager = () => {
   return {
     dataSource,
     setDataSource,
+    loadDataFromPhieu,
     handleVatTuSelect,
     handleQuantityChange,
     handleDeleteItem,

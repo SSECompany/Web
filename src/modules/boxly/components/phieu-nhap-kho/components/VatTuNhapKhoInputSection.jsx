@@ -37,12 +37,14 @@ const VatTuNhapKhoInputSection = ({
   };
 
   const handleDropdownVisibleChange = (open) => {
-    if (open && !dropdownOpenedRef.current) {
-      // Only fetch if dropdown hasn't been opened before and no search value
-      if (!vatTuInput && vatTuList.length === 0) {
-        fetchVatTuList("");
-      }
+    if (open) {
+      // Always fetch full list when dropdown opens to ensure fresh data
+      fetchVatTuList("");
       dropdownOpenedRef.current = true;
+    } else {
+      // Reset state when dropdown closes
+      dropdownOpenedRef.current = false;
+      lastSearchValueRef.current = "";
     }
   };
 
