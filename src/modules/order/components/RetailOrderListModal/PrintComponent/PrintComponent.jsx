@@ -66,6 +66,16 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
           <strong>Tên khách:</strong> {master.ten_kh}
         </div>
       )}
+      {master?.ma_so_thue_kh && master.ma_so_thue_kh.trim() && (
+        <div style={{ color: "#000", marginBottom: "6px" }}>
+          <strong>Mã số thuế:</strong> {master.ma_so_thue_kh}
+        </div>
+      )}
+      {master?.ten_dv_kh && master.ten_dv_kh.trim() && (
+        <div style={{ color: "#000", marginBottom: "6px" }}>
+          <strong>Tên công ty:</strong> {master.ten_dv_kh}
+        </div>
+      )}
       <div style={{ paddingBottom: "6px" }}>
         <div style={{ color: "#000" }}>
           <strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}
