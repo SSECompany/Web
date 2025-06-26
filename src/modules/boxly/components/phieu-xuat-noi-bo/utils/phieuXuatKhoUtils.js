@@ -105,11 +105,6 @@ export const buildPayload = (
     })),
   };
 
-  // ✅ Debug payload in development mode
-  if (process.env.NODE_ENV === "development") {
-    console.log("📦 Payload being sent:", JSON.stringify(payload, null, 2));
-  }
-
   return isUpdate ? { Data: payload } : { Data: payload };
 };
 

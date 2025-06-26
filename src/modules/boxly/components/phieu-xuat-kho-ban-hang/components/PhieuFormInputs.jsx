@@ -1,17 +1,26 @@
 import { Col, DatePicker, Form, Input, Row, Select } from "antd";
 
-const PhieuFormInputs = ({ 
-  isEditMode, 
-  maKhachList, 
-  loadingMaKhach, 
+const PhieuFormInputs = ({
+  isEditMode,
+  maKhachList,
+  loadingMaKhach,
   fetchMaKhachListDebounced,
-  maGiaoDichList 
+  maGiaoDichList,
 }) => {
   return (
     <>
       <Row gutter={16}>
         <Col span={12}>
-          <Form.Item name="maKhach" label="Mã khách">
+          <Form.Item
+            name="maKhach"
+            label="Mã khách"
+            rules={[
+              {
+                required: true,
+                message: "Vui lòng chọn khách hàng",
+              },
+            ]}
+          >
             <Select
               showSearch
               allowClear
@@ -104,4 +113,4 @@ const PhieuFormInputs = ({
   );
 };
 
-export default PhieuFormInputs; 
+export default PhieuFormInputs;

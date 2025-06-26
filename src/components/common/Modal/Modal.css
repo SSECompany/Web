@@ -30,6 +30,21 @@
   width: 380px !important;
 }
 
+/* Wide modal for warning content with JSX */
+.wide-modal .ant-modal-content {
+  min-height: 180px !important;
+  max-width: 520px !important;
+  width: 520px !important;
+}
+
+.wide-modal .ant-modal-body {
+  padding: 20px 24px !important;
+}
+
+.wide-modal .ant-modal-confirm-content {
+  text-align: left !important;
+}
+
 .fixed-height .ant-modal-content::before {
   content: "";
   position: absolute;
@@ -73,12 +88,14 @@
 
 .fixed-height .ant-modal-confirm-content {
   text-align: center !important;
+  display: flex;
   color: #0c158e;
   font-size: 13px !important;
   margin-bottom: 0 !important;
   margin-left: 0 !important;
   line-height: 1.3 !important;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15) !important;
+  justify-content: center;
 }
 
 /* Modern Button Styles */

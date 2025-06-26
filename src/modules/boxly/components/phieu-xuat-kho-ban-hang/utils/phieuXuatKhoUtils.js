@@ -39,6 +39,111 @@ export const validateDataSource = (dataSource) => {
   return true;
 };
 
+export const validateQuantityAndShowConfirm = (dataSource, onConfirm) => {
+  // Tìm các dòng có số lượng xuất = 0
+  const zeroQuantityItems = [];
+  dataSource.forEach((item, index) => {
+    const sl_td3 = parseFloat(item.sl_td3 || 0);
+    if (sl_td3 === 0) {
+      zeroQuantityItems.push({
+        index: index + 1,
+        name: item.ten_mat_hang || item.maHang,
+      });
+    }
+  });
+
+  return {
+    hasZeroQuantity: zeroQuantityItems.length > 0,
+    zeroQuantityItems,
+    getContentJSX: () => {
+      return (
+        <div
+          style={{ textAlign: "left", lineHeight: "1.5", minWidth: "400px" }}
+        >
+          <div
+            style={{
+              marginBottom: "3px",
+              fontWeight: "500",
+              fontSize: "14px",
+            }}
+          >
+            Có {zeroQuantityItems.length} dòng có số lượng xuất bằng 0:
+          </div>
+          <div
+            style={{
+              background: "#f8f9fa",
+              padding: "10px",
+              borderRadius: "8px",
+              border: "1px solid #e9ecef",
+              maxHeight: "200px",
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+            }}
+          >
+            {zeroQuantityItems.map((item, index) => (
+              <div
+                key={index}
+                style={{
+                  padding: "8px 12px",
+                  background: "#ffffff",
+                  borderRadius: "6px",
+                  border: "1px solid #dee2e6",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                <span
+                  style={{
+                    fontWeight: "600",
+                    color: "#dc3545",
+                    fontSize: "13px",
+                    minWidth: "fit-content",
+                  }}
+                >
+                  Dòng {item.index}:
+                </span>
+                <span
+                  style={{
+                    color: "#495057",
+                    fontSize: "13px",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {item.name}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div
+            style={{
+              marginTop: "16px",
+              color: "#6c757d",
+              fontSize: "13px",
+              textAlign: "center",
+            }}
+          >
+            Bạn có chắc chắn muốn tiếp tục không?
+          </div>
+        </div>
+      );
+    },
+    proceed: () => {
+      if (zeroQuantityItems.length > 0) {
+        // Import showConfirm ở đầu component và gọi onConfirm khi cần
+        onConfirm();
+      } else {
+        // Không có vấn đề gì, tiếp tục submit
+        return true;
+      }
+    },
+  };
+};
+
 export const buildPayload = (
   values,
   dataSource,
@@ -107,11 +212,6 @@ export const buildPayload = (
       stt_rec0px: item.stt_rec0px || "",
     })),
   };
-
-  // ✅ Debug payload in development mode
-  if (process.env.NODE_ENV === "development") {
-    console.log("📦 Payload being sent:", JSON.stringify(payload, null, 2));
-  }
 
   return isUpdate ? { Data: payload } : { Data: payload };
 };

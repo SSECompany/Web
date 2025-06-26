@@ -13,6 +13,7 @@ const showConfirm = ({
   onCancel,
   type = "warning",
   showIcon = true,
+  className = "centered-buttons fixed-height compact-modal",
 }) => {
   const getIcon = () => {
     if (!showIcon) return null;
@@ -110,7 +111,7 @@ const showConfirm = ({
       },
     },
     centered: true,
-    className: "centered-buttons fixed-height compact-modal",
+    className: className,
     maskClosable: false,
     keyboard: true,
     onOk,

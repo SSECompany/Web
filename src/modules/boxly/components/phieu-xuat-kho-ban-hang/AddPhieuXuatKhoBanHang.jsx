@@ -3,6 +3,7 @@ import { Button, Form, Space, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuInputSection from "./components/VatTuInputSection";
@@ -14,6 +15,7 @@ import {
   buildPayload,
   submitPhieu,
   validateDataSource,
+  validateQuantityAndShowConfirm,
 } from "./utils/phieuXuatKhoUtils";
 
 const { Title } = Typography;
@@ -142,21 +144,46 @@ const AddPhieuXuatKhoBanHang = () => {
       setLoading(true);
       const values = await form.validateFields();
 
-      if (!validateDataSource(dataSource)) return;
-
-      // Kiểm tra số lượng xuất phải lớn hơn 0
-      const invalidItems = [];
-      dataSource.forEach((item, index) => {
-        const sl_td3 = parseFloat(item.sl_td3 || 0);
-        if (sl_td3 <= 0) {
-          invalidItems.push(`Dòng ${index + 1}: Số lượng xuất phải lớn hơn 0`);
-        }
-      });
-
-      if (invalidItems.length > 0) {
+      if (!validateDataSource(dataSource)) {
+        setLoading(false);
         return;
       }
 
+      // Kiểm tra số lượng xuất = 0 và hiển thị cảnh báo
+      const quantityValidation = validateQuantityAndShowConfirm(
+        dataSource,
+        () => {
+          showConfirm({
+            title: "Cảnh báo số lượng xuất",
+            content: quantityValidation.getContentJSX(),
+            type: "info",
+            className: "centered-buttons fixed-height wide-modal",
+            onOk: async () => {
+              // Xác nhận tiếp tục submit
+              await submitPhieuData(values);
+            },
+            onCancel: () => {
+              setLoading(false);
+            },
+          });
+        }
+      );
+
+      if (quantityValidation.hasZeroQuantity) {
+        quantityValidation.proceed();
+        return;
+      }
+
+      // Không có vấn đề với số lượng, tiếp tục submit
+      await submitPhieuData(values);
+    } catch (error) {
+      console.error("Lỗi khi tạo phiếu xuất kho:", error);
+      setLoading(false);
+    }
+  };
+
+  const submitPhieuData = async (values) => {
+    try {
       const payload = buildPayload(values, dataSource, null, false);
       const result = await submitPhieu(
         "v1/web/tao-phieu-xuat-kho-ban-hang",

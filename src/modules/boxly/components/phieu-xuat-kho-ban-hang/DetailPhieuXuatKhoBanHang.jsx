@@ -16,6 +16,7 @@ import {
   deletePhieu,
   submitPhieu,
   validateDataSource,
+  validateQuantityAndShowConfirm,
 } from "./utils/phieuXuatKhoUtils";
 
 const { Title } = Typography;
@@ -391,24 +392,65 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
       setLoading(true);
       const values = await form.validateFields();
 
-      if (!validateDataSource(dataSource)) return;
+      if (!validateDataSource(dataSource)) {
+        setLoading(false);
+        return;
+      }
 
-      const payload = buildPayload(values, dataSource, phieuData, true);
-      const result = await submitPhieu(
-        "v1/web/cap-nhat-phieu-xuat-kho-ban-hang",
-        payload,
-        isEditMode ? "Cập nhật thành công" : "Lưu thành công"
+      // Kiểm tra số lượng xuất = 0 và hiển thị cảnh báo
+      const quantityValidation = validateQuantityAndShowConfirm(
+        dataSource,
+        () => {
+          showConfirm({
+            title: "Cảnh báo số lượng xuất",
+            content: quantityValidation.getContentJSX(),
+            type: "info",
+            className: "centered-buttons fixed-height wide-modal",
+            onOk: async () => {
+              // Xác nhận tiếp tục submit
+              await submitPhieuData(values);
+            },
+            onCancel: () => {
+              setLoading(false);
+            },
+          });
+        }
       );
 
-      if (result.success) {
-        navigate("/boxly/phieu-xuat-kho-ban-hang");
+      if (quantityValidation.hasZeroQuantity) {
+        quantityValidation.proceed();
+        return;
       }
+
+      // Không có vấn đề với số lượng, tiếp tục submit
+      await submitPhieuData(values);
     } catch (error) {
       console.error("Lỗi khi cập nhật phiếu xuất kho:", error);
-    } finally {
       setLoading(false);
     }
   }, [form, dataSource, phieuData, isEditMode, navigate, setLoading]);
+
+  const submitPhieuData = useCallback(
+    async (values) => {
+      try {
+        const payload = buildPayload(values, dataSource, phieuData, true);
+        const result = await submitPhieu(
+          "v1/web/cap-nhat-phieu-xuat-kho-ban-hang",
+          payload,
+          isEditMode ? "Cập nhật thành công" : "Lưu thành công"
+        );
+
+        if (result.success) {
+          navigate("/boxly/phieu-xuat-kho-ban-hang");
+        }
+      } catch (error) {
+        console.error("Lỗi khi cập nhật phiếu xuất kho:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dataSource, phieuData, isEditMode, navigate, setLoading]
+  );
 
   const handleEdit = useCallback(() => {
     navigate(`/boxly/phieu-xuat-kho-ban-hang/edit/${stt_rec}`);
