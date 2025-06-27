@@ -1,4 +1,4 @@
-import { InboxOutlined, ShoppingCartOutlined, SendOutlined, HomeOutlined } from "@ant-design/icons";
+import { InboxOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import React, { useMemo } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import "./Boxly.css";
@@ -15,7 +15,7 @@ const Boxly = () => {
         path: "phieu-nhap-kho",
         colorClass: "boxly-btn-color-1",
         icon: <InboxOutlined className="boxly-button-icon" />,
-        description: "Quản lý nhập kho hàng hóa"
+        description: "Quản lý nhập kho hàng hóa",
       },
       {
         id: 2,
@@ -23,24 +23,24 @@ const Boxly = () => {
         path: "phieu-xuat-kho-ban-hang",
         colorClass: "boxly-btn-color-2",
         icon: <ShoppingCartOutlined className="boxly-button-icon" />,
-        description: "Quản lý xuất kho bán hàng"
+        description: "Quản lý xuất kho bán hàng",
       },
-      {
-        id: 3,
-        label: "Phiếu xuất điều chuyển",
-        path: "phieu-xuat-dieu-chuyen",
-        colorClass: "boxly-btn-color-3",
-        icon: <SendOutlined className="boxly-button-icon" />,
-        description: "Quản lý xuất kho điều chuyển"
-      },
-      {
-        id: 4,
-        label: "Phiếu xuất nội bộ",
-        path: "phieu-xuat-noi-bo",
-        colorClass: "boxly-btn-color-4",
-        icon: <HomeOutlined className="boxly-button-icon" />,
-        description: "Quản lý xuất kho nội bộ"
-      },
+      // {
+      //   id: 3,
+      //   label: "Phiếu xuất điều chuyển",
+      //   path: "phieu-xuat-dieu-chuyen",
+      //   colorClass: "boxly-btn-color-3",
+      //   icon: <SendOutlined className="boxly-button-icon" />,
+      //   description: "Quản lý xuất kho điều chuyển"
+      // },
+      // {
+      //   id: 4,
+      //   label: "Phiếu xuất nội bộ",
+      //   path: "phieu-xuat-noi-bo",
+      //   colorClass: "boxly-btn-color-4",
+      //   icon: <HomeOutlined className="boxly-button-icon" />,
+      //   description: "Quản lý xuất kho nội bộ"
+      // },
     ],
     []
   );
@@ -65,7 +65,9 @@ const Boxly = () => {
                 <div className="boxly-button-content">
                   {button.icon}
                   <span className="boxly-button-label">{button.label}</span>
-                  <span className="boxly-button-description">{button.description}</span>
+                  <span className="boxly-button-description">
+                    {button.description}
+                  </span>
                 </div>
               </button>
             ))}

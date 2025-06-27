@@ -420,21 +420,19 @@
 /* Tablet portrait (exclude iPad Mini which is handled separately) */
 @media (max-width: 767px) and (min-width: 481px) {
   .login_container {
-    flex-direction: column-reverse;
+    flex-direction: column;
     padding: 0;
   }
 
   .login_container_left {
     flex: 1;
     padding: 20px;
-    min-height: 50vh;
-    justify-content: flex-start;
-    padding-top: 40px;
+    min-height: 100vh;
+    justify-content: center;
   }
 
   .login_container_right {
-    flex: 1;
-    height: 50vh;
+    display: none;
   }
 
   .login_form {
@@ -489,11 +487,11 @@
     flex: 1;
     padding: 20px;
     height: 100vh;
+    width: 100%;
   }
 
   .login_container_right {
-    flex: 1.5;
-    height: 100vh;
+    display: none;
   }
 
   .login_form {
@@ -523,27 +521,26 @@
 @media (max-width: 480px) {
   .login_container {
     padding: 0;
-    flex-direction: column-reverse;
+    flex-direction: column;
   }
 
   .login_container_left {
     flex: 1;
-    padding: 16px;
-    min-height: 60vh;
-    justify-content: flex-start;
-    padding-top: 20px;
+    padding: 12px;
+    min-height: 100vh;
+    justify-content: center;
   }
 
   .login_container_right {
-    flex: 1;
-    height: 40vh;
+    display: none;
   }
 
   .login_form {
-    padding: 24px 20px;
-    border-radius: 16px;
+    padding: 28px 24px;
+    border-radius: 20px;
     margin: 0;
     max-width: 100%;
+    width: 100%;
     backdrop-filter: blur(15px);
   }
 
@@ -573,7 +570,8 @@
   }
 
   .input_login_info > span {
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 600;
   }
 
   .login_form .ant-input,
