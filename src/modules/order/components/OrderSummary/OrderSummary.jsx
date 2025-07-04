@@ -571,12 +571,12 @@ export default function OrderSummary({ total, itemCount }) {
     // Retry pending syncs khi component mount
     retryPendingSyncs();
 
-    // Setup interval để check pending syncs định kỳ (mỗi 2 phút)
+    // Setup interval để check pending syncs định kỳ (mỗi 3 phút, sync với background checker)
     const syncInterval = setInterval(() => {
       if (navigator.onLine) {
         retryPendingSyncs();
       }
-    }, 120000);
+    }, 180000);
 
     return () => {
       window.removeEventListener("online", handleOnline);

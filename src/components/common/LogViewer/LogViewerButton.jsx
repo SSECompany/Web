@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import SyncFastLogViewer from './SyncFastLogViewer';
-import simpleLogger from '../../../utils/simpleLogger';
-import simpleSyncGuard from '../../../utils/simpleSyncGuard';
+import React, { useEffect, useState } from "react";
+import simpleLogger from "../../../utils/simpleLogger";
+import simpleSyncGuard from "../../../utils/simpleSyncGuard";
+import SyncFastLogViewer from "./SyncFastLogViewer";
 
 const LogViewerButton = () => {
   const [isLogViewerOpen, setIsLogViewerOpen] = useState(false);
@@ -9,71 +9,92 @@ const LogViewerButton = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [hasNewErrors, setHasNewErrors] = useState(false);
   const [hasRetryItems, setHasRetryItems] = useState(false);
+  const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
+    const checkToken = () => {
+      const token = localStorage.getItem("access_token");
+      setHasToken(!!token);
+    };
+
+    checkToken();
+
+    window.addEventListener("storage", checkToken);
+
+    window.addEventListener("tokenChange", checkToken);
+
+    return () => {
+      window.removeEventListener("storage", checkToken);
+      window.removeEventListener("tokenChange", checkToken);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasToken) {
+      setErrorCount(0);
+      setRetryCount(0);
+      setHasNewErrors(false);
+      setHasRetryItems(false);
+      return;
+    }
+
     const updateCounts = async () => {
       try {
         const logStats = simpleLogger.getStats();
         const simpleSyncStats = simpleSyncGuard.getStats();
-        
+
         const newErrorCount = logStats.errors;
         const newRetryCount = simpleSyncStats.total;
-        
-        // Check for new errors
+
         if (newErrorCount > errorCount) {
           setHasNewErrors(true);
           setTimeout(() => setHasNewErrors(false), 5000);
         }
-        
-        // Check for pending sync orders
+
         setHasRetryItems(newRetryCount > 0);
-        
+
         setErrorCount(newErrorCount);
         setRetryCount(newRetryCount);
       } catch (error) {
-        console.warn('Error updating counts:', error);
+        console.warn("Error updating counts:", error);
       }
     };
 
-    // Check every 5 seconds for more responsive updates
     const interval = setInterval(updateCounts, 5000);
-    
-    // Initial check
+
     updateCounts();
 
     return () => {
       clearInterval(interval);
     };
-  }, [errorCount, retryCount]);
+  }, [errorCount, retryCount, hasToken]);
 
   const handleOpenLogViewer = () => {
     setIsLogViewerOpen(true);
     setHasNewErrors(false);
   };
 
+  if (!hasToken) {
+    return null;
+  }
+
   return (
     <>
-      {/* Floating Button */}
-      <div 
-        className={`log-viewer-fab ${hasNewErrors ? 'has-errors' : ''} ${hasRetryItems ? 'has-retries' : ''}`}
+      <div
+        className={`log-viewer-fab ${hasNewErrors ? "has-errors" : ""} ${
+          hasRetryItems ? "has-retries" : ""
+        }`}
         onClick={handleOpenLogViewer}
         title={`SyncFast Logs - Errors: ${errorCount}, Pending Sync: ${retryCount}`}
       >
         <span className="fab-icon">📊</span>
-        
-        {/* Error Badge */}
-        {errorCount > 0 && (
-          <span className="error-badge">{errorCount}</span>
-        )}
-        
-        {/* Retry Queue Badge */}
-        {retryCount > 0 && (
-          <span className="retry-badge">{retryCount}</span>
-        )}
+
+        {errorCount > 0 && <span className="error-badge">{errorCount}</span>}
+
+        {retryCount > 0 && <span className="retry-badge">{retryCount}</span>}
       </div>
 
-      {/* Log Viewer Modal */}
-      <SyncFastLogViewer 
+      <SyncFastLogViewer
         isOpen={isLogViewerOpen}
         onClose={() => setIsLogViewerOpen(false)}
       />
@@ -82,7 +103,7 @@ const LogViewerButton = () => {
         .log-viewer-fab {
           position: fixed;
           top: 15px;
-          right: 220px;
+          right: 285px;
           width: 24px;
           height: 24px;
           background-color: #007bff;
@@ -179,14 +200,14 @@ const LogViewerButton = () => {
 
         @media (max-width: 768px) {
           .log-viewer-fab {
-            bottom: 15px;
+            top: 70px;
             right: 15px;
-            width: 48px;
-            height: 48px;
+            width: 24px;
+            height: 24px;
           }
-          
+
           .fab-icon {
-            font-size: 20px;
+            font-size: 15px;
           }
         }
       `}</style>
@@ -194,4 +215,4 @@ const LogViewerButton = () => {
   );
 };
 
-export default LogViewerButton; 
+export default LogViewerButton;
