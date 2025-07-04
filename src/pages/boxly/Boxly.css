@@ -3,6 +3,7 @@
   padding: 24px;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   position: relative;
+  min-height: 100vh;
 }
 
 .boxly-container::before {
@@ -335,7 +336,6 @@
   }
 
   .boxly-button-grid {
-    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
     padding: 20px;
     max-width: 100%;
