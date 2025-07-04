@@ -167,6 +167,7 @@ const AddPhieuNhapKho = () => {
         <Title level={3} className="phieu-title">
           THÊM PHIẾU NHẬP KHO MỚI
         </Title>
+        <div style={{ width: "120px" }}></div>
       </div>
 
       <div className="phieu-form-container">

@@ -96,7 +96,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  font-size: 24px;
+  font-size: 2rem;
   flex: 1;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -790,7 +790,7 @@
   }
 
   .phieu-title {
-    font-size: 20px;
+    font-size: 1.3rem !important;
   }
 
   .phieu-data-table .ant-table-thead > tr > th,
@@ -810,17 +810,15 @@
   .phieu-header {
     padding: 16px 20px;
     border-radius: 12px;
-    flex-direction: column;
     gap: 12px;
   }
 
   .phieu-title {
-    font-size: 18px;
-    order: -1;
+    font-size: 1.1rem !important;
   }
 
   .phieu-back-button {
-    align-self: flex-start;
+    align-self: flex-end;
   }
 
   .phieu-add-button,
@@ -843,6 +841,14 @@
   .phieu-action-btn {
     height: 32px;
     width: 32px;
+  }
+
+  .phieu-data-table .ant-table-thead > tr > th:last-child,
+  .phieu-data-table .ant-table-tbody > tr > td:last-child {
+    min-width: 80px;
+    max-width: 100px;
+    background: #fff;
+    z-index: 3;
   }
 }
 
@@ -895,4 +901,14 @@
 .filter-column-header {
   display: flex;
   flex-direction: column;
+}
+
+/* --- STICKY ACTION COLUMN --- */
+.phieu-data-table .ant-table-thead > tr > th:last-child,
+.phieu-data-table .ant-table-tbody > tr > td:last-child {
+  position: sticky;
+  right: 0;
+  background: linear-gradient(145deg, #fff 80%, #f5f7fa 100%);
+  z-index: 3;
+  box-shadow: -2px 0 8px -4px rgba(102, 126, 234, 0.08);
 }

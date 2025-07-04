@@ -5,7 +5,6 @@
   border-radius: 20px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  min-height: calc(100vh - 48px);
   margin: 16px;
   position: relative;
   backdrop-filter: blur(20px);
@@ -52,7 +51,7 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   position: relative;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 16px;
   z-index: 2;
 }
@@ -691,110 +690,187 @@
 /* ========== RESPONSIVE DESIGN ========== */
 @media (max-width: 1024px) {
   .phieu-container {
-    padding: 20px;
-    margin: 12px;
-    border-radius: 16px;
-  }
-
-  .phieu-title {
-    font-size: 20px;
-  }
-
-  .phieu-data-table .ant-table-thead > tr > th,
-  .vat-tu-table .ant-table-thead > tr > th {
-    padding: 12px 8px;
-    font-size: 11px;
-  }
-}
-
-@media (max-width: 768px) {
-  .phieu-container {
     padding: 16px;
-    margin: 8px;
-    border-radius: 12px;
+    margin: 0;
+    border-radius: 0;
+    box-sizing: border-box;
   }
 
   .phieu-header {
-    padding: 16px 20px;
-    border-radius: 12px;
-    flex-direction: column;
+    padding: 16px;
     gap: 12px;
   }
 
   .phieu-title {
-    font-size: 18px;
-    order: -1;
-  }
-
-  .phieu-back-button {
-    align-self: flex-start;
-  }
-
-  .phieu-add-button,
-  .phieu-edit-button {
-    height: 36px;
-    padding: 0 16px;
-    font-size: 13px;
+    text-align: center;
+    font-size: 1.3rem !important;
   }
 
   .search-filters-container {
     padding: 16px;
-    border-radius: 12px;
   }
 
-  .phieu-table-container,
-  .vat-tu-table {
-    border-radius: 12px;
+  .phieu-table-container {
+    overflow-x: auto;
   }
 
-  .phieu-action-btn {
-    height: 32px;
-    width: 32px;
+  .phieu-data-table .ant-table-thead > tr > th,
+  .phieu-data-table .ant-table-tbody > tr > td {
+    padding: 12px 8px;
+    font-size: 14px;
   }
 }
 
-@media (max-width: 480px) {
+/* iPad Mini & iPad Air (Portrait) */
+@media screen and (min-width: 768px) and (max-width: 834px) and (orientation: portrait) {
   .phieu-container {
-    padding: 12px;
-    margin: 4px;
-    border-radius: 8px;
+    padding: 16px;
+    margin: 0;
+    border-radius: 0;
+    box-sizing: border-box;
   }
 
   .phieu-header {
-    padding: 12px 16px;
-    border-radius: 8px;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 12px;
+    padding: 16px;
   }
 
   .phieu-title {
-    font-size: 16px;
+    font-size: 22px;
+    flex: 1;
+    text-align: center;
   }
 
-  .phieu-add-button,
-  .phieu-edit-button {
-    height: 32px;
-    padding: 0 12px;
-    font-size: 12px;
+  .search-filters-container {
+    padding: 16px;
+  }
+
+  .phieu-table-container {
+    margin: 0;
+    border-radius: 12px;
+  }
+
+  .phieu-data-table .ant-table {
+    font-size: 14px;
+  }
+
+  .phieu-action-btn {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+
+  .vat-tu-table {
+    overflow-x: auto;
+  }
+}
+
+/* Samsung Tablet (Portrait) */
+@media screen and (min-width: 800px) and (max-width: 1280px) and (orientation: portrait) {
+  .phieu-container {
+    padding: 20px;
+    margin: 0;
+    width: 100vw;
+    border-radius: 0;
+    box-sizing: border-box;
+  }
+
+  .phieu-header {
+    padding: 20px;
+  }
+
+  .phieu-title {
+    font-size: 24px;
+  }
+
+  .search-filters-container {
+    padding: 20px;
+  }
+
+  .phieu-table-container {
+    margin: 0;
+    border-radius: 16px;
+  }
+
+  .vat-tu-table {
+    overflow-x: auto;
+  }
+}
+
+/* Mobile Devices */
+@media (max-width: 767px) {
+  .phieu-container {
+    padding: 12px;
+    margin: 0;
+    width: 100vw;
+    border-radius: 0;
+  }
+
+  .phieu-header {
+    padding: 12px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .phieu-title {
+    font-size: 20px;
+    text-align: center;
   }
 
   .search-filters-container {
     padding: 12px;
-    border-radius: 8px;
   }
 
-  .phieu-table-container,
-  .vat-tu-table {
+  .phieu-table-container {
+    margin: 0;
     border-radius: 8px;
+    overflow-x: auto;
+  }
+
+  .phieu-data-table .ant-table {
+    font-size: 13px;
   }
 
   .phieu-action-btn {
-    height: 28px;
-    width: 28px;
+    padding: 4px 8px;
+    font-size: 13px;
   }
 
-  .phieu-form-actions .ant-btn {
-    height: 40px;
-    padding: 0 20px;
-    font-size: 13px;
+  .vat-tu-table {
+    overflow-x: auto;
+  }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 374px) {
+  .phieu-container {
+    padding: 8px;
+  }
+
+  .phieu-header {
+    padding: 8px;
+  }
+
+  .phieu-title {
+    font-size: 18px;
+  }
+
+  .search-filters-container {
+    padding: 8px;
+  }
+
+  .phieu-table-container {
+    border-radius: 6px;
+  }
+
+  .phieu-data-table .ant-table {
+    font-size: 12px;
+  }
+
+  .vat-tu-table {
+    font-size: 12px;
   }
 }
 
@@ -802,4 +878,280 @@
 .filter-column-header {
   display: flex;
   flex-direction: column;
+}
+
+/* ========== IPAD MINI & SAMSUNG TABLET RESPONSIVE ========== */
+
+/* iPad Mini & iPad Air (768-834px) - Portrait */
+@media screen and (min-width: 768px) and (max-width: 834px) and (orientation: portrait) {
+  .boxly-container,
+  .phieu-container {
+    margin: 0 !important;
+    box-sizing: border-box;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .phieu-header {
+    padding: 14px 16px;
+    border-radius: 12px;
+  }
+  .phieu-add-button,
+  .phieu-edit-button {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+  .search-filters-container {
+    padding: 14px;
+    border-radius: 12px;
+  }
+  .phieu-data-table .ant-table-thead > tr > th,
+  .vat-tu-table .ant-table-thead > tr > th {
+    padding: 10px 6px;
+    font-size: 11px;
+  }
+  .phieu-action-btn {
+    height: 30px;
+    width: 30px;
+  }
+  .phieu-form-actions .ant-btn {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+}
+
+/* iPad Mini 8.3 inch (820x1180px) - Portrait */
+@media screen and (min-width: 820px) and (max-width: 820px) and (min-height: 1180px) and (orientation: portrait) {
+  .phieu-container {
+    padding: 22px;
+    margin: 14px;
+    border-radius: 18px;
+  }
+
+  .phieu-header {
+    padding: 18px 24px;
+    border-radius: 14px;
+  }
+
+  .phieu-title {
+    font-size: 22px;
+  }
+
+  .phieu-add-button,
+  .phieu-edit-button {
+    height: 40px;
+    padding: 0 20px;
+    font-size: 14px;
+  }
+
+  .search-filters-container {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .phieu-data-table .ant-table-thead > tr > th,
+  .vat-tu-table .ant-table-thead > tr > th {
+    padding: 14px 10px;
+    font-size: 12px;
+  }
+
+  .phieu-action-btn {
+    height: 36px;
+    width: 36px;
+  }
+
+  .phieu-form-actions .ant-btn {
+    height: 44px;
+    padding: 0 24px;
+    font-size: 14px;
+  }
+}
+
+/* iPad Mini 8.3 inch - Landscape */
+@media screen and (min-width: 1180px) and (max-width: 1180px) and (min-height: 820px) and (orientation: landscape) {
+  .phieu-container {
+    padding: 24px;
+    margin: 16px;
+    border-radius: 20px;
+  }
+
+  .phieu-header {
+    padding: 20px 28px;
+  }
+
+  .phieu-title {
+    font-size: 24px;
+  }
+
+  .phieu-data-table .ant-table-thead > tr > th,
+  .vat-tu-table .ant-table-thead > tr > th {
+    padding: 16px 12px;
+    font-size: 13px;
+  }
+}
+
+/* Samsung Galaxy Tab 10.9 inch (1280x800px) - Landscape */
+@media screen and (min-width: 1280px) and (max-width: 1280px) and (min-height: 800px) and (orientation: landscape) {
+  .phieu-container {
+    padding: 26px;
+    margin: 18px;
+    border-radius: 22px;
+  }
+
+  .phieu-header {
+    padding: 22px 30px;
+    border-radius: 16px;
+  }
+
+  .phieu-title {
+    font-size: 26px;
+  }
+
+  .phieu-add-button,
+  .phieu-edit-button {
+    height: 44px;
+    padding: 0 24px;
+    font-size: 15px;
+  }
+
+  .search-filters-container {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  .phieu-data-table .ant-table-thead > tr > th,
+  .vat-tu-table .ant-table-thead > tr > th {
+    padding: 16px 12px;
+    font-size: 13px;
+  }
+
+  .phieu-action-btn {
+    height: 38px;
+    width: 38px;
+  }
+
+  .phieu-form-actions .ant-btn {
+    height: 48px;
+    padding: 0 28px;
+    font-size: 15px;
+  }
+}
+
+/* Samsung Galaxy Tab 10.9 inch - Portrait */
+@media screen and (min-width: 800px) and (max-width: 800px) and (min-height: 1280px) and (orientation: portrait) {
+  .phieu-container {
+    padding: 21px;
+    margin: 13px;
+    border-radius: 17px;
+  }
+
+  .phieu-header {
+    padding: 17px 23px;
+    border-radius: 13px;
+  }
+
+  .phieu-title {
+    font-size: 21px;
+  }
+
+  .phieu-add-button,
+  .phieu-edit-button {
+    height: 38px;
+    padding: 0 18px;
+    font-size: 14px;
+  }
+
+  .search-filters-container {
+    padding: 17px;
+    border-radius: 13px;
+  }
+
+  .phieu-data-table .ant-table-thead > tr > th,
+  .vat-tu-table .ant-table-thead > tr > th {
+    padding: 13px 9px;
+    font-size: 12px;
+  }
+
+  .phieu-action-btn {
+    height: 34px;
+    width: 34px;
+  }
+
+  .phieu-form-actions .ant-btn {
+    height: 42px;
+    padding: 0 22px;
+    font-size: 14px;
+  }
+}
+
+/* Fixed Action Column Styles */
+.phieu-table-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.phieu-data-table {
+  position: relative;
+}
+
+.phieu-data-table .ant-table {
+  background: transparent;
+}
+
+.phieu-data-table .ant-table-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Make all columns scrollable except the last one */
+.phieu-data-table .ant-table-thead > tr > th:not(:last-child),
+.phieu-data-table .ant-table-tbody > tr > td:not(:last-child) {
+  white-space: nowrap;
+  background: #fff;
+}
+
+/* Fix the action column */
+.phieu-data-table .ant-table-thead > tr > th:last-child,
+.phieu-data-table .ant-table-tbody > tr > td:last-child {
+  position: sticky !important;
+  right: 0;
+  z-index: 2;
+  background: #fff !important;
+  width: 150px;
+  min-width: 150px;
+  text-align: center;
+  box-shadow: -2px 0px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Style header of fixed column */
+.phieu-data-table .ant-table-thead > tr > th:last-child {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.85) 100%
+  ) !important;
+  z-index: 3;
+}
+
+/* Hover effect for the fixed column */
+.phieu-data-table .ant-table-tbody > tr:hover > td:last-child {
+  background: #fafafa !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .phieu-data-table .ant-table-thead > tr > th:last-child,
+  .phieu-data-table .ant-table-tbody > tr > td:last-child {
+    width: 120px;
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 767px) {
+  .phieu-data-table .ant-table-thead > tr > th:last-child,
+  .phieu-data-table .ant-table-tbody > tr > td:last-child {
+    width: 100px;
+    min-width: 100px;
+  }
 }

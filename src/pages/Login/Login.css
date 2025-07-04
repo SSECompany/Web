@@ -427,7 +427,6 @@
   .login_container_left {
     flex: 1;
     padding: 20px;
-    min-height: 100vh;
     justify-content: center;
   }
 
@@ -527,7 +526,6 @@
   .login_container_left {
     flex: 1;
     padding: 12px;
-    min-height: 100vh;
     justify-content: center;
   }
 
@@ -714,6 +712,218 @@
   .login_form .ant-btn-primary {
     padding: 13px 22px !important;
     font-size: 15px !important;
+  }
+}
+
+/* iPad Mini 8.3 inch (820x1180px) - Portrait */
+@media screen and (min-width: 820px) and (max-width: 820px) and (min-height: 1180px) and (orientation: portrait) {
+  .login_container {
+    flex-direction: row !important;
+    padding: 0 !important;
+  }
+
+  .login_container_left {
+    flex: 1 !important;
+    padding: 45px 35px !important;
+    height: 100vh !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .login_container_right {
+    flex: 1.4 !important;
+    height: 100vh !important;
+    display: block !important;
+  }
+
+  .login_form {
+    max-width: 380px !important;
+    width: 100% !important;
+    padding: 40px 32px !important;
+    border-radius: 24px !important;
+  }
+
+  .login_logo_company_name,
+  .login_logo_company_name span {
+    font-size: 40px !important;
+  }
+
+  .login_desciption_header {
+    font-size: 28px !important;
+  }
+
+  .login_desciption {
+    margin-bottom: 32px !important;
+  }
+
+  .login_detail {
+    gap: 24px !important;
+  }
+
+  .input_login_info {
+    gap: 14px !important;
+  }
+
+  .login_form .ant-input,
+  .login_form .ant-input-password,
+  .login_form .ant-select .ant-select-selector {
+    padding: 16px 18px !important;
+    font-size: 16px !important;
+  }
+
+  .login_form .ant-btn-primary {
+    padding: 14px 24px !important;
+    font-size: 16px !important;
+    height: 48px !important;
+  }
+}
+
+/* iPad Mini 8.3 inch - Landscape */
+@media screen and (min-width: 1180px) and (max-width: 1180px) and (min-height: 820px) and (orientation: landscape) {
+  .login_container {
+    flex-direction: row !important;
+  }
+
+  .login_container_left {
+    flex: 1 !important;
+    padding: 40px 40px !important;
+  }
+
+  .login_container_right {
+    flex: 1.5 !important;
+  }
+
+  .login_form {
+    max-width: 420px !important;
+    padding: 36px 32px !important;
+  }
+
+  .login_logo_company_name,
+  .login_logo_company_name span {
+    font-size: 38px !important;
+  }
+
+  .login_desciption_header {
+    font-size: 26px !important;
+  }
+}
+
+/* Samsung Galaxy Tab 10.9 inch (1280x800px) - Landscape */
+@media screen and (min-width: 1280px) and (max-width: 1280px) and (min-height: 800px) and (orientation: landscape) {
+  .login_container {
+    flex-direction: row !important;
+  }
+
+  .login_container_left {
+    flex: 1 !important;
+    padding: 50px 45px !important;
+  }
+
+  .login_container_right {
+    flex: 1.6 !important;
+  }
+
+  .login_form {
+    max-width: 440px !important;
+    padding: 42px 36px !important;
+    border-radius: 24px !important;
+  }
+
+  .login_logo_company_name,
+  .login_logo_company_name span {
+    font-size: 42px !important;
+  }
+
+  .login_desciption_header {
+    font-size: 30px !important;
+  }
+
+  .login_desciption {
+    margin-bottom: 36px !important;
+  }
+
+  .login_detail {
+    gap: 26px !important;
+  }
+
+  .input_login_info {
+    gap: 16px !important;
+  }
+
+  .login_form .ant-input,
+  .login_form .ant-input-password,
+  .login_form .ant-select .ant-select-selector {
+    padding: 18px 20px !important;
+    font-size: 17px !important;
+  }
+
+  .login_form .ant-btn-primary {
+    padding: 16px 28px !important;
+    font-size: 17px !important;
+    height: 52px !important;
+  }
+}
+
+/* Samsung Galaxy Tab 10.9 inch - Portrait */
+@media screen and (min-width: 800px) and (max-width: 800px) and (min-height: 1280px) and (orientation: portrait) {
+  .login_container {
+    flex-direction: row !important;
+    padding: 0 !important;
+  }
+
+  .login_container_left {
+    flex: 1 !important;
+    padding: 40px 30px !important;
+    height: 100vh !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .login_container_right {
+    flex: 1.3 !important;
+    height: 100vh !important;
+    display: block !important;
+  }
+
+  .login_form {
+    max-width: 370px !important;
+    width: 100% !important;
+    padding: 38px 30px !important;
+    border-radius: 22px !important;
+  }
+
+  .login_logo_company_name,
+  .login_logo_company_name span {
+    font-size: 39px !important;
+  }
+
+  .login_desciption_header {
+    font-size: 27px !important;
+  }
+
+  .login_desciption {
+    margin-bottom: 30px !important;
+  }
+
+  .login_detail {
+    gap: 22px !important;
+  }
+
+  .input_login_info {
+    gap: 13px !important;
+  }
+
+  .login_form .ant-input,
+  .login_form .ant-input-password,
+  .login_form .ant-select .ant-select-selector {
+    padding: 15px 17px !important;
+    font-size: 16px !important;
+  }
+
+  .login_form .ant-btn-primary {
+    padding: 14px 23px !important;
+    font-size: 16px !important;
+    height: 46px !important;
   }
 }
 

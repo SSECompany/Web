@@ -1,5 +1,5 @@
 import { EditOutlined, LeftOutlined } from "@ant-design/icons";
-import { Button, Form, Space, Typography } from "antd";
+import { Button, Col, Form, Row, Space, Typography } from "antd";
 import moment from "moment/moment";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -33,6 +33,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
   const [vatTuInput, setVatTuInput] = useState(undefined);
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
   const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
+  const [screenSize, setScreenSize] = useState("desktop");
 
   // Refs for preventing multiple calls and caching
   const vatTuSelectRef = useRef();
@@ -478,33 +479,58 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
     });
   }, [stt_rec, navigate, setLoading]);
 
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      if (width < 480) {
+        setScreenSize("mobile");
+      } else if (width < 768) {
+        setScreenSize("mobileLandscape");
+      } else if (width < 1024) {
+        setScreenSize("tablet");
+      } else {
+        setScreenSize("desktop");
+      }
+    };
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
   return (
     <div className="phieu-container">
-      <div className="phieu-header">
-        <Button
-          type="text"
-          icon={<LeftOutlined />}
-          onClick={() => navigate(-1)}
-          className="phieu-back-button"
-        >
-          Trở về
-        </Button>
-        <Title level={3} className="phieu-title">
-          {isEditMode
-            ? "CHỈNH SỬA PHIẾU XUẤT KHO BÁN HÀNG"
-            : "CHI TIẾT PHIẾU XUẤT KHO BÁN HÀNG"}
-        </Title>
-        {!isEditMode && (
+      <Row justify="space-between" align="middle" className="phieu-header">
+        <Col>
           <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={handleEdit}
-            className="phieu-edit-button"
+            type="text"
+            icon={<LeftOutlined />}
+            onClick={() => navigate(-1)}
+            className="phieu-back-button"
           >
-            Chỉnh sửa
+            {screenSize === "mobile" ? "" : "Trở về"}
           </Button>
-        )}
-      </div>
+        </Col>
+        <Col>
+          <Title level={3} className="phieu-title">
+            {screenSize === "mobile"
+              ? "CHI TIẾT PHIẾU XUẤT KHO"
+              : "CHI TIẾT PHIẾU XUẤT KHO"}
+          </Title>
+        </Col>
+        <Col>
+          {/* Nút chỉnh sửa hoặc các nút khác nếu có */}
+          {!isEditMode && (
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={handleEdit}
+              className="phieu-edit-button"
+            >
+              {screenSize === "mobile" ? "Sửa" : "Chỉnh sửa"}
+            </Button>
+          )}
+        </Col>
+      </Row>
 
       <div className="phieu-form-container">
         <Form

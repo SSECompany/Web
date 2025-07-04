@@ -1,7 +1,6 @@
 /* Boxly Component Styles */
 .boxly-container {
   padding: 24px;
-  min-height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   position: relative;
 }
@@ -263,82 +262,18 @@
   animation-delay: 0.4s;
 }
 
-/* Responsive */
-@media (max-width: 992px) {
-  .boxly-button-grid {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    padding: 24px;
-  }
-
-  .boxly-button-tile {
-    padding: 32px 20px;
-    font-size: 16px;
-    min-height: 120px;
-  }
-}
-
-@media (max-width: 768px) {
+/* Tablet & Mobile Responsive */
+@media (max-width: 1024px) {
   .boxly-container {
     padding: 16px;
-  }
-
-  .boxly-header {
-    margin-bottom: 32px;
-    padding-top: 20px;
-  }
-
-  .boxly-title {
-    font-size: 32px;
-    margin-bottom: 8px;
-  }
-
-  .boxly-subtitle {
-    font-size: 16px;
-    opacity: 0.7;
+    margin: 0;
+    border-radius: 0;
   }
 
   .boxly-button-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 16px;
-    padding: 0;
-    max-width: 100%;
-  }
-
-  .boxly-button-tile {
-    padding: 32px 20px;
-    min-height: 120px;
-    margin: 0;
-    border-radius: 20px;
-  }
-
-  .boxly-button-label {
-    font-size: 18px;
-    font-weight: 600;
-  }
-
-  .boxly-button-description {
-    font-size: 14px;
-    margin-top: 4px;
-  }
-
-  .boxly-button-icon {
-    font-size: 40px;
-    margin-bottom: 12px;
-  }
-
-  .boxly-button-content {
-    gap: 12px;
-  }
-
-  .boxly-button-tile:hover {
-    transform: translateY(-2px) scale(1.01);
-  }
-}
-
-@media (max-width: 480px) {
-  .boxly-container {
-    padding: 12px;
+    padding: 16px;
   }
 
   .boxly-header {
@@ -347,52 +282,91 @@
   }
 
   .boxly-title {
-    font-size: 28px;
-    margin-bottom: 6px;
+    font-size: 32px;
   }
 
   .boxly-subtitle {
-    font-size: 15px;
-    opacity: 0.7;
-  }
-
-  .boxly-button-grid {
-    gap: 12px;
-    padding: 0;
-  }
-
-  .boxly-button-tile {
-    padding: 28px 16px;
-    border-radius: 18px;
-    min-height: 110px;
-    margin: 0;
-  }
-
-  .boxly-button-label {
     font-size: 16px;
-    line-height: 1.3;
-    font-weight: 600;
-  }
-
-  .boxly-button-description {
-    font-size: 13px;
-    margin-top: 2px;
-  }
-
-  .boxly-button-icon {
-    font-size: 36px;
-    margin-bottom: 10px;
-  }
-
-  .boxly-button-content {
-    gap: 10px;
   }
 }
 
-/* Extra small devices */
-@media (max-width: 360px) {
+/* iPad Mini & iPad Air (Portrait) */
+@media screen and (min-width: 768px) and (max-width: 834px) and (orientation: portrait) {
   .boxly-container {
-    padding: 10px;
+    padding: 16px;
+    margin: 0;
+    border-radius: 0;
+    box-sizing: border-box;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 16px;
+    max-width: 100%;
+  }
+
+  .boxly-header {
+    margin-bottom: 24px;
+  }
+
+  .boxly-title {
+    font-size: 28px;
+  }
+
+  .boxly-subtitle {
+    font-size: 14px;
+  }
+
+  .boxly-button-tile {
+    min-height: 120px;
+    padding: 24px 16px;
+  }
+}
+
+/* Samsung Tablet (Portrait) */
+@media screen and (min-width: 800px) and (max-width: 1280px) and (orientation: portrait) {
+  .boxly-container {
+    padding: 20px;
+    margin: 0;
+    width: 100vw;
+    border-radius: 0;
+    box-sizing: border-box;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding: 20px;
+    max-width: 100%;
+  }
+
+  .boxly-header {
+    margin-bottom: 32px;
+  }
+
+  .boxly-title {
+    font-size: 32px;
+  }
+
+  .boxly-button-tile {
+    min-height: 140px;
+  }
+}
+
+/* Mobile Devices */
+@media (max-width: 767px) {
+  .boxly-container {
+    padding: 12px;
+    margin: 0;
+    width: 100vw;
+    border-radius: 0;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
   }
 
   .boxly-header {
@@ -402,42 +376,36 @@
 
   .boxly-title {
     font-size: 24px;
-    margin-bottom: 4px;
   }
 
   .boxly-subtitle {
     font-size: 14px;
-    opacity: 0.7;
-  }
-
-  .boxly-button-grid {
-    gap: 10px;
   }
 
   .boxly-button-tile {
-    padding: 24px 14px;
     min-height: 100px;
-    margin: 0;
-    border-radius: 16px;
+    padding: 20px 16px;
+  }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 374px) {
+  .boxly-container {
+    padding: 8px;
   }
 
-  .boxly-button-label {
-    font-size: 15px;
-    font-weight: 600;
-  }
-
-  .boxly-button-description {
-    font-size: 12px;
-    margin-top: 1px;
-  }
-
-  .boxly-button-icon {
-    font-size: 32px;
-    margin-bottom: 8px;
-  }
-
-  .boxly-button-content {
+  .boxly-button-grid {
     gap: 8px;
+    padding: 8px;
+  }
+
+  .boxly-title {
+    font-size: 20px;
+  }
+
+  .boxly-button-tile {
+    min-height: 80px;
+    padding: 16px 12px;
   }
 }
 
@@ -464,5 +432,162 @@
     padding-left: max(16px, env(safe-area-inset-left));
     padding-right: max(16px, env(safe-area-inset-right));
     padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+}
+
+/* ========== IPAD MINI & SAMSUNG TABLET RESPONSIVE ========== */
+
+/* iPad Mini 8.3 inch - Landscape */
+@media screen and (min-width: 1180px) and (max-width: 1180px) and (min-height: 820px) and (orientation: landscape) {
+  .boxly-container {
+    padding: 26px;
+  }
+
+  .boxly-header {
+    margin-bottom: 44px;
+    padding-top: 32px;
+  }
+
+  .boxly-title {
+    font-size: 40px;
+  }
+
+  .boxly-subtitle {
+    font-size: 18px;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    padding: 32px;
+    max-width: 1100px;
+  }
+
+  .boxly-button-tile {
+    padding: 40px 24px;
+    font-size: 18px;
+    min-height: 140px;
+  }
+}
+
+/* Samsung Galaxy Tab 10.9 inch (1280x800px) - Landscape */
+@media screen and (min-width: 1280px) and (max-width: 1280px) and (min-height: 800px) and (orientation: landscape) {
+  .boxly-container {
+    padding: 30px;
+  }
+
+  .boxly-header {
+    margin-bottom: 52px;
+    padding-top: 38px;
+  }
+
+  .boxly-title {
+    font-size: 46px;
+    margin-bottom: 16px;
+  }
+
+  .boxly-subtitle {
+    font-size: 20px;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+    padding: 38px;
+    max-width: 1200px;
+  }
+
+  .boxly-button-tile {
+    padding: 46px 28px;
+    font-size: 20px;
+    min-height: 160px;
+    border-radius: 24px;
+  }
+
+  .boxly-button-label {
+    font-size: 22px;
+  }
+
+  .boxly-button-description {
+    font-size: 16px;
+    margin-top: 8px;
+  }
+
+  .boxly-button-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .boxly-button-content {
+    gap: 16px;
+  }
+}
+
+/* Samsung Galaxy Tab 10.9 inch - Portrait */
+@media screen and (min-width: 800px) and (max-width: 800px) and (min-height: 1280px) and (orientation: portrait) {
+  .boxly-container {
+    padding: 26px;
+    margin: 0;
+  }
+
+  .boxly-header {
+    margin-bottom: 46px;
+    padding-top: 34px;
+  }
+
+  .boxly-title {
+    font-size: 42px;
+    margin-bottom: 13px;
+  }
+
+  .boxly-subtitle {
+    font-size: 18px;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    padding: 34px;
+    max-width: 740px;
+  }
+
+  .boxly-button-tile {
+    padding: 42px 24px;
+    font-size: 18px;
+    min-height: 145px;
+    border-radius: 21px;
+  }
+
+  .boxly-button-label {
+    font-size: 19px;
+  }
+
+  .boxly-button-description {
+    font-size: 14px;
+    margin-top: 5px;
+  }
+
+  .boxly-button-icon {
+    font-size: 42px;
+    margin-bottom: 13px;
+  }
+
+  .boxly-button-content {
+    gap: 13px;
+  }
+}
+
+/* Ensure smooth animations on tablets */
+@media (min-width: 800px) and (max-width: 1280px) {
+  .boxly-button-tile {
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .boxly-button-tile:hover {
+    transform: translateY(-4px) scale(1.02);
+  }
+
+  .boxly-button-tile:active {
+    transform: translateY(-2px) scale(1.01);
   }
 }
