@@ -152,11 +152,11 @@ export const useVatTuManager = () => {
               const dvtHienTai = (item.dvt || "").trim();
               const dvtGoc = (item.dvt_goc || "").trim();
 
-              const heSoGoc = item.he_so_goc;
+              // Luôn lấy hệ số gốc từ API tìm kiếm vật tư (fetchVatTuDetail)
+              const heSoGocFromAPI = parseFloat(vatTuInfo.he_so);
+
               const heSoHienTai = item.he_so;
-              const heSoAPI = isNaN(parseFloat(vatTuInfo.he_so))
-                ? 1
-                : parseFloat(vatTuInfo.he_so);
+              const heSoAPI = heSoGocFromAPI;
               const dvtAPI = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
               let soLuongThemVao;
 
@@ -177,9 +177,15 @@ export const useVatTuManager = () => {
                 if (dvtAPI.trim() === dvtHienTai.trim()) {
                   soLuongThemVao = heSoAPI;
                 } else {
-                  const soLuongGoc = heSoGoc / heSoAPI;
-                  soLuongThemVao = soLuongGoc * (heSoHienTai / heSoGoc);
-                  
+                  const soLuongGoc = heSoGocFromAPI / heSoHienTai;
+                  console.log("🚀 ~ updatedData ~ heSoHienTai:", heSoHienTai);
+                  console.log(
+                    "🚀 ~ updatedData ~ heSoGocFromAPI:",
+                    heSoGocFromAPI
+                  );
+                  console.log("🚀 ~ updatedData ~ soLuongGoc:", soLuongGoc);
+
+                  soLuongThemVao = soLuongGoc;
                 }
               }
 
@@ -212,7 +218,7 @@ export const useVatTuManager = () => {
                 sl_td3_goc: sl_td3_goc_moi,
 
                 he_so: heSoHienTai,
-                he_so_goc: heSoGoc,
+                he_so_goc: heSoGocFromAPI,
 
                 dvt: dvtHienTai || defaultDvt,
                 dvt_goc: dvtGoc || defaultDvt,
