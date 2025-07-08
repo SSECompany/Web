@@ -28,7 +28,6 @@ const instance = axios.create({
   },
 });
 
-
 instance.interceptors.request.use((req) => {
   req.headers.Authorization = `Bearer ${jwt.getAccessToken()}`;
   return new Promise((resolve, reject) => {
