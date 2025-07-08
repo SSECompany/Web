@@ -41,9 +41,10 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const [printMaster, setPrintMaster] = useState({});
   const [printDetail, setPrintDetail] = useState([]);
   const printContent = useRef();
-  
+
   const rawToken = localStorage.getItem("access_token");
-  const claims = rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
+  const claims =
+    rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
   const fullName = claims?.FullName;
 
   const [isEditingOrder, setIsEditingOrder] = useState(false);
@@ -61,6 +62,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           ma_kh: filterParams.ma_kh || "",
           status: filterParams.status || "",
           ma_ban: filterParams.ma_ban || "",
+          s3: filterParams.s3 || "",
           pageIndex: 1,
           pageSize: 1000,
           userId: id,
@@ -70,7 +72,9 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         data: {},
       });
 
-      const updatedData = Array.isArray(res?.listObject[0]) ? res.listObject[0] : [];
+      const updatedData = Array.isArray(res?.listObject[0])
+        ? res.listObject[0]
+        : [];
       const paginationInfo = res?.listObject[2]?.[0] || {};
       const totalRecords = paginationInfo.totalRecord || updatedData.length;
 
@@ -122,8 +126,8 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
     flatDetailData.forEach((item) => {
       const { ma_vt_root, uniqueid, ma_vt } = item;
       if (ma_vt_root) {
-        const parent = groupedDetailData.find(
-          (p) => useUniqueId ? p.uniqueid === uniqueid : p.ma_vt === ma_vt_root
+        const parent = groupedDetailData.find((p) =>
+          useUniqueId ? p.uniqueid === uniqueid : p.ma_vt === ma_vt_root
         );
         if (parent) {
           parent.extras = parent.extras || [];
@@ -148,7 +152,9 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       const flatDetailData = res?.listObject[1] || [];
       return { masterData, flatDetailData };
     }
-    throw new Error(res?.responseModel?.message || "Lỗi khi tải chi tiết đơn hàng");
+    throw new Error(
+      res?.responseModel?.message || "Lỗi khi tải chi tiết đơn hàng"
+    );
   };
 
   const columns = [
@@ -166,8 +172,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
     {
       title: () => (
         <div className="column-title-with-tag">
-          Mã bàn{" "}
-          {filters.ma_ban && <Tag color="blue">{filters.ma_ban}</Tag>}
+          Mã bàn {filters.ma_ban && <Tag color="blue">{filters.ma_ban}</Tag>}
         </div>
       ),
       dataIndex: "ma_ban",
@@ -177,13 +182,17 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           <Input
             placeholder="Tìm kiếm Mã bàn"
             value={selectedKeys[0]}
-            onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-            onPressEnter={() => handleFilter('ma_ban', selectedKeys[0], confirm)}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() =>
+              handleFilter("ma_ban", selectedKeys[0], confirm)
+            }
           />
           <Button
             className="search_button"
             type="primary"
-            onClick={() => handleFilter('ma_ban', selectedKeys[0], confirm)}
+            onClick={() => handleFilter("ma_ban", selectedKeys[0], confirm)}
             size="small"
           >
             Tìm kiếm
@@ -194,8 +203,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
     {
       title: () => (
         <div className="column-title-with-tag">
-          Số chứng từ{" "}
-          {filters.so_ct && <Tag color="blue">{filters.so_ct}</Tag>}
+          Số chứng từ {filters.so_ct && <Tag color="blue">{filters.so_ct}</Tag>}
         </div>
       ),
       dataIndex: "so_ct",
@@ -206,13 +214,15 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           <Input
             placeholder="Tìm kiếm Số CT"
             value={selectedKeys[0]}
-            onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-            onPressEnter={() => handleFilter('so_ct', selectedKeys[0], confirm)}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => handleFilter("so_ct", selectedKeys[0], confirm)}
           />
           <Button
             className="search_button"
             type="primary"
-            onClick={() => handleFilter('so_ct', selectedKeys[0], confirm)}
+            onClick={() => handleFilter("so_ct", selectedKeys[0], confirm)}
             size="small"
           >
             Tìm kiếm
@@ -238,7 +248,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           <Button
             className="search_button"
             type="primary"
-            onClick={() => handleFilter('ngay_ct', selectedKeys[0], confirm)}
+            onClick={() => handleFilter("ngay_ct", selectedKeys[0], confirm)}
             size="small"
           >
             Tìm kiếm
@@ -251,6 +261,36 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       dataIndex: "t_tt",
       key: "t_tt",
       render: (value) => `${value?.toLocaleString() || 0} VND`,
+    },
+    {
+      title: "Đồng bộ",
+      dataIndex: "s3",
+      key: "s3",
+      render: (value) => (
+        <Tag color={value === true ? "green" : "red"}>
+          {value === true ? "Đồng bộ" : "Chưa đồng bộ"}
+        </Tag>
+      ),
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div className="filter-dropdown">
+          <Select
+            placeholder="Chọn"
+            value={selectedKeys[0]}
+            onChange={(value) => setSelectedKeys(value ? [value] : [])}
+          >
+            <Select.Option value="1">Đồng bộ</Select.Option>
+            <Select.Option value="0">Chưa đồng bộ</Select.Option>
+          </Select>
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => handleFilter("s3", selectedKeys[0], confirm)}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
     },
     {
       title: "Trạng thái",
@@ -272,7 +312,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           <Button
             className="search_button"
             type="primary"
-            onClick={() => handleFilter('status', selectedKeys[0], confirm)}
+            onClick={() => handleFilter("status", selectedKeys[0], confirm)}
             size="small"
           >
             Tìm kiếm
@@ -291,7 +331,9 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
             type="danger"
             size="small"
             className="edit_button"
-            disabled={record.status === "2" || isEditingOrder}
+            disabled={
+              isEditingOrder || (record.status === "2" && record.s3 === true)
+            }
           />
           <Button
             icon={<PrinterOutlined />}
@@ -329,7 +371,9 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         return;
       }
 
-      const { masterData, flatDetailData } = await fetchOrderDetail(record.stt_rec);
+      const { masterData, flatDetailData } = await fetchOrderDetail(
+        record.stt_rec
+      );
       const detailData = groupDetailData(flatDetailData, true);
 
       const tableData = {
@@ -363,7 +407,9 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
 
   const handleReprint = async (record) => {
     try {
-      const { masterData, flatDetailData } = await fetchOrderDetail(record.stt_rec);
+      const { masterData, flatDetailData } = await fetchOrderDetail(
+        record.stt_rec
+      );
       const groupedDetailData = groupDetailData(flatDetailData, true);
 
       setPrintMaster(masterData);
@@ -399,7 +445,9 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
             setIsEditingOrder(false);
             return;
           }
-          const { masterData, flatDetailData } = await fetchOrderDetail(record.stt_rec);
+          const { masterData, flatDetailData } = await fetchOrderDetail(
+            record.stt_rec
+          );
           const detailData = groupDetailData(flatDetailData, true);
           const tableData = {
             name: masterData.ma_ban,
@@ -414,7 +462,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
               internalId,
               master: masterData,
               detail: detailData,
-              autoOpenPayment: true
+              autoOpenPayment: true,
             })
           );
           dispatch(switchTab(internalId));
