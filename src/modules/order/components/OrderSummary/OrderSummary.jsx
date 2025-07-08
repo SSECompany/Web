@@ -111,7 +111,8 @@ export default function OrderSummary({ total, itemCount }) {
     status = "0",
     selectedPayments = [],
     paymentAmounts = {},
-    customerInfo = {}
+    customerInfo = {},
+    sync = true
   ) => {
     if (!activeTab) {
       message.warning("Không có dữ liệu!");
@@ -155,6 +156,7 @@ export default function OrderSummary({ total, itemCount }) {
       ma_so_thue_kh:
         customerInfo.ma_so_thue_kh ?? activeTab?.master?.ma_so_thue_kh ?? "",
       ten_dv_kh: customerInfo.ten_dv_kh ?? activeTab?.master?.ten_dv_kh ?? "",
+      s3: sync ? "1" : "0",
     };
 
     const detailData = activeTab?.detail?.flatMap((item) => {
@@ -226,17 +228,12 @@ export default function OrderSummary({ total, itemCount }) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
 
         if (sttRec) {
-          // ✅ LOGIC MỚI: Chỉ sync cho đơn "Thanh toán", không sync cho "Lưu lại"
           if (!isSaveOnly) {
-            // BƯỚC 1: Mark pending trước
             addPendingSync(sttRec, id);
 
-            // BƯỚC 2: Thử sync ngay
             try {
               await simpleSyncGuard.triggerSync(sttRec);
-            } catch (error) {
-              // Sync failed, nhưng đã marked → background sẽ retry
-            }
+            } catch (error) {}
           }
 
           notification.success({
@@ -271,11 +268,9 @@ export default function OrderSummary({ total, itemCount }) {
       let syncSuccess = alreadySynced || false;
 
       if (!alreadySynced) {
-        // Check nếu order vẫn pending trong SimpleSyncGuard
         if (!simpleSyncGuard.isPending(sttRec)) {
           syncSuccess = true;
         } else {
-          // Order vẫn pending → đồng bộ đang được xử lý bởi SimpleSyncGuard
           notification.info({
             message: "🔄 Đồng bộ FAST đang được xử lý...",
             description: `Đơn ${sttRec} đang được đồng bộ tự động. Hệ thống sẽ thử lại cho đến khi thành công.`,
@@ -284,7 +279,6 @@ export default function OrderSummary({ total, itemCount }) {
         }
       }
 
-      // Chỉ chạy printOrderApi nếu chưa thành công trước đó
       if (!alreadyPrinted) {
         try {
           await printOrderApi(sttRec, id);
@@ -387,7 +381,8 @@ export default function OrderSummary({ total, itemCount }) {
   const handleConfirmPayment = async (
     selectedPayments,
     paymentAmounts,
-    customerInfo
+    customerInfo,
+    sync
   ) => {
     if (isProcessingPayment) {
       return;
@@ -410,7 +405,8 @@ export default function OrderSummary({ total, itemCount }) {
       "2",
       selectedPayments,
       paymentAmounts,
-      customerInfo
+      customerInfo,
+      sync
     );
     if (!orderData) {
       setIsProcessingPayment(false);
@@ -433,25 +429,32 @@ export default function OrderSummary({ total, itemCount }) {
         const orderNumber = response?.listObject[0][0]?.so_ct;
 
         // ✅ BƯỚC 1: LUÔN LUÔN mark pending trước (đảm bảo không miss)
-        addPendingSync(sttRec, id);
+        if (sync) {
+          addPendingSync(sttRec, id);
+        }
 
         let syncSuccess = false;
         let printSuccess = false;
 
         // ✅ BƯỚC 2: Thử sync ngay (có thể miss nhưng order đã được marked)
-        try {
-          await simpleSyncGuard.triggerSync(sttRec);
-          // Check nếu sync thành công
-          if (!simpleSyncGuard.isPending(sttRec)) {
-            syncSuccess = true;
+        if (sync) {
+          try {
+            await simpleSyncGuard.triggerSync(sttRec);
+            // Check nếu sync thành công
+            if (!simpleSyncGuard.isPending(sttRec)) {
+              syncSuccess = true;
+            }
+          } catch (error) {
+            // Sync failed, nhưng order đã được marked → sẽ retry tự động
+            notification.info({
+              message: "🔄 Đồng bộ FAST đang được xử lý...",
+              description: `Đơn ${sttRec} sẽ được đồng bộ tự động. Hệ thống sẽ thử lại cho đến khi thành công.`,
+              duration: 4,
+            });
           }
-        } catch (error) {
-          // Sync failed, nhưng order đã được marked → sẽ retry tự động
-          notification.info({
-            message: "🔄 Đồng bộ FAST đang được xử lý...",
-            description: `Đơn ${sttRec} sẽ được đồng bộ tự động. Hệ thống sẽ thử lại cho đến khi thành công.`,
-            duration: 4,
-          });
+        } else {
+          // Nếu không sync, đánh dấu syncSuccess = true để không hiển thị cảnh báo
+          syncSuccess = true;
         }
 
         try {
@@ -474,20 +477,30 @@ export default function OrderSummary({ total, itemCount }) {
         // Thông báo kết quả
         if (syncSuccess && printSuccess) {
           notification.success({
-            message: "Thanh toán thành công! Đã đồng bộ FAST và gửi lệnh in.",
+            message: !sync
+              ? "Thanh toán thành công! Đã gửi lệnh in (không đồng bộ)."
+              : "Thanh toán thành công! Đã đồng bộ FAST và gửi lệnh in.",
           });
         } else if (syncSuccess || printSuccess) {
           const successMessage = [];
-          if (syncSuccess) successMessage.push("Đồng bộ FAST");
+          if (syncSuccess && sync) successMessage.push("Đồng bộ FAST");
           if (printSuccess) successMessage.push("Gửi lệnh in");
 
+          const baseMessage = !sync
+            ? "Thanh toán thành công (không đồng bộ)!"
+            : "Thanh toán thành công!";
+
           notification.success({
-            message: `Thanh toán thành công! (${successMessage.join(", ")})`,
+            message:
+              successMessage.length > 0
+                ? `${baseMessage} (${successMessage.join(", ")})`
+                : baseMessage,
           });
         } else {
           notification.warning({
-            message:
-              "Thanh toán thành công nhưng có lỗi với các dịch vụ phụ trợ!",
+            message: !sync
+              ? "Thanh toán thành công nhưng có lỗi với dịch vụ in!"
+              : "Thanh toán thành công nhưng có lỗi với các dịch vụ phụ trợ!",
           });
         }
 
@@ -503,6 +516,7 @@ export default function OrderSummary({ total, itemCount }) {
           orderNumber,
           syncSuccess,
           printSuccess,
+          sync,
         });
         setHasReprinted(false);
         setIsPrinting(true);

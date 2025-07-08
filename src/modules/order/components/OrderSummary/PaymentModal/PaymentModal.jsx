@@ -1,5 +1,5 @@
 import { DownOutlined, UpOutlined } from "@ant-design/icons";
-import { Button, Input, InputNumber, Modal, message } from "antd";
+import { Button, Checkbox, Input, InputNumber, Modal, message } from "antd";
 import { useEffect, useState } from "react";
 import {
   formatCurrency,
@@ -39,6 +39,8 @@ const PaymentModal = ({
   const [showCustomerInfo, setShowCustomerInfo] = useState(false);
   const [showQRImage, setShowQRImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sync, setSync] = useState(true);
+
   const handleToggleCustomerInfo = () => setShowCustomerInfo((prev) => !prev);
 
   const showQRCode =
@@ -194,6 +196,7 @@ const PaymentModal = ({
     setShowCustomerInfo(false);
     setShowQRImage(false);
     setIsSubmitting(false);
+    setSync(true);
     onClose();
   };
 
@@ -219,6 +222,7 @@ const PaymentModal = ({
       setShowCustomerInfo(false);
       setShowQRImage(false);
       setIsSubmitting(false);
+      setSync(true);
 
       const timer = setTimeout(() => {
         setShowQRImage(true);
@@ -382,6 +386,19 @@ const PaymentModal = ({
         ))}
       </div>
 
+      <div style={{ margin: "16px 0" }}>
+        <p className="payment-text">
+          <strong>Đồng bộ:</strong>
+        </p>
+        <Checkbox
+          checked={sync}
+          onChange={(e) => setSync(e.target.checked)}
+          style={{ marginLeft: "8px" }}
+        >
+          Đồng bộ
+        </Checkbox>
+      </div>
+
       {showQRCode && (
         <div className="qr-code-container">
           <p className="payment-text">
@@ -500,7 +517,8 @@ const PaymentModal = ({
             onConfirm(
               selectedPayments,
               adjustedPaymentAmounts,
-              finalCustomerInfo
+              finalCustomerInfo,
+              sync
             );
           }}
           className="payment-button primary"
