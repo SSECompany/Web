@@ -1,3 +1,4 @@
+import { LoadingOutlined } from "@ant-design/icons";
 import { message as messageAPI, Modal, notification } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -147,9 +148,7 @@ export default function OrderSummary({ total, itemCount }) {
       status,
       cccd: customerInfo.cccd ?? activeTab?.master?.cccd ?? "",
       ong_ba:
-        customerInfo.ong_ba?.trim() ||
-        activeTab?.master?.ong_ba?.trim() ||
-        "Khách hàng căng tin",
+        customerInfo.ong_ba?.trim() || activeTab?.master?.ong_ba?.trim() || "",
       so_dt: customerInfo.so_dt ?? activeTab?.master?.so_dt ?? "",
       dia_chi: customerInfo.dia_chi ?? activeTab?.master?.dia_chi ?? "",
       email: customerInfo.email ?? activeTab?.master?.email ?? "",
@@ -213,6 +212,7 @@ export default function OrderSummary({ total, itemCount }) {
       orderData.masterData.chuyen_khoan = "";
       orderData.masterData.tong_tt = "";
       orderData.masterData.httt = "";
+      orderData.masterData.s3 = "0"; 
     }
 
     setIsCreatingOrder(true);
@@ -315,6 +315,7 @@ export default function OrderSummary({ total, itemCount }) {
 
     setCurrentPrintData(null);
     setHasReprinted(false);
+    setIsProcessingPayment(false); // ✅ Reset trạng thái thanh toán khi hoàn tất
     dispatch(removeTab({ internalId: internalActiveTabId }));
   };
 
@@ -370,12 +371,21 @@ export default function OrderSummary({ total, itemCount }) {
   }, [printMaster, printDetail, isPrinting, isPrinted]);
 
   const handleOpenPaymentModal = () => {
+    if (isProcessingPayment) {
+      return; // ✅ Không mở modal nếu đang thanh toán
+    }
     setIsPaymentModalVisible(true);
   };
 
   const handleClosePaymentModal = () => {
     setIsPaymentModalVisible(false);
     setIsProcessingPayment(false);
+  };
+
+  // ✅ Function riêng để đóng modal khi confirm thanh toán (không reset processing state)
+  const closeModalOnConfirm = () => {
+    setIsPaymentModalVisible(false);
+    // Không reset isProcessingPayment ở đây
   };
 
   const handleConfirmPayment = async (
@@ -389,6 +399,8 @@ export default function OrderSummary({ total, itemCount }) {
     }
 
     setIsProcessingPayment(true);
+    // ✅ Sử dụng function riêng để đóng modal mà không reset processing state
+    closeModalOnConfirm();
 
     const hasInternet = await checkInternetConnection();
     if (!hasInternet) {
@@ -522,7 +534,7 @@ export default function OrderSummary({ total, itemCount }) {
         setIsPrinting(true);
         setIsPrinted(false);
 
-        handleClosePaymentModal();
+        // ✅ Không gọi handleClosePaymentModal() ở đây nữa vì đã đóng ở trên
       } else {
         notification.warning({
           message: "Thanh toán thất bại!",
@@ -722,7 +734,26 @@ export default function OrderSummary({ total, itemCount }) {
         onClose={handleClosePaymentModal}
         onConfirm={handleConfirmPayment}
         total={total}
-        isCreatingOrder={isCreatingOrder}
+        isCreatingOrder={false} // ✅ Không disable modal khi thanh toán
+        initialPaymentMethod={activeTab?.master?.httt}
+        initialPaymentAmounts={{
+          tien_mat: activeTab?.master?.tien_mat || 0,
+          chuyen_khoan: activeTab?.master?.chuyen_khoan || 0,
+        }}
+        initialCustomerInfo={{
+          ong_ba: (
+            activeTab?.master?.ong_ba ||
+            activeTab?.master?.ten_kh ||
+            ""
+          ).trim(),
+          cccd: (activeTab?.master?.cccd || "").trim(),
+          dia_chi: (activeTab?.master?.dia_chi || "").trim(),
+          so_dt: (activeTab?.master?.so_dt || "").trim(),
+          email: (activeTab?.master?.email || "").trim(),
+          ma_so_thue_kh: (activeTab?.master?.ma_so_thue_kh || "").trim(),
+          ten_dv_kh: (activeTab?.master?.ten_dv_kh || "").trim(),
+        }}
+        initialSync={activeTab?.master?.s3 !== "0"}
       />
 
       <MergeOrder
@@ -775,10 +806,28 @@ export default function OrderSummary({ total, itemCount }) {
                   ? () => handleSendOrderDirectly(false)
                   : handleOpenPaymentModal
               }
-              disabled={isCreatingOrder || isPrinting || !isOnline}
+              disabled={
+                isCreatingOrder ||
+                isPrinting ||
+                !isOnline ||
+                isProcessingPayment
+              }
               title={!isOnline ? "Không có kết nối internet" : ""}
             >
-              {isMobile ? "Gửi" : "Thanh toán"}
+              {isProcessingPayment && (
+                <LoadingOutlined
+                  className="payment-spinner"
+                  style={{
+                    marginRight: "8px",
+                    fontSize: "16px",
+                  }}
+                />
+              )}
+              {isProcessingPayment
+                ? "Thanh toán..."
+                : isMobile
+                ? "Gửi"
+                : "Thanh toán"}
             </button>
           </>
         )}

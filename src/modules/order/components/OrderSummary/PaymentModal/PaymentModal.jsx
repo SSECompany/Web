@@ -1,6 +1,6 @@
 import { DownOutlined, UpOutlined } from "@ant-design/icons";
 import { Button, Checkbox, Input, InputNumber, Modal, message } from "antd";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   formatCurrency,
   formatNumber,
@@ -15,6 +15,10 @@ const PaymentModal = ({
   onConfirm,
   total,
   isCreatingOrder,
+  initialPaymentMethod,
+  initialPaymentAmounts,
+  initialCustomerInfo,
+  initialSync,
 }) => {
   const [selectedPayments, setSelectedPayments] = useState(["chuyen_khoan"]);
   const [paymentAmounts, setPaymentAmounts] = useState({
@@ -41,17 +45,93 @@ const PaymentModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sync, setSync] = useState(true);
 
-  const handleToggleCustomerInfo = () => setShowCustomerInfo((prev) => !prev);
+  const handleToggleCustomerInfo = useCallback(
+    () => setShowCustomerInfo((prev) => !prev),
+    []
+  );
 
-  const showQRCode =
-    selectedPayments.length === 1 && selectedPayments.includes("chuyen_khoan");
+  const showQRCode = useMemo(
+    () =>
+      selectedPayments.length === 1 &&
+      selectedPayments.includes("chuyen_khoan"),
+    [selectedPayments]
+  );
 
-  const account = process.env.REACT_APP_VIETQR_ACCOUNT;
-  const accountName = process.env.REACT_APP_VIETQR_ACCOUNT_NAME;
-  const transferContent = `thanh toan Phenikaa : ${formatCurrency(total)}vnd`;
-  const qrUrl = `https://img.vietqr.io/image/${account}-qr_only.png?amount=${total}&addInfo=${encodeURIComponent(
-    transferContent
-  )}&t=${Date.now()}`;
+  // Memoize account info
+  const account = useMemo(
+    () => process.env.REACT_APP_VIETQR_ACCOUNT || "970416-123456789",
+    []
+  );
+  const accountName = useMemo(
+    () => process.env.REACT_APP_VIETQR_ACCOUNT_NAME || "Phenikaa",
+    []
+  );
+
+  // Tối ưu QR URL - loại bỏ timestamp, thêm caching
+  const qrUrl = useMemo(() => {
+    if (!showQRCode || !total || !account) {
+      return "";
+    }
+
+    const transferContent = `thanh toan Phenikaa : ${formatCurrency(total)}vnd`;
+    const url = `https://img.vietqr.io/image/${account}-qr_only.png?amount=${total}&addInfo=${encodeURIComponent(
+      transferContent
+    )}`;
+
+    return url;
+  }, [account, total, showQRCode]);
+
+  // QR Error handling
+  const [qrError, setQrError] = useState(false);
+  const [qrLoaded, setQrLoaded] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  const handleQRLoad = useCallback(() => {
+    setQrLoaded(true);
+    setQrError(false);
+  }, []);
+
+  const handleQRError = useCallback(() => {
+    setQrError(true);
+    setQrLoaded(false);
+    message.error("Không thể tải mã QR. Vui lòng thử lại!");
+  }, []);
+
+  // Simple retry function
+  const handleRetryQR = useCallback(() => {
+    setIsRetrying(true);
+    setQrError(false);
+    setQrLoaded(false);
+
+    // Reset QR image để force reload
+    setShowQRImage(false);
+
+    setTimeout(() => {
+      setShowQRImage(true);
+      setIsRetrying(false);
+    }, 500);
+  }, []);
+
+  // Reset QR state khi URL thay đổi
+  useEffect(() => {
+    setQrError(false);
+    setQrLoaded(false);
+  }, [qrUrl]);
+
+  // Preload QR khi modal mở và chọn chuyển khoản
+  useEffect(() => {
+    if (visible && showQRCode && qrUrl && !qrLoaded && !qrError) {
+      // Preload image để cache
+      const preloadImg = new Image();
+      preloadImg.onload = () => {
+        // QR preloaded successfully
+      };
+      preloadImg.onerror = () => {
+        // QR preload failed
+      };
+      preloadImg.src = qrUrl;
+    }
+  }, [visible, showQRCode, qrUrl, qrLoaded, qrError]);
 
   const handlePaymentSelection = (method) => {
     setSelectedPayments((prev) => {
@@ -202,17 +282,60 @@ const PaymentModal = ({
 
   useEffect(() => {
     if (visible) {
-      setSelectedPayments(["chuyen_khoan"]);
-      setPaymentAmounts({ tien_mat: 0, chuyen_khoan: total });
-      setChange(0);
+      // Parse initialPaymentMethod - có thể là "chuyen_khoan" hoặc "tien_mat,chuyen_khoan"
+      let defaultPayments = ["chuyen_khoan"];
+      if (initialPaymentMethod) {
+        defaultPayments = initialPaymentMethod
+          .split(",")
+          .map((method) => method.trim());
+      }
+      setSelectedPayments(defaultPayments);
+
+      // Tính toán payment amounts dựa trên phương thức thanh toán
+      const newPaymentAmounts = { tien_mat: 0, chuyen_khoan: 0 };
+
+      // Nếu có initialPaymentAmounts từ order đã lưu, sử dụng nó
+      if (
+        initialPaymentAmounts &&
+        (initialPaymentAmounts.tien_mat > 0 ||
+          initialPaymentAmounts.chuyen_khoan > 0)
+      ) {
+        newPaymentAmounts.tien_mat = Number(
+          initialPaymentAmounts.tien_mat || 0
+        );
+        newPaymentAmounts.chuyen_khoan = Number(
+          initialPaymentAmounts.chuyen_khoan || 0
+        );
+      } else {
+        // Nếu không, tính toán dựa trên phương thức thanh toán
+        if (defaultPayments.length === 1) {
+          if (defaultPayments[0] === "tien_mat") {
+            newPaymentAmounts.tien_mat = total;
+          } else {
+            newPaymentAmounts.chuyen_khoan = total;
+          }
+        } else if (defaultPayments.length === 2) {
+          // Nếu có 2 phương thức thanh toán, mặc định chia đều hoặc reset về 0
+          newPaymentAmounts.tien_mat = 0;
+          newPaymentAmounts.chuyen_khoan = 0;
+        }
+      }
+
+      setPaymentAmounts(newPaymentAmounts);
+
+      // Tính toán change amount
+      const totalPaid =
+        newPaymentAmounts.tien_mat + newPaymentAmounts.chuyen_khoan;
+      setChange(totalPaid - total);
+
       setCustomerInfo({
-        ong_ba: "",
-        cccd: "",
-        dia_chi: "",
-        so_dt: "",
-        email: "",
-        ma_so_thue_kh: "",
-        ten_dv_kh: "",
+        ong_ba: initialCustomerInfo?.ong_ba || "",
+        cccd: initialCustomerInfo?.cccd || "",
+        dia_chi: initialCustomerInfo?.dia_chi || "",
+        so_dt: initialCustomerInfo?.so_dt || "",
+        email: initialCustomerInfo?.email || "",
+        ma_so_thue_kh: initialCustomerInfo?.ma_so_thue_kh || "",
+        ten_dv_kh: initialCustomerInfo?.ten_dv_kh || "",
       });
       setErrors({
         cccd: "",
@@ -222,7 +345,7 @@ const PaymentModal = ({
       setShowCustomerInfo(false);
       setShowQRImage(false);
       setIsSubmitting(false);
-      setSync(true);
+      setSync(initialSync !== undefined ? initialSync : true);
 
       const timer = setTimeout(() => {
         setShowQRImage(true);
@@ -230,7 +353,14 @@ const PaymentModal = ({
 
       return () => clearTimeout(timer);
     }
-  }, [visible, total]);
+  }, [
+    visible,
+    total,
+    initialPaymentMethod,
+    initialPaymentAmounts,
+    initialCustomerInfo,
+    initialSync,
+  ]);
 
   return (
     <Modal
@@ -404,19 +534,62 @@ const PaymentModal = ({
           <p className="payment-text">
             <strong>Quét mã QR để thanh toán:</strong>
           </p>
-          {showQRImage ? (
+
+          {qrError ? (
+            <div
+              className="qr-error"
+              style={{
+                textAlign: "center",
+                padding: "20px",
+                backgroundColor: "#ffebee",
+                border: "1px solid #ffcdd2",
+                borderRadius: "8px",
+                color: "#d32f2f",
+              }}
+            >
+              ❌ Lỗi tải QR
+              <br />
+              <button
+                onClick={handleRetryQR}
+                disabled={isRetrying}
+                style={{
+                  marginTop: "8px",
+                  padding: "6px 16px",
+                  backgroundColor: "#1890ff",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                }}
+              >
+                {isRetrying ? "🔄 Đang thử lại..." : "🔄 Thử lại"}
+              </button>
+            </div>
+          ) : showQRImage ? (
             <img
               src={qrUrl}
-              alt="QR Code"
+              alt="QR Code thanh toán"
               className="qr-code-image"
               key={`qr-${total}`}
+              onLoad={handleQRLoad}
+              onError={handleQRError}
+              style={{
+                transition: "opacity 0.3s ease",
+                opacity: qrLoaded ? 1 : 0.7,
+              }}
             />
           ) : (
             <div
               className="qr-loading"
-              style={{ textAlign: "center", padding: "20px" }}
+              style={{
+                textAlign: "center",
+                padding: "20px",
+                backgroundColor: "#f5f5f5",
+                borderRadius: "8px",
+              }}
             >
-              Đang tải mã QR...
+              🔄 Chuẩn bị mã QR...
             </div>
           )}
           <div className="qr-info">
@@ -501,7 +674,7 @@ const PaymentModal = ({
 
             const finalCustomerInfo = {
               ...customerInfo,
-              ong_ba: customerInfo.ong_ba?.trim() || "Khách hàng căng tin",
+              ong_ba: customerInfo.ong_ba?.trim() || "",
             };
 
             const adjustedPaymentAmounts = { ...paymentAmounts };
