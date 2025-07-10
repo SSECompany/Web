@@ -43,7 +43,7 @@ const orders = createSlice({
         stt_rec: "",
         status: "2",
         ma_ban: "",
-        ong_ba: "Khách hàng căng tin",
+        ong_ba: "",
         so_dt: "",
         dia_chi: "",
         cccd: "",
@@ -95,17 +95,18 @@ const orders = createSlice({
         detail: normalizedDetail,
         ...Object.fromEntries(
           Object.entries(action.payload).filter(
-            ([key]) => ![
-              'tableName',
-              'tableId',
-              'isRealtime',
-              'master',
-              'detail',
-              'roleWeb',
-              'internalId'
-            ].includes(key)
+            ([key]) =>
+              ![
+                "tableName",
+                "tableId",
+                "isRealtime",
+                "master",
+                "detail",
+                "roleWeb",
+                "internalId",
+              ].includes(key)
           )
-        )
+        ),
       });
 
       if (!isRealtime || state.orders.length === 0) {
@@ -125,9 +126,7 @@ const orders = createSlice({
     },
     addProductToTab: (state, action) => {
       const { internalId, product } = action.payload;
-      let tab = state.orders.find(
-        (tab) => tab.internalId === internalId
-      );
+      let tab = state.orders.find((tab) => tab.internalId === internalId);
       if (!tab) {
         tab = state.orders.find(
           (tab) => tab.internalId === state.internalActiveTabId
@@ -159,9 +158,7 @@ const orders = createSlice({
 
     addExtrasToOrder: (state, action) => {
       const { internalId, orderIndex, extras, note } = action.payload;
-      let tab = state.orders.find(
-        (tab) => tab.internalId === internalId
-      );
+      let tab = state.orders.find((tab) => tab.internalId === internalId);
       if (!tab) {
         tab = state.orders.find(
           (tab) => tab.internalId === state.internalActiveTabId
@@ -257,7 +254,9 @@ const orders = createSlice({
 
     removeTab: (state, action) => {
       const { internalId } = action.payload;
-      state.orders = state.orders.filter((tab) => tab.internalId !== internalId);
+      state.orders = state.orders.filter(
+        (tab) => tab.internalId !== internalId
+      );
       if (state.internalActiveTabId === internalId) {
         state.activeTabId = state.orders.length
           ? state.orders[0].tableId
@@ -283,7 +282,7 @@ const orders = createSlice({
           stt_rec: "",
           status: "2",
           ma_ban: tab.tableId === "POS" ? "" : tab.master.ma_ban,
-          ong_ba: "Khách hàng căng tin",
+          ong_ba: "",
           so_dt: "",
           dia_chi: "",
           cccd: "",
@@ -424,7 +423,7 @@ const orders = createSlice({
         (tab) => tab.internalId === state.internalActiveTabId
       );
       if (tab) {
-        tab.master.ong_ba = ong_ba?.trim() || "Khách hàng căng tin";
+        tab.master.ong_ba = ong_ba?.trim() || "";
         tab.master.cccd = cccd;
         tab.master.dia_chi = dia_chi;
         tab.master.so_dt = so_dt;
@@ -433,12 +432,11 @@ const orders = createSlice({
     },
     updateTabExtraProps: (state, action) => {
       const { internalId, ...rest } = action.payload;
-      const tab = state.orders.find(tab => tab.internalId === internalId);
+      const tab = state.orders.find((tab) => tab.internalId === internalId);
       if (tab) {
         Object.assign(tab, rest);
       }
     },
-
   },
 });
 
@@ -464,7 +462,7 @@ export const {
   applyVoucherToProduct,
   resetOrders,
   setCustomerInfo,
-  updateTabExtraProps
+  updateTabExtraProps,
 } = orders.actions;
 
 export default orders.reducer;

@@ -1,8 +1,6 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, useMemo } from "react";
 import { formatNumber } from "../../../../../app/hook/dataFormatHelper";
 import jwt from "../../../../../utils/jwt";
-
-const account = process.env.REACT_APP_VIETQR_ACCOUNT;
 
 const PrintComponent = forwardRef(
   ({ master = {}, detail = [], orderNumber = "" }, ref) => {
@@ -12,6 +10,27 @@ const PrintComponent = forwardRef(
         ? jwt.getClaims?.() || {}
         : {};
     const fullName = claims?.FullName;
+
+    // Memoize account để tránh lặp lại
+    const account = useMemo(() => process.env.REACT_APP_VIETQR_ACCOUNT, []);
+
+    // Tối ưu QR URL cho hóa đơn
+    const billQRUrl = useMemo(() => {
+      if (!account || !master?.tong_tien) return "";
+
+      const amount =
+        master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
+          ? master.chuyen_khoan
+          : master?.tong_tien;
+
+      const content = `thanh toan Phenikaa so CT ${orderNumber}: ${formatNumber(
+        amount
+      )}vnd`;
+
+      return `https://img.vietqr.io/image/${account}-qr_only.png?amount=${amount}&addInfo=${encodeURIComponent(
+        content
+      )}`;
+    }, [account, master?.tong_tien, master?.chuyen_khoan, orderNumber]);
 
     const formatPaymentMethod = (method) => {
       if (!method) return "Tiền mặt";
@@ -314,21 +333,37 @@ const PrintComponent = forwardRef(
         </div>
 
         <div style={{ textAlign: "center", marginTop: "10px" }}>
-          <img
-            src={`https://img.vietqr.io/image/${account}-qr_only.png?amount=${
-              master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
-                ? master.chuyen_khoan
-                : master?.tong_tien
-            }&addInfo=${encodeURIComponent(
-              `thanh toan Phenikaa so CT ${orderNumber}: ${formatNumber(
-                master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
-                  ? master.chuyen_khoan
-                  : master?.tong_tien
-              )}vnd`
-            )}`}
-            alt="QR Code"
-            style={{ width: "100px", height: "100px" }}
-          />
+          {billQRUrl ? (
+            <img
+              src={billQRUrl}
+              alt="QR Code thanh toán"
+              style={{
+                width: "100px",
+                height: "100px",
+                border: "1px solid #ddd",
+              }}
+              onError={(e) => {
+                // Fallback nếu QR không load được
+                e.target.style.display = "none";
+                e.target.nextSibling.style.display = "block";
+              }}
+            />
+          ) : null}
+          <div
+            style={{
+              width: "100px",
+              height: "100px",
+              border: "1px solid #ddd",
+              display: "none",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "10px",
+              color: "#666",
+              margin: "0 auto",
+            }}
+          >
+            QR không khả dụng
+          </div>
         </div>
 
         <div

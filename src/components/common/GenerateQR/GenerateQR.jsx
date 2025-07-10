@@ -4,7 +4,9 @@ import { useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../api";
 
 const GenerateQR = () => {
-  const { unitId, id } = useSelector((state) => state.claimsReducer.userInfo || {});
+  const { unitId, id } = useSelector(
+    (state) => state.claimsReducer.userInfo || {}
+  );
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
