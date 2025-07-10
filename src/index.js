@@ -19,13 +19,11 @@ import "primereact/resources/themes/lara-light-indigo/theme.css";
 import { Suspense } from "react";
 import App from "./App";
 import Loading from "./components/common/Loading/Loading";
-import reportWebVitals from './reportWebVitals';
+import reportWebVitals from "./reportWebVitals";
 import themeComponents from "./utils/theme";
 
 dayjs.extend(updateLocale);
 dayjs.updateLocale("vi", {});
-
-
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(

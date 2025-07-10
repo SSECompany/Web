@@ -20,6 +20,7 @@ export const useVatTuManagerNhapKho = () => {
         // Sử dụng dữ liệu đã lưu trong phiếu
         soLuong: parseFloat(item.so_luong) || 0,
         soLuong_goc: parseFloat(item.so_luong_goc) || 0,
+        soLuongDeNghi: parseFloat(item.sl_td3) || 0,
 
         // Hệ số: ưu tiên dùng từ data2 (đã được xác định và lưu)
         he_so: parseFloat(item.he_so) || 1,
@@ -162,7 +163,7 @@ export const useVatTuManagerNhapKho = () => {
 
               const soLuongGocHienTai =
                 item.soLuong_goc !== undefined ? item.soLuong_goc : 0;
-            
+
               const soLuongGocMoi = soLuongGocHienTai + 1;
 
               const updatedItem = {
@@ -234,6 +235,7 @@ export const useVatTuManagerNhapKho = () => {
             maHang: value,
             soLuong: Math.round(soLuongHienThi * 1000) / 1000,
             soLuong_goc: Math.round(soLuongGoc * 1000) / 1000,
+            soLuongDeNghi: 0,
             he_so: heSoHienTai,
             he_so_goc: heSoGocFromAPI,
             ten_mat_hang: vatTuInfo.ten_vt || value,

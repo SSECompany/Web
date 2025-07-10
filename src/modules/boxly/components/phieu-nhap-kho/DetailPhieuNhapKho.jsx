@@ -188,6 +188,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
                   maHang: item.ma_vt || "",
                   soLuong: Math.round(soLuongHienThiMoi * 1000) / 1000,
                   soLuong_goc: Math.round(soLuongGoc * 1000) / 1000,
+                  soLuongDeNghi: parseFloat(item.sl_td3) || 0,
                   he_so: heSoHienTai,
                   he_so_goc: heSoGocFromAPI, // Lưu hệ số gốc từ API
                   ten_mat_hang: item.ten_vt || item.ma_vt || "",

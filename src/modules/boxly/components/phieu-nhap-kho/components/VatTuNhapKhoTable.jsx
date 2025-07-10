@@ -68,6 +68,25 @@ const VatTuNhapKhoTable = ({
       },
     },
     {
+      title: "Số lượng đề nghị",
+      dataIndex: "soLuongDeNghi",
+      key: "soLuongDeNghi",
+      width: 130,
+      align: "center",
+      render: (value, record) => (
+        <span
+          style={{
+            color: value && value > 0 ? "#1890ff" : "#999",
+            display: "block",
+            textAlign: "center",
+            fontWeight: "500",
+          }}
+        >
+          {value && value > 0 ? formatQuantityDisplay(value) : "0"}
+        </span>
+      ),
+    },
+    {
       title: "Số lượng",
       dataIndex: "soLuong",
       key: "soLuong",

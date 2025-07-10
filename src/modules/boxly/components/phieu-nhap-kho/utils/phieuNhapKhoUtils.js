@@ -132,6 +132,7 @@ export const buildPhieuNhapKhoPayload = (
       tk_du: item.tk_du || "",
       tk_vt: item.tk_vt || "",
       so_luong: parseFloat(item.soLuong),
+      sl_td3: parseFloat(item.soLuongDeNghi || 0),
       gia_nt: parseFloat(item.gia_nt || 0),
       gia: parseFloat(item.gia || 0),
       tien_nt: parseFloat(item.tien_nt || 0),

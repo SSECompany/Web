@@ -38,13 +38,12 @@
 .login_container_left {
   padding: 40px;
   height: 100%;
-  flex: 1;
   overflow: auto;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  z-index: 1;
+  z-index: 100;
 }
 
 .login_container_left .ant-form-item {
@@ -406,7 +405,7 @@
 }
 
 /* Tablet landscape and small desktop */
-@media (max-width: 1024px) and (min-width: 769px) {
+@media (max-width: 800px) {
   .login_form {
     max-width: 420px;
     padding: 40px 32px;
@@ -414,6 +413,11 @@
 
   .login_container_right {
     flex: 1.8;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
   }
 }
 
@@ -767,7 +771,6 @@
   .login_form .ant-input,
   .login_form .ant-input-password,
   .login_form .ant-select .ant-select-selector {
-    padding: 16px 18px !important;
     font-size: 16px !important;
   }
 

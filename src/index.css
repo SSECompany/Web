@@ -1170,6 +1170,9 @@ body > iframe {
 ::-webkit-scrollbar-button {
   display: none;
 }
+::-webkit-scrollbar {
+  display: none;
+}
 
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -1186,4 +1189,150 @@ body > iframe {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ========== RESPONSIVE FOR 800x1340 PIXELS ========== */
+/* Optimized for tablet portrait mode 800x1340 (like Surface Pro, some Android tablets) */
+@media screen and (min-width: 800px) and (max-width: 800px) and (min-height: 1340px) and (orientation: portrait) {
+  /* Adjust root variables for better spacing */
+  :root {
+    --default_padding: 0px 20px;
+    --deffault_padding_app: 80px 15px 0px 15px;
+  }
+
+  /* Page layouts */
+  .page_default {
+    height: calc(100vh - 60px);
+    padding: 0 20px;
+    padding-top: 15px;
+    padding-bottom: 25px;
+  }
+
+  .page_2_side_default {
+    gap: 1.2rem !important;
+    padding: 15px;
+  }
+
+  .page_2_side_default_left {
+    flex: 0.25;
+    padding: 15px 15px 0px 15px;
+  }
+
+  .page_2_side_default_right {
+    flex: 0.75;
+    padding: 15px;
+  }
+
+  /* Table optimizations */
+  .default_table_row td {
+    padding: 10px 14px !important;
+    font-size: 14px;
+  }
+
+  .default_table .ant-table-thead .ant-table-cell {
+    padding: 14px 12px !important;
+    font-size: 13px;
+  }
+
+  /* Button and input sizing */
+  .default_button,
+  .default_primary_button,
+  .default_subsidiary_button {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  .default_input {
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+
+  /* Modal adjustments */
+  .default_modal_container {
+    padding: 20px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .default_modal_group_items {
+    gap: 16px;
+  }
+
+  /* Typography adjustments */
+  .default_header_label {
+    font-size: 17px;
+    line-height: 22px;
+  }
+
+  .default_bold_label {
+    font-size: 13px;
+    line-height: 17px;
+  }
+
+  /* Form spacing */
+  .default_space {
+    gap: 18px !important;
+  }
+
+  /* Pagination */
+  .default_pagination_bar {
+    padding: 15px 20px;
+  }
+
+  /* Split view adjustments */
+  .split__view__detail__left {
+    min-width: 280px;
+    max-width: 300px;
+  }
+
+  .split__view__detail__right {
+    padding: 20px;
+  }
+
+  /* List layouts */
+  .default_list_layout {
+    gap: 18px;
+  }
+
+  .tools_bar_default {
+    gap: 0px 18px;
+  }
+
+  /* Rectangle containers */
+  .default_rectangle,
+  .default_container_rectangle {
+    padding: 15px;
+    border-radius: 6px;
+  }
+
+  /* Responsive grid for better content organization */
+  .boxly-button-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    padding: 25px;
+  }
+}
+
+/* Additional optimizations for 800x1340 landscape mode if needed */
+@media screen and (min-width: 1340px) and (max-width: 1340px) and (min-height: 800px) and (orientation: landscape) {
+  :root {
+    --default_padding: 0px 40px;
+    --deffault_padding_app: 90px 25px 0px 25px;
+  }
+
+  .page_default {
+    padding: 0 40px;
+    padding-top: 20px;
+  }
+
+  .page_2_side_default {
+    gap: 2rem !important;
+    padding: 20px;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    padding: 40px;
+  }
 }

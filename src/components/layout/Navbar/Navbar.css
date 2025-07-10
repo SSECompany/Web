@@ -886,8 +886,8 @@
   }
 
   .full-name {
-    max-width: 160px;
-    padding: 7px 14px;
+    max-width: 180px;
+    padding: 8px 14px;
   }
 
   .full-name .primary_bold_text {
@@ -902,72 +902,92 @@
   .sec_navbar_row li,
   .sec_navbar_row span,
   .sec_navbar_row a {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .navbar_notification_dropdown_container {
-    max-width: 380px;
-    min-width: 200px;
+    max-width: 420px;
+    min-width: 220px;
   }
 
   .navbar_notification_dropdown_item {
-    padding: 10px 14px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin: 6px;
   }
 
   .navbar_notification_dropdown_item_content {
-    font-size: 14px;
+    font-size: 15px;
   }
 
   .modal_home_search .modal_search_results {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    padding: 0px 5px;
+    height: 350px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 22px;
+    padding: 0px 8px;
   }
 
   .modal_home_search .modal_search_results_item {
-    padding: 12px 18px;
+    padding: 14px 22px;
+    border-radius: 10px;
   }
 
   .modal_search_results p {
-    font-size: 26px;
+    font-size: 30px;
+  }
+
+  /* Navbar input adjustments */
+  .navbar_input_search input {
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 10px;
+  }
+
+  /* Enhanced hover effects for 800x1340 */
+  .navbar_avatar_container:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(102, 126, 234, 0.25);
+  }
+
+  .navbar_notification_dropdown_item:hover {
+    transform: translateX(3px);
   }
 }
 
-/* iPad Mini 8.3 inch - Landscape */
-@media screen and (min-width: 1180px) and (max-width: 1180px) and (min-height: 820px) and (orientation: landscape) {
+/* Additional optimization for 800x1340 landscape if device rotates */
+@media screen and (min-width: 1340px) and (max-width: 1340px) and (min-height: 800px) and (orientation: landscape) {
   .navbar {
-    padding: 16px 24px;
+    padding: 18px 28px;
     border-radius: 16px;
-    margin: 16px;
+    margin: 18px;
   }
 
   .navbar .navbar_logo_functions {
-    gap: 20px;
+    gap: 24px;
   }
 
   .navbar .navbar_logo_functions img {
-    height: 34px;
+    height: 36px;
   }
 
   .default_header_label {
     font-size: 28px;
-    padding-right: 24px;
+    padding-right: 26px;
   }
 
   .navbar_avatar_container {
-    height: 40px;
-    width: 40px;
+    height: 42px;
+    width: 42px;
   }
 
   .full-name {
-    max-width: 180px;
-    padding: 8px 16px;
+    max-width: 200px;
+    padding: 10px 16px;
   }
 
-  .sec_navbar_row li,
-  .sec_navbar_row span,
-  .sec_navbar_row a {
-    font-size: 17px;
+  .modal_home_search .modal_search_results {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 26px;
   }
 }
 
@@ -1137,5 +1157,165 @@
 
   .modal_search_results p {
     font-size: 25px;
+  }
+}
+
+/* ========== RESPONSIVE FOR 800x1340 PIXELS ========== */
+/* Optimized for tablet portrait mode 800x1340 (Surface Pro, Samsung Galaxy Tab S series) */
+@media screen and (min-width: 800px) and (max-width: 800px) and (min-height: 1340px) and (orientation: portrait) {
+  .navbar {
+    padding: 14px 20px;
+    border-radius: 14px;
+    margin: 14px;
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.06), 0 2px 10px rgba(0, 0, 0, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  .navbar .navbar_logo_functions {
+    gap: 18px;
+  }
+
+  .navbar .navbar_logo_functions img {
+    height: 32px;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.12));
+  }
+
+  .navbar .first_navbar_row {
+    padding: 10px;
+  }
+
+  .navbar_search_function {
+    gap: 0px 14px;
+  }
+
+  .default_header_label {
+    font-size: 26px;
+    padding-right: 22px;
+    letter-spacing: 1.2px;
+  }
+
+  .first_navbar_row_right {
+    gap: 14px;
+  }
+
+  .first_navbar_row_right ul {
+    gap: 14px;
+  }
+
+  .navbar_avatar_container {
+    height: 38px;
+    width: 38px;
+    border-radius: 10px;
+  }
+
+  .navbar_avatar_container svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .full-name {
+    max-width: 180px;
+    padding: 8px 14px;
+    border-radius: 10px;
+  }
+
+  .full-name .primary_bold_text {
+    font-size: 14px;
+  }
+
+  .sec_navbar_row {
+    margin-top: 10px;
+    padding: 0px 10px;
+  }
+
+  .sec_navbar_row li,
+  .sec_navbar_row span,
+  .sec_navbar_row a {
+    font-size: 15px;
+  }
+
+  .navbar_notification_dropdown_container {
+    max-width: 420px;
+    min-width: 220px;
+  }
+
+  .navbar_notification_dropdown_item {
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin: 6px;
+  }
+
+  .navbar_notification_dropdown_item_content {
+    font-size: 15px;
+  }
+
+  .modal_home_search .modal_search_results {
+    height: 350px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 22px;
+    padding: 0px 8px;
+  }
+
+  .modal_home_search .modal_search_results_item {
+    padding: 14px 22px;
+    border-radius: 10px;
+  }
+
+  .modal_search_results p {
+    font-size: 30px;
+  }
+
+  /* Navbar input adjustments */
+  .navbar_input_search input {
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 10px;
+  }
+
+  /* Enhanced hover effects for 800x1340 */
+  .navbar_avatar_container:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(102, 126, 234, 0.25);
+  }
+
+  .navbar_notification_dropdown_item:hover {
+    transform: translateX(3px);
+  }
+}
+
+/* Additional optimization for 800x1340 landscape if device rotates */
+@media screen and (min-width: 1340px) and (max-width: 1340px) and (min-height: 800px) and (orientation: landscape) {
+  .navbar {
+    padding: 18px 28px;
+    border-radius: 16px;
+    margin: 18px;
+  }
+
+  .navbar .navbar_logo_functions {
+    gap: 24px;
+  }
+
+  .navbar .navbar_logo_functions img {
+    height: 36px;
+  }
+
+  .default_header_label {
+    font-size: 28px;
+    padding-right: 26px;
+  }
+
+  .navbar_avatar_container {
+    height: 42px;
+    width: 42px;
+  }
+
+  .full-name {
+    max-width: 200px;
+    padding: 10px 16px;
+  }
+
+  .modal_home_search .modal_search_results {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 26px;
   }
 }

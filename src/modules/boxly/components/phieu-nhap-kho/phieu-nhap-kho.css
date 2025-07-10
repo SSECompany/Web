@@ -771,7 +771,7 @@
   .phieu-container {
     padding: 20px;
     margin: 0;
-    width: 100vw;
+    width: 97vw;
     border-radius: 0;
     box-sizing: border-box;
   }
@@ -1153,5 +1153,253 @@
   .phieu-data-table .ant-table-tbody > tr > td:last-child {
     width: 100px;
     min-width: 100px;
+  }
+}
+
+/* ========== RESPONSIVE FOR 800x1340 PIXELS ========== */
+/* Optimized for tablet portrait mode 800x1340 (Surface Pro, Samsung Galaxy Tab S series) */
+@media screen and (min-width: 800px) and (max-width: 800px) and (min-height: 1340px) and (orientation: portrait) {
+  .phieu-container {
+    padding: 22px;
+    margin: 14px;
+    border-radius: 18px;
+    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  }
+
+  .phieu-container::before {
+    background-size: 110px 110px;
+    opacity: 0.65;
+  }
+
+  /* Header optimizations */
+  .phieu-header {
+    margin-bottom: 28px;
+    padding: 18px 22px;
+    border-radius: 14px;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+
+  .phieu-title {
+    font-size: 26px;
+    letter-spacing: 1.2px;
+  }
+
+  .phieu-back-button {
+    height: 42px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 15px;
+    gap: 10px;
+  }
+
+  .phieu-add-button,
+  .phieu-edit-button {
+    height: 42px;
+    padding: 0 22px;
+    border-radius: 10px;
+    font-size: 15px;
+    gap: 10px;
+    min-width: 120px;
+  }
+
+  /* Search filters */
+  .search-filters-container {
+    padding: 22px;
+    border-radius: 14px;
+    margin-bottom: 22px;
+  }
+
+  .search-filters-row {
+    margin-bottom: 18px;
+  }
+
+  .filter-group {
+    gap: 8px;
+    min-width: 140px;
+  }
+
+  .filter-label {
+    font-size: 13px;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+  }
+
+  .search_button {
+    height: 42px;
+    padding: 0 20px;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+
+  /* Table containers */
+  .phieu-table-container,
+  .vat-tu-table {
+    border-radius: 14px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.1), 0 3px 12px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  }
+
+  .vat-tu-table {
+    margin-top: 22px;
+  }
+
+  /* Table headers */
+  .phieu-data-table .ant-table-thead > tr > th,
+  .vat-tu-table .ant-table-thead > tr > th {
+    padding: 16px 10px;
+    font-size: 13px;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.25);
+  }
+
+  /* Table body */
+  .phieu-data-table .ant-table-tbody > tr > td {
+    padding: 14px 8px;
+    font-size: 14px;
+  }
+
+  .vat-tu-table .ant-table-tbody > tr > td {
+    padding: 10px 6px;
+    font-size: 13px;
+  }
+
+  /* Action buttons */
+  .phieu-action-btn {
+    height: 38px;
+    width: 38px;
+    min-width: 38px;
+    border-radius: 9px;
+  }
+
+  .phieu-action-btn .anticon {
+    font-size: 15px;
+  }
+
+  /* Enhanced hover effects for tablet interaction */
+  .phieu-action-btn:hover {
+    transform: translateY(-2px) scale(1.08);
+  }
+
+  .phieu-view-btn:hover {
+    box-shadow: 0 8px 22px rgba(24, 144, 255, 0.35);
+  }
+
+  .phieu-edit-btn:hover {
+    box-shadow: 0 8px 22px rgba(250, 140, 22, 0.35);
+  }
+
+  .phieu-delete-btn:hover {
+    box-shadow: 0 8px 22px rgba(255, 77, 79, 0.35);
+  }
+
+  /* Input and select styling */
+  .vat-tu-table-select,
+  .vat-tu-table-input {
+    border-radius: 9px !important;
+    font-size: 14px !important;
+    padding: 8px 10px !important;
+  }
+
+  .vat-tu-table-select .ant-select-selector {
+    padding: 4px 10px !important;
+    min-height: 36px !important;
+  }
+
+  /* Form optimizations */
+  .phieu-form-container {
+    padding: 22px;
+  }
+
+  .phieu-form-actions {
+    padding: 18px 22px;
+    gap: 16px;
+  }
+
+  .phieu-form-actions .ant-btn {
+    height: 44px;
+    padding: 0 24px;
+    border-radius: 11px;
+    font-size: 15px;
+    font-weight: 600;
+    min-width: 120px;
+  }
+
+  /* Filter dropdown enhancements */
+  .ant-table-filter-dropdown {
+    padding: 20px;
+    border-radius: 12px;
+    min-width: 280px;
+  }
+
+  .ant-table-filter-dropdown .ant-input,
+  .ant-table-filter-dropdown .ant-select {
+    border-radius: 9px;
+    font-size: 14px;
+  }
+
+  /* Better touch targets for mobile-like interaction */
+  .phieu-back-button,
+  .phieu-add-button,
+  .phieu-edit-button,
+  .search_button {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}
+
+/* Landscape mode optimization for 800x1340 when rotated */
+@media screen and (min-width: 1340px) and (max-width: 1340px) and (min-height: 800px) and (orientation: landscape) {
+  .phieu-container {
+    padding: 30px;
+    margin: 20px;
+    border-radius: 20px;
+  }
+
+  .phieu-header {
+    margin-bottom: 35px;
+    padding: 24px 28px;
+    border-radius: 16px;
+  }
+
+  .phieu-title {
+    font-size: 28px;
+  }
+
+  .phieu-add-button,
+  .phieu-edit-button {
+    height: 44px;
+    padding: 0 26px;
+    font-size: 16px;
+  }
+
+  .search-filters-container {
+    padding: 26px;
+    border-radius: 16px;
+    margin-bottom: 26px;
+  }
+
+  .phieu-data-table .ant-table-thead > tr > th,
+  .vat-tu-table .ant-table-thead > tr > th {
+    padding: 18px 14px;
+    font-size: 14px;
+  }
+
+  .phieu-data-table .ant-table-tbody > tr > td {
+    padding: 16px 12px;
+    font-size: 15px;
+  }
+
+  .phieu-action-btn {
+    height: 40px;
+    width: 40px;
+    min-width: 40px;
+  }
+
+  .phieu-form-actions .ant-btn {
+    height: 46px;
+    padding: 0 28px;
+    font-size: 16px;
   }
 }

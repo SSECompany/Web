@@ -53,7 +53,9 @@ const Boxly = () => {
         <div className="boxly-content">
           <div className="boxly-header">
             <h1 className="boxly-title">Quản lý kho</h1>
-            <p className="boxly-subtitle">Chọn chức năng bạn muốn thực hiện</p>
+            <p className="boxly-subtitle">
+              Vui lòng chọn phiếu bạn muốn thực hiện
+            </p>
           </div>
           <div className="boxly-button-grid">
             {buttons.map((button) => (
