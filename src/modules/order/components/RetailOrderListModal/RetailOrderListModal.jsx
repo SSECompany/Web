@@ -376,9 +376,24 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       );
       const detailData = groupDetailData(flatDetailData, true);
 
+      // Merge masterData với record để đảm bảo có đủ thông tin khách hàng
+      const mergedMasterData = {
+        ...masterData,
+        // Fallback từ record nếu masterData không có
+        ten_kh: masterData.ten_kh || record.ten_kh,
+        ong_ba: masterData.ong_ba || record.ong_ba,
+        ma_kh: masterData.ma_kh || record.ma_kh,
+        cccd: masterData.cccd || record.cccd,
+        so_dt: masterData.so_dt || record.so_dt,
+        dia_chi: masterData.dia_chi || record.dia_chi,
+        email: masterData.email || record.email,
+        ma_so_thue_kh: masterData.ma_so_thue_kh || record.ma_so_thue_kh,
+        ten_dv_kh: masterData.ten_dv_kh || record.ten_dv_kh,
+      };
+
       const tableData = {
-        name: masterData.ma_ban,
-        id: masterData.ma_ban,
+        name: mergedMasterData.ma_ban,
+        id: mergedMasterData.ma_ban,
       };
 
       const internalId = `${tableData.id}_${Date.now()}`;
@@ -388,7 +403,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           tableId: tableData.id,
           isRealtime: false,
           internalId,
-          master: masterData,
+          master: mergedMasterData,
           detail: detailData,
         })
       );
@@ -412,7 +427,22 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       );
       const groupedDetailData = groupDetailData(flatDetailData, true);
 
-      setPrintMaster(masterData);
+      // Merge masterData với record để đảm bảo có đủ thông tin khách hàng
+      const mergedMasterData = {
+        ...masterData,
+        // Fallback từ record nếu masterData không có
+        ten_kh: masterData.ten_kh || record.ten_kh,
+        ong_ba: masterData.ong_ba || record.ong_ba,
+        ma_kh: masterData.ma_kh || record.ma_kh,
+        cccd: masterData.cccd || record.cccd,
+        so_dt: masterData.so_dt || record.so_dt,
+        dia_chi: masterData.dia_chi || record.dia_chi,
+        email: masterData.email || record.email,
+        ma_so_thue_kh: masterData.ma_so_thue_kh || record.ma_so_thue_kh,
+        ten_dv_kh: masterData.ten_dv_kh || record.ten_dv_kh,
+      };
+
+      setPrintMaster(mergedMasterData);
       setPrintDetail(groupedDetailData);
 
       setTimeout(() => {
@@ -449,9 +479,25 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
             record.stt_rec
           );
           const detailData = groupDetailData(flatDetailData, true);
+
+          // Merge masterData với record để đảm bảo có đủ thông tin khách hàng
+          const mergedMasterData = {
+            ...masterData,
+            // Fallback từ record nếu masterData không có
+            ten_kh: masterData.ten_kh || record.ten_kh,
+            ong_ba: masterData.ong_ba || record.ong_ba,
+            ma_kh: masterData.ma_kh || record.ma_kh,
+            cccd: masterData.cccd || record.cccd,
+            so_dt: masterData.so_dt || record.so_dt,
+            dia_chi: masterData.dia_chi || record.dia_chi,
+            email: masterData.email || record.email,
+            ma_so_thue_kh: masterData.ma_so_thue_kh || record.ma_so_thue_kh,
+            ten_dv_kh: masterData.ten_dv_kh || record.ten_dv_kh,
+          };
+
           const tableData = {
-            name: masterData.ma_ban,
-            id: masterData.ma_ban,
+            name: mergedMasterData.ma_ban,
+            id: mergedMasterData.ma_ban,
           };
           const internalId = `${tableData.id}_${Date.now()}`;
           dispatch(
@@ -460,7 +506,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
               tableId: tableData.id,
               isRealtime: false,
               internalId,
-              master: masterData,
+              master: mergedMasterData,
               detail: detailData,
               autoOpenPayment: true,
             })

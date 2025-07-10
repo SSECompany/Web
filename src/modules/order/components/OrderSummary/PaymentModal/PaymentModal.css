@@ -129,8 +129,57 @@
 }
 
 .qr-code-image {
-  width: 50%;
+  width: 60%; /* Tăng size cho dễ quét */
+  max-width: 300px;
   margin: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* Tối ưu render */
+  image-rendering: crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
+  /* Preload hint */
+  loading: lazy;
+}
+
+.qr-code-container {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+  border: 2px solid #e1e8ed;
+}
+
+.qr-loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.qr-error {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
 }
 
 .qr-info {
@@ -140,12 +189,18 @@
   color: #1a1a1a;
   line-height: 1.6;
   background-color: #f9f9f9;
-  padding: 10px 15px;
+  padding: 12px 16px;
   border-radius: 8px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  border-left: 4px solid #1890ff;
 }
 
 .qr-info-line {
   margin-bottom: 4px;
   letter-spacing: 0.3px;
+  transition: color 0.2s ease;
+}
+
+.qr-info-line:hover {
+  color: #1890ff;
 }
