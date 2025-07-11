@@ -548,23 +548,6 @@ const PaymentModal = ({
               }}
             >
               ❌ Lỗi tải QR
-              <br />
-              <button
-                onClick={handleRetryQR}
-                disabled={isRetrying}
-                style={{
-                  marginTop: "8px",
-                  padding: "6px 16px",
-                  backgroundColor: "#1890ff",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                }}
-              >
-                {isRetrying ? "🔄 Đang thử lại..." : "🔄 Thử lại"}
-              </button>
             </div>
           ) : showQRImage ? (
             <img
@@ -602,6 +585,17 @@ const PaymentModal = ({
             <div className="qr-info-line">
               Số tiền: {formatCurrency(total)}đ
             </div>
+          </div>
+          {/* Nút Thử lại luôn hiển thị */}
+          <div style={{ textAlign: "center", marginTop: 12 }}>
+            <Button
+              onClick={handleRetryQR}
+              disabled={isRetrying}
+              type="primary"
+              style={{ minWidth: 120 }}
+            >
+              {isRetrying ? "🔄 Đang lấy mã QR..." : "Lấy mã QR"}
+            </Button>
           </div>
         </div>
       )}
