@@ -1,5 +1,6 @@
 import React, { forwardRef } from "react";
 import { formatNumber } from "../../../../../app/hook/dataFormatHelper";
+import VietQR from "../../../../../components/common/GenerateQR/VietQR";
 import jwt from "../../../../../utils/jwt";
 
 const account = process.env.REACT_APP_VIETQR_ACCOUNT;
@@ -314,20 +315,18 @@ const PrintComponent = forwardRef(
         </div>
 
         <div style={{ textAlign: "center", marginTop: "10px" }}>
-          <img
-            src={`https://img.vietqr.io/image/${account}-qr_only.png?amount=${
+          <VietQR
+            amount={
               master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
                 ? master.chuyen_khoan
                 : master?.tong_tien
-            }&addInfo=${encodeURIComponent(
-              `thanh toan Phenikaa so CT ${orderNumber}: ${formatNumber(
-                master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
-                  ? master.chuyen_khoan
-                  : master?.tong_tien
-              )}vnd`
-            )}`}
-            alt="QR Code"
-            style={{ width: "100px", height: "100px" }}
+            }
+            soChungTu={`Thanh toan Phenikaa so CT ${orderNumber}: ${formatNumber(
+              master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
+                ? master.chuyen_khoan
+                : master?.tong_tien
+            )}vnd`}
+            size={80}
           />
         </div>
 

@@ -1,5 +1,5 @@
 import crc from "crc";
-import { QRCode } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import React from "react";
 
 function pad2(n) {
@@ -7,23 +7,18 @@ function pad2(n) {
 }
 
 function buildVietQR({ account, bankId, amount, content }) {
-  // Các trường cố định
   const payloadFormat = "00" + "02" + "01";
   const pointOfInit = "01" + "02" + "12";
-  const accInfo =
-    "38" +
-    pad2(14 + account.length) +
-    "0010A0000007270127" +
-    bankId +
-    "3011" +
-    account;
+  const accInfoValue =
+    "0010A00000072701240006" + bankId + "0110" + account + "0208QRIBFTTA";
+  const accInfo = "38" + pad2(accInfoValue.length) + accInfoValue;
   const currency = "53" + "03" + "704";
   const amountStr = amount
     ? "54" + pad2(amount.toString().length) + amount
     : "";
   const country = "58" + "02" + "VN";
-  const addData = "62" + pad2(7 + content.length) + "0819" + content;
-  // Ghép chuỗi (bỏ qua CRC lúc này)
+  const contentField = "08" + pad2(content.length) + content;
+  const addData = "62" + pad2(contentField.length) + contentField;
   let qrString =
     payloadFormat +
     pointOfInit +
@@ -33,7 +28,6 @@ function buildVietQR({ account, bankId, amount, content }) {
     country +
     addData +
     "6304";
-  // Tính CRC
   const crcValue = crc
     .crc16ccitt(qrString, 0xffff)
     .toString(16)
@@ -42,18 +36,17 @@ function buildVietQR({ account, bankId, amount, content }) {
   return qrString + crcValue;
 }
 
-export default function VietQR({ amount, soChungTu }) {
+export default function VietQR({ amount, soChungTu, size = 100 }) {
   const qrData = buildVietQR({
-    account: "0123456789", // Số tài khoản cố định
-    bankId: "970422", // Mã ngân hàng cố định (MB Bank)
+    account: "1077016666",
+    bankId: "970436",
     amount,
     content: soChungTu,
   });
 
   return (
     <div>
-      <QRCode value={qrData} size={256} />
-      <p style={{ wordBreak: "break-all", fontSize: 12 }}>{qrData}</p>
+      <QRCodeCanvas value={qrData} size={size} />
     </div>
   );
 }
