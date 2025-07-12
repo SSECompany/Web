@@ -692,7 +692,7 @@ const SyncFastLogViewer = ({ isOpen, onClose }) => {
                       color: order.canRetry ? "#1976d2" : "#c62828",
                     }}
                   >
-                    {order.attempts}/5 attempts
+                    {order.attempts}/{simpleSyncGuard.maxRetries} attempts
                   </span>
 
                   {/* ✅ Hiển thị individual countdown timer */}

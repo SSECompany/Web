@@ -18,9 +18,26 @@ import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
 import PrintComponent from "./PrintComponent/PrintComponent";
 
+// ✅ PERFORMANCE OPTIMIZATION: Cached network check
+let _networkCheckCache = null;
+let _lastNetworkCheck = 0;
+const NETWORK_CHECK_CACHE_DURATION = 10000; // 10 seconds
+
 const checkInternetConnection = async () => {
+  const now = Date.now();
+
+  // Return cached result if still valid
+  if (
+    _networkCheckCache !== null &&
+    now - _lastNetworkCheck < NETWORK_CHECK_CACHE_DURATION
+  ) {
+    return _networkCheckCache;
+  }
+
   try {
     if (!navigator.onLine) {
+      _networkCheckCache = false;
+      _lastNetworkCheck = now;
       return false;
     }
 
@@ -35,9 +52,14 @@ const checkInternetConnection = async () => {
     });
 
     clearTimeout(timeoutId);
+
+    _networkCheckCache = true;
+    _lastNetworkCheck = now;
     return true;
   } catch (error) {
     console.warn("Internet connection check failed:", error);
+    _networkCheckCache = false;
+    _lastNetworkCheck = now;
     return false;
   }
 };
@@ -62,6 +84,85 @@ const addPendingSync = (sttRec, userId) => {
 
 const retryPendingSyncs = async () => {
   return await simpleSyncGuard.checkAndRetry();
+};
+
+// ✅ Helper function để chạy song song print-order và InvoiceReceipt
+const runParallelTasks = async (sttRec, userId, sync = true) => {
+  const parallelTasks = [];
+
+  // Thêm task đồng bộ (nếu có)
+  if (sync) {
+    const syncTask = simpleSyncGuard
+      .triggerSync(sttRec)
+      .then((result) => {
+        if (result) {
+          console.log(`✅ Đồng bộ thành công cho stt_rec ${sttRec}`);
+          simpleSyncGuard.markSynced(sttRec);
+        } else {
+          console.log(
+            `❌ Đồng bộ thất bại cho stt_rec ${sttRec}, sẽ retry tự động`
+          );
+        }
+        return { type: "sync", success: result };
+      })
+      .catch((syncError) => {
+        console.error(`❌ Lỗi đồng bộ cho stt_rec ${sttRec}:`, syncError);
+        return { type: "sync", success: false, error: syncError };
+      });
+
+    parallelTasks.push(syncTask);
+  }
+
+  // Thêm task in order
+  const printTask = printOrderApi(sttRec, userId)
+    .then((printResult) => {
+      console.log(`✅ In order thành công cho stt_rec ${sttRec}`);
+      return { type: "print", success: true };
+    })
+    .catch((printError) => {
+      console.error("printOrderApi failed:", {
+        error: printError,
+        sttRec,
+        userId,
+        message: printError.message,
+        stack: printError.stack,
+      });
+      notification.error({
+        message: "Có lỗi xảy ra khi in đơn hàng!",
+        description: printError.message,
+      });
+      return { type: "print", success: false, error: printError };
+    });
+
+  parallelTasks.push(printTask);
+
+  // ✅ Chạy tất cả tasks SONG SONG và log kết quả
+  return Promise.allSettled(parallelTasks)
+    .then((results) => {
+      console.log(`🎯 Kết quả song song cho stt_rec ${sttRec}:`, results);
+
+      // Log chi tiết từng task
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          const taskResult = result.value;
+          console.log(
+            `✅ Task ${taskResult.type} hoàn thành:`,
+            taskResult.success
+          );
+        } else {
+          console.log(`❌ Task ${index} thất bại:`, result.reason);
+        }
+      });
+
+      return results;
+    })
+    .catch((error) => {
+      console.error(
+        `❌ Lỗi trong quá trình chạy song song cho stt_rec ${sttRec}:`,
+        error
+      );
+      throw error;
+    });
 };
 
 export default function OrderSummary({ total, itemCount }) {
@@ -212,7 +313,7 @@ export default function OrderSummary({ total, itemCount }) {
       orderData.masterData.chuyen_khoan = "";
       orderData.masterData.tong_tt = "";
       orderData.masterData.httt = "";
-      orderData.masterData.s3 = "0"; 
+      orderData.masterData.s3 = "0";
     }
 
     setIsCreatingOrder(true);
@@ -228,18 +329,39 @@ export default function OrderSummary({ total, itemCount }) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
 
         if (sttRec) {
+          // ✅ BƯỚC 1: Mark pending ngay khi tạo đơn thành công
           if (!isSaveOnly) {
             addPendingSync(sttRec, id);
+            console.log(
+              `✅ Đã mark stt_rec ${sttRec} cho đồng bộ (send directly)`
+            );
+          }
 
-            try {
-              await simpleSyncGuard.triggerSync(sttRec);
-            } catch (error) {}
+          // ✅ BƯỚC 2: Chạy đồng bộ RIÊNG BIỆT (không đợi)
+          if (!isSaveOnly) {
+            runParallelTasks(sttRec, id, true)
+              .then((results) => {
+                console.log(
+                  `🎯 Kết quả song song cho stt_rec ${sttRec} (send directly):`,
+                  results
+                );
+              })
+              .catch((error) => {
+                console.error(
+                  `❌ Lỗi trong quá trình chạy song song cho stt_rec ${sttRec} (send directly):`,
+                  error
+                );
+              });
           }
 
           notification.success({
             message: isSaveOnly
               ? "Đã lưu đơn hàng thành công!"
               : "Đơn hàng đã được tạo thành công và sẽ được đồng bộ tự động!",
+            description: !isSaveOnly
+              ? "Hệ thống sẽ thử lại đồng bộ cho đến khi thành công."
+              : undefined,
+            duration: 4,
           });
 
           setTimeout(() => dispatch(clearTabData(internalActiveTabId)), 500);
@@ -260,55 +382,23 @@ export default function OrderSummary({ total, itemCount }) {
     setIsPrinting(false);
 
     const sttRec = currentPrintData?.sttRec;
-    const alreadySynced = currentPrintData?.syncSuccess;
-    const alreadyPrinted = currentPrintData?.printSuccess;
+    const sync = currentPrintData?.sync;
 
     if (sttRec) {
-      let printSuccess = alreadyPrinted || false;
-      let syncSuccess = alreadySynced || false;
-
-      if (!alreadySynced) {
-        if (!simpleSyncGuard.isPending(sttRec)) {
-          syncSuccess = true;
-        } else {
-          notification.info({
-            message: "🔄 Đồng bộ FAST đang được xử lý...",
-            description: `Đơn ${sttRec} đang được đồng bộ tự động. Hệ thống sẽ thử lại cho đến khi thành công.`,
-            duration: 4,
-          });
-        }
-      }
-
-      if (!alreadyPrinted) {
-        try {
-          await printOrderApi(sttRec, id);
-          printSuccess = true;
-        } catch (printError) {
-          console.error("printOrderApi failed:", {
-            error: printError,
-            sttRec,
-            userId: id,
-            message: printError.message,
-            stack: printError.stack,
-          });
-          notification.error({
-            message: "Có lỗi xảy ra khi in đơn hàng!",
-            description: printError.message,
-          });
-        }
-      }
-
-      if (printSuccess || syncSuccess) {
-        const successMessage = [];
-        if (syncSuccess) successMessage.push("Đồng bộ FAST");
-        if (printSuccess) successMessage.push("In đơn hàng");
-
+      // ✅ Kiểm tra trạng thái đồng bộ
+      if (sync && simpleSyncGuard.isPending(sttRec)) {
+        notification.info({
+          message: "🔄 Đồng bộ FAST đang được xử lý...",
+          description: `Đơn ${sttRec} đang được đồng bộ tự động. Hệ thống sẽ thử lại cho đến khi thành công.`,
+          duration: 4,
+        });
+      } else if (sync) {
         notification.success({
-          message: `Hoàn tất! (${successMessage.join(", ")})`,
+          message: "✅ Hoàn tất! (Đồng bộ FAST thành công)",
         });
       } else {
-        notification.warning({
-          message: "Đơn đã lưu nhưng có lỗi xảy ra với các dịch vụ phụ trợ!",
+        notification.success({
+          message: "✅ Hoàn tất! (Không đồng bộ)",
         });
       }
     }
@@ -440,82 +530,13 @@ export default function OrderSummary({ total, itemCount }) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
         const orderNumber = response?.listObject[0][0]?.so_ct;
 
-        // ✅ BƯỚC 1: LUÔN LUÔN mark pending trước (đảm bảo không miss)
+        // ✅ BƯỚC 1: LUÔN LUÔN mark pending ngay khi thanh toán thành công
         if (sync) {
           addPendingSync(sttRec, id);
+          console.log(`✅ Đã mark stt_rec ${sttRec} cho đồng bộ`);
         }
 
-        let syncSuccess = false;
-        let printSuccess = false;
-
-        // ✅ BƯỚC 2: Thử sync ngay (có thể miss nhưng order đã được marked)
-        if (sync) {
-          try {
-            await simpleSyncGuard.triggerSync(sttRec);
-            // Check nếu sync thành công
-            if (!simpleSyncGuard.isPending(sttRec)) {
-              syncSuccess = true;
-            }
-          } catch (error) {
-            // Sync failed, nhưng order đã được marked → sẽ retry tự động
-            notification.info({
-              message: "🔄 Đồng bộ FAST đang được xử lý...",
-              description: `Đơn ${sttRec} sẽ được đồng bộ tự động. Hệ thống sẽ thử lại cho đến khi thành công.`,
-              duration: 4,
-            });
-          }
-        } else {
-          // Nếu không sync, đánh dấu syncSuccess = true để không hiển thị cảnh báo
-          syncSuccess = true;
-        }
-
-        try {
-          await printOrderApi(sttRec, id);
-          printSuccess = true;
-        } catch (printError) {
-          console.error("printOrderApi failed:", {
-            error: printError,
-            sttRec,
-            userId: id,
-            message: printError.message,
-            stack: printError.stack,
-          });
-          notification.error({
-            message: "Có lỗi xảy ra khi in đơn hàng!",
-            description: printError.message,
-          });
-        }
-
-        // Thông báo kết quả
-        if (syncSuccess && printSuccess) {
-          notification.success({
-            message: !sync
-              ? "Thanh toán thành công! Đã gửi lệnh in (không đồng bộ)."
-              : "Thanh toán thành công! Đã đồng bộ FAST và gửi lệnh in.",
-          });
-        } else if (syncSuccess || printSuccess) {
-          const successMessage = [];
-          if (syncSuccess && sync) successMessage.push("Đồng bộ FAST");
-          if (printSuccess) successMessage.push("Gửi lệnh in");
-
-          const baseMessage = !sync
-            ? "Thanh toán thành công (không đồng bộ)!"
-            : "Thanh toán thành công!";
-
-          notification.success({
-            message:
-              successMessage.length > 0
-                ? `${baseMessage} (${successMessage.join(", ")})`
-                : baseMessage,
-          });
-        } else {
-          notification.warning({
-            message: !sync
-              ? "Thanh toán thành công nhưng có lỗi với dịch vụ in!"
-              : "Thanh toán thành công nhưng có lỗi với các dịch vụ phụ trợ!",
-          });
-        }
-
+        // ✅ BƯỚC 2: Mở hộp thoại in NGAY LẬP TỨC (không đợi đồng bộ)
         setPrintMaster(orderData.masterData);
         setPrintDetail(orderData.detailData);
         setCurrentPrintData({
@@ -526,13 +547,43 @@ export default function OrderSummary({ total, itemCount }) {
           customerInfo,
           sttRec,
           orderNumber,
-          syncSuccess,
-          printSuccess,
+          syncSuccess: false,
+          printSuccess: false,
           sync,
         });
         setHasReprinted(false);
         setIsPrinting(true);
         setIsPrinted(false);
+
+        // ✅ Gọi đồng thời syncFast và printOrder ngay khi mở hộp thoại in
+        runParallelTasks(sttRec, id, sync)
+          .then((results) => {
+            // Cập nhật printSuccess nếu có task print thành công
+            const printResult = results.find(
+              (result) =>
+                result.status === "fulfilled" && result.value?.type === "print"
+            );
+            if (printResult?.value?.success) {
+              setCurrentPrintData((prev) =>
+                prev ? { ...prev, printSuccess: true } : prev
+              );
+            }
+          })
+          .catch((error) => {
+            console.error(
+              `❌ Lỗi trong quá trình chạy song song cho stt_rec ${sttRec}:`,
+              error
+            );
+          });
+
+        // ✅ Thông báo thành công ngay lập tức (không đợi đồng bộ/in)
+        notification.success({
+          message: "Thanh toán thành công!",
+          description: sync
+            ? "Đơn hàng đã được tạo và sẽ được đồng bộ tự động. Hệ thống sẽ thử lại cho đến khi thành công."
+            : "Đơn hàng đã được tạo thành công.",
+          duration: 4,
+        });
 
         // ✅ Không gọi handleClosePaymentModal() ở đây nữa vì đã đóng ở trên
       } else {

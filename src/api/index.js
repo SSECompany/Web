@@ -87,7 +87,7 @@ export const addDataMultiObjectApi = async (payload) => {
 };
 
 export const printOrderApi = async (sttRec, userId) => {
-  const token = localStorage.getItem("access_token");
+  const token = getCachedToken();
   return await https
     .post(
       `Print/print-order`,
@@ -108,8 +108,24 @@ export const printOrderApi = async (sttRec, userId) => {
     });
 };
 
+// ✅ PERFORMANCE OPTIMIZATION: Cached token
+let _cachedToken = null;
+let _tokenCacheTime = 0;
+const TOKEN_CACHE_DURATION = 300000; // 5 minutes
+
+const getCachedToken = () => {
+  const now = Date.now();
+  if (_cachedToken && now - _tokenCacheTime < TOKEN_CACHE_DURATION) {
+    return _cachedToken;
+  }
+
+  _cachedToken = localStorage.getItem("access_token");
+  _tokenCacheTime = now;
+  return _cachedToken;
+};
+
 export const syncFastApi = async (sttRec, userId) => {
-  const token = localStorage.getItem("access_token");
+  const token = getCachedToken();
   const startTime = Date.now();
 
   // Pre-request validation và logging
