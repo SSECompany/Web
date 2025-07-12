@@ -67,12 +67,12 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
           <strong>Tên khách:</strong> {master.ten_kh}
         </div>
       )}
-      {master?.ma_so_thue_kh && master.ma_so_thue_kh.trim() && (
+      {master?.ma_so_thue_kh && (master.ma_so_thue_kh || "").trim() && (
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Mã số thuế:</strong> {master.ma_so_thue_kh}
         </div>
       )}
-      {master?.ten_dv_kh && master.ten_dv_kh.trim() && (
+      {master?.ten_dv_kh && (master.ten_dv_kh || "").trim() && (
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Tên công ty:</strong> {master.ten_dv_kh}
         </div>
@@ -316,7 +316,7 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
                 ? master.chuyen_khoan
                 : master?.tong_tien
             }
-            soChungTu={`Thanh toan Phenikaa so CT ${master?.so_ct.trim()} : ${formatNumber(
+            soChungTu={`Thanh toan Phenikaa so CT ${(master?.so_ct || "").trim()} : ${formatNumber(
               master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
                 ? master.chuyen_khoan
                 : master?.tong_tien
@@ -357,7 +357,7 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
             color: "#000",
           }}
         >
-          Mã số tra cứu: {master?.so_ct?.trim() || ""}
+          Mã số tra cứu: {(master?.so_ct || "").trim() || ""}
         </div>
       </div>
     </div>
