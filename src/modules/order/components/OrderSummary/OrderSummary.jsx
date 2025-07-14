@@ -57,7 +57,6 @@ const checkInternetConnection = async () => {
     _lastNetworkCheck = now;
     return true;
   } catch (error) {
-    console.warn("Internet connection check failed:", error);
     _networkCheckCache = false;
     _lastNetworkCheck = now;
     return false;
@@ -96,17 +95,11 @@ const runParallelTasks = async (sttRec, userId, sync = true) => {
       .triggerSync(sttRec)
       .then((result) => {
         if (result) {
-          console.log(`✅ Đồng bộ thành công cho stt_rec ${sttRec}`);
           simpleSyncGuard.markSynced(sttRec);
-        } else {
-          console.log(
-            `❌ Đồng bộ thất bại cho stt_rec ${sttRec}, sẽ retry tự động`
-          );
         }
         return { type: "sync", success: result };
       })
       .catch((syncError) => {
-        console.error(`❌ Lỗi đồng bộ cho stt_rec ${sttRec}:`, syncError);
         return { type: "sync", success: false, error: syncError };
       });
 
@@ -116,17 +109,9 @@ const runParallelTasks = async (sttRec, userId, sync = true) => {
   // Thêm task in order
   const printTask = printOrderApi(sttRec, userId)
     .then((printResult) => {
-      console.log(`✅ In order thành công cho stt_rec ${sttRec}`);
       return { type: "print", success: true };
     })
     .catch((printError) => {
-      console.error("printOrderApi failed:", {
-        error: printError,
-        sttRec,
-        userId,
-        message: printError.message,
-        stack: printError.stack,
-      });
       notification.error({
         message: "Có lỗi xảy ra khi in đơn hàng!",
         description: printError.message,
@@ -136,31 +121,12 @@ const runParallelTasks = async (sttRec, userId, sync = true) => {
 
   parallelTasks.push(printTask);
 
-  // ✅ Chạy tất cả tasks SONG SONG và log kết quả
+  // ✅ Chạy tất cả tasks SONG SONG
   return Promise.allSettled(parallelTasks)
     .then((results) => {
-      console.log(`🎯 Kết quả song song cho stt_rec ${sttRec}:`, results);
-
-      // Log chi tiết từng task
-      results.forEach((result, index) => {
-        if (result.status === "fulfilled") {
-          const taskResult = result.value;
-          console.log(
-            `✅ Task ${taskResult.type} hoàn thành:`,
-            taskResult.success
-          );
-        } else {
-          console.log(`❌ Task ${index} thất bại:`, result.reason);
-        }
-      });
-
       return results;
     })
     .catch((error) => {
-      console.error(
-        `❌ Lỗi trong quá trình chạy song song cho stt_rec ${sttRec}:`,
-        error
-      );
       throw error;
     });
 };
@@ -332,25 +298,16 @@ export default function OrderSummary({ total, itemCount }) {
           // ✅ BƯỚC 1: Mark pending ngay khi tạo đơn thành công
           if (!isSaveOnly) {
             addPendingSync(sttRec, id);
-            console.log(
-              `✅ Đã mark stt_rec ${sttRec} cho đồng bộ (send directly)`
-            );
           }
 
           // ✅ BƯỚC 2: Chạy đồng bộ RIÊNG BIỆT (không đợi)
           if (!isSaveOnly) {
             runParallelTasks(sttRec, id, true)
               .then((results) => {
-                console.log(
-                  `🎯 Kết quả song song cho stt_rec ${sttRec} (send directly):`,
-                  results
-                );
+                // Silent success
               })
               .catch((error) => {
-                console.error(
-                  `❌ Lỗi trong quá trình chạy song song cho stt_rec ${sttRec} (send directly):`,
-                  error
-                );
+                // Silent error - already handled by simpleSyncGuard
               });
           }
 
@@ -533,7 +490,6 @@ export default function OrderSummary({ total, itemCount }) {
         // ✅ BƯỚC 1: LUÔN LUÔN mark pending ngay khi thanh toán thành công
         if (sync) {
           addPendingSync(sttRec, id);
-          console.log(`✅ Đã mark stt_rec ${sttRec} cho đồng bộ`);
         }
 
         // ✅ BƯỚC 2: Mở hộp thoại in NGAY LẬP TỨC (không đợi đồng bộ)
@@ -570,10 +526,7 @@ export default function OrderSummary({ total, itemCount }) {
             }
           })
           .catch((error) => {
-            console.error(
-              `❌ Lỗi trong quá trình chạy song song cho stt_rec ${sttRec}:`,
-              error
-            );
+            // Silent error - already handled by simpleSyncGuard
           });
 
         // ✅ Thông báo thành công ngay lập tức (không đợi đồng bộ/in)
@@ -769,7 +722,6 @@ export default function OrderSummary({ total, itemCount }) {
     }
     setIsCombining(false);
   };
-
   return (
     <div className="order-summary">
       <div className="summary-info">
