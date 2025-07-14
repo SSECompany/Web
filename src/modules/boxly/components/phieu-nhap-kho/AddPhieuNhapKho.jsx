@@ -154,24 +154,24 @@ const AddPhieuNhapKho = () => {
   };
 
   return (
-    <div className="phieu-container">
-      <div className="phieu-header">
+    <div className="phieu-nhap-container">
+      <div className="phieu-nhap-header">
         <Button
           type="text"
           icon={<LeftOutlined />}
           onClick={() => navigate(-1)}
-          className="phieu-back-button"
+          className="phieu-nhap-back-button"
         >
           Trở về
         </Button>
-        <Title level={3} className="phieu-title">
+        <Title level={5} className="phieu-nhap-title">
           THÊM PHIẾU NHẬP KHO MỚI
         </Title>
         <div style={{ width: "120px" }}></div>
       </div>
 
-      <div className="phieu-form-container">
-        <Form form={form} layout="vertical" className="phieu-form">
+      <div className="phieu-nhap-form-container">
+        <Form form={form} layout="vertical" className="phieu-nhap-form">
           <PhieuNhapKhoFormInputs
             isEditMode={isEditMode}
             maKhachList={maKhachList}

@@ -5,6 +5,7 @@ import https from "../../../../../utils/https";
 
 const masterDataCache = {
   maGiaoDich: null,
+  maKhach: null,
   vatTu: null,
   lastFetch: null,
 };
@@ -14,10 +15,12 @@ const CACHE_EXPIRY = 5 * 60 * 1000;
 export const usePhieuXuatKhoData = () => {
   const [loading, setLoading] = useState(false);
   const [maGiaoDichList, setMaGiaoDichList] = useState([]);
-  const [maKhoList, setMaKhoList] = useState([]);
-  const [loadingMaKho, setLoadingMaKho] = useState(false);
+  const [maKhachList, setMaKhachList] = useState([]);
+  const [loadingMaKhach, setLoadingMaKhach] = useState(false);
   const [vatTuList, setVatTuList] = useState([]);
   const [loadingVatTu, setLoadingVatTu] = useState(false);
+  const [maKhoList, setMaKhoList] = useState([]);
+  const [loadingMaKho, setLoadingMaKho] = useState(false);
 
   const token = localStorage.getItem("access_token");
 
@@ -35,7 +38,7 @@ export const usePhieuXuatKhoData = () => {
     try {
       const response = await https.get(
         "v1/web/danh-sach-ma-gd",
-        { ma_ct: "PXB" },
+        { ma_ct: "PXA" },
         {
           headers: {
             "Content-Type": "application/json",
@@ -54,13 +57,24 @@ export const usePhieuXuatKhoData = () => {
     }
   }, [isCacheValid, token]);
 
-  const fetchMaKhoList = useCallback(
+  const fetchMaKhachList = useCallback(
     async (keyword = "") => {
-      setLoadingMaKho(true);
+      if (keyword && isCacheValid && masterDataCache.maKhach) {
+        const filteredData = masterDataCache.maKhach.filter((item) =>
+          item.label.toLowerCase().includes(keyword.toLowerCase())
+        );
+        setMaKhachList(filteredData);
+        return;
+      }
+
+      setLoadingMaKhach(true);
       try {
         const response = await https.get(
-          "v1/web/danh-sach-kho",
-          { keyword: keyword },
+          "v1/web/danh-sach-khach-hang",
+          {
+            searchMaKH: "",
+            searchTenKH: keyword,
+          },
           {
             headers: {
               "Content-Type": "application/json",
@@ -70,18 +84,23 @@ export const usePhieuXuatKhoData = () => {
         );
         if (response.data && response.data.data) {
           const options = response.data.data.map((item) => ({
-            value: item.ma_kho.trim(),
-            label: `${item.ma_kho.trim()} - ${item.ten_kho.trim()}`,
+            value: item.ma_kh.trim(),
+            label: `${item.ma_kh.trim()} - ${item.ten_kh.trim()}`,
           }));
-          setMaKhoList(options);
+          setMaKhachList(options);
+
+          if (!keyword) {
+            masterDataCache.maKhach = options;
+            masterDataCache.lastFetch = Date.now();
+          }
         }
       } catch (error) {
-        message.error("Không thể tải danh sách kho");
+        message.error("Không thể tải danh sách khách hàng");
       } finally {
-        setLoadingMaKho(false);
+        setLoadingMaKhach(false);
       }
     },
-    [token]
+    [isCacheValid, token]
   );
 
   const fetchVatTuList = useCallback(
@@ -182,12 +201,12 @@ export const usePhieuXuatKhoData = () => {
     [token]
   );
 
-  const fetchMaKhoListDebounced = useMemo(
+  const fetchMaKhachListDebounced = useMemo(
     () =>
       debounce((keyword) => {
-        fetchMaKhoList(keyword);
+        fetchMaKhachList(keyword);
       }, 500),
-    [fetchMaKhoList]
+    [fetchMaKhachList]
   );
 
   const fetchVatTuListDebounced = useMemo(
@@ -198,8 +217,89 @@ export const usePhieuXuatKhoData = () => {
     [fetchVatTuList]
   );
 
+  const fetchMaKhoList = useCallback(
+    async (keyword = "") => {
+      setLoadingMaKho(true);
+      try {
+        const response = await https.get(
+          "v1/web/danh-sach-kho",
+          { keyword: keyword },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (response.data && response.data.data) {
+          const options = response.data.data.map((item) => ({
+            value: item.ma_kho.trim(),
+            label: `${item.ma_kho.trim()} - ${item.ten_kho.trim()}`,
+          }));
+          setMaKhoList(options);
+        }
+      } catch (error) {
+        message.error("Không thể tải danh sách kho");
+      } finally {
+        setLoadingMaKho(false);
+      }
+    },
+    [token]
+  );
+
+  const fetchMaKhoListDebounced = useMemo(
+    () =>
+      debounce((keyword) => {
+        fetchMaKhoList(keyword);
+      }, 500),
+    [fetchMaKhoList]
+  );
+
+  const fetchPhieuXuatKhoDetail = useCallback(
+    async (sttRec) => {
+      try {
+        setLoading(true);
+        const body = {
+          store: "api_get_data_detail_phieu_xuat_kho_voucher",
+          param: {
+            stt_rec: sttRec,
+          },
+          data: {},
+          resultSetNames: ["master", "detail"],
+        };
+
+        const response = await https.post(
+          "v1/dynamicApi/call-dynamic-api",
+          body,
+          {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          }
+        );
+
+        // Xử lý response theo cấu trúc mới
+        const masterData =
+          response.data?.listObject?.dataLists?.master?.[0] || {};
+        const detailData = response.data?.listObject?.dataLists?.detail || [];
+
+        return {
+          master: masterData,
+          detail: detailData,
+        };
+      } catch (error) {
+        console.error("Error fetching phieu xuat kho detail:", error);
+        message.error("Không thể tải chi tiết phiếu xuất kho");
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [token]
+  );
+
   const clearCache = useCallback(() => {
     masterDataCache.maGiaoDich = null;
+    masterDataCache.maKhach = null;
     masterDataCache.vatTu = null;
     masterDataCache.lastFetch = null;
   }, []);
@@ -208,17 +308,22 @@ export const usePhieuXuatKhoData = () => {
     loading,
     setLoading,
     maGiaoDichList,
-    maKhoList,
-    loadingMaKho,
+    maKhachList,
+    loadingMaKhach,
     vatTuList,
     loadingVatTu,
-    fetchMaKhoListDebounced,
+    maKhoList,
+    loadingMaKho,
+    fetchMaKhachListDebounced,
     fetchVatTuListDebounced,
+    fetchMaKhoListDebounced,
     fetchMaGiaoDichList,
+    fetchMaKhachList,
     fetchMaKhoList,
     fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
+    fetchPhieuXuatKhoDetail,
     setVatTuList,
     clearCache,
   };

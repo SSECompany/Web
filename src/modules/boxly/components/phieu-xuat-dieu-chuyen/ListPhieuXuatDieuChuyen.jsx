@@ -7,9 +7,11 @@ import {
 } from "@ant-design/icons";
 import {
   Button,
+  Col,
   DatePicker,
   Input,
   message,
+  Row,
   Space,
   Table,
   Tag,
@@ -20,6 +22,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
+import { fetchPhieuXuatDieuChuyenList, deletePhieuXuatDieuChuyen } from "./utils/phieuXuatDieuChuyenApi";
 import "./phieu-xuat-dieu-chuyen.css";
 
 const { RangePicker } = DatePicker;
@@ -32,34 +35,43 @@ const ListPhieuXuatDieuChuyen = () => {
   const [allData, setAllData] = useState([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [isMobile, setIsMobile] = useState(false);
+  const [screenSize, setScreenSize] = useState("desktop");
   const [filters, setFilters] = useState({
     so_ct: "",
     ma_kh: "",
     ten_kh: "",
     dateRange: null,
-    status: "",
   });
 
-  const pageSize = isMobile ? 10 : 20;
+  const pageSize = 20;
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const paginatedData = allData.slice(startIndex, endIndex);
 
-  // Detect screen size
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      if (width < 480) {
+        setScreenSize("mobile");
+      } else if (width < 768) {
+        setScreenSize("mobileLandscape");
+      } else if (width < 1024) {
+        setScreenSize("tablet");
+      } else {
+        setScreenSize("desktop");
+      }
     };
 
-    handleResize();
-    window.addEventListener("resize", handleResize);
-
-    return () => window.removeEventListener("resize", handleResize);
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
   const fetchPhieuXuatDieuChuyen = async (filterParams = filters) => {
-    const body = {
+    const params = {
+      so_ct: filterParams.so_ct || "",
+      ma_kh: filterParams.ma_kh || "",
+      ten_kh: filterParams.ten_kh || "",
       DateFrom:
         filterParams.dateRange && filterParams.dateRange[0]
           ? filterParams.dateRange[0].format("YYYY-MM-DD")
@@ -68,23 +80,18 @@ const ListPhieuXuatDieuChuyen = () => {
         filterParams.dateRange && filterParams.dateRange[1]
           ? filterParams.dateRange[1].format("YYYY-MM-DD")
           : dayjs().endOf("month").format("YYYY-MM-DD"),
-      PageIndex: 1,
-      PageSize: 50,
-      ...filterParams,
+      PageIndex: currentPage,
+      PageSize: pageSize,
+      Status: "",
     };
-    try {
-      const res = await https.get(
-        "v1/web/danh-sach-chung-tu-xuat-dieu-chuyen",
-        body,
-        {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        }
-      );
-      setAllData(res.data.data || []);
-      setTotalRecords((res.data.data || []).length);
-    } catch (err) {
-      console.error("Lỗi gọi API danh sách phiếu xuất điều chuyển:", err);
+
+    const result = await fetchPhieuXuatDieuChuyenList(params);
+    
+    if (result.success) {
+      setAllData(result.data);
+      setTotalRecords(result.pagination.totalRecord || result.data.length);
+    } else {
+      console.error("Lỗi gọi API danh sách phiếu xuất điều chuyển:", result.error);
     }
   };
 
@@ -92,315 +99,330 @@ const ListPhieuXuatDieuChuyen = () => {
     fetchPhieuXuatDieuChuyen();
   }, []);
 
-  const handleDelete = async (stt_rec) => {
-    showConfirm({
-      title: "Xác nhận xóa phiếu",
-      content: "Bạn có chắc chắn muốn xóa phiếu này không?",
-      type: "warning",
-      onOk: async () => {
-        try {
-          const response = await https.post(
-            "v1/web/xoa-ct-xuat-dieu-chuyen",
-            {},
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              params: {
-                sctRec: stt_rec,
-              },
-            }
-          );
-
-          if (response.data && response.data.statusCode === 200) {
-            setAllData(allData.filter((item) => item.stt_rec !== stt_rec));
-            message.success("Xóa phiếu thành công");
-          } else {
-            message.error(
-              response.data?.message || "Có lỗi xảy ra khi xóa phiếu"
-            );
-          }
-        } catch (error) {
-          console.error("Lỗi khi xóa phiếu:", error);
-          message.error("Không thể xóa phiếu. Vui lòng thử lại sau.");
-        }
-      },
-    });
-  };
-
-  const renderFilterDropdown =
-    (placeholder, filterKey, onSearch) =>
-    ({ setSelectedKeys, selectedKeys, confirm }) =>
-      (
-        <div style={{ padding: 8, minWidth: 200 }}>
-          <Input
-            placeholder={placeholder}
-            value={selectedKeys[0]}
-            onChange={(e) =>
-              setSelectedKeys(e.target.value ? [e.target.value] : [])
-            }
-            onPressEnter={() => onSearch(selectedKeys, confirm, filterKey)}
-            style={{ marginBottom: 8, display: "block" }}
-            size={isMobile ? "small" : "middle"}
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => onSearch(selectedKeys, confirm, filterKey)}
-            size={isMobile ? "small" : "middle"}
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      );
-
-  const handleSearch = (selectedKeys, confirm, filterKey) => {
-    confirm();
-    const newFilters = { ...filters, [filterKey]: selectedKeys[0] || "" };
-    setFilters(newFilters);
-    fetchPhieuXuatDieuChuyen(newFilters);
-  };
-
   const getStatusColor = (status) => {
     switch (status) {
       case "0":
         return "orange";
-      case "4":
-        return "green";
-      case "5":
-        return "blue";
-      case "6":
-        return "purple";
       case "2":
+        return "blue";
+      case "3":
+        return "green";
+      case "4":
         return "cyan";
+      case "5":
+        return "purple";
+      case "6":
+        return "gold";
       default:
         return "default";
     }
   };
 
-  const mobileColumns = [
-    {
-      title: "STT",
-      key: "stt",
-      render: (_, __, index) => startIndex + index + 1,
-      width: 50,
-      align: "center",
-    },
-    {
-      title: "Ngày CT",
-      dataIndex: "ngay_ct",
-      key: "ngay_ct",
-      width: 100,
-      render: (text) => dayjs(text).format("DD/MM"),
-    },
-    {
-      title: "Số CT",
-      dataIndex: "so_ct",
-      key: "so_ct",
-      width: 120,
-      render: (text) => (
-        <div style={{ fontSize: "12px", lineHeight: "1.2" }}>
-          {text ? text.trim() : ""}
-        </div>
-      ),
-    },
-    {
-      title: "Trạng thái",
-      dataIndex: "statusname",
-      key: "status",
-      width: 100,
-      render: (statusname, record) => (
-        <Tag color={getStatusColor(record.status)} size="small">
-          {statusname}
-        </Tag>
-      ),
-    },
-    {
-      title: "Thao tác",
-      key: "action",
-      width: 100,
-      align: "center",
-      render: (_, record) => (
-        <Space size="small" direction="vertical">
-          <Button
-            size="small"
-            icon={<FileTextOutlined />}
-            onClick={() => navigate(`${record.stt_rec}`)}
-            className="phieu-action-btn phieu-view-btn"
-            style={{ width: "100%" }}
-          >
-            Xem
-          </Button>
-          <Space size={4}>
-            <Button
-              size="small"
-              type="primary"
-              icon={<EditOutlined />}
-              onClick={() => navigate(`edit/${record.stt_rec}`)}
-              className="phieu-action-btn phieu-edit-btn"
-            />
-            <Button
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record.stt_rec)}
-              className="phieu-action-btn phieu-delete-btn"
-            />
-          </Space>
-        </Space>
-      ),
-    },
-  ];
+  const handleDelete = async (sttRec) => {
+    showConfirm({
+      title: "Xác nhận xóa phiếu xuất điều chuyển",
+      content: "Bạn có chắc chắn muốn xóa phiếu xuất điều chuyển này không?",
+      type: "warning",
+      onOk: async () => {
+        try {
+          if (!sttRec) {
+            message.error("Không tìm thấy mã phiếu để xóa");
+            return;
+          }
+          
+          const result = await deletePhieuXuatDieuChuyen(sttRec);
+          
+          if (result.success) {
+            await fetchPhieuXuatDieuChuyen();
+          }
+        } catch (error) {
+          console.error("Lỗi khi xóa phiếu xuất điều chuyển:", error);
+        }
+      },
+    });
+  };
 
-  const desktopColumns = [
-    {
-      title: "STT",
-      key: "stt",
-      render: (_, __, index) => startIndex + index + 1,
-      width: 60,
-      align: "center",
-    },
-    {
-      title: "Ngày CT",
-      dataIndex: "ngay_ct",
-      key: "ngay_ct",
-      width: 150,
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
-          <RangePicker
-            inputReadOnly
-            value={
-              selectedKeys[0] && selectedKeys[1]
-                ? [
-                    dayjs(selectedKeys[0], "DD/MM/YYYY"),
-                    dayjs(selectedKeys[1], "DD/MM/YYYY"),
-                  ]
-                : null
-            }
-            onChange={(dates) => {
-              if (dates && dates.length === 2) {
-                setSelectedKeys([
-                  dates[0].format("DD/MM/YYYY"),
-                  dates[1].format("DD/MM/YYYY"),
-                ]);
-              } else {
-                setSelectedKeys([]);
+  const getColumns = () => {
+    const baseColumns = [
+      {
+        title: "STT",
+        key: "stt",
+        render: (_, __, index) => index + 1,
+        width: 60,
+        align: "center",
+      },
+      {
+        title: "Mã phiếu",
+        dataIndex: "stt_rec",
+        key: "stt_rec",
+        width: 150,
+        align: "center",
+      },
+      {
+        title: "Ngày CT",
+        dataIndex: "ngay_ct",
+        key: "ngay_ct",
+        width: 150,
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+          <div style={{ padding: 8 }}>
+            <RangePicker
+              inputReadOnly
+              value={
+                selectedKeys[0] && selectedKeys[1]
+                  ? [
+                      dayjs(selectedKeys[0], "DD/MM/YYYY"),
+                      dayjs(selectedKeys[1], "DD/MM/YYYY"),
+                    ]
+                  : null
               }
-            }}
-            style={{ marginBottom: 8, display: "block" }}
-            format="DD/MM/YYYY"
-            placeholder={["Từ ngày", "Đến ngày"]}
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => {
-              confirm();
-              const newFilters = {
-                ...filters,
-                dateRange:
-                  selectedKeys.length === 2
-                    ? [
-                        dayjs(selectedKeys[0], "DD/MM/YYYY"),
-                        dayjs(selectedKeys[1], "DD/MM/YYYY"),
-                      ]
-                    : null,
-              };
-              setFilters(newFilters);
-              fetchPhieuXuatDieuChuyen(newFilters);
-            }}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
-      filteredValue:
-        filters.dateRange && filters.dateRange.length === 2
-          ? [
-              filters.dateRange[0].format("DD/MM/YYYY"),
-              filters.dateRange[1].format("DD/MM/YYYY"),
-            ]
-          : null,
-      render: (text) => dayjs(text).format("DD/MM/YYYY"),
-    },
-    {
-      title: () => (
-        <div className="filter-column-header">
-          Số chứng từ{" "}
-          {filters.so_ct ? (
-            <Tag color="blue" size="small">
-              {filters.so_ct}
-            </Tag>
-          ) : null}
-        </div>
-      ),
-      dataIndex: "so_ct",
-      key: "so_ct",
-      width: 150,
-      align: "center",
-      render: (text) => (text ? text.trim() : ""),
-      filterDropdown: renderFilterDropdown("Tìm Số CT", "so_ct", handleSearch),
-      filteredValue: filters.so_ct ? [filters.so_ct] : null,
-    },
-    {
-      title: () => (
-        <div className="filter-column-header">
-          Mã khách{" "}
-          {filters.ma_kh ? (
-            <Tag color="blue" size="small">
-              {filters.ma_kh}
-            </Tag>
-          ) : null}
-        </div>
-      ),
-      dataIndex: "ma_kh",
-      key: "ma_kh",
-      width: 150,
-      align: "center",
-      render: (text) => (text ? text.trim() : ""),
-      filterDropdown: renderFilterDropdown(
-        "Tìm Mã khách",
-        "ma_kh",
-        handleSearch
-      ),
-      filteredValue: filters.ma_kh ? [filters.ma_kh] : null,
-    },
-    {
-      title: () => (
-        <div className="filter-column-header-wide">
-          Tên khách
-          {filters.ten_kh ? (
-            <Tag color="blue" size="small">
-              {filters.ten_kh}
-            </Tag>
-          ) : null}
-        </div>
-      ),
-      dataIndex: "ten_kh",
-      key: "ten_kh",
-      width: 250,
-      align: "center",
-      render: (text) => (text ? text.trim() : ""),
-      filterDropdown: renderFilterDropdown(
-        "Tìm Tên khách",
-        "ten_kh",
-        handleSearch
-      ),
-      filteredValue: filters.ten_kh ? [filters.ten_kh] : null,
-    },
-    {
+              onChange={(dates) => {
+                if (dates && dates.length === 2) {
+                  setSelectedKeys([
+                    dates[0].format("DD/MM/YYYY"),
+                    dates[1].format("DD/MM/YYYY"),
+                  ]);
+                } else {
+                  setSelectedKeys([]);
+                }
+              }}
+              style={{ marginBottom: 8, display: "block" }}
+              format="DD/MM/YYYY"
+              placeholder={["Từ ngày", "Đến ngày"]}
+            />
+            <Button
+              className="search_button"
+              type="primary"
+              onClick={() => {
+                confirm();
+                const newFilters = {
+                  ...filters,
+                  dateRange:
+                    selectedKeys.length === 2
+                      ? [
+                          dayjs(selectedKeys[0], "DD/MM/YYYY"),
+                          dayjs(selectedKeys[1], "DD/MM/YYYY"),
+                        ]
+                      : null,
+                };
+                setFilters(newFilters);
+                fetchPhieuXuatDieuChuyen(newFilters);
+              }}
+              size="small"
+            >
+              Tìm kiếm
+            </Button>
+          </div>
+        ),
+        filteredValue:
+          filters.dateRange && filters.dateRange.length === 2
+            ? [
+                filters.dateRange[0].format("DD/MM/YYYY"),
+                filters.dateRange[1].format("DD/MM/YYYY"),
+              ]
+            : null,
+        render: (text) =>
+          dayjs(text).format(screenSize === "mobile" ? "DD/MM" : "DD/MM/YYYY"),
+      },
+    ];
+
+    if (screenSize !== "mobile") {
+      baseColumns.push({
+        title: () => (
+          <div className="filter-column-header">
+            Số chứng từ{" "}
+            {filters.so_ct ? (
+              <Tag color="blue" size="small">
+                {filters.so_ct}
+              </Tag>
+            ) : null}
+          </div>
+        ),
+        dataIndex: "so_ct",
+        key: "so_ct",
+        width: 150,
+        align: "center",
+        render: (text) => (text ? text.trim() : ""),
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+          <div style={{ padding: 8 }}>
+            <Input
+              placeholder="Tìm Số CT"
+              value={selectedKeys[0]}
+              onChange={(e) =>
+                setSelectedKeys(e.target.value ? [e.target.value] : [])
+              }
+              onPressEnter={() => {
+                confirm();
+                const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
+                setFilters(newFilters);
+                fetchPhieuXuatDieuChuyen(newFilters);
+              }}
+              style={{ marginBottom: 8, display: "block" }}
+            />
+            <Button
+              className="search_button"
+              type="primary"
+              onClick={() => {
+                confirm();
+                const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
+                setFilters(newFilters);
+                fetchPhieuXuatDieuChuyen(newFilters);
+              }}
+              size="small"
+            >
+              Tìm kiếm
+            </Button>
+          </div>
+        ),
+        filteredValue: filters.so_ct ? [filters.so_ct] : null,
+      });
+    }
+
+    if (screenSize !== "mobile") {
+      baseColumns.push(
+        {
+          title: () => (
+            <div className="filter-column-header">
+              Mã khách{" "}
+              {filters.ma_kh ? (
+                <Tag color="blue" size="small">
+                  {filters.ma_kh}
+                </Tag>
+              ) : null}
+            </div>
+          ),
+          dataIndex: "ma_kh",
+          key: "ma_kh",
+          width: 150,
+          align: "center",
+          render: (text) => (text ? text.trim() : ""),
+          filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+            <div style={{ padding: 8 }}>
+              <Input
+                placeholder="Tìm Mã khách"
+                value={selectedKeys[0]}
+                onChange={(e) =>
+                  setSelectedKeys(e.target.value ? [e.target.value] : [])
+                }
+                onPressEnter={() => {
+                  confirm();
+                  const newFilters = {
+                    ...filters,
+                    ma_kh: selectedKeys[0] || "",
+                  };
+                  setFilters(newFilters);
+                  fetchPhieuXuatDieuChuyen(newFilters);
+                }}
+                style={{ marginBottom: 8, display: "block" }}
+              />
+              <Button
+                className="search_button"
+                type="primary"
+                onClick={() => {
+                  confirm();
+                  const newFilters = {
+                    ...filters,
+                    ma_kh: selectedKeys[0] || "",
+                  };
+                  setFilters(newFilters);
+                  fetchPhieuXuatDieuChuyen(newFilters);
+                }}
+                size="small"
+              >
+                Tìm kiếm
+              </Button>
+            </div>
+          ),
+          filteredValue: filters.ma_kh ? [filters.ma_kh] : null,
+        },
+        {
+          title: () => (
+            <div className="filter-column-header-wide">
+              Tên khách
+              {filters.ten_kh ? (
+                <Tag color="blue" size="small">
+                  {filters.ten_kh}
+                </Tag>
+              ) : null}
+            </div>
+          ),
+          dataIndex: "ten_kh",
+          key: "ten_kh",
+          width: 250,
+          align: "center",
+          render: (text) => (text ? text.trim() : ""),
+          filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+            <div style={{ padding: 8 }}>
+              <Input
+                placeholder="Tìm Tên khách"
+                value={selectedKeys[0]}
+                onChange={(e) =>
+                  setSelectedKeys(e.target.value ? [e.target.value] : [])
+                }
+                onPressEnter={() => {
+                  confirm();
+                  const newFilters = {
+                    ...filters,
+                    ten_kh: selectedKeys[0] || "",
+                  };
+                  setFilters(newFilters);
+                  fetchPhieuXuatDieuChuyen(newFilters);
+                }}
+                style={{ marginBottom: 8, display: "block" }}
+              />
+              <Button
+                className="search_button"
+                type="primary"
+                onClick={() => {
+                  confirm();
+                  const newFilters = {
+                    ...filters,
+                    ten_kh: selectedKeys[0] || "",
+                  };
+                  setFilters(newFilters);
+                  fetchPhieuXuatDieuChuyen(newFilters);
+                }}
+                size="small"
+              >
+                Tìm kiếm
+              </Button>
+            </div>
+          ),
+          filteredValue: filters.ten_kh ? [filters.ten_kh] : null,
+        }
+      );
+    }
+
+    baseColumns.push({
       title: "Trạng thái",
       dataIndex: "statusname",
       key: "status",
-      width: 120,
+      width: screenSize === "mobile" ? 80 : 120,
       align: "center",
-      render: (statusname, record) => (
-        <Tag color={getStatusColor(record.status)}>{statusname}</Tag>
-      ),
-    },
-    {
+      render: (statusname, record) => {
+        if (record.status === "*" || record.status === null) {
+          return "";
+        }
+
+        const getStatusText = (status) => {
+          const statusMap = {
+            0: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
+            2: screenSize === "mobile" ? "Xuất" : "Xuất kho",
+            3: screenSize === "mobile" ? "Chuyển" : "Chuyển số cài",
+            4: screenSize === "mobile" ? "Hoàn tất" : "Hoàn tất",
+            5: screenSize === "mobile" ? "Đề nghị" : "Đề nghị xuất kho",
+            6: screenSize === "mobile" ? "Đang xử lý" : "Đang xử lý",
+          };
+          return statusMap[status] || "Không xác định";
+        };
+
+        const displayText = statusname || getStatusText(record.status);
+        const statusColor = getStatusColor(record.status);
+
+        return <Tag color={statusColor}>{displayText}</Tag>;
+      },
+    });
+
+    baseColumns.push({
       title: "Hành động",
       key: "action",
       width: 150,
@@ -411,7 +433,11 @@ const ListPhieuXuatDieuChuyen = () => {
           <Button
             size="small"
             icon={<FileTextOutlined />}
-            onClick={() => navigate(`${record.stt_rec}`)}
+            onClick={() =>
+              navigate(`${record.stt_rec}`, {
+                state: { sctRec: record.stt_rec },
+              })
+            }
             className="phieu-action-btn phieu-view-btn"
             title="Xem chi tiết"
           />
@@ -419,7 +445,11 @@ const ListPhieuXuatDieuChuyen = () => {
             size="small"
             type="primary"
             icon={<EditOutlined />}
-            onClick={() => navigate(`edit/${record.stt_rec}`)}
+            onClick={() =>
+              navigate(`edit/${record.stt_rec}`, {
+                state: { sctRec: record.stt_rec },
+              })
+            }
             className="phieu-action-btn phieu-edit-btn"
             title="Chỉnh sửa"
           />
@@ -433,55 +463,81 @@ const ListPhieuXuatDieuChuyen = () => {
           />
         </Space>
       ),
-    },
-  ];
+    });
+
+    return baseColumns;
+  };
+
+  const getTableProps = () => {
+    const baseProps = {
+      columns: getColumns(),
+      dataSource: paginatedData,
+      pagination: {
+        current: currentPage,
+        pageSize: pageSize,
+        total: totalRecords,
+        onChange: (page) => setCurrentPage(page),
+        showSizeChanger: false,
+        showQuickJumper: false,
+      },
+      bordered: true,
+      rowKey: "stt_rec",
+      className: "phieu-data-table hidden_scroll_bar",
+    };
+
+    if (screenSize === "mobile") {
+      baseProps.scroll = { x: 400 };
+      baseProps.size = "small";
+    } else if (screenSize === "mobileLandscape") {
+      baseProps.scroll = { x: 600, y: 400 };
+      baseProps.size = "small";
+    } else if (screenSize === "tablet") {
+      baseProps.scroll = { x: 800, y: 500 };
+    } else {
+      baseProps.scroll = { x: 1200, y: 600 };
+    }
+
+    return baseProps;
+  };
 
   return (
-    <div className="phieu-container">
-      <div className="phieu-header">
-        <Button
-          type="text"
-          icon={<LeftOutlined />}
-          onClick={() => navigate("..")}
-          className="phieu-back-button"
-        >
-          Trở về
-        </Button>
+    <div className="phieu-xuat-dc-container">
+      <Row
+        justify="space-between"
+        align="middle"
+        className="phieu-xuat-dc-header"
+      >
+        <Col>
+          <Button
+            type="text"
+            icon={<LeftOutlined />}
+            onClick={() => navigate(-1)}
+            className="phieu-xuat-dc-back-button"
+          >
+            {screenSize === "mobile" ? "" : "Trở về"}
+          </Button>
+        </Col>
+        <Col>
+          <Title level={5} className="phieu-xuat-dc-title">
+            {screenSize === "mobile"
+              ? "PHIẾU XUẤT ĐIỀU CHUYỂN"
+              : "DANH SÁCH PHIẾU XUẤT ĐIỀU CHUYỂN"}
+          </Title>
+        </Col>
+        <Col>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => navigate("add")}
+            className="phieu-xuat-dc-add-button"
+          >
+            {screenSize === "mobile" ? "Thêm" : "Thêm mới"}
+          </Button>
+        </Col>
+      </Row>
 
-        <Title level={isMobile ? 4 : 3} className="phieu-title">
-          DANH SÁCH PHIẾU XUẤT ĐIỀU CHUYỂN
-        </Title>
-
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => navigate("add")}
-          className="phieu-add-button"
-        >
-          {isMobile ? "Thêm" : "Thêm mới"}
-        </Button>
-      </div>
-
-      <div className="phieu-table-container">
-        <Table
-          columns={isMobile ? mobileColumns : desktopColumns}
-          dataSource={paginatedData}
-          pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            total: totalRecords,
-            onChange: (page) => setCurrentPage(page),
-            showSizeChanger: false,
-            showQuickJumper: false,
-            size: isMobile ? "small" : "default",
-          }}
-          bordered={!isMobile}
-          rowKey="stt_rec"
-          scroll={isMobile ? { x: 600, y: 400 } : { x: 1200, y: 600 }}
-          className="phieu-data-table hidden_scroll_bar"
-          size={isMobile ? "small" : "middle"}
-          loading={false}
-        />
+      <div className="phieu-xuat-dc-table-container">
+        <Table {...getTableProps()} />
       </div>
     </div>
   );

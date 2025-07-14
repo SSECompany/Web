@@ -36,12 +36,10 @@ const VatTuTable = ({
       width: 80,
       align: "center",
       render: (value, record) => {
-        // Nếu không phải edit mode, chỉ hiển thị text
         if (!isEditMode) {
           return value;
         }
 
-        // Lấy danh sách đơn vị tính từ record
         const dvtOptions = record.donViTinhList || [];
 
         return (
@@ -68,27 +66,7 @@ const VatTuTable = ({
       },
     },
     {
-      title: "Số lượng đề nghị",
-      dataIndex: "so_luong",
-      key: "so_luong",
-      width: 150,
-      align: "center",
-      render: (value) => {
-        return (
-          <span
-            style={{
-              fontWeight: "bold",
-              display: "block",
-              textAlign: "center",
-            }}
-          >
-            {formatQuantityDisplay(value)}
-          </span>
-        );
-      },
-    },
-    {
-      title: "Số lượng xuất",
+      title: "Số lượng",
       dataIndex: "sl_td3",
       key: "sl_td3",
       width: 150,
@@ -100,9 +78,7 @@ const VatTuTable = ({
             value={value}
             className="vat-tu-table-input"
             onChange={(e) => {
-              // Cho phép nhập số và dấu chấm thập phân
               const val = e.target.value.replace(/[^0-9.]/g, "");
-              // Đảm bảo chỉ có 1 dấu chấm
               const parts = val.split(".");
               const formattedVal =
                 parts.length > 2

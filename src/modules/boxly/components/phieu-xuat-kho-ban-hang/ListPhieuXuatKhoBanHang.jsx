@@ -434,9 +434,9 @@ const ListPhieuXuatKhoBanHang = () => {
     baseColumns.push({
       title: "Hành động",
       key: "action",
-      width: screenSize === "mobile" ? 80 : 200,
+      width: 150,
       align: "center",
-      fixed: screenSize === "desktop" ? "right" : false,
+      fixed: "right",
       render: (_, record) => (
         <Space size="small">
           <Button
@@ -492,6 +492,7 @@ const ListPhieuXuatKhoBanHang = () => {
       bordered: true,
       rowKey: "stt_rec",
       className: "phieu-data-table hidden_scroll_bar",
+      scroll: { x: 1200 }, // hoặc giá trị phù hợp với số lượng cột
     };
     if (screenSize === "mobile") {
       baseProps.scroll = { x: 400 };
@@ -508,20 +509,24 @@ const ListPhieuXuatKhoBanHang = () => {
   };
 
   return (
-    <div className="phieu-container">
-      <Row justify="space-between" align="middle" className="phieu-header">
+    <div className="phieu-xuat-bh-container">
+      <Row
+        justify="space-between"
+        align="middle"
+        className="phieu-xuat-bh-header"
+      >
         <Col>
           <Button
             type="text"
             icon={<LeftOutlined />}
             onClick={() => navigate(-1)}
-            className="phieu-back-button"
+            className="phieu-xuat-bh-back-button"
           >
             {screenSize === "mobile" ? "" : "Trở về"}
           </Button>
         </Col>
         <Col>
-          <Title level={3} className="phieu-title">
+          <Title level={5} className="phieu-xuat-bh-title">
             {screenSize === "mobile"
               ? "PHIẾU XUẤT KHO BÁN HÀNG"
               : "DANH SÁCH PHIẾU XUẤT KHO BÁN HÀNG"}
@@ -532,13 +537,13 @@ const ListPhieuXuatKhoBanHang = () => {
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => navigate("add")}
-            className="phieu-add-button"
+            className="phieu-xuat-bh-add-button"
           >
             {screenSize === "mobile" ? "Thêm" : "Thêm mới"}
           </Button>
         </Col>
       </Row>
-      <div className="phieu-table-container">
+      <div className="phieu-xuat-bh-table-container">
         <Table {...getTableProps()} />
       </div>
     </div>

@@ -18,9 +18,9 @@ export const useVatTuManagerNhapKho = () => {
         ten_mat_hang: item.ten_vt || item.ma_vt || "",
 
         // Sử dụng dữ liệu đã lưu trong phiếu
-        soLuong: parseFloat(item.so_luong) || 0,
+        soLuong: parseFloat(item.sl_td3) || 0,
         soLuong_goc: parseFloat(item.so_luong_goc) || 0,
-        soLuongDeNghi: parseFloat(item.sl_td3) || 0,
+        soLuongDeNghi: parseFloat(item.so_luong) || 0,
 
         // Hệ số: ưu tiên dùng từ data2 (đã được xác định và lưu)
         he_so: parseFloat(item.he_so) || 1,
@@ -161,15 +161,19 @@ export const useVatTuManagerNhapKho = () => {
               const soLuongMoi = soLuongHienTai + soLuongThemVao;
               const soLuongLamTron = Math.round(soLuongMoi * 1000) / 1000;
 
+              // Số lượng đề nghị giữ nguyên giá trị hiện tại
+              const soLuongDeNghiHienTai = item.soLuongDeNghi || 0;
+
               const soLuongGocHienTai =
                 item.soLuong_goc !== undefined ? item.soLuong_goc : 0;
 
-              const soLuongGocMoi = soLuongGocHienTai + 1;
+              const soLuongGocMoi = soLuongGocHienTai + 1; // Tăng thêm 1 cho soLuong_goc
 
               const updatedItem = {
                 ...item,
-                soLuong: soLuongLamTron,
-                soLuong_goc: soLuongGocMoi,
+                soLuong: soLuongLamTron, // Cập nhật số lượng thực tế (sl_td3) - tăng thêm
+                soLuongDeNghi: soLuongDeNghiHienTai, // Giữ nguyên số lượng đề nghị (so_luong)
+                soLuong_goc: soLuongGocMoi, // Tăng thêm 1
 
                 he_so: heSoHienTai,
                 he_so_goc: heSoGocFromAPI,
@@ -206,14 +210,17 @@ export const useVatTuManagerNhapKho = () => {
 
           const dvtHienTai = dvtGocFromAPI;
 
-          // Khi thêm vật tư mới, số lượng gốc luôn = 1
-          let soLuongGoc = 1;
+          // Khi thêm vật tư mới, số lượng gốc cho soLuong = 1, soLuongDeNghi = 0
+          let soLuongGoc = 1; // Cho soLuong
+          let soLuongDeNghiGoc = 0; // Cho soLuongDeNghi
           let soLuongHienThi;
+          let soLuongDeNghiHienThi;
           let heSoHienTai;
 
           if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
             // Đơn vị hiện tại = đơn vị gốc -> soLuong = soLuongGoc * heSoGoc
             soLuongHienThi = soLuongGoc * heSoGocFromAPI;
+            soLuongDeNghiHienThi = soLuongDeNghiGoc * heSoGocFromAPI;
             heSoHienTai = heSoGocFromAPI;
           } else {
             // Đơn vị hiện tại khác đơn vị gốc -> tìm hệ số từ donViTinhList
@@ -228,14 +235,16 @@ export const useVatTuManagerNhapKho = () => {
 
             // Quy đổi từ số lượng gốc sang đơn vị hiện tại
             soLuongHienThi = soLuongGoc * heSoHienTai;
+            soLuongDeNghiHienThi = soLuongDeNghiGoc * heSoHienTai;
           }
 
           const newItem = {
             key: prev.length + 1,
             maHang: value,
-            soLuong: Math.round(soLuongHienThi * 1000) / 1000,
-            soLuong_goc: Math.round(soLuongGoc * 1000) / 1000,
-            soLuongDeNghi: 0,
+            soLuong: Math.round(soLuongHienThi * 1000) / 1000, // sl_td3 - số lượng thực tế
+            soLuong_goc: Math.round(soLuongGoc * 1000) / 1000, // soLuong_goc = 1
+            soLuongDeNghi: Math.round(soLuongDeNghiHienThi * 1000) / 1000, // so_luong - số lượng đề nghị
+            soLuongDeNghi_goc: Math.round(soLuongDeNghiGoc * 1000) / 1000, // soLuongDeNghi_goc = 0
             he_so: heSoHienTai,
             he_so_goc: heSoGocFromAPI,
             ten_mat_hang: vatTuInfo.ten_vt || value,
@@ -291,18 +300,33 @@ export const useVatTuManagerNhapKho = () => {
     setDataSource((prev) =>
       prev.map((item) => {
         if (item.key === record.key) {
-          if (item.dvt?.trim() === item.dvt_goc?.trim()) {
-            const soLuongGocMoi = newValue / (item.he_so_goc ?? 1);
+          if (field === "soLuong") {
+            // Xử lý thay đổi số lượng thực tế (sl_td3)
+            if (item.dvt?.trim() === item.dvt_goc?.trim()) {
+              const soLuongGocMoi = newValue / (item.he_so_goc ?? 1);
+              return {
+                ...item,
+                [field]: newValue,
+                soLuong_goc: Math.round(soLuongGocMoi * 1000) / 1000,
+              };
+            } else {
+              return {
+                ...item,
+                [field]: newValue,
+                soLuong_goc: newValue,
+              };
+            }
+          } else if (field === "soLuongDeNghi") {
+            // Xử lý thay đổi số lượng đề nghị (so_luong) - không ảnh hưởng đến soLuong_goc
             return {
               ...item,
               [field]: newValue,
-              soLuong_goc: Math.round(soLuongGocMoi * 1000) / 1000,
             };
           } else {
+            // Xử lý các trường khác
             return {
               ...item,
               [field]: newValue,
-              soLuong_goc: newValue,
             };
           }
         }
@@ -360,13 +384,17 @@ export const useVatTuManagerNhapKho = () => {
     const heSoHienTai = currentDvtInList
       ? parseFloat(currentDvtInList.he_so) || 1
       : record.he_so || 1;
+
+    // Lấy số lượng hiện tại từ cả 2 trường
     const soLuongHienTai = record.soLuong || 0;
+    const soLuongDeNghiHienTai = record.soLuongDeNghi || 0;
 
-    let soLuongMoi;
-
-    soLuongMoi = (soLuongHienTai * heSoHienTai) / heSoMoi;
+    // Tính toán số lượng mới cho cả 2 trường
+    let soLuongMoi = (soLuongHienTai * heSoHienTai) / heSoMoi;
+    let soLuongDeNghiMoi = (soLuongDeNghiHienTai * heSoHienTai) / heSoMoi;
 
     const soLuongLamTron = Math.round(soLuongMoi * 10000) / 10000;
+    const soLuongDeNghiLamTron = Math.round(soLuongDeNghiMoi * 10000) / 10000;
 
     let soLuongGocMoi = record.soLuong_goc;
 
@@ -384,7 +412,8 @@ export const useVatTuManagerNhapKho = () => {
     const finalResult = {
       dvt: newValue,
       he_so: heSoMoi,
-      soLuong: soLuongLamTron,
+      soLuong: soLuongLamTron, // Cập nhật số lượng thực tế (sl_td3)
+      soLuongDeNghi: soLuongDeNghiLamTron, // Cập nhật số lượng đề nghị (so_luong)
       soLuong_goc: Math.round((soLuongGocMoi || 0) * 10000) / 10000,
       _lastUpdated: Date.now(),
     };

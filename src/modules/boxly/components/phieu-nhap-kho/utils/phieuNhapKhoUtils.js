@@ -131,8 +131,8 @@ export const buildPhieuNhapKhoPayload = (
       ma_nx: item.ma_nx || "",
       tk_du: item.tk_du || "",
       tk_vt: item.tk_vt || "",
-      so_luong: parseFloat(item.soLuong),
-      sl_td3: parseFloat(item.soLuongDeNghi || 0),
+      so_luong: parseFloat(item.soLuongDeNghi || 0), // so_luong từ soLuongDeNghi
+      sl_td3: parseFloat(item.soLuong || 0), // sl_td3 từ soLuong
       gia_nt: parseFloat(item.gia_nt || 0),
       gia: parseFloat(item.gia || 0),
       tien_nt: parseFloat(item.tien_nt || 0),

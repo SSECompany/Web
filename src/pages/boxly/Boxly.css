@@ -60,7 +60,7 @@
 
 .boxly-button-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
   gap: 24px;
   padding: 32px;
   max-width: 1000px;
@@ -272,7 +272,7 @@
   }
 
   .boxly-button-grid {
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
     gap: 16px;
     padding: 16px;
   }

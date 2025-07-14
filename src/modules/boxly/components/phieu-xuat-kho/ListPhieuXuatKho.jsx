@@ -22,13 +22,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
-import "./phieu-nhap-kho.css";
+import "./phieu-xuat-kho.css";
 
 const { RangePicker } = DatePicker;
 
 const { Title } = Typography;
 
-const ListPhieuNhapKho = () => {
+const ListPhieuXuatKho = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("access_token");
   const [allData, setAllData] = useState([]);
@@ -67,37 +67,53 @@ const ListPhieuNhapKho = () => {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  const fetchPhieuNhapKho = async (filterParams = filters) => {
+  const fetchPhieuXuatKho = async (filterParams = filters) => {
     const body = {
-      dateForm:
-        filterParams.dateRange && filterParams.dateRange[0]
-          ? filterParams.dateRange[0].format("YYYY-MM-DD")
-          : dayjs().startOf("month").format("YYYY-MM-DD"),
-      dateTo:
-        filterParams.dateRange && filterParams.dateRange[1]
-          ? filterParams.dateRange[1].format("YYYY-MM-DD")
-          : dayjs().endOf("month").format("YYYY-MM-DD"),
-      page_index: 1,
-      page_count: 50,
-      ...filterParams,
+      store: "api_list_phieu_xuat_kho_voucher",
+      param: {
+        so_ct: filterParams.so_ct || "",
+        ma_kh: filterParams.ma_kh || "",
+        ten_kh: filterParams.ten_kh || "",
+        ngay_ct: "",
+        DateFrom:
+          filterParams.dateRange && filterParams.dateRange[0]
+            ? filterParams.dateRange[0].format("YYYY-MM-DD")
+            : dayjs().startOf("month").format("YYYY-MM-DD"),
+        DateTo:
+          filterParams.dateRange && filterParams.dateRange[1]
+            ? filterParams.dateRange[1].format("YYYY-MM-DD")
+            : dayjs().endOf("month").format("YYYY-MM-DD"),
+        PageIndex: currentPage,
+        PageSize: pageSize,
+        Status: "",
+      },
+      data: {},
+      resultSetNames: ["data", "pagination"],
     };
     try {
-      const res = await https.post("v1/web/danh-sach-phieu-nhap-kho", body, {
+      const res = await https.post("v1/dynamicApi/call-dynamic-api", body, {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       });
-      const filteredData = (res.data.data || []).filter(
+
+      // Xử lý response theo cấu trúc mới
+      const responseData = res.data?.listObject?.dataLists?.data || [];
+      const paginationData =
+        res.data?.listObject?.dataLists?.pagination?.[0] || {};
+
+      const filteredData = responseData.filter(
         (item) => item.status !== "*" && item.status !== null
       );
+
       setAllData(filteredData);
-      setTotalRecords(filteredData.length);
+      setTotalRecords(paginationData.totalRecord || filteredData.length);
     } catch (err) {
-      console.error("Lỗi gọi API danh sách phiếu nhập kho:", err);
+      console.error("Lỗi gọi API danh sách phiếu xuất kho:", err);
     }
   };
 
   useEffect(() => {
-    fetchPhieuNhapKho();
+    fetchPhieuXuatKho();
   }, []);
 
   const getStatusColor = (status) => {
@@ -115,21 +131,26 @@ const ListPhieuNhapKho = () => {
     }
   };
 
-  const handleDelete = async (sctRec) => {
+  const handleDelete = async (sttRec) => {
     showConfirm({
-      title: "Xác nhận xóa phiếu nhập kho",
-      content: "Bạn có chắc chắn muốn xóa phiếu nhập kho này không?",
+      title: "Xác nhận xóa phiếu xuất kho",
+      content: "Bạn có chắc chắn muốn xóa phiếu xuất kho này không?",
       type: "warning",
       onOk: async () => {
         try {
-          if (!sctRec) {
+          if (!sttRec) {
             message.error("Không tìm thấy mã phiếu để xóa");
             return;
           }
 
+          const body = {
+            store: "api_delete_phieu_xuat_kho_voucher",
+            param: { stt_rec: sttRec },
+            data: {},
+          };
           const response = await https.post(
-            `v1/web/xoa-ct-nhap-kho?sctRec=${sctRec}`,
-            {},
+            "v1/dynamicApi/call-dynamic-api",
+            body,
             {
               headers: {
                 "Content-Type": "application/json",
@@ -138,20 +159,18 @@ const ListPhieuNhapKho = () => {
             }
           );
 
-          if (response.data && response.data.statusCode === 200) {
-            message.success("Xóa phiếu nhập kho thành công");
-            await fetchPhieuNhapKho();
+          if (response.data && (response.data.statusCode === 200 || response.data.responseModel?.isSucceded)) {
+            message.success("Xóa phiếu xuất kho thành công");
+            await fetchPhieuXuatKho();
           } else {
-            message.error(
-              response.data?.message || "Xóa phiếu nhập kho thất bại"
-            );
+            message.error(response.data?.message || "Xóa phiếu xuất kho thất bại");
           }
         } catch (error) {
-          console.error("Lỗi khi xóa phiếu nhập kho:", error);
+          console.error("Lỗi khi xóa phiếu xuất kho:", error);
           if (error.response?.data?.message) {
             message.error(error.response.data.message);
           } else {
-            message.error("Có lỗi xảy ra khi xóa phiếu nhập kho");
+            message.error("Có lỗi xảy ra khi xóa phiếu xuất kho");
           }
         }
       },
@@ -221,7 +240,7 @@ const ListPhieuNhapKho = () => {
                       : null,
                 };
                 setFilters(newFilters);
-                fetchPhieuNhapKho(newFilters);
+                fetchPhieuXuatKho(newFilters);
               }}
               size="small"
             >
@@ -270,7 +289,7 @@ const ListPhieuNhapKho = () => {
                 confirm();
                 const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
                 setFilters(newFilters);
-                fetchPhieuNhapKho(newFilters);
+                fetchPhieuXuatKho(newFilters);
               }}
               style={{ marginBottom: 8, display: "block" }}
             />
@@ -281,7 +300,7 @@ const ListPhieuNhapKho = () => {
                 confirm();
                 const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
                 setFilters(newFilters);
-                fetchPhieuNhapKho(newFilters);
+                fetchPhieuXuatKho(newFilters);
               }}
               size="small"
             >
@@ -326,7 +345,7 @@ const ListPhieuNhapKho = () => {
                     ma_kh: selectedKeys[0] || "",
                   };
                   setFilters(newFilters);
-                  fetchPhieuNhapKho(newFilters);
+                  fetchPhieuXuatKho(newFilters);
                 }}
                 style={{ marginBottom: 8, display: "block" }}
               />
@@ -340,7 +359,7 @@ const ListPhieuNhapKho = () => {
                     ma_kh: selectedKeys[0] || "",
                   };
                   setFilters(newFilters);
-                  fetchPhieuNhapKho(newFilters);
+                  fetchPhieuXuatKho(newFilters);
                 }}
                 size="small"
               >
@@ -381,7 +400,7 @@ const ListPhieuNhapKho = () => {
                     ten_kh: selectedKeys[0] || "",
                   };
                   setFilters(newFilters);
-                  fetchPhieuNhapKho(newFilters);
+                  fetchPhieuXuatKho(newFilters);
                 }}
                 style={{ marginBottom: 8, display: "block" }}
               />
@@ -395,7 +414,7 @@ const ListPhieuNhapKho = () => {
                     ten_kh: selectedKeys[0] || "",
                   };
                   setFilters(newFilters);
-                  fetchPhieuNhapKho(newFilters);
+                  fetchPhieuXuatKho(newFilters);
                 }}
                 size="small"
               >
@@ -424,8 +443,8 @@ const ListPhieuNhapKho = () => {
           const statusMap = {
             0: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
             2: screenSize === "mobile" ? "Nhập" : "Nhập kho",
-            3: screenSize === "mobile" ? "Chuyển" : "Chuyển số cài",
-            5: screenSize === "mobile" ? "Đề nghị" : "Đề nghị nhập kho",
+            3: screenSize === "mobile" ? "Chuyển" : "Chuyển số cái",
+            5: screenSize === "mobile" ? "Đề nghị" : "Đề nghị xuất kho",
           };
           return statusMap[status] || "Không xác định";
         };
@@ -517,23 +536,23 @@ const ListPhieuNhapKho = () => {
   };
 
   return (
-    <div className="phieu-nhap-container">
-      <Row justify="space-between" align="middle" className="phieu-nhap-header">
+    <div className="phieu-xuat-container">
+      <Row justify="space-between" align="middle" className="phieu-xuat-header">
         <Col>
           <Button
             type="text"
             icon={<LeftOutlined />}
             onClick={() => navigate(-1)}
-            className="phieu-nhap-back-button"
+            className="phieu-xuat-back-button"
           >
             {screenSize === "mobile" ? "" : "Trở về"}
           </Button>
         </Col>
         <Col>
-          <Title level={5} className="phieu-nhap-title">
+          <Title level={5} className="phieu-xuat-title">
             {screenSize === "mobile"
-              ? "PHIẾU NHẬP KHO"
-              : "DANH SÁCH PHIẾU NHẬP KHO"}
+              ? "PHIẾU XUẤT KHO"
+              : "DANH SÁCH PHIẾU XUẤT KHO"}
           </Title>
         </Col>
         <Col>
@@ -541,18 +560,18 @@ const ListPhieuNhapKho = () => {
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => navigate("add")}
-            className="phieu-nhap-add-button"
+            className="phieu-xuat-add-button"
           >
             {screenSize === "mobile" ? "Thêm" : "Thêm mới"}
           </Button>
         </Col>
       </Row>
 
-      <div className="phieu-nhap-table-container">
+      <div className="phieu-xuat-table-container">
         <Table {...getTableProps()} />
       </div>
     </div>
   );
 };
 
-export default ListPhieuNhapKho;
+export default ListPhieuXuatKho;

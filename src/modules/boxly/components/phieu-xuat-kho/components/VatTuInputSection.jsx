@@ -16,10 +16,12 @@ const VatTuInputSection = ({
   fetchVatTuList,
   handleVatTuSelect,
 }) => {
+  // Refs to prevent unnecessary API calls
   const dropdownOpenedRef = useRef(false);
   const lastSearchValueRef = useRef("");
 
   const handleSearch = (value) => {
+    // Avoid duplicate searches
     if (lastSearchValueRef.current === value) {
       return;
     }
@@ -36,9 +38,11 @@ const VatTuInputSection = ({
 
   const handleDropdownVisibleChange = (open) => {
     if (open) {
+      // Always fetch full list when dropdown opens to ensure fresh data
       fetchVatTuList("");
       dropdownOpenedRef.current = true;
     } else {
+      // Reset state when dropdown closes
       dropdownOpenedRef.current = false;
       lastSearchValueRef.current = "";
     }
@@ -65,6 +69,7 @@ const VatTuInputSection = ({
                 filterOption={false}
                 onSelect={handleVatTuSelect}
                 disabled={!isEditMode}
+                // Add these props to improve performance
                 showArrow={true}
                 optionFilterProp="label"
                 notFoundContent={
@@ -98,6 +103,7 @@ const VatTuInputSection = ({
                   if (next) {
                     setBarcodeJustEnabled(true);
                     setVatTuInput(undefined);
+                    // Reset refs when switching to barcode mode
                     dropdownOpenedRef.current = false;
                     lastSearchValueRef.current = "";
                   }

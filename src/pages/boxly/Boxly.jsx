@@ -1,4 +1,9 @@
-import { InboxOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+import {
+  HomeOutlined,
+  InboxOutlined,
+  SendOutlined,
+  ShoppingCartOutlined,
+} from "@ant-design/icons";
 import React, { useMemo } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import "./Boxly.css";
@@ -25,22 +30,22 @@ const Boxly = () => {
         icon: <ShoppingCartOutlined className="boxly-button-icon" />,
         description: "Quản lý xuất kho bán hàng",
       },
-      // {
-      //   id: 3,
-      //   label: "Phiếu xuất điều chuyển",
-      //   path: "phieu-xuat-dieu-chuyen",
-      //   colorClass: "boxly-btn-color-3",
-      //   icon: <SendOutlined className="boxly-button-icon" />,
-      //   description: "Quản lý xuất kho điều chuyển"
-      // },
-      // {
-      //   id: 4,
-      //   label: "Phiếu xuất nội bộ",
-      //   path: "phieu-xuat-noi-bo",
-      //   colorClass: "boxly-btn-color-4",
-      //   icon: <HomeOutlined className="boxly-button-icon" />,
-      //   description: "Quản lý xuất kho nội bộ"
-      // },
+      {
+        id: 3,
+        label: "Phiếu xuất điều chuyển",
+        path: "phieu-xuat-dieu-chuyen",
+        colorClass: "boxly-btn-color-3",
+        icon: <SendOutlined className="boxly-button-icon" />,
+        description: "Quản lý xuất kho điều chuyển",
+      },
+      {
+        id: 4,
+        label: "Phiếu xuất kho",
+        path: "phieu-xuat-kho",
+        colorClass: "boxly-btn-color-4",
+        icon: <HomeOutlined className="boxly-button-icon" />,
+        description: "Quản lý xuất kho",
+      },
     ],
     []
   );

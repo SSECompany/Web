@@ -9,12 +9,12 @@ import VatTuInputSection from "./components/VatTuInputSection";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
-import "./phieu-xuat-dieu-chuyen.css";
-import { buildPayload } from "./utils/phieuXuatKhoUtils";
+import "./phieu-xuat-kho.css";
+import { buildPayload, validateDataSource } from "./utils/phieuXuatKhoUtils";
 
 const { Title } = Typography;
 
-const AddPhieuXuatDieuChuyen = () => {
+const AddPhieuXuatKho = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
@@ -29,12 +29,16 @@ const AddPhieuXuatDieuChuyen = () => {
     loading,
     setLoading,
     maGiaoDichList,
-    maKhoList,
-    loadingMaKho,
+    maKhachList,
+    loadingMaKhach,
     vatTuList,
     loadingVatTu,
+    maKhoList,
+    loadingMaKho,
+    fetchMaKhachListDebounced,
     fetchMaKhoListDebounced,
     fetchMaGiaoDichList,
+    fetchMaKhachList,
     fetchMaKhoList,
     fetchVatTuList,
     fetchVatTuDetail,
@@ -47,6 +51,7 @@ const AddPhieuXuatDieuChuyen = () => {
     setDataSource,
     handleVatTuSelect: vatTuSelectHandler,
     handleQuantityChange,
+    handleSelectChange,
     handleDeleteItem,
     handleDvtChange,
   } = useVatTuManager();
@@ -55,14 +60,14 @@ const AddPhieuXuatDieuChuyen = () => {
 
   useEffect(() => {
     fetchMaGiaoDichList();
+    fetchMaKhachList();
     fetchMaKhoList();
     fetchVatTuList();
     fetchVoucherInfo();
 
     form.setFieldsValue({
       ngay: dayjs(),
-      trangThai: "3",
-      maGiaoDich: "3",
+      trangThai: "0",
     });
   }, []);
 
@@ -85,7 +90,7 @@ const AddPhieuXuatDieuChuyen = () => {
     try {
       const response = await https.get(
         "v1/web/thong-tin-phieu-nhap",
-        { voucherCode: "PXB" },
+        { voucherCode: "PXA" },
         {
           headers: {
             "Content-Type": "application/json",
@@ -102,10 +107,12 @@ const AddPhieuXuatDieuChuyen = () => {
         const voucherData = response.data.data[0];
 
         form.setFieldsValue({
-          soPhieu: voucherData.so_phieu_nhap,
-          ngay: voucherData.ngay_lap ? dayjs(voucherData.ngay_lap) : dayjs(),
-          maGiaoDich: "3",
-          trangThai: "3",
+          so_ct: voucherData.so_phieu_nhap,
+          ngay_ct: voucherData.ngay_lap ? dayjs(voucherData.ngay_lap) : dayjs(),
+          ma_gd: "2",
+          ma_kh: voucherData.ma_khach || "",
+          dien_giai: voucherData.dien_giai || "",
+          status: "3",
         });
       }
     } catch (error) {
@@ -130,15 +137,7 @@ const AddPhieuXuatDieuChuyen = () => {
       setLoading(true);
       const values = await form.validateFields();
 
-      // Validate dataSource (danh sách vật tư)
-      if (
-        !dataSource ||
-        !Array.isArray(dataSource) ||
-        dataSource.length === 0
-      ) {
-        setLoading(false);
-        return;
-      }
+      if (!validateDataSource(dataSource)) return;
 
       const invalidItems = [];
       dataSource.forEach((item, index) => {
@@ -149,32 +148,46 @@ const AddPhieuXuatDieuChuyen = () => {
       });
 
       if (invalidItems.length > 0) {
-        setLoading(false);
         return;
       }
 
       const payload = buildPayload(values, dataSource, null, false);
+
       if (!payload) {
         setLoading(false);
         return;
       }
 
-      // Gọi dynamicApi thêm mới phiếu xuất điều chuyển
-      const result = await createPhieuXuatDieuChuyen(payload.data);
-      if (result && result.success) {
-        navigate("/boxly/phieu-xuat-dieu-chuyen");
+      // Gọi dynamicApi thêm mới phiếu xuất kho
+      const response = await https.post(
+        "v1/dynamicApi/call-dynamic-api",
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (
+        response.data &&
+        (response.data.statusCode === 200 ||
+          response.data.responseModel?.isSucceded)
+      ) {
+        navigate("/boxly/phieu-xuat-kho");
       }
     } catch (error) {
-      console.error("Lỗi khi tạo phiếu xuất điều chuyển:", error);
+      console.error("Lỗi khi tạo phiếu xuất kho:", error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="phieu-xuat-dc-container">
+    <div className="phieu-xuat-container">
       <div
-        className="phieu-xuat-dc-header"
+        className="phieu-xuat-header"
         style={{
           display: "flex",
           alignItems: "center",
@@ -190,13 +203,13 @@ const AddPhieuXuatDieuChuyen = () => {
           type="text"
           icon={<LeftOutlined />}
           onClick={() => navigate(-1)}
-          className="phieu-xuat-dc-back-button"
+          className="phieu-xuat-back-button"
         >
           Trở về
         </Button>
         <Title
           level={5}
-          className="phieu-xuat-dc-title"
+          className="phieu-xuat-title"
           style={{
             margin: 0,
             textAlign: "center",
@@ -209,19 +222,19 @@ const AddPhieuXuatDieuChuyen = () => {
             textShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
         >
-          THÊM PHIẾU XUẤT ĐIỀU CHUYỂN
+          THÊM PHIẾU XUẤT KHO
         </Title>
         <div style={{ width: 120 }}></div>
       </div>
 
-      <div className="phieu-xuat-dc-form-container">
-        <Form form={form} layout="vertical" className="phieu-xuat-dc-form">
+      <div className="phieu-xuat-form-container">
+        <Form form={form} layout="vertical" className="phieu-xuat-form">
           <PhieuFormInputs
             isEditMode={true}
+            maKhachList={maKhachList}
+            loadingMaKhach={loadingMaKhach}
+            fetchMaKhachListDebounced={fetchMaKhachListDebounced}
             maGiaoDichList={maGiaoDichList}
-            maKhoList={maKhoList}
-            loadingMaKho={loadingMaKho}
-            fetchMaKhoListDebounced={fetchMaKhoListDebounced}
           />
 
           <VatTuInputSection
@@ -243,8 +256,12 @@ const AddPhieuXuatDieuChuyen = () => {
             dataSource={dataSource}
             isEditMode={true}
             handleQuantityChange={handleQuantityChange}
+            handleSelectChange={handleSelectChange}
             handleDeleteItem={handleDeleteItem}
             handleDvtChange={handleDvtChange}
+            maKhoList={maKhoList}
+            loadingMaKho={loadingMaKho}
+            fetchMaKhoListDebounced={fetchMaKhoListDebounced}
           />
 
           <div
@@ -267,4 +284,4 @@ const AddPhieuXuatDieuChuyen = () => {
   );
 };
 
-export default AddPhieuXuatDieuChuyen;
+export default AddPhieuXuatKho;

@@ -2,41 +2,72 @@ import { Col, DatePicker, Form, Input, Row, Select } from "antd";
 
 const PhieuFormInputs = ({
   isEditMode,
-  maKhachList,
-  loadingMaKhach,
-  fetchMaKhachListDebounced,
   maGiaoDichList,
+  maKhoList,
+  loadingMaKho,
+  fetchMaKhoListDebounced,
 }) => {
   return (
     <>
       <Row gutter={16}>
         <Col span={12}>
-          <Form.Item name="maKhach" label="Mã khách">
+          <Form.Item
+            name="maKhoXuat"
+            label="Mã kho xuất"
+            rules={[
+              {
+                required: true,
+                message: "Vui lòng chọn kho xuất",
+              },
+            ]}
+          >
             <Select
               showSearch
               allowClear
-              placeholder="Chọn khách hàng"
-              loading={loadingMaKhach}
+              placeholder="Chọn kho xuất"
+              loading={loadingMaKho}
               filterOption={false}
-              onSearch={fetchMaKhachListDebounced}
-              options={maKhachList}
-              dropdownClassName="custom-dropdown"
+              onSearch={fetchMaKhoListDebounced}
+              options={maKhoList}
+              dropdownClassName="phieu-form-dropdown"
               optionLabelProp="value"
               disabled={!isEditMode}
+              popupMatchSelectWidth={false}
             />
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item name="soPhieu" label="Số phiếu">
-            <Input placeholder="Nhập số phiếu" disabled={!isEditMode} />
+          <Form.Item
+            name="maKhoNhap"
+            label="Mã kho nhập"
+            rules={[
+              {
+                required: true,
+                message: "Vui lòng chọn kho nhập",
+              },
+            ]}
+          >
+            <Select
+              showSearch
+              allowClear
+              placeholder="Chọn kho nhập"
+              loading={loadingMaKho}
+              filterOption={false}
+              onSearch={fetchMaKhoListDebounced}
+              options={maKhoList}
+              dropdownClassName="phieu-form-dropdown"
+              optionLabelProp="value"
+              disabled={!isEditMode}
+              popupMatchSelectWidth={false}
+            />
           </Form.Item>
         </Col>
       </Row>
 
       <Row gutter={16}>
         <Col span={12}>
-          <Form.Item name="dienGiai" label="Diễn giải">
-            <Input disabled={!isEditMode} />
+          <Form.Item name="soPhieu" label="Số phiếu">
+            <Input placeholder="Nhập số phiếu" disabled={!isEditMode} />
           </Form.Item>
         </Col>
         <Col span={12}>
@@ -72,31 +103,11 @@ const PhieuFormInputs = ({
           <Form.Item name="trangThai" label="Trạng thái">
             <Select placeholder="Chọn trạng thái" disabled={!isEditMode}>
               <Select.Option value="0">Lập chứng từ</Select.Option>
-              <Select.Option value="4">Đề nghị xuất kho</Select.Option>
-              <Select.Option value="5">Xuất kho</Select.Option>
-              <Select.Option value="6">Hoàn thành</Select.Option>
+              <Select.Option value="1">Điều chuyển</Select.Option>
+              <Select.Option value="2">Chuyển KTTH</Select.Option>
+              <Select.Option value="3">Chuyển sổ cái</Select.Option>
+              <Select.Option value="9">Tài chính</Select.Option>
             </Select>
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="xe" label="Xe vận chuyển">
-            <Input disabled={!isEditMode} />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="taiXe" label="Tài xế">
-            <Input disabled={!isEditMode} />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="maNVBH" label="Nhân viên bán hàng">
-            <Input disabled={!isEditMode} />
           </Form.Item>
         </Col>
       </Row>

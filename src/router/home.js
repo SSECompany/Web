@@ -52,21 +52,15 @@ const DetailPhieuXuatDieuChuyen = lazy(() =>
   )
 );
 
-// Thêm import cho phiếu xuất nội bộ
-const ListPhieuXuatNoiBo = lazy(() =>
-  import(
-    "../modules/boxly/components/phieu-xuat-noi-bo/ListPhieuXuatNoiBo"
-  )
+// Thêm import cho phiếu xuất kho
+const ListPhieuXuatKho = lazy(() =>
+  import("../modules/boxly/components/phieu-xuat-kho/ListPhieuXuatKho")
 );
-const AddPhieuXuatNoiBo = lazy(() =>
-  import(
-    "../modules/boxly/components/phieu-xuat-noi-bo/AddPhieuXuatNoiBo"
-  )
+const AddPhieuXuatKho = lazy(() =>
+  import("../modules/boxly/components/phieu-xuat-kho/AddPhieuXuatKho")
 );
-const DetailPhieuXuatNoiBo = lazy(() =>
-  import(
-    "../modules/boxly/components/phieu-xuat-noi-bo/DetailPhieuXuatNoiBo"
-  )
+const DetailPhieuXuatKho = lazy(() =>
+  import("../modules/boxly/components/phieu-xuat-kho/DetailPhieuXuatKho")
 );
 
 const protectedChildrenRoutes = [
@@ -140,24 +134,24 @@ const protectedChildrenRoutes = [
         element: <DetailPhieuXuatDieuChuyen isEditMode={true} />,
       },
       {
-        label: "Danh sách phiếu xuất nội bộ",
-        path: "phieu-xuat-noi-bo",
-        element: <ListPhieuXuatNoiBo />,
+        label: "Danh sách phiếu xuất kho",
+        path: "phieu-xuat-kho",
+        element: <ListPhieuXuatKho />,
       },
       {
-        label: "Thêm phiếu xuất nội bộ",
-        path: "phieu-xuat-noi-bo/add",
-        element: <AddPhieuXuatNoiBo />,
+        label: "Thêm phiếu xuất kho",
+        path: "phieu-xuat-kho/add",
+        element: <AddPhieuXuatKho />,
       },
       {
-        label: "Chi tiết phiếu xuất nội bộ",
-        path: "phieu-xuat-noi-bo/:stt_rec",
-        element: <DetailPhieuXuatNoiBo />,
+        label: "Chi tiết phiếu xuất kho",
+        path: "phieu-xuat-kho/:stt_rec",
+        element: <DetailPhieuXuatKho />,
       },
       {
-        label: "Sửa phiếu xuất nội bộ",
-        path: "phieu-xuat-noi-bo/edit/:stt_rec",
-        element: <DetailPhieuXuatNoiBo isEditMode={true} />,
+        label: "Sửa phiếu xuất kho",
+        path: "phieu-xuat-kho/edit/:stt_rec",
+        element: <DetailPhieuXuatKho isEditMode={true} />,
       },
     ],
   },

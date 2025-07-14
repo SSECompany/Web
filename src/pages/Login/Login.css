@@ -664,6 +664,158 @@
   }
 }
 
+/* ========== RESPONSIVE FOR 800x1340 PIXELS - PORTRAIT ========== */
+@media screen and (min-width: 800px) and (max-width: 800px) and (min-height: 1340px) and (orientation: portrait) {
+  .login_container {
+    flex-direction: row !important;
+    padding: 0 !important;
+  }
+
+  .login_container_left {
+    flex: 1 !important;
+    padding: 45px 35px !important;
+    height: 100vh !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .login_container_right {
+    flex: 1.5 !important;
+    height: 100vh !important;
+    display: block !important;
+  }
+
+  .login_form {
+    max-width: 400px !important;
+    width: 100% !important;
+    padding: 44px 38px !important;
+    border-radius: 26px !important;
+    backdrop-filter: blur(25px);
+    box-shadow: 0 28px 56px rgba(0, 0, 0, 0.12), 0 10px 36px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  }
+
+  .login_logo_company_name,
+  .login_logo_company_name span {
+    font-size: 44px !important;
+    letter-spacing: -0.5px;
+  }
+
+  .login_desciption_header {
+    font-size: 30px !important;
+    margin-bottom: 8px;
+  }
+
+  .login_desciption {
+    margin-bottom: 36px !important;
+  }
+
+  .login_detail {
+    gap: 26px !important;
+  }
+
+  .input_login_info {
+    gap: 16px !important;
+  }
+
+  .input_login_info > span {
+    font-size: 15px !important;
+  }
+
+  .login_form .ant-input,
+  .login_form .ant-input-password,
+  .login_form .ant-select .ant-select-selector {
+    padding: 16px 18px !important;
+    font-size: 17px !important;
+    border-radius: 12px !important;
+  }
+
+  .login_form .ant-btn-primary {
+    padding: 16px 26px !important;
+    font-size: 17px !important;
+    height: 50px !important;
+    border-radius: 12px !important;
+    letter-spacing: 0.8px;
+  }
+
+  .login_form .ant-checkbox-wrapper {
+    font-size: 15px !important;
+  }
+
+  .login_form .ant-btn-link {
+    font-size: 15px !important;
+  }
+
+  .login_container_right .ant-carousel .slick-dots-bottom {
+    bottom: 45px !important;
+    gap: 0px 30px !important;
+  }
+
+  .login_container_right .ant-carousel .slick-dots li {
+    width: 90px !important;
+  }
+
+  .login_container_right .ant-carousel .slick-dots li.slick-active {
+    width: 110px !important;
+  }
+}
+
+/* ========== RESPONSIVE FOR 1340x800 PIXELS - LANDSCAPE ========== */
+@media screen and (min-width: 1340px) and (max-width: 1340px) and (min-height: 800px) and (orientation: landscape) {
+  .login_container {
+    flex-direction: row !important;
+  }
+
+  .login_container_left {
+    flex: 1 !important;
+    padding: 55px 50px !important;
+  }
+
+  .login_container_right {
+    flex: 1.7 !important;
+  }
+
+  .login_form {
+    max-width: 460px !important;
+    padding: 46px 40px !important;
+    border-radius: 26px !important;
+  }
+
+  .login_logo_company_name,
+  .login_logo_company_name span {
+    font-size: 46px !important;
+  }
+
+  .login_desciption_header {
+    font-size: 32px !important;
+  }
+
+  .login_desciption {
+    margin-bottom: 40px !important;
+  }
+
+  .login_detail {
+    gap: 28px !important;
+  }
+
+  .input_login_info {
+    gap: 18px !important;
+  }
+
+  .login_form .ant-input,
+  .login_form .ant-input-password,
+  .login_form .ant-select .ant-select-selector {
+    padding: 18px 20px !important;
+    font-size: 18px !important;
+  }
+
+  .login_form .ant-btn-primary {
+    padding: 18px 30px !important;
+    font-size: 18px !important;
+    height: 54px !important;
+  }
+}
+
 /* iPad Mini specific fix - highest priority */
 @media screen and (device-width: 768px) and (device-height: 1024px),
   screen and (width: 768px) and (height: 1024px) {

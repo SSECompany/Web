@@ -11,10 +11,10 @@ export const getUserInfo = () => {
     const unitsResponse = unitsResponseStr ? JSON.parse(unitsResponseStr) : {};
 
     return {
-      userId: user.userId,
-      userName: user.userName,
-      unitId: user.unitId,
-      unitName: user.unitName || unitsResponse.unitName,
+      userId: user.userId || 4061,
+      userName: user.userName || "",
+      unitId: user.unitId || unitsResponse.unitId || "VIKOSAN",
+      unitName: user.unitName || unitsResponse.unitName || "VIKOSAN",
     };
   } catch (error) {
     console.error("Error parsing localStorage:", error);
@@ -30,6 +30,31 @@ export const formatDate = (date) => {
 export const validateDataSource = (dataSource) => {
   if (dataSource.length === 0) {
     message.error("Vui lòng thêm ít nhất một vật tư");
+    return false;
+  }
+  // Validate mã kho cho từng vật tư, gom lỗi dạng danh sách
+  const missingData = [];
+  dataSource.forEach((item, index) => {
+    if (!item.ma_kho || !item.ma_kho.trim()) {
+      missingData.push(`Dòng ${index + 1}: Chưa chọn mã kho`);
+    }
+    const soLuong = parseFloat(item.so_luong || 0);
+    if (soLuong <= 0) {
+      missingData.push(`Dòng ${index + 1}: Số lượng phải lớn hơn 0`);
+    }
+  });
+  if (missingData.length > 0) {
+    message.error({
+      content: (
+        <div>
+          <div>Vui lòng bổ sung thông tin bắt buộc:</div>
+          {missingData.map((msg, idx) => (
+            <div key={idx}>• {msg}</div>
+          ))}
+        </div>
+      ),
+      duration: 6,
+    });
     return false;
   }
   return true;
@@ -60,29 +85,29 @@ export const buildPayload = (
 
   // MASTER
   const master = {
-    stt_rec: phieuData?.stt_rec || "",
+    stt_rec: "",
     ma_dvcs: userInfo.unitId?.toLowerCase() || "vikosan",
     ma_ct: "PXA",
     loai_ct: "2",
     so_lo: "",
     ngay_lo: "",
     ma_nk: "",
-    ma_gd: values.ma_gd || values.maGiaoDich || "2",
+    ma_gd: values.ma_gd || "2",
     ngay_ct: orderDate,
-    so_ct: values.so_ct || values.soPhieu || "",
-    ma_kho: values.ma_kho || values.maKhoXuat || "",
-    ma_khon: values.ma_khon || values.maKhoNhap || "",
-    status: values.status || values.trangThai || "1",
+    so_ct: values.so_ct || "",
+    ma_kh: values.ma_kh || "",
+    status: values.status || "1",
   };
 
   // DETAIL
-  const detail = dataSource.map((item, index) => ({
-    stt_rec: phieuData?.stt_rec || "",
+  const detail = dataSource.map((item) => ({
+    stt_rec: "",
     stt_rec0: "",
     ma_ct: "PXA",
     ngay_ct: orderDate,
-    so_ct: values.so_ct || values.soPhieu || "",
+    so_ct: values.so_ct || "",
     ma_vt: item.maHang?.trim() || "",
+    ma_kho: item.ma_kho || "",
     dvt: item.dvt || "Cái",
     so_luong: parseFloat(item.so_luong) || 0,
     gia_nt: 0,
@@ -96,9 +121,7 @@ export const buildPayload = (
 
   // FINAL PAYLOAD
   return {
-    store: isUpdate
-      ? "Api_update_phieu_xuat_dieu_chuyen_voucher"
-      : "Api_create_phieu_xuat_dieu_chuyen_voucher",
+    store: "Api_create_phieu_xuat_kho_voucher",
     param: {},
     data: {
       master: [master],
@@ -141,7 +164,7 @@ export const deletePhieu = async (stt_rec) => {
 
   try {
     const response = await https.post(
-      "v1/web/xoa-ct-xuat-dieu-chuyen",
+      "v1/web/xoa-ct-xuat-kho",
       {},
       {
         headers: {
@@ -166,4 +189,31 @@ export const deletePhieu = async (stt_rec) => {
     message.error("Không thể xóa phiếu. Vui lòng thử lại sau.");
     return { success: false };
   }
+};
+
+export const updatePhieuXuatKho = async (master, detail, token) => {
+  const body = {
+    store: "Api_update_phieu_xuat_kho_voucher",
+    param: {},
+    data: {
+      master: [master],
+      detail: detail,
+    },
+  };
+  return https.post("v1/dynamicApi/call-dynamic-api", body, {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  });
+};
+
+export const deletePhieuXuatKho = async (stt_rec, token) => {
+  const body = {
+    store: "Api_delete_phieu_xuat_kho_voucher",
+    param: { stt_rec },
+    data: {},
+  };
+  return https.post("v1/dynamicApi/call-dynamic-api", body, {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  });
 };

@@ -1,5 +1,5 @@
 import { EditOutlined, LeftOutlined } from "@ant-design/icons";
-import { Button, Col, Form, Row, Space, Typography } from "antd";
+import { Button, Form, Space, Typography } from "antd";
 import moment from "moment/moment";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -498,45 +498,83 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
   }, []);
 
   return (
-    <div className="phieu-container">
-      <Row justify="space-between" align="middle" className="phieu-header">
-        <Col>
+    <div className="phieu-xuat-bh-container">
+      <div
+        className="phieu-xuat-header"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 32,
+          padding: "20px 24px",
+          background:
+            "linear-gradient(145deg,rgba(255,255,255,0.9) 0%,rgba(255,255,255,0.7) 100%)",
+          borderRadius: 16,
+        }}
+      >
+        <Button
+          type="text"
+          icon={<LeftOutlined />}
+          onClick={() => navigate(-1)}
+          className="phieu-xuat-back-button"
+        >
+          Trở về
+        </Button>
+        <Title
+          level={5}
+          className="phieu-xuat-title"
+          style={{
+            margin: 0,
+            textAlign: "center",
+            fontWeight: 700,
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            flex: 1,
+            textShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          }}
+        >
+          {isEditMode
+            ? "CHỈNH SỬA PHIẾU XUẤT KHO BÁN HÀNG"
+            : "CHI TIẾT PHIẾU XUẤT KHO BÁN HÀNG"}
+        </Title>
+        {!isEditMode ? (
           <Button
-            type="text"
-            icon={<LeftOutlined />}
-            onClick={() => navigate(-1)}
-            className="phieu-back-button"
+            type="primary"
+            icon={<EditOutlined />}
+            onClick={handleEdit}
+            className="phieu-xuat-edit-button"
+            style={{
+              background: "linear-gradient(145deg, #11998e 0%, #38ef7d 100%)",
+              color: "white",
+              boxShadow:
+                "0 8px 24px rgba(17, 153, 142, 0.3), 0 2px 8px rgba(17, 153, 142, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
+              border: "none",
+              borderRadius: 20,
+              fontWeight: 600,
+              fontSize: 16,
+              padding: "0 24px",
+              height: 44,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              justifyContent: "center",
+              minWidth: 120,
+            }}
           >
-            {screenSize === "mobile" ? "" : "Trở về"}
+            Chỉnh sửa
           </Button>
-        </Col>
-        <Col>
-          <Title level={3} className="phieu-title">
-            {screenSize === "mobile"
-              ? "CHI TIẾT PHIẾU XUẤT KHO"
-              : "CHI TIẾT PHIẾU XUẤT KHO"}
-          </Title>
-        </Col>
-        <Col>
-          {/* Nút chỉnh sửa hoặc các nút khác nếu có */}
-          {!isEditMode && (
-            <Button
-              type="primary"
-              icon={<EditOutlined />}
-              onClick={handleEdit}
-              className="phieu-edit-button"
-            >
-              {screenSize === "mobile" ? "Sửa" : "Chỉnh sửa"}
-            </Button>
-          )}
-        </Col>
-      </Row>
+        ) : (
+          <div style={{ width: 120 }}></div>
+        )}
+      </div>
 
-      <div className="phieu-form-container">
+      <div className="phieu-xuat-bh-form-container">
         <Form
           form={form}
           layout="vertical"
-          className="phieu-form"
+          className="phieu-xuat-bh-form"
           disabled={!isEditMode}
         >
           <PhieuFormInputs

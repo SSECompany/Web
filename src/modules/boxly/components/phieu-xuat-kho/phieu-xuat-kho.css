@@ -1,5 +1,5 @@
-/* CSS for Phiếu Xuất Điều Chuyển - Modern Design (Đồng bộ với phiếu xuất kho) */
-.phieu-xuat-dc-container {
+/* CSS for Phiếu Xuất Kho - Modern Design */
+.phieu-xuat-container {
   padding: 24px;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   border-radius: 20px;
@@ -11,7 +11,7 @@
   overflow: hidden;
 }
 
-.phieu-xuat-dc-container::before {
+.phieu-xuat-container::before {
   content: "";
   position: absolute;
   top: 0;
@@ -34,7 +34,7 @@
 }
 
 /* ========== HEADER STYLES ========== */
-.phieu-xuat-dc-header {
+.phieu-xuat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -56,7 +56,7 @@
   z-index: 2;
 }
 
-.phieu-xuat-dc-back-button {
+.phieu-xuat-back-button {
   color: #667eea;
   border: 1px solid rgba(102, 126, 234, 0.3);
   background: linear-gradient(
@@ -76,7 +76,7 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.phieu-xuat-dc-back-button:hover {
+.phieu-xuat-back-button:hover {
   color: #764ba2;
   background: linear-gradient(
     145deg,
@@ -87,7 +87,7 @@
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
 }
 
-.phieu-xuat-dc-title {
+.phieu-xuat-title {
   margin: 0 !important;
   text-align: center;
   font-weight: 700 !important;
@@ -101,8 +101,8 @@
 }
 
 /* ========== HEADER BUTTONS ========== */
-.phieu-xuat-dc-add-button,
-.phieu-xuat-dc-edit-button {
+.phieu-xuat-add-button,
+.phieu-xuat-edit-button {
   height: 40px;
   padding: 0 20px;
   border-radius: 12px;
@@ -118,7 +118,7 @@
   overflow: hidden;
 }
 
-.phieu-xuat-dc-add-button {
+.phieu-xuat-add-button {
   background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3),
@@ -126,14 +126,14 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.phieu-xuat-dc-add-button:hover {
+.phieu-xuat-add-button:hover {
   background: linear-gradient(145deg, #7c8ce8 0%, #8a5aa7 100%);
   transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4),
     0 4px 12px rgba(102, 126, 234, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-.phieu-xuat-dc-edit-button {
+.phieu-xuat-edit-button {
   background: linear-gradient(145deg, #11998e 0%, #38ef7d 100%);
   color: white;
   box-shadow: 0 8px 24px rgba(17, 153, 142, 0.3),
@@ -141,7 +141,7 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.phieu-xuat-dc-edit-button:hover {
+.phieu-xuat-edit-button:hover {
   background: linear-gradient(145deg, #26a69a 0%, #4cff8a 100%);
   transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(17, 153, 142, 0.4),
@@ -207,7 +207,7 @@
 }
 
 /* ========== TABLE STYLES ========== */
-.phieu-xuat-dc-table-container,
+.phieu-table-container,
 .vat-tu-table {
   background: linear-gradient(
     145deg,
@@ -224,7 +224,7 @@
   z-index: 2;
 }
 
-.phieu-xuat-dc-data-table,
+.phieu-data-table,
 .vat-tu-table .ant-table {
   border-radius: 16px;
   overflow: hidden;
@@ -235,7 +235,7 @@
   margin-top: 20px;
 }
 
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th,
+.phieu-data-table .ant-table-thead > tr > th,
 .vat-tu-table .ant-table-thead > tr > th {
   border-bottom: 2px solid rgba(102, 126, 234, 0.2);
   font-weight: 700;
@@ -248,9 +248,9 @@
 }
 
 /* Column header text styling */
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th > div,
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th .ant-table-column-title,
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th span,
+.phieu-data-table .ant-table-thead > tr > th > div,
+.phieu-data-table .ant-table-thead > tr > th .ant-table-column-title,
+.phieu-data-table .ant-table-thead > tr > th span,
 .vat-tu-table .ant-table-thead > tr > th > div,
 .vat-tu-table .ant-table-thead > tr > th .ant-table-column-title,
 .vat-tu-table .ant-table-thead > tr > th span {
@@ -266,12 +266,12 @@
 }
 
 /* Ensure gradient text works on all text elements */
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th,
+.phieu-data-table .ant-table-thead > tr > th,
 .vat-tu-table .ant-table-thead > tr > th {
   position: relative;
 }
 
-.phieu-xuat-dc-data-table
+.phieu-data-table
   .ant-table-thead
   > tr
   > th
@@ -285,18 +285,14 @@
 }
 
 /* Filter icons styling */
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th .ant-table-filter-trigger,
+.phieu-data-table .ant-table-thead > tr > th .ant-table-filter-trigger,
 .vat-tu-table .ant-table-thead > tr > th .ant-table-filter-trigger {
   color: #667eea !important;
   opacity: 0.8;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.phieu-xuat-dc-data-table
-  .ant-table-thead
-  > tr
-  > th
-  .ant-table-filter-trigger:hover,
+.phieu-data-table .ant-table-thead > tr > th .ant-table-filter-trigger:hover,
 .vat-tu-table .ant-table-thead > tr > th .ant-table-filter-trigger:hover {
   color: #764ba2 !important;
   opacity: 1;
@@ -304,7 +300,7 @@
 }
 
 /* Filter trigger active state */
-.phieu-xuat-dc-data-table
+.phieu-data-table
   .ant-table-thead
   > tr
   > th
@@ -319,7 +315,7 @@
 }
 
 /* Column sorter styling */
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th .ant-table-column-sorters,
+.phieu-data-table .ant-table-thead > tr > th .ant-table-column-sorters,
 .vat-tu-table .ant-table-thead > tr > th .ant-table-column-sorters {
   padding: 0;
   display: flex;
@@ -327,7 +323,7 @@
   justify-content: center;
 }
 
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th .ant-table-column-sorter,
+.phieu-data-table .ant-table-thead > tr > th .ant-table-column-sorter,
 .vat-tu-table .ant-table-thead > tr > th .ant-table-column-sorter {
   color: #667eea !important;
   opacity: 0.6;
@@ -335,17 +331,13 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.phieu-xuat-dc-data-table
-  .ant-table-thead
-  > tr
-  > th
-  .ant-table-column-sorter:hover,
+.phieu-data-table .ant-table-thead > tr > th .ant-table-column-sorter:hover,
 .vat-tu-table .ant-table-thead > tr > th .ant-table-column-sorter:hover {
   color: #764ba2 !important;
   opacity: 1;
 }
 
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th {
+.phieu-data-table .ant-table-thead > tr > th {
   padding: 16px 12px;
 }
 
@@ -353,7 +345,7 @@
   padding: 12px 8px;
 }
 
-.phieu-xuat-dc-data-table .ant-table-tbody > tr > td,
+.phieu-data-table .ant-table-tbody > tr > td,
 .vat-tu-table .ant-table-tbody > tr > td {
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   text-align: center;
@@ -362,7 +354,7 @@
   font-weight: 500;
 }
 
-.phieu-xuat-dc-data-table .ant-table-tbody > tr > td {
+.phieu-data-table .ant-table-tbody > tr > td {
   padding: 12px;
 }
 
@@ -371,7 +363,7 @@
   overflow: visible !important;
 }
 
-.phieu-xuat-dc-data-table .ant-table-tbody > tr:hover > td,
+.phieu-data-table .ant-table-tbody > tr:hover > td,
 .vat-tu-table .ant-table-tbody > tr:hover > td {
   background: linear-gradient(
     145deg,
@@ -381,13 +373,13 @@
   transform: scale(1.01);
 }
 
-.phieu-xuat-dc-data-table .ant-table-tbody > tr:last-child > td,
+.phieu-data-table .ant-table-tbody > tr:last-child > td,
 .vat-tu-table .ant-table-tbody > tr:last-child > td {
   border-bottom: none;
 }
 
 /* ========== ACTION BUTTONS ========== */
-.phieu-xuat-dc-action-btn {
+.phieu-action-btn {
   border-radius: 8px;
   height: 36px;
   width: 36px;
@@ -402,7 +394,7 @@
   overflow: hidden;
 }
 
-.phieu-xuat-dc-view-btn {
+.phieu-view-btn {
   background: linear-gradient(
     145deg,
     rgba(24, 144, 255, 0.1) 0%,
@@ -413,7 +405,7 @@
   box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
 }
 
-.phieu-xuat-dc-view-btn:hover {
+.phieu-view-btn:hover {
   background: linear-gradient(
     145deg,
     rgba(24, 144, 255, 0.2) 0%,
@@ -423,7 +415,7 @@
   box-shadow: 0 8px 20px rgba(24, 144, 255, 0.3);
 }
 
-.phieu-xuat-dc-edit-btn {
+.phieu-edit-btn {
   background: linear-gradient(
     145deg,
     rgba(250, 140, 22, 0.1) 0%,
@@ -434,7 +426,7 @@
   box-shadow: 0 4px 12px rgba(250, 140, 22, 0.2);
 }
 
-.phieu-xuat-dc-edit-btn:hover {
+.phieu-edit-btn:hover {
   background: linear-gradient(
     145deg,
     rgba(250, 140, 22, 0.2) 0%,
@@ -444,7 +436,7 @@
   box-shadow: 0 8px 20px rgba(250, 140, 22, 0.3);
 }
 
-.phieu-xuat-dc-delete-btn {
+.phieu-delete-btn {
   background: linear-gradient(
     145deg,
     rgba(255, 77, 79, 0.1) 0%,
@@ -455,7 +447,7 @@
   box-shadow: 0 4px 12px rgba(255, 77, 79, 0.2);
 }
 
-.phieu-xuat-dc-delete-btn:hover {
+.phieu-delete-btn:hover {
   background: linear-gradient(
     145deg,
     rgba(255, 77, 79, 0.2) 0%,
@@ -483,15 +475,15 @@
 }
 
 /* Ensure delete button and icon are always visible */
-.phieu-xuat-dc-delete-btn,
-.phieu-xuat-dc-delete-btn .anticon,
-.phieu-xuat-dc-delete-btn .anticon-delete {
+.phieu-delete-btn,
+.phieu-delete-btn .anticon,
+.phieu-delete-btn .anticon-delete {
   opacity: 1 !important;
   visibility: visible !important;
   display: inline-flex !important;
 }
 
-.phieu-xuat-dc-action-btn .anticon {
+.phieu-action-btn .anticon {
   opacity: 1 !important;
   visibility: visible !important;
   display: inline-flex !important;
@@ -510,7 +502,7 @@
   );
 }
 
-.phieu-xuat-dc-container {
+.phieu-xuat-container {
   padding: 24px;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   border-radius: 20px;
@@ -523,7 +515,7 @@
   overflow: hidden;
 }
 
-.phieu-xuat-dc-container::before {
+.phieu-xuat-container::before {
   content: "";
   position: absolute;
   top: 0;
@@ -546,7 +538,7 @@
 }
 
 /* ========== HEADER STYLES ========== */
-.phieu-xuat-dc-header {
+.phieu-xuat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -568,7 +560,7 @@
   z-index: 2;
 }
 
-.phieu-xuat-dc-back-button {
+.phieu-xuat-back-button {
   color: #667eea;
   border: 1px solid rgba(102, 126, 234, 0.3);
   background: linear-gradient(
@@ -588,7 +580,7 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.phieu-xuat-dc-back-button:hover {
+.phieu-xuat-back-button:hover {
   color: #764ba2;
   background: linear-gradient(
     145deg,
@@ -599,7 +591,7 @@
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
 }
 
-.phieu-xuat-dc-title {
+.phieu-xuat-title {
   margin: 0 !important;
   text-align: center;
   font-weight: 700 !important;
@@ -612,9 +604,9 @@
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.phieu-xuat-dc-add-button,
-.phieu-xuat-dc-edit-button,
-.phieu-xuat-dc-save-button {
+.phieu-xuat-add-button,
+.phieu-xuat-edit-button,
+.phieu-xuat-save-button {
   height: 40px;
   padding: 0 20px;
   border-radius: 12px;
@@ -626,7 +618,7 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.phieu-xuat-dc-add-button {
+.phieu-xuat-add-button {
   background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3),
@@ -634,14 +626,14 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.phieu-xuat-dc-add-button:hover {
+.phieu-xuat-add-button:hover {
   background: linear-gradient(145deg, #7c8ce8 0%, #8a5aa7 100%);
   transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4),
     0 4px 12px rgba(102, 126, 234, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-.phieu-xuat-dc-edit-button {
+.phieu-xuat-edit-button {
   background: linear-gradient(145deg, #11998e 0%, #38ef7d 100%);
   color: white;
   box-shadow: 0 8px 24px rgba(17, 153, 142, 0.3),
@@ -649,14 +641,14 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.phieu-xuat-dc-edit-button:hover {
+.phieu-xuat-edit-button:hover {
   background: linear-gradient(145deg, #26a69a 0%, #4cff8a 100%);
   transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(17, 153, 142, 0.4),
     0 4px 12px rgba(17, 153, 142, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-.phieu-xuat-dc-save-button {
+.phieu-xuat-save-button {
   background: linear-gradient(145deg, #f093fb 0%, #f5576c 100%);
   color: white;
   padding: 0 24px;
@@ -665,7 +657,7 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.phieu-xuat-dc-save-button:hover {
+.phieu-xuat-save-button:hover {
   background: linear-gradient(145deg, #f3a1fc 0%, #f6637a 100%);
   transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(240, 147, 251, 0.4),
@@ -731,7 +723,7 @@
 }
 
 /* ========== TABLE STYLES ========== */
-.phieu-xuat-dc-table-container,
+.phieu-table-container,
 .vat-tu-table {
   background: linear-gradient(
     145deg,
@@ -748,7 +740,7 @@
   z-index: 2;
 }
 
-.phieu-xuat-dc-data-table,
+.phieu-data-table,
 .vat-tu-table .ant-table {
   border-radius: 16px;
   overflow: hidden;
@@ -759,7 +751,7 @@
   margin-top: 20px;
 }
 
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th,
+.phieu-data-table .ant-table-thead > tr > th,
 .vat-tu-table .ant-table-thead > tr > th {
   border-bottom: 2px solid rgba(102, 126, 234, 0.2);
   font-weight: 700;
@@ -772,9 +764,9 @@
 }
 
 /* Column header text styling */
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th > div,
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th .ant-table-column-title,
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th span,
+.phieu-data-table .ant-table-thead > tr > th > div,
+.phieu-data-table .ant-table-thead > tr > th .ant-table-column-title,
+.phieu-data-table .ant-table-thead > tr > th span,
 .vat-tu-table .ant-table-thead > tr > th > div,
 .vat-tu-table .ant-table-thead > tr > th .ant-table-column-title,
 .vat-tu-table .ant-table-thead > tr > th span {
@@ -790,12 +782,12 @@
 }
 
 /* Ensure gradient text works on all text elements */
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th,
+.phieu-data-table .ant-table-thead > tr > th,
 .vat-tu-table .ant-table-thead > tr > th {
   position: relative;
 }
 
-.phieu-xuat-dc-data-table
+.phieu-data-table
   .ant-table-thead
   > tr
   > th
@@ -809,18 +801,14 @@
 }
 
 /* Filter icons styling */
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th .ant-table-filter-trigger,
+.phieu-data-table .ant-table-thead > tr > th .ant-table-filter-trigger,
 .vat-tu-table .ant-table-thead > tr > th .ant-table-filter-trigger {
   color: #667eea !important;
   opacity: 0.8;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.phieu-xuat-dc-data-table
-  .ant-table-thead
-  > tr
-  > th
-  .ant-table-filter-trigger:hover,
+.phieu-data-table .ant-table-thead > tr > th .ant-table-filter-trigger:hover,
 .vat-tu-table .ant-table-thead > tr > th .ant-table-filter-trigger:hover {
   color: #764ba2 !important;
   opacity: 1;
@@ -828,7 +816,7 @@
 }
 
 /* Filter trigger active state */
-.phieu-xuat-dc-data-table
+.phieu-data-table
   .ant-table-thead
   > tr
   > th
@@ -843,7 +831,7 @@
 }
 
 /* Column sorter styling */
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th .ant-table-column-sorters,
+.phieu-data-table .ant-table-thead > tr > th .ant-table-column-sorters,
 .vat-tu-table .ant-table-thead > tr > th .ant-table-column-sorters {
   padding: 0;
   display: flex;
@@ -851,7 +839,7 @@
   justify-content: center;
 }
 
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th .ant-table-column-sorter,
+.phieu-data-table .ant-table-thead > tr > th .ant-table-column-sorter,
 .vat-tu-table .ant-table-thead > tr > th .ant-table-column-sorter {
   color: #667eea !important;
   opacity: 0.6;
@@ -859,17 +847,13 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.phieu-xuat-dc-data-table
-  .ant-table-thead
-  > tr
-  > th
-  .ant-table-column-sorter:hover,
+.phieu-data-table .ant-table-thead > tr > th .ant-table-column-sorter:hover,
 .vat-tu-table .ant-table-thead > tr > th .ant-table-column-sorter:hover {
   color: #764ba2 !important;
   opacity: 1;
 }
 
-.phieu-xuat-dc-data-table .ant-table-thead > tr > th {
+.phieu-data-table .ant-table-thead > tr > th {
   padding: 16px 12px;
 }
 
@@ -877,17 +861,16 @@
   padding: 12px 8px;
 }
 
-.phieu-xuat-dc-data-table .ant-table-tbody > tr > td,
+.phieu-data-table .ant-table-tbody > tr > td,
 .vat-tu-table .ant-table-tbody > tr > td {
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   text-align: center;
   vertical-align: middle;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: transparent;
   font-weight: 500;
 }
 
-.phieu-xuat-dc-data-table .ant-table-tbody > tr > td {
+.phieu-data-table .ant-table-tbody > tr > td {
   padding: 12px;
 }
 
@@ -896,7 +879,7 @@
   overflow: visible !important;
 }
 
-.phieu-xuat-dc-data-table .ant-table-tbody > tr:hover > td,
+.phieu-data-table .ant-table-tbody > tr:hover > td,
 .vat-tu-table .ant-table-tbody > tr:hover > td {
   background: linear-gradient(
     145deg,
@@ -906,13 +889,13 @@
   transform: scale(1.01);
 }
 
-.phieu-xuat-dc-data-table .ant-table-tbody > tr:last-child > td,
+.phieu-data-table .ant-table-tbody > tr:last-child > td,
 .vat-tu-table .ant-table-tbody > tr:last-child > td {
   border-bottom: none;
 }
 
 /* ========== ACTION BUTTONS ========== */
-.phieu-xuat-dc-action-btn {
+.phieu-action-btn {
   border-radius: 8px;
   height: 36px;
   width: 36px;
@@ -927,7 +910,7 @@
   overflow: hidden;
 }
 
-.phieu-xuat-dc-view-btn {
+.phieu-view-btn {
   background: linear-gradient(
     145deg,
     rgba(24, 144, 255, 0.1) 0%,
@@ -938,7 +921,7 @@
   box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
 }
 
-.phieu-xuat-dc-view-btn:hover {
+.phieu-view-btn:hover {
   background: linear-gradient(
     145deg,
     rgba(24, 144, 255, 0.2) 0%,
@@ -948,7 +931,7 @@
   box-shadow: 0 8px 20px rgba(24, 144, 255, 0.3);
 }
 
-.phieu-xuat-dc-edit-btn {
+.phieu-edit-btn {
   background: linear-gradient(
     145deg,
     rgba(250, 140, 22, 0.1) 0%,
@@ -959,7 +942,7 @@
   box-shadow: 0 4px 12px rgba(250, 140, 22, 0.2);
 }
 
-.phieu-xuat-dc-edit-btn:hover {
+.phieu-edit-btn:hover {
   background: linear-gradient(
     145deg,
     rgba(250, 140, 22, 0.2) 0%,
@@ -969,7 +952,7 @@
   box-shadow: 0 8px 20px rgba(250, 140, 22, 0.3);
 }
 
-.phieu-xuat-dc-delete-btn {
+.phieu-delete-btn {
   background: linear-gradient(
     145deg,
     rgba(255, 77, 79, 0.1) 0%,
@@ -980,7 +963,7 @@
   box-shadow: 0 4px 12px rgba(255, 77, 79, 0.2);
 }
 
-.phieu-xuat-dc-delete-btn:hover {
+.phieu-delete-btn:hover {
   background: linear-gradient(
     145deg,
     rgba(255, 77, 79, 0.2) 0%,
@@ -1008,15 +991,15 @@
 }
 
 /* Ensure delete button and icon are always visible */
-.phieu-xuat-dc-delete-btn,
-.phieu-xuat-dc-delete-btn .anticon,
-.phieu-xuat-dc-delete-btn .anticon-delete {
+.phieu-delete-btn,
+.phieu-delete-btn .anticon,
+.phieu-delete-btn .anticon-delete {
   opacity: 1 !important;
   visibility: visible !important;
   display: inline-flex !important;
 }
 
-.phieu-xuat-dc-action-btn .anticon {
+.phieu-action-btn .anticon {
   opacity: 1 !important;
   visibility: visible !important;
   display: inline-flex !important;
@@ -1111,22 +1094,22 @@
 }
 
 /* ========== FORM STYLES ========== */
-.phieu-xuat-dc-form-container {
+.phieu-form-container {
   margin-top: 24px;
   position: relative;
   z-index: 2;
 }
 
-.phieu-xuat-dc-form .ant-form-item-label {
+.phieu-form .ant-form-item-label {
   font-weight: 600;
   text-align: left;
 }
 
-.phieu-xuat-dc-form .ant-table-wrapper {
+.phieu-form .ant-table-wrapper {
   margin: 20px 0;
 }
 
-.phieu-xuat-dc-form .ant-table-bordered .ant-table-container {
+.phieu-form .ant-table-bordered .ant-table-container {
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-right: 0;
   border-bottom: 0;
@@ -1134,12 +1117,12 @@
   background: transparent;
 }
 
-.phieu-xuat-dc-form .ant-table-cell {
+.phieu-form .ant-table-cell {
   padding: 8px 16px;
 }
 
 /* ========== FORM ACTIONS ========== */
-.phieu-xuat-dc-form-actions {
+.phieu-form-actions {
   display: flex;
   justify-content: center;
   gap: 16px;
@@ -1157,7 +1140,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
-.phieu-xuat-dc-form-actions .ant-btn {
+.phieu-form-actions .ant-btn {
   height: 44px;
   padding: 0 24px;
   border-radius: 12px;
@@ -1170,36 +1153,35 @@
   gap: 8px;
 }
 
-.phieu-xuat-dc-form-actions .ant-btn-primary {
+.phieu-form-actions .ant-btn-primary {
   background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3),
     0 2px 8px rgba(102, 126, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.phieu-xuat-dc-form-actions .ant-btn-primary:hover {
+.phieu-form-actions .ant-btn-primary:hover {
   background: linear-gradient(145deg, #7c8ce8 0%, #8a5aa7 100%);
   transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4),
     0 4px 12px rgba(102, 126, 234, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-.phieu-xuat-dc-form-actions .ant-btn-dangerous {
+.phieu-form-actions .ant-btn-dangerous {
   background: linear-gradient(145deg, #ff4d4f 0%, #ff7875 100%);
   color: white;
   box-shadow: 0 8px 24px rgba(255, 77, 79, 0.3),
     0 2px 8px rgba(255, 77, 79, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.phieu-xuat-dc-form-actions .ant-btn-dangerous:hover {
+.phieu-form-actions .ant-btn-dangerous:hover {
   background: linear-gradient(145deg, #ff7875 0%, #ffa39e 100%);
   transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(255, 77, 79, 0.4),
     0 4px 12px rgba(255, 77, 79, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-.phieu-xuat-dc-form-actions
-  .ant-btn:not(.ant-btn-primary):not(.ant-btn-dangerous) {
+.phieu-form-actions .ant-btn:not(.ant-btn-primary):not(.ant-btn-dangerous) {
   background: linear-gradient(
     145deg,
     rgba(255, 255, 255, 0.8) 0%,
@@ -1210,7 +1192,7 @@
   backdrop-filter: blur(10px);
 }
 
-.phieu-xuat-dc-form-actions
+.phieu-form-actions
   .ant-btn:not(.ant-btn-primary):not(.ant-btn-dangerous):hover {
   background: linear-gradient(
     145deg,
@@ -1223,17 +1205,17 @@
 
 /* ========== RESPONSIVE DESIGN ========== */
 @media (max-width: 1024px) {
-  .phieu-xuat-dc-container {
+  .phieu-xuat-container {
     padding: 20px;
     margin: 12px;
     border-radius: 16px;
   }
 
-  .phieu-xuat-dc-title {
+  .phieu-xuat-title {
     font-size: 20px;
   }
 
-  .phieu-xuat-dc-data-table .ant-table-thead > tr > th,
+  .phieu-data-table .ant-table-thead > tr > th,
   .vat-tu-table .ant-table-thead > tr > th {
     padding: 12px 8px;
     font-size: 11px;
@@ -1241,31 +1223,31 @@
 }
 
 @media (max-width: 768px) {
-  .phieu-xuat-dc-container {
+  .phieu-xuat-container {
     padding: 16px;
     margin: 8px;
     border-radius: 12px;
   }
 
-  .phieu-xuat-dc-header {
+  .phieu-xuat-header {
     padding: 16px 20px;
     border-radius: 12px;
     flex-direction: column;
     gap: 12px;
   }
 
-  .phieu-xuat-dc-title {
+  .phieu-xuat-title {
     font-size: 18px;
     order: -1;
   }
 
-  .phieu-xuat-dc-back-button {
+  .phieu-xuat-back-button {
     align-self: flex-start;
   }
 
-  .phieu-xuat-dc-add-button,
-  .phieu-xuat-dc-edit-button,
-  .phieu-xuat-dc-save-button {
+  .phieu-xuat-add-button,
+  .phieu-xuat-edit-button,
+  .phieu-xuat-save-button {
     height: 36px;
     padding: 0 16px;
     font-size: 13px;
@@ -1276,36 +1258,36 @@
     border-radius: 12px;
   }
 
-  .phieu-xuat-dc-table-container,
+  .phieu-table-container,
   .vat-tu-table {
     border-radius: 12px;
   }
 
-  .phieu-xuat-dc-action-btn {
+  .phieu-action-btn {
     height: 32px;
     width: 32px;
   }
 }
 
 @media (max-width: 480px) {
-  .phieu-xuat-dc-container {
+  .phieu-xuat-container {
     padding: 12px;
     margin: 4px;
     border-radius: 8px;
   }
 
-  .phieu-xuat-dc-header {
+  .phieu-xuat-header {
     padding: 12px 16px;
     border-radius: 8px;
   }
 
-  .phieu-xuat-dc-title {
+  .phieu-xuat-title {
     font-size: 16px;
   }
 
-  .phieu-xuat-dc-add-button,
-  .phieu-xuat-dc-edit-button,
-  .phieu-xuat-dc-save-button {
+  .phieu-xuat-add-button,
+  .phieu-xuat-edit-button,
+  .phieu-xuat-save-button {
     height: 32px;
     padding: 0 12px;
     font-size: 12px;
@@ -1316,17 +1298,17 @@
     border-radius: 8px;
   }
 
-  .phieu-xuat-dc-table-container,
+  .phieu-table-container,
   .vat-tu-table {
     border-radius: 8px;
   }
 
-  .phieu-xuat-dc-action-btn {
+  .phieu-action-btn {
     height: 28px;
     width: 28px;
   }
 
-  .phieu-xuat-dc-form-actions .ant-btn {
+  .phieu-form-actions .ant-btn {
     height: 40px;
     padding: 0 20px;
     font-size: 13px;

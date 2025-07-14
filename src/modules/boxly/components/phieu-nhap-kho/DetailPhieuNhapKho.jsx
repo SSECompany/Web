@@ -148,7 +148,8 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
                   : "cái";
 
                 // Sử dụng nullish coalescing để xử lý đúng giá trị 0
-                const soLuongHienThi = item.so_luong ?? 0;
+                const soLuongHienThi = item.sl_td3 ?? 0; // sl_td3 - số lượng thực tế
+                const soLuongDeNghiHienThi = item.so_luong ?? 0; // so_luong - số lượng đề nghị
                 const dvtHienTai = item.dvt ? item.dvt.trim() : dvtGocFromAPI;
 
                 let soLuongGoc;
@@ -186,9 +187,9 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
                 return {
                   key: index + 1,
                   maHang: item.ma_vt || "",
-                  soLuong: Math.round(soLuongHienThiMoi * 1000) / 1000,
+                  soLuong: Math.round(soLuongHienThiMoi * 1000) / 1000, // sl_td3 - số lượng thực tế
                   soLuong_goc: Math.round(soLuongGoc * 1000) / 1000,
-                  soLuongDeNghi: parseFloat(item.sl_td3) || 0,
+                  soLuongDeNghi: parseFloat(soLuongDeNghiHienThi) || 0, // so_luong - số lượng đề nghị
                   he_so: heSoHienTai,
                   he_so_goc: heSoGocFromAPI, // Lưu hệ số gốc từ API
                   ten_mat_hang: item.ten_vt || item.ma_vt || "",
@@ -337,36 +338,81 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   };
 
   return (
-    <div className="phieu-container">
-      <div className="phieu-header">
+    <div className="phieu-nhap-container">
+      <div
+        className="phieu-nhap-header"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 32,
+          padding: "20px 24px",
+          background:
+            "linear-gradient(145deg,rgba(255,255,255,0.9) 0%,rgba(255,255,255,0.7) 100%)",
+          borderRadius: 16,
+        }}
+      >
         <Button
           type="text"
           icon={<LeftOutlined />}
           onClick={() => navigate(-1)}
-          className="phieu-back-button"
+          className="phieu-nhap-back-button"
         >
           Trở về
         </Button>
-        <Title level={3} className="phieu-title">
+        <Title
+          level={5}
+          className="phieu-nhap-title"
+          style={{
+            margin: 0,
+            textAlign: "center",
+            fontWeight: 700,
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            flex: 1,
+            textShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          }}
+        >
           {isEditMode ? "CHỈNH SỬA PHIẾU NHẬP KHO" : "CHI TIẾT PHIẾU NHẬP KHO"}
         </Title>
-        {!isEditMode && (
+        {!isEditMode ? (
           <Button
             type="primary"
             icon={<EditOutlined />}
             onClick={handleEdit}
-            className="phieu-edit-button"
+            className="phieu-nhap-edit-button"
+            style={{
+              background: "linear-gradient(145deg, #11998e 0%, #38ef7d 100%)",
+              color: "white",
+              boxShadow:
+                "0 8px 24px rgba(17, 153, 142, 0.3), 0 2px 8px rgba(17, 153, 142, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
+              border: "none",
+              borderRadius: 20,
+              fontWeight: 600,
+              fontSize: 16,
+              padding: "0 24px",
+              height: 44,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              justifyContent: "center",
+              minWidth: 120,
+            }}
           >
             Chỉnh sửa
           </Button>
+        ) : (
+          <div style={{ width: 120 }}></div>
         )}
       </div>
 
-      <div className="phieu-form-container">
+      <div className="phieu-nhap-form-container">
         <Form
           form={form}
           layout="vertical"
-          className="phieu-form"
+          className="phieu-nhap-form"
           disabled={!isEditMode}
         >
           <PhieuNhapKhoFormInputs

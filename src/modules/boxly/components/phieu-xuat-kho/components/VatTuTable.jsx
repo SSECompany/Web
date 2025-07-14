@@ -2,13 +2,13 @@ import { DeleteOutlined } from "@ant-design/icons";
 import { Button, Empty, Input, Select, Table } from "antd";
 import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
 
-const VatTuNhapKhoTable = ({
+const VatTuTable = ({
   dataSource,
-  isEditMode = true,
+  isEditMode,
   handleQuantityChange,
-  handleSelectChange,
   handleDeleteItem,
   handleDvtChange,
+  handleSelectChange,
   maKhoList,
   loadingMaKho,
   fetchMaKhoListDebounced,
@@ -32,6 +32,7 @@ const VatTuNhapKhoTable = ({
       dataIndex: "ten_mat_hang",
       key: "ten_mat_hang",
       align: "center",
+      render: (value) => value,
     },
     {
       title: "Đvt",
@@ -40,19 +41,23 @@ const VatTuNhapKhoTable = ({
       width: 80,
       align: "center",
       render: (value, record) => {
+        // Nếu không phải edit mode, chỉ hiển thị text
         if (!isEditMode) {
           return value;
         }
 
+        // Lấy danh sách đơn vị tính từ record
         const dvtOptions = record.donViTinhList || [];
 
         return (
           <Select
             value={value}
             onChange={(newValue) => handleDvtChange(newValue, record)}
+            className="vat-tu-table-select"
             style={{ width: "100%" }}
             size="small"
-            className="vat-tu-table-select"
+            dropdownClassName="vat-tu-dropdown"
+            popupMatchSelectWidth={false}
           >
             {dvtOptions.length > 0 ? (
               dvtOptions.map((dvt) => (
@@ -67,84 +72,34 @@ const VatTuNhapKhoTable = ({
         );
       },
     },
-
     {
-      title: "Số lượng đề nghị",
-      dataIndex: "soLuongDeNghi",
-      key: "soLuongDeNghi",
-      width: 130,
+      title: "Số lượng",
+      dataIndex: "so_luong",
+      key: "so_luong",
+      width: 150,
       align: "center",
       render: (value, record) =>
         isEditMode ? (
           <Input
             type="text"
             value={value}
+            className="vat-tu-table-input"
             onChange={(e) => {
+              // Cho phép nhập số và dấu chấm thập phân
               const val = e.target.value.replace(/[^0-9.]/g, "");
+              // Đảm bảo chỉ có 1 dấu chấm
               const parts = val.split(".");
               const formattedVal =
                 parts.length > 2
                   ? parts[0] + "." + parts.slice(1).join("")
                   : val;
-              handleQuantityChange(formattedVal, record, "soLuongDeNghi");
+              handleQuantityChange(formattedVal, record, "so_luong");
             }}
             style={{
               width: "100%",
               textAlign: "center",
               fontWeight: "bold",
             }}
-            className="vat-tu-table-input"
-          />
-        ) : value ? (
-          <span
-            style={{
-              fontWeight: "bold",
-              display: "block",
-              textAlign: "center",
-              color: value && value > 0 ? "#1890ff" : "#999",
-            }}
-          >
-            {formatQuantityDisplay(value)}
-          </span>
-        ) : (
-          <span
-            style={{
-              fontWeight: "bold",
-              display: "block",
-              textAlign: "center",
-              color: "#999",
-            }}
-          >
-            0
-          </span>
-        ),
-    },
-    {
-      title: "Số lượng cheat",
-      dataIndex: "soLuong",
-      key: "soLuong",
-      width: 120,
-      align: "center",
-      render: (value, record) =>
-        isEditMode ? (
-          <Input
-            type="text"
-            value={value}
-            onChange={(e) => {
-              const val = e.target.value.replace(/[^0-9.]/g, "");
-              const parts = val.split(".");
-              const formattedVal =
-                parts.length > 2
-                  ? parts[0] + "." + parts.slice(1).join("")
-                  : val;
-              handleQuantityChange(formattedVal, record, "soLuong");
-            }}
-            style={{
-              width: "100%",
-              textAlign: "center",
-              fontWeight: "bold",
-            }}
-            className="vat-tu-table-input"
           />
         ) : value ? (
           <span
@@ -201,7 +156,6 @@ const VatTuNhapKhoTable = ({
           value
         ),
     },
-
     {
       title: "Thao tác",
       key: "action",
@@ -212,11 +166,11 @@ const VatTuNhapKhoTable = ({
           type="text"
           danger
           size="small"
+          className="vat-tu-delete-btn"
           icon={<DeleteOutlined />}
           onClick={() => handleDeleteItem(index, isEditMode)}
           title="Xóa dòng"
           disabled={!isEditMode}
-          className="vat-tu-delete-btn"
         />
       ),
     },
@@ -225,6 +179,7 @@ const VatTuNhapKhoTable = ({
   return (
     <Table
       bordered
+      className="vat-tu-table hidden_scroll_bar"
       dataSource={dataSource}
       columns={columns}
       locale={{
@@ -233,9 +188,8 @@ const VatTuNhapKhoTable = ({
         ),
       }}
       pagination={false}
-      className="vat-tu-table hidden_scroll_bar"
     />
   );
 };
 
-export default VatTuNhapKhoTable;
+export default VatTuTable;

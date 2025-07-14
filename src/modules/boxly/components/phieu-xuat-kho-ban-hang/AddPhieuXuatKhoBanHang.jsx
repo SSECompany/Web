@@ -202,23 +202,50 @@ const AddPhieuXuatKhoBanHang = () => {
   };
 
   return (
-    <div className="phieu-container">
-      <div className="phieu-header">
+    <div className="phieu-xuat-bh-container">
+      <div
+        className="phieu-xuat-header"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 32,
+          padding: "20px 24px",
+          background:
+            "linear-gradient(145deg,rgba(255,255,255,0.9) 0%,rgba(255,255,255,0.7) 100%)",
+          borderRadius: 16,
+        }}
+      >
         <Button
           type="text"
           icon={<LeftOutlined />}
           onClick={() => navigate(-1)}
-          className="phieu-back-button"
+          className="phieu-xuat-back-button"
         >
           Trở về
         </Button>
-        <Title level={3} className="phieu-title">
+        <Title
+          level={5}
+          className="phieu-xuat-title"
+          style={{
+            margin: 0,
+            textAlign: "center",
+            fontWeight: 700,
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            flex: 1,
+            textShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          }}
+        >
           THÊM PHIẾU XUẤT KHO BÁN HÀNG
         </Title>
+        <div style={{ width: 120 }}></div>
       </div>
 
-      <div className="phieu-form-container">
-        <Form form={form} layout="vertical" className="phieu-form">
+      <div className="phieu-xuat-bh-form-container">
+        <Form form={form} layout="vertical" className="phieu-xuat-bh-form">
           <PhieuFormInputs
             isEditMode={true}
             maKhachList={maKhachList}
