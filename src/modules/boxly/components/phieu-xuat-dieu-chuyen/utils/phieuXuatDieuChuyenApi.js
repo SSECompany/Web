@@ -216,3 +216,46 @@ export const deletePhieuXuatDieuChuyen = async (stt_rec) => {
     return { success: false, error: error.message };
   }
 };
+
+// API để xóa phiếu xuất điều chuyển - Gọi trực tiếp
+export const deletePhieuXuatDieuChuyenDirect = async (stt_rec) => {
+  const token = localStorage.getItem("access_token");
+
+  const body = {
+    store: "api_delete_xuat_dieu_chuyen_voucher",
+    param: {
+      stt_rec: stt_rec,
+    },
+    data: {},
+  };
+
+  try {
+    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const isSuccess =
+      response.data &&
+      (response.data.statusCode === 200 ||
+        response.data.responseModel?.isSucceded ||
+        (response.data?.responseModel?.message &&
+          response.data.responseModel.message.includes("thành công")));
+
+    if (isSuccess) {
+      message.success("Xóa phiếu xuất điều chuyển thành công");
+      return { success: true };
+    } else {
+      message.error(
+        response.data?.message || "Xóa phiếu xuất điều chuyển thất bại"
+      );
+      return { success: false, message: response.data?.message };
+    }
+  } catch (error) {
+    console.error("Lỗi khi xóa phiếu xuất điều chuyển:", error);
+    message.error("Có lỗi xảy ra khi xóa phiếu xuất điều chuyển");
+    return { success: false, error: error.message };
+  }
+};

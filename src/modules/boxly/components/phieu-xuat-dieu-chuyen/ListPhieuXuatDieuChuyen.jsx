@@ -22,7 +22,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
-import { fetchPhieuXuatDieuChuyenList, deletePhieuXuatDieuChuyen } from "./utils/phieuXuatDieuChuyenApi";
+import { fetchPhieuXuatDieuChuyenList } from "./utils/phieuXuatDieuChuyenApi";
 import "./phieu-xuat-dieu-chuyen.css";
 
 const { RangePicker } = DatePicker;
@@ -129,14 +129,36 @@ const ListPhieuXuatDieuChuyen = () => {
             message.error("Không tìm thấy mã phiếu để xóa");
             return;
           }
-          
-          const result = await deletePhieuXuatDieuChuyen(sttRec);
-          
-          if (result.success) {
+
+          const body = {
+            store: "api_delete_xuat_dieu_chuyen_voucher",
+            param: { stt_rec: sttRec },
+            data: {},
+          };
+          const response = await https.post(
+            "v1/dynamicApi/call-dynamic-api",
+            body,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (response.data && (response.data.statusCode === 200 || response.data.responseModel?.isSucceded)) {
+            message.success("Xóa phiếu xuất điều chuyển thành công");
             await fetchPhieuXuatDieuChuyen();
+          } else {
+            message.error(response.data?.message || "Xóa phiếu xuất điều chuyển thất bại");
           }
         } catch (error) {
           console.error("Lỗi khi xóa phiếu xuất điều chuyển:", error);
+          if (error.response?.data?.message) {
+            message.error(error.response.data.message);
+          } else {
+            message.error("Có lỗi xảy ra khi xóa phiếu xuất điều chuyển");
+          }
         }
       },
     });

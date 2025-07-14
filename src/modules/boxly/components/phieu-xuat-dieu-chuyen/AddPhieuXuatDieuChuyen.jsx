@@ -1,5 +1,5 @@
 import { LeftOutlined } from "@ant-design/icons";
-import { Button, Form, Space, Typography } from "antd";
+import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -160,12 +160,30 @@ const AddPhieuXuatDieuChuyen = () => {
       }
 
       // Gọi dynamicApi thêm mới phiếu xuất điều chuyển
-      const result = await createPhieuXuatDieuChuyen(payload.data);
-      if (result && result.success) {
+      const response = await https.post(
+        "v1/dynamicApi/call-dynamic-api",
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (
+        response.data &&
+        (response.data.statusCode === 200 ||
+          response.data.responseModel?.isSucceded)
+      ) {
+        message.success("Tạo phiếu xuất điều chuyển thành công");
         navigate("/boxly/phieu-xuat-dieu-chuyen");
+      } else {
+        message.error("Tạo phiếu xuất điều chuyển thất bại");
       }
     } catch (error) {
       console.error("Lỗi khi tạo phiếu xuất điều chuyển:", error);
+      message.error("Có lỗi xảy ra khi tạo phiếu xuất điều chuyển");
     } finally {
       setLoading(false);
     }
