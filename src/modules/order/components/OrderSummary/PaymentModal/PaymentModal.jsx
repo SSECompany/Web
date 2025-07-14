@@ -546,7 +546,7 @@ const PaymentModal = ({
           >
             <VietQR
               amount={total}
-              soChungTu={`Thanh toan Phenikaa: ${formatCurrency(total)}vnd`}
+              soChungTu={`Thanh toan Phenikaa ${total}vnd`}
               size={200}
             />
             <div className="qr-info">

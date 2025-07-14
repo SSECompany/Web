@@ -315,26 +315,26 @@ const PrintComponent = forwardRef(
         </div>
 
         <div style={{ textAlign: "center", marginTop: "10px" }}>
-        <div
-          style={{
-            display: "inline-block",
-            border: "1px solid #ccc",
-            borderRadius: 8,
-            padding: 6,
-            background: "#fff",
-          }}
-        >
-          <VietQR
-            amount={
-              master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
-                ? master.chuyen_khoan
-                : master?.tong_tien
-            }
-            soChungTu={`Thanh toan Phenikaa so CT ${orderNumber}: ${formatNumber(
-              master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
-                ? master.chuyen_khoan
-                : master?.tong_tien
-            )}vnd`}
+          <div
+            style={{
+              display: "inline-block",
+              border: "1px solid #ccc",
+              borderRadius: 8,
+              padding: 6,
+              background: "#fff",
+            }}
+          >
+            <VietQR
+              amount={
+                master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
+                  ? master.chuyen_khoan
+                  : master?.tong_tien
+              }
+              soChungTu={`Thanh toan Phenikaa so CT ${orderNumber} ${
+                master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
+                  ? master.chuyen_khoan
+                  : master?.tong_tien
+              }vnd`}
               size={80}
             />
           </div>

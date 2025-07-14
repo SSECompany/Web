@@ -316,11 +316,13 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
                 ? master.chuyen_khoan
                 : master?.tong_tien
             }
-            soChungTu={`Thanh toan Phenikaa so CT ${(master?.so_ct || "").trim()} : ${formatNumber(
+            soChungTu={`Thanh toan Phenikaa so CT ${(
+              master?.so_ct || ""
+            ).trim()} ${
               master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
                 ? master.chuyen_khoan
                 : master?.tong_tien
-            )}vnd`}
+            }vnd`}
             size={80}
           />
         </div>
