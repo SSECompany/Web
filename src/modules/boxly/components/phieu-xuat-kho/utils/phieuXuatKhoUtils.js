@@ -88,7 +88,7 @@ export const buildPayload = (
     stt_rec: "",
     ma_dvcs: userInfo.unitId?.toLowerCase() || "vikosan",
     ma_ct: "PXA",
-    loai_ct: "2",
+    loai_ct: values.ma_gd || "2",
     so_lo: "",
     ngay_lo: "",
     ma_nk: "",

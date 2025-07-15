@@ -63,7 +63,7 @@ export const buildPayload = (
     stt_rec: phieuData?.stt_rec || "",
     ma_dvcs: userInfo.unitId?.toLowerCase() || "vikosan",
     ma_ct: "PXB",
-    loai_ct: "2",
+    loai_ct: values.ma_gd || values.maGiaoDich || "2",
     so_lo: "",
     ngay_lo: "",
     ma_nk: "",

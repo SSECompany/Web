@@ -159,7 +159,7 @@ const ListPhieuXuatKho = () => {
             }
           );
 
-          if (response.data && (response.data.statusCode === 200 || response.data.responseModel?.isSucceded)) {
+          if (response.data && (response.data.statusCode === 200 || response.data.responseModel?.isSucceded || (response.data?.responseModel?.message && response.data.responseModel.message.includes("thành công")))) {
             message.success("Xóa phiếu xuất kho thành công");
             await fetchPhieuXuatKho();
           } else {

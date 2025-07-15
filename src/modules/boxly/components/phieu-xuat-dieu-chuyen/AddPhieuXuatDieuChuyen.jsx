@@ -10,7 +10,7 @@ import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
 import "./phieu-xuat-dieu-chuyen.css";
-import { buildPayload } from "./utils/phieuXuatKhoUtils";
+import { buildPayload } from "./utils/phieuXuatDieuChuyenUtils";
 
 const { Title } = Typography;
 

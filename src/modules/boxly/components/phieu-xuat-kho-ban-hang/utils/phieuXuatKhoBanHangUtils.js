@@ -159,7 +159,7 @@ export const buildPayload = (
       stt_rec: phieuData?.stt_rec || "",
       ma_dvcs: userInfo.unitId,
       ma_ct: "HDA",
-      loai_ct: "2",
+      loai_ct: values.maGiaoDich || "1",
       so_lo: "",
       ngay_lo: null,
       ma_nk: "",

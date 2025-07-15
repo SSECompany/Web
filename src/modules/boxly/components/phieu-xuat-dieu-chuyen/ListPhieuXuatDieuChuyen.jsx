@@ -152,7 +152,9 @@ const ListPhieuXuatDieuChuyen = () => {
           if (
             response.data &&
             (response.data.statusCode === 200 ||
-              response.data.responseModel?.isSucceded)
+              response.data.responseModel?.isSucceded ||
+              (response.data?.responseModel?.message &&
+                response.data.responseModel.message.includes("thành công")))
           ) {
             message.success("Xóa phiếu xuất điều chuyển thành công");
             await fetchPhieuXuatDieuChuyen();

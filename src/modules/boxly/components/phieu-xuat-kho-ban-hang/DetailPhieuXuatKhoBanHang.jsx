@@ -17,7 +17,7 @@ import {
   submitPhieu,
   validateDataSource,
   validateQuantityAndShowConfirm,
-} from "./utils/phieuXuatKhoUtils";
+} from "./utils/phieuXuatKhoBanHangUtils";
 
 const { Title } = Typography;
 

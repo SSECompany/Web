@@ -14,8 +14,6 @@ import "./phieu-xuat-kho.css";
 import {
   buildPayload,
   updatePhieuXuatKho,
-  // deletePhieu,
-  // submitPhieu,
   validateDataSource,
 } from "./utils/phieuXuatKhoUtils";
 
@@ -229,7 +227,9 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
           const isSuccess =
             (response.data &&
               (response.data.statusCode === 200 ||
-                response.data.responseModel?.isSucceded)) ||
+                response.data.responseModel?.isSucceded ||
+                (response.data?.responseModel?.message &&
+                  response.data.responseModel.message.includes("thành công")))) ||
             (response.data?.responseModel?.message &&
               response.data.responseModel.message.includes("thành công"));
 

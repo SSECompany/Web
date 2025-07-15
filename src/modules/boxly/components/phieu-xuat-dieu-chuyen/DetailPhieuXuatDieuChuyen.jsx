@@ -12,7 +12,10 @@ import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
 import "./phieu-xuat-dieu-chuyen.css";
 
-import { buildPayload, validateDataSource } from "./utils/phieuXuatKhoUtils";
+import {
+  buildPayload,
+  validateDataSource,
+} from "./utils/phieuXuatDieuChuyenUtils";
 
 const { Title } = Typography;
 
@@ -257,7 +260,9 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
           const isSuccess =
             (response.data &&
               (response.data.statusCode === 200 ||
-                response.data.responseModel?.isSucceded)) ||
+                response.data.responseModel?.isSucceded ||
+                (response.data?.responseModel?.message &&
+                  response.data.responseModel.message.includes("thành công")))) ||
             (response.data?.responseModel?.message &&
               response.data.responseModel.message.includes("thành công"));
 

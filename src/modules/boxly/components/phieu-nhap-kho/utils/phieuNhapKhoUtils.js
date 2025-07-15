@@ -85,7 +85,7 @@ export const buildPhieuNhapKhoPayload = (
       stt_rec: phieuData?.stt_rec || "",
       ma_dvcs: userInfo.unitId,
       ma_ct: "PND",
-      loai_ct: "2",
+      loai_ct: values.maGiaoDich || "",
       so_lo: "",
       ngay_lo: null,
       ma_nk: "",
