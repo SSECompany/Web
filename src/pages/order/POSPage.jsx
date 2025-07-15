@@ -14,7 +14,6 @@ import OrderSummary from "../../modules/order/components/OrderSummary/OrderSumma
 import ReportModal from "../../modules/order/components/ReportModal/ReportModal";
 import RetailOrderListModal from "../../modules/order/components/RetailOrderListModal/RetailOrderListModal";
 
-import LogViewerButton from "../../components/common/LogViewer/LogViewerButton";
 import {
   addOrderFromSignal,
   addProductToTab,

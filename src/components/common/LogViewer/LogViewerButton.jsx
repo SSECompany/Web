@@ -92,6 +92,19 @@ const LogViewerButton = ({ isInNavbar = false }) => {
         } ${isInNavbar ? "in-navbar" : ""}`}
         onClick={handleOpenLogViewer}
         title=""
+        style={isInNavbar ? {
+          position: 'static',
+          top: 'auto',
+          right: 'auto',
+          transform: 'none',
+          margin: 0,
+          width: 'auto',
+          minWidth: '60px',
+          height: '28px',
+          fontSize: '12px',
+          zIndex: 'auto',
+          padding: '0 8px'
+        } : {}}
       >
         
         {/* Main icons - horizontal layout */}
@@ -103,7 +116,7 @@ const LogViewerButton = ({ isInNavbar = false }) => {
         </div>
         
         {/* Status indicators - horizontal layout */}
-        <div className="status-indicators">
+        <div className="status-indicators" style={isInNavbar ? { display: 'none' } : {}}>
           {hasNewErrors && <div className="status-indicator error"></div>}
           {hasRetryItems && <div className="status-indicator retry"></div>}
           {hasPrintRetryItems && <div className="status-indicator print"></div>}
@@ -140,14 +153,15 @@ const LogViewerButton = ({ isInNavbar = false }) => {
         }
 
         .log-viewer-fab.in-navbar {
-          position: static;
-          top: auto;
-          right: auto;
-          transform: none;
-          margin: 0;
+          position: static !important;
+          top: auto !important;
+          right: auto !important;
+          transform: none !important;
+          margin: 0 !important;
           width: 60px;
           height: 28px;
           font-size: 12px;
+          z-index: auto !important;
         }
 
         .log-viewer-fab:hover {
