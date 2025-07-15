@@ -11,6 +11,8 @@ export const fetchPhieuXuatDieuChuyenList = async (params) => {
       so_ct: params.so_ct || "",
       ma_kh: params.ma_kh || "",
       ten_kh: params.ten_kh || "",
+      // ma_kho: params.ma_kho || "",
+      // ma_khon: params.ma_khon || "",
       ngay_ct: "",
       DateFrom: params.DateFrom || null,
       DateTo: params.DateTo || null,

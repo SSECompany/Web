@@ -355,7 +355,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
         <Button
           type="text"
           icon={<LeftOutlined />}
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/boxly/phieu-nhap-kho")}
           className="phieu-nhap-back-button"
         >
           Trở về

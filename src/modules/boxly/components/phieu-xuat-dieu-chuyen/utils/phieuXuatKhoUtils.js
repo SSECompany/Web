@@ -62,7 +62,7 @@ export const buildPayload = (
   const master = {
     stt_rec: phieuData?.stt_rec || "",
     ma_dvcs: userInfo.unitId?.toLowerCase() || "vikosan",
-    ma_ct: "PXA",
+    ma_ct: "PXB",
     loai_ct: "2",
     so_lo: "",
     ngay_lo: "",
@@ -79,12 +79,12 @@ export const buildPayload = (
   const detail = dataSource.map((item, index) => ({
     stt_rec: phieuData?.stt_rec || "",
     stt_rec0: "",
-    ma_ct: "PXA",
+    ma_ct: "PXB",
     ngay_ct: orderDate,
     so_ct: values.so_ct || values.soPhieu || "",
     ma_vt: item.maHang?.trim() || "",
     dvt: item.dvt || "Cái",
-    so_luong: parseFloat(item.so_luong) || 0,
+    so_luong: parseFloat(item.sl_td3) || 0,
     gia_nt: 0,
     gia: 0,
     tien_nt: 0,

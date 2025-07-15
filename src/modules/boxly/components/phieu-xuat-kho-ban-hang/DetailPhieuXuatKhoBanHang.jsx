@@ -515,7 +515,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         <Button
           type="text"
           icon={<LeftOutlined />}
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/boxly/phieu-xuat-kho-ban-hang")}
           className="phieu-xuat-back-button"
         >
           Trở về

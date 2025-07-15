@@ -22,8 +22,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
-import { fetchPhieuXuatDieuChuyenList } from "./utils/phieuXuatDieuChuyenApi";
 import "./phieu-xuat-dieu-chuyen.css";
+import { fetchPhieuXuatDieuChuyenList } from "./utils/phieuXuatDieuChuyenApi";
 
 const { RangePicker } = DatePicker;
 
@@ -38,8 +38,8 @@ const ListPhieuXuatDieuChuyen = () => {
   const [screenSize, setScreenSize] = useState("desktop");
   const [filters, setFilters] = useState({
     so_ct: "",
-    ma_kh: "",
-    ten_kh: "",
+    ma_kho: "",
+    ma_khon: "",
     dateRange: null,
   });
 
@@ -70,8 +70,8 @@ const ListPhieuXuatDieuChuyen = () => {
   const fetchPhieuXuatDieuChuyen = async (filterParams = filters) => {
     const params = {
       so_ct: filterParams.so_ct || "",
-      ma_kh: filterParams.ma_kh || "",
-      ten_kh: filterParams.ten_kh || "",
+      ma_kho: filterParams.ma_kho || "",
+      ma_khon: filterParams.ma_khon || "",
       DateFrom:
         filterParams.dateRange && filterParams.dateRange[0]
           ? filterParams.dateRange[0].format("YYYY-MM-DD")
@@ -86,12 +86,15 @@ const ListPhieuXuatDieuChuyen = () => {
     };
 
     const result = await fetchPhieuXuatDieuChuyenList(params);
-    
+
     if (result.success) {
       setAllData(result.data);
       setTotalRecords(result.pagination.totalRecord || result.data.length);
     } else {
-      console.error("Lỗi gọi API danh sách phiếu xuất điều chuyển:", result.error);
+      console.error(
+        "Lỗi gọi API danh sách phiếu xuất điều chuyển:",
+        result.error
+      );
     }
   };
 
@@ -146,11 +149,17 @@ const ListPhieuXuatDieuChuyen = () => {
             }
           );
 
-          if (response.data && (response.data.statusCode === 200 || response.data.responseModel?.isSucceded)) {
+          if (
+            response.data &&
+            (response.data.statusCode === 200 ||
+              response.data.responseModel?.isSucceded)
+          ) {
             message.success("Xóa phiếu xuất điều chuyển thành công");
             await fetchPhieuXuatDieuChuyen();
           } else {
-            message.error(response.data?.message || "Xóa phiếu xuất điều chuyển thất bại");
+            message.error(
+              response.data?.message || "Xóa phiếu xuất điều chuyển thất bại"
+            );
           }
         } catch (error) {
           console.error("Lỗi khi xóa phiếu xuất điều chuyển:", error);
@@ -304,23 +313,23 @@ const ListPhieuXuatDieuChuyen = () => {
         {
           title: () => (
             <div className="filter-column-header">
-              Mã khách{" "}
-              {filters.ma_kh ? (
+              Mã kho{" "}
+              {filters.ma_kho ? (
                 <Tag color="blue" size="small">
-                  {filters.ma_kh}
+                  {filters.ma_kho}
                 </Tag>
               ) : null}
             </div>
           ),
-          dataIndex: "ma_kh",
-          key: "ma_kh",
+          dataIndex: "ma_kho",
+          key: "ma_kho",
           width: 150,
           align: "center",
           render: (text) => (text ? text.trim() : ""),
           filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
             <div style={{ padding: 8 }}>
               <Input
-                placeholder="Tìm Mã khách"
+                placeholder="Tìm Mã kho"
                 value={selectedKeys[0]}
                 onChange={(e) =>
                   setSelectedKeys(e.target.value ? [e.target.value] : [])
@@ -329,7 +338,7 @@ const ListPhieuXuatDieuChuyen = () => {
                   confirm();
                   const newFilters = {
                     ...filters,
-                    ma_kh: selectedKeys[0] || "",
+                    ma_kho: selectedKeys[0] || "",
                   };
                   setFilters(newFilters);
                   fetchPhieuXuatDieuChuyen(newFilters);
@@ -343,7 +352,7 @@ const ListPhieuXuatDieuChuyen = () => {
                   confirm();
                   const newFilters = {
                     ...filters,
-                    ma_kh: selectedKeys[0] || "",
+                    ma_kho: selectedKeys[0] || "",
                   };
                   setFilters(newFilters);
                   fetchPhieuXuatDieuChuyen(newFilters);
@@ -354,28 +363,28 @@ const ListPhieuXuatDieuChuyen = () => {
               </Button>
             </div>
           ),
-          filteredValue: filters.ma_kh ? [filters.ma_kh] : null,
+          filteredValue: filters.ma_kho ? [filters.ma_kho] : null,
         },
         {
           title: () => (
             <div className="filter-column-header-wide">
-              Tên khách
-              {filters.ten_kh ? (
+              Mã kho nhập
+              {filters.ma_khon ? (
                 <Tag color="blue" size="small">
-                  {filters.ten_kh}
+                  {filters.ma_khon}
                 </Tag>
               ) : null}
             </div>
           ),
-          dataIndex: "ten_kh",
-          key: "ten_kh",
+          dataIndex: "ma_khon",
+          key: "ma_khon",
           width: 250,
           align: "center",
           render: (text) => (text ? text.trim() : ""),
           filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
             <div style={{ padding: 8 }}>
               <Input
-                placeholder="Tìm Tên khách"
+                placeholder="Tìm Mã kho nhập"
                 value={selectedKeys[0]}
                 onChange={(e) =>
                   setSelectedKeys(e.target.value ? [e.target.value] : [])
@@ -384,7 +393,7 @@ const ListPhieuXuatDieuChuyen = () => {
                   confirm();
                   const newFilters = {
                     ...filters,
-                    ten_kh: selectedKeys[0] || "",
+                    ma_khon: selectedKeys[0] || "",
                   };
                   setFilters(newFilters);
                   fetchPhieuXuatDieuChuyen(newFilters);
@@ -398,7 +407,7 @@ const ListPhieuXuatDieuChuyen = () => {
                   confirm();
                   const newFilters = {
                     ...filters,
-                    ten_kh: selectedKeys[0] || "",
+                    ma_khon: selectedKeys[0] || "",
                   };
                   setFilters(newFilters);
                   fetchPhieuXuatDieuChuyen(newFilters);
@@ -409,7 +418,7 @@ const ListPhieuXuatDieuChuyen = () => {
               </Button>
             </div>
           ),
-          filteredValue: filters.ten_kh ? [filters.ten_kh] : null,
+          filteredValue: filters.ma_khon ? [filters.ma_khon] : null,
         }
       );
     }
@@ -460,7 +469,7 @@ const ListPhieuXuatDieuChuyen = () => {
                 state: { sctRec: record.stt_rec },
               })
             }
-            className="phieu-action-btn phieu-view-btn"
+            className="phieu-xuat-dc-action-btn phieu-xuat-dc-view-btn"
             title="Xem chi tiết"
           />
           <Button
@@ -472,7 +481,7 @@ const ListPhieuXuatDieuChuyen = () => {
                 state: { sctRec: record.stt_rec },
               })
             }
-            className="phieu-action-btn phieu-edit-btn"
+            className="phieu-xuat-dc-action-btn phieu-xuat-dc-edit-btn"
             title="Chỉnh sửa"
           />
           <Button
@@ -480,7 +489,7 @@ const ListPhieuXuatDieuChuyen = () => {
             danger
             icon={<DeleteOutlined />}
             onClick={() => handleDelete(record.stt_rec)}
-            className="phieu-action-btn phieu-delete-btn"
+            className="phieu-xuat-dc-action-btn phieu-xuat-dc-delete-btn"
             title="Xóa"
           />
         </Space>
@@ -504,7 +513,7 @@ const ListPhieuXuatDieuChuyen = () => {
       },
       bordered: true,
       rowKey: "stt_rec",
-      className: "phieu-data-table hidden_scroll_bar",
+      className: "phieu-xuat-dc-data-table hidden_scroll_bar",
     };
 
     if (screenSize === "mobile") {
@@ -533,7 +542,7 @@ const ListPhieuXuatDieuChuyen = () => {
           <Button
             type="text"
             icon={<LeftOutlined />}
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/boxly")}
             className="phieu-xuat-dc-back-button"
           >
             {screenSize === "mobile" ? "" : "Trở về"}

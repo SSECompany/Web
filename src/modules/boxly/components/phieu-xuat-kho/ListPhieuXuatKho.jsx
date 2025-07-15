@@ -542,7 +542,7 @@ const ListPhieuXuatKho = () => {
           <Button
             type="text"
             icon={<LeftOutlined />}
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/boxly")}
             className="phieu-xuat-back-button"
           >
             {screenSize === "mobile" ? "" : "Trở về"}

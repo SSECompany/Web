@@ -498,6 +498,70 @@
   font-size: 14px;
 }
 
+/* Ensure action buttons are always visible and properly styled */
+.phieu-xuat-dc-action-btn {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+  margin: 0 2px !important;
+}
+
+/* Force button styles to override any conflicting styles */
+.phieu-xuat-dc-view-btn,
+.phieu-xuat-dc-edit-btn,
+.phieu-xuat-dc-delete-btn {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Ensure buttons are visible after page reload */
+.ant-table-tbody .phieu-xuat-dc-action-btn,
+.ant-table-tbody .phieu-xuat-dc-view-btn,
+.ant-table-tbody .phieu-xuat-dc-edit-btn,
+.ant-table-tbody .phieu-xuat-dc-delete-btn {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Override any Ant Design button hiding */
+.ant-table-cell .ant-btn.phieu-xuat-dc-action-btn,
+.ant-table-cell .ant-btn.phieu-xuat-dc-view-btn,
+.ant-table-cell .ant-btn.phieu-xuat-dc-edit-btn,
+.ant-table-cell .ant-btn.phieu-xuat-dc-delete-btn {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Ensure action column has enough space */
+.phieu-xuat-dc-data-table .ant-table-tbody > tr > td:last-child {
+  min-width: 150px !important;
+  padding: 8px 12px !important;
+  text-align: center !important;
+}
+
+/* Ensure Space component doesn't hide buttons */
+.phieu-xuat-dc-data-table .ant-space {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+}
+
+.phieu-xuat-dc-data-table .ant-space-item {
+  display: inline-flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
 /* ========== ENHANCED INPUT STYLES ========== */
 .vat-tu-table-select,
 .vat-tu-table-input {
@@ -883,7 +947,6 @@
   text-align: center;
   vertical-align: middle;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: transparent;
   font-weight: 500;
 }
 

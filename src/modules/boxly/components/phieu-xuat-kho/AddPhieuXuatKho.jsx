@@ -202,7 +202,7 @@ const AddPhieuXuatKho = () => {
         <Button
           type="text"
           icon={<LeftOutlined />}
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/boxly/phieu-xuat-kho")}
           className="phieu-xuat-back-button"
         >
           Trở về
@@ -275,7 +275,7 @@ const AddPhieuXuatKho = () => {
               <Button type="primary" onClick={handleSubmit} loading={loading}>
                 Lưu
               </Button>
-              <Button onClick={() => navigate(-1)}>Hủy</Button>
+              <Button onClick={() => navigate("/boxly/phieu-xuat-kho")}>Hủy</Button>
             </Space>
           </div>
         </Form>

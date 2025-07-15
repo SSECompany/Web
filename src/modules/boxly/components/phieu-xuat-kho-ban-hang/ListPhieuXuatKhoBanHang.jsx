@@ -519,7 +519,7 @@ const ListPhieuXuatKhoBanHang = () => {
           <Button
             type="text"
             icon={<LeftOutlined />}
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/boxly")}
             className="phieu-xuat-bh-back-button"
           >
             {screenSize === "mobile" ? "" : "Trở về"}

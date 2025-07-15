@@ -106,21 +106,20 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             }
           );
 
-          const masterData = response.data?.listObject?.dataLists?.master?.[0] || {};
+          const masterData =
+            response.data?.listObject?.dataLists?.master?.[0] || {};
           const detailData = response.data?.listObject?.dataLists?.detail || [];
 
           if (masterData && Object.keys(masterData).length > 0) {
             setPhieuData(masterData);
             // Cập nhật form với dữ liệu master
             form.setFieldsValue({
-              ngay_ct: masterData.ngay_ct
-                ? dayjs(masterData.ngay_ct)
-                : null,
-              so_ct: masterData.so_ct?.trim() || "",
-              ma_kh: masterData.ma_kh?.trim() || "",
-              ten_kh: masterData.ten_kh?.trim() || "",
-              ma_gd: masterData.ma_gd?.trim() || "",
-              status: masterData.status || "",
+              ngay: masterData.ngay_ct ? dayjs(masterData.ngay_ct) : null,
+              soPhieu: masterData.so_ct?.trim() || "",
+              maKhoXuat: masterData.ma_kho?.trim() || "",
+              maKhoNhap: masterData.ma_khon?.trim() || "",
+              maGiaoDich: masterData.ma_gd?.trim() || "",
+              trangThai: masterData.status || "",
               // Thêm các trường khác nếu cần
             });
 
@@ -131,7 +130,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
                 maHang: item.ma_vt?.trim() || "",
                 ten_mat_hang: item.ten_vt?.trim() || item.ma_vt?.trim() || "",
                 dvt: item.dvt?.trim() || "",
-                so_luong: item.so_luong || 0,
+                sl_td3: item.so_luong || 0,
                 ma_kho: item.ma_kho?.trim() || "",
                 // Thêm các trường khác nếu cần
               }));
@@ -150,6 +149,15 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
     };
     fetchPhieuDetail();
   }, [stt_rec, token]);
+
+  // Gọi API để lấy danh sách mã giao dịch, kho, vật tư khi component mount
+  useEffect(() => {
+    if (stt_rec) {
+      fetchMaGiaoDichList();
+      fetchMaKhoList();
+      fetchVatTuList();
+    }
+  }, [stt_rec, fetchMaGiaoDichList, fetchMaKhoList, fetchVatTuList]);
 
   const submitPhieuData = async (values) => {
     try {
@@ -289,7 +297,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
         <Button
           type="text"
           icon={<LeftOutlined />}
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/boxly/phieu-xuat-dieu-chuyen")}
           className="phieu-xuat-back-button"
         >
           Trở về

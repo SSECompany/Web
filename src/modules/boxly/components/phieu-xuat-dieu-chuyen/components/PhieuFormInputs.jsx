@@ -28,7 +28,7 @@ const PhieuFormInputs = ({
               loading={loadingMaKho}
               filterOption={false}
               onSearch={fetchMaKhoListDebounced}
-              options={maKhoList}
+              options={maKhoList || []}
               dropdownClassName="phieu-form-dropdown"
               optionLabelProp="value"
               disabled={!isEditMode}
@@ -54,7 +54,7 @@ const PhieuFormInputs = ({
               loading={loadingMaKho}
               filterOption={false}
               onSearch={fetchMaKhoListDebounced}
-              options={maKhoList}
+              options={maKhoList || []}
               dropdownClassName="phieu-form-dropdown"
               optionLabelProp="value"
               disabled={!isEditMode}
@@ -88,9 +88,9 @@ const PhieuFormInputs = ({
           <Form.Item name="maGiaoDich" label="Mã giao dịch">
             <Select
               placeholder="Chọn mã giao dịch"
-              options={maGiaoDichList.map((item) => ({
-                value: item.ma_gd.trim(),
-                label: `${item.ma_gd.trim()} - ${item.ten_gd}`,
+              options={(maGiaoDichList || []).map((item) => ({
+                value: item.ma_gd?.trim() || "",
+                label: `${item.ma_gd?.trim() || ""} - ${item.ten_gd || ""}`,
               }))}
               showSearch
               optionFilterProp="label"
