@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
 import simpleLogger from "../../../utils/simpleLogger";
-import simpleSyncGuard from "../../../utils/simpleSyncGuard";
+import simpleSyncGuard, { printOrderGuard } from "../../../utils/simpleSyncGuard";
 import SyncFastLogViewer from "./SyncFastLogViewer";
 
-const LogViewerButton = () => {
+const LogViewerButton = ({ isInNavbar = false }) => {
   const [isLogViewerOpen, setIsLogViewerOpen] = useState(false);
   const [errorCount, setErrorCount] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
+  const [printRetryCount, setPrintRetryCount] = useState(0);
   const [hasNewErrors, setHasNewErrors] = useState(false);
   const [hasRetryItems, setHasRetryItems] = useState(false);
+  const [hasPrintRetryItems, setHasPrintRetryItems] = useState(false);
   const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
@@ -42,9 +44,11 @@ const LogViewerButton = () => {
       try {
         const logStats = simpleLogger.getStats();
         const simpleSyncStats = simpleSyncGuard.getStats();
+        const printStats = printOrderGuard.getStats();
 
         const newErrorCount = logStats.errors;
         const newRetryCount = simpleSyncStats.total;
+        const newPrintRetryCount = printStats.total;
 
         if (newErrorCount > errorCount) {
           setHasNewErrors(true);
@@ -52,9 +56,11 @@ const LogViewerButton = () => {
         }
 
         setHasRetryItems(newRetryCount > 0);
+        setHasPrintRetryItems(newPrintRetryCount > 0);
 
         setErrorCount(newErrorCount);
         setRetryCount(newRetryCount);
+        setPrintRetryCount(newPrintRetryCount);
       } catch (error) {
         console.warn("Error updating counts:", error);
       }
@@ -80,19 +86,29 @@ const LogViewerButton = () => {
 
   return (
     <>
-      <div
+      <button
         className={`log-viewer-fab ${hasNewErrors ? "has-errors" : ""} ${
           hasRetryItems ? "has-retries" : ""
-        }`}
+        } ${isInNavbar ? "in-navbar" : ""}`}
         onClick={handleOpenLogViewer}
-        title={`SyncFast Logs - Errors: ${errorCount}, Pending Sync: ${retryCount}`}
+        title=""
       >
-        <span className="fab-icon">📊</span>
-
-        {errorCount > 0 && <span className="error-badge">{errorCount}</span>}
-
-        {retryCount > 0 && <span className="retry-badge">{retryCount}</span>}
-      </div>
+        
+        {/* Main icons - horizontal layout */}
+        <div className="main-icons">
+          <span>📊</span>
+          {hasNewErrors && <span>🚨</span>}
+          {hasRetryItems && <span>🔄</span>}
+          {hasPrintRetryItems && <span>🖨️</span>}
+        </div>
+        
+        {/* Status indicators - horizontal layout */}
+        <div className="status-indicators">
+          {hasNewErrors && <div className="status-indicator error"></div>}
+          {hasRetryItems && <div className="status-indicator retry"></div>}
+          {hasPrintRetryItems && <div className="status-indicator print"></div>}
+        </div>
+      </button>
 
       <SyncFastLogViewer
         isOpen={isLogViewerOpen}
@@ -103,113 +119,152 @@ const LogViewerButton = () => {
         .log-viewer-fab {
           position: fixed;
           top: 15px;
-          right: 285px;
-          width: 24px;
-          height: 24px;
-          background-color: #007bff;
-          border-radius: 50%;
+          right: 300px;
+          width: 80px;
+          height: 32px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border-radius: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
           z-index: 999;
-          transition: all 0.3s ease;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           user-select: none;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          font-size: 14px;
+          color: white;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+          gap: 4px;
+        }
+
+        .log-viewer-fab.in-navbar {
+          position: static;
+          top: auto;
+          right: auto;
+          transform: none;
+          margin: 0;
+          width: 60px;
+          height: 28px;
+          font-size: 12px;
         }
 
         .log-viewer-fab:hover {
-          background-color: #0056b3;
-          transform: scale(1.1);
-          box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4);
+          transform: translateY(-1px) scale(1.1);
+          box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+          background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .log-viewer-fab:active {
+          transform: translateY(0) scale(0.95);
+          box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
         }
 
         .log-viewer-fab.has-errors {
-          background-color: #dc3545;
-          animation: pulse 2s infinite;
+          background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+          box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+          animation: pulse-error 2s infinite;
         }
 
         .log-viewer-fab.has-errors:hover {
-          background-color: #c82333;
+          box-shadow: 0 6px 16px rgba(255, 107, 107, 0.5);
+          background: linear-gradient(135deg, #ee5a24 0%, #ff6b6b 100%);
         }
 
         .log-viewer-fab.has-retries {
-          background-color: #ffc107;
+          background: linear-gradient(135deg, #feca57 0%, #ff9ff3 100%);
+          box-shadow: 0 4px 12px rgba(254, 202, 87, 0.3);
+          animation: pulse-retry 1.5s infinite;
         }
 
         .log-viewer-fab.has-retries:hover {
-          background-color: #e0a800;
+          box-shadow: 0 6px 16px rgba(254, 202, 87, 0.5);
+          background: linear-gradient(135deg, #ff9ff3 0%, #feca57 100%);
         }
 
         .log-viewer-fab.has-errors.has-retries {
-          background: linear-gradient(45deg, #dc3545 50%, #ffc107 50%);
+          background: linear-gradient(135deg, #ff6b6b 0%, #feca57 50%, #ff9ff3 100%);
+          box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+          animation: pulse-mixed 1.8s infinite;
         }
 
-        .fab-icon {
-          font-size: 12px;
-          color: white;
+        @keyframes pulse-error {
+          0%, 100% {
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+          }
+          50% {
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.6), 0 0 0 2px rgba(255, 107, 107, 0.2);
+          }
         }
 
-        .error-badge {
-          position: absolute;
-          top: -8px;
-          right: -8px;
-          background-color: #fff;
-          color: #dc3545;
-          border-radius: 50%;
-          width: 18px;
-          height: 18px;
+        @keyframes pulse-retry {
+          0%, 100% {
+            box-shadow: 0 4px 12px rgba(254, 202, 87, 0.3);
+          }
+          50% {
+            box-shadow: 0 4px 12px rgba(254, 202, 87, 0.6), 0 0 0 2px rgba(254, 202, 87, 0.2);
+          }
+        }
+
+        @keyframes pulse-mixed {
+          0%, 100% {
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+          }
+          50% {
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.6), 0 0 0 2px rgba(254, 202, 87, 0.3);
+          }
+        }
+
+        /* Main icons - horizontal layout */
+        .log-viewer-fab .main-icons {
           display: flex;
+          flex-direction: row;
+          gap: 4px;
           align-items: center;
           justify-content: center;
-          font-size: 9px;
-          font-weight: bold;
-          border: 2px solid #dc3545;
-          z-index: 2;
         }
 
-        .retry-badge {
+        /* Status indicators - horizontal layout */
+        .log-viewer-fab .status-indicators {
           position: absolute;
-          top: -8px;
-          left: -8px;
-          background-color: #fff;
-          color: #ffc107;
-          border-radius: 50%;
-          width: 18px;
-          height: 18px;
+          top: -3px;
+          right: -3px;
           display: flex;
+          flex-direction: row;
+          gap: 1px;
           align-items: center;
-          justify-content: center;
-          font-size: 9px;
-          font-weight: bold;
-          border: 2px solid #ffc107;
-          z-index: 2;
         }
 
-        @keyframes pulse {
-          0% {
-            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+        .log-viewer-fab .status-indicator {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          animation: blink 1.5s infinite;
+        }
+
+        .log-viewer-fab .status-indicator.error {
+          background: #ff4757;
+        }
+
+        .log-viewer-fab .status-indicator.retry {
+          background: #ffa502;
+        }
+
+        .log-viewer-fab .status-indicator.print {
+          background: #9c88ff;
+        }
+
+        @keyframes blink {
+          0%, 50% {
+            opacity: 1;
           }
-          70% {
-            box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+          51%, 100% {
+            opacity: 0.3;
           }
         }
 
-        @media (max-width: 768px) {
-          .log-viewer-fab {
-            top: 70px;
-            right: 15px;
-            width: 24px;
-            height: 24px;
-          }
 
-          .fab-icon {
-            font-size: 15px;
-          }
-        }
       `}</style>
     </>
   );

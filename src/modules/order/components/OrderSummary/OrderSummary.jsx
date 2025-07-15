@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi, printOrderApi } from "../../../../api";
 import jwt from "../../../../utils/jwt";
-import simpleSyncGuard from "../../../../utils/simpleSyncGuard";
+import simpleSyncGuard, { printOrderGuard } from "../../../../utils/simpleSyncGuard";
 import {
   addTab,
   clearTabData,
@@ -85,6 +85,15 @@ const retryPendingSyncs = async () => {
   return await simpleSyncGuard.checkAndRetry();
 };
 
+// PrintOrderGuard functions - đơn giản ensure printOrderApi được call
+const addPendingPrint = (sttRec, userId) => {
+  return printOrderGuard.markForPrint(sttRec, userId);
+};
+
+const retryPendingPrints = async () => {
+  return await printOrderGuard.checkAndRetry();
+};
+
 // ✅ Helper function để chạy song song print-order và InvoiceReceipt
 const runParallelTasks = async (sttRec, userId, sync = true) => {
   const parallelTasks = [];
@@ -106,10 +115,14 @@ const runParallelTasks = async (sttRec, userId, sync = true) => {
     parallelTasks.push(syncTask);
   }
 
-  // Thêm task in order
-  const printTask = printOrderApi(sttRec, userId)
-    .then((printResult) => {
-      return { type: "print", success: true };
+  // Thêm task in order với printOrderGuard
+  const printTask = printOrderGuard
+    .triggerPrint(sttRec)
+    .then((result) => {
+      if (result) {
+        printOrderGuard.markPrinted(sttRec);
+      }
+      return { type: "print", success: result };
     })
     .catch((printError) => {
       notification.error({
@@ -298,6 +311,7 @@ export default function OrderSummary({ total, itemCount }) {
           // ✅ BƯỚC 1: Mark pending ngay khi tạo đơn thành công
           if (!isSaveOnly) {
             addPendingSync(sttRec, id);
+            addPendingPrint(sttRec, id); // Thêm mark print
           }
 
           // ✅ BƯỚC 2: Chạy đồng bộ RIÊNG BIỆT (không đợi)
@@ -307,7 +321,7 @@ export default function OrderSummary({ total, itemCount }) {
                 // Silent success
               })
               .catch((error) => {
-                // Silent error - already handled by simpleSyncGuard
+                // Silent error - already handled by simpleSyncGuard and printOrderGuard
               });
           }
 
@@ -356,6 +370,19 @@ export default function OrderSummary({ total, itemCount }) {
       } else {
         notification.success({
           message: "✅ Hoàn tất! (Không đồng bộ)",
+        });
+      }
+
+      // ✅ Kiểm tra trạng thái in
+      if (printOrderGuard.isPending(sttRec)) {
+        notification.info({
+          message: "🖨️ In đơn hàng đang được xử lý...",
+          description: `Đơn ${sttRec} đang được in tự động. Hệ thống sẽ thử lại cho đến khi thành công.`,
+          duration: 4,
+        });
+      } else {
+        notification.success({
+          message: "✅ Hoàn tất! (In đơn hàng thành công)",
         });
       }
     }
@@ -491,6 +518,7 @@ export default function OrderSummary({ total, itemCount }) {
         if (sync) {
           addPendingSync(sttRec, id);
         }
+        addPendingPrint(sttRec, id); // Thêm mark print cho mọi trường hợp
 
         // ✅ BƯỚC 2: Mở hộp thoại in NGAY LẬP TỨC (không đợi đồng bộ)
         setPrintMaster(orderData.masterData);
@@ -582,8 +610,11 @@ export default function OrderSummary({ total, itemCount }) {
         message: "Đã kết nối internet!",
         duration: 2,
       });
-      // Retry pending syncs khi có mạng trở lại
-      setTimeout(() => retryPendingSyncs(), 1000);
+      // Retry pending syncs và prints khi có mạng trở lại
+      setTimeout(() => {
+        retryPendingSyncs();
+        retryPendingPrints();
+      }, 1000);
     };
 
     const handleOffline = () => {
@@ -600,11 +631,13 @@ export default function OrderSummary({ total, itemCount }) {
 
     // Retry pending syncs khi component mount
     retryPendingSyncs();
+    retryPendingPrints();
 
-    // Setup interval để check pending syncs định kỳ (mỗi 3 phút, sync với background checker)
+    // Setup interval để check pending syncs và prints định kỳ
     const syncInterval = setInterval(() => {
       if (navigator.onLine) {
         retryPendingSyncs();
+        retryPendingPrints();
       }
     }, 180000);
 

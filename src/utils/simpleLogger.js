@@ -52,32 +52,34 @@ class SimpleLogger {
   }
 
   // Log API request
-  logRequest(sttRec, userId) {
+  logRequest(sttRec, userId, apiType = "syncFastApi") {
     return this.log("request", {
-      action: "syncFastApi_request",
+      action: `${apiType}_request`,
       sttRec,
       userId: userId?.toString(),
       method: "POST",
-      url: "SynchronousFAST/InvoiceReceipt",
+      url: apiType === "printOrderApi" ? "Print/print-order" : "SynchronousFAST/InvoiceReceipt",
+      apiType,
     });
   }
 
   // Log API success
-  logSuccess(sttRec, userId, response, duration) {
+  logSuccess(sttRec, userId, response, duration, apiType = "syncFastApi") {
     return this.log("success", {
-      action: "syncFastApi_success",
+      action: `${apiType}_success`,
       sttRec,
       userId: userId?.toString(),
       status: response?.status || 200,
       data: this.sanitizeData(response?.data),
       duration,
       method: "POST",
-      url: "SynchronousFAST/InvoiceReceipt",
+      url: apiType === "printOrderApi" ? "Print/print-order" : "SynchronousFAST/InvoiceReceipt",
+      apiType,
     });
   }
 
   // Log API error với enhanced classification
-  logError(sttRec, userId, error, duration) {
+  logError(sttRec, userId, error, duration, apiType = "syncFastApi") {
     const isBusinessError =
       error?.response?.statusText === "Business Logic Failed";
     const isNetworkError = [
@@ -103,7 +105,7 @@ class SimpleLogger {
     }
 
     return this.log("error", {
-      action: `syncFastApi_${errorCategory}`,
+      action: `${apiType}_${errorCategory}`,
       sttRec,
       userId: userId?.toString(),
 
@@ -123,7 +125,7 @@ class SimpleLogger {
       // Timing
       duration,
       method: "POST",
-      url: "SynchronousFAST/InvoiceReceipt",
+      url: apiType === "printOrderApi" ? "Print/print-order" : "SynchronousFAST/InvoiceReceipt",
       stack: error?.stack,
 
       // Business error details
@@ -148,6 +150,9 @@ class SimpleLogger {
         rtt: navigator.connection?.rtt || null,
         timestamp: new Date().toISOString(),
       },
+
+      // API type for filtering
+      apiType,
     });
   }
 

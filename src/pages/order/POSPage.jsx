@@ -409,7 +409,6 @@ const POSPage = () => {
         isOpen={modalState.isReportModalVisible}
         onClose={handleReportModal}
       />
-      <LogViewerButton />
       <Loading />
     </div>
   );

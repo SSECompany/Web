@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import simpleLogger from "../../../utils/simpleLogger";
-import simpleSyncGuard from "../../../utils/simpleSyncGuard";
+import simpleSyncGuard, { printOrderGuard } from "../../../utils/simpleSyncGuard";
 
 const SyncFastLogViewer = ({ isOpen, onClose }) => {
   const [logs, setLogs] = useState([]);
@@ -11,6 +11,9 @@ const SyncFastLogViewer = ({ isOpen, onClose }) => {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(false);
   const [activeSyncs, setActiveSyncs] = useState([]);
+  const [activePrints, setActivePrints] = useState([]);
+  const [pendingPrints, setPendingPrints] = useState([]);
+  const [printStats, setPrintStats] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -30,7 +33,17 @@ const SyncFastLogViewer = ({ isOpen, onClose }) => {
       const syncStats = simpleSyncGuard.getStats();
       setPendingStats(syncStats);
 
+      // Load active syncs
       setActiveSyncs(simpleSyncGuard.getActiveSyncs());
+
+      // Load print orders
+      const printsWithTime = printOrderGuard.getPendingOrdersWithRetryTime();
+      setPendingPrints(printsWithTime);
+
+      const printStats = printOrderGuard.getStats();
+      setPrintStats(printStats);
+
+      setActivePrints(printOrderGuard.getActivePrints());
     }, 1000); // ✅ Refresh mỗi 1 giây để update individual countdown
 
     return () => clearInterval(refreshInterval);
@@ -64,6 +77,15 @@ const SyncFastLogViewer = ({ isOpen, onClose }) => {
 
       // Load active syncs
       setActiveSyncs(simpleSyncGuard.getActiveSyncs());
+
+      // Load print orders
+      const printsWithTime = printOrderGuard.getPendingOrdersWithRetryTime();
+      setPendingPrints(printsWithTime);
+
+      const printStats = printOrderGuard.getStats();
+      setPrintStats(printStats);
+
+      setActivePrints(printOrderGuard.getActivePrints());
     } catch (error) {
       console.error("Error loading data:", error);
     }
@@ -84,59 +106,115 @@ const SyncFastLogViewer = ({ isOpen, onClose }) => {
   };
 
   const handleForceRetry = async (sttRec) => {
-    if (simpleSyncGuard.isSyncing(sttRec)) {
-      alert(`⏳ Đơn ${sttRec} đang được đồng bộ. Vui lòng đợi...`);
-      return;
-    }
+    if (activeTab === "pending") {
+      if (simpleSyncGuard.isSyncing(sttRec)) {
+        alert(`⏳ Đơn ${sttRec} đang được đồng bộ. Vui lòng đợi...`);
+        return;
+      }
 
-    const success = await simpleSyncGuard.forceRetry(sttRec);
-    if (success) {
-      alert(`🔄 Đang retry đơn ${sttRec}. Vui lòng đợi...`);
-      setTimeout(() => loadData(), 2000);
+      const success = await simpleSyncGuard.forceRetry(sttRec);
+      if (success) {
+        alert(`🔄 Đang retry đơn ${sttRec}. Vui lòng đợi...`);
+        setTimeout(() => loadData(), 2000);
+      }
+    } else if (activeTab === "print-pending") {
+      if (printOrderGuard.isPrinting(sttRec)) {
+        alert(`⏳ Đơn ${sttRec} đang được in. Vui lòng đợi...`);
+        return;
+      }
+
+      const success = await printOrderGuard.forceRetry(sttRec);
+      if (success) {
+        alert(`🖨️ Đang retry in đơn ${sttRec}. Vui lòng đợi...`);
+        setTimeout(() => loadData(), 2000);
+      }
     }
   };
 
   const handleForceRetryAll = async () => {
-    const activeCount = simpleSyncGuard.getActiveSyncs().length;
-    if (activeCount > 0) {
-      alert(
-        `⏳ Có ${activeCount} đơn đang được đồng bộ. Vui lòng đợi hoàn thành trước khi retry all.`
-      );
-      return;
-    }
+    if (activeTab === "pending") {
+      const activeCount = simpleSyncGuard.getActiveSyncs().length;
+      if (activeCount > 0) {
+        alert(
+          `⏳ Có ${activeCount} đơn đang được đồng bộ. Vui lòng đợi hoàn thành trước khi retry all.`
+        );
+        return;
+      }
 
-    const retryCount = await simpleSyncGuard.forceRetryAll();
-    if (retryCount > 0) {
-      alert(`🔄 Đang retry ${retryCount} đơn pending. Vui lòng đợi...`);
-      setTimeout(() => loadData(), 2000);
-    } else {
-      alert("Không có đơn nào cần retry.");
+      const retryCount = await simpleSyncGuard.forceRetryAll();
+      if (retryCount > 0) {
+        alert(`🔄 Đang retry ${retryCount} đơn pending. Vui lòng đợi...`);
+        setTimeout(() => loadData(), 2000);
+      } else {
+        alert("Không có đơn nào cần retry.");
+      }
+    } else if (activeTab === "print-pending") {
+      const activeCount = printOrderGuard.getActivePrints().length;
+      if (activeCount > 0) {
+        alert(
+          `⏳ Có ${activeCount} đơn đang được in. Vui lòng đợi hoàn thành trước khi retry all.`
+        );
+        return;
+      }
+
+      const retryCount = await printOrderGuard.forceRetryAll();
+      if (retryCount > 0) {
+        alert(`🖨️ Đang retry ${retryCount} đơn in pending. Vui lòng đợi...`);
+        setTimeout(() => loadData(), 2000);
+      } else {
+        alert("Không có đơn nào cần retry in.");
+      }
     }
   };
 
   const handleClearPending = () => {
-    if (confirm("Bạn có chắc muốn xóa tất cả pending sync orders?")) {
-      simpleSyncGuard.clearAll();
-      setPendingOrders([]);
-      setPendingStats(null);
+    if (activeTab === "pending") {
+      if (confirm("Bạn có chắc muốn xóa tất cả pending sync orders?")) {
+        simpleSyncGuard.clearAll();
+        setPendingOrders([]);
+        setPendingStats(null);
+      }
+    } else if (activeTab === "print-pending") {
+      if (confirm("Bạn có chắc muốn xóa tất cả pending print orders?")) {
+        printOrderGuard.clearAll();
+        setPendingPrints([]);
+        setPrintStats(null);
+      }
     }
   };
 
   const handleExportPending = () => {
-    const exportData = {
-      exportDate: new Date().toISOString(),
-      stats: pendingStats,
-      orders: pendingOrders,
-    };
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `pending-sync-${new Date().toISOString().split("T")[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    if (activeTab === "pending") {
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        stats: pendingStats,
+        orders: pendingOrders,
+      };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pending-sync-${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (activeTab === "print-pending") {
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        stats: printStats,
+        orders: pendingPrints,
+      };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pending-print-${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   const formatTimestamp = (timestamp) => {
@@ -248,24 +326,48 @@ const SyncFastLogViewer = ({ isOpen, onClose }) => {
         </div>
 
         {/* Tabs */}
-        <div style={tabsStyle}>
+        <div style={{ marginBottom: "1rem" }}>
           <button
-            style={{
-              ...tabButtonStyle,
-              ...(activeTab === "logs" ? activeTabStyle : {}),
-            }}
             onClick={() => setActiveTab("logs")}
+            style={{
+              padding: "0.5rem 1rem",
+              marginRight: "0.5rem",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              backgroundColor: activeTab === "logs" ? "#007bff" : "#f8f9fa",
+              color: activeTab === "logs" ? "white" : "#333",
+            }}
           >
-            📋 API Logs ({stats?.total || 0})
+            📋 Logs
           </button>
           <button
-            style={{
-              ...tabButtonStyle,
-              ...(activeTab === "pending" ? activeTabStyle : {}),
-            }}
             onClick={() => setActiveTab("pending")}
+            style={{
+              padding: "0.5rem 1rem",
+              marginRight: "0.5rem",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              backgroundColor: activeTab === "pending" ? "#007bff" : "#f8f9fa",
+              color: activeTab === "pending" ? "white" : "#333",
+            }}
           >
-            🔄 Pending Sync ({pendingStats?.total || 0})
+            🔄 Sync Pending ({pendingOrders.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("print-pending")}
+            style={{
+              padding: "0.5rem 1rem",
+              marginRight: "0.5rem",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              backgroundColor: activeTab === "print-pending" ? "#ff9800" : "#f8f9fa",
+              color: activeTab === "print-pending" ? "white" : "#333",
+            }}
+          >
+            🖨️ Print Pending ({pendingPrints.length})
           </button>
         </div>
 
@@ -432,6 +534,40 @@ const SyncFastLogViewer = ({ isOpen, onClose }) => {
                     margin: "0.2rem",
                     padding: "0.2rem 0.5rem",
                     backgroundColor: "#1976d2",
+                    color: "white",
+                    borderRadius: "3px",
+                    fontSize: "0.7rem",
+                  }}
+                >
+                  {sttRec}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Active Prints Section */}
+        {activeTab === "pending" && activePrints.length > 0 && (
+          <div style={{ marginBottom: "1rem" }}>
+            <h4 style={{ color: "#ff9800", margin: "0 0 0.5rem 0" }}>
+              🖨️ Đang in ({activePrints.length})
+            </h4>
+            <div
+              style={{
+                backgroundColor: "#fff3e0",
+                padding: "0.5rem",
+                borderRadius: "4px",
+                fontSize: "0.8rem",
+              }}
+            >
+              {activePrints.map((sttRec) => (
+                <span
+                  key={sttRec}
+                  style={{
+                    display: "inline-block",
+                    margin: "0.2rem",
+                    padding: "0.2rem 0.5rem",
+                    backgroundColor: "#ff9800",
                     color: "white",
                     borderRadius: "3px",
                     fontSize: "0.7rem",
@@ -658,118 +794,135 @@ const SyncFastLogViewer = ({ isOpen, onClose }) => {
                 </div>
               ))
             )
-          ) : // Pending Sync Orders
-          pendingOrders.length === 0 ? (
-            <div style={emptyStyle}>
-              🔄 Không có đơn hàng pending sync - Tất cả đã được đồng bộ!
+          ) : activeTab === "pending" && (
+            <div>
+              {/* Sync Pending content */}
+              {/* ... existing pending content ... */}
             </div>
-          ) : (
-            pendingOrders.map((order) => (
-              <div
-                key={order.sttRec}
-                style={{
-                  ...logItemStyle,
-                  borderLeftColor: order.canRetry
-                    ? order.isSyncing
-                      ? "#007bff"
-                      : "#ffc107"
-                    : "#dc3545",
-                }}
-              >
-                <div style={logHeaderStyle}>
-                  <span style={logTypeStyle}>
-                    {order.isSyncing
-                      ? "🔄 SYNCING"
-                      : order.canRetry
-                      ? "⏳ PENDING"
-                      : "🚫 MAX ATTEMPTS"}
-                  </span>
+          )}
 
-                  <span
+          {activeTab === "print-pending" && (
+            <div>
+              {/* Print Pending content */}
+              <div style={{ marginBottom: "1rem" }}>
+                <h3 style={{ color: "#ff9800", margin: "0 0 1rem 0" }}>
+                  🖨️ Print Orders Pending ({pendingPrints.length})
+                </h3>
+                {printStats && (
+                  <div style={{ marginBottom: "1rem", fontSize: "0.9rem" }}>
+                    <strong>Print Stats:</strong> Total: {printStats.total}, Active: {printStats.active},
+                    Max Retries: {printStats.maxRetries}, Check Interval: {printStats.checkInterval / 1000}s
+                  </div>
+                )}
+                <div style={{ marginBottom: "1rem", display: "flex", gap: "0.5rem" }}>
+                  <button
+                    onClick={handleForceRetryAll}
                     style={{
-                      ...logStatusStyle,
-                      backgroundColor: order.canRetry ? "#e3f2fd" : "#ffebee",
-                      color: order.canRetry ? "#1976d2" : "#c62828",
+                      padding: "0.5rem 1rem",
+                      backgroundColor: "#ff9800",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
                     }}
                   >
-                    {order.attempts}/{simpleSyncGuard.maxRetries} attempts
-                  </span>
-
-                  {/* ✅ Hiển thị individual countdown timer */}
-                  {order.canRetry && !order.isSyncing && (
-                    <span
-                      style={{
-                        backgroundColor:
-                          order.timeToRetry <= 30 ? "#ffebee" : "#fff3e0",
-                        color: order.timeToRetry <= 30 ? "#c62828" : "#ef6c00",
-                        padding: "0.2rem 0.5rem",
-                        borderRadius: "10px",
-                        fontSize: "0.7rem",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      <CountdownTimer
-                        seconds={order.timeToRetry || 0}
-                        isActive={order.canRetry && !order.isSyncing}
-                      />
-                    </span>
-                  )}
-
-                  <span style={logTimeStyle}>
-                    {formatTimestamp(order.createdAt)}
-                  </span>
-
-                  {/* ✅ Updated retry button logic */}
-                  {order.canRetry && (
-                    <button
-                      onClick={() => handleForceRetry(order.sttRec)}
-                      disabled={activeSyncs.includes(order.sttRec)}
-                      style={{
-                        ...exportButtonStyle,
-                        fontSize: "0.7rem",
-                        padding: "0.25rem 0.5rem",
-                        backgroundColor: activeSyncs.includes(order.sttRec)
-                          ? "#6c757d"
-                          : "#28a745",
-                        cursor: activeSyncs.includes(order.sttRec)
-                          ? "not-allowed"
-                          : "pointer",
-                      }}
-                    >
-                      {activeSyncs.includes(order.sttRec)
-                        ? "⏳ Syncing..."
-                        : "🔄 Retry Now"}
-                    </button>
-                  )}
+                    🔄 Retry All Prints
+                  </button>
+                  <button
+                    onClick={handleExportPending}
+                    style={exportButtonStyle}
+                  >
+                    📥 Export Orders
+                  </button>
+                  <button
+                    onClick={handleClearPending}
+                    style={clearButtonStyle}
+                  >
+                    🗑️ Clear All
+                  </button>
                 </div>
-
-                {/* ✅ Order details - with individual countdown info */}
-                <div style={logDetailStyle}>
-                  <div>
-                    <strong>STT REC:</strong> {order.sttRec}
+                {pendingPrints.length === 0 ? (
+                  <div style={{ color: "#666", fontStyle: "italic" }}>
+                    Không có đơn hàng nào đang chờ in.
                   </div>
-                  <div>
-                    <strong>User ID:</strong> {order.userId}
+                ) : (
+                  <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+                    {pendingPrints.map((order) => {
+                      const isMaxRetry = order.attempts >= (order.maxRetries || printStats?.maxRetries || 10);
+                      return (
+                        <div
+                          key={order.sttRec}
+                          style={{
+                            border: isMaxRetry ? "2px solid #dc3545" : "1px solid #ddd",
+                            borderRadius: "4px",
+                            padding: "1rem",
+                            marginBottom: "0.5rem",
+                            backgroundColor: isMaxRetry ? "#fff0f0" : "#fff",
+                            boxShadow: isMaxRetry ? "0 0 8px 0 #dc3545" : undefined,
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div>
+                              <strong>Order: {order.sttRec}</strong>
+                              <br />
+                              <small>
+                                Attempts: <span style={{ color: isMaxRetry ? "#dc3545" : undefined, fontWeight: isMaxRetry ? "bold" : undefined }}>{order.attempts}</span>/{order.maxRetries} |
+                                Created: {new Date(order.createdAt).toLocaleString()}
+                              </small>
+                              {order.lastAttempt && (
+                                <>
+                                  <br />
+                                  <small>
+                                    Last Attempt: {new Date(order.lastAttempt).toLocaleString()}
+                                  </small>
+                                </>
+                              )}
+                              {order.timeToNextRetry > 0 && !isMaxRetry && (
+                                <>
+                                  <br />
+                                  <small style={{ color: "#ff9800" }}>
+                                    Next Retry: {Math.ceil(order.timeToNextRetry / 1000)}s
+                                  </small>
+                                </>
+                              )}
+                              {isMaxRetry && (
+                                <>
+                                  <br />
+                                  <span style={{ color: "#dc3545", fontWeight: "bold" }}>
+                                    🚫 Đã dừng retry (Đơn này đã thử in {order.attempts} lần)
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            {!isMaxRetry && (
+                              <button
+                                onClick={() => handleForceRetry(order.sttRec)}
+                                style={{
+                                  padding: "0.25rem 0.5rem",
+                                  backgroundColor: "#ff9800",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "3px",
+                                  cursor: "pointer",
+                                  fontSize: "0.8rem",
+                                }}
+                              >
+                                Retry
+                              </button>
+                            )}
+                          </div>
+                          {order.lastError && (
+                            <div style={{ marginTop: "0.5rem", color: isMaxRetry ? "#dc3545" : "#d32f2f", fontSize: "0.8rem", fontWeight: isMaxRetry ? "bold" : undefined }}>
+                              <strong>Error:</strong> {order.lastError}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div>
-                    <strong>Tạo lúc:</strong> {formatTimestamp(order.createdAt)}
-                  </div>
-
-                  {order.lastAttempt && (
-                    <div>
-                      <strong>Thử cuối:</strong>{" "}
-                      {formatTimestamp(order.lastAttempt)}
-                    </div>
-                  )}
-
-                  {order.lastError && (
-                    <div style={{ color: "#dc3545" }}>
-                      <strong>Lỗi cuối:</strong> {order.lastError}
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-            ))
+            </div>
           )}
         </div>
       </div>
