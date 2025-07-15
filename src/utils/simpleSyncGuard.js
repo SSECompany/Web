@@ -4,26 +4,127 @@ class SimpleSyncGuard {
     this.storageKey = "pending_sync_simple";
     this.checkInterval = 180000; // ✅ Global background check every 3 minutes
     this.individualRetryInterval = 60000; // ✅ Individual order retry every 1 minute
-    this.maxRetries = 5;
+    this.maxRetries = 10; // ✅ Tăng từ 5 lên 10 lần retry cho chắc chắn hơn
     this.isRunning = false;
 
     // ✅ Thêm locking mechanism để tránh race condition
     this.activeSyncs = new Map(); // Map<sttRec, Promise>
+
+    // ✅ PERFORMANCE OPTIMIZATION: Cache pending orders
+    this._pendingOrdersCache = null;
+    this._lastCacheUpdate = 0;
+    this._cacheExpiry = 5000; // 5 seconds cache
+
+    // ✅ PERFORMANCE OPTIMIZATION: Debounce save operations
+    this._saveDebounceTimer = null;
+    this._pendingSaveData = null;
+
+    // ✅ PERFORMANCE OPTIMIZATION: Batch processing
+    this._batchSize = 3;
+    this._batchDelay = 2000;
+
+    // ✅ PERFORMANCE OPTIMIZATION: Network status tracking
+    this._lastNetworkCheck = 0;
+    this._networkCheckInterval = 30000; // 30 seconds
+    this._isOnline = navigator.onLine;
 
     // Start background checker
     this.startChecker();
 
     // Handle page unload
     window.addEventListener("beforeunload", () => this.stopChecker());
+
+    // ✅ PERFORMANCE OPTIMIZATION: Network status listener
+    window.addEventListener("online", () => {
+      this._isOnline = true;
+      this._lastNetworkCheck = Date.now();
+    });
+    window.addEventListener("offline", () => {
+      this._isOnline = false;
+      this._lastNetworkCheck = Date.now();
+    });
+  }
+
+  // ✅ PERFORMANCE OPTIMIZATION: Cached getPendingOrders
+  getPendingOrders() {
+    const now = Date.now();
+
+    // Return cached data if still valid
+    if (
+      this._pendingOrdersCache &&
+      now - this._lastCacheUpdate < this._cacheExpiry
+    ) {
+      return this._pendingOrdersCache;
+    }
+
+    // Fetch fresh data
+    try {
+      const data = localStorage.getItem(this.storageKey);
+      const orders = data ? JSON.parse(data) : [];
+
+      // Update cache
+      this._pendingOrdersCache = orders;
+      this._lastCacheUpdate = now;
+
+      return orders;
+    } catch (error) {
+      console.error("Error loading pending orders:", error);
+      return [];
+    }
+  }
+
+  // ✅ PERFORMANCE OPTIMIZATION: Debounced savePendingOrders
+  savePendingOrders(orders) {
+    // Clear existing debounce timer
+    if (this._saveDebounceTimer) {
+      clearTimeout(this._saveDebounceTimer);
+    }
+
+    // Store data for debounced save
+    this._pendingSaveData = orders;
+
+    // Set new debounce timer
+    this._saveDebounceTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          this.storageKey,
+          JSON.stringify(this._pendingSaveData)
+        );
+
+        // ✅ Update cache immediately
+        this._pendingOrdersCache = this._pendingSaveData;
+        this._lastCacheUpdate = Date.now();
+
+        this._pendingSaveData = null;
+      } catch (error) {
+        console.error("Error saving pending orders:", error);
+      }
+    }, 100); // 100ms debounce
+  }
+
+  // ✅ PERFORMANCE OPTIMIZATION: Optimized network check
+  isNetworkAvailable() {
+    const now = Date.now();
+
+    // Use cached network status if recent
+    if (now - this._lastNetworkCheck < this._networkCheckInterval) {
+      return this._isOnline;
+    }
+
+    // Update network status
+    this._isOnline = navigator.onLine;
+    this._lastNetworkCheck = now;
+
+    return this._isOnline;
   }
 
   // Đánh dấu đơn hàng cần sync sau khi tạo thành công (CHỈ MARK, KHÔNG SYNC)
   markForSync(sttRec, userId) {
     const pendingOrders = this.getPendingOrders();
 
-    // Kiểm tra xem đã có chưa
-    const exists = pendingOrders.find((order) => order.sttRec === sttRec);
-    if (exists) {
+    // ✅ PERFORMANCE OPTIMIZATION: Use Set for faster lookup
+    const existingSttRecs = new Set(pendingOrders.map((order) => order.sttRec));
+    if (existingSttRecs.has(sttRec)) {
       return;
     }
 
@@ -38,6 +139,9 @@ class SimpleSyncGuard {
 
     pendingOrders.push(orderData);
     this.savePendingOrders(pendingOrders);
+
+    // ✅ PERFORMANCE OPTIMIZATION: Invalidate cache
+    this._pendingOrdersCache = null;
 
     // KHÔNG attemptSync ngay nữa - để cho background hoặc manual trigger
   }
@@ -55,10 +159,19 @@ class SimpleSyncGuard {
     );
 
     this.savePendingOrders(filteredOrders);
+
+    // ✅ PERFORMANCE OPTIMIZATION: Invalidate cache
+    this._pendingOrdersCache = null;
   }
 
   // Thử sync một đơn hàng với locking mechanism
   async attemptSync(sttRec) {
+    // ✅ PERFORMANCE OPTIMIZATION: Early network check
+    if (!this.isNetworkAvailable()) {
+      console.log(`🌐 Network offline, skipping sync for ${sttRec}`);
+      return false;
+    }
+
     // ✅ KIỂM TRA LOCK: Nếu đang sync sttRec này rồi thì đợi
     if (this.activeSyncs.has(sttRec)) {
       console.log(`🔒 Order ${sttRec} is already being synced, waiting...`);
@@ -178,16 +291,24 @@ class SimpleSyncGuard {
     if (this.individualCheckId) {
       clearInterval(this.individualCheckId);
     }
+
+    // ✅ PERFORMANCE OPTIMIZATION: Clear debounce timer
+    if (this._saveDebounceTimer) {
+      clearTimeout(this._saveDebounceTimer);
+    }
   }
 
-  // ✅ Individual retry checker - chỉ retry các đơn đã đủ 1 phút từ lastAttempt
+  // ✅ PERFORMANCE OPTIMIZATION: Optimized individual retry checker
   async checkIndividualRetries() {
-    if (!navigator.onLine) {
+    if (!this.isNetworkAvailable()) {
       return;
     }
 
     const pendingOrders = this.getPendingOrders();
     const now = new Date();
+
+    // ✅ PERFORMANCE OPTIMIZATION: Use Set for faster filtering
+    const activeSyncSet = new Set(this.activeSyncs.keys());
 
     // Filter orders ready for individual retry (1 phút từ lastAttempt)
     const ordersReadyForRetry = pendingOrders.filter((order) => {
@@ -195,38 +316,61 @@ class SimpleSyncGuard {
       const age = now.getTime() - new Date(order.createdAt).getTime();
       if (age > 24 * 60 * 60 * 1000) return false; // Too old
       if (order.attempts >= this.maxRetries) return false; // Max attempts
-      if (this.activeSyncs.has(order.sttRec)) return false; // Already syncing
+      if (activeSyncSet.has(order.sttRec)) return false; // Already syncing
 
       // Check if ready for individual retry
-      return this.shouldRetryOrderNow(order);
+      if (!order.lastAttempt) return true; // Chưa có attempt nào
+
+      const timeSinceLastAttempt =
+        now.getTime() - new Date(order.lastAttempt).getTime();
+      return timeSinceLastAttempt >= this.individualRetryInterval; // >= 1 phút
     });
 
-    // Retry ready orders
+    // Clean up old orders
+    const validOrders = pendingOrders.filter((order) => {
+      const age = now.getTime() - new Date(order.createdAt).getTime();
+      return age <= 24 * 60 * 60 * 1000 && order.attempts < this.maxRetries;
+    });
+
+    if (validOrders.length !== pendingOrders.length) {
+      this.savePendingOrders(validOrders);
+    }
+
+    // ✅ PERFORMANCE OPTIMIZATION: Batch process với controlled concurrency
     if (ordersReadyForRetry.length > 0) {
       console.log(
-        `🔄 Individual retry: ${ordersReadyForRetry.length} orders ready`
+        `🔄 Individual retry starting for ${ordersReadyForRetry.length} orders (ready for 1-minute retry)`
       );
 
-      // Process 1 by 1 với delay để không overwhelm
-      for (const order of ordersReadyForRetry) {
-        await this.attemptSync(order.sttRec);
+      // Process in batches để tránh quá nhiều concurrent requests
+      for (let i = 0; i < ordersReadyForRetry.length; i += this._batchSize) {
+        const batch = ordersReadyForRetry.slice(i, i + this._batchSize);
 
-        // Small delay between individual retries
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Process batch concurrently
+        const promises = batch.map((order) => this.attemptSync(order.sttRec));
+        await Promise.allSettled(promises);
+
+        // Small delay between batches
+        if (i + this._batchSize < ordersReadyForRetry.length) {
+          await new Promise((resolve) => setTimeout(resolve, this._batchDelay));
+        }
       }
     }
   }
 
-  // Check và retry pending orders với improved concurrency handling
+  // ✅ PERFORMANCE OPTIMIZATION: Optimized checkAndRetry
   async checkAndRetry() {
-    if (!navigator.onLine) {
+    if (!this.isNetworkAvailable()) {
       return;
     }
 
     const pendingOrders = this.getPendingOrders();
     const now = new Date();
 
-    // ✅ Filter orders cần retry (individual 1 phút hoặc background 3 phút)
+    // ✅ PERFORMANCE OPTIMIZATION: Use Set for faster filtering
+    const activeSyncSet = new Set(this.activeSyncs.keys());
+
+    // Filter orders cần retry (individual 1 phút hoặc background 3 phút)
     const ordersToRetry = pendingOrders.filter((order) => {
       // Xóa orders quá cũ (> 24h)
       const age = now.getTime() - new Date(order.createdAt).getTime();
@@ -240,7 +384,7 @@ class SimpleSyncGuard {
       }
 
       // ✅ Skip nếu đang được sync
-      if (this.activeSyncs.has(order.sttRec)) {
+      if (activeSyncSet.has(order.sttRec)) {
         console.log(`⏭️ Skipping ${order.sttRec} - already syncing`);
         return false;
       }
@@ -263,24 +407,23 @@ class SimpleSyncGuard {
       this.savePendingOrders(validOrders);
     }
 
-    // ✅ Retry orders với controlled concurrency (tối đa 3 concurrent syncs)
+    // ✅ PERFORMANCE OPTIMIZATION: Batch process với controlled concurrency
     if (ordersToRetry.length > 0) {
       console.log(
-        `🔄 Individual retry starting for ${ordersToRetry.length} orders (ready for 1-minute retry)`
+        `🔄 Background retry starting for ${ordersToRetry.length} orders`
       );
 
-      // Batch process để tránh quá nhiều concurrent requests
-      const batchSize = 3;
-      for (let i = 0; i < ordersToRetry.length; i += batchSize) {
-        const batch = ordersToRetry.slice(i, i + batchSize);
+      // Process in batches
+      for (let i = 0; i < ordersToRetry.length; i += this._batchSize) {
+        const batch = ordersToRetry.slice(i, i + this._batchSize);
 
         // Process batch concurrently
         const promises = batch.map((order) => this.attemptSync(order.sttRec));
         await Promise.allSettled(promises);
 
         // Small delay between batches
-        if (i + batchSize < ordersToRetry.length) {
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+        if (i + this._batchSize < ordersToRetry.length) {
+          await new Promise((resolve) => setTimeout(resolve, this._batchDelay));
         }
       }
     }
@@ -295,32 +438,20 @@ class SimpleSyncGuard {
   async forceRetryAll() {
     const pendingOrders = this.getPendingOrders();
 
-    for (const order of pendingOrders) {
-      await this.attemptSync(order.sttRec);
-      await new Promise((resolve) => setTimeout(resolve, 500));
+    // ✅ PERFORMANCE OPTIMIZATION: Batch process
+    for (let i = 0; i < pendingOrders.length; i += this._batchSize) {
+      const batch = pendingOrders.slice(i, i + this._batchSize);
+
+      const promises = batch.map((order) => this.attemptSync(order.sttRec));
+      await Promise.allSettled(promises);
+
+      // Small delay between batches
+      if (i + this._batchSize < pendingOrders.length) {
+        await new Promise((resolve) => setTimeout(resolve, this._batchDelay));
+      }
     }
 
     return pendingOrders.length;
-  }
-
-  // Get pending orders
-  getPendingOrders() {
-    try {
-      const data = localStorage.getItem(this.storageKey);
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error("Error loading pending orders:", error);
-      return [];
-    }
-  }
-
-  // Save pending orders
-  savePendingOrders(orders) {
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify(orders));
-    } catch (error) {
-      console.error("Error saving pending orders:", error);
-    }
   }
 
   // ✅ Thêm method để check active syncs
@@ -402,6 +533,7 @@ class SimpleSyncGuard {
       ).length,
       activeSyncs: this.activeSyncs.size, // ✅ Thêm thông tin về active syncs
       activeOrders: this.getActiveSyncs(),
+      networkStatus: this.isNetworkAvailable(),
     };
   }
 
@@ -414,6 +546,8 @@ class SimpleSyncGuard {
   // Clear all
   clearAll() {
     localStorage.removeItem(this.storageKey);
+    this._pendingOrdersCache = null;
+    this._lastCacheUpdate = 0;
   }
 
   // Get health status
@@ -429,6 +563,23 @@ class SimpleSyncGuard {
     }
 
     return this.lastCheckTime + this.checkInterval;
+  }
+
+  // ✅ PERFORMANCE OPTIMIZATION: Clear cache method
+  clearCache() {
+    this._pendingOrdersCache = null;
+    this._lastCacheUpdate = 0;
+  }
+
+  // ✅ PERFORMANCE OPTIMIZATION: Get performance metrics
+  getPerformanceMetrics() {
+    return {
+      cacheHitRate: this._pendingOrdersCache ? "cached" : "fresh",
+      activeSyncs: this.activeSyncs.size,
+      networkStatus: this.isNetworkAvailable(),
+      lastCacheUpdate: this._lastCacheUpdate,
+      lastNetworkCheck: this._lastNetworkCheck,
+    };
   }
 }
 

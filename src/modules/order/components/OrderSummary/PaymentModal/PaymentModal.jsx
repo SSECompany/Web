@@ -7,6 +7,7 @@ import {
   parserNumber,
 } from "../../../../../app/hook/dataFormatHelper";
 import { num2words } from "../../../../../app/Options/DataFomater";
+import VietQR from "../../../../../components/common/GenerateQR/VietQR";
 import "./PaymentModal.css";
 
 const PaymentModal = ({
@@ -535,67 +536,30 @@ const PaymentModal = ({
             <strong>Quét mã QR để thanh toán:</strong>
           </p>
 
-          {qrError ? (
-            <div
-              className="qr-error"
-              style={{
-                textAlign: "center",
-                padding: "20px",
-                backgroundColor: "#ffebee",
-                border: "1px solid #ffcdd2",
-                borderRadius: "8px",
-                color: "#d32f2f",
-              }}
-            >
-              ❌ Lỗi tải QR
-            </div>
-          ) : showQRImage ? (
-            <img
-              src={qrUrl}
-              alt="QR Code thanh toán"
-              className="qr-code-image"
-              key={`qr-${total}`}
-              onLoad={handleQRLoad}
-              onError={handleQRError}
-              style={{
-                transition: "opacity 0.3s ease",
-                opacity: qrLoaded ? 1 : 0.7,
-              }}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <VietQR
+              amount={total}
+              soChungTu={`Thanh toan Phenikaa ${total}vnd`}
+              size={200}
             />
-          ) : (
-            <div
-              className="qr-loading"
-              style={{
-                textAlign: "center",
-                padding: "20px",
-                backgroundColor: "#f5f5f5",
-                borderRadius: "8px",
-              }}
-            >
-              🔄 Chuẩn bị mã QR...
-            </div>
-          )}
-          <div className="qr-info">
-            {accountName?.split(" - ").map((line, index) => (
-              <div key={index} className="qr-info-line">
-                {line.trim()}
+            <div className="qr-info">
+              {accountName?.split(" - ").map((line, index) => (
+                <div key={index} className="qr-info-line">
+                  {line.trim()}
+                </div>
+              ))}
+              <div className="qr-info-line">{account}</div>
+              <div className="qr-info-line">
+                Số tiền: {formatCurrency(total)}đ
               </div>
-            ))}
-            <div className="qr-info-line">{account}</div>
-            <div className="qr-info-line">
-              Số tiền: {formatCurrency(total)}đ
             </div>
-          </div>
-          {/* Nút Thử lại luôn hiển thị */}
-          <div style={{ textAlign: "center", marginTop: 12 }}>
-            <Button
-              onClick={handleRetryQR}
-              disabled={isRetrying}
-              type="primary"
-              style={{ minWidth: 120 }}
-            >
-              {isRetrying ? "🔄 Đang lấy mã QR..." : "Lấy mã QR"}
-            </Button>
           </div>
         </div>
       )}
