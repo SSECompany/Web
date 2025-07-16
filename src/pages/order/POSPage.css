@@ -150,6 +150,35 @@
   display: none;
 }
 
+/* Blinking purple border for unseen tab - smooth gentle glow */
+.ant-tabs-tab.blinking-tab {
+  border: 2px solid #a259ff !important;
+  border-radius: 8px;
+  animation: glow-border-purple 1.4s ease-in-out infinite;
+  box-shadow: 0 0 0px 0px #a259ff;
+  transition: box-shadow 0.3s, border-color 0.3s;
+  padding: 0 8px;
+  background: #f7f3ff;
+}
+
+@keyframes glow-border-purple {
+  0% {
+    box-shadow: 0 0 0px 0px #a259ff;
+    border-color: #a259ff;
+    background: #f7f3ff;
+  }
+  50% {
+    box-shadow: 0 0 16px 4px #a259ff55;
+    border-color: #a259ff;
+    background: #f7f3ff;
+  }
+  100% {
+    box-shadow: 0 0 0px 0px #a259ff;
+    border-color: #a259ff;
+    background: #f7f3ff;
+  }
+}
+
 /* Responsive cho Mobile */
 @media screen and (max-width: 768px) {
   .pos-page {

@@ -93,6 +93,8 @@ const orders = createSlice({
           tong_sl: tong_sl.toString(),
         },
         detail: normalizedDetail,
+        // Thêm thuộc tính unseen nếu là đơn từ signal
+        unseen: !!isRealtime,
         ...Object.fromEntries(
           Object.entries(action.payload).filter(
             ([key]) =>
@@ -319,6 +321,8 @@ const orders = createSlice({
       if (tab) {
         state.activeTabId = tab.tableId;
         state.internalActiveTabId = newActiveTabId;
+        // Khi chuyển tab, bỏ trạng thái unseen
+        tab.unseen = false;
       }
     },
     addOrderFromSignal: (state, action) => {

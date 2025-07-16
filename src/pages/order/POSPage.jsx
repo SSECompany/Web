@@ -144,6 +144,7 @@ const POSPage = () => {
           isRealtime: true,
           master: masterData,
           detail: groupedDetailData,
+          unseen: true,
         })
       );
 
@@ -263,6 +264,21 @@ const POSPage = () => {
     document.body.classList.toggle("hide-tabs-and-buttons", isOrderPage);
   }, []);
 
+  // Đảm bảo hiệu ứng viền ngoài tab hoạt động với mọi trường hợp
+  useEffect(() => {
+    setTimeout(() => {
+      const tabEls = document.querySelectorAll(".ant-tabs-tab");
+      tabEls.forEach((el, idx) => {
+        const tab = orders[idx];
+        if (tab && tab.unseen) {
+          el.classList.add("blinking-tab");
+        } else {
+          el.classList.remove("blinking-tab");
+        }
+      });
+    }, 0);
+  }, [orders]);
+
   const addNewTab = (tableData) => {
     dispatch(addTab({ tableName: tableData.name, tableId: tableData.id }));
     dispatchModal({ type: "TOGGLE_SELECT_TABLE" });
@@ -344,17 +360,21 @@ const POSPage = () => {
                     removeTabHandler(targetKey);
                   }
                 }}
-              >
-                {orders.map((tab) => (
-                  <Tabs.TabPane tab={tab.tableName} key={tab.internalId}>
-                    <Category
-                      drinkFilter={drinkFilter}
-                      setDrinkFilter={setDrinkFilter}
-                    />
-                    <MenuGrid onAdd={addToOrder} />
-                  </Tabs.TabPane>
-                ))}
-              </Tabs>
+                items={orders.map((tab) => ({
+                  key: tab.internalId,
+                  label: tab.tableName,
+                  className: tab.unseen ? "blinking-tab" : "",
+                  children: (
+                    <>
+                      <Category
+                        drinkFilter={drinkFilter}
+                        setDrinkFilter={setDrinkFilter}
+                      />
+                      <MenuGrid onAdd={addToOrder} />
+                    </>
+                  ),
+                }))}
+              ></Tabs>
             </div>
           </div>
 

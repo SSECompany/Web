@@ -3,9 +3,11 @@ import { message as messageAPI, Modal, notification } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
-import { multipleTablePutApi, printOrderApi } from "../../../../api";
+import { multipleTablePutApi } from "../../../../api";
 import jwt from "../../../../utils/jwt";
-import simpleSyncGuard, { printOrderGuard } from "../../../../utils/simpleSyncGuard";
+import simpleSyncGuard, {
+  printOrderGuard,
+} from "../../../../utils/simpleSyncGuard";
 import {
   addTab,
   clearTabData,
@@ -13,6 +15,7 @@ import {
   switchTab,
   updateTabExtraProps,
 } from "../../store/order";
+import CustomerPaymentModal from "./CustomerPaymentModal/CustomerPaymentModal";
 import MergeOrder from "./MergeOrders/MergeOrder";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
@@ -156,6 +159,8 @@ export default function OrderSummary({ total, itemCount }) {
   const roleWeb = claims?.RoleWeb;
 
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  const [isCustomerPaymentModalVisible, setIsCustomerPaymentModalVisible] =
+    useState(false);
   const [message, contextHolder] = messageAPI.useMessage();
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -176,9 +181,25 @@ export default function OrderSummary({ total, itemCount }) {
     (tab) => tab.internalId === internalActiveTabId
   );
 
+  // Kiểm tra xem có phải khách hàng truy cập từ QR không
+  const isCustomerQR = () => {
+    const path = window.location.pathname;
+    const search = window.location.search;
+    const isOrderPath = /^\/order\/[\w-]+(\?ma_qr=[\w-]+)?$/.test(path);
+    const hasQRParam = search.includes("ma_qr=");
+    const noToken = !localStorage.getItem("access_token");
+
+    return isOrderPath && hasQRParam && noToken;
+  };
+
   useEffect(() => {
     if (activeTab && activeTab.autoOpenPayment) {
-      setIsPaymentModalVisible(true);
+      // Kiểm tra xem có phải khách hàng QR không
+      if (isCustomerQR()) {
+        setIsCustomerPaymentModalVisible(true);
+      } else {
+        setIsPaymentModalVisible(true);
+      }
       dispatch(
         updateTabExtraProps({
           internalId: activeTab.internalId,
@@ -448,17 +469,25 @@ export default function OrderSummary({ total, itemCount }) {
     if (isProcessingPayment) {
       return; // ✅ Không mở modal nếu đang thanh toán
     }
-    setIsPaymentModalVisible(true);
+
+    // Kiểm tra xem có phải khách hàng QR không
+    if (isCustomerQR()) {
+      setIsCustomerPaymentModalVisible(true);
+    } else {
+      setIsPaymentModalVisible(true);
+    }
   };
 
   const handleClosePaymentModal = () => {
     setIsPaymentModalVisible(false);
+    setIsCustomerPaymentModalVisible(false);
     setIsProcessingPayment(false);
   };
 
   // ✅ Function riêng để đóng modal khi confirm thanh toán (không reset processing state)
   const closeModalOnConfirm = () => {
     setIsPaymentModalVisible(false);
+    setIsCustomerPaymentModalVisible(false);
     // Không reset isProcessingPayment ở đây
   };
 
@@ -577,6 +606,77 @@ export default function OrderSummary({ total, itemCount }) {
     } catch (error) {
       notification.error({
         message: "Có lỗi xảy ra khi thanh toán!",
+        description: error.message,
+      });
+      setIsProcessingPayment(false);
+    } finally {
+      setIsCreatingOrder(false);
+    }
+  };
+
+  // Hàm xử lý khi khách hàng xác nhận đơn hàng
+  const handleConfirmCustomerPayment = async (customerInfo) => {
+    if (isProcessingPayment) {
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    closeModalOnConfirm();
+
+    const hasInternet = await checkInternetConnection();
+    if (!hasInternet) {
+      showOfflineWarning();
+      setIsProcessingPayment(false);
+      return;
+    }
+
+    // Tạo đơn hàng đơn giản
+    const orderData = generateOrderData(
+      "0", // status = 0 (chưa thanh toán)
+      [], // Chưa có hình thức thanh toán
+      { tien_mat: 0, chuyen_khoan: 0 }, // Chưa có số tiền thanh toán
+      customerInfo, // Thông tin khách hàng
+      false // Không đồng bộ
+    );
+
+    if (!orderData) {
+      setIsProcessingPayment(false);
+      return;
+    }
+
+    setIsCreatingOrder(true);
+
+    try {
+      const payload = {
+        store: "Api_create_retail_order",
+        param: { StoreID: storeId, unitId: unitId, userId: id },
+        data: { master: [orderData.masterData], detail: orderData.detailData },
+      };
+
+      const response = await multipleTablePutApi(payload);
+
+      if (response?.responseModel?.isSucceded) {
+        // Chỉ thông báo thành công đơn giản
+        notification.success({
+          message: "Đã gửi đơn hàng thành công!",
+          duration: 3,
+        });
+
+        // Clear data ngay lập tức
+        dispatch(clearTabData(internalActiveTabId));
+
+        // Reset processing state để bỏ loading
+        setIsProcessingPayment(false);
+      } else {
+        notification.warning({
+          message: "Gửi đơn hàng thất bại!",
+          description: response?.responseModel?.message,
+        });
+        setIsProcessingPayment(false);
+      }
+    } catch (error) {
+      notification.error({
+        message: "Có lỗi xảy ra khi gửi đơn hàng!",
         description: error.message,
       });
       setIsProcessingPayment(false);
@@ -792,6 +892,23 @@ export default function OrderSummary({ total, itemCount }) {
         initialSync={activeTab?.master?.s3 !== "0"}
       />
 
+      <CustomerPaymentModal
+        visible={isCustomerPaymentModalVisible}
+        onClose={handleClosePaymentModal}
+        onConfirm={handleConfirmCustomerPayment}
+        total={total}
+        customerInfo={{
+          ong_ba: (activeTab?.master?.ong_ba || "").trim(),
+          cccd: (activeTab?.master?.cccd || "").trim(),
+          dia_chi: (activeTab?.master?.dia_chi || "").trim(),
+          so_dt: (activeTab?.master?.so_dt || "").trim(),
+          email: (activeTab?.master?.email || "").trim(),
+          ma_so_thue_kh: (activeTab?.master?.ma_so_thue_kh || "").trim(),
+          ten_dv_kh: (activeTab?.master?.ten_dv_kh || "").trim(),
+        }}
+        isSubmitting={isProcessingPayment}
+      />
+
       <MergeOrder
         visible={isMergeModalVisible}
         onClose={closeMergeModal}
@@ -839,7 +956,14 @@ export default function OrderSummary({ total, itemCount }) {
               className="summary-button primary"
               onClick={
                 isMobile
-                  ? () => handleSendOrderDirectly(false)
+                  ? () => {
+                      // Kiểm tra xem có phải khách hàng QR không
+                      if (isCustomerQR()) {
+                        handleOpenPaymentModal(); // Sử dụng modal customer
+                      } else {
+                        handleSendOrderDirectly(false); // Sử dụng logic cũ
+                      }
+                    }
                   : handleOpenPaymentModal
               }
               disabled={
@@ -860,9 +984,9 @@ export default function OrderSummary({ total, itemCount }) {
                 />
               )}
               {isProcessingPayment
-                ? "Thanh toán..."
+                ? "Đang gửi..."
                 : isMobile
-                ? "Gửi"
+                ? "Xác nhận"
                 : "Thanh toán"}
             </button>
           </>
