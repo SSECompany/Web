@@ -168,19 +168,16 @@ class SimpleSyncGuard {
   async attemptSync(sttRec) {
     // ✅ PERFORMANCE OPTIMIZATION: Early network check
     if (!this.isNetworkAvailable()) {
-      console.log(`🌐 Network offline, skipping sync for ${sttRec}`);
       return false;
     }
 
     // ✅ KIỂM TRA LOCK: Nếu đang sync sttRec này rồi thì đợi
     if (this.activeSyncs.has(sttRec)) {
-      console.log(`🔒 Order ${sttRec} is already being synced, waiting...`);
       try {
         // Đợi sync hiện tại hoàn thành
         return await this.activeSyncs.get(sttRec);
       } catch (error) {
         // Sync hiện tại failed, sẽ retry bên dưới
-        console.log(`⚠️ Waiting sync for ${sttRec} failed, will retry...`);
       }
     }
 
@@ -194,9 +191,6 @@ class SimpleSyncGuard {
 
     // Kiểm tra số lần thử
     if (order.attempts >= this.maxRetries) {
-      console.error(
-        `🚫 Order ${sttRec} exceeded max attempts (${this.maxRetries})`
-      );
       return false;
     }
 
@@ -216,12 +210,6 @@ class SimpleSyncGuard {
   // Private method thực hiện sync thực tế
   async _doSync(sttRec, order) {
     try {
-      console.log(
-        `🔄 Starting sync for order ${sttRec} (attempt ${order.attempts + 1}/${
-          this.maxRetries
-        })`
-      );
-
       // Update attempts
       order.attempts += 1;
       order.lastAttempt = new Date().toISOString();
@@ -233,15 +221,9 @@ class SimpleSyncGuard {
 
       // Thành công → remove khỏi pending
       this.markSynced(sttRec);
-      console.log(`✅ Sync successful for order ${sttRec}`);
 
       return true;
     } catch (error) {
-      console.error(
-        `❌ SimpleSyncGuard: Sync failed for ${sttRec}:`,
-        error.message
-      );
-
       // Update error info
       order.lastError = error.message;
       order.lastErrorTime = new Date().toISOString();
@@ -338,10 +320,6 @@ class SimpleSyncGuard {
 
     // ✅ PERFORMANCE OPTIMIZATION: Batch process với controlled concurrency
     if (ordersReadyForRetry.length > 0) {
-      console.log(
-        `🔄 Individual retry starting for ${ordersReadyForRetry.length} orders (ready for 1-minute retry)`
-      );
-
       // Process in batches để tránh quá nhiều concurrent requests
       for (let i = 0; i < ordersReadyForRetry.length; i += this._batchSize) {
         const batch = ordersReadyForRetry.slice(i, i + this._batchSize);
@@ -385,7 +363,6 @@ class SimpleSyncGuard {
 
       // ✅ Skip nếu đang được sync
       if (activeSyncSet.has(order.sttRec)) {
-        console.log(`⏭️ Skipping ${order.sttRec} - already syncing`);
         return false;
       }
 
@@ -409,10 +386,6 @@ class SimpleSyncGuard {
 
     // ✅ PERFORMANCE OPTIMIZATION: Batch process với controlled concurrency
     if (ordersToRetry.length > 0) {
-      console.log(
-        `🔄 Background retry starting for ${ordersToRetry.length} orders`
-      );
-
       // Process in batches
       for (let i = 0; i < ordersToRetry.length; i += this._batchSize) {
         const batch = ordersToRetry.slice(i, i + this._batchSize);
@@ -707,7 +680,7 @@ class PrintOrderGuard {
   markForPrint(sttRec, userId) {
     const pendingOrders = this.getPendingOrders();
 
-    // ✅ PERFORMANCE OPTIMIZATION: Use Set for faster lookup
+    // Use Set for faster lookup
     const existingSttRecs = new Set(pendingOrders.map((order) => order.sttRec));
     if (existingSttRecs.has(sttRec)) {
       return;
@@ -725,7 +698,7 @@ class PrintOrderGuard {
     pendingOrders.push(orderData);
     this.savePendingOrders(pendingOrders);
 
-    // ✅ PERFORMANCE OPTIMIZATION: Invalidate cache
+    // Invalidate cache
     this._pendingOrdersCache = null;
 
     // KHÔNG attemptPrint ngay nữa - để cho background hoặc manual trigger
@@ -733,7 +706,8 @@ class PrintOrderGuard {
 
   // Trigger print cho order đã được marked
   async triggerPrint(sttRec) {
-    return await this.attemptPrint(sttRec);
+    const result = await this.attemptPrint(sttRec);
+    return result;
   }
 
   // Đánh dấu đơn hàng đã print thành công
@@ -753,37 +727,29 @@ class PrintOrderGuard {
   async attemptPrint(sttRec) {
     // ✅ PERFORMANCE OPTIMIZATION: Early network check
     if (!this.isNetworkAvailable()) {
-      console.log(`🌐 Network offline, skipping print for ${sttRec}`);
       return false;
     }
 
     // ✅ KIỂM TRA LOCK: Nếu đang print sttRec này rồi thì đợi
     if (this.activePrints.has(sttRec)) {
-      console.log(`🔒 Order ${sttRec} is already being printed, waiting...`);
       try {
         // Đợi print hiện tại hoàn thành
         return await this.activePrints.get(sttRec);
       } catch (error) {
         // Print hiện tại failed, sẽ retry bên dưới
-        console.log(`⚠️ Waiting print for ${sttRec} failed, will retry...`);
       }
     }
 
     const pendingOrders = this.getPendingOrders();
+
     const order = pendingOrders.find((o) => o.sttRec === sttRec);
 
     if (!order) {
-      console.warn(`⚠️ Order ${sttRec} not found in pending print list`);
       return false;
     }
 
     // Kiểm tra số lần thử
     if (order.attempts >= this.maxRetries) {
-      console.error(
-        `🚫 Order ${sttRec} exceeded max print attempts (${this.maxRetries})`
-      );
-      
-      // ✅ Báo log khi đạt max retries
       const { simpleLogger } = await import("../utils/simpleLogger");
       simpleLogger.log("error", {
         action: "print_max_retries_reached",
@@ -796,7 +762,7 @@ class PrintOrderGuard {
         createdAt: order.createdAt,
         lastAttempt: order.lastAttempt,
       });
-      
+
       return false;
     }
 
@@ -816,10 +782,6 @@ class PrintOrderGuard {
   // Private method thực hiện print thực tế
   async _doPrint(sttRec, order) {
     try {
-      console.log(
-        `🖨️ Starting print for order ${sttRec} (attempt ${order.attempts + 1}/${this.maxRetries})`
-      );
-
       // Update attempts
       order.attempts += 1;
       order.lastAttempt = new Date().toISOString();
@@ -827,25 +789,18 @@ class PrintOrderGuard {
 
       // Import và call printOrderApi
       const { printOrderApi } = await import("../api");
-      await printOrderApi(sttRec, order.userId);
+      const result = await printOrderApi(sttRec, order.userId);
 
       // Thành công → remove khỏi pending
       this.markPrinted(sttRec);
-      console.log(`✅ Print successful for order ${sttRec}`);
 
       return true;
     } catch (error) {
-      console.error(
-        `❌ PrintOrderGuard: Print failed for ${sttRec}:`,
-        error.message
-      );
-
       // Update error info
       order.lastError = error.message;
       order.lastErrorTime = new Date().toISOString();
       this.updateOrder(order);
 
-      // ✅ Báo log khi print fail
       const { simpleLogger } = await import("../utils/simpleLogger");
       simpleLogger.log("error", {
         action: "print_failed",
@@ -919,10 +874,6 @@ class PrintOrderGuard {
 
     // ✅ PERFORMANCE OPTIMIZATION: Batch process với controlled concurrency
     if (ordersReadyForRetry.length > 0) {
-      console.log(
-        `🖨️ Individual retry starting for ${ordersReadyForRetry.length} print orders (ready for 1-minute retry)`
-      );
-
       // Process in batches để tránh quá nhiều concurrent requests
       for (let i = 0; i < ordersReadyForRetry.length; i += this._batchSize) {
         const batch = ordersReadyForRetry.slice(i, i + this._batchSize);
@@ -966,7 +917,6 @@ class PrintOrderGuard {
 
       // ✅ Skip nếu đang được print
       if (activePrintSet.has(order.sttRec)) {
-        console.log(`⏭️ Skipping ${order.sttRec} - already printing`);
         return false;
       }
 
@@ -990,10 +940,6 @@ class PrintOrderGuard {
 
     // ✅ PERFORMANCE OPTIMIZATION: Batch process với controlled concurrency
     if (ordersToRetry.length > 0) {
-      console.log(
-        `🖨️ Background retry starting for ${ordersToRetry.length} print orders`
-      );
-
       // Process in batches
       for (let i = 0; i < ordersToRetry.length; i += this._batchSize) {
         const batch = ordersToRetry.slice(i, i + this._batchSize);

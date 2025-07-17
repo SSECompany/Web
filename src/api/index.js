@@ -124,7 +124,7 @@ export const printOrderApi = async (sttRec, userId) => {
     const response = await https.post(
       `Print/print-order`,
       {
-        stt_rec: [sttRec], // giống syncFastApi
+        stt_rec: sttRec,
         action: "0",
         userId: userId.toString(),
       },
@@ -142,7 +142,8 @@ export const printOrderApi = async (sttRec, userId) => {
     const duration = Date.now() - startTime;
 
     // Check business logic success - giống syncFastApi
-    const isBusinessSuccess = response?.data?.responseModel?.isSucceded === true;
+    const isBusinessSuccess =
+      response?.data?.responseModel?.isSucceded === true;
 
     if (isBusinessSuccess) {
       // Log success chỉ khi business logic thành công
@@ -151,7 +152,8 @@ export const printOrderApi = async (sttRec, userId) => {
     } else {
       // HTTP 200 nhưng business logic fail → coi như lỗi và retry
       const businessError = new Error(
-        response?.data?.responseModel?.message || "API business logic failed (isSucceded: false)"
+        response?.data?.responseModel?.message ||
+          "API business logic failed (isSucceded: false)"
       );
 
       // Attach response data để có thể analyze
@@ -332,7 +334,8 @@ export const syncFastApi = async (sttRec, userId) => {
     const duration = Date.now() - startTime;
 
     // Check business logic success
-    const isBusinessSuccess = response?.data?.responseModel?.isSucceded === true;
+    const isBusinessSuccess =
+      response?.data?.responseModel?.isSucceded === true;
 
     if (isBusinessSuccess) {
       // Log success chỉ khi business logic thành công
@@ -341,7 +344,8 @@ export const syncFastApi = async (sttRec, userId) => {
     } else {
       // HTTP 200 nhưng business logic fail → coi như lỗi và retry
       const businessError = new Error(
-        response?.data?.responseModel?.message || "API business logic failed (isSucceded: false)"
+        response?.data?.responseModel?.message ||
+          "API business logic failed (isSucceded: false)"
       );
 
       // Attach response data để có thể analyze
