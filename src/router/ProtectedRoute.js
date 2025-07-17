@@ -6,10 +6,15 @@ import jwt from "../utils/jwt";
 
 const ProtectedRoute = () => {
   const location = useLocation();
-  const { unitId, id } = useSelector((state) => state.claimsReducer.userInfo || {});
+  const { unitId, id } = useSelector(
+    (state) => state.claimsReducer.userInfo || {}
+  );
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [roomData, setRoomData] = useState([]);
+  const [loadingRoom, setLoadingRoom] = useState(true);
+  const [errorRoom, setErrorRoom] = useState(null);
 
   useEffect(() => {
     const fetchTableData = async () => {
@@ -35,25 +40,55 @@ const ProtectedRoute = () => {
     fetchTableData();
   }, [unitId, id]);
 
+  useEffect(() => {
+    const fetchRoomData = async () => {
+      setLoadingRoom(true);
+      try {
+        const res = await multipleTablePutApi({
+          store: "api_get_rooms",
+          param: {},
+          data: {},
+          resultSetNames: [],
+        });
+
+        setRoomData(res?.listObject?.[0] || []);
+      } catch (err) {
+        setErrorRoom(err);
+      } finally {
+        setLoadingRoom(false);
+      }
+    };
+    fetchRoomData();
+  }, []);
+
   // Bypass token check for /order/:orderId?ma_qr=xxx path
   if (/^\/order\/[\w-]+(\?ma_qr=[\w-]+)?$/.test(location.pathname)) {
-    if (loading) return null; // or a loading spinner
-    if (error) return <Navigate to="/error" replace />;
+    if (loading || loadingRoom) return null; // or a loading spinner
+    if (error || errorRoom) return <Navigate to="/error" replace />;
     const orderId = location.pathname.split("/")[2];
     const params = new URLSearchParams(location.search);
     const ma_qr = params.get("ma_qr");
 
-    const found = tableData.find(
+    const foundTable = tableData.find(
       (table) => table.value === orderId && table.ma_qr === ma_qr
     );
+    const foundRoom = roomData.find(
+      (room) => room.value?.trim() === orderId && room.ma_qr === ma_qr
+    );
+
     // Lưu label vào localStorage để POSPage.jsx lấy ra hiển thị
-    if (found) {
-      localStorage.setItem("pos_table_label", found.label);
+    if (foundTable) {
+      localStorage.setItem("pos_table_label", foundTable.label);
+      localStorage.removeItem("pos_room_label");
+    } else if (foundRoom) {
+      localStorage.setItem("pos_room_label", foundRoom.label);
+      localStorage.removeItem("pos_table_label");
     } else {
       localStorage.removeItem("pos_table_label");
+      localStorage.removeItem("pos_room_label");
     }
 
-    if (!found) {
+    if (!foundTable && !foundRoom) {
       return <Navigate to="/error" replace />;
     }
     return <Outlet />; // Allow access to the order page

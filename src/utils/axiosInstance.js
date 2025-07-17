@@ -12,7 +12,7 @@ let PENDING_REQUESTS = 0;
 let refreshingFunc = undefined;
 
 const instance = axios.create({
-  timeout: 20000,
+  timeout: 60000, // 1 phút - tăng từ 20s lên 1 phút
   baseURL: APP_CONFIG.apiUrl,
 
   headers: {

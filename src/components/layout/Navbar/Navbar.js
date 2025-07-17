@@ -15,6 +15,7 @@ import jwt from "../../../utils/jwt";
 
 import { resetOrders } from "../../../modules/order/store/order";
 import VersionIndicator from "../../common/VersionIndicator/VersionIndicator";
+import LogViewerButton from "../../common/LogViewer/LogViewerButton";
 import "./Navbar.css";
 
 const Navbar = () => {
@@ -90,7 +91,10 @@ const Navbar = () => {
 
       <div className="first_navbar_row_right flex gap-1">
         <div className="px-1 text-center flex items-center">
-          <VersionIndicator showDetails={true} size="small" />
+          <div className="navbar-controls-container">
+            <LogViewerButton isInNavbar={true} />
+            <VersionIndicator showDetails={true} size="small" />
+          </div>
         </div>
 
         <div className="px-1 text-center flex full-name">
