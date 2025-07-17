@@ -11,6 +11,7 @@
   min-height: 0px;
   overflow: auto;
   scroll-behavior: smooth;
+  background-color: #eaf4fb;
 }
 .title_component {
   background-color: white;

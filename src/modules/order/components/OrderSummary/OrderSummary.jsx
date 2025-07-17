@@ -3,9 +3,11 @@ import { message as messageAPI, Modal, notification } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
-import { multipleTablePutApi, printOrderApi } from "../../../../api";
+import { multipleTablePutApi } from "../../../../api";
 import jwt from "../../../../utils/jwt";
-import simpleSyncGuard from "../../../../utils/simpleSyncGuard";
+import simpleSyncGuard, {
+  printOrderGuard,
+} from "../../../../utils/simpleSyncGuard";
 import {
   addTab,
   clearTabData,
@@ -13,6 +15,7 @@ import {
   switchTab,
   updateTabExtraProps,
 } from "../../store/order";
+import CustomerPaymentModal from "./CustomerPaymentModal/CustomerPaymentModal";
 import MergeOrder from "./MergeOrders/MergeOrder";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
@@ -85,33 +88,108 @@ const retryPendingSyncs = async () => {
   return await simpleSyncGuard.checkAndRetry();
 };
 
-// ✅ Helper function để chạy song song print-order và InvoiceReceipt
+// PrintOrderGuard functions - đơn giản ensure printOrderApi được call
+const addPendingPrint = (sttRec, userId) => {
+  return printOrderGuard.markForPrint(sttRec, userId);
+};
+
+const retryPendingPrints = async () => {
+  return await printOrderGuard.checkAndRetry();
+};
+
+// Helper function để gọi trực tiếp API syncFast với tracking
+const callSyncFastApi = async (sttRec, userId) => {
+  // Kiểm tra xem đang sync chưa
+  if (simpleSyncGuard.isSyncing(sttRec)) {
+    return { success: false, error: new Error("API call already in progress") };
+  }
+
+  // Tạo lock để track
+  const syncPromise = (async () => {
+    try {
+      const { syncFastApi } = await import("../../../../api");
+      const result = await syncFastApi(sttRec, userId);
+      return { success: true, result };
+    } catch (error) {
+      return { success: false, error };
+    }
+  })();
+
+  // Thêm vào activeSyncs để tránh duplicate call
+  simpleSyncGuard.activeSyncs.set(sttRec, syncPromise);
+
+  try {
+    const result = await syncPromise;
+    return result;
+  } finally {
+    // Xóa lock sau khi hoàn thành
+    simpleSyncGuard.activeSyncs.delete(sttRec);
+  }
+};
+
+// Helper function để gọi trực tiếp API print-order với tracking
+const callPrintOrderApi = async (sttRec, userId) => {
+  // Kiểm tra xem đang print chưa
+  if (printOrderGuard.isPrinting(sttRec)) {
+    return { success: false, error: new Error("API call already in progress") };
+  }
+
+  // Tạo lock để track
+  const printPromise = (async () => {
+    try {
+      const { printOrderApi } = await import("../../../../api");
+      const result = await printOrderApi(sttRec, userId);
+      return { success: true, result };
+    } catch (error) {
+      return { success: false, error };
+    }
+  })();
+
+  // Thêm vào activePrints để tránh duplicate call
+  printOrderGuard.activePrints.set(sttRec, printPromise);
+
+  try {
+    const result = await printPromise;
+    return result;
+  } finally {
+    // Xóa lock sau khi hoàn thành
+    printOrderGuard.activePrints.delete(sttRec);
+  }
+};
+
+// Helper function để chạy song song print-order và InvoiceReceipt
 const runParallelTasks = async (sttRec, userId, sync = true) => {
   const parallelTasks = [];
 
   // Thêm task đồng bộ (nếu có)
   if (sync) {
-    const syncTask = simpleSyncGuard
-      .triggerSync(sttRec)
+    const syncTask = callSyncFastApi(sttRec, userId)
       .then((result) => {
-        if (result) {
+        // Chỉ bỏ mark khi thành công
+        if (result.success) {
           simpleSyncGuard.markSynced(sttRec);
         }
-        return { type: "sync", success: result };
+        return { type: "sync", success: result.success, result: result.result };
       })
       .catch((syncError) => {
+        // Thất bại thì giữ mark để retry
         return { type: "sync", success: false, error: syncError };
       });
 
     parallelTasks.push(syncTask);
   }
 
-  // Thêm task in order
-  const printTask = printOrderApi(sttRec, userId)
-    .then((printResult) => {
-      return { type: "print", success: true };
+  // Thêm task in order - GỌI TRỰC TIẾP API
+  const printTask = callPrintOrderApi(sttRec, userId)
+    .then((result) => {
+      // Chỉ bỏ mark khi thành công
+      if (result.success) {
+        printOrderGuard.markPrinted(sttRec);
+      }
+      return { type: "print", success: result.success, result: result.result };
     })
     .catch((printError) => {
+      // Thất bại thì giữ mark để retry
       notification.error({
         message: "Có lỗi xảy ra khi in đơn hàng!",
         description: printError.message,
@@ -121,7 +199,7 @@ const runParallelTasks = async (sttRec, userId, sync = true) => {
 
   parallelTasks.push(printTask);
 
-  // ✅ Chạy tất cả tasks SONG SONG
+  // Chạy tất cả tasks SONG SONG
   return Promise.allSettled(parallelTasks)
     .then((results) => {
       return results;
@@ -143,6 +221,8 @@ export default function OrderSummary({ total, itemCount }) {
   const roleWeb = claims?.RoleWeb;
 
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  const [isCustomerPaymentModalVisible, setIsCustomerPaymentModalVisible] =
+    useState(false);
   const [message, contextHolder] = messageAPI.useMessage();
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -163,9 +243,25 @@ export default function OrderSummary({ total, itemCount }) {
     (tab) => tab.internalId === internalActiveTabId
   );
 
+  // Kiểm tra xem có phải khách hàng truy cập từ QR không
+  const isCustomerQR = () => {
+    const path = window.location.pathname;
+    const search = window.location.search;
+    const isOrderPath = /^\/order\/[\w-]+(\?ma_qr=[\w-]+)?$/.test(path);
+    const hasQRParam = search.includes("ma_qr=");
+    const noToken = !localStorage.getItem("access_token");
+
+    return isOrderPath && hasQRParam && noToken;
+  };
+
   useEffect(() => {
     if (activeTab && activeTab.autoOpenPayment) {
-      setIsPaymentModalVisible(true);
+      // Kiểm tra xem có phải khách hàng QR không
+      if (isCustomerQR()) {
+        setIsCustomerPaymentModalVisible(true);
+      } else {
+        setIsPaymentModalVisible(true);
+      }
       dispatch(
         updateTabExtraProps({
           internalId: activeTab.internalId,
@@ -295,33 +391,48 @@ export default function OrderSummary({ total, itemCount }) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
 
         if (sttRec) {
-          // ✅ BƯỚC 1: Mark pending ngay khi tạo đơn thành công
+          // BƯỚC 1: Mark pending ngay khi tạo đơn thành công
           if (!isSaveOnly) {
             addPendingSync(sttRec, id);
+            addPendingPrint(sttRec, id);
           }
 
-          // ✅ BƯỚC 2: Chạy đồng bộ RIÊNG BIỆT (không đợi)
+          // BƯỚC 2: Bật hộp thoại in NGAY LẬP TỨC
+          if (!isSaveOnly) {
+            setPrintMaster(orderData.masterData);
+            setPrintDetail(orderData.detailData);
+            setCurrentPrintData({
+              master: orderData.masterData,
+              detail: orderData.detailData,
+              sttRec,
+              sync: true,
+            });
+            setHasReprinted(false);
+            setIsPrinting(true);
+            setIsPrinted(false);
+          }
+
+          // BƯỚC 3: Chạy InvoiceReceipt và print-order trong background
           if (!isSaveOnly) {
             runParallelTasks(sttRec, id, true)
               .then((results) => {
-                // Silent success
+                // Silent success - chạy background
               })
               .catch((error) => {
-                // Silent error - already handled by simpleSyncGuard
+                // Silent error - already handled by simpleSyncGuard and printOrderGuard
               });
           }
 
           notification.success({
             message: isSaveOnly
               ? "Đã lưu đơn hàng thành công!"
-              : "Đơn hàng đã được tạo thành công và sẽ được đồng bộ tự động!",
-            description: !isSaveOnly
-              ? "Hệ thống sẽ thử lại đồng bộ cho đến khi thành công."
-              : undefined,
+              : "Đơn hàng đã được tạo thành công!",
             duration: 4,
           });
 
-          setTimeout(() => dispatch(clearTabData(internalActiveTabId)), 500);
+          if (isSaveOnly) {
+            setTimeout(() => dispatch(clearTabData(internalActiveTabId)), 500);
+          }
         }
       } else {
         notification.warning({ message: response?.responseModel?.message });
@@ -342,22 +453,7 @@ export default function OrderSummary({ total, itemCount }) {
     const sync = currentPrintData?.sync;
 
     if (sttRec) {
-      // ✅ Kiểm tra trạng thái đồng bộ
-      if (sync && simpleSyncGuard.isPending(sttRec)) {
-        notification.info({
-          message: "🔄 Đồng bộ FAST đang được xử lý...",
-          description: `Đơn ${sttRec} đang được đồng bộ tự động. Hệ thống sẽ thử lại cho đến khi thành công.`,
-          duration: 4,
-        });
-      } else if (sync) {
-        notification.success({
-          message: "✅ Hoàn tất! (Đồng bộ FAST thành công)",
-        });
-      } else {
-        notification.success({
-          message: "✅ Hoàn tất! (Không đồng bộ)",
-        });
-      }
+      // Không hiển thị thông báo về trạng thái đồng bộ và in
     }
 
     setCurrentPrintData(null);
@@ -421,17 +517,25 @@ export default function OrderSummary({ total, itemCount }) {
     if (isProcessingPayment) {
       return; // ✅ Không mở modal nếu đang thanh toán
     }
-    setIsPaymentModalVisible(true);
+
+    // Kiểm tra xem có phải khách hàng QR không
+    if (isCustomerQR()) {
+      setIsCustomerPaymentModalVisible(true);
+    } else {
+      setIsPaymentModalVisible(true);
+    }
   };
 
   const handleClosePaymentModal = () => {
     setIsPaymentModalVisible(false);
+    setIsCustomerPaymentModalVisible(false);
     setIsProcessingPayment(false);
   };
 
   // ✅ Function riêng để đóng modal khi confirm thanh toán (không reset processing state)
   const closeModalOnConfirm = () => {
     setIsPaymentModalVisible(false);
+    setIsCustomerPaymentModalVisible(false);
     // Không reset isProcessingPayment ở đây
   };
 
@@ -487,12 +591,13 @@ export default function OrderSummary({ total, itemCount }) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
         const orderNumber = response?.listObject[0][0]?.so_ct;
 
-        // ✅ BƯỚC 1: LUÔN LUÔN mark pending ngay khi thanh toán thành công
+        // BƯỚC 1: Mark pending ngay khi thanh toán thành công
         if (sync) {
           addPendingSync(sttRec, id);
         }
+        addPendingPrint(sttRec, id);
 
-        // ✅ BƯỚC 2: Mở hộp thoại in NGAY LẬP TỨC (không đợi đồng bộ)
+        // BƯỚC 2: Mở hộp thoại in NGAY LẬP TỨC
         setPrintMaster(orderData.masterData);
         setPrintDetail(orderData.detailData);
         setCurrentPrintData({
@@ -511,30 +616,18 @@ export default function OrderSummary({ total, itemCount }) {
         setIsPrinting(true);
         setIsPrinted(false);
 
-        // ✅ Gọi đồng thời syncFast và printOrder ngay khi mở hộp thoại in
+        // BƯỚC 3: Chạy InvoiceReceipt và print-order trong background
         runParallelTasks(sttRec, id, sync)
           .then((results) => {
-            // Cập nhật printSuccess nếu có task print thành công
-            const printResult = results.find(
-              (result) =>
-                result.status === "fulfilled" && result.value?.type === "print"
-            );
-            if (printResult?.value?.success) {
-              setCurrentPrintData((prev) =>
-                prev ? { ...prev, printSuccess: true } : prev
-              );
-            }
+            // Silent success - chạy background
           })
           .catch((error) => {
             // Silent error - already handled by simpleSyncGuard
           });
 
-        // ✅ Thông báo thành công ngay lập tức (không đợi đồng bộ/in)
+        // Thông báo thành công ngay lập tức
         notification.success({
           message: "Thanh toán thành công!",
-          description: sync
-            ? "Đơn hàng đã được tạo và sẽ được đồng bộ tự động. Hệ thống sẽ thử lại cho đến khi thành công."
-            : "Đơn hàng đã được tạo thành công.",
           duration: 4,
         });
 
@@ -549,6 +642,77 @@ export default function OrderSummary({ total, itemCount }) {
     } catch (error) {
       notification.error({
         message: "Có lỗi xảy ra khi thanh toán!",
+        description: error.message,
+      });
+      setIsProcessingPayment(false);
+    } finally {
+      setIsCreatingOrder(false);
+    }
+  };
+
+  // Hàm xử lý khi khách hàng xác nhận đơn hàng
+  const handleConfirmCustomerPayment = async (customerInfo) => {
+    if (isProcessingPayment) {
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    closeModalOnConfirm();
+
+    const hasInternet = await checkInternetConnection();
+    if (!hasInternet) {
+      showOfflineWarning();
+      setIsProcessingPayment(false);
+      return;
+    }
+
+    // Tạo đơn hàng đơn giản
+    const orderData = generateOrderData(
+      "0", // status = 0 (chưa thanh toán)
+      [], // Chưa có hình thức thanh toán
+      { tien_mat: 0, chuyen_khoan: 0 }, // Chưa có số tiền thanh toán
+      customerInfo, // Thông tin khách hàng
+      false // Không đồng bộ
+    );
+
+    if (!orderData) {
+      setIsProcessingPayment(false);
+      return;
+    }
+
+    setIsCreatingOrder(true);
+
+    try {
+      const payload = {
+        store: "Api_create_retail_order",
+        param: { StoreID: storeId, unitId: unitId, userId: id },
+        data: { master: [orderData.masterData], detail: orderData.detailData },
+      };
+
+      const response = await multipleTablePutApi(payload);
+
+      if (response?.responseModel?.isSucceded) {
+        // Chỉ thông báo thành công đơn giản
+        notification.success({
+          message: "Đã gửi đơn hàng thành công!",
+          duration: 3,
+        });
+
+        // Clear data ngay lập tức
+        dispatch(clearTabData(internalActiveTabId));
+
+        // Reset processing state để bỏ loading
+        setIsProcessingPayment(false);
+      } else {
+        notification.warning({
+          message: "Gửi đơn hàng thất bại!",
+          description: response?.responseModel?.message,
+        });
+        setIsProcessingPayment(false);
+      }
+    } catch (error) {
+      notification.error({
+        message: "Có lỗi xảy ra khi gửi đơn hàng!",
         description: error.message,
       });
       setIsProcessingPayment(false);
@@ -578,12 +742,17 @@ export default function OrderSummary({ total, itemCount }) {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
+      // Đóng thông báo mất mạng và hiển thị thông báo kết nối lại
+      notification.destroy();
       notification.success({
         message: "Đã kết nối internet!",
-        duration: 2,
+        duration: 3,
       });
-      // Retry pending syncs khi có mạng trở lại
-      setTimeout(() => retryPendingSyncs(), 1000);
+      // Retry pending syncs và prints khi có mạng trở lại (silent)
+      setTimeout(() => {
+        retryPendingSyncs();
+        retryPendingPrints();
+      }, 1000);
     };
 
     const handleOffline = () => {
@@ -598,13 +767,11 @@ export default function OrderSummary({ total, itemCount }) {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Retry pending syncs khi component mount
-    retryPendingSyncs();
-
-    // Setup interval để check pending syncs định kỳ (mỗi 3 phút, sync với background checker)
+    // Setup interval để check pending syncs và prints định kỳ (không gọi ngay khi mount)
     const syncInterval = setInterval(() => {
       if (navigator.onLine) {
         retryPendingSyncs();
+        retryPendingPrints();
       }
     }, 180000);
 
@@ -759,6 +926,23 @@ export default function OrderSummary({ total, itemCount }) {
         initialSync={activeTab?.master?.s3 !== "0"}
       />
 
+      <CustomerPaymentModal
+        visible={isCustomerPaymentModalVisible}
+        onClose={handleClosePaymentModal}
+        onConfirm={handleConfirmCustomerPayment}
+        total={total}
+        customerInfo={{
+          ong_ba: (activeTab?.master?.ong_ba || "").trim(),
+          cccd: (activeTab?.master?.cccd || "").trim(),
+          dia_chi: (activeTab?.master?.dia_chi || "").trim(),
+          so_dt: (activeTab?.master?.so_dt || "").trim(),
+          email: (activeTab?.master?.email || "").trim(),
+          ma_so_thue_kh: (activeTab?.master?.ma_so_thue_kh || "").trim(),
+          ten_dv_kh: (activeTab?.master?.ten_dv_kh || "").trim(),
+        }}
+        isSubmitting={isProcessingPayment}
+      />
+
       <MergeOrder
         visible={isMergeModalVisible}
         onClose={closeMergeModal}
@@ -806,7 +990,14 @@ export default function OrderSummary({ total, itemCount }) {
               className="summary-button primary"
               onClick={
                 isMobile
-                  ? () => handleSendOrderDirectly(false)
+                  ? () => {
+                      // Kiểm tra xem có phải khách hàng QR không
+                      if (isCustomerQR()) {
+                        handleOpenPaymentModal(); // Sử dụng modal customer
+                      } else {
+                        handleSendOrderDirectly(false); // Sử dụng logic cũ
+                      }
+                    }
                   : handleOpenPaymentModal
               }
               disabled={
@@ -827,9 +1018,9 @@ export default function OrderSummary({ total, itemCount }) {
                 />
               )}
               {isProcessingPayment
-                ? "Thanh toán..."
+                ? "Đang gửi..."
                 : isMobile
-                ? "Gửi"
+                ? "Xác nhận"
                 : "Thanh toán"}
             </button>
           </>

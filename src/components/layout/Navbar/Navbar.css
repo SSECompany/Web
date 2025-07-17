@@ -105,6 +105,26 @@
   gap: 0px 12px;
 }
 
+.navbar-controls-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.navbar-controls-container .log-viewer-fab {
+  position: static !important;
+  transform: none !important;
+  margin: 0 !important;
+  top: auto !important;
+  right: auto !important;
+  z-index: auto !important;
+}
+
+.navbar-controls-container .version-indicator {
+  margin: 0;
+}
+
 .first_navbar_row_left {
   display: flex;
   align-items: center;
