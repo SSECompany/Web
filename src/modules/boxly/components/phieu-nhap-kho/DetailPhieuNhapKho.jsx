@@ -5,11 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
+import "../common-phieu.css";
 import PhieuNhapKhoFormInputs from "./components/PhieuNhapKhoFormInputs";
 import VatTuNhapKhoTable from "./components/VatTuNhapKhoTable";
 import { usePhieuNhapKhoData } from "./hooks/usePhieuNhapKhoData";
 import { useVatTuManagerNhapKho } from "./hooks/useVatTuManagerNhapKho";
-import "./phieu-nhap-kho.css";
 import {
   buildPhieuNhapKhoPayload,
   deletePhieuNhapKho,
@@ -338,43 +338,17 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   };
 
   return (
-    <div className="phieu-nhap-container">
-      <div
-        className="phieu-nhap-header"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 32,
-          padding: "20px 24px",
-          background:
-            "linear-gradient(145deg,rgba(255,255,255,0.9) 0%,rgba(255,255,255,0.7) 100%)",
-          borderRadius: 16,
-        }}
-      >
+    <div className="phieu-container">
+      <div className="phieu-header">
         <Button
           type="text"
           icon={<LeftOutlined />}
           onClick={() => navigate("/boxly/phieu-nhap-kho")}
-          className="phieu-nhap-back-button"
+          className="phieu-back-button"
         >
           Trở về
         </Button>
-        <Title
-          level={5}
-          className="phieu-nhap-title"
-          style={{
-            margin: 0,
-            textAlign: "center",
-            fontWeight: 700,
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            flex: 1,
-            textShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          }}
-        >
+        <Title level={5} className="phieu-title">
           {isEditMode ? "CHỈNH SỬA PHIẾU NHẬP KHO" : "CHI TIẾT PHIẾU NHẬP KHO"}
         </Title>
         {!isEditMode ? (
@@ -382,24 +356,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             type="primary"
             icon={<EditOutlined />}
             onClick={handleEdit}
-            className="phieu-nhap-edit-button"
-            style={{
-              background: "linear-gradient(145deg, #11998e 0%, #38ef7d 100%)",
-              color: "white",
-              boxShadow:
-                "0 8px 24px rgba(17, 153, 142, 0.3), 0 2px 8px rgba(17, 153, 142, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
-              border: "none",
-              borderRadius: 20,
-              fontWeight: 600,
-              fontSize: 16,
-              padding: "0 24px",
-              height: 44,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              justifyContent: "center",
-              minWidth: 120,
-            }}
+            className="phieu-edit-button"
           >
             Chỉnh sửa
           </Button>
@@ -408,11 +365,11 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
         )}
       </div>
 
-      <div className="phieu-nhap-form-container">
+      <div className="phieu-form-container">
         <Form
           form={form}
           layout="vertical"
-          className="phieu-nhap-form"
+          className="phieu-form"
           disabled={!isEditMode}
         >
           <PhieuNhapKhoFormInputs

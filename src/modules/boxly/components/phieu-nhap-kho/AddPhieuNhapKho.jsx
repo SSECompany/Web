@@ -7,7 +7,7 @@ import PhieuNhapKhoFormInputs from "./components/PhieuNhapKhoFormInputs";
 import VatTuNhapKhoTable from "./components/VatTuNhapKhoTable";
 import { usePhieuNhapKhoData } from "./hooks/usePhieuNhapKhoData";
 import { useVatTuManagerNhapKho } from "./hooks/useVatTuManagerNhapKho";
-import "./phieu-nhap-kho.css";
+import "../common-phieu.css";
 import {
   buildPhieuNhapKhoPayload,
   fetchVoucherInfo,
@@ -154,24 +154,24 @@ const AddPhieuNhapKho = () => {
   };
 
   return (
-    <div className="phieu-nhap-container">
-      <div className="phieu-nhap-header">
+    <div className="phieu-container">
+      <div className="phieu-header">
         <Button
           type="text"
           icon={<LeftOutlined />}
           onClick={() => navigate("/boxly/phieu-nhap-kho")}
-          className="phieu-nhap-back-button"
+          className="phieu-back-button"
         >
           Trở về
         </Button>
-        <Title level={5} className="phieu-nhap-title">
+        <Title level={5} className="phieu-title">
           THÊM PHIẾU NHẬP KHO MỚI
         </Title>
         <div style={{ width: "120px" }}></div>
       </div>
 
-      <div className="phieu-nhap-form-container">
-        <Form form={form} layout="vertical" className="phieu-nhap-form">
+      <div className="phieu-form-container">
+        <Form form={form} layout="vertical" className="phieu-form">
           <PhieuNhapKhoFormInputs
             isEditMode={isEditMode}
             maKhachList={maKhachList}

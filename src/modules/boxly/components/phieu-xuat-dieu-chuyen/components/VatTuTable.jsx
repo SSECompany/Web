@@ -146,6 +146,7 @@ const VatTuTable = ({
         ),
       }}
       pagination={false}
+      scroll={{ x: 1200 }}
     />
   );
 };

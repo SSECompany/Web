@@ -2,27 +2,15 @@ import {
   DeleteOutlined,
   EditOutlined,
   FileTextOutlined,
-  LeftOutlined,
-  PlusOutlined,
 } from "@ant-design/icons";
-import {
-  Button,
-  Col,
-  DatePicker,
-  Input,
-  message,
-  Row,
-  Space,
-  Table,
-  Tag,
-  Typography,
-} from "antd";
+import { Button, DatePicker, Input, message, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
-import "./phieu-xuat-dieu-chuyen.css";
+import "../common-phieu.css";
+import CommonPhieuList from "../CommonPhieuList";
 import { fetchPhieuXuatDieuChuyenList } from "./utils/phieuXuatDieuChuyenApi";
 
 const { RangePicker } = DatePicker;
@@ -218,7 +206,7 @@ const ListPhieuXuatDieuChuyen = () => {
                   setSelectedKeys([]);
                 }
               }}
-              style={{ marginBottom: 8, display: "block" }}
+              style={{ marginBottom: 8}}
               format="DD/MM/YYYY"
               placeholder={["Từ ngày", "Đến ngày"]}
             />
@@ -429,13 +417,12 @@ const ListPhieuXuatDieuChuyen = () => {
       title: "Trạng thái",
       dataIndex: "statusname",
       key: "status",
-      width: screenSize === "mobile" ? 80 : 120,
+      width: 180, // tăng width cho cột trạng thái
       align: "center",
       render: (statusname, record) => {
         if (record.status === "*" || record.status === null) {
           return "";
         }
-
         const getStatusText = (status) => {
           const statusMap = {
             0: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
@@ -447,10 +434,8 @@ const ListPhieuXuatDieuChuyen = () => {
           };
           return statusMap[status] || "Không xác định";
         };
-
         const displayText = statusname || getStatusText(record.status);
         const statusColor = getStatusColor(record.status);
-
         return <Tag color={statusColor}>{displayText}</Tag>;
       },
     });
@@ -462,39 +447,37 @@ const ListPhieuXuatDieuChuyen = () => {
       align: "center",
       fixed: "right",
       render: (_, record) => (
-        <Space size="small">
-          <Button
-            size="small"
-            icon={<FileTextOutlined />}
+        <div className="phieu-action-group">
+          <button
+            className="phieu-action-btn phieu-action-btn--view"
+            title="Xem chi tiết"
             onClick={() =>
               navigate(`${record.stt_rec}`, {
                 state: { sctRec: record.stt_rec },
               })
             }
-            className="phieu-xuat-dc-action-btn phieu-xuat-dc-view-btn"
-            title="Xem chi tiết"
-          />
-          <Button
-            size="small"
-            type="primary"
-            icon={<EditOutlined />}
+          >
+            <FileTextOutlined />
+          </button>
+          <button
+            className="phieu-action-btn phieu-action-btn--edit"
+            title="Chỉnh sửa"
             onClick={() =>
               navigate(`edit/${record.stt_rec}`, {
                 state: { sctRec: record.stt_rec },
               })
             }
-            className="phieu-xuat-dc-action-btn phieu-xuat-dc-edit-btn"
-            title="Chỉnh sửa"
-          />
-          <Button
-            size="small"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.stt_rec)}
-            className="phieu-xuat-dc-action-btn phieu-xuat-dc-delete-btn"
+          >
+            <EditOutlined />
+          </button>
+          <button
+            className="phieu-action-btn phieu-action-btn--delete"
             title="Xóa"
-          />
-        </Space>
+            onClick={() => handleDelete(record.stt_rec)}
+          >
+            <DeleteOutlined />
+          </button>
+        </div>
       ),
     });
 
@@ -515,64 +498,41 @@ const ListPhieuXuatDieuChuyen = () => {
       },
       bordered: true,
       rowKey: "stt_rec",
-      className: "phieu-xuat-dc-data-table hidden_scroll_bar",
+      className: "phieu-data-table hidden_scroll_bar",
+      scroll: { x: 1800, y: 600 },
     };
-
     if (screenSize === "mobile") {
-      baseProps.scroll = { x: 400 };
+      baseProps.scroll = { x: 600 };
       baseProps.size = "small";
     } else if (screenSize === "mobileLandscape") {
-      baseProps.scroll = { x: 600, y: 400 };
+      baseProps.scroll = { x: 800, y: 400 };
       baseProps.size = "small";
     } else if (screenSize === "tablet") {
-      baseProps.scroll = { x: 800, y: 500 };
+      baseProps.scroll = { x: 1400, y: 500 };
     } else {
-      baseProps.scroll = { x: 1200, y: 600 };
+      baseProps.scroll = { x: 1800, y: 600 };
     }
-
     return baseProps;
   };
 
   return (
-    <div className="phieu-xuat-dc-container">
-      <Row
-        justify="space-between"
-        align="middle"
-        className="phieu-xuat-dc-header"
-      >
-        <Col>
-          <Button
-            type="text"
-            icon={<LeftOutlined />}
-            onClick={() => navigate("/boxly")}
-            className="phieu-xuat-dc-back-button"
-          >
-            {screenSize === "mobile" ? "" : "Trở về"}
-          </Button>
-        </Col>
-        <Col>
-          <Title level={5} className="phieu-xuat-dc-title">
-            {screenSize === "mobile"
-              ? "PHIẾU XUẤT ĐIỀU CHUYỂN"
-              : "DANH SÁCH PHIẾU XUẤT ĐIỀU CHUYỂN"}
-          </Title>
-        </Col>
-        <Col>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate("add")}
-            className="phieu-xuat-dc-add-button"
-          >
-            {screenSize === "mobile" ? "Thêm" : "Thêm mới"}
-          </Button>
-        </Col>
-      </Row>
-
-      <div className="phieu-xuat-dc-table-container">
-        <Table {...getTableProps()} />
-      </div>
-    </div>
+    <CommonPhieuList
+      title="DANH SÁCH PHIẾU XUẤT ĐIỀU CHUYỂN"
+      columns={getColumns()}
+      data={paginatedData}
+      onAdd={() => navigate("add")}
+      onBack={() => navigate("/boxly")}
+      addLabel="Thêm mới"
+      rowKey="stt_rec"
+      pagination={{
+        current: currentPage,
+        pageSize: pageSize,
+        total: totalRecords,
+        onChange: (page) => setCurrentPage(page),
+        showSizeChanger: false,
+        showQuickJumper: false,
+      }}
+    />
   );
 };
 

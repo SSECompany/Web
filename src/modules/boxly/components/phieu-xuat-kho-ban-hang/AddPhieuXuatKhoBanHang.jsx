@@ -10,7 +10,7 @@ import VatTuInputSection from "./components/VatTuInputSection";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
-import "./phieu-xuat-kho-ban-hang.css";
+import "../common-phieu.css";
 import {
   buildPayload,
   submitPhieu,
@@ -202,58 +202,30 @@ const AddPhieuXuatKhoBanHang = () => {
   };
 
   return (
-    <div className="phieu-xuat-bh-container">
-      <div
-        className="phieu-xuat-header"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 32,
-          padding: "20px 24px",
-          background:
-            "linear-gradient(145deg,rgba(255,255,255,0.9) 0%,rgba(255,255,255,0.7) 100%)",
-          borderRadius: 16,
-        }}
-      >
+    <div className="phieu-container">
+      <div className="phieu-header">
         <Button
           type="text"
           icon={<LeftOutlined />}
           onClick={() => navigate("/boxly/phieu-xuat-kho-ban-hang")}
-          className="phieu-xuat-back-button"
+          className="phieu-back-button"
         >
           Trở về
         </Button>
-        <Title
-          level={5}
-          className="phieu-xuat-title"
-          style={{
-            margin: 0,
-            textAlign: "center",
-            fontWeight: 700,
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            flex: 1,
-            textShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          }}
-        >
+        <Title level={5} className="phieu-title">
           THÊM PHIẾU XUẤT KHO BÁN HÀNG
         </Title>
         <div style={{ width: 120 }}></div>
       </div>
-
-      <div className="phieu-xuat-bh-form-container">
-        <Form form={form} layout="vertical" className="phieu-xuat-bh-form">
+      <div className="phieu-form-container">
+        <Form form={form} layout="vertical" className="phieu-form">
           <PhieuFormInputs
             isEditMode={true}
+            maGiaoDichList={maGiaoDichList}
             maKhachList={maKhachList}
             loadingMaKhach={loadingMaKhach}
             fetchMaKhachListDebounced={fetchMaKhachListDebounced}
-            maGiaoDichList={maGiaoDichList}
           />
-
           <VatTuInputSection
             isEditMode={true}
             barcodeEnabled={barcodeEnabled}
@@ -268,22 +240,17 @@ const AddPhieuXuatKhoBanHang = () => {
             fetchVatTuList={fetchVatTuList}
             handleVatTuSelect={handleVatTuSelect}
           />
-
           <VatTuTable
             dataSource={dataSource}
             isEditMode={true}
             handleQuantityChange={handleQuantityChange}
             handleDeleteItem={handleDeleteItem}
             handleDvtChange={handleDvtChange}
+            maKhachList={maKhachList}
+            loadingMaKhach={loadingMaKhach}
+            fetchMaKhachListDebounced={fetchMaKhachListDebounced}
           />
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-start",
-              marginTop: 16,
-            }}
-          >
+          <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 16 }}>
             <Space>
               <Button type="primary" onClick={handleSubmit} loading={loading}>
                 Lưu

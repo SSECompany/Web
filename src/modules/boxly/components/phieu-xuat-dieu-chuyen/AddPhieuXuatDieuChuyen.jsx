@@ -4,12 +4,12 @@ import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import https from "../../../../utils/https";
+import "../common-phieu.css";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuInputSection from "./components/VatTuInputSection";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
-import "./phieu-xuat-dieu-chuyen.css";
 import { buildPayload } from "./utils/phieuXuatDieuChuyenUtils";
 
 const { Title } = Typography;
@@ -190,50 +190,23 @@ const AddPhieuXuatDieuChuyen = () => {
   };
 
   return (
-    <div className="phieu-xuat-dc-container">
-      <div
-        className="phieu-xuat-dc-header"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 32,
-          padding: "20px 24px",
-          background:
-            "linear-gradient(145deg,rgba(255,255,255,0.9) 0%,rgba(255,255,255,0.7) 100%)",
-          borderRadius: 16,
-        }}
-      >
+    <div className="phieu-container">
+      <div className="phieu-header">
         <Button
           type="text"
           icon={<LeftOutlined />}
           onClick={() => navigate("/boxly/phieu-xuat-dieu-chuyen")}
-          className="phieu-xuat-dc-back-button"
+          className="phieu-back-button"
         >
           Trở về
         </Button>
-        <Title
-          level={5}
-          className="phieu-xuat-dc-title"
-          style={{
-            margin: 0,
-            textAlign: "center",
-            fontWeight: 700,
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            flex: 1,
-            textShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          }}
-        >
+        <Title level={5} className="phieu-title">
           THÊM PHIẾU XUẤT ĐIỀU CHUYỂN
         </Title>
         <div style={{ width: 120 }}></div>
       </div>
-
-      <div className="phieu-xuat-dc-form-container">
-        <Form form={form} layout="vertical" className="phieu-xuat-dc-form">
+      <div className="phieu-form-container">
+        <Form form={form} layout="vertical" className="phieu-form">
           <PhieuFormInputs
             isEditMode={true}
             maGiaoDichList={maGiaoDichList}
@@ -241,7 +214,6 @@ const AddPhieuXuatDieuChuyen = () => {
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
           />
-
           <VatTuInputSection
             isEditMode={true}
             barcodeEnabled={barcodeEnabled}
@@ -256,15 +228,16 @@ const AddPhieuXuatDieuChuyen = () => {
             fetchVatTuList={fetchVatTuList}
             handleVatTuSelect={handleVatTuSelect}
           />
-
           <VatTuTable
             dataSource={dataSource}
             isEditMode={true}
             handleQuantityChange={handleQuantityChange}
             handleDeleteItem={handleDeleteItem}
             handleDvtChange={handleDvtChange}
+            maKhoList={maKhoList}
+            loadingMaKho={loadingMaKho}
+            fetchMaKhoListDebounced={fetchMaKhoListDebounced}
           />
-
           <div
             style={{
               display: "flex",

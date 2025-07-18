@@ -1,16 +1,16 @@
 import { EditOutlined, LeftOutlined } from "@ant-design/icons";
-import { Button, Form, message, Space, Typography } from "antd";
+import { Button, Form, message, Typography } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
+import "../common-phieu.css";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuInputSection from "./components/VatTuInputSection";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
-import "./phieu-xuat-kho.css";
 import {
   buildPayload,
   updatePhieuXuatKho,
@@ -229,7 +229,9 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
               (response.data.statusCode === 200 ||
                 response.data.responseModel?.isSucceded ||
                 (response.data?.responseModel?.message &&
-                  response.data.responseModel.message.includes("thành công")))) ||
+                  response.data.responseModel.message.includes(
+                    "thành công"
+                  )))) ||
             (response.data?.responseModel?.message &&
               response.data.responseModel.message.includes("thành công"));
 
@@ -258,43 +260,17 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
   }, [navigate]);
 
   return (
-    <div className="phieu-xuat-container">
-      <div
-        className="phieu-xuat-header"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 32,
-          padding: "20px 24px",
-          background:
-            "linear-gradient(145deg,rgba(255,255,255,0.9) 0%,rgba(255,255,255,0.7) 100%)",
-          borderRadius: 16,
-        }}
-      >
+    <div className="phieu-container">
+      <div className="phieu-header">
         <Button
           type="text"
           icon={<LeftOutlined />}
           onClick={() => navigate("/boxly/phieu-xuat-kho")}
-          className="phieu-xuat-back-button"
+          className="phieu-back-button"
         >
           Trở về
         </Button>
-        <Title
-          level={5}
-          className="phieu-xuat-title"
-          style={{
-            margin: 0,
-            textAlign: "center",
-            fontWeight: 700,
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            flex: 1,
-            textShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          }}
-        >
+        <Title level={5} className="phieu-title">
           {isEditMode ? "CHỈNH SỬA PHIẾU XUẤT KHO" : "CHI TIẾT PHIẾU XUẤT KHO"}
         </Title>
         {!isEditMode ? (
@@ -302,24 +278,7 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
             type="primary"
             icon={<EditOutlined />}
             onClick={handleEdit}
-            className="phieu-xuat-edit-button"
-            style={{
-              background: "linear-gradient(145deg, #11998e 0%, #38ef7d 100%)",
-              color: "white",
-              boxShadow:
-                "0 8px 24px rgba(17, 153, 142, 0.3), 0 2px 8px rgba(17, 153, 142, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
-              border: "none",
-              borderRadius: 20,
-              fontWeight: 600,
-              fontSize: 16,
-              padding: "0 24px",
-              height: 44,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              justifyContent: "center",
-              minWidth: 120,
-            }}
+            className="phieu-edit-button"
           >
             Chỉnh sửa
           </Button>
@@ -328,11 +287,11 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
         )}
       </div>
 
-      <div className="phieu-xuat-form-container">
+      <div className="phieu-form-container">
         <Form
           form={form}
           layout="vertical"
-          className="phieu-xuat-form"
+          className="phieu-form"
           disabled={!isEditMode}
         >
           <PhieuFormInputs
@@ -371,22 +330,14 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
           />
 
           {isEditMode && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-start",
-                marginTop: 16,
-              }}
-            >
-              <Space>
-                <Button type="primary" onClick={handleSubmit} loading={loading}>
-                  Lưu
-                </Button>
-                <Button danger onClick={handleDelete}>
-                  Xóa
-                </Button>
-                <Button onClick={handleNew}>Mới</Button>
-              </Space>
+            <div className="phieu-form-actions">
+              <Button type="primary" onClick={handleSubmit} loading={loading}>
+                Lưu
+              </Button>
+              <Button danger onClick={handleDelete}>
+                Xóa
+              </Button>
+              <Button onClick={handleNew}>Mới</Button>
             </div>
           )}
         </Form>

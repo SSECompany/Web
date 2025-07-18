@@ -1,5 +1,6 @@
 import { DeleteOutlined } from "@ant-design/icons";
 import { Button, Empty, Input, Select, Table } from "antd";
+import { useEffect, useState } from "react";
 import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
 
 const VatTuNhapKhoTable = ({
@@ -207,6 +208,7 @@ const VatTuNhapKhoTable = ({
       key: "action",
       width: 80,
       align: "center",
+      fixed: "right",
       render: (_, record, index) => (
         <Button
           type="text"
@@ -222,6 +224,42 @@ const VatTuNhapKhoTable = ({
     },
   ];
 
+  // Detect screen size for responsive scroll
+  const [screenSize, setScreenSize] = useState("desktop");
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      if (width < 480) {
+        setScreenSize("mobile");
+      } else if (width < 768) {
+        setScreenSize("tablet");
+      } else {
+        setScreenSize("desktop");
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
+  const getScrollConfig = () => {
+    // Chiều cao mỗi dòng khoảng 40px, 10 dòng là 400px, thêm header ~50px
+    const rowHeight = 40;
+    const headerHeight = 50;
+    const maxRows = 10;
+    const y = headerHeight + rowHeight * maxRows;
+    switch (screenSize) {
+      case "mobile":
+        return { x: 1000, y };
+      case "tablet":
+        return { x: 1200, y };
+      default:
+        return { x: 1400, y };
+    }
+  };
+
   return (
     <Table
       bordered
@@ -234,6 +272,7 @@ const VatTuNhapKhoTable = ({
       }}
       pagination={false}
       className="vat-tu-table hidden_scroll_bar"
+      scroll={getScrollConfig()}
     />
   );
 };

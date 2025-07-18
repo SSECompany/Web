@@ -5,12 +5,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
+import "../common-phieu.css";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuInputSection from "./components/VatTuInputSection";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
-import "./phieu-xuat-dieu-chuyen.css";
 
 import {
   buildPayload,
@@ -262,7 +262,9 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
               (response.data.statusCode === 200 ||
                 response.data.responseModel?.isSucceded ||
                 (response.data?.responseModel?.message &&
-                  response.data.responseModel.message.includes("thành công")))) ||
+                  response.data.responseModel.message.includes(
+                    "thành công"
+                  )))) ||
             (response.data?.responseModel?.message &&
               response.data.responseModel.message.includes("thành công"));
 
@@ -285,43 +287,17 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
   }, [stt_rec, navigate, setLoading, token]);
 
   return (
-    <div className="phieu-xuat-container">
-      <div
-        className="phieu-xuat-header"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 32,
-          padding: "20px 24px",
-          background:
-            "linear-gradient(145deg,rgba(255,255,255,0.9) 0%,rgba(255,255,255,0.7) 100%)",
-          borderRadius: 16,
-        }}
-      >
+    <div className="phieu-container">
+      <div className="phieu-header">
         <Button
           type="text"
           icon={<LeftOutlined />}
           onClick={() => navigate("/boxly/phieu-xuat-dieu-chuyen")}
-          className="phieu-xuat-back-button"
+          className="phieu-back-button"
         >
           Trở về
         </Button>
-        <Title
-          level={5}
-          className="phieu-xuat-title"
-          style={{
-            margin: 0,
-            textAlign: "center",
-            fontWeight: 700,
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            flex: 1,
-            textShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          }}
-        >
+        <Title level={5} className="phieu-title">
           {isEditMode
             ? "CHỈNH SỬA PHIẾU XUẤT ĐIỀU CHUYỂN"
             : "CHI TIẾT PHIẾU XUẤT ĐIỀU CHUYỂN"}
@@ -331,24 +307,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             type="primary"
             icon={<EditOutlined />}
             onClick={handleEdit}
-            className="phieu-xuat-edit-button"
-            style={{
-              background: "linear-gradient(145deg, #11998e 0%, #38ef7d 100%)",
-              color: "white",
-              boxShadow:
-                "0 8px 24px rgba(17, 153, 142, 0.3), 0 2px 8px rgba(17, 153, 142, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
-              border: "none",
-              borderRadius: 20,
-              fontWeight: 600,
-              fontSize: 16,
-              padding: "0 24px",
-              height: 44,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              justifyContent: "center",
-              minWidth: 120,
-            }}
+            className="phieu-edit-button"
           >
             Chỉnh sửa
           </Button>
@@ -357,11 +316,11 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
         )}
       </div>
 
-      <div className="phieu-xuat-form-container">
+      <div className="phieu-form-container">
         <Form
           form={form}
           layout="vertical"
-          className="phieu-xuat-form"
+          className="phieu-form"
           disabled={!isEditMode}
         >
           <PhieuFormInputs
@@ -393,6 +352,9 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             handleQuantityChange={handleQuantityChange}
             handleDeleteItem={handleDeleteItem}
             handleDvtChange={handleDvtChange}
+            maKhoList={maKhoList}
+            loadingMaKho={loadingMaKho}
+            fetchMaKhoListDebounced={fetchMaKhoListDebounced}
           />
 
           {isEditMode && (
