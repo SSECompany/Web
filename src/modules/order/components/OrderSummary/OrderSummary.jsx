@@ -5,9 +5,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../../api";
 import jwt from "../../../../utils/jwt";
-import simpleSyncGuard, {
-  printOrderGuard,
-} from "../../../../utils/simpleSyncGuard";
 import {
   addTab,
   clearTabData,
@@ -79,31 +76,8 @@ const generateRandomId = () =>
     Math.floor(Math.random() * 36).toString(36)
   ).join("");
 
-// SimpleSyncGuard functions - đơn giản ensure syncFastApi được call
-const addPendingSync = (sttRec, userId) => {
-  return simpleSyncGuard.markForSync(sttRec, userId);
-};
-
-const retryPendingSyncs = async () => {
-  return await simpleSyncGuard.checkAndRetry();
-};
-
-// PrintOrderGuard functions - đơn giản ensure printOrderApi được call
-const addPendingPrint = (sttRec, userId) => {
-  return printOrderGuard.markForPrint(sttRec, userId);
-};
-
-const retryPendingPrints = async () => {
-  return await printOrderGuard.checkAndRetry();
-};
-
 // Helper function để gọi trực tiếp API syncFast với tracking
 const callSyncFastApi = async (sttRec, userId) => {
-  // Kiểm tra xem đang sync chưa
-  if (simpleSyncGuard.isSyncing(sttRec)) {
-    return { success: false, error: new Error("API call already in progress") };
-  }
-
   // Tạo lock để track
   const syncPromise = (async () => {
     try {
@@ -115,25 +89,15 @@ const callSyncFastApi = async (sttRec, userId) => {
     }
   })();
 
-  // Thêm vào activeSyncs để tránh duplicate call
-  simpleSyncGuard.activeSyncs.set(sttRec, syncPromise);
-
   try {
     const result = await syncPromise;
     return result;
   } finally {
-    // Xóa lock sau khi hoàn thành
-    simpleSyncGuard.activeSyncs.delete(sttRec);
   }
 };
 
 // Helper function để gọi trực tiếp API print-order với tracking
 const callPrintOrderApi = async (sttRec, userId) => {
-  // Kiểm tra xem đang print chưa
-  if (printOrderGuard.isPrinting(sttRec)) {
-    return { success: false, error: new Error("API call already in progress") };
-  }
-
   // Tạo lock để track
   const printPromise = (async () => {
     try {
@@ -145,15 +109,10 @@ const callPrintOrderApi = async (sttRec, userId) => {
     }
   })();
 
-  // Thêm vào activePrints để tránh duplicate call
-  printOrderGuard.activePrints.set(sttRec, printPromise);
-
   try {
     const result = await printPromise;
     return result;
   } finally {
-    // Xóa lock sau khi hoàn thành
-    printOrderGuard.activePrints.delete(sttRec);
   }
 };
 
@@ -165,14 +124,11 @@ const runParallelTasks = async (sttRec, userId, sync = true) => {
   if (sync) {
     const syncTask = callSyncFastApi(sttRec, userId)
       .then((result) => {
-        // Chỉ bỏ mark khi thành công
-        if (result.success) {
-          simpleSyncGuard.markSynced(sttRec);
-        }
+        // Đã loại bỏ logic mark
         return { type: "sync", success: result.success, result: result.result };
       })
       .catch((syncError) => {
-        // Thất bại thì giữ mark để retry
+        // Đã loại bỏ logic mark
         return { type: "sync", success: false, error: syncError };
       });
 
@@ -182,14 +138,11 @@ const runParallelTasks = async (sttRec, userId, sync = true) => {
   // Thêm task in order - GỌI TRỰC TIẾP API
   const printTask = callPrintOrderApi(sttRec, userId)
     .then((result) => {
-      // Chỉ bỏ mark khi thành công
-      if (result.success) {
-        printOrderGuard.markPrinted(sttRec);
-      }
+      // Đã loại bỏ logic mark
       return { type: "print", success: result.success, result: result.result };
     })
     .catch((printError) => {
-      // Thất bại thì giữ mark để retry
+      // Đã loại bỏ logic mark
       notification.error({
         message: "Có lỗi xảy ra khi in đơn hàng!",
         description: printError.message,
@@ -391,11 +344,7 @@ export default function OrderSummary({ total, itemCount }) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
 
         if (sttRec) {
-          // BƯỚC 1: Mark pending ngay khi tạo đơn thành công
-          if (!isSaveOnly) {
-            addPendingSync(sttRec, id);
-            addPendingPrint(sttRec, id);
-          }
+          // Đã loại bỏ logic mark pending
 
           // BƯỚC 2: Bật hộp thoại in NGAY LẬP TỨC
           if (!isSaveOnly) {
@@ -431,7 +380,10 @@ export default function OrderSummary({ total, itemCount }) {
           });
 
           if (isSaveOnly) {
-            setTimeout(() => dispatch(clearTabData(internalActiveTabId)), 500);
+            setTimeout(() => {
+              dispatch(clearTabData(internalActiveTabId));
+              dispatch(removeTab({ internalId: internalActiveTabId }));
+            }, 500);
           }
         }
       } else {
@@ -459,6 +411,7 @@ export default function OrderSummary({ total, itemCount }) {
     setCurrentPrintData(null);
     setHasReprinted(false);
     setIsProcessingPayment(false); // ✅ Reset trạng thái thanh toán khi hoàn tất
+    dispatch(clearTabData(internalActiveTabId));
     dispatch(removeTab({ internalId: internalActiveTabId }));
   };
 
@@ -591,11 +544,7 @@ export default function OrderSummary({ total, itemCount }) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
         const orderNumber = response?.listObject[0][0]?.so_ct;
 
-        // BƯỚC 1: Mark pending ngay khi thanh toán thành công
-        if (sync) {
-          addPendingSync(sttRec, id);
-        }
-        addPendingPrint(sttRec, id);
+        // Đã loại bỏ logic mark pending
 
         // BƯỚC 2: Mở hộp thoại in NGAY LẬP TỨC
         setPrintMaster(orderData.masterData);
@@ -698,8 +647,9 @@ export default function OrderSummary({ total, itemCount }) {
           duration: 3,
         });
 
-        // Clear data ngay lập tức
+        // Clear data và đóng tab ngay lập tức
         dispatch(clearTabData(internalActiveTabId));
+        dispatch(removeTab({ internalId: internalActiveTabId }));
 
         // Reset processing state để bỏ loading
         setIsProcessingPayment(false);
@@ -748,11 +698,7 @@ export default function OrderSummary({ total, itemCount }) {
         message: "Đã kết nối internet!",
         duration: 3,
       });
-      // Retry pending syncs và prints khi có mạng trở lại (silent)
-      setTimeout(() => {
-        retryPendingSyncs();
-        retryPendingPrints();
-      }, 1000);
+      // Đã loại bỏ logic retry pending
     };
 
     const handleOffline = () => {
@@ -767,18 +713,12 @@ export default function OrderSummary({ total, itemCount }) {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Setup interval để check pending syncs và prints định kỳ (không gọi ngay khi mount)
-    const syncInterval = setInterval(() => {
-      if (navigator.onLine) {
-        retryPendingSyncs();
-        retryPendingPrints();
-      }
-    }, 180000);
+    // Đã loại bỏ interval retry pending
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      clearInterval(syncInterval);
+      // Đã loại bỏ clearInterval
     };
   }, []);
 
@@ -874,8 +814,8 @@ export default function OrderSummary({ total, itemCount }) {
       const res = await multipleTablePutApi(payload);
       if (res?.responseModel?.isSucceded) {
         notification.success({ message: "Gộp đơn thành công!" });
-        dispatch(removeTab({ internalId: activeTab.internalId }));
         dispatch(clearTabData(activeTab.internalId));
+        dispatch(removeTab({ internalId: activeTab.internalId }));
       } else {
         notification.warning({
           message: res?.responseModel?.message || "Gộp đơn thất bại!",

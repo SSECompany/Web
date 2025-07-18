@@ -14,7 +14,7 @@ import {
   Table,
   Tag,
 } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../../api";
@@ -27,11 +27,16 @@ import "./RetailOrderListModal.css";
 
 const RetailOrderListModal = ({ isOpen, onClose }) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(20);
+  const pageSize = 20; // Cố định pageSize = 20
   const [totalRecords, setTotalRecords] = useState(0);
   const [allData, setAllData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [filters, setFilters] = useState({});
+  // Define stable empty object to prevent unnecessary re-renders
+  const EMPTY_FILTERS = {};
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+
+  // Create stable filters object to prevent unnecessary API calls
+  const stableFilters = useMemo(() => filters, [JSON.stringify(filters)]);
   const dispatch = useDispatch();
 
   const { id, storeId, unitId } = useSelector(
@@ -41,6 +46,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const [printMaster, setPrintMaster] = useState({});
   const [printDetail, setPrintDetail] = useState([]);
   const printContent = useRef();
+  const lastApiCall = useRef({ pageIndex: 0, filters: {} });
 
   const rawToken = localStorage.getItem("access_token");
   const claims =
@@ -51,63 +57,103 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
   const [pendingApproveRecord, setPendingApproveRecord] = useState(null);
 
-  const fetchListOrderData = async (filterParams = {}) => {
-    setIsLoading(true);
-    try {
-      const res = await multipleTablePutApi({
-        store: "api_get_retail_order",
-        param: {
-          so_ct: filterParams.so_ct || "",
-          ngay_ct: filterParams.ngay_ct || "",
-          ma_kh: filterParams.ma_kh || "",
-          status: filterParams.status || "",
-          ma_ban: filterParams.ma_ban || "",
-          s3: filterParams.s3 || "",
-          pageIndex: 1,
-          pageSize: 1000,
-          userId: id,
-          unitId: unitId,
-          storeId: storeId,
-        },
-        data: {},
-      });
+  const fetchListOrderData = useCallback(
+    async (pageIndex = currentPage) => {
+      if (!isOpen || isLoading) return; // Chỉ gọi API khi modal đang mở và không đang loading
 
-      const updatedData = Array.isArray(res?.listObject[0])
-        ? res.listObject[0]
-        : [];
-      const paginationInfo = res?.listObject[2]?.[0] || {};
-      const totalRecords = paginationInfo.totalRecord || updatedData.length;
+      // Kiểm tra xem có phải duplicate call không
+      const currentCall = { pageIndex, filters: stableFilters };
+      if (
+        lastApiCall.current.pageIndex === pageIndex &&
+        JSON.stringify(lastApiCall.current.filters) ===
+          JSON.stringify(stableFilters)
+      ) {
+        return; // Bỏ qua nếu là duplicate call
+      }
+      lastApiCall.current = currentCall;
 
-      setAllData(updatedData);
-      setTotalRecords(totalRecords);
-      dispatch(setListOrderInfo(updatedData));
-    } catch (err) {
-      console.error("Lỗi khi lấy danh sách đơn hàng:", err);
-      notification.error({
-        message: "Lỗi khi tải danh sách đơn hàng",
-        duration: 4,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      setIsLoading(true);
+      try {
+        const res = await multipleTablePutApi({
+          store: "api_get_retail_order",
+          param: {
+            so_ct: stableFilters.so_ct || "",
+            ngay_ct: stableFilters.ngay_ct || "",
+            ma_kh: stableFilters.ma_kh || "",
+            status: stableFilters.status || "",
+            ma_ban: stableFilters.ma_ban || "",
+            s3: stableFilters.s3 || "",
+            pageIndex: pageIndex,
+            pageSize: pageSize,
+            userId: id,
+            unitId: unitId,
+            storeId: storeId,
+          },
+          data: {},
+        });
+
+        const updatedData = Array.isArray(res?.listObject[0])
+          ? res.listObject[0]
+          : [];
+        const paginationInfo = res?.listObject[2]?.[0] || {};
+        const totalRecords = paginationInfo.totalRecord || updatedData.length;
+
+        setAllData(updatedData);
+        setTotalRecords(totalRecords);
+        dispatch(setListOrderInfo(updatedData));
+      } catch (err) {
+        console.error("Lỗi khi lấy danh sách đơn hàng:", err);
+        notification.error({
+          message: "Lỗi khi tải danh sách đơn hàng",
+          duration: 4,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [
+      stableFilters,
+      currentPage,
+      id,
+      unitId,
+      storeId,
+      dispatch,
+      isOpen,
+      isLoading,
+    ]
+  );
 
   useEffect(() => {
     if (isOpen) {
       fetchListOrderData();
+    } else {
+      // Reset state khi đóng modal
+      setCurrentPage(1);
+      setFilters(EMPTY_FILTERS);
+      setAllData([]);
+      setTotalRecords(0);
+      lastApiCall.current = { pageIndex: 0, filters: {} };
     }
   }, [isOpen]);
 
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const currentData = allData.slice(startIndex, endIndex);
+  // Sử dụng data trực tiếp từ API (backend pagination)
+  const currentData = allData;
 
   // Helper function để xử lý filter
   const handleFilter = (key, value, confirm) => {
     confirm();
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    fetchListOrderData(newFilters);
+    setCurrentPage(1); // Reset về trang 1 khi filter
+    // Gọi API ngay lập tức khi filter thay đổi với pageIndex = 1
+    fetchListOrderData(1);
+  };
+
+  // Helper function để xử lý thay đổi trang
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Gọi API ngay lập tức khi thay đổi trang với pageIndex mới
+    fetchListOrderData(page);
   };
 
   // Helper function để group detail data
@@ -162,7 +208,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       title: "STT",
       dataIndex: "stt",
       key: "stt",
-      render: (_, __, index) => startIndex + index + 1,
+      render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
     },
     {
       title: "Nhân viên",
@@ -556,7 +602,10 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
                 pageSize: pageSize,
                 total: totalRecords,
                 showSizeChanger: false,
-                onChange: setCurrentPage,
+                showQuickJumper: false,
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} của ${total} đơn hàng`,
+                onChange: handlePageChange,
               }}
             />
           )}

@@ -1,5 +1,5 @@
 import * as signalR from "@microsoft/signalr";
-import { Button, Modal, Tabs, Tooltip } from "antd";
+import { Button, Modal, notification, Tabs, Tooltip } from "antd";
 import React, { useCallback, useEffect, useReducer, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useParams } from "react-router-dom";
@@ -27,7 +27,6 @@ import {
 import jwt from "../../utils/jwt";
 import "./POSPage.css";
 
-// Custom hook for SignalR connection
 const useSignalRConnection = (onNewOrder) => {
   useEffect(() => {
     const connection = new signalR.HubConnectionBuilder()
@@ -40,6 +39,7 @@ const useSignalRConnection = (onNewOrder) => {
     const startConnection = async () => {
       try {
         await connection.start();
+        console.log("✅ Kết nối SignalR Order Hub thành công!");
         await connection.invoke("AddToGroup", "orderingArea");
       } catch (err) {
         console.error("❌ SignalR Connection Error:", err);
@@ -52,12 +52,44 @@ const useSignalRConnection = (onNewOrder) => {
     return () => {
       connection.off("ReceiveNewOrder");
       connection.stop();
-      console.log("🛑 SignalR Disconnected!");
+      console.log("🛑 SignalR Order Hub Disconnected!");
     };
   }, [onNewOrder]);
 };
 
-// State reducer
+const useSignalRPrintConnection = (onPrintResult, userId) => {
+  useEffect(() => {
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(`${process.env.REACT_APP_ROOT_API}Hub/orderHub`)
+      .withAutomaticReconnect()
+      .build();
+
+    connection.on("ReceivePrintResult", (printData) => {
+      onPrintResult(printData);
+    });
+
+    const startConnection = async () => {
+      try {
+        await connection.start();
+        console.log("✅ Kết nối SignalR Print Hub thành công!");
+        await connection.invoke("AddToGroup", `printResult_${userId}`);
+      } catch (err) {
+        console.error("❌ Lỗi kết nối Print SignalR Hub:", err);
+        console.error("🔍 Chi tiết lỗi:", err.toString());
+        setTimeout(startConnection, 5000);
+      }
+    };
+
+    startConnection();
+
+    return () => {
+      connection.off("ReceivePrintResult");
+      connection.stop();
+      console.log("🛑 SignalR Print Hub Disconnected!");
+    };
+  }, [onPrintResult, userId]);
+};
+
 const modalReducer = (state, action) => {
   switch (action.type) {
     case "TOGGLE_ORDER_LIST":
@@ -160,7 +192,37 @@ const POSPage = () => {
     [claims?.RoleWeb, dispatch, listOrderTable]
   );
 
+  const handlePrintResult = useCallback((printData) => {
+    if (printData.isSucceded === true) {
+      // Hiển thị thông báo thành công - 5 giây tự tắt
+      notification.success({
+        message: "✅ In thành công",
+        description: `Đã in thành công trên máy ${printData.ip || "N/A"}`,
+        placement: "topRight",
+        duration: 5,
+        style: {
+          borderRadius: "8px",
+          border: "1px solid #52c41a",
+        },
+      });
+    } else {
+      // Hiển thị thông báo lỗi - người dùng tự đóng
+      notification.error({
+        message: "❌ In thất bại",
+        description:
+          printData.message || `In thất bại tại máy ${printData.ip || "N/A"}`,
+        placement: "topRight",
+        duration: 0, // 0 = không tự tắt, người dùng tự đóng
+        style: {
+          borderRadius: "8px",
+          border: "1px solid #ff4d4f",
+        },
+      });
+    }
+  }, []);
+
   useSignalRConnection(handleNewOrder);
+  useSignalRPrintConnection(handlePrintResult, id);
 
   useEffect(() => {
     const fetchData = async () => {
