@@ -12,6 +12,7 @@ const VatTuTable = ({
   maKhoList,
   loadingMaKho,
   fetchMaKhoListDebounced,
+  fetchMaKhoList,
 }) => {
   const columns = [
     {
@@ -145,6 +146,11 @@ const VatTuTable = ({
             loading={loadingMaKho}
             filterOption={false}
             onSearch={fetchMaKhoListDebounced}
+            onDropdownVisibleChange={(open) => {
+              if (open && fetchMaKhoList) {
+                fetchMaKhoList("");
+              }
+            }}
             options={maKhoList}
             style={{ width: "100%" }}
             size="small"

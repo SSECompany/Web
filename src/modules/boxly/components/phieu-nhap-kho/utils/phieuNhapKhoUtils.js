@@ -246,3 +246,47 @@ export const fetchVoucherInfo = async () => {
     return null;
   }
 };
+
+// API để lấy danh sách vật tư qua callDynamicApi (sp_GetVatTuList)
+export const fetchVatTuListDynamicApi = async (params) => {
+  const token = localStorage.getItem("access_token");
+
+  const body = {
+    store: "sp_GetVatTuList",
+    param: {
+      Keyword: params.keyword || "",
+      UnitCode: params.unitCode || "",
+      PageIndex: 1,
+      PageSize: 100,
+    },
+    data: {},
+    resultSetNames: ["data", "pagination"],
+  };
+
+  try {
+    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const responseData = response.data?.listObject?.dataLists?.data || [];
+    const paginationData =
+      response.data?.listObject?.dataLists?.pagination?.[0] || {};
+
+    return {
+      data: responseData,
+      pagination: paginationData,
+      success: true,
+    };
+  } catch (error) {
+    console.error("Lỗi gọi API danh sách vật tư (dynamic):", error);
+    return {
+      data: [],
+      pagination: {},
+      success: false,
+      error: error.message,
+    };
+  }
+};

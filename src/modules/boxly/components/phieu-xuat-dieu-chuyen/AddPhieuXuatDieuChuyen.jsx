@@ -21,6 +21,9 @@ const AddPhieuXuatDieuChuyen = () => {
   const [vatTuInput, setVatTuInput] = useState(undefined);
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
   const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
+  const [currentKeyword, setCurrentKeyword] = useState("");
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
@@ -121,8 +124,22 @@ const AddPhieuXuatDieuChuyen = () => {
       fetchDonViTinh,
       setVatTuInput,
       setVatTuList,
-      fetchVatTuList
+      fetchVatTuList,
+      vatTuSelectRef
     );
+  };
+
+  // Phân trang vật tư
+  const fetchVatTuListPaging = async (
+    keyword = "",
+    page = 1,
+    append = false
+  ) => {
+    setCurrentKeyword(keyword);
+    await fetchVatTuList(keyword, page, append, (pagination) => {
+      setPageIndex(page);
+      setTotalPage(pagination?.totalPage || 1);
+    });
   };
 
   const handleSubmit = async () => {
@@ -213,6 +230,8 @@ const AddPhieuXuatDieuChuyen = () => {
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchMaKhoList={fetchMaKhoList}
+            fetchMaGiaoDichList={fetchMaGiaoDichList}
           />
           <VatTuInputSection
             isEditMode={true}
@@ -225,7 +244,12 @@ const AddPhieuXuatDieuChuyen = () => {
             loadingVatTu={loadingVatTu}
             vatTuList={vatTuList}
             searchTimeoutRef={searchTimeoutRef}
-            fetchVatTuList={fetchVatTuList}
+            fetchVatTuList={fetchVatTuListPaging}
+            totalPage={totalPage}
+            pageIndex={pageIndex}
+            setPageIndex={setPageIndex}
+            setVatTuList={setVatTuList}
+            currentKeyword={currentKeyword}
             handleVatTuSelect={handleVatTuSelect}
           />
           <VatTuTable

@@ -1,5 +1,4 @@
-import { QrcodeOutlined } from "@ant-design/icons";
-import { Button, Col, DatePicker, Form, Input, Row, Select } from "antd";
+import { Col, DatePicker, Form, Input, Row, Select } from "antd";
 
 const PhieuNhapKhoFormInputs = ({
   isEditMode = true,
@@ -7,6 +6,8 @@ const PhieuNhapKhoFormInputs = ({
   loadingMaKhach,
   fetchMaKhachListDebounced,
   maGiaoDichList,
+  fetchMaKhachList,
+  fetchMaGiaoDichList,
   barcodeEnabled,
   setBarcodeEnabled,
   setBarcodeJustEnabled,
@@ -18,6 +19,12 @@ const PhieuNhapKhoFormInputs = ({
   searchTimeoutRef,
   fetchVatTuList,
   handleVatTuSelect,
+  totalPage,
+  pageIndex,
+  setPageIndex,
+  setVatTuList,
+  currentKeyword,
+  VatTuSelectComponent,
 }) => {
   return (
     <>
@@ -35,6 +42,11 @@ const PhieuNhapKhoFormInputs = ({
               loading={loadingMaKhach}
               filterOption={false}
               onSearch={fetchMaKhachListDebounced}
+              onDropdownVisibleChange={(open) => {
+                if (open && fetchMaKhachList) {
+                  fetchMaKhachList("");
+                }
+              }}
               options={maKhachList}
               dropdownClassName="phieu-form-dropdown"
               optionLabelProp="value"
@@ -89,6 +101,11 @@ const PhieuNhapKhoFormInputs = ({
               showSearch
               optionFilterProp="label"
               allowClear
+              onDropdownVisibleChange={(open) => {
+                if (open && fetchMaGiaoDichList) {
+                  fetchMaGiaoDichList();
+                }
+              }}
               dropdownClassName="phieu-form-dropdown"
               disabled={!isEditMode}
               popupMatchSelectWidth={false}
@@ -116,75 +133,29 @@ const PhieuNhapKhoFormInputs = ({
         <Row gutter={16}>
           <Col span={24}>
             <Form.Item label="Vật tư">
-              <Input.Group compact>
-                {!barcodeEnabled ? (
-                  <Select
-                    ref={vatTuSelectRef}
-                    value={vatTuInput}
-                    onChange={setVatTuInput}
-                    allowClear
-                    showSearch
-                    loading={loadingVatTu}
-                    placeholder="Tìm kiếm hoặc chọn vật tư"
-                    style={{ width: "calc(100% - 40px)" }}
-                    options={vatTuList}
-                    onSearch={(value) => {
-                      if (searchTimeoutRef.current) {
-                        clearTimeout(searchTimeoutRef.current);
-                      }
-                      searchTimeoutRef.current = setTimeout(() => {
-                        fetchVatTuList(value);
-                      }, 500);
-                    }}
-                    onDropdownVisibleChange={(open) => {
-                      // Khi mở dropdown và input trống, luôn load lại toàn bộ danh sách
-                      if (open && !vatTuInput) {
-                        fetchVatTuList("");
-                      }
-                    }}
-                    filterOption={false}
-                    onSelect={handleVatTuSelect}
-                    disabled={!isEditMode}
-                    dropdownClassName="vat-tu-dropdown"
-                    popupMatchSelectWidth={true}
-                  />
-                ) : (
-                  <Input
-                    ref={vatTuSelectRef}
-                    value={vatTuInput}
-                    onChange={(e) => setVatTuInput(e.target.value)}
-                    placeholder="Quét barcode vật tư..."
-                    style={{ width: "calc(100% - 40px)" }}
-                    onPressEnter={() => {
-                      if (vatTuInput && vatTuInput.trim()) {
-                        handleVatTuSelect(vatTuInput);
-                      }
-                    }}
-                    disabled={!isEditMode}
-                  />
-                )}
-                <Button
-                  icon={<QrcodeOutlined />}
-                  type={barcodeEnabled ? "primary" : "default"}
-                  onClick={() => {
-                    if (!isEditMode) {
-                      return;
-                    }
-                    setBarcodeEnabled((prev) => {
-                      const next = !prev;
-                      if (next) {
-                        setBarcodeJustEnabled(true);
-                        setVatTuInput(undefined);
-                      }
-                      return next;
-                    });
-                  }}
-                  disabled={!isEditMode}
+              {VatTuSelectComponent && (
+                <VatTuSelectComponent
+                  isEditMode={isEditMode}
+                  barcodeEnabled={barcodeEnabled}
+                  setBarcodeEnabled={setBarcodeEnabled}
+                  setBarcodeJustEnabled={setBarcodeJustEnabled}
+                  vatTuInput={vatTuInput}
+                  setVatTuInput={setVatTuInput}
+                  vatTuSelectRef={vatTuSelectRef}
+                  loadingVatTu={loadingVatTu}
+                  vatTuList={vatTuList}
+                  searchTimeoutRef={searchTimeoutRef}
+                  fetchVatTuList={fetchVatTuList}
+                  handleVatTuSelect={handleVatTuSelect}
+                  totalPage={totalPage}
+                  pageIndex={pageIndex}
+                  setPageIndex={setPageIndex}
+                  setVatTuList={setVatTuList}
+                  currentKeyword={currentKeyword}
                 />
-              </Input.Group>
+              )}
             </Form.Item>
           </Col>
-          <Col span={12}></Col>
         </Row>
       )}
     </>

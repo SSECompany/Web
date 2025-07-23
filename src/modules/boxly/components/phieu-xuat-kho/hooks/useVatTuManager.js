@@ -1,8 +1,10 @@
 import { message } from "antd";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export const useVatTuManager = () => {
   const [dataSource, setDataSource] = useState([]);
+  const isProcessingRef = useRef(false);
+  const lastProcessedValueRef = useRef("");
 
   const handleVatTuSelect = async (
     value,
@@ -11,12 +13,43 @@ export const useVatTuManager = () => {
     fetchDonViTinh,
     setVatTuInput,
     setVatTuList,
-    fetchVatTuList
+    fetchVatTuList,
+    vatTuSelectRef
   ) => {
     if (!isEditMode) {
       message.warning("Bạn cần bật chế độ chỉnh sửa");
       return;
     }
+
+    // Validate input
+    if (!value || !value.trim()) {
+      console.log("Empty value received");
+      return;
+    }
+
+    // Prevent double processing
+    if (isProcessingRef.current) {
+      console.log("Already processing, skipping:", value.trim());
+      return;
+    }
+
+    // Allow reprocessing the same value after a delay
+    const timeSinceLastProcess =
+      Date.now() - (lastProcessedValueRef.current?.timestamp || 0);
+    if (
+      lastProcessedValueRef.current?.value === value.trim() &&
+      timeSinceLastProcess < 2000
+    ) {
+      console.log("Value already processed recently, skipping:", value.trim());
+      return;
+    }
+
+    console.log("Processing barcode:", value.trim());
+    isProcessingRef.current = true;
+    lastProcessedValueRef.current = {
+      value: value.trim(),
+      timestamp: Date.now(),
+    };
 
     try {
       const vatTuDetail = await fetchVatTuDetail(value.trim());
@@ -108,6 +141,7 @@ export const useVatTuManager = () => {
                 dvt_goc: dvtAPI,
                 donViTinhList: donViTinhList,
                 isNewlyAdded: item.isNewlyAdded,
+                _lastUpdated: Date.now(),
               };
             }
             return item;
@@ -119,10 +153,13 @@ export const useVatTuManager = () => {
               (item.maHang || "").trim() !== (value || "").trim()
           );
 
-          return filteredData.map((item, index) => ({
+          const result = filteredData.map((item, index) => ({
             ...item,
             key: index + 1,
           }));
+
+          console.log("Updated data source:", result);
+          return result;
         } else {
           // ===== TRƯỜNG HỢP THÊM VẬT TƯ MỚI =====
           // Áp dụng logic tính toán giống như load từ API
@@ -189,18 +226,53 @@ export const useVatTuManager = () => {
             tien_ck_khac: 0,
             sl_td1: 0,
             sl_td2: 0,
+            _lastUpdated: Date.now(),
           };
-          return [...prev, newItem];
+
+          console.log("New item:", newItem);
+          const result = [...prev, newItem];
+          console.log("Updated data source with new item:", result);
+          return result;
         }
       });
 
       message.success(`Đã thêm vật tư: ${value}`);
 
-      // Only clear input, don't reset list or reload
-      if (setVatTuInput) setVatTuInput(undefined);
+      // Clear input và focus lại để tiếp tục scan
+      if (setVatTuInput) setVatTuInput("");
+
+      // Reset lastProcessedValueRef when input is cleared
+      lastProcessedValueRef.current = null;
+
+      // Focus lại vào input sau khi xử lý xong với delay dài hơn cho tablet
+      if (vatTuSelectRef && vatTuSelectRef.current) {
+        // Clear any existing focus attempts
+        setTimeout(() => {
+          if (vatTuSelectRef.current) {
+            vatTuSelectRef.current.focus();
+            // Force focus again to ensure it works on tablet
+            setTimeout(() => {
+              if (vatTuSelectRef.current) {
+                vatTuSelectRef.current.focus();
+                // One more attempt to ensure focus on tablet
+                setTimeout(() => {
+                  if (vatTuSelectRef.current) {
+                    vatTuSelectRef.current.focus();
+                  }
+                }, 100);
+              }
+            }, 50);
+          }
+        }, 300);
+      }
     } catch (error) {
       console.error("Error adding vat tu:", error);
       message.error("Có lỗi xảy ra khi thêm vật tư");
+    } finally {
+      // Reset processing flag after a delay
+      setTimeout(() => {
+        isProcessingRef.current = false;
+      }, 1000);
     }
   };
 

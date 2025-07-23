@@ -5,12 +5,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
+import "../common-phieu.css";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuInputSection from "./components/VatTuInputSection";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
-import "../common-phieu.css";
 import {
   buildPayload,
   deletePhieu,
@@ -38,12 +38,9 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
   // Refs for preventing multiple calls and caching
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
-  const donViTinhCache = useRef(new Map()); // Keep cache for donViTinh only
 
   // Flags to prevent duplicate calls
-  const masterDataLoadedRef = useRef(false);
   const phieuDetailLoadedRef = useRef(null); // Store loaded stt_rec
-  const isLoadingMasterDataRef = useRef(false);
   const isLoadingPhieuDetailRef = useRef(false);
 
   // Custom hooks
@@ -73,66 +70,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
     handleDvtChange,
   } = useVatTuManager();
 
-  // Batch fetch don vi tinh only (still needed for dropdown)
-  const fetchDonViTinhBatch = useCallback(
-    async (maVatTuList) => {
-      if (!maVatTuList.length) return [];
-
-      // Filter out already cached items
-      const uncachedItems = maVatTuList.filter(
-        (ma_vt) => !donViTinhCache.current.has(ma_vt.trim())
-      );
-
-      if (uncachedItems.length > 0) {
-        try {
-          // Batch API calls for uncached don vi tinh only
-          await Promise.all(
-            uncachedItems.map(async (ma_vt) => {
-              const donViTinhList = await fetchDonViTinh(ma_vt);
-
-              // Cache results
-              donViTinhCache.current.set(ma_vt.trim(), donViTinhList);
-            })
-          );
-        } catch (error) {
-          console.error("Error in batch fetch don vi tinh:", error);
-        }
-      }
-
-      // Return results from cache
-      return maVatTuList.map((ma_vt) => ({
-        ma_vt,
-        donViTinhList: donViTinhCache.current.get(ma_vt.trim()) || [],
-      }));
-    },
-    [fetchDonViTinh]
-  );
-
-  // Load master data only once
-  const loadMasterData = useCallback(async () => {
-    if (masterDataLoadedRef.current || isLoadingMasterDataRef.current) {
-      return;
-    }
-
-    isLoadingMasterDataRef.current = true;
-
-    try {
-      // Call APIs in parallel
-      await Promise.all([
-        fetchMaGiaoDichList(),
-        fetchMaKhachList(),
-        fetchVatTuList(),
-      ]);
-
-      masterDataLoadedRef.current = true;
-    } catch (error) {
-      console.error("Error loading master data:", error);
-    } finally {
-      isLoadingMasterDataRef.current = false;
-    }
-  }, [fetchMaGiaoDichList, fetchMaKhachList, fetchVatTuList]);
-
-  // Load phieu detail - OPTIMIZED: Use existing vat tu data, only fetch don vi tinh
+  // Load phieu detail - chỉ load thông tin cơ bản
   const fetchPhieuDetail = useCallback(async () => {
     // Prevent duplicate calls for same stt_rec
     if (
@@ -182,103 +120,23 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         });
 
         if (phieuDetails.length > 0) {
-          // ✅ OPTIMIZED: Only fetch don vi tinh (needed for dropdown), use existing vat tu data
-          const uniqueMaVatTu = [
-            ...new Set(phieuDetails.map((item) => item.ma_vt)),
-          ];
-
-          // Batch fetch don vi tinh AND vat tu detail (like phieu nhap kho)
-          const batchResults = await fetchDonViTinhBatch(uniqueMaVatTu);
-
-          // ✅ ADDED: Fetch vat tu detail for each item (like phieu nhap kho)
-          const vatTuDetailResults = await Promise.all(
-            uniqueMaVatTu.map(async (ma_vt) => {
-              const vatTuDetail = await fetchVatTuDetail(ma_vt.trim());
-              return { ma_vt, vatTuDetail };
-            })
-          );
-
-          // Create lookup maps
-          const donViTinhMap = new Map();
-          const vatTuDetailMap = new Map();
-
-          batchResults.forEach((result) => {
-            if (result?.ma_vt) {
-              donViTinhMap.set(result.ma_vt.trim(), result.donViTinhList);
-            }
-          });
-
-          vatTuDetailResults.forEach((result) => {
-            if (result?.ma_vt && result?.vatTuDetail) {
-              vatTuDetailMap.set(result.ma_vt.trim(), result.vatTuDetail);
-            }
-          });
-
+          // Chỉ load thông tin cơ bản, không gọi API master data
           const mappedItems = phieuDetails.map((item, index) => {
-            // ✅ Use existing vat tu data from API response
-            const heSoFromAPI = parseFloat(item.he_so) || 1;
-            const dvtFromAPI = item.dvt?.trim() || "cái";
-
-            // ✅ Get don vi tinh list from API (needed for dropdown)
-            const donViTinhList = donViTinhMap.get(item.ma_vt.trim()) || [
-              { dvt: dvtFromAPI, he_so: heSoFromAPI }, // Fallback if API fails
-            ];
-
-            // Process quantities using existing data
             const sl_td3_hienThi = item.sl_td3 ?? item.so_luong ?? 0;
             const so_luong_hienThi = item.so_luong ?? 0;
-            const dvtHienTai = dvtFromAPI;
-
-            // ✅ APPROACH 2: Sử dụng hệ số trực tiếp từ API response
-            const heSoGocFromAPI = heSoFromAPI;
-
-            // Calculate quantities based on current unit vs base unit
-            let sl_td3_goc, so_luong_goc;
-            let heSoHienTai = heSoFromAPI;
-
-            if (dvtHienTai.trim() === dvtFromAPI.trim()) {
-              // Same unit as in database
-              sl_td3_goc =
-                heSoGocFromAPI !== 0
-                  ? sl_td3_hienThi / heSoGocFromAPI
-                  : sl_td3_hienThi;
-              so_luong_goc =
-                so_luong_hienThi === 0
-                  ? sl_td3_goc
-                  : heSoGocFromAPI !== 0
-                  ? so_luong_hienThi / heSoGocFromAPI
-                  : so_luong_hienThi;
-              heSoHienTai = heSoGocFromAPI;
-            } else {
-              // Different unit
-              sl_td3_goc = sl_td3_hienThi;
-              so_luong_goc =
-                so_luong_hienThi === 0 ? sl_td3_hienThi : so_luong_hienThi;
-              const dvtHienTaiInfo = donViTinhList.find(
-                (dvt) => dvt.dvt.trim() === dvtHienTai.trim()
-              );
-              heSoHienTai = dvtHienTaiInfo
-                ? parseFloat(dvtHienTaiInfo.he_so) || 1
-                : 1;
-            }
+            const dvtHienTai = item.dvt?.trim() || "cái";
 
             return {
               key: index + 1,
               maHang: item.ma_vt,
               so_luong: Math.round(so_luong_hienThi * 1000) / 1000,
-              so_luong_goc: Math.round(so_luong_goc * 1000) / 1000,
               sl_td3: sl_td3_hienThi,
-              sl_td3_goc: Math.round(sl_td3_goc * 1000) / 1000,
-              he_so: heSoHienTai,
-              he_so_goc: heSoGocFromAPI,
               ten_mat_hang: item.ten_vt || item.ma_vt,
               dvt: dvtHienTai,
-              dvt_goc: dvtFromAPI,
               tk_vt: item.tk_vt || "",
               ma_kho: item.ma_kho || "",
-              donViTinhList: donViTinhList, // ✅ Real don vi tinh list from API
 
-              // ✅ Add additional fields from API response for payload
+              // Thêm các trường từ API response để gửi lại khi update
               gia_nt2: parseFloat(item.gia_nt2) || 0,
               gia2: parseFloat(item.gia2) || 0,
               thue: parseFloat(item.thue) || 0,
@@ -288,21 +146,20 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
               tl_ck: parseFloat(item.tl_ck) || 0,
               ck: parseFloat(item.ck) || 0,
               ck_nt: parseFloat(item.ck_nt) || 0,
-              tk_gv: item.tk_gv || "",
-              tk_dt: item.tk_dt || "",
-              ma_thue: item.ma_thue || "",
-              thue_suat: parseFloat(item.thue_suat) || 0,
-              tk_thue: item.tk_thue || "",
-              tl_ck_khac: parseFloat(item.tl_ck_khac) || 0,
-              gia_ck: parseFloat(item.gia_ck) || 0,
-              tien_ck_khac: parseFloat(item.tien_ck_khac) || 0,
-              sl_td1: parseFloat(item.sl_td1) || 0,
-              sl_td2: parseFloat(item.sl_td2) || 0,
-              sl_dh: parseFloat(item.sl_dh) || 0,
-              stt_rec_dh: item.stt_rec_dh || "",
-              stt_rec0dh: item.stt_rec0dh || "",
-              stt_rec_px: item.stt_rec_px || "",
-              stt_rec0px: item.stt_rec0px || "",
+              stt_rec0: item.stt_rec0 || "",
+              ma_sp: item.ma_sp || "",
+              ma_bp: item.ma_bp || "",
+              so_lsx: item.so_lsx || "",
+              ma_vi_tri: item.ma_vi_tri || "",
+              ma_lo: item.ma_lo || "",
+              ma_vv: item.ma_vv || "",
+              ma_nx: item.ma_nx || "",
+              tk_du: item.tk_du || "",
+              gia_nt: item.gia_nt || 0,
+              gia: item.gia || 0,
+              tien_nt: item.tien_nt || 0,
+              tien: item.tien || 0,
+              line_nbr: item.line_nbr || index + 1,
             };
           });
 
@@ -318,7 +175,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
       setLoading(false);
       isLoadingPhieuDetailRef.current = false;
     }
-  }, [stt_rec, fetchDonViTinhBatch, setLoading, form, setDataSource]);
+  }, [stt_rec, setLoading, form, setDataSource]);
 
   // Effects with minimal dependencies
   useEffect(() => {
@@ -332,11 +189,6 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
   useEffect(() => {
     const isEditPath = location.pathname.includes("/edit/");
     setIsEditMode(isEditPath);
-
-    // Load master data only once
-    if (!masterDataLoadedRef.current) {
-      loadMasterData();
-    }
 
     // Load phieu detail only if stt_rec changed
     if (phieuDetailLoadedRef.current !== stt_rec) {
@@ -357,9 +209,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
   useEffect(() => {
     return () => {
       // Reset flags on unmount
-      masterDataLoadedRef.current = false;
       phieuDetailLoadedRef.current = null;
-      isLoadingMasterDataRef.current = false;
       isLoadingPhieuDetailRef.current = false;
     };
   }, []);
@@ -374,7 +224,8 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         fetchDonViTinh,
         setVatTuInput,
         setVatTuList,
-        fetchVatTuList
+        fetchVatTuList,
+        vatTuSelectRef
       );
     },
     [
@@ -385,6 +236,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
       setVatTuInput,
       setVatTuList,
       fetchVatTuList,
+      vatTuSelectRef,
     ]
   );
 
@@ -509,7 +361,9 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
           Trở về
         </Button>
         <Title level={5} className="phieu-title">
-          {isEditMode ? "CHỈNH SỬA PHIẾU XUẤT KHO BÁN HÀNG" : "CHI TIẾT PHIẾU XUẤT KHO BÁN HÀNG"}
+          {isEditMode
+            ? "CHỈNH SỬA PHIẾU XUẤT KHO BÁN HÀNG"
+            : "CHI TIẾT PHIẾU XUẤT KHO BÁN HÀNG"}
         </Title>
         {!isEditMode ? (
           <Button
@@ -538,6 +392,8 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
             maKhachList={maKhachList}
             loadingMaKhach={loadingMaKhach}
             fetchMaKhachListDebounced={fetchMaKhachListDebounced}
+            fetchMaKhachList={fetchMaKhachList}
+            fetchMaGiaoDichList={fetchMaGiaoDichList}
           />
 
           <VatTuInputSection
@@ -567,7 +423,13 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
           />
 
           {isEditMode && (
-            <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-start",
+                marginTop: 16,
+              }}
+            >
               <Space>
                 <Button type="primary" onClick={handleSubmit} loading={loading}>
                   Lưu

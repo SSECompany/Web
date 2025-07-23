@@ -110,35 +110,25 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
     fetchPhieuDetail();
   }, [stt_rec, fetchPhieuXuatKhoDetail, form, setDataSource]);
 
-  // Fetch danh sách master data khi component mount
-  useEffect(() => {
-    fetchMaGiaoDichList();
-    fetchMaKhachList();
-    fetchMaKhoList();
-  }, [fetchMaGiaoDichList, fetchMaKhachList, fetchMaKhoList]);
+  // Xóa useEffect gọi API master data khi component mount
+  // useEffect(() => {
+  //   fetchMaGiaoDichList();
+  //   fetchMaKhachList();
+  //   fetchMaKhoList();
+  // }, [fetchMaGiaoDichList, fetchMaKhachList, fetchMaKhoList]);
 
-  const handleVatTuSelect = useCallback(
-    async (value) => {
-      await vatTuSelectHandler(
-        value,
-        isEditMode,
-        fetchVatTuDetail,
-        fetchDonViTinh,
-        setVatTuInput,
-        setVatTuList,
-        fetchVatTuList
-      );
-    },
-    [
+  const handleVatTuSelect = async (value) => {
+    await vatTuSelectHandler(
+      value,
       isEditMode,
-      vatTuSelectHandler,
       fetchVatTuDetail,
       fetchDonViTinh,
       setVatTuInput,
       setVatTuList,
       fetchVatTuList,
-    ]
-  );
+      vatTuSelectRef
+    );
+  };
 
   const handleSubmit = useCallback(async () => {
     try {
@@ -300,6 +290,8 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
             loadingMaKhach={loadingMaKhach}
             fetchMaKhachListDebounced={fetchMaKhachListDebounced}
             maGiaoDichList={maGiaoDichList}
+            fetchMaGiaoDichList={fetchMaGiaoDichList}
+            fetchMaKhachList={fetchMaKhachList}
           />
 
           <VatTuInputSection
@@ -327,6 +319,7 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchMaKhoList={fetchMaKhoList}
           />
 
           {isEditMode && (

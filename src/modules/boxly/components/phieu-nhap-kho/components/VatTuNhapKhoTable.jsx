@@ -1,6 +1,5 @@
 import { DeleteOutlined } from "@ant-design/icons";
 import { Button, Empty, Input, Select, Table } from "antd";
-import { useEffect, useState } from "react";
 import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
 
 const VatTuNhapKhoTable = ({
@@ -13,6 +12,7 @@ const VatTuNhapKhoTable = ({
   maKhoList,
   loadingMaKho,
   fetchMaKhoListDebounced,
+  fetchMaKhoList,
 }) => {
   const columns = [
     {
@@ -21,18 +21,23 @@ const VatTuNhapKhoTable = ({
       key: "key",
       width: 60,
       align: "center",
+      ellipsis: true,
     },
     {
       title: "Mã hàng",
       dataIndex: "maHang",
       key: "maHang",
+      width: 120,
       align: "center",
+      ellipsis: true,
     },
     {
       title: "Tên mặt hàng",
       dataIndex: "ten_mat_hang",
       key: "ten_mat_hang",
+      width: 200,
       align: "center",
+      ellipsis: true,
     },
     {
       title: "Đvt",
@@ -40,6 +45,7 @@ const VatTuNhapKhoTable = ({
       key: "dvt",
       width: 80,
       align: "center",
+      ellipsis: true,
       render: (value, record) => {
         if (!isEditMode) {
           return value;
@@ -75,6 +81,7 @@ const VatTuNhapKhoTable = ({
       key: "soLuongDeNghi",
       width: 130,
       align: "center",
+      ellipsis: true,
       render: (value, record) =>
         isEditMode ? (
           <Input
@@ -95,6 +102,9 @@ const VatTuNhapKhoTable = ({
               fontWeight: "bold",
             }}
             className="vat-tu-table-input"
+            tabIndex={-1}
+            autoComplete="off"
+            spellCheck={false}
           />
         ) : value ? (
           <span
@@ -126,6 +136,7 @@ const VatTuNhapKhoTable = ({
       key: "soLuong",
       width: 120,
       align: "center",
+      ellipsis: true,
       render: (value, record) =>
         isEditMode ? (
           <Input
@@ -146,6 +157,9 @@ const VatTuNhapKhoTable = ({
               fontWeight: "bold",
             }}
             className="vat-tu-table-input"
+            tabIndex={-1}
+            autoComplete="off"
+            spellCheck={false}
           />
         ) : value ? (
           <span
@@ -179,6 +193,7 @@ const VatTuNhapKhoTable = ({
       key: "ma_kho",
       width: 180,
       align: "center",
+      ellipsis: true,
       render: (value, record) =>
         isEditMode ? (
           <Select
@@ -197,6 +212,11 @@ const VatTuNhapKhoTable = ({
             className="vat-tu-table-select"
             dropdownClassName="vat-tu-dropdown"
             popupMatchSelectWidth={false}
+            onDropdownVisibleChange={(visible) => {
+              if (visible) {
+                fetchMaKhoList();
+              }
+            }}
           />
         ) : (
           value
@@ -224,40 +244,21 @@ const VatTuNhapKhoTable = ({
     },
   ];
 
-  // Detect screen size for responsive scroll
-  const [screenSize, setScreenSize] = useState("desktop");
-
-  useEffect(() => {
-    const checkScreenSize = () => {
-      const width = window.innerWidth;
-      if (width < 480) {
-        setScreenSize("mobile");
-      } else if (width < 768) {
-        setScreenSize("tablet");
-      } else {
-        setScreenSize("desktop");
-      }
-    };
-
-    checkScreenSize();
-    window.addEventListener("resize", checkScreenSize);
-    return () => window.removeEventListener("resize", checkScreenSize);
-  }, []);
-
   const getScrollConfig = () => {
+    // Tính toán chiều rộng dựa trên số cột và nội dung
+    const baseWidth = 60 + 120 + 200 + 80 + 130 + 120 + 180 + 80; // Tổng width các cột
+    const minWidth = Math.max(baseWidth, window.innerWidth - 100); // Đảm bảo không nhỏ hơn màn hình
+
     // Chiều cao mỗi dòng khoảng 40px, 10 dòng là 400px, thêm header ~50px
     const rowHeight = 40;
     const headerHeight = 50;
     const maxRows = 10;
     const y = headerHeight + rowHeight * maxRows;
-    switch (screenSize) {
-      case "mobile":
-        return { x: 1000, y };
-      case "tablet":
-        return { x: 1200, y };
-      default:
-        return { x: 1400, y };
-    }
+
+    return {
+      x: minWidth,
+      y,
+    };
   };
 
   return (
@@ -273,6 +274,8 @@ const VatTuNhapKhoTable = ({
       pagination={false}
       className="vat-tu-table hidden_scroll_bar"
       scroll={getScrollConfig()}
+      size="small"
+      tableLayout="auto"
     />
   );
 };

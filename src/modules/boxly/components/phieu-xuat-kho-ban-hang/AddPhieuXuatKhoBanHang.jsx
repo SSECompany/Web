@@ -5,12 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
+import "../common-phieu.css";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuInputSection from "./components/VatTuInputSection";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
-import "../common-phieu.css";
 import {
   buildPayload,
   submitPhieu,
@@ -28,6 +28,9 @@ const AddPhieuXuatKhoBanHang = () => {
   const [vatTuInput, setVatTuInput] = useState(undefined);
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
   const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
+  const [currentKeyword, setCurrentKeyword] = useState("");
 
   // Refs
   const vatTuSelectRef = useRef();
@@ -130,12 +133,13 @@ const AddPhieuXuatKhoBanHang = () => {
   const handleVatTuSelect = async (value) => {
     await vatTuSelectHandler(
       value,
-      true, // isEditMode
+      true,
       fetchVatTuDetail,
       fetchDonViTinh,
       setVatTuInput,
       setVatTuList,
-      fetchVatTuList
+      fetchVatTuList,
+      vatTuSelectRef
     );
   };
 
@@ -201,6 +205,19 @@ const AddPhieuXuatKhoBanHang = () => {
     }
   };
 
+  // Phân trang vật tư
+  const fetchVatTuListPaging = async (
+    keyword = "",
+    page = 1,
+    append = false
+  ) => {
+    setCurrentKeyword(keyword);
+    await fetchVatTuList(keyword, page, append, (pagination) => {
+      setPageIndex(page);
+      setTotalPage(pagination?.totalPage || 1);
+    });
+  };
+
   return (
     <div className="phieu-container">
       <div className="phieu-header">
@@ -225,6 +242,8 @@ const AddPhieuXuatKhoBanHang = () => {
             maKhachList={maKhachList}
             loadingMaKhach={loadingMaKhach}
             fetchMaKhachListDebounced={fetchMaKhachListDebounced}
+            fetchMaKhachList={fetchMaKhachList}
+            fetchMaGiaoDichList={fetchMaGiaoDichList}
           />
           <VatTuInputSection
             isEditMode={true}
@@ -237,7 +256,12 @@ const AddPhieuXuatKhoBanHang = () => {
             loadingVatTu={loadingVatTu}
             vatTuList={vatTuList}
             searchTimeoutRef={searchTimeoutRef}
-            fetchVatTuList={fetchVatTuList}
+            fetchVatTuList={fetchVatTuListPaging}
+            totalPage={totalPage}
+            pageIndex={pageIndex}
+            setPageIndex={setPageIndex}
+            setVatTuList={setVatTuList}
+            currentKeyword={currentKeyword}
             handleVatTuSelect={handleVatTuSelect}
           />
           <VatTuTable
@@ -250,12 +274,22 @@ const AddPhieuXuatKhoBanHang = () => {
             loadingMaKhach={loadingMaKhach}
             fetchMaKhachListDebounced={fetchMaKhachListDebounced}
           />
-          <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 16 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-start",
+              marginTop: 16,
+            }}
+          >
             <Space>
               <Button type="primary" onClick={handleSubmit} loading={loading}>
                 Lưu
               </Button>
-              <Button onClick={() => navigate("/boxly/phieu-xuat-kho-ban-hang")}>Hủy</Button>
+              <Button
+                onClick={() => navigate("/boxly/phieu-xuat-kho-ban-hang")}
+              >
+                Hủy
+              </Button>
             </Space>
           </div>
         </Form>

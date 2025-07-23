@@ -1,8 +1,10 @@
 import { message } from "antd";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export const useVatTuManagerNhapKho = () => {
   const [dataSource, setDataSource] = useState([]);
+  const isProcessingRef = useRef(false);
+  const lastProcessedValueRef = useRef("");
 
   // Function để load dữ liệu từ phiếu đã có (data2)
   const loadDataFromPhieu = (data2, fetchDonViTinh) => {
@@ -92,12 +94,45 @@ export const useVatTuManagerNhapKho = () => {
     isEditMode,
     fetchVatTuDetail,
     fetchDonViTinh,
-    setVatTuInput
+    setVatTuInput,
+    setVatTuList,
+    fetchVatTuList,
+    vatTuSelectRef
   ) => {
     if (!isEditMode) {
       message.warning("Bạn cần bật chế độ chỉnh sửa");
       return;
     }
+
+    // Validate input
+    if (!value || !value.trim()) {
+      console.log("Empty value received");
+      return;
+    }
+
+    // Prevent double processing
+    if (isProcessingRef.current) {
+      console.log("Already processing, skipping:", value.trim());
+      return;
+    }
+
+    // Allow reprocessing the same value after a delay
+    const timeSinceLastProcess =
+      Date.now() - (lastProcessedValueRef.current?.timestamp || 0);
+    if (
+      lastProcessedValueRef.current?.value === value.trim() &&
+      timeSinceLastProcess < 2000
+    ) {
+      console.log("Value already processed recently, skipping:", value.trim());
+      return;
+    }
+
+    console.log("Processing barcode:", value.trim());
+    isProcessingRef.current = true;
+    lastProcessedValueRef.current = {
+      value: value.trim(),
+      timestamp: Date.now(),
+    };
 
     try {
       const vatTuDetail = await fetchVatTuDetail(value.trim());
@@ -111,16 +146,29 @@ export const useVatTuManagerNhapKho = () => {
         ? vatTuDetail[0]
         : vatTuDetail;
 
+      if (!vatTuInfo) {
+        message.error("Thông tin vật tư không hợp lệ");
+        return;
+      }
+
+      console.log("Vat tu info:", vatTuInfo);
+
       const donViTinhList = await fetchDonViTinh(value.trim());
 
+      console.log("Processing data source update...");
+
       setDataSource((prev) => {
-        prev.forEach((item, index) => {});
+        console.log("Current data source:", prev);
+        console.log("Looking for existing item with maHang:", value.trim());
 
         const existingIndex = prev.findIndex(
-          (item) => item.maHang.trim() === value.trim()
+          (item) => item.maHang && item.maHang.trim() === value.trim()
         );
 
+        console.log("Existing index:", existingIndex);
+
         if (existingIndex !== -1) {
+          console.log("Updating existing item...");
           const updatedData = prev.map((item, index) => {
             if (index === existingIndex) {
               const dvtHienTai = (item.dvt || "").trim();
@@ -187,6 +235,7 @@ export const useVatTuManagerNhapKho = () => {
                 _lastUpdated: Date.now(),
               };
 
+              console.log("Updated item:", updatedItem);
               return updatedItem;
             }
             return item;
@@ -197,11 +246,15 @@ export const useVatTuManagerNhapKho = () => {
               index === existingIndex || item.maHang.trim() !== value.trim()
           );
 
-          return filteredData.map((item, index) => ({
+          const result = filteredData.map((item, index) => ({
             ...item,
             key: index + 1,
           }));
+
+          console.log("Updated data source:", result);
+          return result;
         } else {
+          console.log("Adding new item...");
           // Khi thêm vật tư mới: dùng hệ số từ API chi tiết vật tư
           const heSoGocFromAPI = isNaN(parseFloat(vatTuInfo.he_so))
             ? 1
@@ -281,16 +334,50 @@ export const useVatTuManagerNhapKho = () => {
             _lastUpdated: Date.now(),
           };
 
-          return [...prev, newItem];
+          console.log("New item:", newItem);
+          const result = [...prev, newItem];
+          console.log("Updated data source with new item:", result);
+          return result;
         }
       });
 
       message.success(`Đã thêm vật tư: ${value}`);
 
-      if (setVatTuInput) setVatTuInput(undefined);
+      // Clear input và focus lại để tiếp tục scan
+      if (setVatTuInput) setVatTuInput("");
+
+      // Reset lastProcessedValueRef when input is cleared
+      lastProcessedValueRef.current = null;
+
+      // Focus lại vào input sau khi xử lý xong với delay dài hơn cho tablet
+      if (vatTuSelectRef && vatTuSelectRef.current) {
+        // Clear any existing focus attempts
+        setTimeout(() => {
+          if (vatTuSelectRef.current) {
+            vatTuSelectRef.current.focus();
+            // Force focus again to ensure it works on tablet
+            setTimeout(() => {
+              if (vatTuSelectRef.current) {
+                vatTuSelectRef.current.focus();
+                // One more attempt to ensure focus on tablet
+                setTimeout(() => {
+                  if (vatTuSelectRef.current) {
+                    vatTuSelectRef.current.focus();
+                  }
+                }, 100);
+              }
+            }, 50);
+          }
+        }, 300);
+      }
     } catch (error) {
       console.error("Error adding vat tu:", error);
       message.error("Có lỗi xảy ra khi thêm vật tư");
+    } finally {
+      // Reset processing flag after a delay
+      setTimeout(() => {
+        isProcessingRef.current = false;
+      }, 1000);
     }
   };
 

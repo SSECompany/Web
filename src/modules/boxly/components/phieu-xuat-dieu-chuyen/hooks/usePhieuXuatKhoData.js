@@ -85,46 +85,60 @@ export const usePhieuXuatKhoData = () => {
   );
 
   const fetchVatTuList = useCallback(
-    async (keyword = "") => {
-      if (!keyword && isCacheValid && masterDataCache.vatTu) {
+    async (keyword = "", page = 1, append = false, callback) => {
+      if (
+        !keyword &&
+        isCacheValid &&
+        masterDataCache.vatTu &&
+        page === 1 &&
+        !append
+      ) {
         setVatTuList(masterDataCache.vatTu);
+        if (callback) callback({ totalPage: 1 });
         return;
       }
 
       try {
         setLoadingVatTu(true);
-        const response = await https.post(
-          "v1/web/danh-sach-vat-tu",
-          {
-            key_word: keyword,
-          },
-          {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          }
-        );
-
-        if (response.data && response.data.data) {
-          const options = response.data.data.map((item) => ({
+        const userStr = localStorage.getItem("user");
+        const unitsResponseStr = localStorage.getItem("unitsResponse");
+        const user = userStr ? JSON.parse(userStr) : {};
+        const unitsResponse = unitsResponseStr
+          ? JSON.parse(unitsResponseStr)
+          : {};
+        const unitCode = user.unitCode || unitsResponse.unitCode || "01";
+        // Gọi dynamic API
+        const res = await fetchVatTuListDynamicApi({
+          keyword,
+          unitCode,
+          pageIndex: page,
+          pageSize: 200,
+        });
+        if (res.success && res.data) {
+          const options = res.data.map((item) => ({
             label: `${item.ma_vt} - ${item.ten_vt}`,
             value: item.ma_vt,
             ...item,
           }));
-          setVatTuList(options);
-
-          if (!keyword) {
+          setVatTuList((prev) => (append ? [...prev, ...options] : options));
+          if (!keyword && page === 1 && !append) {
             masterDataCache.vatTu = options;
             masterDataCache.lastFetch = Date.now();
           }
+          if (callback) callback(res.pagination);
+        } else {
+          if (!append) setVatTuList([]);
+          if (callback) callback({ totalPage: 1 });
         }
       } catch (error) {
-        console.error("Error fetching vat tu list:", error);
+        console.error("Error fetching vat tu list (dynamic):", error);
         message.error("Không thể tải danh sách vật tư");
+        if (callback) callback({ totalPage: 1 });
       } finally {
         setLoadingVatTu(false);
       }
     },
-    [isCacheValid, token]
+    [isCacheValid]
   );
 
   const fetchVatTuDetail = useCallback(

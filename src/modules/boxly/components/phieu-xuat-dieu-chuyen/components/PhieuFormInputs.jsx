@@ -6,6 +6,8 @@ const PhieuFormInputs = ({
   maKhoList,
   loadingMaKho,
   fetchMaKhoListDebounced,
+  fetchMaKhoList,
+  fetchMaGiaoDichList,
 }) => {
   return (
     <>
@@ -28,6 +30,11 @@ const PhieuFormInputs = ({
               loading={loadingMaKho}
               filterOption={false}
               onSearch={fetchMaKhoListDebounced}
+              onDropdownVisibleChange={(open) => {
+                if (open && fetchMaKhoList) {
+                  fetchMaKhoList("");
+                }
+              }}
               options={maKhoList || []}
               dropdownClassName="phieu-form-dropdown"
               optionLabelProp="value"
@@ -54,6 +61,11 @@ const PhieuFormInputs = ({
               loading={loadingMaKho}
               filterOption={false}
               onSearch={fetchMaKhoListDebounced}
+              onDropdownVisibleChange={(open) => {
+                if (open && fetchMaKhoList) {
+                  fetchMaKhoList("");
+                }
+              }}
               options={maKhoList || []}
               dropdownClassName="phieu-form-dropdown"
               optionLabelProp="value"
@@ -95,6 +107,11 @@ const PhieuFormInputs = ({
               showSearch
               optionFilterProp="label"
               allowClear
+              onDropdownVisibleChange={(open) => {
+                if (open && fetchMaGiaoDichList) {
+                  fetchMaGiaoDichList();
+                }
+              }}
               disabled={!isEditMode}
             />
           </Form.Item>

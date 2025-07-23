@@ -75,3 +75,37 @@
 .custom_input_design input {
   padding-right: 0px !important;
 }
+
+/* Barcode input focus priority */
+.barcode-input {
+  z-index: 1000 !important;
+}
+
+.barcode-input:focus {
+  outline: 2px solid #1890ff !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+/* Prevent table inputs from stealing focus */
+.vat-tu-table-input {
+  z-index: 1 !important;
+}
+
+.vat-tu-table-input:focus {
+  outline: 1px solid #d9d9d9 !important;
+  box-shadow: none !important;
+}
+
+/* Ensure barcode input stays focused on tablet */
+@media (max-width: 1024px) {
+  .barcode-input {
+    position: relative !important;
+    z-index: 9999 !important;
+  }
+
+  .barcode-input:focus {
+    outline: 3px solid #1890ff !important;
+    outline-offset: 3px !important;
+  }
+}

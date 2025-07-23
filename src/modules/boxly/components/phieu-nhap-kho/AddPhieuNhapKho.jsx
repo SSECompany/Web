@@ -3,11 +3,12 @@ import { Button, Form, message, Space, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "../common-phieu.css";
 import PhieuNhapKhoFormInputs from "./components/PhieuNhapKhoFormInputs";
+import VatTuSelectFull from "./components/VatTuNhapKhoInputSection";
 import VatTuNhapKhoTable from "./components/VatTuNhapKhoTable";
 import { usePhieuNhapKhoData } from "./hooks/usePhieuNhapKhoData";
 import { useVatTuManagerNhapKho } from "./hooks/useVatTuManagerNhapKho";
-import "../common-phieu.css";
 import {
   buildPhieuNhapKhoPayload,
   fetchVoucherInfo,
@@ -24,6 +25,9 @@ const AddPhieuNhapKho = () => {
   const [vatTuInput, setVatTuInput] = useState(undefined);
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
   const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
+  const [currentKeyword, setCurrentKeyword] = useState("");
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
@@ -59,6 +63,19 @@ const AddPhieuNhapKho = () => {
     handleDeleteItem,
     handleDvtChange,
   } = useVatTuManagerNhapKho();
+
+  // Phân trang vật tư
+  const fetchVatTuListPaging = async (
+    keyword = "",
+    page = 1,
+    append = false
+  ) => {
+    setCurrentKeyword(keyword);
+    await fetchVatTuList(keyword, page, append, (pagination) => {
+      setPageIndex(page);
+      setTotalPage(pagination?.totalPage || 1);
+    });
+  };
 
   // Initialize data
   useEffect(() => {
@@ -118,7 +135,8 @@ const AddPhieuNhapKho = () => {
       fetchDonViTinh,
       setVatTuInput,
       setVatTuList,
-      fetchVatTuList
+      fetchVatTuList,
+      vatTuSelectRef
     );
   };
 
@@ -178,6 +196,8 @@ const AddPhieuNhapKho = () => {
             loadingMaKhach={loadingMaKhach}
             fetchMaKhachListDebounced={fetchMaKhachListDebounced}
             maGiaoDichList={maGiaoDichList}
+            fetchMaKhachList={fetchMaKhachList}
+            fetchMaGiaoDichList={fetchMaGiaoDichList}
             barcodeEnabled={barcodeEnabled}
             setBarcodeEnabled={setBarcodeEnabled}
             setBarcodeJustEnabled={setBarcodeJustEnabled}
@@ -187,7 +207,13 @@ const AddPhieuNhapKho = () => {
             loadingVatTu={loadingVatTu}
             vatTuList={vatTuList}
             searchTimeoutRef={searchTimeoutRef}
-            fetchVatTuList={fetchVatTuList}
+            fetchVatTuList={fetchVatTuListPaging}
+            totalPage={totalPage}
+            pageIndex={pageIndex}
+            setPageIndex={setPageIndex}
+            setVatTuList={setVatTuList}
+            currentKeyword={currentKeyword}
+            VatTuSelectComponent={VatTuSelectFull}
             handleVatTuSelect={handleVatTuSelect}
           />
 
@@ -201,6 +227,7 @@ const AddPhieuNhapKho = () => {
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchMaKhoList={fetchMaKhoList}
           />
 
           <div
@@ -214,7 +241,9 @@ const AddPhieuNhapKho = () => {
               <Button type="primary" onClick={handleSubmit} loading={loading}>
                 Lưu
               </Button>
-              <Button onClick={() => navigate("/boxly/phieu-nhap-kho")}>Hủy</Button>
+              <Button onClick={() => navigate("/boxly/phieu-nhap-kho")}>
+                Hủy
+              </Button>
             </Space>
           </div>
         </Form>

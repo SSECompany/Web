@@ -1,8 +1,10 @@
 import { message } from "antd";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export const useVatTuManager = () => {
   const [dataSource, setDataSource] = useState([]);
+  const isProcessingRef = useRef(false);
+  const lastProcessedValueRef = useRef("");
 
   const handleVatTuSelect = async (
     value,
@@ -11,12 +13,43 @@ export const useVatTuManager = () => {
     fetchDonViTinh,
     setVatTuInput,
     setVatTuList,
-    fetchVatTuList
+    fetchVatTuList,
+    vatTuSelectRef
   ) => {
     if (!isEditMode) {
       message.warning("Bạn cần bật chế độ chỉnh sửa");
       return;
     }
+
+    // Validate input
+    if (!value || !value.trim()) {
+      console.log("Empty value received");
+      return;
+    }
+
+    // Prevent double processing
+    if (isProcessingRef.current) {
+      console.log("Already processing, skipping:", value.trim());
+      return;
+    }
+
+    // Allow reprocessing the same value after a delay
+    const timeSinceLastProcess =
+      Date.now() - (lastProcessedValueRef.current?.timestamp || 0);
+    if (
+      lastProcessedValueRef.current?.value === value.trim() &&
+      timeSinceLastProcess < 2000
+    ) {
+      console.log("Value already processed recently, skipping:", value.trim());
+      return;
+    }
+
+    console.log("Processing barcode:", value.trim());
+    isProcessingRef.current = true;
+    lastProcessedValueRef.current = {
+      value: value.trim(),
+      timestamp: Date.now(),
+    };
 
     try {
       const vatTuDetail = await fetchVatTuDetail(value.trim());
@@ -51,7 +84,6 @@ export const useVatTuManager = () => {
         );
 
         if (existingIndex !== -1) {
-      
           const updatedData = prev.map((item, index) => {
             if (index === existingIndex) {
               const dvtHienTai = (item.dvt || "").trim();
@@ -62,9 +94,9 @@ export const useVatTuManager = () => {
               let soLuongThemVao;
 
               if (dvtHienTai.trim() === dvtGoc.trim()) {
-                soLuongThemVao = heSoGoc; 
+                soLuongThemVao = heSoGoc;
               } else {
-                soLuongThemVao = 1; 
+                soLuongThemVao = 1;
               }
 
               const sl_td3_hienTai = item.sl_td3 || 0;
@@ -73,13 +105,17 @@ export const useVatTuManager = () => {
 
               const sl_td3_goc_moi = (item.sl_td3_goc ?? 0) + 1;
 
-              return {
+              const updatedItem = {
                 ...item,
-                so_luong: item.so_luong, 
-                so_luong_goc: item.so_luong_goc, 
+                so_luong: item.so_luong,
+                so_luong_goc: item.so_luong_goc,
                 sl_td3: sl_td3_lam_tron,
                 sl_td3_goc: sl_td3_goc_moi,
+                _lastUpdated: Date.now(),
               };
+
+              console.log("Updated item:", updatedItem);
+              return updatedItem;
             }
             return item;
           });
@@ -89,17 +125,19 @@ export const useVatTuManager = () => {
               index === existingIndex || item.maHang.trim() !== value.trim()
           );
 
-          return filteredData.map((item, index) => ({
+          const result = filteredData.map((item, index) => ({
             ...item,
             key: index + 1,
           }));
-        } else {
 
+          console.log("Updated data source:", result);
+          return result;
+        } else {
           const heSoGocFromAPI = parseFloat(vatTuInfo.he_so) || 1;
           const dvtGocFromAPI = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
-          
+
           const dvtHienTai = dvtGocFromAPI;
-          
+
           let sl_td3_goc, sl_td3_hienThi;
           let so_luong_goc, so_luong_hienThi;
           let heSoHienTai = heSoGocFromAPI;
@@ -107,18 +145,18 @@ export const useVatTuManager = () => {
           if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
             sl_td3_goc = 1;
             sl_td3_hienThi = sl_td3_goc * heSoGocFromAPI;
-            
+
             so_luong_goc = 0;
             so_luong_hienThi = so_luong_goc * heSoGocFromAPI;
-            
+
             heSoHienTai = heSoGocFromAPI;
           } else {
             sl_td3_goc = 1;
             sl_td3_hienThi = sl_td3_goc;
-            
-            so_luong_goc = 0;  
+
+            so_luong_goc = 0;
             so_luong_hienThi = so_luong_goc;
-            
+
             const dvtHienTaiInfo = donViTinhList.find(
               (dvt) => dvt.dvt.trim() === dvtHienTai.trim()
             );
@@ -135,14 +173,14 @@ export const useVatTuManager = () => {
             sl_td3: Math.round(sl_td3_hienThi * 1000) / 1000,
             sl_td3_goc: Math.round(sl_td3_goc * 1000) / 1000,
             he_so: heSoHienTai,
-            he_so_goc: heSoGocFromAPI, 
+            he_so_goc: heSoGocFromAPI,
             ten_mat_hang: vatTuInfo.ten_vt || value,
             dvt: dvtHienTai,
             dvt_goc: dvtGocFromAPI,
             tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",
             ma_kho: vatTuInfo.ma_kho ? vatTuInfo.ma_kho.trim() : "",
             donViTinhList: donViTinhList,
-            isNewlyAdded: true, 
+            isNewlyAdded: true,
             gia_nt2: 0,
             gia2: 0,
             thue: 0,
@@ -162,17 +200,53 @@ export const useVatTuManager = () => {
             tien_ck_khac: 0,
             sl_td1: 0,
             sl_td2: 0,
+            _lastUpdated: Date.now(),
           };
-          return [...prev, newItem];
+
+          console.log("New item:", newItem);
+          const result = [...prev, newItem];
+          console.log("Updated data source with new item:", result);
+          return result;
         }
       });
 
       message.success(`Đã thêm vật tư: ${value}`);
 
-      if (setVatTuInput) setVatTuInput(undefined);
+      // Clear input và focus lại để tiếp tục scan
+      if (setVatTuInput) setVatTuInput("");
+
+      // Reset lastProcessedValueRef when input is cleared
+      lastProcessedValueRef.current = null;
+
+      // Focus lại vào input sau khi xử lý xong với delay dài hơn cho tablet
+      if (vatTuSelectRef && vatTuSelectRef.current) {
+        // Clear any existing focus attempts
+        setTimeout(() => {
+          if (vatTuSelectRef.current) {
+            vatTuSelectRef.current.focus();
+            // Force focus again to ensure it works on tablet
+            setTimeout(() => {
+              if (vatTuSelectRef.current) {
+                vatTuSelectRef.current.focus();
+                // One more attempt to ensure focus on tablet
+                setTimeout(() => {
+                  if (vatTuSelectRef.current) {
+                    vatTuSelectRef.current.focus();
+                  }
+                }, 100);
+              }
+            }, 50);
+          }
+        }, 300);
+      }
     } catch (error) {
       console.error("Error adding vat tu:", error);
       message.error("Có lỗi xảy ra khi thêm vật tư");
+    } finally {
+      // Reset processing flag after a delay
+      setTimeout(() => {
+        isProcessingRef.current = false;
+      }, 1000);
     }
   };
 
@@ -232,7 +306,9 @@ export const useVatTuManager = () => {
     const currentDvtInList = dvtOptions.find(
       (dvt) => dvt && dvt.dvt && dvt.dvt.trim() === record.dvt?.trim()
     );
-    const heSoHienTai = currentDvtInList ? parseFloat(currentDvtInList.he_so) || 1 : (record.he_so || 1);
+    const heSoHienTai = currentDvtInList
+      ? parseFloat(currentDvtInList.he_so) || 1
+      : record.he_so || 1;
     const sl_td3_hienTai = record.sl_td3 || 0;
     const so_luong_hien_tai = record.so_luong || 0;
 
@@ -272,11 +348,11 @@ export const useVatTuManager = () => {
               so_luong: so_luong_lam_tron,
               sl_td3: sl_td3_lam_tron,
               sl_td3_goc: Math.round((sl_td3_goc_moi || 0) * 10000) / 10000,
-              _lastUpdated: Date.now(), 
+              _lastUpdated: Date.now(),
             }
-          : { ...item } 
+          : { ...item }
       );
-      
+
       return newDataSource;
     });
   };

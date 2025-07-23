@@ -190,7 +190,7 @@ const ListPhieuNhapKho = () => {
                 }
               }}
               style={{ marginBottom: 8 }}
-              format="DD/MM/YYYY"
+              format="DD/MM/YYYY" 
               placeholder={["Từ ngày", "Đến ngày"]}
             />
             <Button

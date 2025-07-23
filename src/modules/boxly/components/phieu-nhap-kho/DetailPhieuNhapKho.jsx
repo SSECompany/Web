@@ -7,6 +7,7 @@ import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
 import PhieuNhapKhoFormInputs from "./components/PhieuNhapKhoFormInputs";
+import VatTuSelectFull from "./components/VatTuNhapKhoInputSection";
 import VatTuNhapKhoTable from "./components/VatTuNhapKhoTable";
 import { usePhieuNhapKhoData } from "./hooks/usePhieuNhapKhoData";
 import { useVatTuManagerNhapKho } from "./hooks/useVatTuManagerNhapKho";
@@ -31,6 +32,9 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
   const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
   const [apiCalled, setApiCalled] = useState(false);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
+  const [currentKeyword, setCurrentKeyword] = useState("");
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
@@ -67,20 +71,33 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
     handleDvtChange,
   } = useVatTuManagerNhapKho();
 
-  // Initialize data and load phieu details
-  useEffect(() => {
-    const initializeData = async () => {
-      // Load master data
-      await Promise.all([
-        fetchMaGiaoDichList(),
-        fetchMaKhoList(),
-        fetchMaKhachList(),
-        fetchVatTuList(),
-      ]);
-    };
+  // Phân trang vật tư
+  const fetchVatTuListPaging = async (
+    keyword = "",
+    page = 1,
+    append = false
+  ) => {
+    setCurrentKeyword(keyword);
+    await fetchVatTuList(keyword, page, append, (pagination) => {
+      setPageIndex(page);
+      setTotalPage(pagination?.totalPage || 1);
+    });
+  };
 
-    initializeData();
-  }, []);
+  // Initialize data and load phieu details
+  // useEffect(() => {
+  //   const initializeData = async () => {
+  //     // Load master data
+  //     await Promise.all([
+  //       fetchMaGiaoDichList(),
+  //       fetchMaKhoList(),
+  //       fetchMaKhachList(),
+  //       fetchVatTuList(),
+  //     ]);
+  //   };
+
+  //   initializeData();
+  // }, []);
 
   // Set edit mode based on URL
   useEffect(() => {
@@ -130,74 +147,20 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             // Process vật tư list
             const processedVatTu = await Promise.all(
               vatTuList.map(async (item, index) => {
-                // Lấy danh sách đơn vị tính và thông tin vật tư từ API
-                const donViTinhList = await fetchDonViTinh(item.ma_vt);
-                const vatTuDetail = await fetchVatTuDetail(item.ma_vt.trim());
-
-                // Lấy hệ số gốc từ API vật tư thay vì từ database
-                const vatTuInfo = Array.isArray(vatTuDetail)
-                  ? vatTuDetail[0]
-                  : vatTuDetail;
-                const heSoGocFromAPI = vatTuInfo
-                  ? parseFloat(vatTuInfo.he_so) || 1
-                  : 1;
-                const dvtGocFromAPI = vatTuInfo
-                  ? vatTuInfo.dvt
-                    ? vatTuInfo.dvt.trim()
-                    : "cái"
-                  : "cái";
-
-                // Sử dụng nullish coalescing để xử lý đúng giá trị 0
+                // Chỉ load thông tin cơ bản, không gọi API master data
                 const soLuongHienThi = item.sl_td3 ?? 0; // sl_td3 - số lượng thực tế
                 const soLuongDeNghiHienThi = item.so_luong ?? 0; // so_luong - số lượng đề nghị
-                const dvtHienTai = item.dvt ? item.dvt.trim() : dvtGocFromAPI;
-
-                let soLuongGoc;
-                let heSoHienTai = item.he_so || 1;
-
-                // Nếu đang ở đơn vị gốc, tính ngược soLuong_goc từ hệ số gốc
-                if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
-                  soLuongGoc =
-                    heSoGocFromAPI !== 0
-                      ? soLuongHienThi / heSoGocFromAPI
-                      : soLuongHienThi;
-                  heSoHienTai = heSoGocFromAPI;
-                } else {
-                  // Nếu ở đơn vị khác, soLuongHienThi chính là soLuongGoc
-                  soLuongGoc = soLuongHienThi;
-                  // Tìm hệ số của đơn vị hiện tại từ danh sách đơn vị tính
-                  const dvtHienTaiInfo = donViTinhList.find(
-                    (dvt) => dvt.dvt.trim() === dvtHienTai
-                  );
-                  heSoHienTai = dvtHienTaiInfo
-                    ? parseFloat(dvtHienTaiInfo.he_so) || 1
-                    : 1;
-                }
-
-                // Tính lại soLuong hiển thị dựa trên soLuong_goc và hệ số
-                let soLuongHienThiMoi;
-                if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
-                  // Ở đơn vị gốc: soLuong = soLuong_goc * he_so_goc
-                  soLuongHienThiMoi = soLuongGoc * heSoGocFromAPI;
-                } else {
-                  // Ở đơn vị khác: soLuong = soLuong_goc (số nguyên)
-                  soLuongHienThiMoi = soLuongGoc;
-                }
+                const dvtHienTai = item.dvt ? item.dvt.trim() : "cái";
 
                 return {
                   key: index + 1,
                   maHang: item.ma_vt || "",
-                  soLuong: Math.round(soLuongHienThiMoi * 1000) / 1000, // sl_td3 - số lượng thực tế
-                  soLuong_goc: Math.round(soLuongGoc * 1000) / 1000,
+                  soLuong: Math.round(soLuongHienThi * 1000) / 1000, // sl_td3 - số lượng thực tế
                   soLuongDeNghi: parseFloat(soLuongDeNghiHienThi) || 0, // so_luong - số lượng đề nghị
-                  he_so: heSoHienTai,
-                  he_so_goc: heSoGocFromAPI, // Lưu hệ số gốc từ API
                   ten_mat_hang: item.ten_vt || item.ma_vt || "",
                   dvt: dvtHienTai,
-                  dvt_goc: dvtGocFromAPI,
                   ma_kho: item.ma_kho || "",
                   tk_vt: item.tk_vt || "",
-                  donViTinhList: donViTinhList,
 
                   // Lưu thêm các trường từ API để gửi lại khi update
                   stt_rec0: item.stt_rec0 || "",
@@ -246,6 +209,31 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
     }
   }, [barcodeJustEnabled]);
 
+  // Prevent focus from moving to other inputs when in barcode mode
+  useEffect(() => {
+    if (barcodeEnabled) {
+      const handleFocusIn = (e) => {
+        // If focus moves to any input other than barcode input, move it back
+        if (
+          !e.target.classList.contains("barcode-input") &&
+          (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")
+        ) {
+          setTimeout(() => {
+            if (vatTuSelectRef.current && barcodeEnabled) {
+              vatTuSelectRef.current.focus();
+            }
+          }, 10);
+        }
+      };
+
+      document.addEventListener("focusin", handleFocusIn);
+
+      return () => {
+        document.removeEventListener("focusin", handleFocusIn);
+      };
+    }
+  }, [barcodeEnabled]);
+
   // Cleanup
   useEffect(() => {
     return () => {
@@ -263,7 +251,8 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
       fetchDonViTinh,
       setVatTuInput,
       setVatTuList,
-      fetchVatTuList
+      fetchVatTuList,
+      vatTuSelectRef
     );
   };
 
@@ -378,6 +367,8 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             loadingMaKhach={loadingMaKhach}
             fetchMaKhachListDebounced={fetchMaKhachListDebounced}
             maGiaoDichList={maGiaoDichList}
+            fetchMaKhachList={fetchMaKhachList}
+            fetchMaGiaoDichList={fetchMaGiaoDichList}
             barcodeEnabled={barcodeEnabled}
             setBarcodeEnabled={setBarcodeEnabled}
             setBarcodeJustEnabled={setBarcodeJustEnabled}
@@ -387,7 +378,13 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             loadingVatTu={loadingVatTu}
             vatTuList={vatTuList}
             searchTimeoutRef={searchTimeoutRef}
-            fetchVatTuList={fetchVatTuList}
+            fetchVatTuList={fetchVatTuListPaging}
+            totalPage={totalPage}
+            pageIndex={pageIndex}
+            setPageIndex={setPageIndex}
+            setVatTuList={setVatTuList}
+            currentKeyword={currentKeyword}
+            VatTuSelectComponent={VatTuSelectFull}
             handleVatTuSelect={handleVatTuSelect}
           />
 
@@ -401,6 +398,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchMaKhoList={fetchMaKhoList}
           />
 
           {isEditMode && (

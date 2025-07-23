@@ -21,6 +21,9 @@ const AddPhieuXuatKho = () => {
   const [vatTuInput, setVatTuInput] = useState(undefined);
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
   const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
+  const [currentKeyword, setCurrentKeyword] = useState("");
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
@@ -128,7 +131,8 @@ const AddPhieuXuatKho = () => {
       fetchDonViTinh,
       setVatTuInput,
       setVatTuList,
-      fetchVatTuList
+      fetchVatTuList,
+      vatTuSelectRef
     );
   };
 
@@ -184,6 +188,19 @@ const AddPhieuXuatKho = () => {
     }
   };
 
+  // Phân trang vật tư
+  const fetchVatTuListPaging = async (
+    keyword = "",
+    page = 1,
+    append = false
+  ) => {
+    setCurrentKeyword(keyword);
+    await fetchVatTuList(keyword, page, append, (pagination) => {
+      setPageIndex(page);
+      setTotalPage(pagination?.totalPage || 1);
+    });
+  };
+
   return (
     <div className="phieu-container">
       <div className="phieu-header">
@@ -209,6 +226,8 @@ const AddPhieuXuatKho = () => {
             loadingMaKhach={loadingMaKhach}
             fetchMaKhachListDebounced={fetchMaKhachListDebounced}
             maGiaoDichList={maGiaoDichList}
+            fetchMaGiaoDichList={fetchMaGiaoDichList}
+            fetchMaKhachList={fetchMaKhachList}
           />
 
           <VatTuInputSection
@@ -222,7 +241,12 @@ const AddPhieuXuatKho = () => {
             loadingVatTu={loadingVatTu}
             vatTuList={vatTuList}
             searchTimeoutRef={searchTimeoutRef}
-            fetchVatTuList={fetchVatTuList}
+            fetchVatTuList={fetchVatTuListPaging}
+            totalPage={totalPage}
+            pageIndex={pageIndex}
+            setPageIndex={setPageIndex}
+            setVatTuList={setVatTuList}
+            currentKeyword={currentKeyword}
             handleVatTuSelect={handleVatTuSelect}
           />
 
@@ -236,15 +260,16 @@ const AddPhieuXuatKho = () => {
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchMaKhoList={fetchMaKhoList}
           />
 
           <div className="phieu-form-actions">
-              <Button type="primary" onClick={handleSubmit} loading={loading}>
-                Lưu
-              </Button>
-              <Button onClick={() => navigate("/boxly/phieu-xuat-kho")}>
-                Hủy
-              </Button>
+            <Button type="primary" onClick={handleSubmit} loading={loading}>
+              Lưu
+            </Button>
+            <Button onClick={() => navigate("/boxly/phieu-xuat-kho")}>
+              Hủy
+            </Button>
           </div>
         </Form>
       </div>

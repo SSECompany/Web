@@ -1,7 +1,20 @@
 import { message } from "antd";
 import { debounce } from "lodash";
-import { useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import https from "../../../../../utils/https";
+import { fetchVatTuListDynamicApi } from "../utils/phieuNhapKhoUtils";
+
+// Global cache for master data
+const masterDataCache = {
+  maGiaoDich: null,
+  tkCo: null,
+  maKho: null,
+  maKhach: null,
+  vatTu: null,
+  lastFetch: null,
+};
+
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 
 export const usePhieuNhapKhoData = () => {
   const [loading, setLoading] = useState(false);
@@ -16,6 +29,12 @@ export const usePhieuNhapKhoData = () => {
   const [loadingVatTu, setLoadingVatTu] = useState(false);
 
   const token = localStorage.getItem("access_token");
+
+  // Check if cache is still valid
+  const isCacheValid = useMemo(() => {
+    if (!masterDataCache.lastFetch) return false;
+    return Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY;
+  }, []);
 
   const fetchTkCoListDebounced = useRef(
     debounce((keyword) => {
@@ -35,13 +54,13 @@ export const usePhieuNhapKhoData = () => {
     }, 500)
   ).current;
 
-  const fetchVatTuListDebounced = useRef(
-    debounce((keyword) => {
-      fetchVatTuList(keyword);
-    }, 500)
-  ).current;
+  const fetchMaGiaoDichList = useCallback(async () => {
+    // Return cached data if valid
+    if (isCacheValid && masterDataCache.maGiaoDich) {
+      setMaGiaoDichList(masterDataCache.maGiaoDich);
+      return;
+    }
 
-  const fetchMaGiaoDichList = async () => {
     try {
       const response = await https.get(
         "v1/web/danh-sach-ma-gd",
@@ -54,175 +73,273 @@ export const usePhieuNhapKhoData = () => {
         }
       );
       if (response.data && response.data.data) {
-        setMaGiaoDichList(response.data.data);
+        const data = response.data.data;
+        setMaGiaoDichList(data);
+        // Cache the data
+        masterDataCache.maGiaoDich = data;
+        masterDataCache.lastFetch = Date.now();
       }
     } catch (error) {
       message.error("Không thể tải danh sách mã giao dịch");
     }
-  };
+  }, [isCacheValid, token]);
 
-  const fetchTkCoList = async (keyword = "") => {
-    setLoadingTkCo(true);
-    try {
-      const response = await https.get(
-        "v1/web/danh-sach-tk",
-        { keyWord: keyword },
-        {
-          headers: {
+  const fetchTkCoList = useCallback(
+    async (keyword = "") => {
+      // Use cache for empty search
+      if (!keyword && isCacheValid && masterDataCache.tkCo) {
+        setTkCoList(masterDataCache.tkCo);
+        return;
+      }
+
+      setLoadingTkCo(true);
+      try {
+        const response = await https.get(
+          "v1/web/danh-sach-tk",
+          { keyWord: keyword },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (response.data && response.data.data) {
+          const options = response.data.data.map((item) => ({
+            value: item.tk.trim(),
+            label: `${item.tk.trim()} - ${item.ten_tk.trim()}`,
+          }));
+          setTkCoList(options);
+
+          // Cache only if no search keyword
+          if (!keyword) {
+            masterDataCache.tkCo = options;
+            masterDataCache.lastFetch = Date.now();
+          }
+        }
+      } catch (error) {
+        message.error("Không thể tải danh sách tài khoản");
+      } finally {
+        setLoadingTkCo(false);
+      }
+    },
+    [isCacheValid, token]
+  );
+
+  const fetchMaKhoList = useCallback(
+    async (keyword = "") => {
+      // Use cache for empty search
+      if (!keyword && isCacheValid && masterDataCache.maKho) {
+        setMaKhoList(masterDataCache.maKho);
+        return;
+      }
+
+      setLoadingMaKho(true);
+      try {
+        const response = await https.get(
+          "v1/web/danh-sach-kho",
+          { keyword: keyword },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (response.data && response.data.data) {
+          const options = response.data.data.map((item) => ({
+            value: item.ma_kho.trim(),
+            label: `${item.ma_kho.trim()} - ${item.ten_kho.trim()}`,
+          }));
+          setMaKhoList(options);
+
+          // Cache only if no search keyword
+          if (!keyword) {
+            masterDataCache.maKho = options;
+            masterDataCache.lastFetch = Date.now();
+          }
+        }
+      } catch (error) {
+        message.error("Không thể tải danh sách kho");
+      } finally {
+        setLoadingMaKho(false);
+      }
+    },
+    [isCacheValid, token]
+  );
+
+  const fetchMaKhachList = useCallback(
+    async (keyword = "") => {
+      // Skip cache for search queries
+      if (keyword && isCacheValid && masterDataCache.maKhach) {
+        const filteredData = masterDataCache.maKhach.filter((item) =>
+          item.label.toLowerCase().includes(keyword.toLowerCase())
+        );
+        setMaKhachList(filteredData);
+        return;
+      }
+
+      setLoadingMaKhach(true);
+      try {
+        const response = await https.get(
+          "v1/web/danh-sach-khach-hang",
+          {
+            searchMaKH: "",
+            searchTenKH: keyword,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (response.data && response.data.data) {
+          const options = response.data.data.map((item) => ({
+            value: item.ma_kh.trim(),
+            label: `${item.ma_kh.trim()} - ${item.ten_kh.trim()}`,
+          }));
+          setMaKhachList(options);
+
+          // Cache only if no search keyword
+          if (!keyword) {
+            masterDataCache.maKhach = options;
+            masterDataCache.lastFetch = Date.now();
+          }
+        }
+      } catch (error) {
+        message.error("Không thể tải danh sách khách hàng");
+      } finally {
+        setLoadingMaKhach(false);
+      }
+    },
+    [isCacheValid, token]
+  );
+
+  const fetchVatTuList = useCallback(
+    async (keyword = "", page = 1, append = false, callback) => {
+      // Use cache for empty search
+      if (
+        !keyword &&
+        isCacheValid &&
+        masterDataCache.vatTu &&
+        page === 1 &&
+        !append
+      ) {
+        setVatTuList(masterDataCache.vatTu);
+        if (callback) callback({ totalPage: 1 });
+        return;
+      }
+
+      try {
+        setLoadingVatTu(true);
+        // Lấy unitCode từ localStorage hoặc mặc định
+        const userStr = localStorage.getItem("user");
+        const unitsResponseStr = localStorage.getItem("unitsResponse");
+        const user = userStr ? JSON.parse(userStr) : {};
+        const unitsResponse = unitsResponseStr
+          ? JSON.parse(unitsResponseStr)
+          : {};
+        const unitCode = user.unitCode || unitsResponse.unitCode;
+        // Gọi dynamic API
+        const res = await fetchVatTuListDynamicApi({
+          keyword,
+          unitCode,
+          pageIndex: page,
+          pageSize: 100,
+        });
+        if (res.success && res.data) {
+          const options = res.data.map((item) => ({
+            label: `${item.ma_vt} - ${item.ten_vt}`,
+            value: item.ma_vt,
+            ...item,
+          }));
+          setVatTuList((prev) => (append ? [...prev, ...options] : options));
+          // Cache only if no search keyword and first page
+          if (!keyword && page === 1 && !append) {
+            masterDataCache.vatTu = options;
+            masterDataCache.lastFetch = Date.now();
+          }
+          if (callback) callback(res.pagination);
+        } else {
+          if (!append) setVatTuList([]);
+          if (callback) callback({ totalPage: 1 });
+        }
+      } catch (error) {
+        console.error("Error fetching vat tu list (dynamic):", error);
+        message.error("Không thể tải danh sách vật tư");
+        if (callback) callback({ totalPage: 1 });
+      } finally {
+        setLoadingVatTu(false);
+      }
+    },
+    [isCacheValid]
+  );
+
+  const fetchVatTuDetail = useCallback(
+    async (maVatTu) => {
+      try {
+        const response = await https.post(
+          "v1/web/tim-kiem-vat-tu",
+          {
+            key_word: maVatTu,
+          },
+          {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+          }
+        );
+
+        if (response.data && response.data.data) {
+          return response.data.data;
+        }
+        return null;
+      } catch (error) {
+        console.error("Error fetching vat tu detail:", error);
+        message.error("Không thể tải thông tin vật tư");
+        return null;
+      }
+    },
+    [token]
+  );
+
+  const fetchDonViTinh = useCallback(
+    async (maVatTu) => {
+      try {
+        const response = await https.get(
+          "v1/web/danh-sach-dv",
+          {
+            ma_vt: maVatTu,
           },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.data && response.data.data) {
+          return response.data.data;
         }
-      );
-      if (response.data && response.data.data) {
-        const options = response.data.data.map((item) => ({
-          value: item.tk.trim(),
-          label: `${item.tk.trim()} - ${item.ten_tk.trim()}`,
-        }));
-        setTkCoList(options);
+        return [];
+      } catch (error) {
+        console.error("Error fetching don vi tinh:", error);
+        return [];
       }
-    } catch (error) {
-      message.error("Không thể tải danh sách tài khoản");
-    } finally {
-      setLoadingTkCo(false);
-    }
-  };
+    },
+    [token]
+  );
 
-  const fetchMaKhoList = async (keyword = "") => {
-    setLoadingMaKho(true);
-    try {
-      const response = await https.get(
-        "v1/web/danh-sach-kho",
-        { keyword: keyword },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (response.data && response.data.data) {
-        const options = response.data.data.map((item) => ({
-          value: item.ma_kho.trim(),
-          label: `${item.ma_kho.trim()} - ${item.ten_kho.trim()}`,
-        }));
-        setMaKhoList(options);
-      }
-    } catch (error) {
-      message.error("Không thể tải danh sách kho");
-    } finally {
-      setLoadingMaKho(false);
-    }
-  };
-
-  const fetchMaKhachList = async (keyword = "") => {
-    setLoadingMaKhach(true);
-    try {
-      const response = await https.get(
-        "v1/web/danh-sach-khach-hang",
-        {
-          searchMaKH: "",
-          searchTenKH: keyword,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (response.data && response.data.data) {
-        const options = response.data.data.map((item) => ({
-          value: item.ma_kh.trim(),
-          label: `${item.ma_kh.trim()} - ${item.ten_kh.trim()}`,
-        }));
-        setMaKhachList(options);
-      }
-    } catch (error) {
-      message.error("Không thể tải danh sách khách hàng");
-    } finally {
-      setLoadingMaKhach(false);
-    }
-  };
-
-  const fetchVatTuList = async (keyword = "") => {
-    try {
-      setLoadingVatTu(true);
-      const response = await https.post(
-        "v1/web/danh-sach-vat-tu",
-        {
-          key_word: keyword,
-        },
-        {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        }
-      );
-
-      if (response.data && response.data.data) {
-        const options = response.data.data.map((item) => ({
-          label: `${item.ma_vt} - ${item.ten_vt}`,
-          value: item.ma_vt,
-          ...item,
-        }));
-        setVatTuList(options);
-      }
-    } catch (error) {
-      console.error("Error fetching vat tu list:", error);
-      message.error("Không thể tải danh sách vật tư");
-    } finally {
-      setLoadingVatTu(false);
-    }
-  };
-
-  const fetchVatTuDetail = async (maVatTu) => {
-    try {
-      const response = await https.post(
-        "v1/web/tim-kiem-vat-tu",
-        {
-          key_word: maVatTu,
-        },
-        {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        }
-      );
-
-      if (response.data && response.data.data) {
-        return response.data.data;
-      }
-      return null;
-    } catch (error) {
-      console.error("Error fetching vat tu detail:", error);
-      message.error("Không thể tải thông tin vật tư");
-      return null;
-    }
-  };
-
-  const fetchDonViTinh = async (maVatTu) => {
-    try {
-      const response = await https.get(
-        "v1/web/danh-sach-dv",
-        {
-          ma_vt: maVatTu,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.data && response.data.data) {
-        return response.data.data;
-      }
-      return [];
-    } catch (error) {
-      console.error("Error fetching don vi tinh:", error);
-      return [];
-    }
-  };
+  // Clear cache function
+  const clearCache = useCallback(() => {
+    masterDataCache.maGiaoDich = null;
+    masterDataCache.tkCo = null;
+    masterDataCache.maKho = null;
+    masterDataCache.maKhach = null;
+    masterDataCache.vatTu = null;
+    masterDataCache.lastFetch = null;
+  }, []);
 
   return {
     loading,
@@ -239,7 +356,6 @@ export const usePhieuNhapKhoData = () => {
     fetchTkCoListDebounced,
     fetchMaKhoListDebounced,
     fetchMaKhachListDebounced,
-    fetchVatTuListDebounced,
     fetchMaGiaoDichList,
     fetchTkCoList,
     fetchMaKhoList,
@@ -248,5 +364,6 @@ export const usePhieuNhapKhoData = () => {
     fetchVatTuDetail,
     fetchDonViTinh,
     setVatTuList,
+    clearCache,
   };
 };

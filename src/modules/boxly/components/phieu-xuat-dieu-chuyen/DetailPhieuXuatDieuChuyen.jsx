@@ -61,28 +61,18 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
     handleDvtChange,
   } = useVatTuManager();
 
-  const handleVatTuSelect = useCallback(
-    async (value) => {
-      await vatTuSelectHandler(
-        value,
-        isEditMode,
-        fetchVatTuDetail,
-        fetchDonViTinh,
-        setVatTuInput,
-        setVatTuList,
-        fetchVatTuList
-      );
-    },
-    [
+  const handleVatTuSelect = async (value) => {
+    await vatTuSelectHandler(
+      value,
       isEditMode,
-      vatTuSelectHandler,
       fetchVatTuDetail,
       fetchDonViTinh,
       setVatTuInput,
       setVatTuList,
       fetchVatTuList,
-    ]
-  );
+      vatTuSelectRef
+    );
+  };
 
   // Fetch chi tiết phiếu xuất điều chuyển khi component mount
   useEffect(() => {
@@ -154,13 +144,13 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
   }, [stt_rec, token]);
 
   // Gọi API để lấy danh sách mã giao dịch, kho, vật tư khi component mount
-  useEffect(() => {
-    if (stt_rec) {
-      fetchMaGiaoDichList();
-      fetchMaKhoList();
-      fetchVatTuList();
-    }
-  }, [stt_rec, fetchMaGiaoDichList, fetchMaKhoList, fetchVatTuList]);
+  // useEffect(() => {
+  //   if (stt_rec) {
+  //     fetchMaGiaoDichList();
+  //     fetchMaKhoList();
+  //     fetchVatTuList();
+  //   }
+  // }, [stt_rec, fetchMaGiaoDichList, fetchMaKhoList, fetchVatTuList]);
 
   const submitPhieuData = async (values) => {
     try {
@@ -329,6 +319,8 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchMaKhoList={fetchMaKhoList}
+            fetchMaGiaoDichList={fetchMaGiaoDichList}
           />
 
           <VatTuInputSection

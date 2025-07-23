@@ -6,6 +6,8 @@ const PhieuFormInputs = ({
   loadingMaKhach,
   fetchMaKhachListDebounced,
   maGiaoDichList,
+  fetchMaGiaoDichList,
+  fetchMaKhachList,
 }) => {
   return (
     <>
@@ -23,6 +25,11 @@ const PhieuFormInputs = ({
               loading={loadingMaKhach}
               filterOption={false}
               onSearch={fetchMaKhachListDebounced}
+              onDropdownVisibleChange={(open) => {
+                if (open) {
+                  fetchMaKhachList("");
+                }
+              }}
               options={maKhachList}
               dropdownClassName="custom-dropdown"
               optionLabelProp="value"
@@ -49,6 +56,11 @@ const PhieuFormInputs = ({
               showSearch
               optionFilterProp="label"
               allowClear
+              onDropdownVisibleChange={(open) => {
+                if (open && fetchMaGiaoDichList) {
+                  fetchMaGiaoDichList();
+                }
+              }}
               disabled={!isEditMode}
             />
           </Form.Item>

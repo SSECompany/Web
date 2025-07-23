@@ -1,8 +1,10 @@
 import { message } from "antd";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export const useVatTuManager = () => {
   const [dataSource, setDataSource] = useState([]);
+  const isProcessingRef = useRef(false);
+  const lastProcessedValueRef = useRef("");
 
   // Function để load dữ liệu từ phiếu đã có (data2)
   const loadDataFromPhieu = (data2, fetchDonViTinh) => {
@@ -107,12 +109,45 @@ export const useVatTuManager = () => {
     isEditMode,
     fetchVatTuDetail,
     fetchDonViTinh,
-    setVatTuInput
+    setVatTuInput,
+    setVatTuList,
+    fetchVatTuList,
+    vatTuSelectRef
   ) => {
     if (!isEditMode) {
       message.warning("Bạn cần bật chế độ chỉnh sửa");
       return;
     }
+
+    // Validate input
+    if (!value || !value.trim()) {
+      console.log("Empty value received");
+      return;
+    }
+
+    // Prevent double processing
+    if (isProcessingRef.current) {
+      console.log("Already processing, skipping:", value.trim());
+      return;
+    }
+
+    // Allow reprocessing the same value after a delay
+    const timeSinceLastProcess =
+      Date.now() - (lastProcessedValueRef.current?.timestamp || 0);
+    if (
+      lastProcessedValueRef.current?.value === value.trim() &&
+      timeSinceLastProcess < 2000
+    ) {
+      console.log("Value already processed recently, skipping:", value.trim());
+      return;
+    }
+
+    console.log("Processing barcode:", value.trim());
+    isProcessingRef.current = true;
+    lastProcessedValueRef.current = {
+      value: value.trim(),
+      timestamp: Date.now(),
+    };
 
     try {
       const vatTuDetail = await fetchVatTuDetail(value.trim());
@@ -195,40 +230,35 @@ export const useVatTuManager = () => {
               const sl_td3_lam_tron = Math.round(sl_td3_moi * 1000) / 1000;
 
               const sl_td3_goc =
-                item.sl_td3_goc !== undefined
-                  ? item.sl_td3_goc
-                  : item.soLuong_goc || 0;
-              const sl_td3_goc_moi = sl_td3_goc + 1;
+                item.sl_td3_goc !== undefined ? item.sl_td3_goc : 0;
+              const sl_td3_goc_moi = sl_td3_goc + 1; // Tăng thêm 1 cho sl_td3_goc
 
-              const so_luong =
-                item.so_luong !== undefined ? item.so_luong : item.soLuong || 0;
+              // Giữ nguyên số lượng đề nghị (so_luong) - không tăng
+              const so_luong_hienTai =
+                item.so_luong !== undefined ? item.so_luong : 0;
               const so_luong_goc =
-                item.so_luong_goc !== undefined
-                  ? item.so_luong_goc
-                  : item.soLuong_goc || 0;
+                item.so_luong_goc !== undefined ? item.so_luong_goc : 0;
 
               const updatedItem = {
                 ...item,
-                so_luong: so_luong,
-                soLuong: so_luong,
-                so_luong_goc: so_luong_goc,
-                soLuong_goc: so_luong_goc,
-
-                sl_td3: sl_td3_lam_tron,
-                sl_td3_goc: sl_td3_goc_moi,
+                sl_td3: sl_td3_lam_tron, // Cập nhật số lượng thực tế (sl_td3) - tăng thêm
+                sl_td3_goc: sl_td3_goc_moi, // Tăng thêm 1
+                so_luong: so_luong_hienTai, // Giữ nguyên số lượng đề nghị (so_luong) - không tăng
+                so_luong_goc: so_luong_goc, // Giữ nguyên số lượng đề nghị gốc
 
                 he_so: heSoHienTai,
                 he_so_goc: heSoGocFromAPI,
 
-                dvt: dvtHienTai || defaultDvt,
-                dvt_goc: dvtGoc || defaultDvt,
+                dvt:
+                  dvtHienTai || (vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái"),
+                dvt_goc: dvtAPI,
 
                 donViTinhList: donViTinhList,
-
                 isNewlyAdded: item.isNewlyAdded,
                 _lastUpdated: Date.now(),
               };
 
+              console.log("Updated item:", updatedItem);
               return updatedItem;
             }
             return item;
@@ -236,8 +266,7 @@ export const useVatTuManager = () => {
 
           const filteredData = updatedData.filter(
             (item, index) =>
-              index === existingIndex ||
-              (item.maHang?.trim() || "") !== value.trim()
+              index === existingIndex || item.maHang.trim() !== value.trim()
           );
 
           const result = filteredData.map((item, index) => ({
@@ -245,6 +274,7 @@ export const useVatTuManager = () => {
             key: index + 1,
           }));
 
+          console.log("Updated data source:", result);
           return result;
         } else {
           // Khi thêm vật tư mới: dùng hệ số từ API chi tiết vật tư
@@ -255,21 +285,20 @@ export const useVatTuManager = () => {
 
           const dvtHienTai = dvtGocFromAPI;
 
-          let so_luong_goc = 0;
-          let so_luong_hienThi = 0;
-          let sl_td3_goc = 1;
+          // Khi thêm vật tư mới, chỉ tăng số lượng xuất (sl_td3), số lượng đề nghị (so_luong) = 0
+          let sl_td3_goc = 1; // Cho sl_td3 - số lượng xuất
+          let so_luong_goc = 0; // Cho so_luong - số lượng đề nghị = 0
           let sl_td3_hienThi;
+          let so_luong_hienThi;
           let heSoHienTai;
 
           if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
+            // Đơn vị hiện tại = đơn vị gốc -> sl_td3 = sl_td3_goc * heSoGoc
             sl_td3_hienThi = sl_td3_goc * heSoGocFromAPI;
-            so_luong_hienThi = so_luong_goc * heSoGocFromAPI;
-
+            so_luong_hienThi = so_luong_goc * heSoGocFromAPI; // = 0
             heSoHienTai = heSoGocFromAPI;
           } else {
-            sl_td3_hienThi = 1;
-            so_luong_hienThi = 0;
-
+            // Đơn vị hiện tại khác đơn vị gốc -> tìm hệ số từ donViTinhList
             const dvtHienTaiInfo = donViTinhList.find(
               (dvt) => dvt.dvt.trim() === dvtHienTai.trim()
             );
@@ -278,17 +307,19 @@ export const useVatTuManager = () => {
                 ? 1
                 : parseFloat(dvtHienTaiInfo.he_so)
               : 1;
+
+            // Quy đổi từ số lượng gốc sang đơn vị hiện tại
+            sl_td3_hienThi = sl_td3_goc * heSoHienTai;
+            so_luong_hienThi = so_luong_goc * heSoHienTai; // = 0
           }
 
           const newItem = {
             key: prev.length + 1,
             maHang: value,
-            so_luong: Math.round(so_luong_hienThi * 1000) / 1000,
-            soLuong: Math.round(so_luong_hienThi * 1000) / 1000,
-            so_luong_goc: Math.round(so_luong_goc * 1000) / 1000,
-            soLuong_goc: Math.round(so_luong_goc * 1000) / 1000,
-            sl_td3: Math.round(sl_td3_hienThi * 1000) / 1000,
-            sl_td3_goc: Math.round(sl_td3_goc * 1000) / 1000,
+            sl_td3: Math.round(sl_td3_hienThi * 1000) / 1000, // sl_td3 - số lượng thực tế (xuất)
+            sl_td3_goc: Math.round(sl_td3_goc * 1000) / 1000, // sl_td3_goc = 1
+            so_luong: Math.round(so_luong_hienThi * 1000) / 1000, // so_luong - số lượng đề nghị = 0
+            so_luong_goc: Math.round(so_luong_goc * 1000) / 1000, // so_luong_goc = 0
             he_so: heSoHienTai,
             he_so_goc: heSoGocFromAPI,
             ten_mat_hang: vatTuInfo.ten_vt || value,
@@ -298,43 +329,78 @@ export const useVatTuManager = () => {
             ma_kho: vatTuInfo.ma_kho ? vatTuInfo.ma_kho.trim() : "",
             donViTinhList: donViTinhList,
             isNewlyAdded: true,
+
+            // Thông tin giá và thuế
             gia_nt2: 0,
             gia2: 0,
             thue: 0,
             thue_nt: 0,
             tien2: 0,
             tien_nt2: 0,
+
+            // Thông tin chiết khấu
             tl_ck: 0,
             ck: 0,
             ck_nt: 0,
+            tl_ck_khac: 0,
+            gia_ck: 0,
+            tien_ck_khac: 0,
+
+            // Thông tin khác
             tk_gv: "",
             tk_dt: "",
             ma_thue: "",
             thue_suat: 0,
             tk_thue: "",
-            tl_ck_khac: 0,
-            gia_ck: 0,
-            tien_ck_khac: 0,
             sl_td1: 0,
             sl_td2: 0,
-            sl_dh: 0,
-            stt_rec_dh: "",
-            stt_rec0dh: "",
-            stt_rec_px: "",
-            stt_rec0px: "",
             _lastUpdated: Date.now(),
           };
 
-          return [...prev, newItem];
+          console.log("New item:", newItem);
+          const result = [...prev, newItem];
+          console.log("Updated data source with new item:", result);
+          return result;
         }
       });
 
       message.success(`Đã thêm vật tư: ${value}`);
 
-      if (setVatTuInput) setVatTuInput(undefined);
+      // Clear input và focus lại để tiếp tục scan
+      if (setVatTuInput) setVatTuInput("");
+
+      // Reset lastProcessedValueRef when input is cleared
+      lastProcessedValueRef.current = null;
+
+      // Focus lại vào input sau khi xử lý xong với delay dài hơn cho tablet
+      if (vatTuSelectRef && vatTuSelectRef.current) {
+        // Clear any existing focus attempts
+        setTimeout(() => {
+          if (vatTuSelectRef.current) {
+            vatTuSelectRef.current.focus();
+            // Force focus again to ensure it works on tablet
+            setTimeout(() => {
+              if (vatTuSelectRef.current) {
+                vatTuSelectRef.current.focus();
+                // One more attempt to ensure focus on tablet
+                setTimeout(() => {
+                  if (vatTuSelectRef.current) {
+                    vatTuSelectRef.current.focus();
+                  }
+                }, 100);
+              }
+            }, 50);
+          }
+        }, 300);
+      }
     } catch (error) {
       console.error("Error adding vat tu:", error);
       message.error("Có lỗi xảy ra khi thêm vật tư");
+    } finally {
+      // Reset processing flag after a delay
+      setTimeout(() => {
+        isProcessingRef.current = false;
+      }, 1000);
     }
   };
 
