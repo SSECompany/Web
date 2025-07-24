@@ -1,12 +1,11 @@
 import { LeftOutlined } from "@ant-design/icons";
-import { Button, Form, Typography } from "antd";
+import { Button, Form, Space, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
 import PhieuFormInputs from "./components/PhieuFormInputs";
-import VatTuInputSection from "./components/VatTuInputSection";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
@@ -24,18 +23,19 @@ const AddPhieuXuatKho = () => {
   const [pageIndex, setPageIndex] = useState(1);
   const [totalPage, setTotalPage] = useState(1);
   const [currentKeyword, setCurrentKeyword] = useState("");
+  const [vatTuList, setVatTuList] = useState([]);
+  const [loadingVatTu, setLoadingVatTu] = useState(false);
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
 
+  // Lấy các state/hàm khác từ hook (KHÔNG lấy vật tư)
   const {
     loading,
     setLoading,
     maGiaoDichList,
     maKhachList,
     loadingMaKhach,
-    vatTuList,
-    loadingVatTu,
     maKhoList,
     loadingMaKho,
     fetchMaKhachListDebounced,
@@ -43,15 +43,12 @@ const AddPhieuXuatKho = () => {
     fetchMaGiaoDichList,
     fetchMaKhachList,
     fetchMaKhoList,
-    fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
-    setVatTuList,
   } = usePhieuXuatKhoData();
 
   const {
     dataSource,
-    setDataSource,
     handleVatTuSelect: vatTuSelectHandler,
     handleQuantityChange,
     handleSelectChange,
@@ -123,6 +120,64 @@ const AddPhieuXuatKho = () => {
     }
   };
 
+  // LOCAL fetch vật tư giống PXĐC
+  const fetchVatTuList = async (
+    keyword = "",
+    page = 1,
+    append = false,
+    callback
+  ) => {
+    setLoadingVatTu(true);
+    try {
+      const userStr = localStorage.getItem("user");
+      const unitsResponseStr = localStorage.getItem("unitsResponse");
+      const user = userStr ? JSON.parse(userStr) : {};
+      const unitsResponse = unitsResponseStr
+        ? JSON.parse(unitsResponseStr)
+        : {};
+      const unitCode = user.unitCode || unitsResponse.unitCode;
+      const {
+        fetchVatTuListDynamicApi,
+      } = require("../phieu-nhap-kho/utils/phieuNhapKhoUtils");
+      const res = await fetchVatTuListDynamicApi({
+        keyword,
+        unitCode,
+        pageIndex: page,
+        pageSize: 100,
+      });
+      if (res.success && res.data) {
+        const options = res.data.map((item) => ({
+          label: `${item.ma_vt} - ${item.ten_vt}`,
+          value: item.ma_vt,
+          ...item,
+        }));
+        setVatTuList((prev) => (append ? [...prev, ...options] : options));
+        if (callback) callback(res.pagination);
+      } else {
+        if (!append) setVatTuList([]);
+        if (callback) callback({ totalPage: 1 });
+      }
+    } catch (error) {
+      setVatTuList([]);
+      if (callback) callback({ totalPage: 1 });
+    } finally {
+      setLoadingVatTu(false);
+    }
+  };
+
+  // Phân trang vật tư
+  const fetchVatTuListPaging = async (
+    keyword = "",
+    page = 1,
+    append = false
+  ) => {
+    setCurrentKeyword(keyword);
+    await fetchVatTuList(keyword, page, append, (pagination) => {
+      setPageIndex(page);
+      setTotalPage(pagination?.totalPage || 1);
+    });
+  };
+
   const handleVatTuSelect = async (value) => {
     await vatTuSelectHandler(
       value,
@@ -152,6 +207,7 @@ const AddPhieuXuatKho = () => {
       });
 
       if (invalidItems.length > 0) {
+        setLoading(false);
         return;
       }
 
@@ -188,19 +244,6 @@ const AddPhieuXuatKho = () => {
     }
   };
 
-  // Phân trang vật tư
-  const fetchVatTuListPaging = async (
-    keyword = "",
-    page = 1,
-    append = false
-  ) => {
-    setCurrentKeyword(keyword);
-    await fetchVatTuList(keyword, page, append, (pagination) => {
-      setPageIndex(page);
-      setTotalPage(pagination?.totalPage || 1);
-    });
-  };
-
   return (
     <div className="phieu-container">
       <div className="phieu-header">
@@ -228,10 +271,6 @@ const AddPhieuXuatKho = () => {
             maGiaoDichList={maGiaoDichList}
             fetchMaGiaoDichList={fetchMaGiaoDichList}
             fetchMaKhachList={fetchMaKhachList}
-          />
-
-          <VatTuInputSection
-            isEditMode={true}
             barcodeEnabled={barcodeEnabled}
             setBarcodeEnabled={setBarcodeEnabled}
             setBarcodeJustEnabled={setBarcodeJustEnabled}
@@ -242,12 +281,16 @@ const AddPhieuXuatKho = () => {
             vatTuList={vatTuList}
             searchTimeoutRef={searchTimeoutRef}
             fetchVatTuList={fetchVatTuListPaging}
+            handleVatTuSelect={handleVatTuSelect}
             totalPage={totalPage}
             pageIndex={pageIndex}
             setPageIndex={setPageIndex}
             setVatTuList={setVatTuList}
             currentKeyword={currentKeyword}
-            handleVatTuSelect={handleVatTuSelect}
+            VatTuSelectComponent={
+              require("../../../../components/common/VatTuSelectFull/VatTuSelectFull")
+                .default
+            }
           />
 
           <VatTuTable
@@ -263,13 +306,21 @@ const AddPhieuXuatKho = () => {
             fetchMaKhoList={fetchMaKhoList}
           />
 
-          <div className="phieu-form-actions">
-            <Button type="primary" onClick={handleSubmit} loading={loading}>
-              Lưu
-            </Button>
-            <Button onClick={() => navigate("/boxly/phieu-xuat-kho")}>
-              Hủy
-            </Button>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-start",
+              marginTop: 16,
+            }}
+          >
+            <Space>
+              <Button type="primary" onClick={handleSubmit} loading={loading}>
+                Lưu
+              </Button>
+              <Button onClick={() => navigate("/boxly/phieu-xuat-dieu-chuyen")}>
+                Hủy
+              </Button>
+            </Space>
           </div>
         </Form>
       </div>

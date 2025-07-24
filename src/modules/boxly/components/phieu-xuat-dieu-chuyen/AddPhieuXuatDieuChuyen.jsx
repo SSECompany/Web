@@ -3,10 +3,11 @@ import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import VatTuSelectFull from "../../../../components/common/VatTuSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
+import { fetchVatTuListDynamicApi } from "../phieu-nhap-kho/utils/phieuNhapKhoUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
-import VatTuInputSection from "./components/VatTuInputSection";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
@@ -28,21 +29,21 @@ const AddPhieuXuatDieuChuyen = () => {
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
 
+  const [vatTuList, setVatTuList] = useState([]);
+  const [loadingVatTu, setLoadingVatTu] = useState(false);
+
   const {
     loading,
     setLoading,
     maGiaoDichList,
     maKhoList,
     loadingMaKho,
-    vatTuList,
-    loadingVatTu,
     fetchMaKhoListDebounced,
     fetchMaGiaoDichList,
     fetchMaKhoList,
-    fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
-    setVatTuList,
+    setVatTuList: setVatTuListFromHook,
   } = usePhieuXuatKhoData();
 
   const {
@@ -127,6 +128,47 @@ const AddPhieuXuatDieuChuyen = () => {
       fetchVatTuList,
       vatTuSelectRef
     );
+  };
+
+  const fetchVatTuList = async (
+    keyword = "",
+    page = 1,
+    append = false,
+    callback
+  ) => {
+    setLoadingVatTu(true);
+    try {
+      const userStr = localStorage.getItem("user");
+      const unitsResponseStr = localStorage.getItem("unitsResponse");
+      const user = userStr ? JSON.parse(userStr) : {};
+      const unitsResponse = unitsResponseStr
+        ? JSON.parse(unitsResponseStr)
+        : {};
+      const unitCode = user.unitCode || unitsResponse.unitCode;
+      const res = await fetchVatTuListDynamicApi({
+        keyword,
+        unitCode,
+        pageIndex: page,
+        pageSize: 100,
+      });
+      if (res.success && res.data) {
+        const options = res.data.map((item) => ({
+          label: `${item.ma_vt} - ${item.ten_vt}`,
+          value: item.ma_vt,
+          ...item,
+        }));
+        setVatTuList((prev) => (append ? [...prev, ...options] : options));
+        if (callback) callback(res.pagination);
+      } else {
+        if (!append) setVatTuList([]);
+        if (callback) callback({ totalPage: 1 });
+      }
+    } catch (error) {
+      setVatTuList([]);
+      if (callback) callback({ totalPage: 1 });
+    } finally {
+      setLoadingVatTu(false);
+    }
   };
 
   // Phân trang vật tư
@@ -232,9 +274,6 @@ const AddPhieuXuatDieuChuyen = () => {
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
             fetchMaKhoList={fetchMaKhoList}
             fetchMaGiaoDichList={fetchMaGiaoDichList}
-          />
-          <VatTuInputSection
-            isEditMode={true}
             barcodeEnabled={barcodeEnabled}
             setBarcodeEnabled={setBarcodeEnabled}
             setBarcodeJustEnabled={setBarcodeJustEnabled}
@@ -250,6 +289,7 @@ const AddPhieuXuatDieuChuyen = () => {
             setPageIndex={setPageIndex}
             setVatTuList={setVatTuList}
             currentKeyword={currentKeyword}
+            VatTuSelectComponent={VatTuSelectFull}
             handleVatTuSelect={handleVatTuSelect}
           />
           <VatTuTable

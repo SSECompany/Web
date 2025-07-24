@@ -2,6 +2,7 @@ import { message } from "antd";
 import { debounce } from "lodash";
 import { useCallback, useMemo, useState } from "react";
 import https from "../../../../../utils/https";
+import { fetchVatTuListDynamicApi } from "../../phieu-nhap-kho/utils/phieuNhapKhoUtils";
 
 const masterDataCache = {
   maGiaoDich: null,
@@ -126,22 +127,15 @@ export const usePhieuXuatKhoData = () => {
           ? JSON.parse(unitsResponseStr)
           : {};
         const unitCode = user.unitCode || unitsResponse.unitCode || "01";
-        // Gọi dynamic API
-        const res = await https.post(
-          "v1/web/danh-sach-vat-tu",
-          {
-            key_word: keyword,
-            unitCode,
-            pageIndex: page,
-            pageSize: 200,
-          },
-          {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          }
-        );
-        if (res.data && res.data.data) {
-          const options = res.data.data.map((item) => ({
+        // Gọi API dùng fetchVatTuListDynamicApi giống phiếu xuất điều chuyển
+        const res = await fetchVatTuListDynamicApi({
+          keyword,
+          unitCode,
+          pageIndex: page,
+          pageSize: 200,
+        });
+        if (res.success && res.data) {
+          const options = res.data.map((item) => ({
             label: `${item.ma_vt} - ${item.ten_vt}`,
             value: item.ma_vt,
             ...item,

@@ -1,13 +1,13 @@
 import { EditOutlined, LeftOutlined } from "@ant-design/icons";
-import { Button, Form, message, Typography } from "antd";
+import { Button, Form, message, Space, Typography } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
+import VatTuSelectFull from "../../../../components/common/VatTuSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
 import PhieuFormInputs from "./components/PhieuFormInputs";
-import VatTuInputSection from "./components/VatTuInputSection";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
@@ -23,37 +23,34 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const { stt_rec } = useParams();
-  const location = useLocation();
 
   const [phieuData, setPhieuData] = useState(null);
   const [isEditMode, setIsEditMode] = useState(initialEditMode);
   const [vatTuInput, setVatTuInput] = useState(undefined);
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
   const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
+  const [currentKeyword, setCurrentKeyword] = useState("");
+  const [vatTuList, setVatTuList] = useState([]);
+  const [loadingVatTu, setLoadingVatTu] = useState(false);
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
 
+  // Lấy các state/hàm khác từ hook (KHÔNG lấy vật tư)
   const {
     loading,
     setLoading,
     maGiaoDichList,
-    maKhachList,
-    loadingMaKhach,
-    vatTuList,
-    loadingVatTu,
-    fetchMaKhachListDebounced,
-    fetchMaGiaoDichList,
-    fetchMaKhachList,
-    fetchVatTuList,
-    fetchVatTuDetail,
-    fetchDonViTinh,
-    fetchPhieuXuatKhoDetail,
-    setVatTuList,
     maKhoList,
     loadingMaKho,
     fetchMaKhoListDebounced,
     fetchMaKhoList,
+    fetchMaGiaoDichList,
+    fetchVatTuDetail,
+    fetchDonViTinh,
+    fetchPhieuXuatKhoDetail,
   } = usePhieuXuatKhoData();
 
   const {
@@ -67,6 +64,64 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
   } = useVatTuManager();
 
   const token = localStorage.getItem("access_token");
+
+  // LOCAL fetch vật tư giống PXĐC
+  const fetchVatTuList = async (
+    keyword = "",
+    page = 1,
+    append = false,
+    callback
+  ) => {
+    setLoadingVatTu(true);
+    try {
+      const userStr = localStorage.getItem("user");
+      const unitsResponseStr = localStorage.getItem("unitsResponse");
+      const user = userStr ? JSON.parse(userStr) : {};
+      const unitsResponse = unitsResponseStr
+        ? JSON.parse(unitsResponseStr)
+        : {};
+      const unitCode = user.unitCode || unitsResponse.unitCode;
+      const {
+        fetchVatTuListDynamicApi,
+      } = require("../phieu-nhap-kho/utils/phieuNhapKhoUtils");
+      const res = await fetchVatTuListDynamicApi({
+        keyword,
+        unitCode,
+        pageIndex: page,
+        pageSize: 100,
+      });
+      if (res.success && res.data) {
+        const options = res.data.map((item) => ({
+          label: `${item.ma_vt} - ${item.ten_vt}`,
+          value: item.ma_vt,
+          ...item,
+        }));
+        setVatTuList((prev) => (append ? [...prev, ...options] : options));
+        if (callback) callback(res.pagination);
+      } else {
+        if (!append) setVatTuList([]);
+        if (callback) callback({ totalPage: 1 });
+      }
+    } catch (error) {
+      setVatTuList([]);
+      if (callback) callback({ totalPage: 1 });
+    } finally {
+      setLoadingVatTu(false);
+    }
+  };
+
+  // Phân trang vật tư
+  const fetchVatTuListPaging = async (
+    keyword = "",
+    page = 1,
+    append = false
+  ) => {
+    setCurrentKeyword(keyword);
+    await fetchVatTuList(keyword, page, append, (pagination) => {
+      setPageIndex(page);
+      setTotalPage(pagination?.totalPage || 1);
+    });
+  };
 
   // Fetch chi tiết phiếu xuất kho khi component mount
   useEffect(() => {
@@ -109,13 +164,6 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
 
     fetchPhieuDetail();
   }, [stt_rec, fetchPhieuXuatKhoDetail, form, setDataSource]);
-
-  // Xóa useEffect gọi API master data khi component mount
-  // useEffect(() => {
-  //   fetchMaGiaoDichList();
-  //   fetchMaKhachList();
-  //   fetchMaKhoList();
-  // }, [fetchMaGiaoDichList, fetchMaKhachList, fetchMaKhoList]);
 
   const handleVatTuSelect = async (value) => {
     await vatTuSelectHandler(
@@ -286,16 +334,12 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
         >
           <PhieuFormInputs
             isEditMode={isEditMode}
-            maKhachList={maKhachList}
-            loadingMaKhach={loadingMaKhach}
-            fetchMaKhachListDebounced={fetchMaKhachListDebounced}
             maGiaoDichList={maGiaoDichList}
+            maKhoList={maKhoList}
+            loadingMaKho={loadingMaKho}
+            fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchMaKhoList={fetchMaKhoList}
             fetchMaGiaoDichList={fetchMaGiaoDichList}
-            fetchMaKhachList={fetchMaKhachList}
-          />
-
-          <VatTuInputSection
-            isEditMode={isEditMode}
             barcodeEnabled={barcodeEnabled}
             setBarcodeEnabled={setBarcodeEnabled}
             setBarcodeJustEnabled={setBarcodeJustEnabled}
@@ -305,10 +349,15 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
             loadingVatTu={loadingVatTu}
             vatTuList={vatTuList}
             searchTimeoutRef={searchTimeoutRef}
-            fetchVatTuList={fetchVatTuList}
+            fetchVatTuList={fetchVatTuListPaging}
+            totalPage={totalPage}
+            pageIndex={pageIndex}
+            setPageIndex={setPageIndex}
+            setVatTuList={setVatTuList}
+            currentKeyword={currentKeyword}
+            VatTuSelectComponent={VatTuSelectFull}
             handleVatTuSelect={handleVatTuSelect}
           />
-
           <VatTuTable
             dataSource={dataSource}
             isEditMode={isEditMode}
@@ -323,14 +372,22 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
           />
 
           {isEditMode && (
-            <div className="phieu-form-actions">
-              <Button type="primary" onClick={handleSubmit} loading={loading}>
-                Lưu
-              </Button>
-              <Button danger onClick={handleDelete}>
-                Xóa
-              </Button>
-              <Button onClick={handleNew}>Mới</Button>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-start",
+                marginTop: 16,
+              }}
+            >
+              <Space>
+                <Button type="primary" onClick={handleSubmit} loading={loading}>
+                  Lưu
+                </Button>
+                <Button danger onClick={handleDelete}>
+                  Xóa
+                </Button>
+                <Button onClick={handleNew}>Mới</Button>
+              </Space>
             </div>
           )}
         </Form>

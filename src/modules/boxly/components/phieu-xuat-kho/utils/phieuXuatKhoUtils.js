@@ -11,8 +11,8 @@ export const getUserInfo = () => {
     const unitsResponse = unitsResponseStr ? JSON.parse(unitsResponseStr) : {};
 
     return {
-      userId: user.userId || 4061,
-      userName: user.userName || "",
+      userId: user.userId,
+      userName: user.userName,
       unitId: user.unitId || unitsResponse.unitId || "VIKOSAN",
       unitName: user.unitName || unitsResponse.unitName || "VIKOSAN",
     };
@@ -28,17 +28,17 @@ export const formatDate = (date) => {
 };
 
 export const validateDataSource = (dataSource) => {
-  if (dataSource.length === 0) {
+  if (!dataSource || !Array.isArray(dataSource) || dataSource.length === 0) {
     message.error("Vui lòng thêm ít nhất một vật tư");
     return false;
   }
-  // Validate mã kho cho từng vật tư, gom lỗi dạng danh sách
+  // Validate mã kho và số lượng cho từng vật tư, gom lỗi dạng danh sách
   const missingData = [];
   dataSource.forEach((item, index) => {
     if (!item.ma_kho || !item.ma_kho.trim()) {
       missingData.push(`Dòng ${index + 1}: Chưa chọn mã kho`);
     }
-    const soLuong = parseFloat(item.so_luong || 0);
+    const soLuong = parseFloat(item.so_luong ?? item.sl_td3 ?? 0);
     if (soLuong <= 0) {
       missingData.push(`Dòng ${index + 1}: Số lượng phải lớn hơn 0`);
     }
@@ -85,31 +85,31 @@ export const buildPayload = (
 
   // MASTER
   const master = {
-    stt_rec: "",
+    stt_rec: phieuData?.stt_rec || "",
     ma_dvcs: userInfo.unitId?.toLowerCase() || "vikosan",
     ma_ct: "PXA",
-    loai_ct: values.ma_gd || "2",
+    loai_ct: values.ma_gd || values.maGiaoDich || "2",
     so_lo: "",
     ngay_lo: "",
     ma_nk: "",
-    ma_gd: values.ma_gd || "2",
+    ma_gd: values.ma_gd || values.maGiaoDich || "2",
     ngay_ct: orderDate,
-    so_ct: values.so_ct || "",
-    ma_kh: values.ma_kh || "",
-    status: values.status || "1",
+    so_ct: values.so_ct || values.soPhieu || "",
+    ma_kh: values.ma_kh || values.maKhach || "",
+    status: values.status || values.trangThai || "1",
   };
 
   // DETAIL
   const detail = dataSource.map((item) => ({
-    stt_rec: "",
+    stt_rec: phieuData?.stt_rec || "",
     stt_rec0: "",
     ma_ct: "PXA",
     ngay_ct: orderDate,
-    so_ct: values.so_ct || "",
+    so_ct: values.so_ct || values.soPhieu || "",
     ma_vt: item.maHang?.trim() || "",
     ma_kho: item.ma_kho || "",
     dvt: item.dvt || "Cái",
-    so_luong: parseFloat(item.so_luong) || 0,
+    so_luong: parseFloat(item.so_luong ?? item.sl_td3) || 0,
     gia_nt: 0,
     gia: 0,
     tien_nt: 0,
@@ -121,7 +121,9 @@ export const buildPayload = (
 
   // FINAL PAYLOAD
   return {
-    store: "Api_create_phieu_xuat_kho_voucher",
+    store: isUpdate
+      ? "Api_update_phieu_xuat_kho_voucher"
+      : "Api_create_phieu_xuat_kho_voucher",
     param: {},
     data: {
       master: [master],
@@ -192,14 +194,8 @@ export const deletePhieu = async (stt_rec) => {
 };
 
 export const updatePhieuXuatKho = async (master, detail, token) => {
-  const body = {
-    store: "Api_update_phieu_xuat_kho_voucher",
-    param: {},
-    data: {
-      master: [master],
-      detail: detail,
-    },
-  };
+  const body = buildPayload({}, detail, { stt_rec: master.stt_rec }, true);
+  body.data.master = [master];
   return https.post("v1/dynamicApi/call-dynamic-api", body, {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,

@@ -8,6 +8,23 @@ const PhieuFormInputs = ({
   maGiaoDichList,
   fetchMaKhachList,
   fetchMaGiaoDichList,
+  barcodeEnabled,
+  setBarcodeEnabled,
+  setBarcodeJustEnabled,
+  vatTuInput,
+  setVatTuInput,
+  vatTuSelectRef,
+  loadingVatTu,
+  vatTuList,
+  searchTimeoutRef,
+  fetchVatTuList,
+  handleVatTuSelect,
+  totalPage,
+  pageIndex,
+  setPageIndex,
+  setVatTuList,
+  currentKeyword,
+  VatTuSelectComponent,
 }) => {
   return (
     <>
@@ -121,6 +138,36 @@ const PhieuFormInputs = ({
           </Form.Item>
         </Col>
       </Row>
+
+      {isEditMode && (
+        <Row gutter={16}>
+          <Col span={24}>
+            <Form.Item label="Vật tư">
+              {VatTuSelectComponent && (
+                <VatTuSelectComponent
+                  isEditMode={isEditMode}
+                  barcodeEnabled={barcodeEnabled}
+                  setBarcodeEnabled={setBarcodeEnabled}
+                  setBarcodeJustEnabled={setBarcodeJustEnabled}
+                  vatTuInput={vatTuInput}
+                  setVatTuInput={setVatTuInput}
+                  vatTuSelectRef={vatTuSelectRef}
+                  loadingVatTu={loadingVatTu}
+                  vatTuList={vatTuList}
+                  searchTimeoutRef={searchTimeoutRef}
+                  fetchVatTuList={fetchVatTuList}
+                  handleVatTuSelect={handleVatTuSelect}
+                  totalPage={totalPage}
+                  pageIndex={pageIndex}
+                  setPageIndex={setPageIndex}
+                  setVatTuList={setVatTuList}
+                  currentKeyword={currentKeyword}
+                />
+              )}
+            </Form.Item>
+          </Col>
+        </Row>
+      )}
     </>
   );
 };

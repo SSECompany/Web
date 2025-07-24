@@ -2,16 +2,17 @@ import { EditOutlined, LeftOutlined } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
+import VatTuSelectFull from "../../../../components/common/VatTuSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
 import PhieuFormInputs from "./components/PhieuFormInputs";
-import VatTuInputSection from "./components/VatTuInputSection";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
 
+import { fetchVatTuListDynamicApi } from "../phieu-nhap-kho/utils/phieuNhapKhoUtils";
 import {
   buildPayload,
   validateDataSource,
@@ -23,7 +24,6 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const { stt_rec } = useParams();
-  const location = useLocation();
   const token = localStorage.getItem("access_token");
 
   const [phieuData, setPhieuData] = useState(null);
@@ -35,21 +35,76 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
 
+  const [pageIndex, setPageIndex] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
+  const [currentKeyword, setCurrentKeyword] = useState("");
+
+  const [vatTuList, setVatTuList] = useState([]);
+  const [loadingVatTu, setLoadingVatTu] = useState(false);
+
+  const fetchVatTuList = async (
+    keyword = "",
+    page = 1,
+    append = false,
+    callback
+  ) => {
+    setLoadingVatTu(true);
+    try {
+      const userStr = localStorage.getItem("user");
+      const unitsResponseStr = localStorage.getItem("unitsResponse");
+      const user = userStr ? JSON.parse(userStr) : {};
+      const unitsResponse = unitsResponseStr
+        ? JSON.parse(unitsResponseStr)
+        : {};
+      const unitCode = user.unitCode || unitsResponse.unitCode;
+      const res = await fetchVatTuListDynamicApi({
+        keyword,
+        unitCode,
+        pageIndex: page,
+        pageSize: 100,
+      });
+      if (res.success && res.data) {
+        const options = res.data.map((item) => ({
+          label: `${item.ma_vt} - ${item.ten_vt}`,
+          value: item.ma_vt,
+          ...item,
+        }));
+        setVatTuList((prev) => (append ? [...prev, ...options] : options));
+        if (callback) callback(res.pagination);
+      } else {
+        if (!append) setVatTuList([]);
+        if (callback) callback({ totalPage: 1 });
+      }
+    } catch (error) {
+      setVatTuList([]);
+      if (callback) callback({ totalPage: 1 });
+    } finally {
+      setLoadingVatTu(false);
+    }
+  };
+
+  const fetchVatTuListPaging = async (
+    keyword = "",
+    page = 1,
+    append = false
+  ) => {
+    setCurrentKeyword(keyword);
+    await fetchVatTuList(keyword, page, append, (pagination) => {
+      setPageIndex(page);
+      setTotalPage(pagination?.totalPage || 1);
+    });
+  };
+
   const {
     loading,
     setLoading,
     maGiaoDichList,
     maKhoList,
     loadingMaKho,
-    vatTuList,
-    loadingVatTu,
     fetchMaKhoListDebounced,
     fetchMaGiaoDichList,
     fetchMaKhoList,
-    fetchVatTuList,
-    fetchVatTuDetail,
     fetchDonViTinh,
-    setVatTuList,
   } = usePhieuXuatKhoData();
 
   const {
@@ -143,14 +198,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
     fetchPhieuDetail();
   }, [stt_rec, token]);
 
-  // Gọi API để lấy danh sách mã giao dịch, kho, vật tư khi component mount
-  // useEffect(() => {
-  //   if (stt_rec) {
-  //     fetchMaGiaoDichList();
-  //     fetchMaKhoList();
-  //     fetchVatTuList();
-  //   }
-  // }, [stt_rec, fetchMaGiaoDichList, fetchMaKhoList, fetchVatTuList]);
+
 
   const submitPhieuData = async (values) => {
     try {
@@ -321,10 +369,6 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
             fetchMaKhoList={fetchMaKhoList}
             fetchMaGiaoDichList={fetchMaGiaoDichList}
-          />
-
-          <VatTuInputSection
-            isEditMode={isEditMode}
             barcodeEnabled={barcodeEnabled}
             setBarcodeEnabled={setBarcodeEnabled}
             setBarcodeJustEnabled={setBarcodeJustEnabled}
@@ -334,7 +378,13 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             loadingVatTu={loadingVatTu}
             vatTuList={vatTuList}
             searchTimeoutRef={searchTimeoutRef}
-            fetchVatTuList={fetchVatTuList}
+            fetchVatTuList={fetchVatTuListPaging}
+            totalPage={totalPage}
+            pageIndex={pageIndex}
+            setPageIndex={setPageIndex}
+            setVatTuList={setVatTuList}
+            currentKeyword={currentKeyword}
+            VatTuSelectComponent={VatTuSelectFull}
             handleVatTuSelect={handleVatTuSelect}
           />
 

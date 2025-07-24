@@ -4,10 +4,11 @@ import moment from "moment/moment";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
+import VatTuSelectFull from "../../../../components/common/VatTuSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
+import { fetchVatTuListDynamicApi } from "../phieu-nhap-kho/utils/phieuNhapKhoUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
-import VatTuInputSection from "./components/VatTuInputSection";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
@@ -34,6 +35,11 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
   const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
   const [screenSize, setScreenSize] = useState("desktop");
+  const [pageIndex, setPageIndex] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
+  const [currentKeyword, setCurrentKeyword] = useState("");
+  const [vatTuList, setVatTuList] = useState([]);
+  const [loadingVatTu, setLoadingVatTu] = useState(false);
 
   // Refs for preventing multiple calls and caching
   const vatTuSelectRef = useRef();
@@ -50,15 +56,11 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
     maGiaoDichList,
     maKhachList,
     loadingMaKhach,
-    vatTuList,
-    loadingVatTu,
     fetchMaKhachListDebounced,
     fetchMaGiaoDichList,
     fetchMaKhachList,
-    fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
-    setVatTuList,
   } = usePhieuXuatKhoData();
 
   const {
@@ -69,6 +71,59 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
     handleDeleteItem,
     handleDvtChange,
   } = useVatTuManager();
+
+  const fetchVatTuList = async (
+    keyword = "",
+    page = 1,
+    append = false,
+    callback
+  ) => {
+    setLoadingVatTu(true);
+    try {
+      const userStr = localStorage.getItem("user");
+      const unitsResponseStr = localStorage.getItem("unitsResponse");
+      const user = userStr ? JSON.parse(userStr) : {};
+      const unitsResponse = unitsResponseStr
+        ? JSON.parse(unitsResponseStr)
+        : {};
+      const unitCode = user.unitCode || unitsResponse.unitCode;
+      const res = await fetchVatTuListDynamicApi({
+        keyword,
+        unitCode,
+        pageIndex: page,
+        pageSize: 100,
+      });
+      if (res.success && res.data) {
+        const options = res.data.map((item) => ({
+          label: `${item.ma_vt} - ${item.ten_vt}`,
+          value: item.ma_vt,
+          ...item,
+        }));
+        setVatTuList((prev) => (append ? [...prev, ...options] : options));
+        if (callback) callback(res.pagination);
+      } else {
+        if (!append) setVatTuList([]);
+        if (callback) callback({ totalPage: 1 });
+      }
+    } catch (error) {
+      setVatTuList([]);
+      if (callback) callback({ totalPage: 1 });
+    } finally {
+      setLoadingVatTu(false);
+    }
+  };
+
+  const fetchVatTuListPaging = async (
+    keyword = "",
+    page = 1,
+    append = false
+  ) => {
+    setCurrentKeyword(keyword);
+    await fetchVatTuList(keyword, page, append, (pagination) => {
+      setPageIndex(page);
+      setTotalPage(pagination?.totalPage || 1);
+    });
+  };
 
   // Load phieu detail - chỉ load thông tin cơ bản
   const fetchPhieuDetail = useCallback(async () => {
@@ -394,10 +449,6 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
             fetchMaKhachListDebounced={fetchMaKhachListDebounced}
             fetchMaKhachList={fetchMaKhachList}
             fetchMaGiaoDichList={fetchMaGiaoDichList}
-          />
-
-          <VatTuInputSection
-            isEditMode={isEditMode}
             barcodeEnabled={barcodeEnabled}
             setBarcodeEnabled={setBarcodeEnabled}
             setBarcodeJustEnabled={setBarcodeJustEnabled}
@@ -407,7 +458,13 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
             loadingVatTu={loadingVatTu}
             vatTuList={vatTuList}
             searchTimeoutRef={searchTimeoutRef}
-            fetchVatTuList={fetchVatTuList}
+            fetchVatTuList={fetchVatTuListPaging}
+            totalPage={totalPage}
+            pageIndex={pageIndex}
+            setPageIndex={setPageIndex}
+            setVatTuList={setVatTuList}
+            currentKeyword={currentKeyword}
+            VatTuSelectComponent={VatTuSelectFull}
             handleVatTuSelect={handleVatTuSelect}
           />
 
