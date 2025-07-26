@@ -124,11 +124,9 @@ const runParallelTasks = async (sttRec, userId, sync = true) => {
   if (sync) {
     const syncTask = callSyncFastApi(sttRec, userId)
       .then((result) => {
-        // Đã loại bỏ logic mark
         return { type: "sync", success: result.success, result: result.result };
       })
       .catch((syncError) => {
-        // Đã loại bỏ logic mark
         return { type: "sync", success: false, error: syncError };
       });
 
@@ -138,11 +136,9 @@ const runParallelTasks = async (sttRec, userId, sync = true) => {
   // Thêm task in order - GỌI TRỰC TIẾP API
   const printTask = callPrintOrderApi(sttRec, userId)
     .then((result) => {
-      // Đã loại bỏ logic mark
       return { type: "print", success: result.success, result: result.result };
     })
     .catch((printError) => {
-      // Đã loại bỏ logic mark
       notification.error({
         message: "Có lỗi xảy ra khi in đơn hàng!",
         description: printError.message,
@@ -344,8 +340,6 @@ export default function OrderSummary({ total, itemCount }) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
 
         if (sttRec) {
-          // Đã loại bỏ logic mark pending
-
           // BƯỚC 2: Bật hộp thoại in NGAY LẬP TỨC
           if (!isSaveOnly) {
             setPrintMaster(orderData.masterData);
@@ -544,8 +538,6 @@ export default function OrderSummary({ total, itemCount }) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
         const orderNumber = response?.listObject[0][0]?.so_ct;
 
-        // Đã loại bỏ logic mark pending
-
         // BƯỚC 2: Mở hộp thoại in NGAY LẬP TỨC
         setPrintMaster(orderData.masterData);
         setPrintDetail(orderData.detailData);
@@ -698,7 +690,6 @@ export default function OrderSummary({ total, itemCount }) {
         message: "Đã kết nối internet!",
         duration: 3,
       });
-      // Đã loại bỏ logic retry pending
     };
 
     const handleOffline = () => {

@@ -64,7 +64,25 @@ const useSignalRPrintConnection = (onPrintResult, userId) => {
       .withAutomaticReconnect()
       .build();
 
+    // Log tất cả các event được nhận
+    connection.onreconnecting((error) => {});
+
+    connection.onreconnected((connectionId) => {});
+
+    connection.onclose((error) => {});
+
     connection.on("ReceivePrintResult", (printData) => {
+      // Kiểm tra xem data có null/undefined không
+      if (!printData) {
+        console.warn("⚠️ printData là null hoặc undefined");
+        return;
+      }
+
+      // Kiểm tra xem có phải là object không
+      if (typeof printData !== "object") {
+        return;
+      }
+
       onPrintResult(printData);
     });
 
@@ -76,6 +94,12 @@ const useSignalRPrintConnection = (onPrintResult, userId) => {
       } catch (err) {
         console.error("❌ Lỗi kết nối Print SignalR Hub:", err);
         console.error("🔍 Chi tiết lỗi:", err.toString());
+        console.error("📊 Error object:", {
+          name: err.name,
+          message: err.message,
+          stack: err.stack,
+        });
+        console.log("⏰ Sẽ thử kết nối lại sau 5 giây...");
         setTimeout(startConnection, 5000);
       }
     };
@@ -193,31 +217,51 @@ const POSPage = () => {
   );
 
   const handlePrintResult = useCallback((printData) => {
-    if (printData.isSucceded === true) {
-      // Hiển thị thông báo thành công - 5 giây tự tắt
-      notification.success({
-        message: "✅ In thành công",
-        description: `Đã in thành công trên máy ${printData.ip || "N/A"}`,
-        placement: "topRight",
-        duration: 5,
-        style: {
-          borderRadius: "8px",
-          border: "1px solid #52c41a",
-        },
-      });
+    // Kiểm tra nhiều trường hợp khác nhau
+    const isSuccess =
+      printData.isSucceded === true ||
+      printData.isSucceded === "true" ||
+      printData.isSucceded === 1 ||
+      printData.isSucceded === "1" ||
+      (typeof printData.isSucceded === "boolean" && printData.isSucceded) ||
+      (typeof printData.isSucceded === "string" &&
+        printData.isSucceded.toLowerCase() === "true");
+
+    if (isSuccess) {
+      try {
+        notification.success({
+          message: "In thành công",
+          description: `Đã in thành công trên máy ${printData.ip}`,
+          placement: "topRight",
+          duration: 20,
+          style: {
+            borderRadius: "8px",
+            border: "1px solid #52c41a",
+          },
+        });
+      } catch (error) {
+        console.error("❌ Lỗi khi hiển thị notification success:", error);
+      }
     } else {
-      // Hiển thị thông báo lỗi - người dùng tự đóng
-      notification.error({
-        message: "❌ In thất bại",
-        description:
-          printData.message || `In thất bại tại máy ${printData.ip || "N/A"}`,
-        placement: "topRight",
-        duration: 0, // 0 = không tự tắt, người dùng tự đóng
-        style: {
-          borderRadius: "8px",
-          border: "1px solid #ff4d4f",
-        },
-      });
+      console.log("❌ Print thất bại - Hiển thị notification error");
+
+      try {
+        // Hiển thị thông báo lỗi - người dùng tự đóng
+        notification.error({
+          message: "In thất bại",
+          description:
+            printData.message || `In thất bại tại máy ${printData.ip}`,
+          placement: "topRight",
+          duration: 0, // 0 = không tự tắt, người dùng tự đóng
+          style: {
+            borderRadius: "8px",
+            border: "1px solid #ff4d4f",
+          },
+        });
+        console.log("❌ Notification error đã được gọi");
+      } catch (error) {
+        console.error("❌ Lỗi khi hiển thị notification error:", error);
+      }
     }
   }, []);
 

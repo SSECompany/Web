@@ -58,15 +58,18 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const [pendingApproveRecord, setPendingApproveRecord] = useState(null);
 
   const fetchListOrderData = useCallback(
-    async (pageIndex = currentPage) => {
+    async (pageIndex = currentPage, customFilters = null) => {
       if (!isOpen || isLoading) return; // Chỉ gọi API khi modal đang mở và không đang loading
 
+      // Sử dụng customFilters nếu được truyền vào, ngược lại sử dụng stableFilters
+      const filtersToUse = customFilters || stableFilters;
+
       // Kiểm tra xem có phải duplicate call không
-      const currentCall = { pageIndex, filters: stableFilters };
+      const currentCall = { pageIndex, filters: filtersToUse };
       if (
         lastApiCall.current.pageIndex === pageIndex &&
         JSON.stringify(lastApiCall.current.filters) ===
-          JSON.stringify(stableFilters)
+          JSON.stringify(filtersToUse)
       ) {
         return; // Bỏ qua nếu là duplicate call
       }
@@ -77,12 +80,13 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         const res = await multipleTablePutApi({
           store: "api_get_retail_order",
           param: {
-            so_ct: stableFilters.so_ct || "",
-            ngay_ct: stableFilters.ngay_ct || "",
-            ma_kh: stableFilters.ma_kh || "",
-            status: stableFilters.status || "",
-            ma_ban: stableFilters.ma_ban || "",
-            s3: stableFilters.s3 || "",
+            so_ct: filtersToUse.so_ct || "",
+            ngay_ct: filtersToUse.ngay_ct || "",
+            ma_kh: filtersToUse.ma_kh || "",
+            status: filtersToUse.status || "",
+            ma_ban: filtersToUse.ma_ban || "",
+            s2: filtersToUse.s2 || "",
+            s3: filtersToUse.s3 || "",
             pageIndex: pageIndex,
             pageSize: pageSize,
             userId: id,
@@ -111,21 +115,12 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         setIsLoading(false);
       }
     },
-    [
-      stableFilters,
-      currentPage,
-      id,
-      unitId,
-      storeId,
-      dispatch,
-      isOpen,
-      isLoading,
-    ]
+    [stableFilters, id, unitId, storeId, dispatch, isOpen, isLoading]
   );
 
   useEffect(() => {
     if (isOpen) {
-      fetchListOrderData();
+      fetchListOrderData(1, filters);
     } else {
       // Reset state khi đóng modal
       setCurrentPage(1);
@@ -134,6 +129,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       setTotalRecords(0);
       lastApiCall.current = { pageIndex: 0, filters: {} };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Sử dụng data trực tiếp từ API (backend pagination)
@@ -142,18 +138,31 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   // Helper function để xử lý filter
   const handleFilter = (key, value, confirm) => {
     confirm();
-    const newFilters = { ...filters, [key]: value };
+    let filterValue = value;
+
+    // Xử lý đặc biệt cho trường s2
+    if (key === "s2") {
+      if (value === "Synchronize     ") {
+        filterValue = "Synchronize     "; // Lọc thành công
+      } else if (value === "*") {
+        filterValue = "*"; // Lọc thất bại
+      } else {
+        filterValue = ""; // Lấy tất cả data (khi không chọn gì)
+      }
+    }
+
+    const newFilters = { ...filters, [key]: filterValue };
     setFilters(newFilters);
     setCurrentPage(1); // Reset về trang 1 khi filter
-    // Gọi API ngay lập tức khi filter thay đổi với pageIndex = 1
-    fetchListOrderData(1);
+    // Gọi API ngay lập tức khi filter thay đổi với pageIndex = 1 và truyền filters mới
+    fetchListOrderData(1, newFilters);
   };
 
   // Helper function để xử lý thay đổi trang
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    // Gọi API ngay lập tức khi thay đổi trang với pageIndex mới
-    fetchListOrderData(page);
+    // Gọi API ngay lập tức khi thay đổi trang với pageIndex mới và filters hiện tại
+    fetchListOrderData(page, filters);
   };
 
   // Helper function để group detail data
@@ -309,12 +318,13 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       render: (value) => `${value?.toLocaleString() || 0} VND`,
     },
     {
-      title: "Đồng bộ",
+      title: "Yêu cầu đồng bộ",
       dataIndex: "s3",
       key: "s3",
+      align: "center",
       render: (value) => (
         <Tag color={value === true ? "green" : "red"}>
-          {value === true ? "Đồng bộ" : "Chưa đồng bộ"}
+          {value === true ? "Đồng bộ" : "Không đồng bộ"}
         </Tag>
       ),
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
@@ -324,8 +334,8 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
             value={selectedKeys[0]}
             onChange={(value) => setSelectedKeys(value ? [value] : [])}
           >
-            <Select.Option value="1">Đồng bộ</Select.Option>
-            <Select.Option value="0">Chưa đồng bộ</Select.Option>
+            <Select.Option value="1">Có đồng bộ</Select.Option>
+            <Select.Option value="0">Không đồng bộ</Select.Option>
           </Select>
           <Button
             className="search_button"
@@ -339,9 +349,44 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       ),
     },
     {
+      title: "Đồng bộ",
+      dataIndex: "s2",
+      key: "s2",
+      align: "center",
+      render: (value) => {
+        const isSynchronized = value.trim() === "Synchronize";
+        return (
+          <Tag color={isSynchronized ? "green" : "red"}>
+            {isSynchronized ? "Thành công" : "Thất bại"}
+          </Tag>
+        );
+      },
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div className="filter-dropdown">
+          <Select
+            placeholder="Chọn"
+            value={selectedKeys[0]}
+            onChange={(value) => setSelectedKeys(value ? [value] : [])}
+          >
+            <Select.Option value="Synchronize     ">Thành công</Select.Option>
+            <Select.Option value="*">Thất bại</Select.Option>
+          </Select>
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => handleFilter("s2", selectedKeys[0], confirm)}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
+    },
+    {
       title: "Trạng thái",
       dataIndex: "statusName",
       key: "statusName",
+      align: "center",
       render: (text) => (
         <Tag color={text === "Hoàn thành" ? "green" : "yellow"}>{text}</Tag>
       ),

@@ -102,7 +102,7 @@ const GenerateQR = () => {
               >
                 <div className="space-y-2 border-2 border-blue-500 p-4 rounded-lg shadow-md bg-white text-center w-[220px]">
                   <QRCodeCanvas
-                    value={`${process.env.REACT_APP_ROOT_API}/order/${table.value}?ma_qr=${table.ma_qr}`}
+                    value={`${process.env.REACT_APP_ROOT}/order/${table.value}?ma_qr=${table.ma_qr}`}
                     size={200}
                   />
                 </div>
@@ -138,7 +138,7 @@ const GenerateQR = () => {
                   <div className="space-y-2 border-2 border-green-500 p-4 rounded-lg shadow-md bg-white text-center w-[220px]">
                     <QRCodeCanvas
                       value={`${
-                        process.env.REACT_APP_ROOT_API
+                        process.env.REACT_APP_ROOT
                       }/order/${room.value.trim()}?ma_qr=${room.ma_qr}`}
                       size={200}
                     />
