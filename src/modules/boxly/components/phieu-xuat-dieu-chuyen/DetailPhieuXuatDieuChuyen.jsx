@@ -28,6 +28,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
 
   const [phieuData, setPhieuData] = useState(null);
   const [isEditMode, setIsEditMode] = useState(initialEditMode);
+
   const [vatTuInput, setVatTuInput] = useState(undefined);
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
   const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
@@ -104,6 +105,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
     fetchMaKhoListDebounced,
     fetchMaGiaoDichList,
     fetchMaKhoList,
+    fetchVatTuDetail,
     fetchDonViTinh,
   } = usePhieuXuatKhoData();
 
@@ -117,7 +119,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
   } = useVatTuManager();
 
   const handleVatTuSelect = async (value) => {
-    await vatTuSelectHandler(
+    const result = await vatTuSelectHandler(
       value,
       isEditMode,
       fetchVatTuDetail,
@@ -127,6 +129,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
       fetchVatTuList,
       vatTuSelectRef
     );
+    // Không cần hiển thị message lỗi ở đây vì đã có trong VatTuSelectFull
   };
 
   // Fetch chi tiết phiếu xuất điều chuyển khi component mount
@@ -197,8 +200,6 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
     };
     fetchPhieuDetail();
   }, [stt_rec, token]);
-
-
 
   const submitPhieuData = async (values) => {
     try {

@@ -1,5 +1,5 @@
 import { QrcodeOutlined } from "@ant-design/icons";
-import { Button, Col, Input, Row, Select } from "antd";
+import { Button, Col, Input, Row, Select, message } from "antd";
 import { useEffect, useRef } from "react";
 
 const VatTuSelectFull = ({
@@ -104,10 +104,9 @@ const VatTuSelectFull = ({
     }
   };
 
-  const processBarcode = (barcodeValue) => {
+  const processBarcode = async (barcodeValue) => {
     // Prevent double processing
     if (isProcessingRef.current) {
-      console.log("Already processing barcode, skipping:", barcodeValue);
       return;
     }
 
@@ -118,10 +117,6 @@ const VatTuSelectFull = ({
       lastProcessedBarcodeRef.current?.value === barcodeValue &&
       timeSinceLastProcess < 2000
     ) {
-      console.log(
-        "Barcode already processed recently, skipping:",
-        barcodeValue
-      );
       return;
     }
 
@@ -129,7 +124,6 @@ const VatTuSelectFull = ({
       return;
     }
 
-    console.log("Processing barcode:", barcodeValue);
     isProcessingRef.current = true;
     lastProcessedBarcodeRef.current = {
       value: barcodeValue,
@@ -137,12 +131,18 @@ const VatTuSelectFull = ({
     };
 
     // Process the barcode
-    handleVatTuSelect(barcodeValue);
-
-    // Reset processing flag after a delay
-    setTimeout(() => {
-      isProcessingRef.current = false;
-    }, 1000);
+    try {
+      const result = await handleVatTuSelect(barcodeValue);
+      if (result === false) {
+        // Báo lỗi và clear input sau 2 giây
+        message.error("Thông tin vật tư không hợp lệ!");
+        setTimeout(() => setVatTuInput(""), 2000);
+      }
+    } finally {
+      setTimeout(() => {
+        isProcessingRef.current = false;
+      }, 1000);
+    }
   };
 
   const handleBarcodeInputKeyPress = (e) => {
@@ -186,7 +186,6 @@ const VatTuSelectFull = ({
       if (vatTuInput.length >= 8) {
         const timer = setTimeout(() => {
           if (vatTuInput && vatTuInput.trim()) {
-            console.log("Auto-submitting barcode:", vatTuInput);
             processBarcode(vatTuInput);
           }
         }, 200); // Increased delay for tablet
@@ -195,25 +194,6 @@ const VatTuSelectFull = ({
       }
     }
   }, [vatTuInput, barcodeEnabled]);
-
-  // Handle barcode scanner input (for tablet) - REMOVED to prevent double processing
-  // useEffect(() => {
-  //   if (barcodeEnabled) {
-  //     const handleKeyDown = (e) => {
-  //       // Some barcode scanners send different events
-  //       if (e.key === "Enter" || e.keyCode === 13) {
-  //         e.preventDefault();
-  //         if (vatTuInput && vatTuInput.trim()) {
-  //           console.log("Barcode scanner detected:", vatTuInput);
-  //           processBarcode(vatTuInput);
-  //         }
-  //       }
-  //     };
-
-  //     document.addEventListener("keydown", handleKeyDown);
-  //     return () => document.removeEventListener("keydown", handleKeyDown);
-  //   }
-  // }, [barcodeEnabled, vatTuInput]);
 
   // Xử lý scroll phân trang
   const handlePopupScroll = (e) => {

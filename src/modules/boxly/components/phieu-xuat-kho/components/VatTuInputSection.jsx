@@ -1,6 +1,6 @@
 import { QrcodeOutlined } from "@ant-design/icons";
 import { Button, Col, Form, Input, Row, Select } from "antd";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const VatTuInputSection = ({
   isEditMode,
@@ -27,35 +27,32 @@ const VatTuInputSection = ({
   const focusTimeoutRef = useRef(null);
   const isProcessingRef = useRef(false);
   const lastProcessedBarcodeRef = useRef("");
+  const [hiddenBarcode, setHiddenBarcode] = useState("");
+  const hiddenInputRef = useRef();
 
   // Auto focus khi chuyển sang chế độ barcode
   useEffect(() => {
-    if (barcodeEnabled && vatTuSelectRef.current) {
-      // Clear any existing timeout
-      if (focusTimeoutRef.current) {
-        clearTimeout(focusTimeoutRef.current);
-      }
-
-      // Use longer delay for tablet
-      focusTimeoutRef.current = setTimeout(() => {
-        if (vatTuSelectRef.current) {
-          vatTuSelectRef.current.focus();
-          // Force focus again after a short delay to ensure it works on tablet
-          setTimeout(() => {
-            if (vatTuSelectRef.current) {
-              vatTuSelectRef.current.focus();
-            }
-          }, 50);
-        }
-      }, 200);
-    }
-
+    // KHÔNG focus input khi barcodeEnabled để tránh bật bàn phím ảo
     return () => {
       if (focusTimeoutRef.current) {
         clearTimeout(focusTimeoutRef.current);
       }
     };
   }, [barcodeEnabled]);
+
+  useEffect(() => {
+    if (barcodeEnabled && hiddenInputRef.current) {
+      hiddenInputRef.current.focus();
+    }
+  }, [barcodeEnabled]);
+
+  const handleHiddenInput = (e) => {
+    const value = e.target.value;
+    if (value && value.length > 0) {
+      processBarcode(value);
+      setHiddenBarcode(""); // clear ngay sau khi scan
+    }
+  };
 
   const handleSearch = (value) => {
     // Avoid duplicate searches
@@ -87,6 +84,10 @@ const VatTuInputSection = ({
 
   const handleBarcodeInputChange = (e) => {
     const newValue = e.target.value;
+    // Nếu trước đó có lỗi (ví dụ: không tìm thấy vật tư), hoặc mỗi lần scan mới thì clear input trước
+    if (vatTuInput && vatTuInput !== newValue) {
+      setVatTuInput(""); // Clear input trước khi nhập mã mới
+    }
     setVatTuInput(newValue);
 
     // Reset lastProcessedBarcodeRef when input is cleared
@@ -95,10 +96,9 @@ const VatTuInputSection = ({
     }
   };
 
-  const processBarcode = (barcodeValue) => {
+  const processBarcode = async (barcodeValue) => {
     // Prevent double processing
     if (isProcessingRef.current) {
-      console.log("Already processing barcode, skipping:", barcodeValue);
       return;
     }
 
@@ -109,10 +109,6 @@ const VatTuInputSection = ({
       lastProcessedBarcodeRef.current?.value === barcodeValue &&
       timeSinceLastProcess < 2000
     ) {
-      console.log(
-        "Barcode already processed recently, skipping:",
-        barcodeValue
-      );
       return;
     }
 
@@ -120,7 +116,6 @@ const VatTuInputSection = ({
       return;
     }
 
-    console.log("Processing barcode:", barcodeValue);
     isProcessingRef.current = true;
     lastProcessedBarcodeRef.current = {
       value: barcodeValue,
@@ -128,7 +123,27 @@ const VatTuInputSection = ({
     };
 
     // Process the barcode
-    handleVatTuSelect(barcodeValue);
+    try {
+      // Gọi handleVatTuSelect với đầy đủ tham số để setVatTuInput hoạt động
+      const result = await handleVatTuSelect(
+        barcodeValue,
+        isEditMode,
+        fetchVatTuDetail,
+        fetchDonViTinh,
+        setVatTuInput,
+        setVatTuList,
+        fetchVatTuList,
+        vatTuSelectRef
+      );
+      // Nếu handleVatTuSelect trả về false hoặc lỗi, clear input
+      if (result === false) {
+        setVatTuInput("");
+        setHiddenBarcode(""); // Force re-render input ẩn
+      }
+    } catch (err) {
+      setVatTuInput("");
+      setHiddenBarcode(""); // Force re-render input ẩn
+    }
 
     // Reset processing flag after a delay
     setTimeout(() => {
@@ -177,7 +192,6 @@ const VatTuInputSection = ({
       if (vatTuInput.length >= 8) {
         const timer = setTimeout(() => {
           if (vatTuInput && vatTuInput.trim()) {
-            console.log("Auto-submitting barcode:", vatTuInput);
             processBarcode(vatTuInput);
           }
         }, 200); // Increased delay for tablet
@@ -206,6 +220,22 @@ const VatTuInputSection = ({
       <Col span={24}>
         <Form.Item label="Vật tư">
           <Input.Group compact>
+            {barcodeEnabled && (
+              <input
+                ref={hiddenInputRef}
+                value={hiddenBarcode}
+                onChange={handleHiddenInput}
+                style={{
+                  position: "absolute",
+                  opacity: 0,
+                  width: 1,
+                  height: 1,
+                  zIndex: -1,
+                }}
+                tabIndex={-1}
+                autoFocus
+              />
+            )}
             {!barcodeEnabled ? (
               <Select
                 ref={vatTuSelectRef}
@@ -233,23 +263,12 @@ const VatTuInputSection = ({
               />
             ) : (
               <Input
-                ref={vatTuSelectRef}
                 value={vatTuInput}
-                onChange={handleBarcodeInputChange}
-                onKeyPress={handleBarcodeInputKeyPress}
-                onKeyDown={handleBarcodeInputKeyDown}
-                onBlur={handleBarcodeInputBlur}
-                onFocus={handleBarcodeInputFocus}
+                readOnly
                 placeholder="Quét barcode vật tư..."
                 style={{ width: "calc(100% - 40px)" }}
                 disabled={!isEditMode}
-                autoFocus={barcodeEnabled}
-                autoComplete="off"
-                spellCheck={false}
-                className="barcode-input"
-                inputMode="text"
-                pattern="[0-9A-Za-z]*"
-                maxLength={50}
+                key={vatTuInput || ""}
               />
             )}
             <Button
@@ -264,6 +283,7 @@ const VatTuInputSection = ({
                   if (next) {
                     setBarcodeJustEnabled(true);
                     setVatTuInput("");
+                    setHiddenBarcode("");
                     dropdownOpenedRef.current = false;
                     lastSearchValueRef.current = "";
                     // Reset processing flags

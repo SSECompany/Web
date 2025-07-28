@@ -106,13 +106,11 @@ export const useVatTuManagerNhapKho = () => {
 
     // Validate input
     if (!value || !value.trim()) {
-      console.log("Empty value received");
       return;
     }
 
     // Prevent double processing
     if (isProcessingRef.current) {
-      console.log("Already processing, skipping:", value.trim());
       return;
     }
 
@@ -123,11 +121,8 @@ export const useVatTuManagerNhapKho = () => {
       lastProcessedValueRef.current?.value === value.trim() &&
       timeSinceLastProcess < 2000
     ) {
-      console.log("Value already processed recently, skipping:", value.trim());
       return;
     }
-
-    console.log("Processing barcode:", value.trim());
     isProcessingRef.current = true;
     lastProcessedValueRef.current = {
       value: value.trim(),
@@ -139,6 +134,7 @@ export const useVatTuManagerNhapKho = () => {
 
       if (!vatTuDetail) {
         message.error("Không tìm thấy thông tin vật tư");
+        if (setVatTuInput) setTimeout(() => setVatTuInput(""), 2000);
         return;
       }
 
@@ -148,27 +144,23 @@ export const useVatTuManagerNhapKho = () => {
 
       if (!vatTuInfo) {
         message.error("Thông tin vật tư không hợp lệ");
+        if (setVatTuInput) setTimeout(() => setVatTuInput(""), 2000);
         return;
       }
 
-      console.log("Vat tu info:", vatTuInfo);
-
       const donViTinhList = await fetchDonViTinh(value.trim());
-
-      console.log("Processing data source update...");
+      if (!Array.isArray(donViTinhList)) {
+        message.error("Không thể lấy danh sách đơn vị tính");
+        if (setVatTuInput) setTimeout(() => setVatTuInput(""), 2000);
+        return;
+      }
 
       setDataSource((prev) => {
-        console.log("Current data source:", prev);
-        console.log("Looking for existing item with maHang:", value.trim());
-
         const existingIndex = prev.findIndex(
           (item) => item.maHang && item.maHang.trim() === value.trim()
         );
 
-        console.log("Existing index:", existingIndex);
-
         if (existingIndex !== -1) {
-          console.log("Updating existing item...");
           const updatedData = prev.map((item, index) => {
             if (index === existingIndex) {
               const dvtHienTai = (item.dvt || "").trim();
@@ -230,12 +222,13 @@ export const useVatTuManagerNhapKho = () => {
                   dvtHienTai || (vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái"),
                 dvt_goc: dvtAPI,
 
+                ma_kho: (vatTuInfo.ma_kho || item.ma_kho || "").trim(), // Cập nhật ma_kho từ API, fallback về giá trị cũ
+
                 donViTinhList: donViTinhList,
                 isNewlyAdded: item.isNewlyAdded,
                 _lastUpdated: Date.now(),
               };
 
-              console.log("Updated item:", updatedItem);
               return updatedItem;
             }
             return item;
@@ -251,10 +244,8 @@ export const useVatTuManagerNhapKho = () => {
             key: index + 1,
           }));
 
-          console.log("Updated data source:", result);
           return result;
         } else {
-          console.log("Adding new item...");
           // Khi thêm vật tư mới: dùng hệ số từ API chi tiết vật tư
           const heSoGocFromAPI = isNaN(parseFloat(vatTuInfo.he_so))
             ? 1
@@ -304,7 +295,7 @@ export const useVatTuManagerNhapKho = () => {
             dvt: dvtHienTai,
             dvt_goc: dvtGocFromAPI,
             tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",
-            ma_kho: vatTuInfo.ma_kho ? vatTuInfo.ma_kho.trim() : "",
+            ma_kho: (vatTuInfo.ma_kho || "").trim(),
             donViTinhList: donViTinhList,
             isNewlyAdded: true,
 
@@ -334,9 +325,7 @@ export const useVatTuManagerNhapKho = () => {
             _lastUpdated: Date.now(),
           };
 
-          console.log("New item:", newItem);
           const result = [...prev, newItem];
-          console.log("Updated data source with new item:", result);
           return result;
         }
       });

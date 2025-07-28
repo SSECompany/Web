@@ -23,13 +23,11 @@ export const useVatTuManager = () => {
 
     // Validate input
     if (!value || !value.trim()) {
-      console.log("Empty value received");
       return;
     }
 
     // Prevent double processing
     if (isProcessingRef.current) {
-      console.log("Already processing, skipping:", value.trim());
       return;
     }
 
@@ -40,11 +38,8 @@ export const useVatTuManager = () => {
       lastProcessedValueRef.current?.value === value.trim() &&
       timeSinceLastProcess < 2000
     ) {
-      console.log("Value already processed recently, skipping:", value.trim());
       return;
     }
-
-    console.log("Processing barcode:", value.trim());
     isProcessingRef.current = true;
     lastProcessedValueRef.current = {
       value: value.trim(),
@@ -55,8 +50,9 @@ export const useVatTuManager = () => {
       const vatTuDetail = await fetchVatTuDetail(value.trim());
 
       if (!vatTuDetail) {
-        message.error("Không tìm thấy thông tin vật tư");
-        return;
+        message.error("Thông tin vật tư không hợp lệ!");
+        if (setVatTuInput) setTimeout(() => setVatTuInput(""), 2000);
+        return false;
       }
 
       const vatTuInfo = Array.isArray(vatTuDetail)
@@ -64,15 +60,17 @@ export const useVatTuManager = () => {
         : vatTuDetail;
 
       if (!vatTuInfo) {
-        message.error("Thông tin vật tư không hợp lệ");
-        return;
+        message.error("Thông tin vật tư không hợp lệ!");
+        if (setVatTuInput) setTimeout(() => setVatTuInput(""), 2000);
+        return false;
       }
 
       const donViTinhList = await fetchDonViTinh(value.trim());
 
       if (!Array.isArray(donViTinhList)) {
-        message.error("Không thể lấy danh sách đơn vị tính");
-        return;
+        message.error("Thông tin vật tư không hợp lệ!");
+        if (setVatTuInput) setTimeout(() => setVatTuInput(""), 2000);
+        return false;
       }
 
       const defaultDvt =
@@ -111,10 +109,10 @@ export const useVatTuManager = () => {
                 so_luong_goc: item.so_luong_goc,
                 sl_td3: sl_td3_lam_tron,
                 sl_td3_goc: sl_td3_goc_moi,
+                ma_kho: (vatTuInfo.ma_kho || item.ma_kho || "").trim(), // Cập nhật ma_kho từ API, fallback về giá trị cũ
                 _lastUpdated: Date.now(),
               };
 
-              console.log("Updated item:", updatedItem);
               return updatedItem;
             }
             return item;
@@ -130,7 +128,6 @@ export const useVatTuManager = () => {
             key: index + 1,
           }));
 
-          console.log("Updated data source:", result);
           return result;
         } else {
           const heSoGocFromAPI = parseFloat(vatTuInfo.he_so) || 1;
@@ -178,7 +175,7 @@ export const useVatTuManager = () => {
             dvt: dvtHienTai,
             dvt_goc: dvtGocFromAPI,
             tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",
-            ma_kho: vatTuInfo.ma_kho ? vatTuInfo.ma_kho.trim() : "",
+            ma_kho: (vatTuInfo.ma_kho || "").trim(),
             donViTinhList: donViTinhList,
             isNewlyAdded: true,
             gia_nt2: 0,
@@ -203,9 +200,7 @@ export const useVatTuManager = () => {
             _lastUpdated: Date.now(),
           };
 
-          console.log("New item:", newItem);
           const result = [...prev, newItem];
-          console.log("Updated data source with new item:", result);
           return result;
         }
       });
@@ -239,9 +234,11 @@ export const useVatTuManager = () => {
           }
         }, 300);
       }
+      return true;
     } catch (error) {
       console.error("Error adding vat tu:", error);
-      message.error("Có lỗi xảy ra khi thêm vật tư");
+      message.error("Thông tin vật tư không hợp lệ!");
+      return false;
     } finally {
       // Reset processing flag after a delay
       setTimeout(() => {

@@ -290,3 +290,13 @@ export const fetchVatTuListDynamicApi = async (params) => {
     };
   }
 };
+
+/**
+ * Xử lý trường ma_kho từ API response
+ * @param {string} apiMaKho - ma_kho từ API
+ * @param {string} fallbackMaKho - ma_kho fallback (cho trường hợp update item)
+ * @returns {string} ma_kho đã được trim
+ */
+export const processMaKho = (apiMaKho, fallbackMaKho = "") => {
+  return (apiMaKho || fallbackMaKho || "").trim();
+};
