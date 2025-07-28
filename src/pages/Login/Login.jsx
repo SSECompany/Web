@@ -7,7 +7,6 @@ import { UilExclamationOctagon } from "@iconscout/react-unicons";
 import {
   Button,
   Carousel,
-  Checkbox,
   Form,
   Input,
   notification,
@@ -254,23 +253,7 @@ const Login = () => {
               />
             </Space>
 
-            <Space
-              direction="horizontal"
-              className="default_space"
-              style={{
-                justifyContent: "space-between",
-                width: "100%",
-                paddingBottom: "10px",
-              }}
-            >
-              <Form.Item name="remember" valuePropName="checked" noStyle>
-                <Checkbox>Remember me</Checkbox>
-              </Form.Item>
 
-              <Button style={{ padding: "0" }} type="link">
-                Quên mật khẩu
-              </Button>
-            </Space>
 
             <Space direction="vertical" className="default_space login_tools">
               <Form.Item>

@@ -14,8 +14,8 @@ import { getUserInfo } from "../../../store/selectors/Selectors";
 import jwt from "../../../utils/jwt";
 
 import { resetOrders } from "../../../modules/order/store/order";
-import VersionIndicator from "../../common/VersionIndicator/VersionIndicator";
 import LogViewerButton from "../../common/LogViewer/LogViewerButton";
+import VersionIndicator from "../../common/VersionIndicator/VersionIndicator";
 import "./Navbar.css";
 
 const Navbar = () => {
