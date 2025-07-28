@@ -82,9 +82,12 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
           <strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}
         </div>
       </div>
-      <div style={{ color: "#000", marginBottom: "6px" }}>
-        <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
-      </div>
+      {/* Hình thức thanh toán chỉ hiển thị khi master.httt có giá trị */}
+      {master?.httt && (
+        <div style={{ color: "#000", marginBottom: "6px" }}>
+          <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
+        </div>
+      )}
 
       <div style={{ color: "#000", marginBottom: "6px" }}>
         <strong>Số CT:</strong> {master?.so_ct}

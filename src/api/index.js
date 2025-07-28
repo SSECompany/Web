@@ -249,7 +249,7 @@ export const printOrderApi = async (sttRec, userId) => {
     // Log error với enhanced info
     logger.logError(sttRec, userId, enhancedError, duration, "printOrderApi");
 
-    console.error(`❌ PrintOrderApi ${enhancedError.type || "ERROR"}:`, {
+    console.error(`❌ PrintOrderApi ${enhancedError.type || "FAILED"}:`, {
       type: enhancedError.type,
       message: enhancedError.message,
       duration: `${duration}ms`,
@@ -441,7 +441,7 @@ export const syncFastApi = async (sttRec, userId) => {
     // Log error với enhanced info
     logger.logError(sttRec, userId, enhancedError, duration, "syncFastApi");
 
-    console.error(`❌ SyncFastApi ${enhancedError.type || "ERROR"}:`, {
+    console.error(`❌ SyncFastApi ${enhancedError.type || "FAILED"}:`, {
       type: enhancedError.type,
       message: enhancedError.message,
       duration: `${duration}ms`,
@@ -474,4 +474,92 @@ export const syncFastMutiApi = async (sttRecList, userId) => {
     .then((res) => {
       return res?.data || [];
     });
+};
+
+// Print Job Tracking API
+export const getPrintJobTracking = async (params = {}) => {
+  try {
+    // Nếu không có ngày thì để null
+    const payload = {
+      ...params,
+      ngay: params.ngay || null,
+    };
+
+    const response = await multipleTablePutApi({
+      store: "api_getPrintJobTracking",
+      param: payload,
+      data: {},
+    });
+
+    return response;
+  } catch (error) {
+    console.error("Error fetching print job tracking:", error);
+    throw error;
+  }
+};
+
+// Print Order Retry API
+export const printOrderRetry = async (payload) => {
+  try {
+    const token = localStorage.getItem("access_token");
+    const response = await https.post("Print/print-order-retry", payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error retrying print order:", error);
+    throw error;
+  }
+};
+
+// Lấy danh sách máy in (store: api_getDMMayIn)
+export const getPrinterList = async ({
+  tenMay = "",
+  pageIndex = 1,
+  pageSize = 10,
+} = {}) => {
+  try {
+    const response = await multipleTablePutApi({
+      store: "api_getDMMayIn",
+      param: { tenMay, pageIndex, pageSize },
+      data: {},
+    });
+    return response;
+  } catch (error) {
+    console.error("Error fetching printer list:", error);
+    throw error;
+  }
+};
+
+// Cập nhật máy in (store: api_updateDMMayIn)
+export const updatePrinter = async ({ ma_may, ten_may, IpAddress, status }) => {
+  try {
+    const response = await multipleTablePutApi({
+      store: "api_updateDMMayIn",
+      param: { ma_may, ten_may, IpAddress, status },
+      data: {},
+    });
+    return response;
+  } catch (error) {
+    console.error("Error updating printer:", error);
+    throw error;
+  }
+};
+
+// Đếm tổng số lỗi in theo ngày (store: api_countPrintStatus_ByDate)
+export const api_countPrintStatus_ByDate = async (ngay) => {
+  try {
+    const response = await multipleTablePutApi({
+      store: "api_countPrintStatus_ByDate",
+      param: { ngay },
+      data: {},
+    });
+    return response;
+  } catch (error) {
+    console.error("Error fetching print status count:", error);
+    throw error;
+  }
 };

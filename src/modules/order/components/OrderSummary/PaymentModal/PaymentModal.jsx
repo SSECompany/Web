@@ -135,53 +135,21 @@ const PaymentModal = ({
   }, [visible, showQRCode, qrUrl, qrLoaded, qrError]);
 
   const handlePaymentSelection = (method) => {
-    setSelectedPayments((prev) => {
-      const newSelectedPayments = prev.includes(method)
-        ? prev.filter((item) => item !== method)
-        : [...prev, method];
-
+    if (method === "ca_hai") {
+      // Chọn cả hai - để input 0 nhưng tính đúng tiền trả lại
+      setSelectedPayments(["tien_mat", "chuyen_khoan"]);
+      setPaymentAmounts({ tien_mat: 0, chuyen_khoan: 0 });
+      setChange(-total); // Số tiền trả lại = 0 - total = -total
+    } else {
+      // Chọn một phương thức duy nhất
+      setSelectedPayments([method]);
       setPaymentAmounts((amounts) => {
-        const updatedAmounts = { ...amounts };
-
-        if (!newSelectedPayments.includes("tien_mat")) {
-          updatedAmounts["tien_mat"] = 0;
-        }
-        if (!newSelectedPayments.includes("chuyen_khoan")) {
-          updatedAmounts["chuyen_khoan"] = 0;
-        }
-
-        if (
-          newSelectedPayments.length === 1 &&
-          newSelectedPayments.includes("chuyen_khoan")
-        ) {
-          updatedAmounts["chuyen_khoan"] = total;
-        }
-
-        if (
-          newSelectedPayments.length === 1 &&
-          newSelectedPayments.includes("tien_mat")
-        ) {
-          updatedAmounts["tien_mat"] = total;
-        }
-
-        if (
-          newSelectedPayments.includes("tien_mat") &&
-          newSelectedPayments.includes("chuyen_khoan")
-        ) {
-          updatedAmounts["tien_mat"] = 0;
-          updatedAmounts["chuyen_khoan"] = 0;
-        }
-
-        const totalAmount = Object.values(updatedAmounts).reduce(
-          (sum, val) => sum + val,
-          0
-        );
-        setChange(totalAmount - total);
+        const updatedAmounts = { tien_mat: 0, chuyen_khoan: 0 };
+        updatedAmounts[method] = total;
         return updatedAmounts;
       });
-
-      return newSelectedPayments;
-    });
+      setChange(0);
+    }
   };
 
   const handleAmountChange = (method, value) => {
@@ -316,7 +284,7 @@ const PaymentModal = ({
             newPaymentAmounts.chuyen_khoan = total;
           }
         } else if (defaultPayments.length === 2) {
-          // Nếu có 2 phương thức thanh toán, mặc định chia đều hoặc reset về 0
+          // Nếu có 2 phương thức thanh toán, để input 0 và tính đúng tiền trả lại
           newPaymentAmounts.tien_mat = 0;
           newPaymentAmounts.chuyen_khoan = 0;
         }
@@ -327,7 +295,18 @@ const PaymentModal = ({
       // Tính toán change amount
       const totalPaid =
         newPaymentAmounts.tien_mat + newPaymentAmounts.chuyen_khoan;
-      setChange(totalPaid - total);
+
+      // Nếu có 2 phương thức thanh toán và không có dữ liệu đã lưu, tính tiền trả lại âm
+      if (
+        defaultPayments.length === 2 &&
+        (!initialPaymentAmounts ||
+          (initialPaymentAmounts.tien_mat === 0 &&
+            initialPaymentAmounts.chuyen_khoan === 0))
+      ) {
+        setChange(-total);
+      } else {
+        setChange(totalPaid - total);
+      }
 
       setCustomerInfo({
         ong_ba: initialCustomerInfo?.ong_ba || "",
@@ -504,15 +483,24 @@ const PaymentModal = ({
         <strong>Hình thức thanh toán:</strong>
       </p>
       <div className="payment-methods">
-        {["tien_mat", "chuyen_khoan"].map((method) => (
+        {["chuyen_khoan", "tien_mat", "ca_hai"].map((method) => (
           <div
             key={method}
             className={`payment-option ${
-              selectedPayments.includes(method) ? "selected" : ""
+              (method === "ca_hai" && selectedPayments.length === 2) ||
+              (method !== "ca_hai" &&
+                selectedPayments.includes(method) &&
+                selectedPayments.length === 1)
+                ? "selected"
+                : ""
             }`}
             onClick={() => handlePaymentSelection(method)}
           >
-            {method === "tien_mat" ? "Tiền mặt" : "Chuyển khoản"}
+            {method === "tien_mat"
+              ? "Tiền mặt"
+              : method === "chuyen_khoan"
+              ? "Chuyển khoản"
+              : "Đa phương thức"}
           </div>
         ))}
       </div>
@@ -544,11 +532,7 @@ const PaymentModal = ({
               gap: 8,
             }}
           >
-            <VietQR
-              amount={total}
-              soChungTu={`Thanh toan Phenikaa ${total}vnd`}
-              size={200}
-            />
+            <VietQR amount={total} soChungTu={""} size={200} />
             <div className="qr-info">
               {accountName?.split(" - ").map((line, index) => (
                 <div key={index} className="qr-info-line">
@@ -569,12 +553,19 @@ const PaymentModal = ({
           <p className="payment-text">
             <strong>Nhập số tiền:</strong>
           </p>
-          {selectedPayments.map((method) => (
-            <div key={method} className="payment-amount-container">
-              <span>{method === "tien_mat" ? "Tiền mặt" : "Chuyển khoản"}</span>
+          {selectedPayments.length === 1 ? (
+            // Chỉ hiển thị input cho phương thức được chọn
+            <div className="payment-amount-container">
+              <span>
+                {selectedPayments[0] === "tien_mat"
+                  ? "Tiền mặt"
+                  : "Chuyển khoản"}
+              </span>
               <InputNumber
-                value={paymentAmounts[method] || 0}
-                onChange={(value) => handleAmountChange(method, value)}
+                value={paymentAmounts[selectedPayments[0]] || 0}
+                onChange={(value) =>
+                  handleAmountChange(selectedPayments[0], value)
+                }
                 className="payment-input"
                 style={{ width: 120 }}
                 controls={false}
@@ -591,7 +582,34 @@ const PaymentModal = ({
                 }}
               />
             </div>
-          ))}
+          ) : (
+            // Hiển thị cả hai input khi chọn "Cả hai"
+            selectedPayments.map((method) => (
+              <div key={method} className="payment-amount-container">
+                <span>
+                  {method === "tien_mat" ? "Tiền mặt" : "Chuyển khoản"}
+                </span>
+                <InputNumber
+                  value={paymentAmounts[method] || 0}
+                  onChange={(value) => handleAmountChange(method, value)}
+                  className="payment-input"
+                  style={{ width: 120 }}
+                  controls={false}
+                  min="0"
+                  formatter={(value) => (value ? formatNumber(value) : "")}
+                  parser={(value) => (value ? parserNumber(value) : 0)}
+                  onKeyDownCapture={(event) => {
+                    if (
+                      !/[0-9]/.test(event.key) &&
+                      ![8, 46, 37, 38, 39, 40].includes(event.keyCode)
+                    ) {
+                      event.preventDefault();
+                    }
+                  }}
+                />
+              </div>
+            ))
+          )}
         </>
       )}
 
