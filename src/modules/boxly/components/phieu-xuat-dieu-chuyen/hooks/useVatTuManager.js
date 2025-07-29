@@ -103,12 +103,17 @@ export const useVatTuManager = () => {
 
               const sl_td3_goc_moi = (item.sl_td3_goc ?? 0) + 1;
 
+              // Số lượng đề nghị không thay đổi khi merge vật tư đã có
+              const soLuongDeNghiHienTai = item.soLuongDeNghi || 0;
+              const soLuongDeNghiLamTron = soLuongDeNghiHienTai;
+
               const updatedItem = {
                 ...item,
                 so_luong: item.so_luong,
                 so_luong_goc: item.so_luong_goc,
                 sl_td3: sl_td3_lam_tron,
                 sl_td3_goc: sl_td3_goc_moi,
+                soLuongDeNghi: soLuongDeNghiLamTron,
                 ma_kho: (vatTuInfo.ma_kho || item.ma_kho || "").trim(), // Cập nhật ma_kho từ API, fallback về giá trị cũ
                 _lastUpdated: Date.now(),
               };
@@ -135,24 +140,20 @@ export const useVatTuManager = () => {
 
           const dvtHienTai = dvtGocFromAPI;
 
-          let sl_td3_goc, sl_td3_hienThi;
-          let so_luong_goc, so_luong_hienThi;
+          // Khi thêm vật tư mới, số lượng gốc cho sl_td3 = 1, soLuongDeNghi = 0
+          let sl_td3_goc = 1; // Cho sl_td3 (số lượng cheat)
+          let soLuongDeNghiGoc = 0; // Cho soLuongDeNghi (số lượng đề nghị)
+          let sl_td3_hienThi;
+          let soLuongDeNghiHienThi;
           let heSoHienTai = heSoGocFromAPI;
 
           if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
-            sl_td3_goc = 1;
             sl_td3_hienThi = sl_td3_goc * heSoGocFromAPI;
-
-            so_luong_goc = 0;
-            so_luong_hienThi = so_luong_goc * heSoGocFromAPI;
-
+            soLuongDeNghiHienThi = soLuongDeNghiGoc * heSoGocFromAPI;
             heSoHienTai = heSoGocFromAPI;
           } else {
-            sl_td3_goc = 1;
             sl_td3_hienThi = sl_td3_goc;
-
-            so_luong_goc = 0;
-            so_luong_hienThi = so_luong_goc;
+            soLuongDeNghiHienThi = soLuongDeNghiGoc;
 
             const dvtHienTaiInfo = donViTinhList.find(
               (dvt) => dvt.dvt.trim() === dvtHienTai.trim()
@@ -165,10 +166,11 @@ export const useVatTuManager = () => {
           const newItem = {
             key: prev.length + 1,
             maHang: value,
-            so_luong: Math.round(so_luong_hienThi * 1000) / 1000,
-            so_luong_goc: Math.round(so_luong_goc * 1000) / 1000,
+            so_luong: Math.round(sl_td3_hienThi * 1000) / 1000, // Sử dụng sl_td3_hienThi cho so_luong
+            so_luong_goc: Math.round(sl_td3_goc * 1000) / 1000, // Sử dụng sl_td3_goc cho so_luong_goc
             sl_td3: Math.round(sl_td3_hienThi * 1000) / 1000,
             sl_td3_goc: Math.round(sl_td3_goc * 1000) / 1000,
+            soLuongDeNghi: Math.round(soLuongDeNghiHienThi * 1000) / 1000, // Số lượng đề nghị khởi tạo là 0
             he_so: heSoHienTai,
             he_so_goc: heSoGocFromAPI,
             ten_mat_hang: vatTuInfo.ten_vt || value,
@@ -248,24 +250,52 @@ export const useVatTuManager = () => {
   };
 
   const handleQuantityChange = (value, record, field) => {
-    const newValue = parseFloat(value) || 0;
+    // Xử lý giá trị đầu vào để hỗ trợ số thập phân
+    let newValue;
+
+    // Nếu value là chuỗi rỗng, đặt thành 0
+    if (value === "") {
+      newValue = 0;
+    } else if (value === ".") {
+      // Nếu chỉ có dấu chấm, giữ nguyên để người dùng tiếp tục nhập
+      newValue = value;
+    } else if (value.endsWith(".")) {
+      // Nếu kết thúc bằng dấu chấm, giữ nguyên chuỗi
+      newValue = value;
+    } else {
+      // Chuyển đổi thành số thập phân
+      newValue = parseFloat(value);
+      // Nếu parseFloat trả về NaN, đặt thành 0
+      if (isNaN(newValue)) {
+        newValue = 0;
+      }
+    }
 
     setDataSource((prev) =>
       prev.map((item) => {
         if (item.key === record.key) {
-          if (item.dvt?.trim() === item.dvt_goc?.trim()) {
-            const sl_td3_goc_moi = newValue / (item.he_so_goc ?? 1);
+          // Nếu newValue là chuỗi (có dấu chấm ở cuối), chỉ cập nhật field
+          if (typeof newValue === "string") {
             return {
               ...item,
               [field]: newValue,
-              sl_td3_goc: Math.round(sl_td3_goc_moi * 1000) / 1000,
             };
           } else {
-            return {
-              ...item,
-              [field]: newValue,
-              sl_td3_goc: newValue,
-            };
+            // Nếu newValue là số, tính toán bình thường
+            if (item.dvt?.trim() === item.dvt_goc?.trim()) {
+              const sl_td3_goc_moi = newValue / (item.he_so_goc ?? 1);
+              return {
+                ...item,
+                [field]: newValue,
+                sl_td3_goc: Math.round(sl_td3_goc_moi * 1000) / 1000,
+              };
+            } else {
+              return {
+                ...item,
+                [field]: newValue,
+                sl_td3_goc: newValue,
+              };
+            }
           }
         }
         return item;
@@ -308,9 +338,11 @@ export const useVatTuManager = () => {
       : record.he_so || 1;
     const sl_td3_hienTai = record.sl_td3 || 0;
     const so_luong_hien_tai = record.so_luong || 0;
+    const soLuongDeNghiHienTai = record.soLuongDeNghi || 0;
 
     let sl_td3_moi;
     let so_luong_moi;
+    let soLuongDeNghiMoi;
 
     if (sl_td3_hienTai === 0) {
       sl_td3_moi = 0;
@@ -318,10 +350,15 @@ export const useVatTuManager = () => {
       sl_td3_moi = (sl_td3_hienTai * heSoHienTai) / heSoMoi;
     }
 
+    // Số lượng đề nghị: chuyển đổi theo hệ số từ soLuongDeNghi hiện tại
+    soLuongDeNghiMoi = (soLuongDeNghiHienTai * heSoHienTai) / heSoMoi;
+
+    // Số lượng cheat: chuyển đổi theo hệ số từ so_luong hiện tại
     so_luong_moi = (so_luong_hien_tai * heSoHienTai) / heSoMoi;
 
     const sl_td3_lam_tron = Math.round(sl_td3_moi * 10000) / 10000;
     const so_luong_lam_tron = Math.round(so_luong_moi * 10000) / 10000;
+    const soLuongDeNghiLamTron = Math.round(soLuongDeNghiMoi * 10000) / 10000;
 
     let sl_td3_goc_moi = record.sl_td3_goc;
     if (newValue.trim() === record.dvt_goc?.trim()) {
@@ -345,6 +382,7 @@ export const useVatTuManager = () => {
               so_luong: so_luong_lam_tron,
               sl_td3: sl_td3_lam_tron,
               sl_td3_goc: Math.round((sl_td3_goc_moi || 0) * 10000) / 10000,
+              soLuongDeNghi: soLuongDeNghiLamTron, // Cập nhật soLuongDeNghi theo logic riêng
               _lastUpdated: Date.now(),
             }
           : { ...item }

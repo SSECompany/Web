@@ -88,13 +88,35 @@ const VatTuNhapKhoTable = ({
             type="text"
             value={value}
             onChange={(e) => {
-              const val = e.target.value.replace(/[^0-9.]/g, "");
+              let val = e.target.value;
+
+              // Chỉ cho phép số, dấu chấm và dấu phẩy
+              val = val.replace(/[^0-9.,]/g, "");
+
+              // Thay thế dấu phẩy bằng dấu chấm
+              val = val.replace(/,/g, ".");
+
+              // Đảm bảo chỉ có một dấu chấm thập phân
               const parts = val.split(".");
-              const formattedVal =
-                parts.length > 2
-                  ? parts[0] + "." + parts.slice(1).join("")
-                  : val;
-              handleQuantityChange(formattedVal, record, "soLuongDeNghi");
+              if (parts.length > 2) {
+                val = parts[0] + "." + parts.slice(1).join("");
+              }
+
+              // Giới hạn số chữ số thập phân tối đa là 3
+              const finalParts = val.split(".");
+              if (finalParts.length === 2 && finalParts[1].length > 3) {
+                val = finalParts[0] + "." + finalParts[1].substring(0, 3);
+              }
+
+              // Cho phép dấu chấm ở cuối (ví dụ: "12.")
+              // Chỉ chuyển đổi thành số khi không có dấu chấm ở cuối
+              if (val.endsWith(".")) {
+                // Nếu kết thúc bằng dấu chấm, giữ nguyên chuỗi
+                handleQuantityChange(val, record, "soLuongDeNghi");
+              } else {
+                // Nếu không kết thúc bằng dấu chấm, xử lý bình thường
+                handleQuantityChange(val, record, "soLuongDeNghi");
+              }
             }}
             style={{
               width: "100%",
@@ -143,13 +165,35 @@ const VatTuNhapKhoTable = ({
             type="text"
             value={value}
             onChange={(e) => {
-              const val = e.target.value.replace(/[^0-9.]/g, "");
+              let val = e.target.value;
+
+              // Chỉ cho phép số, dấu chấm và dấu phẩy
+              val = val.replace(/[^0-9.,]/g, "");
+
+              // Thay thế dấu phẩy bằng dấu chấm
+              val = val.replace(/,/g, ".");
+
+              // Đảm bảo chỉ có một dấu chấm thập phân
               const parts = val.split(".");
-              const formattedVal =
-                parts.length > 2
-                  ? parts[0] + "." + parts.slice(1).join("")
-                  : val;
-              handleQuantityChange(formattedVal, record, "soLuong");
+              if (parts.length > 2) {
+                val = parts[0] + "." + parts.slice(1).join("");
+              }
+
+              // Giới hạn số chữ số thập phân tối đa là 3
+              const finalParts = val.split(".");
+              if (finalParts.length === 2 && finalParts[1].length > 3) {
+                val = finalParts[0] + "." + finalParts[1].substring(0, 3);
+              }
+
+              // Cho phép dấu chấm ở cuối (ví dụ: "12.")
+              // Chỉ chuyển đổi thành số khi không có dấu chấm ở cuối
+              if (val.endsWith(".")) {
+                // Nếu kết thúc bằng dấu chấm, giữ nguyên chuỗi
+                handleQuantityChange(val, record, "soLuong");
+              } else {
+                // Nếu không kết thúc bằng dấu chấm, xử lý bình thường
+                handleQuantityChange(val, record, "soLuong");
+              }
             }}
             style={{
               width: "100%",

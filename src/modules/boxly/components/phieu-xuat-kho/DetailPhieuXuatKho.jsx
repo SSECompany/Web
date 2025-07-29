@@ -7,6 +7,7 @@ import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import VatTuSelectFull from "../../../../components/common/VatTuSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
+import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
@@ -151,6 +152,7 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
               ten_mat_hang: item.ten_vt?.trim() || item.ma_vt?.trim() || "",
               dvt: item.dvt?.trim() || "",
               so_luong: item.so_luong || 0,
+              sl_td3: item.sl_td3 || 0,
               ma_kho: item.ma_kho?.trim() || "",
               // Thêm các trường khác nếu cần
             }));
@@ -185,46 +187,74 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
 
       if (!validateDataSource(dataSource)) return;
 
-      const payload = buildPayload(values, dataSource, phieuData, true);
+      // Kiểm tra số lượng lệch nhau trước khi submit
+      const currentStatus = values.status || "0";
 
-      if (!payload) {
-        setLoading(false);
-        return;
-      }
+      validateQuantityForPhieu(
+        dataSource,
+        "phieu_xuat_kho",
+        currentStatus,
+        async () => {
+          // Callback khi user xác nhận tiếp tục
+          try {
+            const payload = buildPayload(values, dataSource, phieuData, true);
 
-      // Đảm bảo truyền đúng stt_rec khi cập nhật phiếu
-      if (phieuData && phieuData.stt_rec) {
-        if (payload.data && payload.data.master && payload.data.master[0]) {
-          payload.data.master[0].stt_rec = phieuData.stt_rec;
+            if (!payload) {
+              setLoading(false);
+              return;
+            }
+
+            // Đảm bảo truyền đúng stt_rec khi cập nhật phiếu
+            if (phieuData && phieuData.stt_rec) {
+              if (
+                payload.data &&
+                payload.data.master &&
+                payload.data.master[0]
+              ) {
+                payload.data.master[0].stt_rec = phieuData.stt_rec;
+              }
+            }
+
+            // Tích hợp dynamicApi update
+            const master =
+              payload.master ||
+              (payload.data && payload.data.master && payload.data.master[0]);
+            if (
+              !master ||
+              (Array.isArray(master) && typeof master[0] !== "object")
+            ) {
+              message.error("Dữ liệu phiếu không hợp lệ!");
+              setLoading(false);
+              return;
+            }
+            const detail =
+              payload.detail || (payload.data && payload.data.detail);
+            const result = await updatePhieuXuatKho(
+              Array.isArray(master) ? master[0] : master,
+              detail,
+              token
+            );
+            if (result.data?.responseModel?.isSucceded) {
+              message.success("Cập nhật phiếu xuất kho thành công");
+              setTimeout(() => {
+                navigate("/boxly/phieu-xuat-kho");
+              }, 1000);
+            } else {
+              message.error("Cập nhật phiếu xuất kho thất bại");
+            }
+          } catch (error) {
+            console.error("Submit failed:", error);
+          } finally {
+            setLoading(false);
+          }
+        },
+        () => {
+          // Callback khi user hủy
+          setLoading(false);
         }
-      }
-
-      // Tích hợp dynamicApi update
-      const master =
-        payload.master ||
-        (payload.data && payload.data.master && payload.data.master[0]);
-      if (!master || (Array.isArray(master) && typeof master[0] !== "object")) {
-        message.error("Dữ liệu phiếu không hợp lệ!");
-        setLoading(false);
-        return;
-      }
-      const detail = payload.detail || (payload.data && payload.data.detail);
-      const result = await updatePhieuXuatKho(
-        Array.isArray(master) ? master[0] : master,
-        detail,
-        token
       );
-      if (result.data?.responseModel?.isSucceded) {
-        message.success("Cập nhật phiếu xuất kho thành công");
-        setTimeout(() => {
-          navigate("/boxly/phieu-xuat-kho");
-        }, 1000);
-      } else {
-        message.error("Cập nhật phiếu xuất kho thất bại");
-      }
     } catch (error) {
       console.error("Lỗi khi cập nhật phiếu xuất kho:", error);
-    } finally {
       setLoading(false);
     }
   }, [form, dataSource, phieuData, isEditMode, navigate, setLoading, token]);

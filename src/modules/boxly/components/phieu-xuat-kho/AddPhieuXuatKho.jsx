@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
+import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
@@ -198,48 +199,55 @@ const AddPhieuXuatKho = () => {
 
       if (!validateDataSource(dataSource)) return;
 
-      const invalidItems = [];
-      dataSource.forEach((item, index) => {
-        const sl_td3 = parseFloat(item.sl_td3 || 0);
-        if (sl_td3 <= 0) {
-          invalidItems.push(`Dòng ${index + 1}: Số lượng xuất phải lớn hơn 0`);
-        }
-      });
+      // Kiểm tra số lượng lệch nhau trước khi submit
+      const currentStatus = values.status || "0";
 
-      if (invalidItems.length > 0) {
-        setLoading(false);
-        return;
-      }
+      validateQuantityForPhieu(
+        dataSource,
+        "phieu_xuat_kho",
+        currentStatus,
+        async () => {
+          // Callback khi user xác nhận tiếp tục
+          try {
+            const payload = buildPayload(values, dataSource, null, false);
 
-      const payload = buildPayload(values, dataSource, null, false);
+            if (!payload) {
+              setLoading(false);
+              return;
+            }
 
-      if (!payload) {
-        setLoading(false);
-        return;
-      }
+            // Gọi dynamicApi thêm mới phiếu xuất kho
+            const response = await https.post(
+              "v1/dynamicApi/call-dynamic-api",
+              payload,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
 
-      // Gọi dynamicApi thêm mới phiếu xuất kho
-      const response = await https.post(
-        "v1/dynamicApi/call-dynamic-api",
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+            if (
+              response.data &&
+              (response.data.statusCode === 200 ||
+                response.data.responseModel?.isSucceded)
+            ) {
+              navigate("/boxly/phieu-xuat-kho");
+            }
+          } catch (error) {
+            console.error("Submit failed:", error);
+          } finally {
+            setLoading(false);
+          }
+        },
+        () => {
+          // Callback khi user hủy
+          setLoading(false);
         }
       );
-
-      if (
-        response.data &&
-        (response.data.statusCode === 200 ||
-          response.data.responseModel?.isSucceded)
-      ) {
-        navigate("/boxly/phieu-xuat-kho");
-      }
     } catch (error) {
       console.error("Lỗi khi tạo phiếu xuất kho:", error);
-    } finally {
       setLoading(false);
     }
   };

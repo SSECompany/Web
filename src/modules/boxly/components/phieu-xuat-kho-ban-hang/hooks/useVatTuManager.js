@@ -395,27 +395,55 @@ export const useVatTuManager = () => {
   };
 
   const handleQuantityChange = (value, record, field) => {
-    const newValue = parseFloat(value) || 0;
+    // Xử lý giá trị đầu vào để hỗ trợ số thập phân
+    let newValue;
+    
+    // Nếu value là chuỗi rỗng, đặt thành 0
+    if (value === "") {
+      newValue = 0;
+    } else if (value === ".") {
+      // Nếu chỉ có dấu chấm, giữ nguyên để người dùng tiếp tục nhập
+      newValue = value;
+    } else if (value.endsWith(".")) {
+      // Nếu kết thúc bằng dấu chấm, giữ nguyên chuỗi
+      newValue = value;
+    } else {
+      // Chuyển đổi thành số thập phân
+      newValue = parseFloat(value);
+      // Nếu parseFloat trả về NaN, đặt thành 0
+      if (isNaN(newValue)) {
+        newValue = 0;
+      }
+    }
 
     setDataSource((prev) =>
       prev.map((item) => {
         if (item.key === record.key) {
-          if (item.dvt?.trim() === item.dvt_goc?.trim()) {
-            const sl_td3_goc_moi = newValue / (item.he_so_goc ?? 1);
-
+          // Nếu newValue là chuỗi (có dấu chấm ở cuối), chỉ cập nhật field
+          if (typeof newValue === "string") {
             return {
               ...item,
               [field]: newValue,
-              sl_td3_goc: Math.round(sl_td3_goc_moi * 1000) / 1000,
               _lastUpdated: Date.now(),
             };
           } else {
-            return {
-              ...item,
-              [field]: newValue,
-              sl_td3_goc: newValue,
-              _lastUpdated: Date.now(),
-            };
+            // Nếu newValue là số, tính toán bình thường
+            if (item.dvt?.trim() === item.dvt_goc?.trim()) {
+              const sl_td3_goc_moi = newValue / (item.he_so_goc ?? 1);
+              return {
+                ...item,
+                [field]: newValue,
+                sl_td3_goc: Math.round(sl_td3_goc_moi * 1000) / 1000,
+                _lastUpdated: Date.now(),
+              };
+            } else {
+              return {
+                ...item,
+                [field]: newValue,
+                sl_td3_goc: newValue,
+                _lastUpdated: Date.now(),
+              };
+            }
           }
         }
         return { ...item };

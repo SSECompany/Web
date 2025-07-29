@@ -7,6 +7,7 @@ import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import VatTuSelectFull from "../../../../components/common/VatTuSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
+import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import { fetchVatTuListDynamicApi } from "../phieu-nhap-kho/utils/phieuNhapKhoUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuTable from "./components/VatTuTable";
@@ -305,33 +306,53 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         return;
       }
 
-      // Kiểm tra số lượng xuất = 0 và hiển thị cảnh báo
-      const quantityValidation = validateQuantityAndShowConfirm(
+      // Kiểm tra số lượng lệch nhau trước khi submit
+      const currentStatus = values.trangThai || "0";
+
+      validateQuantityForPhieu(
         dataSource,
+        "phieu_xuat_kho_ban_hang",
+        currentStatus,
+        async () => {
+          // Callback khi user xác nhận tiếp tục
+          try {
+            // Kiểm tra số lượng xuất = 0 và hiển thị cảnh báo
+            const quantityValidation = validateQuantityAndShowConfirm(
+              dataSource,
+              () => {
+                showConfirm({
+                  title: "Cảnh báo số lượng xuất",
+                  content: quantityValidation.getContentJSX(),
+                  type: "info",
+                  className: "centered-buttons fixed-height wide-modal",
+                  onOk: async () => {
+                    // Xác nhận tiếp tục submit
+                    await submitPhieuData(values);
+                  },
+                  onCancel: () => {
+                    setLoading(false);
+                  },
+                });
+              }
+            );
+
+            if (quantityValidation.hasZeroQuantity) {
+              quantityValidation.proceed();
+              return;
+            }
+
+            // Không có vấn đề với số lượng, tiếp tục submit
+            await submitPhieuData(values);
+          } catch (error) {
+            console.error("Submit failed:", error);
+            setLoading(false);
+          }
+        },
         () => {
-          showConfirm({
-            title: "Cảnh báo số lượng xuất",
-            content: quantityValidation.getContentJSX(),
-            type: "info",
-            className: "centered-buttons fixed-height wide-modal",
-            onOk: async () => {
-              // Xác nhận tiếp tục submit
-              await submitPhieuData(values);
-            },
-            onCancel: () => {
-              setLoading(false);
-            },
-          });
+          // Callback khi user hủy
+          setLoading(false);
         }
       );
-
-      if (quantityValidation.hasZeroQuantity) {
-        quantityValidation.proceed();
-        return;
-      }
-
-      // Không có vấn đề với số lượng, tiếp tục submit
-      await submitPhieuData(values);
     } catch (error) {
       console.error("Lỗi khi cập nhật phiếu xuất kho:", error);
       setLoading(false);

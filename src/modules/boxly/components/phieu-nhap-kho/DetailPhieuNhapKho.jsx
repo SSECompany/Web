@@ -7,6 +7,7 @@ import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import VatTuSelectFull from "../../../../components/common/VatTuSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
+import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import PhieuNhapKhoFormInputs from "./components/PhieuNhapKhoFormInputs";
 import VatTuNhapKhoTable from "./components/VatTuNhapKhoTable";
 import { usePhieuNhapKhoData } from "./hooks/usePhieuNhapKhoData";
@@ -293,35 +294,55 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
         return;
       }
 
-      // Build payload
-      const payload = buildPhieuNhapKhoPayload(
-        values,
+      // Kiểm tra số lượng lệch nhau trước khi submit
+      const currentStatus = values.trangThai || "0";
+
+      validateQuantityForPhieu(
         dataSource,
-        phieuData,
-        true
+        "phieu_nhap_kho",
+        currentStatus,
+        async () => {
+          // Callback khi user xác nhận tiếp tục
+          try {
+            // Build payload
+            const payload = buildPhieuNhapKhoPayload(
+              values,
+              dataSource,
+              phieuData,
+              true
+            );
+
+            // Submit
+            const result = await submitPhieuNhapKho(
+              "v1/web/update-stock-voucher",
+              payload,
+              "Cập nhật phiếu nhập kho thành công"
+            );
+
+            if (result.success) {
+              message.success(
+                "Đã cập nhật thành công, đang chuyển về trang chính..."
+              );
+
+              // Delay một chút để user thấy message trước khi navigate
+              setTimeout(() => {
+                navigate("/boxly/phieu-nhap-kho");
+              }, 1000);
+            } else {
+            }
+          } catch (error) {
+            console.error("Submit failed:", error);
+          } finally {
+            setLoading(false);
+          }
+        },
+        () => {
+          // Callback khi user hủy
+          setLoading(false);
+        }
       );
-
-      // Submit
-      const result = await submitPhieuNhapKho(
-        "v1/web/update-stock-voucher",
-        payload,
-        "Cập nhật phiếu nhập kho thành công"
-      );
-
-      if (result.success) {
-        message.success(
-          "Đã cập nhật thành công, đang chuyển về trang chính..."
-        );
-
-        // Delay một chút để user thấy message trước khi navigate
-        setTimeout(() => {
-          navigate("/boxly/phieu-nhap-kho");
-        }, 1000);
-      } else {
-      }
     } catch (error) {
       console.error("Validation failed:", error);
-    } finally {
       setLoading(false);
     }
   };

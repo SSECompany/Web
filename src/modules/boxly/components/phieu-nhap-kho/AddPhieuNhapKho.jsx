@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import VatTuSelectFull from "../../../../components/common/VatTuSelectFull/VatTuSelectFull";
 import "../common-phieu.css";
+import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import PhieuNhapKhoFormInputs from "./components/PhieuNhapKhoFormInputs";
 import VatTuNhapKhoTable from "./components/VatTuNhapKhoTable";
 import { usePhieuNhapKhoData } from "./hooks/usePhieuNhapKhoData";
@@ -151,22 +152,42 @@ const AddPhieuNhapKho = () => {
         return;
       }
 
-      // Build payload
-      const payload = buildPhieuNhapKhoPayload(values, dataSource);
+      // Kiểm tra số lượng lệch nhau trước khi submit
+      const currentStatus = values.trangThai || "0";
 
-      // Submit
-      const result = await submitPhieuNhapKho(
-        "v1/web/create-stock-voucher",
-        payload,
-        "Thêm phiếu nhập kho thành công"
+      validateQuantityForPhieu(
+        dataSource,
+        "phieu_nhap_kho",
+        currentStatus,
+        async () => {
+          // Callback khi user xác nhận tiếp tục
+          try {
+            // Build payload
+            const payload = buildPhieuNhapKhoPayload(values, dataSource);
+
+            // Submit
+            const result = await submitPhieuNhapKho(
+              "v1/web/create-stock-voucher",
+              payload,
+              "Thêm phiếu nhập kho thành công"
+            );
+
+            if (result.success) {
+              navigate("/boxly/phieu-nhap-kho");
+            }
+          } catch (error) {
+            console.error("Submit failed:", error);
+          } finally {
+            setLoading(false);
+          }
+        },
+        () => {
+          // Callback khi user hủy
+          setLoading(false);
+        }
       );
-
-      if (result.success) {
-        navigate("/boxly/phieu-nhap-kho");
-      }
     } catch (error) {
       console.error("Validation failed:", error);
-    } finally {
       setLoading(false);
     }
   };

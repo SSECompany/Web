@@ -12,6 +12,7 @@ import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
 
+import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import { fetchVatTuListDynamicApi } from "../phieu-nhap-kho/utils/phieuNhapKhoUtils";
 import {
   buildPayload,
@@ -181,7 +182,8 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
                 maHang: item.ma_vt?.trim() || "",
                 ten_mat_hang: item.ten_vt?.trim() || item.ma_vt?.trim() || "",
                 dvt: item.dvt?.trim() || "",
-                sl_td3: item.so_luong || 0,
+                so_luong: item.so_luong || 0,
+                sl_td3: item.sl_td3 || 0,
                 ma_kho: item.ma_kho?.trim() || "",
                 // Thêm các trường khác nếu cần
               }));
@@ -252,10 +254,29 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
 
       if (!validateDataSource(dataSource)) return;
 
-      await submitPhieuData(values);
+      // Kiểm tra số lượng lệch nhau trước khi submit
+      const currentStatus = values.trangThai || "0";
+
+      validateQuantityForPhieu(
+        dataSource,
+        "phieu_xuat_dieu_chuyen",
+        currentStatus,
+        async () => {
+          // Callback khi user xác nhận tiếp tục
+          try {
+            await submitPhieuData(values);
+          } catch (error) {
+            console.error("Submit failed:", error);
+            setLoading(false);
+          }
+        },
+        () => {
+          // Callback khi user hủy
+          setLoading(false);
+        }
+      );
     } catch (error) {
       console.error("Lỗi khi cập nhật phiếu xuất điều chuyển:", error);
-    } finally {
       setLoading(false);
     }
   }, [form, dataSource, phieuData, isEditMode, navigate, setLoading]);

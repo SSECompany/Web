@@ -38,9 +38,15 @@ export const validateDataSource = (dataSource) => {
     if (!item.ma_kho || !item.ma_kho.trim()) {
       missingData.push(`Dòng ${index + 1}: Chưa chọn mã kho`);
     }
-    const soLuong = parseFloat(item.so_luong ?? item.sl_td3 ?? 0);
-    if (soLuong <= 0) {
-      missingData.push(`Dòng ${index + 1}: Số lượng phải lớn hơn 0`);
+    const soLuongDeNghi = parseFloat(
+      item.soLuongDeNghi ?? item.so_luong ?? item.sl_td3 ?? 0
+    );
+    const soLuongCheat = parseFloat(item.sl_td3 ?? 0);
+    if (soLuongDeNghi <= 0) {
+      missingData.push(`Dòng ${index + 1}: Số lượng đề nghị phải lớn hơn 0`);
+    }
+    if (soLuongCheat <= 0) {
+      missingData.push(`Dòng ${index + 1}: Số lượng cheat phải lớn hơn 0`);
     }
   });
   if (missingData.length > 0) {
@@ -109,7 +115,9 @@ export const buildPayload = (
     ma_vt: item.maHang?.trim() || "",
     ma_kho: item.ma_kho || "",
     dvt: item.dvt || "Cái",
-    so_luong: parseFloat(item.so_luong ?? item.sl_td3) || 0,
+    so_luong:
+      parseFloat(item.soLuongDeNghi ?? item.so_luong ?? item.sl_td3) || 0,
+    sl_td3: parseFloat(item.sl_td3) || 0,
     gia_nt: 0,
     gia: 0,
     tien_nt: 0,

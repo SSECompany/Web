@@ -371,39 +371,67 @@ export const useVatTuManagerNhapKho = () => {
   };
 
   const handleQuantityChange = (value, record, field) => {
-    const newValue = parseFloat(value) || 0;
+    // Xử lý giá trị đầu vào để hỗ trợ số thập phân
+    let newValue;
+
+    // Nếu value là chuỗi rỗng, đặt thành 0
+    if (value === "") {
+      newValue = 0;
+    } else if (value === ".") {
+      // Nếu chỉ có dấu chấm, giữ nguyên để người dùng tiếp tục nhập
+      newValue = value;
+    } else if (value.endsWith(".")) {
+      // Nếu kết thúc bằng dấu chấm, giữ nguyên chuỗi
+      newValue = value;
+    } else {
+      // Chuyển đổi thành số thập phân
+      newValue = parseFloat(value);
+      // Nếu parseFloat trả về NaN, đặt thành 0
+      if (isNaN(newValue)) {
+        newValue = 0;
+      }
+    }
 
     setDataSource((prev) =>
       prev.map((item) => {
         if (item.key === record.key) {
-          if (field === "soLuong") {
-            // Xử lý thay đổi số lượng thực tế (sl_td3)
-            if (item.dvt?.trim() === item.dvt_goc?.trim()) {
-              const soLuongGocMoi = newValue / (item.he_so_goc ?? 1);
-              return {
-                ...item,
-                [field]: newValue,
-                soLuong_goc: Math.round(soLuongGocMoi * 1000) / 1000,
-              };
-            } else {
-              return {
-                ...item,
-                [field]: newValue,
-                soLuong_goc: newValue,
-              };
-            }
-          } else if (field === "soLuongDeNghi") {
-            // Xử lý thay đổi số lượng đề nghị (so_luong) - không ảnh hưởng đến soLuong_goc
+          // Nếu newValue là chuỗi (có dấu chấm ở cuối), chỉ cập nhật field
+          if (typeof newValue === "string") {
             return {
               ...item,
               [field]: newValue,
             };
           } else {
-            // Xử lý các trường khác
-            return {
-              ...item,
-              [field]: newValue,
-            };
+            // Nếu newValue là số, tính toán bình thường
+            if (field === "soLuong") {
+              // Xử lý thay đổi số lượng thực tế (sl_td3)
+              if (item.dvt?.trim() === item.dvt_goc?.trim()) {
+                const soLuongGocMoi = newValue / (item.he_so_goc ?? 1);
+                return {
+                  ...item,
+                  [field]: newValue,
+                  soLuong_goc: Math.round(soLuongGocMoi * 1000) / 1000,
+                };
+              } else {
+                return {
+                  ...item,
+                  [field]: newValue,
+                  soLuong_goc: newValue,
+                };
+              }
+            } else if (field === "soLuongDeNghi") {
+              // Xử lý thay đổi số lượng đề nghị (so_luong) - không ảnh hưởng đến soLuong_goc
+              return {
+                ...item,
+                [field]: newValue,
+              };
+            } else {
+              // Xử lý các trường khác
+              return {
+                ...item,
+                [field]: newValue,
+              };
+            }
           }
         }
         return item;

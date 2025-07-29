@@ -6,12 +6,16 @@ import { useNavigate } from "react-router-dom";
 import VatTuSelectFull from "../../../../components/common/VatTuSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
+import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import { fetchVatTuListDynamicApi } from "../phieu-nhap-kho/utils/phieuNhapKhoUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
-import { buildPayload } from "./utils/phieuXuatDieuChuyenUtils";
+import {
+  buildPayload,
+  validateDataSource,
+} from "./utils/phieuXuatDieuChuyenUtils";
 
 const { Title } = Typography;
 
@@ -189,61 +193,62 @@ const AddPhieuXuatDieuChuyen = () => {
       setLoading(true);
       const values = await form.validateFields();
 
-      // Validate dataSource (danh sách vật tư)
-      if (
-        !dataSource ||
-        !Array.isArray(dataSource) ||
-        dataSource.length === 0
-      ) {
-        setLoading(false);
-        return;
-      }
+      if (!validateDataSource(dataSource)) return;
 
-      const invalidItems = [];
-      dataSource.forEach((item, index) => {
-        const sl_td3 = parseFloat(item.sl_td3 || 0);
-        if (sl_td3 <= 0) {
-          invalidItems.push(`Dòng ${index + 1}: Số lượng xuất phải lớn hơn 0`);
-        }
-      });
+      // Kiểm tra số lượng lệch nhau trước khi submit
+      const currentStatus = values.trangThai || "0";
+      console.log("Current status:", currentStatus);
+      console.log("Data source:", dataSource);
 
-      if (invalidItems.length > 0) {
-        setLoading(false);
-        return;
-      }
+      validateQuantityForPhieu(
+        dataSource,
+        "phieu_xuat_dieu_chuyen",
+        currentStatus,
+        async () => {
+          // Callback khi user xác nhận tiếp tục
+          try {
+            const payload = buildPayload(values, dataSource, null, false);
+            if (!payload) {
+              setLoading(false);
+              return;
+            }
 
-      const payload = buildPayload(values, dataSource, null, false);
-      if (!payload) {
-        setLoading(false);
-        return;
-      }
+            // Gọi dynamicApi thêm mới phiếu xuất điều chuyển
+            const response = await https.post(
+              "v1/dynamicApi/call-dynamic-api",
+              payload,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
 
-      // Gọi dynamicApi thêm mới phiếu xuất điều chuyển
-      const response = await https.post(
-        "v1/dynamicApi/call-dynamic-api",
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+            if (
+              response.data &&
+              (response.data.statusCode === 200 ||
+                response.data.responseModel?.isSucceded)
+            ) {
+              message.success("Tạo phiếu xuất điều chuyển thành công");
+              navigate("/boxly/phieu-xuat-dieu-chuyen");
+            } else {
+              message.error("Tạo phiếu xuất điều chuyển thất bại");
+            }
+          } catch (error) {
+            console.error("Submit failed:", error);
+          } finally {
+            setLoading(false);
+          }
+        },
+        () => {
+          // Callback khi user hủy
+          setLoading(false);
         }
       );
-
-      if (
-        response.data &&
-        (response.data.statusCode === 200 ||
-          response.data.responseModel?.isSucceded)
-      ) {
-        message.success("Tạo phiếu xuất điều chuyển thành công");
-        navigate("/boxly/phieu-xuat-dieu-chuyen");
-      } else {
-        message.error("Tạo phiếu xuất điều chuyển thất bại");
-      }
     } catch (error) {
       console.error("Lỗi khi tạo phiếu xuất điều chuyển:", error);
       message.error("Có lỗi xảy ra khi tạo phiếu xuất điều chuyển");
-    } finally {
       setLoading(false);
     }
   };
@@ -301,6 +306,7 @@ const AddPhieuXuatDieuChuyen = () => {
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchMaKhoList={fetchMaKhoList}
           />
           <div
             style={{
