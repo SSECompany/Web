@@ -178,14 +178,14 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             // Cập nhật dataSource với dữ liệu detail
             if (detailData && detailData.length > 0) {
               const formattedDetail = detailData.map((item, index) => ({
-                key: index,
+                key: index + 1,
                 maHang: item.ma_vt?.trim() || "",
                 ten_mat_hang: item.ten_vt?.trim() || item.ma_vt?.trim() || "",
                 dvt: item.dvt?.trim() || "",
+                he_so: parseFloat(item.he_so) || 1,
                 so_luong: item.so_luong || 0,
                 sl_td3: item.sl_td3 || 0,
                 ma_kho: item.ma_kho?.trim() || "",
-                // Thêm các trường khác nếu cần
               }));
               setDataSource(formattedDetail);
             } else {
@@ -252,7 +252,10 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
       setLoading(true);
       const values = await form.validateFields();
 
-      if (!validateDataSource(dataSource)) return;
+      if (!validateDataSource(dataSource)) {
+        setLoading(false);
+        return;
+      }
 
       // Kiểm tra số lượng lệch nhau trước khi submit
       const currentStatus = values.trangThai || "0";
@@ -419,6 +422,8 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchDonViTinh={fetchDonViTinh}
+            onDataSourceUpdate={setDataSource}
           />
 
           {isEditMode && (

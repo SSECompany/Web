@@ -363,6 +363,10 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
     async (values) => {
       try {
         const payload = buildPayload(values, dataSource, phieuData, true);
+        if (!payload) {
+          setLoading(false);
+          return;
+        }
         const result = await submitPhieu(
           "v1/web/cap-nhat-phieu-xuat-kho-ban-hang",
           payload,
@@ -498,6 +502,8 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
             maKhachList={maKhachList}
             loadingMaKhach={loadingMaKhach}
             fetchMaKhachListDebounced={fetchMaKhachListDebounced}
+            fetchDonViTinh={fetchDonViTinh}
+            onDataSourceUpdate={setDataSource}
           />
 
           {isEditMode && (

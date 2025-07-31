@@ -8,17 +8,7 @@
 
 .fixed-height .ant-modal-content {
   min-height: 160px !important;
-  background: linear-gradient(
-    135deg,
-    #ffffff 0%,
-    #f8faff 40%,
-    #e8ecff 65%,
-    #a5b4fc 85%,
-    #8b94e8 100%
-  );
   border-radius: 16px !important;
-  box-shadow: 0 15px 35px rgba(139, 148, 232, 0.2),
-    0 5px 15px rgba(165, 180, 252, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.3);
   overflow: hidden;
   position: relative;

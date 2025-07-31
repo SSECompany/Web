@@ -146,16 +146,29 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
 
           // Cập nhật dataSource với dữ liệu detail
           if (result.detail && result.detail.length > 0) {
-            const formattedDetail = result.detail.map((item, index) => ({
-              key: index,
-              maHang: item.ma_vt?.trim() || "",
-              ten_mat_hang: item.ten_vt?.trim() || item.ma_vt?.trim() || "",
-              dvt: item.dvt?.trim() || "",
-              so_luong: item.so_luong || 0,
-              sl_td3: item.sl_td3 || 0,
-              ma_kho: item.ma_kho?.trim() || "",
-              // Thêm các trường khác nếu cần
-            }));
+            const formattedDetail = result.detail.map((item, index) => {
+              // Kiểm tra tất cả các trường có thể chứa mã vật tư
+              const possibleMaVtFields = ["ma_vt"];
+              let foundMaVt = null;
+
+              for (const field of possibleMaVtFields) {
+                if (item[field] && item[field].trim()) {
+                  foundMaVt = item[field].trim();
+                  break;
+                }
+              }
+
+              return {
+                key: index,
+                maHang: foundMaVt,
+                ten_mat_hang: foundMaVt,
+                dvt: item.dvt?.trim() || "",
+                so_luong: item.so_luong || 0,
+                sl_td3: item.sl_td3 || 0,
+                ma_kho: item.ma_kho?.trim() || "",
+              };
+            });
+
             setDataSource(formattedDetail);
           } else {
             setDataSource([]);
@@ -185,7 +198,10 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
       setLoading(true);
       const values = await form.validateFields();
 
-      if (!validateDataSource(dataSource)) return;
+      if (!validateDataSource(dataSource)) {
+        setLoading(false);
+        return;
+      }
 
       // Kiểm tra số lượng lệch nhau trước khi submit
       const currentStatus = values.status || "0";
@@ -270,9 +286,11 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
       content: "Bạn có chắc chắn muốn xóa phiếu xuất kho này không?",
       type: "warning",
       onOk: async () => {
+        setLoading(true);
         try {
           if (!stt_rec) {
             message.error("Không tìm thấy mã phiếu để xóa");
+            setLoading(false);
             return;
           }
 
@@ -318,10 +336,12 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
           } else {
             message.error("Có lỗi xảy ra khi xóa phiếu xuất kho");
           }
+        } finally {
+          setLoading(false);
         }
       },
     });
-  }, [stt_rec, navigate, token]);
+  }, [stt_rec, navigate, token, setLoading]);
 
   const handleNew = useCallback(() => {
     navigate("/boxly/phieu-xuat-kho/add");
@@ -399,6 +419,8 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
             fetchMaKhoList={fetchMaKhoList}
+            fetchDonViTinh={fetchDonViTinh}
+            onDataSourceUpdate={setDataSource}
           />
 
           {isEditMode && (

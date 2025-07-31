@@ -42,10 +42,6 @@ export const validateDataSource = (dataSource) => {
     if (!item.ma_kho) {
       missingData.push(`Dòng ${index + 1}: Chưa chọn mã kho`);
     }
-    const soLuong = parseFloat(item.soLuong || 0);
-    if (soLuong <= 0) {
-      missingData.push(`Dòng ${index + 1}: Số lượng phải lớn hơn 0`);
-    }
   });
 
   if (missingData.length > 0) {

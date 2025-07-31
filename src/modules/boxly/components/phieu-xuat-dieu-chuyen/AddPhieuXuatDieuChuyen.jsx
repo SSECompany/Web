@@ -197,8 +197,6 @@ const AddPhieuXuatDieuChuyen = () => {
 
       // Kiểm tra số lượng lệch nhau trước khi submit
       const currentStatus = values.trangThai || "0";
-      console.log("Current status:", currentStatus);
-      console.log("Data source:", dataSource);
 
       validateQuantityForPhieu(
         dataSource,

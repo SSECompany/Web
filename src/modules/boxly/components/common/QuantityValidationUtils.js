@@ -38,12 +38,6 @@ export const validateQuantityDifference = (
   onConfirm,
   onCancel
 ) => {
-  console.log("validateQuantityDifference called with:", {
-    phieuType,
-    currentStatus,
-    dataSourceLength: dataSource?.length,
-  });
-
   const config = STATUS_CONFIG[phieuType];
   if (!config) {
     console.error(`Không tìm thấy config cho loại phiếu: ${phieuType}`);
@@ -52,11 +46,8 @@ export const validateQuantityDifference = (
 
   // Kiểm tra xem status hiện tại có cần kiểm tra không
   if (!config.statuses.includes(currentStatus)) {
-    console.log(`Status ${currentStatus} không cần kiểm tra cho ${phieuType}`);
     return { hasDifference: false };
   }
-
-  console.log(`Status ${currentStatus} cần kiểm tra cho ${phieuType}`);
 
   // Tìm các dòng có số lượng lệch nhau
   const differentQuantityItems = [];

@@ -118,26 +118,25 @@ export const useVatTuManager = () => {
                 }
               }
 
-              const soLuongHienTai =
-                item.so_luong !== undefined ? item.so_luong : 0;
-              const soLuongMoi = soLuongHienTai + soLuongThemVao;
-              const soLuongLamTron = Math.round(soLuongMoi * 1000) / 1000;
+              const sl_td3_hienTai =
+                item.sl_td3 !== undefined ? item.sl_td3 : 0;
+              const sl_td3_moi = sl_td3_hienTai + soLuongThemVao;
+              const sl_td3_lam_tron = Math.round(sl_td3_moi * 1000) / 1000;
 
-              const soLuongGocHienTai =
-                item.so_luong_goc !== undefined ? item.so_luong_goc : 0;
-              const soLuongGocMoi = soLuongGocHienTai + 1;
+              const sl_td3_goc_hienTai =
+                item.sl_td3_goc !== undefined ? item.sl_td3_goc : 0;
+              const sl_td3_goc_moi = sl_td3_goc_hienTai + 1;
 
               // Số lượng đề nghị không thay đổi khi merge vật tư đã có
-              const soLuongDeNghiHienTai = item.soLuongDeNghi || 0;
-              const soLuongDeNghiLamTron = soLuongDeNghiHienTai;
+              const so_luong_hienTai = item.so_luong || 0;
+              const so_luong_lam_tron = so_luong_hienTai;
 
-              return {
+              const updatedItem = {
                 ...item,
-                so_luong: soLuongLamTron,
-                so_luong_goc: soLuongGocMoi,
-                sl_td3: soLuongLamTron,
-                sl_td3_goc: soLuongGocMoi,
-                soLuongDeNghi: soLuongDeNghiLamTron,
+                so_luong: so_luong_lam_tron, // Giữ nguyên số lượng đề nghị
+                so_luong_goc: item.so_luong_goc || 0, // Giữ nguyên số lượng đề nghị gốc
+                sl_td3: sl_td3_lam_tron, // Tăng số lượng cheat
+                sl_td3_goc: sl_td3_goc_moi, // Tăng số lượng cheat gốc
                 he_so: heSoHienTai,
                 he_so_goc: heSoGocFromAPI,
                 dvt: dvtHienTai || dvtAPI,
@@ -147,6 +146,9 @@ export const useVatTuManager = () => {
                 isNewlyAdded: item.isNewlyAdded,
                 _lastUpdated: Date.now(),
               };
+
+             
+              return updatedItem;
             }
             return item;
           });
@@ -174,17 +176,17 @@ export const useVatTuManager = () => {
           // DVT hiện tại ban đầu = DVT gốc từ API
           const dvtHienTai = dvtGocFromAPI;
 
-          // Khi thêm vật tư mới, số lượng gốc cho sl_td3 = 1, soLuongDeNghi = 0
-          let so_luong_goc = 1; // Cho sl_td3 (số lượng cheat)
-          let soLuongDeNghiGoc = 0; // Cho soLuongDeNghi (số lượng đề nghị)
+          // Khi thêm vật tư mới, số lượng gốc cho sl_td3 = 1, so_luong = 0
+          let sl_td3_goc = 1; // Cho sl_td3 (số lượng cheat)
+          let so_luong_goc = 0; // Cho so_luong (số lượng đề nghị)
+          let sl_td3_hienThi;
           let so_luong_hienThi;
-          let soLuongDeNghiHienThi;
           let heSoHienTai = heSoGocFromAPI;
 
           if (dvtHienTai.trim() === dvtGocFromAPI.trim()) {
             // Đơn vị hiện tại là đơn vị gốc
+            sl_td3_hienThi = sl_td3_goc * heSoGocFromAPI;
             so_luong_hienThi = so_luong_goc * heSoGocFromAPI;
-            soLuongDeNghiHienThi = soLuongDeNghiGoc * heSoGocFromAPI;
             heSoHienTai = heSoGocFromAPI;
           } else {
             // Đơn vị hiện tại khác đơn vị gốc
@@ -194,19 +196,26 @@ export const useVatTuManager = () => {
             heSoHienTai = dvtHienTaiInfo
               ? parseFloat(dvtHienTaiInfo.he_so) || 1
               : 1;
+            sl_td3_hienThi = sl_td3_goc * heSoHienTai;
             so_luong_hienThi = so_luong_goc * heSoHienTai;
-            soLuongDeNghiHienThi = soLuongDeNghiGoc * heSoHienTai;
           }
+
+          // Đảm bảo maHang không rỗng
+          const maHangValue = value.trim();
+          if (!maHangValue) {
+            message.error("Mã vật tư không được để trống");
+            return prev;
+          }
+
 
           const newItem = {
             key: prev.length + 1,
-            maHang: value,
-            ten_mat_hang: value, // Dùng luôn ma_vt cho tên mặt hàng
-            so_luong: Math.round(so_luong_hienThi * 1000) / 1000,
-            so_luong_goc: Math.round(so_luong_goc * 1000) / 1000,
-            sl_td3: Math.round(so_luong_hienThi * 1000) / 1000,
-            sl_td3_goc: Math.round(so_luong_goc * 1000) / 1000,
-            soLuongDeNghi: Math.round(soLuongDeNghiHienThi * 1000) / 1000, // Số lượng đề nghị khởi tạo là 0
+            maHang: maHangValue,
+            ten_mat_hang: vatTuInfo.ten_vt || value,
+            so_luong: Math.round(so_luong_hienThi * 1000) / 1000, // Số lượng đề nghị = 0
+            so_luong_goc: Math.round(so_luong_goc * 1000) / 1000, // Số lượng đề nghị gốc = 0
+            sl_td3: Math.round(sl_td3_hienThi * 1000) / 1000, // Số lượng cheat = 1
+            sl_td3_goc: Math.round(sl_td3_goc * 1000) / 1000, // Số lượng cheat gốc = 1
             he_so: heSoHienTai,
             he_so_goc: heSoGocFromAPI, // Lưu hệ số gốc từ API
             dvt: dvtHienTai,

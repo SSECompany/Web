@@ -32,34 +32,6 @@ export const validateDataSource = (dataSource) => {
     message.error("Vui lòng thêm ít nhất một vật tư");
     return false;
   }
-  // Validate số lượng cho từng vật tư, gom lỗi dạng danh sách
-  const missingData = [];
-  dataSource.forEach((item, index) => {
-    const soLuongDeNghi = parseFloat(
-      item.soLuongDeNghi ?? item.so_luong ?? item.sl_td3 ?? 0
-    );
-    const soLuongCheat = parseFloat(item.sl_td3 ?? 0);
-    if (soLuongDeNghi <= 0) {
-      missingData.push(`Dòng ${index + 1}: Số lượng đề nghị phải lớn hơn 0`);
-    }
-    if (soLuongCheat <= 0) {
-      missingData.push(`Dòng ${index + 1}: Số lượng cheat phải lớn hơn 0`);
-    }
-  });
-  if (missingData.length > 0) {
-    message.error({
-      content: (
-        <div>
-          <div>Vui lòng bổ sung thông tin bắt buộc:</div>
-          {missingData.map((msg, idx) => (
-            <div key={idx}>• {msg}</div>
-          ))}
-        </div>
-      ),
-      duration: 6,
-    });
-    return false;
-  }
   return true;
 };
 
@@ -111,7 +83,8 @@ export const buildPayload = (
     ngay_ct: orderDate,
     so_ct: values.so_ct || values.soPhieu || "",
     ma_vt: item.maHang?.trim() || "",
-    dvt: item.dvt || "Cái",
+    dvt: item.dvt,
+    he_so: parseFloat(item.he_so || 1),
     so_luong:
       parseFloat(item.soLuongDeNghi ?? item.so_luong ?? item.sl_td3) || 0,
     sl_td3: parseFloat(item.sl_td3) || 0,

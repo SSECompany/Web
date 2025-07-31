@@ -291,6 +291,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
       // Validate data source
       const validation = validateDataSource(dataSource);
       if (!validation.isValid) {
+        setLoading(false);
         return;
       }
 
@@ -311,6 +312,11 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
               phieuData,
               true
             );
+
+            if (!payload) {
+              setLoading(false);
+              return;
+            }
 
             // Submit
             const result = await submitPhieuNhapKho(
@@ -420,6 +426,8 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
             fetchMaKhoList={fetchMaKhoList}
+            fetchDonViTinh={fetchDonViTinh}
+            onDataSourceUpdate={setDataSource}
           />
 
           {isEditMode && (

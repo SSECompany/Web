@@ -32,21 +32,11 @@ export const validateDataSource = (dataSource) => {
     message.error("Vui lòng thêm ít nhất một vật tư");
     return false;
   }
-  // Validate mã kho và số lượng cho từng vật tư, gom lỗi dạng danh sách
+  // Validate mã kho cho từng vật tư, gom lỗi dạng danh sách
   const missingData = [];
   dataSource.forEach((item, index) => {
     if (!item.ma_kho || !item.ma_kho.trim()) {
       missingData.push(`Dòng ${index + 1}: Chưa chọn mã kho`);
-    }
-    const soLuongDeNghi = parseFloat(
-      item.soLuongDeNghi ?? item.so_luong ?? item.sl_td3 ?? 0
-    );
-    const soLuongCheat = parseFloat(item.sl_td3 ?? 0);
-    if (soLuongDeNghi <= 0) {
-      missingData.push(`Dòng ${index + 1}: Số lượng đề nghị phải lớn hơn 0`);
-    }
-    if (soLuongCheat <= 0) {
-      missingData.push(`Dòng ${index + 1}: Số lượng cheat phải lớn hơn 0`);
     }
   });
   if (missingData.length > 0) {
@@ -106,26 +96,40 @@ export const buildPayload = (
   };
 
   // DETAIL
-  const detail = dataSource.map((item) => ({
-    stt_rec: phieuData?.stt_rec || "",
-    stt_rec0: "",
-    ma_ct: "PXA",
-    ngay_ct: orderDate,
-    so_ct: values.so_ct || values.soPhieu || "",
-    ma_vt: item.maHang?.trim() || "",
-    ma_kho: item.ma_kho || "",
-    dvt: item.dvt || "Cái",
-    so_luong:
-      parseFloat(item.soLuongDeNghi ?? item.so_luong ?? item.sl_td3) || 0,
-    sl_td3: parseFloat(item.sl_td3) || 0,
-    gia_nt: 0,
-    gia: 0,
-    tien_nt: 0,
-    tien: 0,
-    ma_nx: "",
-    tk_du: "",
-    tk_vt: "",
-  }));
+  const detail = dataSource.map((item, index) => {
+    // Kiểm tra tất cả các trường có thể chứa mã vật tư
+    const possibleMaVtFields = ["maHang", "ma_vt", "ma_hang", "ma_vat_tu"];
+    let maVt = "";
+
+    for (const field of possibleMaVtFields) {
+      if (item[field] && item[field].trim()) {
+        maVt = item[field].trim();
+        break;
+      }
+    }
+
+    return {
+      stt_rec: phieuData?.stt_rec || "",
+      stt_rec0: "",
+      ma_ct: "PXA",
+      ngay_ct: orderDate,
+      so_ct: values.so_ct || values.soPhieu || "",
+      ma_vt: maVt,
+      ma_kho: item.ma_kho || "",
+      dvt: item.dvt,
+      he_so: parseFloat(item.he_so || 1),
+      so_luong:
+        parseFloat(item.soLuongDeNghi ?? item.so_luong ?? item.sl_td3) || 0,
+      sl_td3: parseFloat(item.sl_td3) || 0,
+      gia_nt: 0,
+      gia: 0,
+      tien_nt: 0,
+      tien: 0,
+      ma_nx: "",
+      tk_du: "",
+      tk_vt: "",
+    };
+  });
 
   // FINAL PAYLOAD
   return {

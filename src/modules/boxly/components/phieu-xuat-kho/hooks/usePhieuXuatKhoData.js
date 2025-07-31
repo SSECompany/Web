@@ -292,10 +292,14 @@ export const usePhieuXuatKhoData = () => {
           }
         );
 
+       
+
         // Xử lý response theo cấu trúc mới
         const masterData =
           response.data?.listObject?.dataLists?.master?.[0] || {};
         const detailData = response.data?.listObject?.dataLists?.detail || [];
+
+      
 
         return {
           master: masterData,

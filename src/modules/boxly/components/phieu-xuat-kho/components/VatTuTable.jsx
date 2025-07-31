@@ -1,5 +1,6 @@
 import { DeleteOutlined } from "@ant-design/icons";
 import { Button, Empty, Input, Select, Table } from "antd";
+import { useState } from "react";
 import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
 
 const VatTuTable = ({
@@ -13,7 +14,10 @@ const VatTuTable = ({
   loadingMaKho,
   fetchMaKhoListDebounced,
   fetchMaKhoList,
+  fetchDonViTinh,
+  onDataSourceUpdate,
 }) => {
+  const [loadingDvt, setLoadingDvt] = useState({});
   const columns = [
     {
       title: "STT",
@@ -59,6 +63,31 @@ const VatTuTable = ({
             size="small"
             dropdownClassName="vat-tu-dropdown"
             popupMatchSelectWidth={false}
+            loading={loadingDvt[record.key]}
+            onDropdownVisibleChange={async (visible) => {
+              if (visible && record.maHang) {
+                setLoadingDvt((prev) => ({ ...prev, [record.key]: true }));
+                try {
+                  const donViTinhList = await fetchDonViTinh(record.maHang);
+                  if (Array.isArray(donViTinhList)) {
+                    // Cập nhật donViTinhList cho record này
+                    const updatedRecord = { ...record, donViTinhList };
+                    // Tìm và cập nhật record trong dataSource
+                    const updatedDataSource = dataSource.map((item) =>
+                      item.key === record.key ? updatedRecord : item
+                    );
+                    // Gọi callback để cập nhật dataSource
+                    if (onDataSourceUpdate) {
+                      onDataSourceUpdate(updatedDataSource);
+                    }
+                  }
+                } catch (error) {
+                  console.error("Error fetching don vi tinh:", error);
+                } finally {
+                  setLoadingDvt((prev) => ({ ...prev, [record.key]: false }));
+                }
+              }
+            }}
           >
             {dvtOptions.length > 0 ? (
               dvtOptions.map((dvt) => (

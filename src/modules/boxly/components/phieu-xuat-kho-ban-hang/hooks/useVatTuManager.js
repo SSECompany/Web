@@ -397,7 +397,7 @@ export const useVatTuManager = () => {
   const handleQuantityChange = (value, record, field) => {
     // Xử lý giá trị đầu vào để hỗ trợ số thập phân
     let newValue;
-    
+
     // Nếu value là chuỗi rỗng, đặt thành 0
     if (value === "") {
       newValue = 0;
