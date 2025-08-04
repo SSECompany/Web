@@ -46,12 +46,9 @@ const VatTuTable = ({
       width: 80,
       align: "center",
       render: (value, record) => {
-        // Nếu không phải edit mode, chỉ hiển thị text
         if (!isEditMode) {
           return value;
         }
-
-        // Lấy danh sách đơn vị tính từ record
         const dvtOptions = record.donViTinhList || [];
 
         return (
@@ -70,13 +67,10 @@ const VatTuTable = ({
                 try {
                   const donViTinhList = await fetchDonViTinh(record.maHang);
                   if (Array.isArray(donViTinhList)) {
-                    // Cập nhật donViTinhList cho record này
                     const updatedRecord = { ...record, donViTinhList };
-                    // Tìm và cập nhật record trong dataSource
                     const updatedDataSource = dataSource.map((item) =>
                       item.key === record.key ? updatedRecord : item
                     );
-                    // Gọi callback để cập nhật dataSource
                     if (onDataSourceUpdate) {
                       onDataSourceUpdate(updatedDataSource);
                     }
@@ -117,31 +111,23 @@ const VatTuTable = ({
             onChange={(e) => {
               let val = e.target.value;
 
-              // Chỉ cho phép số, dấu chấm và dấu phẩy
               val = val.replace(/[^0-9.,]/g, "");
 
-              // Thay thế dấu phẩy bằng dấu chấm
               val = val.replace(/,/g, ".");
 
-              // Đảm bảo chỉ có một dấu chấm thập phân
               const parts = val.split(".");
               if (parts.length > 2) {
                 val = parts[0] + "." + parts.slice(1).join("");
               }
 
-              // Giới hạn số chữ số thập phân tối đa là 3
               const finalParts = val.split(".");
               if (finalParts.length === 2 && finalParts[1].length > 3) {
                 val = finalParts[0] + "." + finalParts[1].substring(0, 3);
               }
 
-              // Cho phép dấu chấm ở cuối (ví dụ: "12.")
-              // Chỉ chuyển đổi thành số khi không có dấu chấm ở cuối
               if (val.endsWith(".")) {
-                // Nếu kết thúc bằng dấu chấm, giữ nguyên chuỗi
                 handleQuantityChange(val, record, "so_luong");
               } else {
-                // Nếu không kết thúc bằng dấu chấm, xử lý bình thường
                 handleQuantityChange(val, record, "so_luong");
               }
             }}
@@ -193,32 +179,21 @@ const VatTuTable = ({
             value={value}
             onChange={(e) => {
               let val = e.target.value;
-
-              // Chỉ cho phép số, dấu chấm và dấu phẩy
               val = val.replace(/[^0-9.,]/g, "");
-
-              // Thay thế dấu phẩy bằng dấu chấm
               val = val.replace(/,/g, ".");
-
-              // Đảm bảo chỉ có một dấu chấm thập phân
               const parts = val.split(".");
               if (parts.length > 2) {
                 val = parts[0] + "." + parts.slice(1).join("");
               }
 
-              // Giới hạn số chữ số thập phân tối đa là 3
               const finalParts = val.split(".");
               if (finalParts.length === 2 && finalParts[1].length > 3) {
                 val = finalParts[0] + "." + finalParts[1].substring(0, 3);
               }
 
-              // Cho phép dấu chấm ở cuối (ví dụ: "12.")
-              // Chỉ chuyển đổi thành số khi không có dấu chấm ở cuối
               if (val.endsWith(".")) {
-                // Nếu kết thúc bằng dấu chấm, giữ nguyên chuỗi
                 handleQuantityChange(val, record, "sl_td3");
               } else {
-                // Nếu không kết thúc bằng dấu chấm, xử lý bình thường
                 handleQuantityChange(val, record, "sl_td3");
               }
             }}
@@ -313,11 +288,9 @@ const VatTuTable = ({
   ];
 
   const getScrollConfig = () => {
-    // Tính toán chiều rộng dựa trên số cột và nội dung
-    const baseWidth = 60 + 120 + 200 + 80 + 130 + 120 + 180 + 80; // Tổng width các cột
-    const minWidth = Math.max(baseWidth, window.innerWidth - 100); // Đảm bảo không nhỏ hơn màn hình
+    const baseWidth = 60 + 120 + 200 + 80 + 130 + 120 + 180 + 80;
+    const minWidth = Math.max(baseWidth, window.innerWidth - 100);
 
-    // Chiều cao mỗi dòng khoảng 40px, 10 dòng là 400px, thêm header ~50px
     const rowHeight = 40;
     const headerHeight = 50;
     const maxRows = 10;

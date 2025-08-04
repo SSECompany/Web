@@ -130,10 +130,8 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
       fetchVatTuList,
       vatTuSelectRef
     );
-    // Không cần hiển thị message lỗi ở đây vì đã có trong VatTuSelectFull
   };
 
-  // Fetch chi tiết phiếu xuất điều chuyển khi component mount
   useEffect(() => {
     const fetchPhieuDetail = async () => {
       if (stt_rec) {
@@ -164,7 +162,6 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
 
           if (masterData && Object.keys(masterData).length > 0) {
             setPhieuData(masterData);
-            // Cập nhật form với dữ liệu master
             form.setFieldsValue({
               ngay: masterData.ngay_ct ? dayjs(masterData.ngay_ct) : null,
               soPhieu: masterData.so_ct?.trim() || "",
@@ -172,10 +169,8 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
               maKhoNhap: masterData.ma_khon?.trim() || "",
               maGiaoDich: masterData.ma_gd?.trim() || "",
               trangThai: masterData.status || "",
-              // Thêm các trường khác nếu cần
             });
 
-            // Cập nhật dataSource với dữ liệu detail
             if (detailData && detailData.length > 0) {
               const formattedDetail = detailData.map((item, index) => ({
                 key: index + 1,
@@ -211,7 +206,6 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
         return;
       }
 
-      // Đảm bảo truyền đúng stt_rec khi cập nhật phiếu
       if (phieuData && phieuData.stt_rec) {
         if (payload.data && payload.data.master && payload.data.master[0]) {
           payload.data.master[0].stt_rec = phieuData.stt_rec;
@@ -257,7 +251,6 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
         return;
       }
 
-      // Kiểm tra số lượng lệch nhau trước khi submit
       const currentStatus = values.trangThai || "0";
 
       validateQuantityForPhieu(
@@ -265,7 +258,6 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
         "phieu_xuat_dieu_chuyen",
         currentStatus,
         async () => {
-          // Callback khi user xác nhận tiếp tục
           try {
             await submitPhieuData(values);
           } catch (error) {
@@ -274,7 +266,6 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
           }
         },
         () => {
-          // Callback khi user hủy
           setLoading(false);
         }
       );

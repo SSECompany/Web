@@ -39,7 +39,6 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
 
-  // Lấy các state/hàm khác từ hook (KHÔNG lấy vật tư)
   const {
     loading,
     setLoading,
@@ -66,7 +65,6 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
 
   const token = localStorage.getItem("access_token");
 
-  // LOCAL fetch vật tư giống PXĐC
   const fetchVatTuList = async (
     keyword = "",
     page = 1,
@@ -111,7 +109,6 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
     }
   };
 
-  // Phân trang vật tư
   const fetchVatTuListPaging = async (
     keyword = "",
     page = 1,
@@ -124,14 +121,12 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
     });
   };
 
-  // Fetch chi tiết phiếu xuất kho khi component mount
   useEffect(() => {
     const fetchPhieuDetail = async () => {
       if (stt_rec) {
         const result = await fetchPhieuXuatKhoDetail(stt_rec);
         if (result) {
           setPhieuData(result.master);
-          // Cập nhật form với dữ liệu master
           form.setFieldsValue({
             ngay_ct: result.master.ngay_ct
               ? dayjs(result.master.ngay_ct)
@@ -141,13 +136,10 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
             ten_kh: result.master.ten_kh?.trim() || "",
             ma_gd: result.master.ma_gd?.trim() || "",
             status: result.master.status || "",
-            // Thêm các trường khác nếu cần
           });
 
-          // Cập nhật dataSource với dữ liệu detail
           if (result.detail && result.detail.length > 0) {
             const formattedDetail = result.detail.map((item, index) => {
-              // Kiểm tra tất cả các trường có thể chứa mã vật tư
               const possibleMaVtFields = ["ma_vt"];
               let foundMaVt = null;
 
@@ -203,7 +195,6 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
         return;
       }
 
-      // Kiểm tra số lượng lệch nhau trước khi submit
       const currentStatus = values.status || "0";
 
       validateQuantityForPhieu(
@@ -211,7 +202,6 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
         "phieu_xuat_kho",
         currentStatus,
         async () => {
-          // Callback khi user xác nhận tiếp tục
           try {
             const payload = buildPayload(values, dataSource, phieuData, true);
 
@@ -220,7 +210,6 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
               return;
             }
 
-            // Đảm bảo truyền đúng stt_rec khi cập nhật phiếu
             if (phieuData && phieuData.stt_rec) {
               if (
                 payload.data &&
@@ -231,7 +220,6 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
               }
             }
 
-            // Tích hợp dynamicApi update
             const master =
               payload.master ||
               (payload.data && payload.data.master && payload.data.master[0]);
