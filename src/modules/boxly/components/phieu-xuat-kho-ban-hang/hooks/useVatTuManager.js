@@ -85,22 +85,37 @@ export const useVatTuManager = () => {
 
     setDataSource(processedData);
 
-    // Load async đơn vị tính cho từng item
+    // Smart batch prefetch ĐVT - chỉ fetch unique maHang
     if (fetchDonViTinh) {
-      processedData.forEach(async (item, index) => {
-        try {
-          const donViTinhList = await fetchDonViTinh(item.maHang);
-          if (Array.isArray(donViTinhList)) {
-            setDataSource((prev) =>
-              prev.map((prevItem, prevIndex) =>
-                prevIndex === index ? { ...prevItem, donViTinhList } : prevItem
-              )
-            );
-          }
-        } catch (error) {
-          console.error(`Error loading don vi tinh for ${item.maHang}:`, error);
-        }
-      });
+      const uniqueMaHangList = [...new Set(processedData.map(item => item.maHang).filter(Boolean))];
+      
+      if (uniqueMaHangList.length > 0) {
+        // Batch parallel fetch cho tất cả unique maHang
+        Promise.all(
+          uniqueMaHangList.map(async (maHang) => {
+            try {
+              const donViTinhList = await fetchDonViTinh(maHang);
+              return { maHang, donViTinhList };
+            } catch (error) {
+              console.error(`Error loading don vi tinh for ${maHang}:`, error);
+              return { maHang, donViTinhList: [] };
+            }
+          })
+        ).then((results) => {
+          // Single setState - populate tất cả records cùng lúc
+          const dvtMap = results.reduce((acc, { maHang, donViTinhList }) => {
+            acc[maHang] = donViTinhList;
+            return acc;
+          }, {});
+
+          setDataSource((prev) =>
+            prev.map((item) => ({
+              ...item,
+              donViTinhList: dvtMap[item.maHang] || [],
+            }))
+          );
+        });
+      }
     }
   };
 

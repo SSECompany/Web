@@ -63,6 +63,11 @@ const VatTuTable = ({
             loading={loadingDvt[record.key]}
             onDropdownVisibleChange={async (visible) => {
               if (visible && record.maHang) {
+                // Kiểm tra xem đã có cache trong record chưa
+                if (record.donViTinhList && Array.isArray(record.donViTinhList) && record.donViTinhList.length > 0) {
+                  return; // Đã có data, không cần gọi API
+                }
+
                 setLoadingDvt((prev) => ({ ...prev, [record.key]: true }));
                 try {
                   const donViTinhList = await fetchDonViTinh(record.maHang);

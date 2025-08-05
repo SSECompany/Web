@@ -1,5 +1,12 @@
 import { jwtDecode } from "jwt-decode";
 import Cookies from "universal-cookie";
+import { 
+  calculateTokenExpiry,
+  checkExistToken as checkToken,
+  getTokenExpiry,
+  isTokenExpired as isExpired,
+  setTokenExpiry,
+} from "./tokenUtils";
 const cookies = new Cookies();
 const ACCESS_TOKEN_KEY = "access_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
@@ -53,13 +60,7 @@ const claimNewToken = async () => {
   };
 };
 
-// Import utilities từ tokenUtils để tránh duplicate
-import {
-  checkExistToken as checkToken,
-  getTokenExpiry,
-  isTokenExpired as isExpired,
-  setTokenExpiry,
-} from "./tokenUtils";
+// Utilities from tokenUtils (imported at top)
 
 const isTokenExpired = () => {
   const expiry = getTokenExpiry();

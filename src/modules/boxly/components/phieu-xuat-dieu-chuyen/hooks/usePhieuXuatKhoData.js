@@ -6,11 +6,13 @@ import { fetchVatTuListDynamicApi } from "../../phieu-nhap-kho/utils/phieuNhapKh
 
 const masterDataCache = {
   maGiaoDich: null,
+  maKho: null,
   vatTu: null,
+  donViTinh: {}, // Cache ĐVT theo maHang
   lastFetch: null,
 };
 
-const CACHE_EXPIRY = 5 * 60 * 1000;
+const CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes - cache data trong 30 phút
 
 export const usePhieuXuatKhoData = () => {
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,29 @@ export const usePhieuXuatKhoData = () => {
   }, [isCacheValid, token]);
 
   const fetchMaKhoList = useCallback(
-    async (keyword = "") => {
+    async (keyword = "", forceRefresh = false) => {
+      // Kiểm tra cache trước khi call API
+      if (!forceRefresh && !keyword) {
+        // Nếu đã có data trong state, không cần gọi API
+        if (maKhoList && maKhoList.length > 0) {
+          return;
+        }
+        // Nếu có cache valid, sử dụng cache
+        if (isCacheValid && masterDataCache.maKho) {
+          setMaKhoList(masterDataCache.maKho);
+          return;
+        }
+      }
+
+      // Nếu đang search với keyword, kiểm tra cache và filter local
+      if (keyword && masterDataCache.maKho && isCacheValid) {
+        const filteredData = masterDataCache.maKho.filter((item) =>
+          item.label.toLowerCase().includes(keyword.toLowerCase())
+        );
+        setMaKhoList(filteredData);
+        return;
+      }
+
       setLoadingMaKho(true);
       try {
         const response = await https.get(
@@ -75,6 +99,12 @@ export const usePhieuXuatKhoData = () => {
             label: `${item.ma_kho.trim()} - ${item.ten_kho.trim()}`,
           }));
           setMaKhoList(options);
+
+          // Cache only if no search keyword
+          if (!keyword) {
+            masterDataCache.maKho = options;
+            masterDataCache.lastFetch = Date.now();
+          }
         }
       } catch (error) {
         message.error("Không thể tải danh sách kho");
@@ -82,7 +112,7 @@ export const usePhieuXuatKhoData = () => {
         setLoadingMaKho(false);
       }
     },
-    [token]
+    [isCacheValid, token, maKhoList]
   );
 
   const fetchVatTuList = useCallback(
@@ -170,12 +200,19 @@ export const usePhieuXuatKhoData = () => {
   );
 
   const fetchDonViTinh = useCallback(
-    async (maVatTu) => {
+    async (maHang, forceRefresh = false) => {
+      if (!maHang) return [];
+
+      // Kiểm tra cache trước khi gọi API
+      if (!forceRefresh && isCacheValid && masterDataCache.donViTinh[maHang]) {
+        return masterDataCache.donViTinh[maHang];
+      }
+
       try {
         const response = await https.get(
           "v1/web/danh-sach-dv",
           {
-            ma_vt: maVatTu,
+            ma_vt: maHang,
           },
           {
             headers: {
@@ -186,7 +223,11 @@ export const usePhieuXuatKhoData = () => {
         );
 
         if (response.data && response.data.data) {
-          return response.data.data;
+          const data = response.data.data;
+          // Cache kết quả theo maHang
+          masterDataCache.donViTinh[maHang] = data;
+          masterDataCache.lastFetch = Date.now();
+          return data;
         }
         return [];
       } catch (error) {
@@ -194,7 +235,7 @@ export const usePhieuXuatKhoData = () => {
         return [];
       }
     },
-    [token]
+    [token, isCacheValid]
   );
 
   const fetchMaKhoListDebounced = useMemo(

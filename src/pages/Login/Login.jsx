@@ -14,7 +14,7 @@ import {
   Select,
   Space,
 } from "antd";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useDebouncedCallback } from "use-debounce";
 import router from "../../router/routes";
@@ -56,7 +56,7 @@ const Login = () => {
   const storedRefreshToken = useSelector(selectRefreshToken);
 
   // Kiểm tra token hết hạn và refresh nếu cần
-  const checkAndRefreshToken = async () => {
+  const checkAndRefreshToken = useCallback(async () => {
     if (!isValidSession && storedRefreshToken) {
       try {
         const response = await https.post("v1/users/refresh-token", {
@@ -96,10 +96,10 @@ const Login = () => {
     }
 
     return isValidSession;
-  };
+  }, [isValidSession, storedRefreshToken, dispatch]);
 
   // Kiểm tra token sắp hết hạn để refresh trước
-  const checkTokenNearExpiry = async () => {
+  const checkTokenNearExpiry = useCallback(async () => {
     if (needsTokenRefresh && storedRefreshToken) {
       try {
         const response = await https.post("v1/users/refresh-token", {
@@ -125,7 +125,7 @@ const Login = () => {
         console.error("Failed to proactively refresh token:", error);
       }
     }
-  };
+  }, [needsTokenRefresh, storedRefreshToken, dispatch]);
 
   const preFetchUserMetadata = async () => {
     if (!userName || !password || token || isLoginInProgress) return; // Thêm check isLoginInProgress
@@ -149,13 +149,14 @@ const Login = () => {
       dispatch(setClaims(jwt.saveClaims(accessToken)));
       await fetchCompanies(accessToken);
       await fetchUnits(accessToken);
+      // KHÔNG gọi fetchStoreData ở đây - chỉ gọi khi login
     } catch (error) {
       // silent fail
     }
   };
 
   // Handle login and fetch token
-  const handleLoginButton = async () => {
+  const handleLoginButton = useCallback(async () => {
     setIsLoginInProgress(true); // Set flag khi bắt đầu login
     setLoginLoading(true);
     if (!userName || !password) {
@@ -225,6 +226,11 @@ const Login = () => {
         await fetchCompanies(accessToken);
       }
 
+      // GỌI STORES KHI ẤN ĐĂNG NHẬP - theo yêu cầu
+      if (unitSelected?.value) {
+        await fetchStoreData();
+      }
+
       setLoginLoading(false);
       notification.success({
         message: `Đăng nhập thành công`,
@@ -242,7 +248,7 @@ const Login = () => {
     } finally {
       setIsLoginInProgress(false); // Reset flag sau khi hoàn tất
     }
-  };
+  }, [userName, password, token, dispatch, unitsLoaded, units, unitSelected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchCompanies = async (accessToken) => {
     try {
@@ -364,12 +370,12 @@ const Login = () => {
     }
   };
 
-  useEffect(() => {
-    if (unitSelected?.value && token && !isLoginInProgress) {
-      // Thêm check isLoginInProgress
-      fetchStoreData();
-    }
-  }, [unitSelected, token]); // Thêm token vào dependencies
+  // LOẠI BỎ useEffect auto-fetch stores khi thay đổi unit
+  // useEffect(() => {
+  //   if (unitSelected?.value && token && !isLoginInProgress) {
+  //     fetchStoreData();
+  //   }
+  // }, [unitSelected, token]);
 
   useEffect(() => {
     setUnits([{ value: "", label: "Không" }]);
@@ -390,14 +396,14 @@ const Login = () => {
         }
       });
     }
-  }, [dispatch]);
+  }, [dispatch, checkAndRefreshToken]);
 
   // Kiểm tra token sắp hết hạn mỗi khi component mount
   useEffect(() => {
     if (jwt.checkExistToken()) {
       checkTokenNearExpiry();
     }
-  }, []);
+  }, [checkTokenNearExpiry]);
 
   const debouncedPreFetch = useDebouncedCallback(() => {
     if (userName && password && !token && !isLoginInProgress) {
@@ -409,7 +415,7 @@ const Login = () => {
     if (!isLoginInProgress) {
       debouncedPreFetch();
     }
-  }, [userName, password, isLoginInProgress]);
+  }, [userName, password, isLoginInProgress, debouncedPreFetch]);
 
   const handleChangeUnit = (item) => {
     const selectedUnit = units.find((unit) => unit.value == item);
@@ -427,6 +433,10 @@ const Login = () => {
     setUserName(userName);
   }, 300);
 
+  const handleInputPassword = useDebouncedCallback((password) => {
+    setPassword(password);
+  }, 300);
+
   const onLackInfoLogin = () => {};
   const onEnoughInfo = () => {
     if (!unitsLoaded) {
@@ -441,7 +451,7 @@ const Login = () => {
       setLoginWaitingUnits(false);
       handleLoginButton();
     }
-  }, [unitsLoaded, loginWaitingUnits]);
+  }, [unitsLoaded, loginWaitingUnits, handleLoginButton]);
 
   const images = [
     {
@@ -514,7 +524,7 @@ const Login = () => {
                     width: "100%",
                     padding: "10px 8px",
                   }}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => handleInputPassword(e.target.value)}
                   className="default_input"
                   size="large"
                   placeholder="Nhập mật khẩu"

@@ -6,6 +6,9 @@ import { clearAllTokenData, isTokenExpired } from "../utils/tokenUtils";
 
 const ProtectedRoute = () => {
   const location = useLocation();
+  
+  // Khởi tạo token expiry checker - phải ở top level
+  useTokenExpiryChecker();
 
   const token = localStorage.getItem("access_token");
   const tokenExpiry = localStorage.getItem("token_expiry");
@@ -23,14 +26,12 @@ const ProtectedRoute = () => {
 
   // Token không hợp lệ -> redirect
   try {
-    jwt.getClaims?.() || {};
+    const claims = jwt.getClaims?.() || {};
+    console.log("Token claims:", claims); // Optional: để sử dụng claims
   } catch (error) {
     clearAllTokenData();
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
-
-  // Khởi tạo token expiry checker
-  useTokenExpiryChecker();
 
   return (
     <>

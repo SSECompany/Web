@@ -2,16 +2,18 @@ import { message } from "antd";
 import { debounce } from "lodash";
 import { useCallback, useMemo, useState } from "react";
 import https from "../../../../../utils/https";
+import { fetchVatTuListDynamicApi } from "../../phieu-nhap-kho/utils/phieuNhapKhoUtils";
 
 // Global cache for master data
 const masterDataCache = {
   maGiaoDich: null,
   maKhach: null,
   vatTu: null,
+  donViTinh: {}, // Cache ĐVT theo maHang
   lastFetch: null,
 };
 
-const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+const CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes - cache data trong 30 phút
 
 export const usePhieuXuatKhoData = () => {
   const [loading, setLoading] = useState(false);
@@ -61,9 +63,22 @@ export const usePhieuXuatKhoData = () => {
   }, [isCacheValid, token]);
 
   const fetchMaKhachList = useCallback(
-    async (keyword = "") => {
-      // Skip cache for search queries
-      if (keyword && isCacheValid && masterDataCache.maKhach) {
+    async (keyword = "", forceRefresh = false) => {
+      // Kiểm tra cache trước khi call API
+      if (!forceRefresh && !keyword) {
+        // Nếu đã có data trong state, không cần gọi API
+        if (maKhachList && maKhachList.length > 0) {
+          return;
+        }
+        // Nếu có cache valid, sử dụng cache
+        if (isCacheValid && masterDataCache.maKhach) {
+          setMaKhachList(masterDataCache.maKhach);
+          return;
+        }
+      }
+
+      // Nếu đang search với keyword, kiểm tra cache và filter local
+      if (keyword && masterDataCache.maKhach && isCacheValid) {
         const filteredData = masterDataCache.maKhach.filter((item) =>
           item.label.toLowerCase().includes(keyword.toLowerCase())
         );
@@ -105,7 +120,7 @@ export const usePhieuXuatKhoData = () => {
         setLoadingMaKhach(false);
       }
     },
-    [isCacheValid, token]
+    [isCacheValid, token, maKhachList]
   );
 
   const fetchVatTuList = useCallback(
@@ -195,12 +210,19 @@ export const usePhieuXuatKhoData = () => {
   );
 
   const fetchDonViTinh = useCallback(
-    async (maVatTu) => {
+    async (maHang, forceRefresh = false) => {
+      if (!maHang) return [];
+
+      // Kiểm tra cache trước khi gọi API
+      if (!forceRefresh && isCacheValid && masterDataCache.donViTinh[maHang]) {
+        return masterDataCache.donViTinh[maHang];
+      }
+
       try {
         const response = await https.get(
           "v1/web/danh-sach-dv",
           {
-            ma_vt: maVatTu,
+            ma_vt: maHang,
           },
           {
             headers: {
@@ -211,7 +233,11 @@ export const usePhieuXuatKhoData = () => {
         );
 
         if (response.data && response.data.data) {
-          return response.data.data;
+          const data = response.data.data;
+          // Cache kết quả theo maHang
+          masterDataCache.donViTinh[maHang] = data;
+          masterDataCache.lastFetch = Date.now();
+          return data;
         }
         return [];
       } catch (error) {
@@ -219,7 +245,7 @@ export const usePhieuXuatKhoData = () => {
         return [];
       }
     },
-    [token]
+    [token, isCacheValid]
   );
 
   // Memoize debounced functions with stable references

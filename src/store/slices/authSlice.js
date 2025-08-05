@@ -1,4 +1,9 @@
 import { createSlice } from "@reduxjs/toolkit";
+import * as jwt from "../../utils/jwt";
+import {
+  calculateTokenExpiry,
+  isTokenExpired as checkTokenExpired,
+} from "../../utils/tokenUtils";
 
 // 🚀 Helper functions để optimize performance và safety
 const safeParseJSON = (item, fallback = {}) => {
@@ -37,11 +42,7 @@ const safeRemoveLocalStorage = (key) => {
   }
 };
 
-// Import utilities để tránh duplicate code
-import {
-  calculateTokenExpiry,
-  isTokenExpired as checkTokenExpired,
-} from "../../utils/tokenUtils";
+// Utilities imported at top
 
 // Local wrapper để maintain API consistency
 const isTokenExpired = (expiryTime) => {

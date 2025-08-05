@@ -11,10 +11,11 @@ const masterDataCache = {
   maKho: null,
   maKhach: null,
   vatTu: null,
+  donViTinh: {}, // Cache ĐVT theo maHang: { "ABC123": [{dvt: "Bo"}, {dvt: "Cai"}], ... }
   lastFetch: null,
 };
 
-const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+const CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes - cache data trong 30 phút
 
 export const usePhieuNhapKhoData = () => {
   const [loading, setLoading] = useState(false);
@@ -127,10 +128,26 @@ export const usePhieuNhapKhoData = () => {
   );
 
   const fetchMaKhoList = useCallback(
-    async (keyword = "") => {
-      // Use cache for empty search
-      if (!keyword && isCacheValid && masterDataCache.maKho) {
-        setMaKhoList(masterDataCache.maKho);
+    async (keyword = "", forceRefresh = false) => {
+      // Kiểm tra cache trước khi call API
+      if (!forceRefresh && !keyword) {
+        // Nếu đã có data trong state, không cần gọi API
+        if (maKhoList && maKhoList.length > 0) {
+          return;
+        }
+        // Nếu có cache valid, sử dụng cache
+        if (isCacheValid && masterDataCache.maKho) {
+          setMaKhoList(masterDataCache.maKho);
+          return;
+        }
+      }
+
+      // Nếu đang search với keyword, kiểm tra cache và filter local
+      if (keyword && masterDataCache.maKho && isCacheValid) {
+        const filteredData = masterDataCache.maKho.filter((item) =>
+          item.label.toLowerCase().includes(keyword.toLowerCase())
+        );
+        setMaKhoList(filteredData);
         return;
       }
 
@@ -165,13 +182,26 @@ export const usePhieuNhapKhoData = () => {
         setLoadingMaKho(false);
       }
     },
-    [isCacheValid, token]
+    [isCacheValid, token, maKhoList]
   );
 
   const fetchMaKhachList = useCallback(
-    async (keyword = "") => {
-      // Skip cache for search queries
-      if (keyword && isCacheValid && masterDataCache.maKhach) {
+    async (keyword = "", forceRefresh = false) => {
+      // Kiểm tra cache trước khi call API
+      if (!forceRefresh && !keyword) {
+        // Nếu đã có data trong state, không cần gọi API
+        if (maKhachList && maKhachList.length > 0) {
+          return;
+        }
+        // Nếu có cache valid, sử dụng cache
+        if (isCacheValid && masterDataCache.maKhach) {
+          setMaKhachList(masterDataCache.maKhach);
+          return;
+        }
+      }
+
+      // Nếu đang search với keyword, kiểm tra cache và filter local
+      if (keyword && masterDataCache.maKhach && isCacheValid) {
         const filteredData = masterDataCache.maKhach.filter((item) =>
           item.label.toLowerCase().includes(keyword.toLowerCase())
         );
@@ -213,7 +243,7 @@ export const usePhieuNhapKhoData = () => {
         setLoadingMaKhach(false);
       }
     },
-    [isCacheValid, token]
+    [isCacheValid, token, maKhachList]
   );
 
   const fetchVatTuList = useCallback(
@@ -304,7 +334,14 @@ export const usePhieuNhapKhoData = () => {
   );
 
   const fetchDonViTinh = useCallback(
-    async (maVatTu) => {
+    async (maVatTu, forceRefresh = false) => {
+      if (!maVatTu) return [];
+
+      // Kiểm tra cache trước khi gọi API
+      if (!forceRefresh && isCacheValid && masterDataCache.donViTinh[maVatTu]) {
+        return masterDataCache.donViTinh[maVatTu];
+      }
+
       try {
         const response = await https.get(
           "v1/web/danh-sach-dv",
@@ -320,7 +357,11 @@ export const usePhieuNhapKhoData = () => {
         );
 
         if (response.data && response.data.data) {
-          return response.data.data;
+          const data = response.data.data;
+          // Cache kết quả theo maVatTu
+          masterDataCache.donViTinh[maVatTu] = data;
+          masterDataCache.lastFetch = Date.now();
+          return data;
         }
         return [];
       } catch (error) {
@@ -328,17 +369,28 @@ export const usePhieuNhapKhoData = () => {
         return [];
       }
     },
-    [token]
+    [token, isCacheValid]
   );
 
   // Clear cache function
-  const clearCache = useCallback(() => {
-    masterDataCache.maGiaoDich = null;
-    masterDataCache.tkCo = null;
-    masterDataCache.maKho = null;
-    masterDataCache.maKhach = null;
-    masterDataCache.vatTu = null;
-    masterDataCache.lastFetch = null;
+  const clearCache = useCallback((type = null) => {
+    if (type) {
+      // Clear specific cache
+      if (type === 'donViTinh') {
+        masterDataCache.donViTinh = {};
+      } else if (masterDataCache[type]) {
+        masterDataCache[type] = null;
+      }
+    } else {
+      // Clear all cache
+      masterDataCache.maGiaoDich = null;
+      masterDataCache.tkCo = null;
+      masterDataCache.maKho = null;
+      masterDataCache.maKhach = null;
+      masterDataCache.vatTu = null;
+      masterDataCache.donViTinh = {};
+      masterDataCache.lastFetch = null;
+    }
   }, []);
 
   return {
