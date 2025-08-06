@@ -34,8 +34,8 @@ const VatTuTable = ({
     },
     {
       title: "Tên mặt hàng",
-      dataIndex: "ten_mat_hang",
-      key: "ten_mat_hang",
+      dataIndex: "maHang",
+      key: "maHang",
       align: "center",
       render: (value) => value,
     },

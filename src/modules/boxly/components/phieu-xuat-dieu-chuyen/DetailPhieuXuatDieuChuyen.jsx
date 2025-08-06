@@ -175,7 +175,6 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
               const formattedDetail = detailData.map((item, index) => ({
                 key: index + 1,
                 maHang: item.ma_vt?.trim() || "",
-                ten_mat_hang: item.ten_vt?.trim() || item.ma_vt?.trim() || "",
                 dvt: item.dvt?.trim() || "",
                 he_so: parseFloat(item.he_so) || 1,
                 so_luong: item.so_luong || 0,

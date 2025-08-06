@@ -27,7 +27,6 @@ const ProtectedRoute = () => {
   // Token không hợp lệ -> redirect
   try {
     const claims = jwt.getClaims?.() || {};
-    console.log("Token claims:", claims); // Optional: để sử dụng claims
   } catch (error) {
     clearAllTokenData();
     return <Navigate to="/login" state={{ from: location }} replace />;

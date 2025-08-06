@@ -94,27 +94,16 @@ export const buildPayload = (
     ma_kh: values.ma_kh || values.maKhach || "",
     status: values.status || values.trangThai || "1",
   };
+  console.log("🚀 ~ buildPayload ~ master:", master)
 
   // DETAIL
-  const detail = dataSource.map((item, index) => {
-    // Kiểm tra tất cả các trường có thể chứa mã vật tư
-    const possibleMaVtFields = ["maHang", "ma_vt", "ma_hang", "ma_vat_tu"];
-    let maVt = "";
-
-    for (const field of possibleMaVtFields) {
-      if (item[field] && item[field].trim()) {
-        maVt = item[field].trim();
-        break;
-      }
-    }
-
-    return {
+  const detail = dataSource.map((item, index) => ({
       stt_rec: phieuData?.stt_rec || "",
       stt_rec0: "",
       ma_ct: "PXA",
       ngay_ct: orderDate,
       so_ct: values.so_ct || values.soPhieu || "",
-      ma_vt: maVt,
+      ma_vt: item.maHang?.trim() || "",
       ma_kho: item.ma_kho || "",
       dvt: item.dvt,
       he_so: parseFloat(item.he_so || 1),
@@ -128,8 +117,7 @@ export const buildPayload = (
       ma_nx: "",
       tk_du: "",
       tk_vt: "",
-    };
-  });
+    }));
 
   // FINAL PAYLOAD
   return {
@@ -206,8 +194,14 @@ export const deletePhieu = async (stt_rec) => {
 };
 
 export const updatePhieuXuatKho = async (master, detail, token) => {
-  const body = buildPayload({}, detail, { stt_rec: master.stt_rec }, true);
-  body.data.master = [master];
+  const body = {
+    store: "Api_update_phieu_xuat_kho_voucher",
+    param: {},
+    data: {
+      master: [master],
+      detail: detail,
+    },
+  };
   return https.post("v1/dynamicApi/call-dynamic-api", body, {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,

@@ -140,20 +140,11 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
 
           if (result.detail && result.detail.length > 0) {
             const formattedDetail = result.detail.map((item, index) => {
-              const possibleMaVtFields = ["ma_vt"];
-              let foundMaVt = null;
-
-              for (const field of possibleMaVtFields) {
-                if (item[field] && item[field].trim()) {
-                  foundMaVt = item[field].trim();
-                  break;
-                }
-              }
+             
 
               return {
-                key: index,
-                maHang: foundMaVt,
-                ten_mat_hang: foundMaVt,
+                key: index + 1,
+                maHang: item.ma_vt?.trim() || "",
                 dvt: item.dvt?.trim() || "",
                 so_luong: item.so_luong || 0,
                 sl_td3: item.sl_td3 || 0,
