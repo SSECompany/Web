@@ -32,132 +32,6 @@ export const formatDate = (date) => {
 };
 
 // Helper function để merge dữ liệu response với form values
-export const mergeResponseDataWithFormValues = (originalData, formValues) => {
-  if (!originalData) return null;
-  
-  const mergedData = { ...originalData };
-  
-  // Chỉ cập nhật những field có giá trị từ form
-  Object.keys(formValues).forEach(key => {
-    if (formValues[key] !== undefined && formValues[key] !== null) {
-      // Map form field names to API field names
-      switch(key) {
-        case 'maGiaoDich':
-          mergedData.loai_ct = formValues[key];
-          mergedData.ma_gd = formValues[key];
-          break;
-        case 'soPhieu':
-          mergedData.so_ct = formValues[key];
-          break;
-        case 'maKhach':
-          mergedData.ma_kh = formValues[key];
-          break;
-        case 'dienGiai':
-          mergedData.dien_giai = formValues[key];
-          break;
-        case 'maNVBH':
-          mergedData.ma_nvbh = formValues[key];
-          break;
-        case 'xe':
-          mergedData.xe_vc = formValues[key];
-          break;
-        case 'taiXe':
-          mergedData.tai_xe = formValues[key];
-          break;
-        case 'trangThai':
-          mergedData.status = formValues[key];
-          break;
-        case 'ngay':
-          mergedData.ngay_ct = formatDate(formValues[key]);
-          break;
-        default:
-          // Giữ nguyên nếu không có mapping
-          break;
-      }
-    }
-  });
-  
-  return mergedData;
-};
-
-// Helper function để merge detail item với form data
-export const mergeDetailItemWithFormData = (originalItem, formItem, index, commonData) => {
-  if (!originalItem || !originalItem.stt_rec0) {
-    // Item mới - tạo structure đầy đủ
-    return {
-      stt_rec: commonData.stt_rec || "",
-      stt_rec0: formItem.stt_rec0 || String(index + 1).padStart(3, "0"),
-      ma_ct: "HDA",
-      ngay_ct: commonData.ngay_ct,
-      so_ct: commonData.so_ct || "",
-      ma_vt: formItem.maHang?.trim() || "",
-      dvt: formItem.dvt || "cái",
-      ma_kho: formItem.ma_kho || "",
-      so_luong: parseFloat(formItem.so_luong) || 0,
-      sl_td3: parseFloat(formItem.sl_td3) || 0,
-      he_so: parseFloat(formItem.he_so) || 1,
-      tk_vt: formItem.tk_vt || "",
-      gia_nt2: parseFloat(formItem.gia_nt2) || 0,
-      gia2: parseFloat(formItem.gia2) || 0,
-      thue: parseFloat(formItem.thue) || 0,
-      thue_nt: parseFloat(formItem.thue_nt) || 0,
-      tien2: parseFloat(formItem.tien2) || 0,
-      tien_nt2: parseFloat(formItem.tien_nt2) || 0,
-      tl_ck: parseFloat(formItem.tl_ck) || 0,
-      ck: parseFloat(formItem.ck) || 0,
-      ck_nt: parseFloat(formItem.ck_nt) || 0,
-      tk_gv: formItem.tk_gv || "",
-      tk_dt: formItem.tk_dt || "",
-      ma_thue: formItem.ma_thue || "",
-      thue_suat: parseFloat(formItem.thue_suat) || 0,
-      tk_thue: formItem.tk_thue || "",
-      tl_ck_khac: parseFloat(formItem.tl_ck_khac) || 0,
-      gia_ck: parseFloat(formItem.gia_ck) || 0,
-      tien_ck_khac: parseFloat(formItem.tien_ck_khac) || 0,
-      sl_td1: parseFloat(formItem.sl_td1) || 0,
-      sl_td2: parseFloat(formItem.sl_td2) || 0,
-      sl_dh: parseFloat(formItem.sl_dh) || 0,
-      stt_rec_dh: formItem.stt_rec_dh || "",
-      stt_rec0dh: formItem.stt_rec0dh || "",
-      stt_rec_px: formItem.stt_rec_px || "",
-      stt_rec0px: formItem.stt_rec0px || "",
-      taoma_yn: formItem.taoma_yn || 0,
-      ma_sp: formItem.ma_sp || "",
-      ma_bp: formItem.ma_bp || "",
-      so_lsx: formItem.so_lsx || "",
-      ma_vi_tri: formItem.ma_vi_tri || "",
-      ma_lo: formItem.ma_lo || "",
-      ma_vv: formItem.ma_vv || "",
-      ma_nx: formItem.ma_nx || "",
-      tk_du: formItem.tk_du || "",
-      gia_nt: parseFloat(formItem.gia_nt) || 0,
-      gia: parseFloat(formItem.gia) || 0,
-      tien_nt: parseFloat(formItem.tien_nt) || 0,
-      tien: parseFloat(formItem.tien) || 0,
-      line_nbr: parseFloat(formItem.line_nbr) || index + 1,
-    };
-  }
-  
-  // Item đã tồn tại - giữ nguyên response data, chỉ override các field được sửa
-  const mergedItem = { ...originalItem };
-  
-  // Cập nhật các trường có thể thay đổi
-  if (formItem.maHang !== undefined) mergedItem.ma_vt = formItem.maHang?.trim();
-  if (formItem.dvt !== undefined) mergedItem.dvt = formItem.dvt;
-  if (formItem.so_luong !== undefined) mergedItem.so_luong = parseFloat(formItem.so_luong) || 0;
-  if (formItem.sl_td3 !== undefined) mergedItem.sl_td3 = parseFloat(formItem.sl_td3) || 0;
-  if (formItem.ma_kho !== undefined) mergedItem.ma_kho = formItem.ma_kho;
-  if (formItem.tk_vt !== undefined) mergedItem.tk_vt = formItem.tk_vt;
-  
-  // Cập nhật thông tin phiếu
-  mergedItem.stt_rec = commonData.stt_rec || "";
-  mergedItem.ma_ct = "HDA";
-  mergedItem.ngay_ct = commonData.ngay_ct;
-  mergedItem.so_ct = commonData.so_ct || "";
-  
-  return mergedItem;
-};
-
 // Helper function để format dữ liệu detail từ API response cho việc hiển thị
 export const formatDetailDataFromResponse = (apiDetailData) => {
   return apiDetailData.map((item, index) => {
@@ -307,45 +181,79 @@ export const buildPayload = (
   const userInfo = getUserInfo();
   const orderDate = formatDate(values.ngay);
 
-  let masterData = {};
-  
-  if (isUpdate && phieuData) {
-    // Khi update: sử dụng helper function để merge data
-    masterData = mergeResponseDataWithFormValues(phieuData, values);
-  } else {
-    // Khi tạo mới: tạo master data với giá trị mặc định
-    masterData = {
-      stt_rec: "",
-      ma_dvcs: userInfo.unitId || "VIKOSAN",
-      ma_ct: "HDA",
-      loai_ct: values.maGiaoDich || "1",
-      ma_gd: values.maGiaoDich || "1",
-      ngay_ct: orderDate,
-      so_ct: values.soPhieu || "",
-      ma_kh: values.maKhach || "",
-      dien_giai: values.dienGiai || "",
-      ma_nvbh: values.maNVBH || "",
-      xe_vc: values.xe || "",
-      tai_xe: values.taiXe || "",
-      status: values.trangThai || "0",
-    };
-  }
-
-  // Xử lý detail data sử dụng helper function
-  const commonDetailData = {
+  // MASTER - Đơn giản hóa theo pattern phiếu xuất kho
+  const masterData = {
     stt_rec: phieuData?.stt_rec || "",
+    ma_dvcs: userInfo.unitId || "VIKOSAN",
+    ma_ct: "HDA",
+    loai_ct: values.maGiaoDich || "1",
+    ma_gd: values.maGiaoDich || "1",
     ngay_ct: orderDate,
     so_ct: values.soPhieu || "",
+    ma_kh: values.maKhach || "",
+    dien_giai: values.dienGiai || "",
+    ma_nvbh: values.maNVBH || "",
+    xe_vc: values.xe || "",
+    tai_xe: values.taiXe || "",
+    status: values.trangThai || "0",
+    so_lo: "",
+    ngay_lo: "",
+    ma_nk: "",
   };
 
-  const detailData = dataSource.map((item, index) => {
-    return mergeDetailItemWithFormData(
-      isUpdate ? item : null, // Chỉ pass original data khi update
-      item,
-      index,
-      commonDetailData
-    );
-  });
+  // DETAIL - Đơn giản hóa theo pattern phiếu xuất kho
+  const detailData = dataSource.map((item, index) => ({
+    stt_rec: phieuData?.stt_rec || "",
+    stt_rec0: String(index + 1).padStart(3, "0"),
+    ma_ct: "HDA",
+    ngay_ct: orderDate,
+    so_ct: values.soPhieu || "",
+    ma_vt: item.maHang?.trim() || "",
+    dvt: item.dvt || "cái",
+    ma_kho: item.ma_kho || "",
+    so_luong: parseFloat(item.so_luong) || 0,
+    sl_td3: parseFloat(item.sl_td3) || 0,
+    he_so: parseFloat(item.he_so) || 1,
+    tk_vt: item.tk_vt || "",
+    gia_nt2: parseFloat(item.gia_nt2) || 0,
+    gia2: parseFloat(item.gia2) || 0,
+    thue: parseFloat(item.thue) || 0,
+    thue_nt: parseFloat(item.thue_nt) || 0,
+    tien2: parseFloat(item.tien2) || 0,
+    tien_nt2: parseFloat(item.tien_nt2) || 0,
+    tl_ck: parseFloat(item.tl_ck) || 0,
+    ck: parseFloat(item.ck) || 0,
+    ck_nt: parseFloat(item.ck_nt) || 0,
+    tk_gv: item.tk_gv || "",
+    tk_dt: item.tk_dt || "",
+    ma_thue: item.ma_thue || "",
+    thue_suat: parseFloat(item.thue_suat) || 0,
+    tk_thue: item.tk_thue || "",
+    tl_ck_khac: parseFloat(item.tl_ck_khac) || 0,
+    gia_ck: parseFloat(item.gia_ck) || 0,
+    tien_ck_khac: parseFloat(item.tien_ck_khac) || 0,
+    sl_td1: parseFloat(item.sl_td1) || 0,
+    sl_td2: parseFloat(item.sl_td2) || 0,
+    sl_dh: parseFloat(item.sl_dh) || 0,
+    stt_rec_dh: item.stt_rec_dh || "",
+    stt_rec0dh: item.stt_rec0dh || "",
+    stt_rec_px: item.stt_rec_px || "",
+    stt_rec0px: item.stt_rec0px || "",
+    taoma_yn: item.taoma_yn || 0,
+    ma_sp: item.ma_sp || "",
+    ma_bp: item.ma_bp || "",
+    so_lsx: item.so_lsx || "",
+    ma_vi_tri: item.ma_vi_tri || "",
+    ma_lo: item.ma_lo || "",
+    ma_vv: item.ma_vv || "",
+    ma_nx: item.ma_nx || "",
+    tk_du: item.tk_du || "",
+    gia_nt: parseFloat(item.gia_nt) || 0,
+    gia: parseFloat(item.gia) || 0,
+    tien_nt: parseFloat(item.tien_nt) || 0,
+    tien: parseFloat(item.tien) || 0,
+    line_nbr: parseFloat(item.line_nbr) || index + 1,
+  }));
 
   const payload = {
     orderDate: orderDate,
@@ -386,11 +294,17 @@ export const submitPhieu = async (endpoint, payload, successMessage) => {
 };
 
 // Dynamic API functions for phieu xuat kho ban hang
-export const submitPhieuDynamic = async (payload, successMessage, isUpdate = false) => {
+export const submitPhieuDynamic = async (
+  payload,
+  successMessage,
+  isUpdate = false
+) => {
   const token = localStorage.getItem("access_token");
-  
-  const storeName = isUpdate ? "Api_update_phieu_xuat_kho_ban_hang_voucher" : "Api_create_phieu_xuat_kho_ban_hang_voucher";
-  
+
+  const storeName = isUpdate
+    ? "Api_update_phieu_xuat_kho_ban_hang_voucher"
+    : "Api_create_phieu_xuat_kho_ban_hang_voucher";
+
   const body = {
     store: storeName,
     param: {},
@@ -417,7 +331,11 @@ export const submitPhieuDynamic = async (payload, successMessage, isUpdate = fal
       message.success(successMessage);
       return { success: true };
     } else {
-      message.error(response.data?.responseModel?.message || response.data?.message || "Có lỗi xảy ra");
+      message.error(
+        response.data?.responseModel?.message ||
+          response.data?.message ||
+          "Có lỗi xảy ra"
+      );
       return { success: false };
     }
   } catch (error) {
@@ -455,10 +373,16 @@ export const deletePhieuDynamic = async (stt_rec) => {
 
     // Check new response structure with responseModel
     if (response.data?.responseModel?.isSucceded === true) {
-      message.success(response.data.responseModel.message || "Xóa phiếu xuất kho bán hàng thành công");
+      message.success(
+        response.data.responseModel.message ||
+          "Xóa phiếu xuất kho bán hàng thành công"
+      );
       return { success: true };
     } else {
-      message.error(response.data?.responseModel?.message || "Xóa phiếu xuất kho bán hàng thất bại");
+      message.error(
+        response.data?.responseModel?.message ||
+          "Xóa phiếu xuất kho bán hàng thất bại"
+      );
       return { success: false };
     }
   } catch (error) {

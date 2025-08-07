@@ -14,9 +14,7 @@ import { usePhieuNhapKhoData } from "./hooks/usePhieuNhapKhoData";
 import { useVatTuManagerNhapKho } from "./hooks/useVatTuManagerNhapKho";
 import {
   buildPhieuNhapKhoPayload,
-  deletePhieuNhapKho,
   deletePhieuNhapKhoDynamic,
-  submitPhieuNhapKho,
   submitPhieuNhapKhoDynamic,
   validateDataSource,
 } from "./utils/phieuNhapKhoUtils";
@@ -126,17 +124,23 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
           resultSetNames: ["master", "detail"],
         };
 
-        const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await https.post(
+          "v1/dynamicApi/call-dynamic-api",
+          body,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         if (response && response.data) {
           const apiData = response.data.listObject?.dataLists || {};
           const phieuInfo =
-            apiData.master && apiData.master.length > 0 ? apiData.master[0] : null;
+            apiData.master && apiData.master.length > 0
+              ? apiData.master[0]
+              : null;
           const vatTuList = apiData.detail || [];
 
           if (phieuInfo) {
@@ -214,7 +218,16 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
     };
 
     fetchPhieuDetail();
-  }, [sctRec, apiCalled, form, setDataSource, setLoading, setApiCalled, token, stt_rec]);
+  }, [
+    sctRec,
+    apiCalled,
+    form,
+    setDataSource,
+    setLoading,
+    setApiCalled,
+    token,
+    stt_rec,
+  ]);
 
   // Handle barcode focus
   useEffect(() => {

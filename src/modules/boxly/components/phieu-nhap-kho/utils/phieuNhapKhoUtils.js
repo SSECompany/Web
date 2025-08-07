@@ -75,113 +75,77 @@ export const buildPhieuNhapKhoPayload = (
     0
   );
 
-  let masterData = {};
-  
-  if (isUpdate && phieuData) {
-    // Khi update: giữ nguyên toàn bộ dữ liệu từ response, chỉ override các trường được sửa
-    masterData = { ...phieuData };
-    
-    // Chỉ cập nhật các trường từ form values (những trường người dùng có thể sửa)
-    if (values.maGiaoDich !== undefined) {
-      masterData.loai_ct = values.maGiaoDich;
-      masterData.ma_gd = values.maGiaoDich;
-    }
-    if (values.soPhieu !== undefined) masterData.so_ct = values.soPhieu;
-    if (values.donViTienTe !== undefined) masterData.ma_nt = values.donViTienTe;
-    if (values.tyGia !== undefined) masterData.ty_gia = parseFloat(values.tyGia);
-    if (values.maKhach !== undefined) {
-      masterData.ong_ba = values.maKhach;
-      masterData.ma_kh = values.maKhach;
-    }
-    if (values.dienGiai !== undefined) masterData.dien_giai = values.dienGiai;
-    if (values.trangThai !== undefined) masterData.status = values.trangThai;
-    
-    // Cập nhật ngày và các trường bắt buộc
-    masterData.ngay_lct = orderDate;
-    masterData.ngay_ct = orderDate;
-    masterData.t_so_luong = totalQuantity;
-    masterData.datetime2 = orderDate;
-    masterData.user_id2 = userInfo.userId;
-  } else {
-    // Khi tạo mới: tạo master data với giá trị mặc định
-    masterData = {
-      stt_rec: "",
-      ma_dvcs: userInfo.unitId,
-      ma_ct: "PND",
-      loai_ct: values.maGiaoDich || "",
-      ma_gd: values.maGiaoDich || "",
-      ngay_lct: orderDate,
-      ngay_ct: orderDate,
-      so_ct: values.soPhieu || "",
-      ma_nt: values.donViTienTe || "VND",
-      ty_gia: parseFloat(values.tyGia || 1),
-      ong_ba: values.maKhach || "",
-      ma_kh: values.maKhach || "",
-      dien_giai: values.dienGiai || "",
-      t_so_luong: totalQuantity,
-      status: values.trangThai || "3",
-      datetime2: orderDate,
-      user_id2: userInfo.userId,
-    };
-  }
+  // Tính tổng tiền từ detail
+  const totalAmount = dataSource.reduce(
+    (sum, item) => sum + parseFloat(item.tien || 0),
+    0
+  );
+  const totalAmountNt = dataSource.reduce(
+    (sum, item) => sum + parseFloat(item.tien_nt || 0),
+    0
+  );
 
-  // Xử lý detail data
-  const detailData = dataSource.map((item, index) => {
-    let detailItem = {};
-    
-    if (isUpdate && item.stt_rec0) {
-      // Khi update: giữ nguyên toàn bộ dữ liệu gốc, chỉ override các trường được sửa
-      detailItem = { ...item };
-      
-      // Cập nhật các trường có thể thay đổi
-      detailItem.ma_vt = item.maHang?.trim() || detailItem.ma_vt || "";
-      detailItem.dvt = item.dvt || detailItem.dvt || "";
-      detailItem.ma_kho = item.ma_kho || detailItem.ma_kho || "";
-      detailItem.so_luong = parseFloat(item.soLuongDeNghi || detailItem.so_luong || 0);
-      detailItem.sl_td3 = parseFloat(item.soLuong || detailItem.sl_td3 || 0);
-      detailItem.tk_vt = item.tk_vt || detailItem.tk_vt || "";
-      
-      // Cập nhật thông tin phiếu
-      detailItem.stt_rec = phieuData?.stt_rec || "";
-      detailItem.ma_ct = "PND";
-      detailItem.ngay_ct = orderDate;
-      detailItem.so_ct = values.soPhieu || detailItem.so_ct || "";
-    } else {
-      // Khi tạo mới: tạo detail với cấu trúc đầy đủ
-      detailItem = {
-        stt_rec: phieuData?.stt_rec || "",
-        stt_rec0: String(index + 1).padStart(3, "0"),
-        ma_ct: "PND",
-        ngay_ct: orderDate,
-        so_ct: values.soPhieu || "",
-        ma_vt: item.maHang?.trim() || "",
-        ma_sp: item.ma_sp || "",
-        ma_bp: item.ma_bp || "",
-        so_lsx: item.so_lsx || "",
-        dvt: item.dvt || "",
-        he_so: parseFloat(item.he_so || 1),
-        ma_kho: item.ma_kho || "",
-        ma_vi_tri: item.ma_vi_tri || "",
-        ma_lo: item.ma_lo || "",
-        ma_vv: item.ma_vv || "",
-        ma_nx: item.ma_nx || "",
-        tk_du: item.tk_du || "",
-        tk_vt: item.tk_vt || "",
-        so_luong: parseFloat(item.soLuongDeNghi || 0),
-        sl_td3: parseFloat(item.soLuong || 0),
-        gia_nt: parseFloat(item.gia_nt || 0),
-        gia: parseFloat(item.gia || 0),
-        tien_nt: parseFloat(item.tien_nt || 0),
-        tien: parseFloat(item.tien || 0),
-        pn_gia_tb: item.pn_gia_tb !== undefined ? item.pn_gia_tb : false,
-        stt_rec_px: item.stt_rec_px || "",
-        stt_rec0px: item.stt_rec0px || "",
-        line_nbr: parseFloat(item.line_nbr || index + 1),
-      };
-    }
-    
-    return detailItem;
-  });
+  // MASTER - Đơn giản hóa theo pattern phiếu xuất kho
+  const masterData = {
+    stt_rec: phieuData?.stt_rec || "",
+    ma_dvcs: userInfo.unitId,
+    ma_ct: "PND",
+    loai_ct: values.maGiaoDich || "",
+    so_lo: "",
+    ngay_lo: "",
+    ma_nk: "",
+    ma_gd: values.maGiaoDich || "",
+    ngay_lct: orderDate,
+    ngay_ct: orderDate,
+    so_ct: values.soPhieu || "",
+    ma_nt: values.donViTienTe || "VND",
+    ty_gia: parseFloat(values.tyGia || 1),
+    ong_ba: values.maKhach || "",
+    ma_kh: values.maKhach || "",
+    dien_giai: values.dienGiai || "",
+    status: values.trangThai || "0",
+    t_so_luong: totalQuantity,
+    t_tien_nt: totalAmountNt,
+    t_tien: totalAmount,
+    nam: new Date(orderDate).getFullYear(),
+    ky: new Date(orderDate).getMonth() + 1,
+    datetime0: orderDate,
+    datetime2: orderDate,
+    user_id0: userInfo.userId.toString(),
+    user_id2: userInfo.userId.toString(),
+  };
+
+  // DETAIL - Đơn giản hóa theo pattern phiếu xuất kho
+  const detailData = dataSource.map((item, index) => ({
+    stt_rec: phieuData?.stt_rec || "",
+    stt_rec0: "",
+    ma_ct: "PND",
+    ngay_ct: orderDate,
+    so_ct: values.soPhieu || "",
+    ma_vt: item.maHang?.trim() || "",
+    ma_sp: item.ma_sp || "",
+    ma_bp: item.ma_bp || "",
+    so_lsx: item.so_lsx || "",
+    dvt: item.dvt || "",
+    he_so: parseFloat(item.he_so || 1),
+    ma_kho: item.ma_kho || "",
+    ma_vi_tri: item.ma_vi_tri || "",
+    ma_lo: item.ma_lo || "",
+    ma_vv: item.ma_vv || "",
+    ma_nx: item.ma_nx || "",
+    tk_du: item.tk_du || "",
+    tk_vt: item.tk_vt || "",
+    so_luong: parseFloat(item.soLuongDeNghi || item.so_luong || 0),
+    sl_td3: parseFloat(item.soLuong || item.sl_td3 || 0),
+    gia_nt: parseFloat(item.gia_nt || 0),
+    gia: parseFloat(item.gia || 0),
+    tien_nt: parseFloat(item.tien_nt || 0),
+    tien: parseFloat(item.tien || 0),
+    pn_gia_tb: item.pn_gia_tb !== undefined ? (item.pn_gia_tb ? 1 : 0) : 0,
+    stt_rec_px: item.stt_rec_px || "",
+    stt_rec0px: item.stt_rec0px || "",
+    line_nbr: parseFloat(item.line_nbr || index + 1),
+  }));
 
   const payload = {
     orderDate: orderDate,
@@ -347,11 +311,17 @@ export const processMaKho = (apiMaKho, fallbackMaKho = "") => {
 };
 
 // Dynamic API functions for phieu nhap kho
-export const submitPhieuNhapKhoDynamic = async (payload, successMessage, isUpdate = false) => {
+export const submitPhieuNhapKhoDynamic = async (
+  payload,
+  successMessage,
+  isUpdate = false
+) => {
   const token = localStorage.getItem("access_token");
-  
-  const storeName = isUpdate ? "Api_update_phieu_nhap_kho_voucher" : "Api_create_phieu_nhap_kho_voucher";
-  
+
+  const storeName = isUpdate
+    ? "Api_update_phieu_nhap_kho_voucher"
+    : "Api_create_phieu_nhap_kho_voucher";
+
   const body = {
     store: storeName,
     param: {},
@@ -385,7 +355,11 @@ export const submitPhieuNhapKhoDynamic = async (payload, successMessage, isUpdat
       message.success(successMessage);
       return { success: true };
     } else {
-      message.error(response.data?.responseModel?.message || response.data?.message || "Có lỗi xảy ra");
+      message.error(
+        response.data?.responseModel?.message ||
+          response.data?.message ||
+          "Có lỗi xảy ra"
+      );
       return { success: false };
     }
   } catch (error) {
@@ -423,10 +397,14 @@ export const deletePhieuNhapKhoDynamic = async (sctRec) => {
 
     // Check new response structure with responseModel
     if (response.data?.responseModel?.isSucceded === true) {
-      message.success(response.data.responseModel.message || "Xóa phiếu nhập kho thành công");
+      message.success(
+        response.data.responseModel.message || "Xóa phiếu nhập kho thành công"
+      );
       return { success: true };
     } else {
-      message.error(response.data?.responseModel?.message || "Xóa phiếu nhập kho thất bại");
+      message.error(
+        response.data?.responseModel?.message || "Xóa phiếu nhập kho thất bại"
+      );
       return { success: false };
     }
   } catch (error) {
