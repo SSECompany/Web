@@ -14,6 +14,7 @@ import {
   buildPhieuNhapKhoPayload,
   fetchVoucherInfo,
   submitPhieuNhapKho,
+  submitPhieuNhapKhoDynamic,
   validateDataSource,
 } from "./utils/phieuNhapKhoUtils";
 
@@ -109,7 +110,7 @@ const AddPhieuNhapKho = () => {
     };
 
     initializeData();
-  }, []);
+  }, [fetchMaGiaoDichList, fetchMaKhoList, fetchMaKhachList, fetchVatTuList, form]);
 
   // Handle barcode focus
   useEffect(() => {
@@ -121,9 +122,10 @@ const AddPhieuNhapKho = () => {
 
   // Cleanup
   useEffect(() => {
+    const timeoutRef = searchTimeoutRef.current;
     return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+      if (timeoutRef) {
+        clearTimeout(timeoutRef);
       }
     };
   }, []);
@@ -166,10 +168,10 @@ const AddPhieuNhapKho = () => {
             const payload = buildPhieuNhapKhoPayload(values, dataSource);
 
             // Submit
-            const result = await submitPhieuNhapKho(
-              "v1/web/create-stock-voucher",
+            const result = await submitPhieuNhapKhoDynamic(
               payload,
-              "Thêm phiếu nhập kho thành công"
+              "Thêm phiếu nhập kho thành công",
+              false
             );
 
             if (result.success) {

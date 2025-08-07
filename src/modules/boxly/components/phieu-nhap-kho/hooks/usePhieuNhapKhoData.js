@@ -337,17 +337,23 @@ export const usePhieuNhapKhoData = () => {
     async (maVatTu, forceRefresh = false) => {
       if (!maVatTu) return [];
 
+      // Clean maVatTu để tránh encoding issues
+      const cleanMaVatTu = maVatTu.trim().replace(/\s+/g, ' ');
+      
       // Kiểm tra cache trước khi gọi API
-      if (!forceRefresh && isCacheValid && masterDataCache.donViTinh[maVatTu]) {
-        return masterDataCache.donViTinh[maVatTu];
+      if (!forceRefresh && isCacheValid && masterDataCache.donViTinh[cleanMaVatTu]) {
+        return masterDataCache.donViTinh[cleanMaVatTu];
       }
 
       try {
+        
+        // Alternative approach: use manual URL construction to avoid double encoding
+        const encodedMaVt = encodeURIComponent(cleanMaVatTu);
+        const url = `v1/web/danh-sach-dv?ma_vt=${encodedMaVt}`;
+        
         const response = await https.get(
-          "v1/web/danh-sach-dv",
-          {
-            ma_vt: maVatTu,
-          },
+          url,
+          {},  // Empty params since we manually built the URL
           {
             headers: {
               "Content-Type": "application/json",
@@ -358,8 +364,8 @@ export const usePhieuNhapKhoData = () => {
 
         if (response.data && response.data.data) {
           const data = response.data.data;
-          // Cache kết quả theo maVatTu
-          masterDataCache.donViTinh[maVatTu] = data;
+          // Cache kết quả theo cleanMaVatTu
+          masterDataCache.donViTinh[cleanMaVatTu] = data;
           masterDataCache.lastFetch = Date.now();
           return data;
         }

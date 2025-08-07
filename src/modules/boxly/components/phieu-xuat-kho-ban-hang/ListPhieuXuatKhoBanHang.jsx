@@ -56,29 +56,35 @@ const ListPhieuXuatKhoBanHang = () => {
 
   const fetchPhieuXuatKhoBanHang = async (filterParams = filters) => {
     const body = {
-      DateFrom:
-        filterParams.dateRange && filterParams.dateRange[0]
-          ? filterParams.dateRange[0].format("YYYY-MM-DD")
-          : dayjs().startOf("month").format("YYYY-MM-DD"),
-      DateTo:
-        filterParams.dateRange && filterParams.dateRange[1]
-          ? filterParams.dateRange[1].format("YYYY-MM-DD")
-          : dayjs().endOf("month").format("YYYY-MM-DD"),
-      PageIndex: 1,
-      PageSize: 50,
-      ...filterParams,
+      store: "api_list_phieu_xuat_kho_ban_hang_voucher",
+      param: {
+        so_ct: filterParams.so_ct || "",
+        ma_kh: filterParams.ma_kh || "",
+        ten_kh: filterParams.ten_kh || "",
+        ngay_ct: "",
+        DateFrom:
+          filterParams.dateRange && filterParams.dateRange[0]
+            ? filterParams.dateRange[0].format("YYYY-MM-DD")
+            : dayjs().startOf("month").format("YYYY-MM-DD"),
+        DateTo:
+          filterParams.dateRange && filterParams.dateRange[1]
+            ? filterParams.dateRange[1].format("YYYY-MM-DD")
+            : dayjs().endOf("month").format("YYYY-MM-DD"),
+        PageIndex: 1,
+        PageSize: 50,
+        Status: "",
+      },
+      data: {},
+      resultSetNames: ["data", "pagination"],
     };
     try {
-      const res = await https.get(
-        "v1/web/danh-sach-chung-tu-xuat-kho-ban-hang",
-        body,
-        {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        }
-      );
-      setAllData(res.data.data || []);
-      setTotalRecords((res.data.data || []).length);
+      const res = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      });
+      const responseData = res.data?.listObject?.dataLists?.data || [];
+      setAllData(responseData);
+      setTotalRecords(responseData.length);
     } catch (err) {
       console.error("Lỗi gọi API danh sách phiếu xuất kho bán hàng:", err);
     }
@@ -112,31 +118,43 @@ const ListPhieuXuatKhoBanHang = () => {
       type: "warning",
       onOk: async () => {
         try {
+          const body = {
+            store: "api_delete_phieu_xuat_kho_ban_hang_voucher",
+            param: {
+              stt_rec: stt_rec,
+            },
+            data: {},
+          };
+
           const response = await https.post(
-            "v1/web/xoa-ct-kho-hang-ban",
-            {},
+            "v1/dynamicApi/call-dynamic-api",
+            body,
             {
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
               },
-              params: {
-                sctRec: stt_rec,
-              },
             }
           );
 
-          if (response.data && response.data.statusCode === 200) {
+          // Check new response structure with responseModel
+          if (response.data?.responseModel?.isSucceded === true) {
             setAllData(allData.filter((item) => item.stt_rec !== stt_rec));
-            message.success("Xóa phiếu thành công");
+            message.success(response.data.responseModel.message || "Xóa phiếu xuất kho bán hàng thành công");
           } else {
             message.error(
-              response.data?.message || "Có lỗi xảy ra khi xóa phiếu"
+              response.data?.responseModel?.message || "Xóa phiếu xuất kho bán hàng thất bại"
             );
           }
         } catch (error) {
-          console.error("Lỗi khi xóa phiếu:", error);
-          message.error("Không thể xóa phiếu. Vui lòng thử lại sau.");
+          console.error("Lỗi khi xóa phiếu xuất kho bán hàng:", error);
+          if (error.response?.data?.responseModel?.message) {
+            message.error(error.response.data.responseModel.message);
+          } else if (error.response?.data?.message) {
+            message.error(error.response.data.message);
+          } else {
+            message.error("Có lỗi xảy ra khi xóa phiếu xuất kho bán hàng");
+          }
         }
       },
     });

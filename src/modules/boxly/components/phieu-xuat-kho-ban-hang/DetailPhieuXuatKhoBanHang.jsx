@@ -1,5 +1,5 @@
 import { EditOutlined, LeftOutlined } from "@ant-design/icons";
-import { Button, Form, Space, Typography } from "antd";
+import { Button, Form, message, Space, Typography } from "antd";
 import moment from "moment/moment";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -16,7 +16,10 @@ import { useVatTuManager } from "./hooks/useVatTuManager";
 import {
   buildPayload,
   deletePhieu,
+  deletePhieuDynamic,
+  formatDetailDataFromResponse,
   submitPhieu,
+  submitPhieuDynamic,
   validateDataSource,
   validateQuantityAndShowConfirm,
 } from "./utils/phieuXuatKhoBanHangUtils";
@@ -141,20 +144,27 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
 
     try {
       const token = localStorage.getItem("access_token");
-      const res = await https.get(
-        `v1/web/chi-tiet-chung-tu-xuat-kho-ban-hang?stt_rec=${stt_rec}`,
-        {},
-        {
+      const body = {
+        store: "api_get_data_detail_phieu_xuat_kho_ban_hang_voucher",
+        param: {
+          stt_rec: stt_rec,
+        },
+        data: {},
+        resultSetNames: ["master", "detail"],
+      };
+
+      const res = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+        headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
-        }
-      );
+        },
+      });
 
-      const data = res.data;
+      const data = res.data?.listObject?.dataLists || {};
 
-      if (data?.data?.length > 0 && data?.data2?.length > 0) {
-        const phieuHeader = data.data[0];
-        const phieuDetails = data.data2;
+      if (data?.master?.length > 0 && data?.detail?.length > 0) {
+        const phieuHeader = data.master[0];
+        const phieuDetails = data.detail;
 
         setPhieuData({
           ...phieuHeader,
@@ -176,49 +186,8 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         });
 
         if (phieuDetails.length > 0) {
-          // Chỉ load thông tin cơ bản, không gọi API master data
-          const mappedItems = phieuDetails.map((item, index) => {
-            const sl_td3_hienThi = item.sl_td3 ?? item.so_luong ?? 0;
-            const so_luong_hienThi = item.so_luong ?? 0;
-            const dvtHienTai = item.dvt?.trim() || "cái";
-
-            return {
-              key: index + 1,
-              maHang: item.ma_vt,
-              so_luong: Math.round(so_luong_hienThi * 1000) / 1000,
-              sl_td3: sl_td3_hienThi,
-              ten_mat_hang: item.ten_vt || item.ma_vt,
-              dvt: dvtHienTai,
-              tk_vt: item.tk_vt || "",
-              ma_kho: item.ma_kho || "",
-
-              // Thêm các trường từ API response để gửi lại khi update
-              gia_nt2: parseFloat(item.gia_nt2) || 0,
-              gia2: parseFloat(item.gia2) || 0,
-              thue: parseFloat(item.thue) || 0,
-              thue_nt: parseFloat(item.thue_nt) || 0,
-              tien2: parseFloat(item.tien2) || 0,
-              tien_nt2: parseFloat(item.tien_nt2) || 0,
-              tl_ck: parseFloat(item.tl_ck) || 0,
-              ck: parseFloat(item.ck) || 0,
-              ck_nt: parseFloat(item.ck_nt) || 0,
-              stt_rec0: item.stt_rec0 || "",
-              ma_sp: item.ma_sp || "",
-              ma_bp: item.ma_bp || "",
-              so_lsx: item.so_lsx || "",
-              ma_vi_tri: item.ma_vi_tri || "",
-              ma_lo: item.ma_lo || "",
-              ma_vv: item.ma_vv || "",
-              ma_nx: item.ma_nx || "",
-              tk_du: item.tk_du || "",
-              gia_nt: item.gia_nt || 0,
-              gia: item.gia || 0,
-              tien_nt: item.tien_nt || 0,
-              tien: item.tien || 0,
-              line_nbr: item.line_nbr || index + 1,
-            };
-          });
-
+          // Sử dụng helper function để format dữ liệu, giữ nguyên toàn bộ response data
+          const mappedItems = formatDetailDataFromResponse(phieuDetails);
           setDataSource(mappedItems);
         }
 
@@ -367,14 +336,22 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
           setLoading(false);
           return;
         }
-        const result = await submitPhieu(
-          "v1/web/cap-nhat-phieu-xuat-kho-ban-hang",
+        const result = await submitPhieuDynamic(
           payload,
-          isEditMode ? "Cập nhật thành công" : "Lưu thành công"
+          isEditMode ? "Cập nhật phiếu xuất kho bán hàng thành công" : "Lưu phiếu xuất kho bán hàng thành công",
+          true
         );
 
         if (result.success) {
-          navigate("/boxly/phieu-xuat-kho-ban-hang");
+          message.success(
+            "Đã cập nhật thành công, đang chuyển về trang chính..."
+          );
+
+          // Delay một chút để user thấy message trước khi navigate
+          setTimeout(() => {
+            navigate("/boxly/phieu-xuat-kho-ban-hang");
+          }, 1000);
+        } else {
         }
       } catch (error) {
         console.error("Lỗi khi cập nhật phiếu xuất kho:", error);
@@ -401,7 +378,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
       type: "warning",
       onOk: async () => {
         setLoading(true);
-        const result = await deletePhieu(stt_rec);
+        const result = await deletePhieuDynamic(stt_rec);
         setLoading(false);
 
         if (result.success) {

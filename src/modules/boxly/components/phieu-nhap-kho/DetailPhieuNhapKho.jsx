@@ -15,7 +15,9 @@ import { useVatTuManagerNhapKho } from "./hooks/useVatTuManagerNhapKho";
 import {
   buildPhieuNhapKhoPayload,
   deletePhieuNhapKho,
+  deletePhieuNhapKhoDynamic,
   submitPhieuNhapKho,
+  submitPhieuNhapKhoDynamic,
   validateDataSource,
 } from "./utils/phieuNhapKhoUtils";
 
@@ -115,15 +117,27 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
       setApiCalled(true);
 
       try {
-        const response = await https.get(`v1/web/thong-tin-phieu-nhap-kho`, {
-          stt_rec: sctRec,
+        const body = {
+          store: "api_get_data_detail_phieu_nhap_kho_voucher",
+          param: {
+            stt_rec: sctRec,
+          },
+          data: {},
+          resultSetNames: ["master", "detail"],
+        };
+
+        const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         });
 
         if (response && response.data) {
-          const apiData = response.data;
+          const apiData = response.data.listObject?.dataLists || {};
           const phieuInfo =
-            apiData.data && apiData.data.length > 0 ? apiData.data[0] : null;
-          const vatTuList = apiData.data2 || [];
+            apiData.master && apiData.master.length > 0 ? apiData.master[0] : null;
+          const vatTuList = apiData.detail || [];
 
           if (phieuInfo) {
             let statusValue = phieuInfo.status;
@@ -200,7 +214,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
     };
 
     fetchPhieuDetail();
-  }, [sctRec, apiCalled]);
+  }, [sctRec, apiCalled, form, setDataSource, setLoading, setApiCalled, token, stt_rec]);
 
   // Handle barcode focus
   useEffect(() => {
@@ -237,9 +251,10 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
 
   // Cleanup
   useEffect(() => {
+    const timeoutRef = searchTimeoutRef.current;
     return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+      if (timeoutRef) {
+        clearTimeout(timeoutRef);
       }
     };
   }, []);
@@ -273,7 +288,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
       type: "warning",
       onOk: async () => {
         setLoading(true);
-        const result = await deletePhieuNhapKho(sctRec);
+        const result = await deletePhieuNhapKhoDynamic(sctRec);
         setLoading(false);
 
         if (result.success) {
@@ -319,10 +334,10 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             }
 
             // Submit
-            const result = await submitPhieuNhapKho(
-              "v1/web/update-stock-voucher",
+            const result = await submitPhieuNhapKhoDynamic(
               payload,
-              "Cập nhật phiếu nhập kho thành công"
+              "Cập nhật phiếu nhập kho thành công",
+              true
             );
 
             if (result.success) {

@@ -16,6 +16,7 @@ import { useVatTuManager } from "./hooks/useVatTuManager";
 import {
   buildPayload,
   submitPhieu,
+  submitPhieuDynamic,
   validateDataSource,
   validateQuantityAndShowConfirm,
 } from "./utils/phieuXuatKhoBanHangUtils";
@@ -209,10 +210,10 @@ const AddPhieuXuatKhoBanHang = () => {
   const submitPhieuData = async (values) => {
     try {
       const payload = buildPayload(values, dataSource, null, false);
-      const result = await submitPhieu(
-        "v1/web/tao-phieu-xuat-kho-ban-hang",
+      const result = await submitPhieuDynamic(
         payload,
-        "Tạo phiếu xuất kho bán hàng thành công"
+        "Thêm phiếu xuất kho bán hàng thành công",
+        false
       );
 
       if (result.success) {

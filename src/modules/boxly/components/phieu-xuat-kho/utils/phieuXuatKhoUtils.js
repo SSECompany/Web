@@ -94,7 +94,6 @@ export const buildPayload = (
     ma_kh: values.ma_kh || values.maKhach || "",
     status: values.status || values.trangThai || "1",
   };
-  console.log("🚀 ~ buildPayload ~ master:", master)
 
   // DETAIL
   const detail = dataSource.map((item, index) => ({
