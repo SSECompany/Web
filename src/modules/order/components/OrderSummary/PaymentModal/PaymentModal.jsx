@@ -60,11 +60,11 @@ const PaymentModal = ({
 
   // Memoize account info
   const account = useMemo(
-    () => process.env.REACT_APP_VIETQR_ACCOUNT || "970416-123456789",
+    () => process.env.REACT_APP_VIETQR_ACCOUNT ,
     []
   );
   const accountName = useMemo(
-    () => process.env.REACT_APP_VIETQR_ACCOUNT_NAME || "Phenikaa",
+    () => process.env.REACT_APP_VIETQR_ACCOUNT_NAME ,
     []
   );
 

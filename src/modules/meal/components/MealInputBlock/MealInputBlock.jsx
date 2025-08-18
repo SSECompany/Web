@@ -1,5 +1,5 @@
 import { CloseOutlined, MinusOutlined, PlusOutlined } from "@ant-design/icons";
-import { Input, Select } from "antd";
+import { Checkbox, Input, Select } from "antd";
 import React from "react";
 
 const MealEntryRow = ({
@@ -22,8 +22,6 @@ const MealEntryRow = ({
     listFood.filter(
       (food) => food.ma_ca === timeOfDay && food.ma_nh === meal.mode
     );
-
- 
 
   // Determine shift name for display
   const shiftName =
@@ -133,8 +131,10 @@ const MealEntryRow = ({
             <button
               onClick={() => handleQuantityChange(timeOfDay, index, -1)}
               className="quantity-button"
-              // disabled={!meal.mealType || meal.quantity <= 1 || meal.collectMoney}
-              disabled={true}
+              disabled={
+                !meal.mealType || meal.quantity <= 1 || meal.collectMoney
+              }
+              // disabled={true}
             >
               <MinusOutlined />
             </button>
@@ -142,8 +142,8 @@ const MealEntryRow = ({
             <button
               onClick={() => handleQuantityChange(timeOfDay, index, 1)}
               className="quantity-button"
-              // disabled={!meal.mealType || meal.collectMoney}
-              disabled={true}
+              disabled={!meal.mealType || meal.collectMoney}
+              // disabled={true}
             >
               <PlusOutlined />
             </button>
@@ -152,25 +152,25 @@ const MealEntryRow = ({
 
         <div className="price-input-group">
           <div>
-            {/* <span className="price-label">Bệnh nhân</span>
-                        <Checkbox
-                            checked={meal.collectMoney || false}
-                            onChange={(e) => {
-                                handleCollectMoneyChange(e);
-                                if (e.target.checked) {
-                                    handleQuantityChange(timeOfDay, index, 1 - meal.quantity); // Set quantity = 1 immediately
-                                }
-                            }}
-                            className="price-checkbox"
-                            disabled={
-                                (!meal.mealType) || // Không có món ăn thì disable
-                                (!meal.collectMoney && isAnotherMealSelected) // Nếu đã có suất khác được chọn thì disable
-                            }
-                        /> */}
+            <span className="price-label">Bệnh nhân</span>
+            <Checkbox
+              checked={meal.collectMoney || false}
+              onChange={(e) => {
+                handleCollectMoneyChange(e);
+                if (e.target.checked) {
+                  handleQuantityChange(timeOfDay, index, 1 - meal.quantity); // Set quantity = 1 immediately
+                }
+              }}
+              className="price-checkbox"
+              disabled={
+                !meal.mealType || // Không có món ăn thì disable
+                (!meal.collectMoney && isAnotherMealSelected) // Nếu đã có suất khác được chọn thì disable
+              }
+            />
           </div>
-          {/* <span className="price-display">
-                        {(meal.totalMoney || 0).toLocaleString()} đ
-                    </span> */}
+          <span className="price-display">
+            {(meal.totalMoney || 0).toLocaleString()} đ
+          </span>
         </div>
 
         {/* Notes */}
