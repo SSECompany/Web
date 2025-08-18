@@ -463,11 +463,6 @@
   padding: 4px 0;
   border-bottom: 1px solid #f1f5f9;
 }
-
-.summary-row:last-child {
-  border-bottom: none;
-}
-
 .summary-row .ant-typography {
   font-size: var(--base-font-size);
   color: #374151;
@@ -475,8 +470,7 @@
 }
 
 .total-row {
-  border-top: 2px solid #e5e7eb;
-  padding-top: 8px;
+  border: 2px solid #e5e7eb;
   margin-top: 8px;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-radius: 6px;
@@ -493,36 +487,101 @@
 .payment-method-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  margin-top: 4px;
+  margin-bottom: 10px;
 }
 
 .payment-method-section .ant-typography {
   font-size: var(--base-font-size);
   color: #374151;
   font-weight: 600;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
 }
 
-.payment-method-section .ant-select {
-  width: 100%;
+.payment-method-section .ant-select,
+.payment-method-select {
+  width: 100% !important;
 }
 
-.payment-method-section .ant-select-selector {
-  border-radius: 6px !important;
-  border: 1px solid #e2e8f0 !important;
-  background: #ffffff !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-  transition: all 0.2s ease !important;
+.payment-method-section .ant-select-selector,
+.payment-method-select .ant-select-selector {
+  border-radius: 8px !important;
+  border: 2px solid #e2e8f0 !important;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  padding: 10px 14px !important;
+  min-height: 42px !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
-.payment-method-section .ant-select-selector:hover {
-  border-color: #cbd5e1 !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-}
-
-.payment-method-section .ant-select-focused .ant-select-selector {
+.payment-method-section .ant-select-selector:hover,
+.payment-method-select .ant-select-selector:hover {
   border-color: #059669 !important;
-  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1) !important;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15), 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-1px) !important;
+}
+
+.payment-method-section .ant-select-focused .ant-select-selector,
+.payment-method-select.ant-select-focused .ant-select-selector {
+  border-color: #059669 !important;
+  box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.15),
+    0 4px 16px rgba(5, 150, 105, 0.2) !important;
+  background: linear-gradient(145deg, #ffffff 0%, #f0fdf4 100%) !important;
+}
+
+.payment-method-section .ant-select-selection-item,
+.payment-method-select .ant-select-selection-item {
+  font-weight: 500 !important;
+  color: #1f2937 !important;
+  font-size: 14px !important;
+}
+
+.payment-method-section .ant-select-arrow,
+.payment-method-select .ant-select-arrow {
+  color: #059669 !important;
+  font-size: 12px !important;
+  transition: all 0.3s ease !important;
+  position: absolute;
+  top: 20px;
+  right: 10px;
+}
+
+.payment-method-section .ant-select-open .ant-select-arrow,
+.payment-method-select.ant-select-open .ant-select-arrow {
+  transform: rotate(180deg) !important;
+}
+
+/* Dropdown styling */
+.payment-method-section .ant-select-dropdown,
+.payment-method-select .ant-select-dropdown {
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #e2e8f0 !important;
+  overflow: hidden !important;
+}
+
+.payment-method-section .ant-select-item,
+.payment-method-select .ant-select-item {
+  padding: 10px 16px !important;
+  transition: all 0.2s ease !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  font-size: 14px !important;
+}
+
+.payment-method-section .ant-select-item:hover,
+.payment-method-select .ant-select-item:hover {
+  background: linear-gradient(90deg, #f0fdf4 0%, #ecfdf5 100%) !important;
+  color: #059669 !important;
+}
+
+.payment-method-section .ant-select-item-option-selected,
+.payment-method-select .ant-select-item-option-selected {
+  background: linear-gradient(90deg, #059669 0%, #10b981 100%) !important;
+  color: white !important;
+  font-weight: 600 !important;
 }
 
 /* Cash Payment Section */

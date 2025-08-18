@@ -38,8 +38,8 @@ function buildVietQR({ account, bankId, amount, content }) {
 
 export default function VietQR({ amount, soChungTu, size = 100 }) {
   const qrData = buildVietQR({
-    account: process.env.REACT_APP_VIETQR_ACCOUNT || "03775720401",
-    bankId: process.env.REACT_APP_VIETQR_BANK_ID || "970436",
+    account: process.env.REACT_APP_VIETQR_ACCOUNT,
+    bankId: process.env.REACT_APP_VIETQR_BANK_ID,
     amount,
     content: soChungTu || "",
   });

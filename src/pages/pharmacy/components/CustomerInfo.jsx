@@ -1,4 +1,10 @@
-import { PhoneOutlined, UserOutlined, UpOutlined, DownOutlined } from "@ant-design/icons";
+import {
+  DownOutlined,
+  IdcardOutlined,
+  PhoneOutlined,
+  UpOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import { Button, Card, Input, Space } from "antd";
 import React from "react";
 
@@ -50,6 +56,7 @@ const CustomerInfo = ({
               setCustomer({ ...customer, idNumber: e.target.value })
             }
             size="small"
+            prefix={<IdcardOutlined />}
           />
         </Space>
       )}

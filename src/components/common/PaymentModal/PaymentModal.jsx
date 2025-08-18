@@ -1,98 +1,17 @@
 import { Button, Divider, InputNumber, Modal, Radio, Space } from "antd";
 import React, { useMemo, useState } from "react";
 // import VietQR from "../../../../../components/common/GenerateQR/VietQR";
+import { formatCurrency } from "../../../pharmacy-utils/hook/dataFormatHelper";
+import { num2words } from "../../../pharmacy-utils/Options/DataFomater";
 import VietQR from "../GenerateQR/VietQR";
 
-const prettyMoney = (v) => Number(v || 0).toLocaleString("vi-VN");
+const prettyMoney = (v) => formatCurrency(v || 0, 0);
 
 const numberToVietnameseWords = (num) => {
-  if (num === 0) return "Không";
-
-  const units = [
-    "",
-    "một",
-    "hai",
-    "ba",
-    "bốn",
-    "năm",
-    "sáu",
-    "bảy",
-    "tám",
-    "chín",
-  ];
-  const teens = [
-    "mười",
-    "mười một",
-    "mười hai",
-    "mười ba",
-    "mười bốn",
-    "mười lăm",
-    "mười sáu",
-    "mười bảy",
-    "mười tám",
-    "mười chín",
-  ];
-  const tens = [
-    "",
-    "",
-    "hai mươi",
-    "ba mươi",
-    "bốn mươi",
-    "năm mươi",
-    "sáu mươi",
-    "bảy mươi",
-    "tám mươi",
-    "chín mươi",
-  ];
-
-  const convertLessThanOneThousand = (n) => {
-    if (n === 0) return "";
-    if (n < 10) return units[n];
-    if (n < 20) return teens[n - 10];
-    if (n < 100) {
-      const unit = n % 10;
-      const ten = Math.floor(n / 10);
-      if (unit === 0) return tens[ten];
-      if (unit === 1) return `${tens[ten]} mốt`;
-      if (unit === 5) return `${tens[ten]} lăm`;
-      return `${tens[ten]} ${units[unit]}`;
-    }
-    const hundred = Math.floor(n / 100);
-    const remainder = n % 100;
-    let result = `${units[hundred]} trăm`;
-    if (remainder > 0) {
-      result += ` ${convertLessThanOneThousand(remainder)}`;
-    }
-    return result;
-  };
-
-  const convert = (n) => {
-    if (n === 0) return "không";
-    if (n < 1000) return convertLessThanOneThousand(n);
-
-    const billion = Math.floor(n / 1000000000);
-    const million = Math.floor((n % 1000000000) / 1000000);
-    const thousand = Math.floor((n % 1000000) / 1000);
-    const remainder = n % 1000;
-
-    let result = "";
-    if (billion > 0) {
-      result += `${convertLessThanOneThousand(billion)} tỷ `;
-    }
-    if (million > 0) {
-      result += `${convertLessThanOneThousand(million)} triệu `;
-    }
-    if (thousand > 0) {
-      result += `${convertLessThanOneThousand(thousand)} nghìn `;
-    }
-    if (remainder > 0) {
-      result += convertLessThanOneThousand(remainder);
-    }
-
-    return result.trim();
-  };
-
-  return convert(num);
+  if (num === null || num === undefined || isNaN(num) || num === 0) {
+    return "Không";
+  }
+  return num2words(Math.floor(Number(num)));
 };
 
 const PaymentModal = ({
@@ -115,6 +34,14 @@ const PaymentModal = ({
   );
   const [multiCash, setMultiCash] = useState(0);
   const [multiTransfer, setMultiTransfer] = useState(0);
+
+  // Reset multi payment when method changes
+  React.useEffect(() => {
+    if (payment.method !== "multi") {
+      setMultiCash(0);
+      setMultiTransfer(0);
+    }
+  }, [payment.method]);
 
   const lack = Math.max(0, total - (payment.cash || 0));
   const multiTotal = useMemo(
@@ -421,33 +348,85 @@ const PaymentModal = ({
 
           <div>
             <div style={{ marginBottom: 4, fontWeight: 500, fontSize: 13 }}>
-              Trả lại:
+              Tổng quan:
             </div>
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 2,
-                padding: "6px 10px",
-                background: "#f5f5f5",
-                borderRadius: 6,
-                border: "1px solid #d9d9d9",
+                gap: 4,
+                padding: "8px 12px",
+                background: "#f8fafc",
+                borderRadius: 8,
+                border: "1px solid #e2e8f0",
               }}
             >
-              <span
+              <div
                 style={{
-                  fontWeight: 600,
-                  color: multiChange > 0 ? "#52c41a" : "#8c8c8c",
-                  fontSize: 14,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                 }}
               >
-                {multiChange > 0 ? `+${prettyMoney(multiChange)}đ` : "-0"}
-              </span>
-              <span style={{ fontSize: 12, color: "#666" }}>
-                {multiChange > 0
-                  ? numberToVietnameseWords(multiChange)
-                  : "Không"}
-              </span>
+                <span style={{ fontSize: 13, color: "#64748b" }}>
+                  Tổng cần thanh toán:
+                </span>
+                <span
+                  style={{ fontWeight: 600, fontSize: 14, color: "#1f2937" }}
+                >
+                  {prettyMoney(total)}đ
+                </span>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span style={{ fontSize: 13, color: "#64748b" }}>
+                  Đã thanh toán:
+                </span>
+                <span
+                  style={{ fontWeight: 600, fontSize: 14, color: "#059669" }}
+                >
+                  {prettyMoney(multiTotal)}đ
+                </span>
+              </div>
+              <Divider style={{ margin: "4px 0" }} />
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span style={{ fontSize: 13, color: "#64748b" }}>
+                  {multiChange > 0 ? "Trả lại:" : "Còn thiếu:"}
+                </span>
+                <span
+                  style={{
+                    fontWeight: 600,
+                    fontSize: 14,
+                    color: multiChange > 0 ? "#059669" : "#dc2626",
+                  }}
+                >
+                  {multiChange > 0
+                    ? `+${prettyMoney(multiChange)}đ`
+                    : `${prettyMoney(multiRemaining)}đ`}
+                </span>
+              </div>
+              {multiChange > 0 && (
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "#059669",
+                    fontStyle: "italic",
+                  }}
+                >
+                  {numberToVietnameseWords(multiChange)}
+                </div>
+              )}
             </div>
           </div>
         </div>

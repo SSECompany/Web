@@ -2,7 +2,6 @@ import {
   doReadNumber,
   InvalidFormatError,
   InvalidNumberError,
-  NotEnoughUnitError,
   ReadingConfig,
 } from "read-vietnamese-number";
 
@@ -29,8 +28,8 @@ function num2words(num) {
       return "Định dạng input không hợp lệ";
     } else if (err instanceof InvalidNumberError) {
       return "Số không hợp lệ";
-    } else if (err instanceof NotEnoughUnitError) {
-      return "Không đủ đơn vị đọc số";
+    } else {
+      return "Lỗi đọc số";
     }
   }
 }

@@ -38,7 +38,7 @@ const PaymentSummary = ({
             <div className="summary-row">
               <Text>Số lượng:</Text>
               <Tag color="blue" size="small">
-                {cart.length}
+                {cart.reduce((total, item) => total + (item.qty || 1), 0)}
               </Tag>
             </div>
             <div className="summary-row">
@@ -83,21 +83,11 @@ const PaymentSummary = ({
               onChange={(value) =>
                 setPayment({ ...payment, method: value, cash: 0 })
               }
-              style={{
-                width: "100%",
-                borderRadius: "6px",
-                border: "1px solid #d9d9d9",
-                backgroundColor: "#ffffff",
-              }}
-              size="small"
-              dropdownStyle={{
-                borderRadius: "6px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-              }}
+              className="payment-method-select"
             >
               <Select.Option value="cash">Tiền mặt</Select.Option>
               <Select.Option value="transfer">Chuyển khoản</Select.Option>
-              <Select.Option value="multi">Nhiều phương thức</Select.Option>
+              <Select.Option value="multi">Đa phương thức</Select.Option>
             </Select>
           </div>
         </div>
