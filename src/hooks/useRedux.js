@@ -1,54 +1,75 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  clearError as clearAuthError,
-  login,
-  logout,
-  selectAuthError,
-  selectAuthLoading,
-  selectIsAuthenticated,
-  selectIsValidSession,
-  selectToken,
-  selectUserDisplay,
-  // Auth actions & selectors
-  selectUserInfo,
-  setUser,
-} from "../store/slices/authSlice";
+import { setClaims } from "../store/reducers/claimsSlice";
 // Master data imports removed - will be implemented for pharmacy module
 
 // 🚀 Custom hook cho Auth
 export const useAuth = () => {
   const dispatch = useDispatch();
 
-  const userInfo = useSelector(selectUserInfo);
-  const token = useSelector(selectToken);
-  const isAuthenticated = useSelector(selectIsAuthenticated);
-  const error = useSelector(selectAuthError);
-  const loading = useSelector(selectAuthLoading);
-  const userDisplay = useSelector(selectUserDisplay);
-  const isValidSession = useSelector(selectIsValidSession);
+  // Lấy data từ claimsReducer và localStorage
+  const userInfo = useSelector((state) => state?.claimsReducer?.userInfo || {});
+  const token = useSelector((state) => localStorage.getItem("access_token"));
+  const isAuthenticated = useSelector((state) => {
+    const token = localStorage.getItem("access_token");
+    const tokenExpiry = localStorage.getItem("token_expiry");
+    return !!token && tokenExpiry && Date.now() < parseInt(tokenExpiry);
+  });
+  const error = useSelector((state) => null); // No error state in claimsReducer
+  const loading = useSelector((state) => false); // No loading state in claimsReducer
+  const userDisplay = useSelector((state) => {
+    const userInfo = state?.claimsReducer?.userInfo || {};
+    return userInfo.userName || userInfo.unitName || "Unknown User";
+  });
+  const isValidSession = useSelector((state) => {
+    const token = localStorage.getItem("access_token");
+    const tokenExpiry = localStorage.getItem("token_expiry");
+    return !!token && tokenExpiry && Date.now() < parseInt(tokenExpiry);
+  });
 
   const loginUser = useCallback(
     (authData) => {
-      dispatch(login(authData));
+      // Set claims data
+      if (authData.claims) {
+        dispatch(setClaims(authData.claims));
+      }
+      
+      // Set localStorage data
+      if (authData.token) {
+        localStorage.setItem("access_token", authData.token);
+      }
+      if (authData.refreshToken) {
+        localStorage.setItem("refresh_token", authData.refreshToken);
+      }
+      if (authData.tokenExpiry) {
+        localStorage.setItem("token_expiry", authData.tokenExpiry.toString());
+      }
     },
     [dispatch]
   );
 
   const logoutUser = useCallback(() => {
-    dispatch(logout());
+    // Clear claims data
+    dispatch(setClaims([]));
+    
+    // Clear localStorage
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("token_expiry");
+    localStorage.removeItem("claims");
   }, [dispatch]);
 
   const updateUser = useCallback(
     (userData) => {
-      dispatch(setUser(userData));
+      // Update claims data
+      dispatch(setClaims(userData));
     },
     [dispatch]
   );
 
   const clearError = useCallback(() => {
-    dispatch(clearAuthError());
-  }, [dispatch]);
+    // No error state to clear
+  }, []);
 
   return {
     // State

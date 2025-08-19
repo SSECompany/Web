@@ -2,26 +2,35 @@ import { notification } from "antd";
 import { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import {
-  logout,
-  selectIsAuthenticated,
-  selectTokenExpiry,
-} from "../store/slices/authSlice";
+import { setClaims } from "../store/reducers/claimsSlice";
 import jwt from "../utils/jwt";
 import { clearAllTokenData, getTimeLeft } from "../utils/tokenUtils";
 
 const useTokenExpiryChecker = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const isAuthenticated = useSelector(selectIsAuthenticated);
-  const tokenExpiry = useSelector(selectTokenExpiry);
+  
+  // Lấy authentication state từ claimsReducer
+  const isAuthenticated = useSelector((state) => {
+    const token = localStorage.getItem("access_token");
+    const tokenExpiry = localStorage.getItem("token_expiry");
+    return !!token && tokenExpiry && Date.now() < parseInt(tokenExpiry);
+  });
+  
+  const tokenExpiry = useSelector((state) => {
+    const expiry = localStorage.getItem("token_expiry");
+    return expiry ? parseInt(expiry) : null;
+  });
+  
   const intervalRef = useRef(null);
   const hasNotifiedRef = useRef(false);
   const currentIntervalRef = useRef(null);
 
   const performLogout = () => {
     clearAllTokenData();
-    dispatch(logout());
+    
+    // Clear claimsReducer state
+    dispatch(setClaims([]));
 
     notification.error({
       message: "Phiên đăng nhập hết hạn",

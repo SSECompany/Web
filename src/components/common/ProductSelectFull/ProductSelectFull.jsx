@@ -18,8 +18,8 @@ const ProductSelectFull = ({
   totalPage = 1,
   pageIndex = 1,
   setPageIndex,
-  setVatTuList,
   currentKeyword = "",
+  hasInitialData = false,
 }) => {
   // Refs to prevent unnecessary API calls
   const dropdownOpenedRef = useRef(false);
@@ -27,15 +27,29 @@ const ProductSelectFull = ({
   const focusTimeoutRef = useRef(null);
   const isProcessingRef = useRef(false);
   const lastProcessedBarcodeRef = useRef("");
-  // Đảm bảo chỉ gọi fetchVatTuList("") 1 lần khi mount hoặc lần đầu mở dropdown
   const didInitRef = useRef(false);
+  const hasInitialDataRef = useRef(false);
+  const isSearchingRef = useRef(false);
+  const searchStartTimeRef = useRef(0);
 
   useEffect(() => {
     if (!didInitRef.current) {
-      fetchVatTuList("", 1, false);
       didInitRef.current = true;
     }
-  }, [fetchVatTuList]);
+    if (hasInitialData) {
+      hasInitialDataRef.current = true;
+    }
+
+    if (vatTuList.length > 0 && !vatTuList.every((item) => item.label)) {
+      hasInitialDataRef.current = true;
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [hasInitialData, vatTuList]);
 
   // Auto focus khi chuyển sang chế độ barcode
   useEffect(() => {
@@ -49,7 +63,6 @@ const ProductSelectFull = ({
       focusTimeoutRef.current = setTimeout(() => {
         if (vatTuSelectRef.current) {
           vatTuSelectRef.current.focus();
-          // Force focus again after a short delay to ensure it works on tablet
           setTimeout(() => {
             if (vatTuSelectRef.current) {
               vatTuSelectRef.current.focus();
@@ -77,20 +90,52 @@ const ProductSelectFull = ({
       clearTimeout(searchTimeoutRef.current);
     }
 
+    isSearchingRef.current = true;
+    searchStartTimeRef.current = Date.now();
+
+    let delay = 1000;
+    if (value && value.trim()) {
+      if (value.length <= 2) {
+        delay = 600;
+      } else {
+        delay = 400;
+      }
+    }
+
     searchTimeoutRef.current = setTimeout(() => {
       if (setPageIndex) setPageIndex(1);
-      fetchVatTuList(value, 1, false); // reset page, không append
-    }, 500);
+      fetchVatTuList(value, 1, false); 
+      hasInitialDataRef.current = true;
+      isSearchingRef.current = false;
+    }, delay);
   };
 
   const handleDropdownVisibleChange = (open) => {
-    if (open && !dropdownOpenedRef.current) {
-      // Chỉ gọi lại nếu chưa từng mở dropdown (đã gọi ở useEffect rồi)
+    if (open) {
       dropdownOpenedRef.current = true;
-    } else if (!open) {
+      if (
+        (vatTuList.length === 0 ||
+          vatTuList.every((item) => item.label )) &&
+        !loadingVatTu
+      ) {
+        console.log("🔍 Loading data on dropdown open");
+        fetchVatTuList("", 1, false);
+      }
+    } else {
       // Reset state khi đóng dropdown
       dropdownOpenedRef.current = false;
       lastSearchValueRef.current = "";
+    }
+  };
+
+  const handleSelectFocus = () => {
+    if (
+      (vatTuList.length === 0 ||
+        vatTuList.every((item) => item.label )) &&
+      !loadingVatTu
+    ) {
+      console.log("🔍 Loading data on select focus");
+      fetchVatTuList("", 1, false);
     }
   };
 
@@ -227,6 +272,8 @@ const ProductSelectFull = ({
               onSearch={handleSearch}
               filterOption={false}
               onSelect={handleVatTuSelect}
+              onDropdownVisibleChange={handleDropdownVisibleChange}
+              onFocus={handleSelectFocus}
               disabled={!isEditMode}
               popupClassName="vat-tu-dropdown"
               popupMatchSelectWidth={true}

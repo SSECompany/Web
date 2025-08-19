@@ -1,12 +1,10 @@
 import { configureStore } from "@reduxjs/toolkit";
 import claimsReducer from "./reducers/claimsSlice";
 import loadingReducer from "./reducers/loadingSlice";
-import authReducer from "./slices/authSlice";
 
 //store
 export const store = configureStore({
   reducer: {
-    auth: authReducer,
     loadingReducer,
     claimsReducer,
   },
@@ -15,5 +13,10 @@ export const store = configureStore({
       serializableCheck: false,
     }),
 });
+
+// Setup window.__REDUX_STORE__ for global access
+if (typeof window !== "undefined") {
+  window.__REDUX_STORE__ = store;
+}
 
 export default store;
