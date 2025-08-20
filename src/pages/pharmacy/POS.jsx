@@ -1,4 +1,4 @@
-import { Card, Typography, notification } from "antd";
+import { Button, Card, Tooltip, notification } from "antd";
 import React, {
   useCallback,
   useEffect,
@@ -6,16 +6,22 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useSelector } from "react-redux";
 import { createRetailOrder, searchVatTu } from "../../api";
 import PaymentModal from "../../components/common/PaymentModal/PaymentModal";
 import ProductSelectFull from "../../components/common/ProductSelectFull/ProductSelectFull";
+import ReportModal from "../../components/common/ReportModal/ReportModal";
+import RetailOrderListModal from "../../components/common/RetailOrderListModal/RetailOrderListModal";
 import CartTable from "./components/CartTable";
 import PaymentSummary from "./components/PaymentSummary";
 import "./POS.css";
 
-const { Title, Text } = Typography;
-
 const POS = () => {
+  // Lấy dữ liệu từ Redux store
+  const { id: userId, unitId } = useSelector(
+    (state) => state.claimsReducer.userInfo || {}
+  );
+
   const [cart, setCart] = useState([]);
   const [customer, setCustomer] = useState({
     phone: "",
@@ -40,13 +46,17 @@ const POS = () => {
   const [customerOpen, setCustomerOpen] = useState(false);
   const [hasInitialData, setHasInitialData] = useState(false);
 
+  // Tooltip modal states
+  const [isOrderListModalOpen, setIsOrderListModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+
   // Load initial data when component mounts
   useEffect(() => {
     // Load initial product list when page loads
     const loadInitialData = async () => {
       setLoadingVatTu(true);
       try {
-        const data = await searchVatTu("", 1, 20);
+        const data = await searchVatTu("", 1, 20, unitId, userId);
 
         // Transform API data to match ProductSelectFull format
         const transformedData = data.map((item) => ({
@@ -83,8 +93,10 @@ const POS = () => {
       }
     };
 
-    loadInitialData();
-  }, []); // Empty dependency array
+    if (unitId && userId) {
+      loadInitialData();
+    }
+  }, [unitId, userId]); // Include unitId and userId dependencies
 
   const subtotal = useMemo(
     () => cart.reduce((s, x) => s + x.price * x.qty, 0),
@@ -134,12 +146,10 @@ const POS = () => {
   // Fetch list for ProductSelectFull using real API
   const fetchVatTuList = useCallback(
     async (keyword, page = 1, append = false) => {
-      console.log("🔍 Fetching vat tu:", { keyword, page, append });
       setLoadingVatTu(true);
       try {
         // Call real API using searchVatTu
-        const data = await searchVatTu(keyword, page, 20);
-        console.log("📊 API response:", data);
+        const data = await searchVatTu(keyword, page, 20, unitId, userId);
 
         // Transform API data to match ProductSelectFull format
         const transformedData = data.map((item) => ({
@@ -166,8 +176,6 @@ const POS = () => {
           },
         }));
 
-        console.log("🔄 Transformed data:", transformedData);
-
         if (append) {
           setVatTuList((prev) => [...prev, ...transformedData]);
         } else {
@@ -191,7 +199,7 @@ const POS = () => {
         setLoadingVatTu(false);
       }
     },
-    []
+    [unitId, userId]
   );
 
   // Handle both Select choose and barcode submit from ProductSelectFull
@@ -235,6 +243,15 @@ const POS = () => {
     setPayModalOpen(true);
   };
 
+  // Tooltip modal handlers
+  const handleOrderListModal = useCallback(() => {
+    setIsOrderListModalOpen(!isOrderListModalOpen);
+  }, [isOrderListModalOpen]);
+
+  const handleReportModal = useCallback(() => {
+    setIsReportModalOpen(!isReportModalOpen);
+  }, [isReportModalOpen]);
+
   const handleConfirmPayment = async () => {
     try {
       // Create order payload for retail order
@@ -275,7 +292,7 @@ const POS = () => {
       };
 
       // Create order using createRetailOrder
-      const orderResult = await createRetailOrder(orderPayload);
+      const orderResult = await createRetailOrder(orderPayload, unitId, userId);
 
       if (orderResult) {
         notification.success({
@@ -304,9 +321,7 @@ const POS = () => {
 
   return (
     <div className="pos-container">
-      {/* Left Column - Product Management */}
       <div className="pos-left-column">
-        {/* Search Section */}
         <Card
           size="small"
           title={
@@ -338,11 +353,25 @@ const POS = () => {
           />
         </Card>
 
-        {/* Cart Table */}
         <CartTable cart={cart} removeAt={removeAt} updateLine={updateLine} />
       </div>
 
-      {/* Right Column - Payment */}
+      <div className="tool-tip">
+        <div className="tool-tip-left">
+          <Tooltip placement="top" title="Danh sách đơn">
+            <Button className="default_button" onClick={handleOrderListModal}>
+              <i className="pi pi-list sub_text_color"></i>
+            </Button>
+          </Tooltip>
+          <Tooltip placement="top" title="Báo cáo kết ca">
+            <Button className="default_button" onClick={handleReportModal}>
+              <i className="pi pi-chart-line sub_text_color"></i>
+            </Button>
+          </Tooltip>
+        </div>
+        <div className="company-label">Design by SSE</div>
+      </div>
+
       <div className="pos-right-column">
         <PaymentSummary
           customer={customer}
@@ -362,7 +391,6 @@ const POS = () => {
         />
       </div>
 
-      {/* Payment Modal */}
       <PaymentModal
         open={payModalOpen}
         onClose={() => setPayModalOpen(false)}
@@ -372,6 +400,13 @@ const POS = () => {
         payment={payment}
         setPayment={setPayment}
       />
+
+      <RetailOrderListModal
+        isOpen={isOrderListModalOpen}
+        onClose={handleOrderListModal}
+      />
+
+      <ReportModal isOpen={isReportModalOpen} onClose={handleReportModal} />
     </div>
   );
 };

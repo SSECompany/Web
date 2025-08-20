@@ -169,45 +169,19 @@ export const syncFastMutiApi = async (sttRecList, userId) => {
 export const searchVatTu = async (
   searchValue = "",
   pageindex = 1,
-  pagesize = 1000
+  pagesize = 1000,
+  unitId = null,
+  userId = null
 ) => {
   const token = localStorage.getItem("access_token");
-
-  // Lấy unitId và userId từ Redux store hoặc localStorage
-  let unitId = "TAPMED";
-  let userId = 10036;
-
-  try {
-    // Cách 1: Lấy từ Redux store
-    if (window.__REDUX_STORE__) {
-      const state = window.__REDUX_STORE__.getState();
-      unitId =
-        state?.claimsReducer?.userInfo?.unitId ||
-        state?.claimsReducer?.claims?.userInfo?.unitId ||
-        "TAPMED";
-      userId =
-        state?.claimsReducer?.userInfo?.id ||
-        state?.claimsReducer?.claims?.userInfo?.id ||
-        10036;
-    }
-
-    // Cách 2: Fallback từ localStorage
-    if (unitId === "TAPMED" || userId === 10036) {
-      const claims = JSON.parse(localStorage.getItem("claims") || "{}");
-      unitId = claims?.userInfo?.unitId || "TAPMED";
-      userId = claims?.userInfo?.id || 10036;
-    }
-  } catch (error) {
-    console.error("Error getting Redux data:", error);
-  }
 
   const payload = {
     store: "api_getListItem",
     param: {
       Currency: "VND",
       searchValue: searchValue,
-      unitId: unitId || "TAPMED", // Sử dụng unitId từ Redux, fallback về TAPMED
-      userId: userId || 10036,
+      unitId: unitId,
+      userId: userId,
       pageindex: pageindex,
       pagesize: pagesize,
     },
@@ -222,13 +196,11 @@ export const searchVatTu = async (
       },
     })
     .then((res) => {
-      console.log("🔍 API Response:", res?.data);
 
       // Kiểm tra response structure
       if (res?.data?.responseModel?.isSucceded) {
         // Response thành công, trả về listObject (chữ thường)
         const listObject = res?.data?.listObject || res?.data?.ListObject || [];
-        console.log("✅ Success response, listObject:", listObject);
 
         // Kiểm tra nếu listObject là nested array
         if (
@@ -236,14 +208,11 @@ export const searchVatTu = async (
           listObject.length > 0 &&
           Array.isArray(listObject[0])
         ) {
-          console.log("📋 Detected nested array, using first element");
           return listObject[0] || [];
         }
 
         return listObject;
       } else {
-        // Response không thành công hoặc không có listObject
-        console.log("⚠️ Response not successful or no listObject");
         return res?.data || [];
       }
     })
@@ -253,36 +222,12 @@ export const searchVatTu = async (
     });
 };
 
-export const createPharmacyOrder = async (orderData) => {
+export const createPharmacyOrder = async (
+  orderData,
+  unitId = null,
+  userId = null
+) => {
   const token = localStorage.getItem("access_token");
-
-  // Lấy unitId và userId từ Redux store hoặc localStorage
-  let unitId = "TAPMED";
-  let userId = 10036;
-
-  try {
-    // Cách 1: Lấy từ Redux store
-    if (window.__REDUX_STORE__) {
-      const state = window.__REDUX_STORE__.getState();
-      unitId =
-        state?.claimsReducer?.userInfo?.unitId ||
-        state?.claimsReducer?.claims?.userInfo?.unitId ||
-        "TAPMED";
-      userId =
-        state?.claimsReducer?.userInfo?.id ||
-        state?.claimsReducer?.claims?.userInfo?.id ||
-        10036;
-    }
-
-    // Cách 2: Fallback từ localStorage
-    if (unitId === "TAPMED" || userId === 10036) {
-      const claims = JSON.parse(localStorage.getItem("claims") || "{}");
-      unitId = claims?.userInfo?.unitId || "TAPMED";
-      userId = claims?.userInfo?.id || 10036;
-    }
-  } catch (error) {
-    console.error("Error getting Redux data:", error);
-  }
 
   const payload = {
     store: "api_createPharmacyOrder",
@@ -314,78 +259,53 @@ export const createPharmacyOrder = async (orderData) => {
     });
 };
 
-export const createRetailOrder = async (orderData) => {
+export const createRetailOrder = async (
+  orderData,
+  unitId = null,
+  userId = null
+) => {
   const token = localStorage.getItem("access_token");
 
-  // Lấy unitId và userId từ Redux store hoặc localStorage
-  let unitId = "TAPMED";
-  let userId = 10036;
-
-  try {
-    // Cách 1: Lấy từ Redux store
-    if (window.__REDUX_STORE__) {
-      const state = window.__REDUX_STORE__.getState();
-      unitId =
-        state?.claimsReducer?.userInfo?.unitId ||
-        state?.claimsReducer?.claims?.userInfo?.unitId ||
-        "TAPMED";
-      userId =
-        state?.claimsReducer?.userInfo?.id ||
-        state?.claimsReducer?.claims?.userInfo?.id ||
-        10036;
-    }
-
-    // Cách 2: Fallback từ localStorage
-    if (unitId === "TAPMED" || userId === 10036) {
-      const claims = JSON.parse(localStorage.getItem("claims") || "{}");
-      unitId = claims?.userInfo?.unitId || "TAPMED";
-      userId = claims?.userInfo?.id || 10036;
-    }
-  } catch (error) {
-    console.error("Error getting Redux data:", error);
-  }
-
-  // Transform orderData to match API format
   const master = {
-    ma_ban: orderData.tableId || "POS",
-    dien_giai: "", // Phải để rỗng theo API mẫu
-    tong_tien: orderData.totals?.subtotal?.toString() || "0",
-    tong_sl: orderData.totals?.quantity?.toString() || "0",
-    tien_mat: orderData.payment?.cash?.toString() || "0",
-    chuyen_khoan: orderData.payment?.transfer?.toString() || "0",
-    tong_tt: orderData.totals?.total?.toString() || "0",
-    httt: orderData.payment?.method || "tien_mat",
-    stt_rec: "", // Phải để rỗng theo API mẫu
-    status: orderData.status || "2",
-    cccd: orderData.customer?.idNumber || "",
-    ong_ba: orderData.customer?.name || "",
-    so_dt: orderData.customer?.phone || "",
-    dia_chi: orderData.customer?.address || "",
-    email: orderData.customer?.email || "",
-    ma_so_thue_kh: orderData.customer?.taxCode || "",
-    ten_dv_kh: orderData.customer?.companyName || "",
-    s3: "1",
+    ma_ban: orderData.tableId,
+    dien_giai: orderData.description || "",
+    tong_tien: orderData.totals?.subtotal?.toString(),
+    tong_sl: orderData.totals?.quantity?.toString(),
+    tien_mat: orderData.payment?.cash?.toString(),
+    chuyen_khoan: orderData.payment?.transfer?.toString(),
+    tong_tt: orderData.totals?.total?.toString(),
+    httt: orderData.payment?.method,
+    stt_rec: orderData.orderId || "",
+    status: orderData.status,
+    cccd: orderData.customer?.idNumber,
+    ong_ba: orderData.customer?.name,
+    so_dt: orderData.customer?.phone,
+    dia_chi: orderData.customer?.address,
+    email: orderData.customer?.email,
+    ma_so_thue_kh: orderData.customer?.taxCode,
+    ten_dv_kh: orderData.customer?.companyName,
+    s3: orderData.s3,
   };
 
   const detail =
     orderData.items?.map((item, index) => ({
-      ten_vt: item.name || item.ten_vt || "",
-      ma_vt_root: item.skuRoot || "",
-      ma_vt: item.sku || item.ma_vt || "",
-      so_luong: item.quantity?.toString() || item.qty?.toString() || "1",
-      don_gia: item.price?.toString() || "0",
+      ten_vt: item.name || item.ten_vt,
+      ma_vt_root: item.skuRoot,
+      ma_vt: item.sku || item.ma_vt,
+      so_luong: (item.quantity || item.qty)?.toString(),
+      don_gia: item.price?.toString(),
       thanh_tien: (
-        (item.price || 0) * (item.quantity || item.qty || 1)
+        (item.price || 0) * (item.quantity || item.qty || 0)
       ).toString(),
-      ghi_chu: item.note || "",
-      uniqueid: item.uniqueId || `item_${Date.now()}_${index}`,
-      ap_voucher: item.voucher || "0",
+      ghi_chu: item.note,
+      uniqueid: item.uniqueId,
+      ap_voucher: item.voucher,
     })) || [];
 
   const payload = {
     store: "Api_create_retail_order",
     param: {
-      StoreID: orderData.storeId || "",
+      StoreID: orderData.storeId,
       unitId: unitId,
       userId: userId,
     },
@@ -395,7 +315,6 @@ export const createRetailOrder = async (orderData) => {
     },
   };
 
-  console.log("🛒 Creating retail order with payload:", payload);
 
   return await https
     .post(`User/AddData`, payload, {
@@ -405,7 +324,6 @@ export const createRetailOrder = async (orderData) => {
       },
     })
     .then((res) => {
-      console.log("✅ Retail order created successfully:", res?.data);
       return res?.data || null;
     })
     .catch((error) => {

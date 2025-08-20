@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setClaims } from "../store/reducers/claimsSlice";
-// Master data imports removed - will be implemented for pharmacy module
 
 // 🚀 Custom hook cho Auth
 export const useAuth = () => {
@@ -33,7 +32,7 @@ export const useAuth = () => {
       if (authData.claims) {
         dispatch(setClaims(authData.claims));
       }
-      
+
       // Set localStorage data
       if (authData.token) {
         localStorage.setItem("access_token", authData.token);
@@ -51,7 +50,7 @@ export const useAuth = () => {
   const logoutUser = useCallback(() => {
     // Clear claims data
     dispatch(setClaims([]));
-    
+
     // Clear localStorage
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
@@ -88,116 +87,7 @@ export const useAuth = () => {
   };
 };
 
-// 🚀 Custom hook cho Pharmacy Data - will be implemented later
-export const usePharmacyData = () => {
-  // Placeholder for pharmacy-specific data hooks
-  return {
-    products: { options: [], loading: false },
-    suppliers: { options: [], loading: false },
-    customers: { options: [], loading: false },
-    inventory: { options: [], loading: false },
-  };
-};
-
-// 🚀 Custom hook cho pharmacy data types - placeholder
-export const usePharmacyDataType = (dataType) => {
-  // Placeholder for pharmacy-specific data type hooks
-  const data = { options: [], loading: false };
-
-  const fetch = useCallback(() => {
-    console.log(`Fetching ${dataType} - to be implemented`);
-  }, [dataType]);
-
-  const refresh = useCallback(() => {
-    console.log(`Refreshing ${dataType} - to be implemented`);
-  }, [dataType]);
-
-  return {
-    ...data,
-    fetch,
-    refresh,
-  };
-};
-
-// 🚀 Custom hook cho debounced search - placeholder
-export const usePharmacyDebouncedSearch = (dataType, delay = 500) => {
-  const { fetch, ...rest } = usePharmacyDataType(dataType);
-
-  const debouncedFetch = useMemo(() => {
-    let timeoutId;
-    return (keyword) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        fetch(keyword);
-      }, delay);
-    };
-  }, [fetch, delay]);
-
-  return {
-    ...rest,
-    debouncedFetch,
-    fetch,
-  };
-};
-
-// 🚀 Custom hook cho pharmacy app initialization
-export const useInitializePharmacy = () => {
-  const { isAuthenticated } = useAuth();
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      // Initialize pharmacy data when authenticated
-      console.log("Initializing pharmacy app...");
-    }
-  }, [isAuthenticated]);
-
-  return {
-    isAuthenticated,
-    isInitialized: true, // Placeholder
-  };
-};
-
-// 🚀 Custom hook cho pharmacy form data
-export const usePharmacyFormData = () => {
-  const { userInfo } = useAuth();
-  const pharmacyData = usePharmacyData();
-
-  // 🔥 Memoized form options for pharmacy
-  const formOptions = useMemo(
-    () => ({
-      products: pharmacyData.products.options,
-      suppliers: pharmacyData.suppliers.options,
-      customers: pharmacyData.customers.options,
-      inventory: pharmacyData.inventory.options,
-    }),
-    [pharmacyData]
-  );
-
-  // 🔥 Memoized default values
-  const defaultValues = useMemo(
-    () => ({
-      pharmacyId: userInfo.unitId || "PHARMACY",
-      userId: userInfo.userId || 4061,
-      userName: userInfo.userName || "",
-      pharmacyName: userInfo.unitName || "PHARMACY",
-    }),
-    [userInfo]
-  );
-
-  return {
-    formOptions,
-    defaultValues,
-    userInfo,
-    ...pharmacyData,
-  };
-};
-
-// 🚀 Export all hooks
+// Export default chỉ có useAuth hook
 export default {
   useAuth,
-  usePharmacyData,
-  usePharmacyDataType,
-  usePharmacyDebouncedSearch,
-  useInitializePharmacy,
-  usePharmacyFormData,
 };

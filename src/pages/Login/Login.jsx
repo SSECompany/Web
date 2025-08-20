@@ -70,9 +70,8 @@ const Login = () => {
           jwt.setAccessToken(res.data.token);
           jwt.setRefreshToken(res.data.refreshToken);
           const claims = jwt.saveClaims(res.data.token);
-          console.log("Login claims:", claims); // Debug log
           dispatch(setClaims(claims));
-          const from = location.state?.from || "/"; // Nếu không có đường dẫn trước đó thì chuyển đến trang chủ
+          const from = location.state?.from || "/";
           router.navigate(from, { replace: true });
           return notification.success({
             message: `Đăng nhập thành công`,

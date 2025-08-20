@@ -21,7 +21,6 @@ const ProductSelectFull = ({
   currentKeyword = "",
   hasInitialData = false,
 }) => {
-  // Refs to prevent unnecessary API calls
   const dropdownOpenedRef = useRef(false);
   const lastSearchValueRef = useRef("");
   const focusTimeoutRef = useRef(null);
@@ -51,15 +50,12 @@ const ProductSelectFull = ({
     };
   }, [hasInitialData, vatTuList]);
 
-  // Auto focus khi chuyển sang chế độ barcode
   useEffect(() => {
     if (barcodeEnabled && vatTuSelectRef.current) {
-      // Clear any existing timeout
       if (focusTimeoutRef.current) {
         clearTimeout(focusTimeoutRef.current);
       }
 
-      // Use longer delay for tablet
       focusTimeoutRef.current = setTimeout(() => {
         if (vatTuSelectRef.current) {
           vatTuSelectRef.current.focus();
@@ -80,7 +76,6 @@ const ProductSelectFull = ({
   }, [barcodeEnabled]);
 
   const handleSearch = (value) => {
-    // Avoid duplicate searches
     if (lastSearchValueRef.current === value) {
       return;
     }
@@ -118,11 +113,9 @@ const ProductSelectFull = ({
           vatTuList.every((item) => item.label )) &&
         !loadingVatTu
       ) {
-        console.log("🔍 Loading data on dropdown open");
         fetchVatTuList("", 1, false);
       }
     } else {
-      // Reset state khi đóng dropdown
       dropdownOpenedRef.current = false;
       lastSearchValueRef.current = "";
     }
@@ -134,7 +127,6 @@ const ProductSelectFull = ({
         vatTuList.every((item) => item.label )) &&
       !loadingVatTu
     ) {
-      console.log("🔍 Loading data on select focus");
       fetchVatTuList("", 1, false);
     }
   };
@@ -143,19 +135,15 @@ const ProductSelectFull = ({
     const newValue = e.target.value;
     setVatTuInput(newValue);
 
-    // Reset lastProcessedBarcodeRef when input is cleared
     if (!newValue || newValue.trim() === "") {
       lastProcessedBarcodeRef.current = null;
     }
   };
 
   const processBarcode = async (barcodeValue) => {
-    // Prevent double processing
     if (isProcessingRef.current) {
       return;
     }
-
-    // Allow reprocessing the same barcode after a delay
     const timeSinceLastProcess =
       Date.now() - (lastProcessedBarcodeRef.current?.timestamp || 0);
     if (
@@ -175,11 +163,9 @@ const ProductSelectFull = ({
       timestamp: Date.now(),
     };
 
-    // Process the barcode
     try {
       const result = await handleVatTuSelect(barcodeValue);
       if (result === false) {
-        // Báo lỗi và clear input sau 2 giây
         message.error("Thông tin vật tư không hợp lệ!");
         setTimeout(() => setVatTuInput(""), 2000);
       }
@@ -192,13 +178,12 @@ const ProductSelectFull = ({
 
   const handleBarcodeInputKeyPress = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault(); // Prevent default to avoid form submission
+      e.preventDefault(); 
       processBarcode(vatTuInput);
     }
   };
 
   const handleBarcodeInputKeyDown = (e) => {
-    // Handle Enter key for tablet barcode scanners
     if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
@@ -207,7 +192,6 @@ const ProductSelectFull = ({
   };
 
   const handleBarcodeInputBlur = () => {
-    // Prevent blur on tablet by refocusing if still in barcode mode
     if (barcodeEnabled && vatTuSelectRef.current) {
       setTimeout(() => {
         if (barcodeEnabled && vatTuSelectRef.current) {
@@ -218,29 +202,25 @@ const ProductSelectFull = ({
   };
 
   const handleBarcodeInputFocus = () => {
-    // Ensure input is ready for barcode scanning
     if (vatTuSelectRef.current) {
       vatTuSelectRef.current.select();
     }
   };
 
-  // Auto-submit when barcode is detected (for tablet scanners)
   useEffect(() => {
     if (barcodeEnabled && vatTuInput && vatTuInput.trim()) {
-      // Check if input looks like a complete barcode (usually 8+ characters)
       if (vatTuInput.length >= 8) {
         const timer = setTimeout(() => {
           if (vatTuInput && vatTuInput.trim()) {
             processBarcode(vatTuInput);
           }
-        }, 200); // Increased delay for tablet
+        }, 200); 
 
         return () => clearTimeout(timer);
       }
     }
   }, [vatTuInput, barcodeEnabled]);
 
-  // Xử lý scroll phân trang
   const handlePopupScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
     if (
@@ -248,8 +228,7 @@ const ProductSelectFull = ({
       pageIndex < totalPage &&
       !loadingVatTu
     ) {
-      // Gọi API trang tiếp theo, nối vào danh sách
-      fetchVatTuList(currentKeyword, pageIndex + 1, true); // true: append
+      fetchVatTuList(currentKeyword, pageIndex + 1, true); 
       if (setPageIndex) setPageIndex(pageIndex + 1);
     }
   };
@@ -316,7 +295,6 @@ const ProductSelectFull = ({
                   setVatTuInput("");
                   dropdownOpenedRef.current = false;
                   lastSearchValueRef.current = "";
-                  // Reset processing flags
                   isProcessingRef.current = false;
                   lastProcessedBarcodeRef.current = null;
                 }

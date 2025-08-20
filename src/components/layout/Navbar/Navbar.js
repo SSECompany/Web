@@ -39,26 +39,20 @@ const Navbar = () => {
               DVCS: unitsData.unitName || "",
             })
           );
-        } catch (error) {
-          console.log("Error parsing session data:", error);
-        }
+        } catch (error) {}
       }
     } else {
       // Real JWT - try to decode
       try {
         dispatch(setClaims(jwt.getClaims() || {}));
-      } catch (error) {
-        console.log("Error decoding JWT:", error);
-      }
+      } catch (error) {}
     }
 
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         setUserFromStorage(JSON.parse(storedUser));
-      } catch (error) {
-        console.log("Error parsing user data:", error);
-      }
+      } catch (error) {}
     }
   }, [dispatch]);
 
@@ -128,7 +122,9 @@ const Navbar = () => {
 
         <div className="first_navbar_row_right flex gap-1">
           <div className="px-1 text-center flex full-name">
-            <div className="primary_bold_text">{userInfo?.fullName}</div>
+            <div className="primary_bold_text">
+              {userInfo?.userName || userInfo?.fullName}
+            </div>
           </div>
 
           <ul>
