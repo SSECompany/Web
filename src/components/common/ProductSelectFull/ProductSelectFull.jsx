@@ -1,6 +1,7 @@
 import { QrcodeOutlined } from "@ant-design/icons";
-import { Button, Col, Input, Row, Select, Space, message } from "antd";
+import { Button, Col, Input, Row, Select, Space } from "antd";
 import { useEffect, useRef } from "react";
+import "./ProductSelectFull.css";
 
 const ProductSelectFull = ({
   isEditMode = true,
@@ -30,6 +31,9 @@ const ProductSelectFull = ({
   const hasInitialDataRef = useRef(false);
   const isSearchingRef = useRef(false);
   const searchStartTimeRef = useRef(0);
+  // Thêm ref để tránh gọi API scroll trùng lặp
+  const isScrollingRef = useRef(false);
+  const lastScrollPageRef = useRef(0);
 
   useEffect(() => {
     if (!didInitRef.current) {
@@ -99,9 +103,12 @@ const ProductSelectFull = ({
 
     searchTimeoutRef.current = setTimeout(() => {
       if (setPageIndex) setPageIndex(1);
-      fetchVatTuList(value, 1, false); 
+      fetchVatTuList(value, 1, false);
       hasInitialDataRef.current = true;
       isSearchingRef.current = false;
+      // Reset scroll state khi search mới
+      isScrollingRef.current = false;
+      lastScrollPageRef.current = 0;
     }, delay);
   };
 
@@ -109,8 +116,7 @@ const ProductSelectFull = ({
     if (open) {
       dropdownOpenedRef.current = true;
       if (
-        (vatTuList.length === 0 ||
-          vatTuList.every((item) => item.label )) &&
+        (vatTuList.length === 0 || vatTuList.every((item) => item.label)) &&
         !loadingVatTu
       ) {
         fetchVatTuList("", 1, false);
@@ -123,8 +129,7 @@ const ProductSelectFull = ({
 
   const handleSelectFocus = () => {
     if (
-      (vatTuList.length === 0 ||
-        vatTuList.every((item) => item.label )) &&
+      (vatTuList.length === 0 || vatTuList.every((item) => item.label)) &&
       !loadingVatTu
     ) {
       fetchVatTuList("", 1, false);
@@ -166,7 +171,7 @@ const ProductSelectFull = ({
     try {
       const result = await handleVatTuSelect(barcodeValue);
       if (result === false) {
-        message.error("Thông tin vật tư không hợp lệ!");
+        // Không cần hiển thị message ở đây vì handleVatTuSelect đã hiển thị notification
         setTimeout(() => setVatTuInput(""), 2000);
       }
     } finally {
@@ -178,7 +183,7 @@ const ProductSelectFull = ({
 
   const handleBarcodeInputKeyPress = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault(); 
+      e.preventDefault();
       processBarcode(vatTuInput);
     }
   };
@@ -214,22 +219,43 @@ const ProductSelectFull = ({
           if (vatTuInput && vatTuInput.trim()) {
             processBarcode(vatTuInput);
           }
-        }, 200); 
+        }, 200);
 
         return () => clearTimeout(timer);
       }
     }
   }, [vatTuInput, barcodeEnabled]);
 
+  // Cải thiện logic scroll phân trang
   const handlePopupScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
+
+    // Kiểm tra điều kiện scroll đến cuối
+    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 20;
+    const hasMorePages = pageIndex < totalPage;
+    const notLoading = !loadingVatTu;
+    const notCurrentlyScrolling = !isScrollingRef.current;
+    const notSamePage = lastScrollPageRef.current !== pageIndex + 1;
+
     if (
-      scrollTop + clientHeight >= scrollHeight - 20 &&
-      pageIndex < totalPage &&
-      !loadingVatTu
+      isNearBottom &&
+      hasMorePages &&
+      notLoading &&
+      notCurrentlyScrolling &&
+      notSamePage
     ) {
-      fetchVatTuList(currentKeyword, pageIndex + 1, true); 
-      if (setPageIndex) setPageIndex(pageIndex + 1);
+      // Đánh dấu đang scroll để tránh gọi trùng lặp
+      isScrollingRef.current = true;
+      lastScrollPageRef.current = pageIndex + 1;
+
+      // Gọi API trang tiếp theo, nối vào danh sách
+      // setPageIndex sẽ được gọi trong fetchVatTuList khi append thành công
+      fetchVatTuList(currentKeyword, pageIndex + 1, true); // true: append
+
+      // Reset scroll state sau 1 giây
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 1000);
     }
   };
 
@@ -251,14 +277,24 @@ const ProductSelectFull = ({
               onSearch={handleSearch}
               filterOption={false}
               onSelect={handleVatTuSelect}
-              onDropdownVisibleChange={handleDropdownVisibleChange}
-              onFocus={handleSelectFocus}
               disabled={!isEditMode}
-              popupClassName="vat-tu-dropdown"
+              classNames={{
+                popup: {
+                  root: "vat-tu-dropdown",
+                },
+              }}
               popupMatchSelectWidth={true}
               optionFilterProp="label"
               notFoundContent={loadingVatTu ? "Đang tải..." : "Không tìm thấy"}
               onPopupScroll={handlePopupScroll}
+              styles={{
+                popup: {
+                  root: {
+                    maxHeight: "200px",
+                    overflow: "auto",
+                  },
+                },
+              }}
             />
           ) : (
             <Input

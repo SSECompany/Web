@@ -1,9 +1,19 @@
-import { Button, Divider, InputNumber, Modal, Radio, Space } from "antd";
-import React, { useMemo, useState } from "react";
+import {
+  Button,
+  Divider,
+  InputNumber,
+  Modal,
+  Radio,
+  Space,
+  Tooltip,
+} from "antd";
+import React, { useMemo, useRef, useState } from "react";
+import { useReactToPrint } from "react-to-print";
 // import VietQR from "../../../../../components/common/GenerateQR/VietQR";
 import { formatCurrency } from "../../../pharmacy-utils/hook/dataFormatHelper";
 import { num2words } from "../../../pharmacy-utils/Options/DataFomater";
 import VietQR from "../GenerateQR/VietQR";
+import PrintComponent from "./PrintComponent/PrintComponent";
 
 const prettyMoney = (v) => formatCurrency(v || 0, 0);
 
@@ -15,13 +25,16 @@ const numberToVietnameseWords = (num) => {
 };
 
 const PaymentModal = ({
-  open,
+  visible,
   onClose,
   onConfirm,
   total,
-  change,
-  payment,
-  setPayment,
+  cart = [],
+  isCreatingOrder = false,
+  initialPaymentMethod = "cash",
+  initialPaymentAmounts = { tien_mat: 0, chuyen_khoan: 0 },
+  initialCustomerInfo = {},
+  initialSync = true,
   merchant = {
     name: process.env.REACT_APP_VIETQR_ACCOUNT_NAME,
     bankBin: process.env.REACT_APP_VIETQR_BANK_ID,
@@ -32,18 +45,38 @@ const PaymentModal = ({
     () => [1000, 2000, 5000, 10000, 20000, 100000, 200000, 500000],
     []
   );
+
+  // Local state for payment
+  const [paymentMethod, setPaymentMethod] = useState(initialPaymentMethod);
+  const [paymentAmounts, setPaymentAmounts] = useState(initialPaymentAmounts);
+  const [customerInfo, setCustomerInfo] = useState(initialCustomerInfo);
+  const [sync, setSync] = useState(initialSync);
+
   const [multiCash, setMultiCash] = useState(0);
   const [multiTransfer, setMultiTransfer] = useState(0);
+  const printContent = useRef();
 
-  // Reset multi payment when method changes
+  // Reset data when modal closes
   React.useEffect(() => {
-    if (payment.method !== "multi") {
+    if (!visible) {
+      setPaymentMethod("cash");
+      setPaymentAmounts({ tien_mat: 0, chuyen_khoan: 0 });
+      setCustomerInfo({});
+      setSync(true);
       setMultiCash(0);
       setMultiTransfer(0);
     }
-  }, [payment.method]);
+  }, [visible]);
 
-  const lack = Math.max(0, total - (payment.cash || 0));
+  // Reset multi payment when method changes
+  React.useEffect(() => {
+    if (paymentMethod !== "multi") {
+      setMultiCash(0);
+      setMultiTransfer(0);
+    }
+  }, [paymentMethod]);
+
+  const lack = Math.max(0, total - (paymentAmounts.tien_mat || 0));
   const multiTotal = useMemo(
     () => multiCash + multiTransfer,
     [multiCash, multiTransfer]
@@ -51,82 +84,177 @@ const PaymentModal = ({
   const multiRemaining = Math.max(0, total - multiTotal);
   const multiChange = Math.max(0, multiTotal - total);
 
-  return (
-    <Modal
-      title="Phiếu thanh toán"
-      open={open}
-      onCancel={onClose}
-      footer={null}
-      width={480}
-      destroyOnClose
-      maskClosable={false}
-      styles={{
-        header: { borderBottom: "none", paddingBottom: 0 },
-        body: { paddingTop: 8 },
-      }}
-    >
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ marginBottom: 8, fontWeight: 600, color: "#262626" }}>
-          Hình thức thanh toán:
-        </div>
-        <Radio.Group
-          value={payment.method}
-          onChange={(e) => setPayment({ ...payment, method: e.target.value })}
-          buttonStyle="solid"
-          size="middle"
-        >
-          <Radio.Button value="transfer">Chuyển khoản</Radio.Button>
-          <Radio.Button value="cash">Tiền mặt</Radio.Button>
-          <Radio.Button value="multi">Đa phương thức</Radio.Button>
-        </Radio.Group>
-      </div>
+  // Prepare print data theo mẫu Phenika
+  const preparePrintData = () => {
+    const now = new Date();
+    const orderNumber = `POS${now.getTime()}`;
 
-      {payment.method === "transfer" && (
-        <div
-          style={{
-            display: "grid",
-            gap: 12,
-            background: "#eef4ff",
-            border: "1px solid #d6e4ff",
-            borderRadius: 10,
-            padding: 16,
-          }}
-        >
-          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+    // Tính toán số tiền theo từng phương thức
+    let tienMat = 0;
+    let chuyenKhoan = 0;
+    let httt = "";
+
+    if (paymentMethod === "cash") {
+      tienMat = paymentAmounts.tien_mat || 0;
+      httt = "tien_mat";
+    } else if (paymentMethod === "transfer") {
+      chuyenKhoan = total;
+      httt = "chuyen_khoan";
+    } else if (paymentMethod === "multi") {
+      tienMat = multiCash || 0;
+      chuyenKhoan = multiTransfer || 0;
+      httt = "tien_mat,chuyen_khoan";
+    }
+
+    const master = {
+      ong_ba: customerInfo?.ong_ba || "Khách hàng",
+      ma_so_thue_kh: customerInfo?.ma_so_thue_kh || "",
+      ten_dv_kh: customerInfo?.ten_dv_kh || "",
+      ma_ban: "", // Bỏ trường bàn
+      httt: httt,
+      tong_tien: total,
+      tien_mat: tienMat,
+      chuyen_khoan: chuyenKhoan,
+    };
+
+    const detail = cart.map((item, index) => ({
+      ten_vt: item.name,
+      so_luong: item.qty,
+      don_gia: item.price,
+      thanh_tien: item.price * item.qty,
+      ghi_chu: "",
+      ma_vt_root: null,
+      ma_vt: item.sku,
+      uniqueid: `item_${Date.now()}_${index}`,
+    }));
+
+    return { master, detail, orderNumber };
+  };
+
+  const handlePrint = useReactToPrint({
+    content: () => printContent.current,
+    documentTitle: "Hóa đơn Phenikaa",
+    copyStyles: false,
+  });
+
+  const handleConfirmWithPrint = async () => {
+    try {
+      // Chuẩn bị thông tin thanh toán theo phương thức
+      let paymentMethods = [];
+      let paymentAmountsData = {};
+
+      if (paymentMethod === "cash") {
+        paymentMethods = ["tien_mat"];
+        paymentAmountsData = {
+          tien_mat: paymentAmounts.tien_mat || 0,
+          chuyen_khoan: 0,
+        };
+      } else if (paymentMethod === "transfer") {
+        paymentMethods = ["chuyen_khoan"];
+        paymentAmountsData = { tien_mat: 0, chuyen_khoan: total };
+      } else if (paymentMethod === "multi") {
+        paymentMethods = ["tien_mat", "chuyen_khoan"];
+        paymentAmountsData = {
+          tien_mat: multiCash || 0,
+          chuyen_khoan: multiTransfer || 0,
+        };
+      }
+
+      // Call the original onConfirm function
+      const success = await onConfirm(
+        paymentMethods,
+        paymentAmountsData,
+        customerInfo,
+        sync
+      );
+
+      // Print the receipt only if payment was successful
+      if (success) {
+        // Reset all payment data
+        setPaymentMethod("cash");
+        setPaymentAmounts({ tien_mat: 0, chuyen_khoan: 0 });
+        setCustomerInfo({});
+        setSync(true);
+        setMultiCash(0);
+        setMultiTransfer(0);
+
+        setTimeout(() => {
+          handlePrint();
+        }, 500);
+      }
+    } catch (error) {
+      console.error("Error in payment confirmation:", error);
+    }
+  };
+
+  return (
+    <>
+      <Modal
+        title="Thanh toán"
+        open={visible}
+        onCancel={onClose}
+        footer={null}
+        width={600}
+        centered
+        destroyOnHidden
+      >
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 8, fontWeight: 600, color: "#262626" }}>
+            Hình thức thanh toán:
+          </div>
+          <Radio.Group
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value)}
+            buttonStyle="solid"
+            size="middle"
+          >
+            <Radio.Button value="transfer">Chuyển khoản</Radio.Button>
+            <Radio.Button value="cash">Tiền mặt</Radio.Button>
+            <Radio.Button value="multi">Đa phương thức</Radio.Button>
+          </Radio.Group>
+        </div>
+
+        {paymentMethod === "transfer" && (
+          <div
+            style={{
+              background: "linear-gradient(135deg, #f8faff 0%, #eef4ff 100%)",
+              border: "1px solid #d6e4ff",
+              borderRadius: 12,
+              padding: 20,
+            }}
+          >
             <div
               style={{
                 display: "flex",
-                gap: 20,
-                alignItems: "flex-start",
-                background: "#fafafa",
-                borderRadius: 12,
-                padding: 16,
-                border: "1px solid #e8e8e8",
+                gap: 24,
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               {/* Left Section - QR Code */}
               <div
                 style={{
                   background: "#fff",
-                  padding: 12,
-                  borderRadius: 8,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                  border: "1px solid #f0f0f0",
+                  padding: 20,
+                  borderRadius: 12,
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+                  border: "1px solid #e8f4ff",
                   flexShrink: 0,
                 }}
               >
-                <VietQR amount={total} soChungTu={""} size={150} />
+                <VietQR amount={total} soChungTu={""} size={160} />
               </div>
 
               {/* Right Section - Payment Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
-                    fontWeight: 600,
-                    marginBottom: 12,
-                    fontSize: 15,
+                    fontWeight: 700,
+                    marginBottom: 16,
+                    fontSize: 16,
                     color: "#1a1a1a",
                     lineHeight: 1.4,
+                    textAlign: "center",
                   }}
                 >
                   Quét mã QR để thanh toán
@@ -134,18 +262,19 @@ const PaymentModal = ({
                 <div
                   style={{
                     background: "#fff",
-                    borderRadius: 8,
+                    borderRadius: 10,
                     border: "1px solid #e6e6e6",
-                    padding: 12,
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+                    padding: 16,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                   }}
                 >
                   <div
                     style={{
                       color: "#1a1a1a",
-                      fontSize: 14,
-                      marginBottom: 6,
-                      fontWeight: 600,
+                      fontSize: 16,
+                      marginBottom: 8,
+                      fontWeight: 700,
+                      textAlign: "center",
                     }}
                   >
                     {process.env.REACT_APP_VIETQR_ACCOUNT_NAME ||
@@ -153,24 +282,26 @@ const PaymentModal = ({
                   </div>
                   <div
                     style={{
-                      fontSize: 12,
+                      fontSize: 14,
                       color: "#666",
-                      marginBottom: 8,
-                      lineHeight: 1.3,
+                      marginBottom: 12,
+                      lineHeight: 1.4,
+                      textAlign: "center",
                     }}
                   >
                     STK: {process.env.REACT_APP_VIETQR_ACCOUNT || "03775720401"}
                   </div>
 
                   <Divider
-                    style={{ margin: "8px 0", borderColor: "#f0f0f0" }}
+                    style={{ margin: "12px 0", borderColor: "#f0f0f0" }}
                   />
                   <div
                     style={{
                       fontWeight: 700,
-                      fontSize: 15,
-                      color: "#1a1a1a",
+                      fontSize: 16,
+                      color: "#1890ff",
                       lineHeight: 1.4,
+                      textAlign: "center",
                     }}
                   >
                     Số tiền: {prettyMoney(total)}₫
@@ -179,289 +310,333 @@ const PaymentModal = ({
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {payment.method === "cash" && (
-        <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ display: "grid", gap: 8 }}>
-            <InputNumber
-              min={0}
-              value={payment.cash}
-              formatter={(val) =>
-                `${Number(val || 0).toLocaleString("vi-VN")}đ`
-              }
-              parser={(val) => Number((val || "").replace(/\D/g, ""))}
-              onChange={(v) => setPayment({ ...payment, cash: v || 0 })}
-              placeholder="Khách đưa"
-              style={{ width: "100%" }}
-              size="large"
-              controls={false}
-            />
+        {paymentMethod === "cash" && (
+          <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "grid", gap: 8 }}>
+              <InputNumber
+                min={0}
+                value={paymentAmounts.tien_mat}
+                formatter={(val) =>
+                  `${Number(val || 0).toLocaleString("vi-VN")}đ`
+                }
+                parser={(val) => Number((val || "").replace(/\D/g, ""))}
+                onChange={(v) =>
+                  setPaymentAmounts({ ...paymentAmounts, tien_mat: v || 0 })
+                }
+                placeholder="Khách đưa"
+                style={{ width: "100%" }}
+                size="large"
+                controls={false}
+              />
 
-            <div style={{ display: "grid", gap: 6 }}>
-              <div style={{ color: "#8c8c8c", fontSize: 13 }}>Gợi ý:</div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: 6,
-                }}
-              >
-                {quickCash.map((m) => (
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ color: "#8c8c8c", fontSize: 13 }}>Gợi ý:</div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: 6,
+                  }}
+                >
+                  {quickCash.map((m) => (
+                    <Button
+                      key={m}
+                      size="small"
+                      onClick={() =>
+                        setPaymentAmounts({
+                          ...paymentAmounts,
+                          tien_mat: (paymentAmounts.tien_mat || 0) + m,
+                        })
+                      }
+                    >
+                      +{prettyMoney(m)}
+                    </Button>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
                   <Button
-                    key={m}
+                    type="dashed"
+                    style={{ flex: 1 }}
                     size="small"
                     onClick={() =>
-                      setPayment({ ...payment, cash: (payment.cash || 0) + m })
+                      setPaymentAmounts({ ...paymentAmounts, tien_mat: total })
                     }
                   >
-                    +{prettyMoney(m)}
+                    Đủ tiền
                   </Button>
-                ))}
+                  <Button
+                    onClick={() =>
+                      setPaymentAmounts({ ...paymentAmounts, tien_mat: 0 })
+                    }
+                    style={{ width: 70 }}
+                    size="small"
+                  >
+                    Xóa
+                  </Button>
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <Button
-                  type="dashed"
-                  style={{ flex: 1 }}
-                  size="small"
-                  onClick={() => setPayment({ ...payment, cash: total })}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "10px 12px",
+                background: "#f5f5f5",
+                borderRadius: 6,
+                border: "1px solid #d9d9d9",
+              }}
+            >
+              <span style={{ fontWeight: 500, color: "#262626", fontSize: 13 }}>
+                Tiền thừa/Thiếu
+              </span>
+              <div
+                style={{
+                  background: "#fff",
+                  border: "1px solid #d9d9d9",
+                  borderRadius: 4,
+                  padding: "4px 8px",
+                  minWidth: 60,
+                  textAlign: "center",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
                 >
-                  Đủ tiền
-                </Button>
-                <Button
-                  onClick={() => setPayment({ ...payment, cash: 0 })}
-                  style={{ width: 70 }}
-                  size="small"
-                >
-                  Xóa
-                </Button>
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 13,
+                      color:
+                        lack > 0
+                          ? "#ff4d4f"
+                          : (paymentAmounts.tien_mat || 0) > total
+                          ? "#52c41a"
+                          : "#262626",
+                    }}
+                  >
+                    {lack > 0
+                      ? `-${prettyMoney(lack)}đ`
+                      : (paymentAmounts.tien_mat || 0) > total
+                      ? `+${prettyMoney(
+                          (paymentAmounts.tien_mat || 0) - total
+                        )}đ`
+                      : "0đ"}
+                  </span>
+                  <span style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+                    {lack > 0
+                      ? numberToVietnameseWords(lack)
+                      : (paymentAmounts.tien_mat || 0) > total
+                      ? numberToVietnameseWords(
+                          (paymentAmounts.tien_mat || 0) - total
+                        )
+                      : "Không"}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
+        )}
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "10px 12px",
-              background: "#f5f5f5",
-              borderRadius: 6,
-              border: "1px solid #d9d9d9",
-            }}
-          >
-            <span style={{ fontWeight: 500, color: "#262626", fontSize: 13 }}>
-              Tiền thừa/Thiếu
-            </span>
-            <div
-              style={{
-                background: "#fff",
-                border: "1px solid #d9d9d9",
-                borderRadius: 4,
-                padding: "4px 8px",
-                minWidth: 60,
-                textAlign: "center",
-              }}
-            >
+        {paymentMethod === "multi" && (
+          <div style={{ display: "grid", gap: 12 }}>
+            <div>
+              <div style={{ marginBottom: 8, fontWeight: 600, fontSize: 14 }}>
+                Nhập số tiền:
+              </div>
+              <div style={{ display: "grid", gap: 8 }}>
+                <div>
+                  <div
+                    style={{ marginBottom: 4, fontWeight: 500, fontSize: 13 }}
+                  >
+                    Tiền mặt:
+                  </div>
+                  <InputNumber
+                    min={0}
+                    value={multiCash}
+                    onChange={setMultiCash}
+                    formatter={(val) =>
+                      `${Number(val || 0).toLocaleString("vi-VN")}đ`
+                    }
+                    parser={(val) => Number((val || "").replace(/\D/g, ""))}
+                    placeholder="0"
+                    style={{ width: "100%" }}
+                    size="middle"
+                    controls={false}
+                  />
+                </div>
+                <div>
+                  <div
+                    style={{ marginBottom: 4, fontWeight: 500, fontSize: 13 }}
+                  >
+                    Chuyển khoản:
+                  </div>
+                  <InputNumber
+                    min={0}
+                    value={multiTransfer}
+                    onChange={setMultiTransfer}
+                    formatter={(val) =>
+                      `${Number(val || 0).toLocaleString("vi-VN")}đ`
+                    }
+                    parser={(val) => Number((val || "").replace(/\D/g, ""))}
+                    placeholder="0"
+                    style={{ width: "100%" }}
+                    size="middle"
+                    controls={false}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Divider style={{ margin: "6px 0" }} />
+
+            <div>
+              <div style={{ marginBottom: 4, fontWeight: 500, fontSize: 13 }}>
+                Tổng quan:
+              </div>
               <div
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  alignItems: "center",
+                  gap: 4,
+                  padding: "8px 12px",
+                  background: "#f8fafc",
+                  borderRadius: 8,
+                  border: "1px solid #e2e8f0",
                 }}
               >
-                <span
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 13,
-                    color:
-                      lack > 0 ? "#ff4d4f" : change > 0 ? "#52c41a" : "#262626",
-                  }}
-                >
-                  {lack > 0
-                    ? `-${prettyMoney(lack)}đ`
-                    : change > 0
-                    ? `+${prettyMoney(change)}đ`
-                    : "0đ"}
-                </span>
-                <span style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
-                  {lack > 0
-                    ? numberToVietnameseWords(lack)
-                    : change > 0
-                    ? numberToVietnameseWords(change)
-                    : "Không"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {payment.method === "multi" && (
-        <div style={{ display: "grid", gap: 12 }}>
-          <div>
-            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: 14 }}>
-              Nhập số tiền:
-            </div>
-            <div style={{ display: "grid", gap: 8 }}>
-              <div>
-                <div style={{ marginBottom: 4, fontWeight: 500, fontSize: 13 }}>
-                  Tiền mặt:
-                </div>
-                <InputNumber
-                  min={0}
-                  value={multiCash}
-                  onChange={setMultiCash}
-                  formatter={(val) =>
-                    `${Number(val || 0).toLocaleString("vi-VN")}đ`
-                  }
-                  parser={(val) => Number((val || "").replace(/\D/g, ""))}
-                  placeholder="0"
-                  style={{ width: "100%" }}
-                  size="middle"
-                  controls={false}
-                />
-              </div>
-              <div>
-                <div style={{ marginBottom: 4, fontWeight: 500, fontSize: 13 }}>
-                  Chuyển khoản:
-                </div>
-                <InputNumber
-                  min={0}
-                  value={multiTransfer}
-                  onChange={setMultiTransfer}
-                  formatter={(val) =>
-                    `${Number(val || 0).toLocaleString("vi-VN")}đ`
-                  }
-                  parser={(val) => Number((val || "").replace(/\D/g, ""))}
-                  placeholder="0"
-                  style={{ width: "100%" }}
-                  size="middle"
-                  controls={false}
-                />
-              </div>
-            </div>
-          </div>
-
-          <Divider style={{ margin: "6px 0" }} />
-
-          <div>
-            <div style={{ marginBottom: 4, fontWeight: 500, fontSize: 13 }}>
-              Tổng quan:
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-                padding: "8px 12px",
-                background: "#f8fafc",
-                borderRadius: 8,
-                border: "1px solid #e2e8f0",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <span style={{ fontSize: 13, color: "#64748b" }}>
-                  Tổng cần thanh toán:
-                </span>
-                <span
-                  style={{ fontWeight: 600, fontSize: 14, color: "#1f2937" }}
-                >
-                  {prettyMoney(total)}đ
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <span style={{ fontSize: 13, color: "#64748b" }}>
-                  Đã thanh toán:
-                </span>
-                <span
-                  style={{ fontWeight: 600, fontSize: 14, color: "#059669" }}
-                >
-                  {prettyMoney(multiTotal)}đ
-                </span>
-              </div>
-              <Divider style={{ margin: "4px 0" }} />
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <span style={{ fontSize: 13, color: "#64748b" }}>
-                  {multiChange > 0 ? "Trả lại:" : "Còn thiếu:"}
-                </span>
-                <span
-                  style={{
-                    fontWeight: 600,
-                    fontSize: 14,
-                    color: multiChange > 0 ? "#059669" : "#dc2626",
-                  }}
-                >
-                  {multiChange > 0
-                    ? `+${prettyMoney(multiChange)}đ`
-                    : `${prettyMoney(multiRemaining)}đ`}
-                </span>
-              </div>
-              {multiChange > 0 && (
                 <div
                   style={{
-                    fontSize: 12,
-                    color: "#059669",
-                    fontStyle: "italic",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                   }}
                 >
-                  {numberToVietnameseWords(multiChange)}
+                  <span style={{ fontSize: 13, color: "#64748b" }}>
+                    Tổng cần thanh toán:
+                  </span>
+                  <span
+                    style={{ fontWeight: 600, fontSize: 14, color: "#1f2937" }}
+                  >
+                    {prettyMoney(total)}đ
+                  </span>
                 </div>
-              )}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ fontSize: 13, color: "#64748b" }}>
+                    Đã thanh toán:
+                  </span>
+                  <span
+                    style={{ fontWeight: 600, fontSize: 14, color: "#059669" }}
+                  >
+                    {prettyMoney(multiTotal)}đ
+                  </span>
+                </div>
+                <Divider style={{ margin: "4px 0" }} />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ fontSize: 13, color: "#64748b" }}>
+                    {multiChange > 0 ? "Trả lại:" : "Còn thiếu:"}
+                  </span>
+                  <span
+                    style={{
+                      fontWeight: 600,
+                      fontSize: 14,
+                      color: multiChange > 0 ? "#059669" : "#dc2626",
+                    }}
+                  >
+                    {multiChange > 0
+                      ? `+${prettyMoney(multiChange)}đ`
+                      : `${prettyMoney(multiRemaining)}đ`}
+                  </span>
+                </div>
+                {multiChange > 0 && (
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "#059669",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    {numberToVietnameseWords(multiChange)}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "center",
-          marginTop: 20,
-          paddingTop: 12,
-          borderTop: "1px solid #f0f0f0",
-        }}
-      >
-        <Space>
-          <Button onClick={onClose} size="middle">
-            Hủy
-          </Button>
-          <Button
-            type="primary"
-            size="middle"
-            style={{
-              minWidth: 120,
-              background: "#16a34a",
-              borderColor: "#16a34a",
-            }}
-            onClick={onConfirm}
-            disabled={payment.method === "multi" && multiRemaining > 0}
-          >
-            Thanh toán
-          </Button>
-        </Space>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            marginTop: 20,
+            paddingTop: 12,
+            borderTop: "1px solid #f0f0f0",
+          }}
+        >
+          <Space>
+            <Button onClick={onClose} size="middle">
+              Hủy
+            </Button>
+            <Tooltip
+              title={
+                paymentMethod === "cash" && lack > 0
+                  ? `Còn thiếu ${prettyMoney(lack)}đ để thanh toán`
+                  : paymentMethod === "multi" && multiRemaining > 0
+                  ? `Còn thiếu ${prettyMoney(multiRemaining)}đ để thanh toán`
+                  : ""
+              }
+            >
+              <Button
+                type="primary"
+                size="middle"
+                style={{
+                  minWidth: 120,
+                  background: "#16a34a",
+                  borderColor: "#16a34a",
+                }}
+                onClick={handleConfirmWithPrint}
+                disabled={
+                  (paymentMethod === "cash" && lack > 0) ||
+                  (paymentMethod === "multi" && multiRemaining > 0)
+                }
+              >
+                Thanh toán & In
+              </Button>
+            </Tooltip>
+          </Space>
+        </div>
+      </Modal>
+
+      {/* Hidden print component */}
+      <div style={{ display: "none" }}>
+        <PrintComponent
+          ref={printContent}
+          master={preparePrintData().master}
+          detail={preparePrintData().detail}
+          orderNumber={preparePrintData().orderNumber}
+        />
       </div>
-    </Modal>
+    </>
   );
 };
 

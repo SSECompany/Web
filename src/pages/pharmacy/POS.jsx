@@ -7,8 +7,7 @@ import React, {
   useState,
 } from "react";
 import { useSelector } from "react-redux";
-import { createRetailOrder, searchVatTu } from "../../api";
-import PaymentModal from "../../components/common/PaymentModal/PaymentModal";
+import { searchVatTu } from "../../api";
 import ProductSelectFull from "../../components/common/ProductSelectFull/ProductSelectFull";
 import ReportModal from "../../components/common/ReportModal/ReportModal";
 import RetailOrderListModal from "../../components/common/RetailOrderListModal/RetailOrderListModal";
@@ -56,36 +55,51 @@ const POS = () => {
     const loadInitialData = async () => {
       setLoadingVatTu(true);
       try {
-        const data = await searchVatTu("", 1, 20, unitId, userId);
+        const response = await searchVatTu("", 1, 20, unitId, userId);
 
-        // Transform API data to match ProductSelectFull format
-        const transformedData = data.map((item) => ({
-          value:
-            item.value || item.ma_vt || item.sku || `ITEM1${Math.random()}`,
-          label:
-            item.label ||
-            `${item.ten_vt || item.name || "Sản phẩm"} - ${
-              item.ma_vt || item.sku || "N/A"
-            }`,
-          item: {
-            sku:
-              item.value || item.ma_vt || item.sku || `ITEM1${Math.random()}`,
-            name: item.label || item.ten_vt || item.name || "Sản phẩm",
-            price: item.gia || item.gia_ban || item.price || 0,
-            unit: item.dvt || item.unit || "viên",
-            stock: item.ton_kho || item.stock || 0,
-          },
-        }));
+        // Kiểm tra response success - sử dụng cấu trúc API mới
+        if (response?.responseModel?.isSucceded) {
+          const listObject = response.listObject;
 
-        setVatTuList(transformedData);
-        setTotalPage(Math.max(1, Math.ceil(data.length / 20)));
-        setCurrentKeyword("");
-        setHasInitialData(true); // Set flag khi đã load data
+          // listObject[0] chứa array các items
+          const data = listObject?.[0] || [];
+          // listObject[1] chứa array thông tin pagination
+          const paginationInfo = listObject?.[1]?.[0] || {};
+
+          // Transform API data to match ProductSelectFull format
+          const transformedData = data.map((item) => ({
+            value: item.value || `ITEM1${Math.random()}`,
+            label: item.label || `Sản phẩm - ${item.value || "N/A"}`,
+            item: {
+              sku: item.value || `ITEM1${Math.random()}`,
+              name: item.label || `Sản phẩm`,
+              price: item.gia || 0,
+              unit: item.dvt || "viên",
+              stock: 0, // API không trả về stock
+            },
+          }));
+
+          setVatTuList(transformedData);
+          // Sử dụng metadata phân trang từ API
+          setTotalPage(paginationInfo.totalpage || 1);
+          setCurrentKeyword("");
+          setHasInitialData(true);
+        } else {
+          // Hiển thị error message từ API
+          const errorMessage =
+            response?.responseModel?.message ||
+            "Không thể tải danh sách vật tư";
+          notification.error({
+            message: "Lỗi tải dữ liệu",
+            description: errorMessage,
+          });
+          setVatTuList([]);
+        }
       } catch (error) {
         console.error("Error loading initial data:", error);
         notification.error({
-          message: "Lỗi tải danh sách sản phẩm",
-          description: "Không thể tải danh sách sản phẩm từ server",
+          message: "Lỗi kết nối",
+          description: "Không thể kết nối đến máy chủ",
         });
         setVatTuList([]);
       } finally {
@@ -96,7 +110,7 @@ const POS = () => {
     if (unitId && userId) {
       loadInitialData();
     }
-  }, [unitId, userId]); // Include unitId and userId dependencies
+  }, [unitId, userId]);
 
   const subtotal = useMemo(
     () => cart.reduce((s, x) => s + x.price * x.qty, 0),
@@ -149,82 +163,122 @@ const POS = () => {
       setLoadingVatTu(true);
       try {
         // Call real API using searchVatTu
-        const data = await searchVatTu(keyword, page, 20, unitId, userId);
+        const response = await searchVatTu(keyword, page, 20, unitId, userId);
 
-        // Transform API data to match ProductSelectFull format
-        const transformedData = data.map((item) => ({
-          value:
-            item.value ||
-            item.ma_vt ||
-            item.sku ||
-            `ITEM${page}${Math.random()}`,
-          label:
-            item.label ||
-            `${item.ten_vt || item.name || "Sản phẩm"} - ${
-              item.ma_vt || item.sku || "N/A"
-            }`,
-          item: {
-            sku:
-              item.value ||
-              item.ma_vt ||
-              item.sku ||
-              `ITEM${page}${Math.random()}`,
-            name: item.label || item.ten_vt || item.name || "Sản phẩm",
-            price: item.gia || item.gia_ban || item.price || 0,
-            unit: item.dvt || item.unit || "viên",
-            stock: item.ton_kho || item.stock || 0,
-          },
-        }));
+        // Kiểm tra response success - sử dụng cấu trúc API mới
+        if (response?.responseModel?.isSucceded) {
+          const listObject = response.listObject;
 
-        if (append) {
-          setVatTuList((prev) => [...prev, ...transformedData]);
+          // listObject[0] chứa array các items
+          const data = listObject?.[0] || [];
+          // listObject[1] chứa array thông tin pagination
+          const paginationInfo = listObject?.[1]?.[0] || {};
+
+          // Transform API data to match ProductSelectFull format
+          const transformedData = data.map((item) => ({
+            value: item.value || `ITEM${page}${Math.random()}`,
+            label: item.label || `Sản phẩm - ${item.value || "N/A"}`,
+            item: {
+              sku: item.value || `ITEM${page}${Math.random()}`,
+              name: item.label || `Sản phẩm`,
+              price: item.gia || 0,
+              unit: item.dvt || "viên",
+              stock: 0, // API không trả về stock
+            },
+          }));
+
+          if (append) {
+            setVatTuList((prev) => [...prev, ...transformedData]);
+            // Cập nhật pageIndex khi append thành công
+            setPageIndex(page);
+          } else {
+            setVatTuList(transformedData);
+            // Reset pageIndex khi search mới
+            setPageIndex(1);
+          }
+
+          // Sử dụng metadata phân trang từ API
+          const newTotalPage = paginationInfo.totalpage || 1;
+          setTotalPage(newTotalPage);
+          setCurrentKeyword(keyword);
         } else {
-          setVatTuList(transformedData);
-        }
+          // Hiển thị error message từ API
+          const errorMessage =
+            response?.responseModel?.message || "Không thể tìm kiếm vật tư";
+          notification.error({
+            message: "Lỗi tìm kiếm",
+            description: errorMessage,
+          });
 
-        // Calculate total pages based on data length
-        setTotalPage(Math.max(1, Math.ceil(data.length / 20)));
-        setCurrentKeyword(keyword);
+          if (!append) {
+            setVatTuList([]);
+            setPageIndex(1);
+          }
+        }
       } catch (error) {
         console.error("Error fetching products:", error);
         notification.error({
-          message: "Lỗi tải danh sách sản phẩm",
-          description: "Không thể tải danh sách sản phẩm từ server",
+          message: "Lỗi kết nối",
+          description: "Không thể kết nối đến máy chủ",
         });
-        // Fallback to empty array if API fails
+
         if (!append) {
           setVatTuList([]);
+          setPageIndex(1);
         }
       } finally {
         setLoadingVatTu(false);
       }
     },
-    [unitId, userId]
+    [unitId, userId, setPageIndex]
   );
 
-  // Handle both Select choose and barcode submit from ProductSelectFull
   const handleVatTuSelect = useCallback(
     async (value, option) => {
       let selectedItem = option?.item;
       if (!selectedItem) {
-        // value could be barcode/sku - try to get from current list
         const list = vatTuList.map((o) => o.item);
         selectedItem = list.find((x) => x.sku === value || x.value === value);
 
-        // Nếu không tìm thấy trong danh sách, tạo item mới
         if (!selectedItem && typeof value === "string") {
-          selectedItem = {
-            sku: value,
-            name: `Sản phẩm ${value}`,
-            price: 0,
-            unit: "cái",
-            stock: 0,
-          };
+          // Thử tìm kiếm sản phẩm theo barcode
+          try {
+            const response = await searchVatTu(value, 1, 1, unitId, userId);
+            if (
+              response.responseModel?.isSucceded &&
+              response.listObject?.[0]?.length > 0
+            ) {
+              const foundItem = response.listObject[0][0];
+              selectedItem = {
+                sku: foundItem.value || value,
+                name: foundItem.label || `Sản phẩm ${value}`,
+                price: foundItem.gia || 0,
+                unit: foundItem.dvt || "cái",
+                stock: 0, // API không trả về stock
+              };
+            } else {
+              // Hiển thị error message từ API nếu có
+              const errorMessage =
+                response.responseModel?.message ||
+                `Không tìm thấy sản phẩm với mã: ${value}`;
+              notification.error({
+                message: "Không tìm thấy sản phẩm",
+                description: errorMessage,
+              });
+              return false;
+            }
+          } catch (error) {
+            console.error("Error searching product by barcode:", error);
+            notification.error({
+              message: "Lỗi tìm kiếm",
+              description: `Không thể tìm kiếm sản phẩm với mã: ${value}`,
+            });
+            return false;
+          }
         }
       }
 
       if (selectedItem) {
-        // Bỏ logic kiểm tra stock - cho phép add bất kỳ sản phẩm nào
         addToCart(selectedItem);
         setVatTuInput("");
         return true;
@@ -236,7 +290,7 @@ const POS = () => {
       });
       return false;
     },
-    [vatTuList, addToCart] // Remove searchVatTu from dependencies to avoid circular dependency
+    [vatTuList, addToCart, unitId, userId]
   );
 
   const handleOpenPayment = () => {
@@ -251,73 +305,6 @@ const POS = () => {
   const handleReportModal = useCallback(() => {
     setIsReportModalOpen(!isReportModalOpen);
   }, [isReportModalOpen]);
-
-  const handleConfirmPayment = async () => {
-    try {
-      // Create order payload for retail order
-      const orderPayload = {
-        tableId: "POS",
-        storeId: "",
-        status: "2",
-        customer: {
-          phone: customer.phone || "",
-          name: customer.name || "",
-          idNumber: customer.idNumber || "",
-          address: "",
-          email: "",
-          taxCode: "",
-          companyName: "",
-        },
-        items: cart.map((item, index) => ({
-          name: item.name,
-          sku: item.sku,
-          ma_vt: item.sku,
-          quantity: item.qty,
-          qty: item.qty,
-          price: item.price,
-          note: "",
-          uniqueId: `item_${Date.now()}_${index}`,
-          voucher: "0",
-        })),
-        totals: {
-          subtotal: subtotal,
-          quantity: cart.reduce((sum, item) => sum + item.qty, 0),
-          total: total,
-        },
-        payment: {
-          method: payment.method === "cash" ? "tien_mat" : "chuyen_khoan",
-          cash: payment.method === "cash" ? payment.cash : 0,
-          transfer: payment.method === "transfer" ? payment.cash : 0,
-        },
-      };
-
-      // Create order using createRetailOrder
-      const orderResult = await createRetailOrder(orderPayload, unitId, userId);
-
-      if (orderResult) {
-        notification.success({
-          message: "Thành công",
-          description: "Đơn hàng đã được tạo thành công",
-        });
-
-        // Reset form
-        setCart([]);
-        setPayment({ method: "cash", cash: 0 });
-        setCustomer({
-          phone: "",
-          name: "",
-          idNumber: "",
-        });
-        setPayModalOpen(false);
-      }
-    } catch (error) {
-      console.error("Error creating order:", error);
-      notification.error({
-        message: "Lỗi tạo đơn hàng",
-        description: "Không thể tạo đơn hàng. Vui lòng thử lại.",
-      });
-    }
-  };
 
   return (
     <div className="pos-container">
@@ -386,20 +373,9 @@ const POS = () => {
           total={total}
           change={change}
           cart={cart}
-          onOpenPayment={handleOpenPayment}
           onClearCart={() => setCart([])}
         />
       </div>
-
-      <PaymentModal
-        open={payModalOpen}
-        onClose={() => setPayModalOpen(false)}
-        onConfirm={handleConfirmPayment}
-        total={total}
-        change={change}
-        payment={payment}
-        setPayment={setPayment}
-      />
 
       <RetailOrderListModal
         isOpen={isOrderListModalOpen}

@@ -623,7 +623,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         open={isOpen}
         width="95%"
         title="Danh sách đơn hàng"
-        destroyOnClose
+        destroyOnHidden
         onCancel={onClose}
         footer={null}
         centered

@@ -196,29 +196,26 @@ export const searchVatTu = async (
       },
     })
     .then((res) => {
-
-      // Kiểm tra response structure
-      if (res?.data?.responseModel?.isSucceded) {
-        // Response thành công, trả về listObject (chữ thường)
-        const listObject = res?.data?.listObject || res?.data?.ListObject || [];
-
-        // Kiểm tra nếu listObject là nested array
-        if (
-          Array.isArray(listObject) &&
-          listObject.length > 0 &&
-          Array.isArray(listObject[0])
-        ) {
-          return listObject[0] || [];
+      // Trả về response nguyên bản từ API
+      return (
+        res?.data || {
+          responseModel: {
+            isSucceded: false,
+            message: "Không có dữ liệu",
+          },
+          listObject: [],
         }
-
-        return listObject;
-      } else {
-        return res?.data || [];
-      }
+      );
     })
     .catch((error) => {
       console.error("Error searching vat tu:", error);
-      return [];
+      return {
+        responseModel: {
+          isSucceded: false,
+          message: "Lỗi kết nối mạng",
+        },
+        listObject: [],
+      };
     });
 };
 
@@ -251,11 +248,31 @@ export const createPharmacyOrder = async (
       },
     })
     .then((res) => {
-      return res?.data || null;
+      // Kiểm tra responseModel.isSucceded
+      if (res?.data?.responseModel?.isSucceded === true) {
+        return {
+          success: true,
+          data: res?.data?.listObject || res?.data || null,
+          message: null,
+        };
+      } else {
+        // Response có lỗi
+        const errorMessage =
+          res?.data?.responseModel?.message || "Lỗi không xác định";
+        return {
+          success: false,
+          data: null,
+          message: errorMessage,
+        };
+      }
     })
     .catch((error) => {
       console.error("Error creating pharmacy order:", error);
-      return null;
+      return {
+        success: false,
+        data: null,
+        message: "Lỗi kết nối mạng",
+      };
     });
 };
 
@@ -315,7 +332,6 @@ export const createRetailOrder = async (
     },
   };
 
-
   return await https
     .post(`User/AddData`, payload, {
       headers: {
@@ -324,10 +340,30 @@ export const createRetailOrder = async (
       },
     })
     .then((res) => {
-      return res?.data || null;
+      // Kiểm tra responseModel.isSucceded
+      if (res?.data?.responseModel?.isSucceded === true) {
+        return {
+          success: true,
+          data: res?.data?.listObject || res?.data || null,
+          message: null,
+        };
+      } else {
+        // Response có lỗi
+        const errorMessage =
+          res?.data?.responseModel?.message || "Lỗi không xác định";
+        return {
+          success: false,
+          data: null,
+          message: errorMessage,
+        };
+      }
     })
     .catch((error) => {
       console.error("❌ Error creating retail order:", error);
-      return null;
+      return {
+        success: false,
+        data: null,
+        message: "Lỗi kết nối mạng",
+      };
     });
 };

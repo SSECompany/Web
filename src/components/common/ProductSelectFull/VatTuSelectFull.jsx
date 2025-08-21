@@ -29,6 +29,9 @@ const ProductSelectFull = ({
   const lastProcessedBarcodeRef = useRef("");
   // Đảm bảo chỉ gọi fetchVatTuList("") 1 lần khi mount hoặc lần đầu mở dropdown
   const didInitRef = useRef(false);
+  // Thêm ref để tránh gọi API scroll trùng lặp
+  const isScrollingRef = useRef(false);
+  const lastScrollPageRef = useRef(0);
 
   useEffect(() => {
     if (!didInitRef.current) {
@@ -80,6 +83,9 @@ const ProductSelectFull = ({
     searchTimeoutRef.current = setTimeout(() => {
       if (setPageIndex) setPageIndex(1);
       fetchVatTuList(value, 1, false); // reset page, không append
+      // Reset scroll state khi search mới
+      isScrollingRef.current = false;
+      lastScrollPageRef.current = 0;
     }, 500);
   };
 
@@ -195,17 +201,30 @@ const ProductSelectFull = ({
     }
   }, [vatTuInput, barcodeEnabled]);
 
-  // Xử lý scroll phân trang
+  // Cải thiện logic scroll phân trang
   const handlePopupScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
-    if (
-      scrollTop + clientHeight >= scrollHeight - 20 &&
-      pageIndex < totalPage &&
-      !loadingVatTu
-    ) {
+    
+    // Kiểm tra điều kiện scroll đến cuối
+    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 20;
+    const hasMorePages = pageIndex < totalPage;
+    const notLoading = !loadingVatTu;
+    const notCurrentlyScrolling = !isScrollingRef.current;
+    const notSamePage = lastScrollPageRef.current !== pageIndex + 1;
+    
+    if (isNearBottom && hasMorePages && notLoading && notCurrentlyScrolling && notSamePage) {
+      // Đánh dấu đang scroll để tránh gọi trùng lặp
+      isScrollingRef.current = true;
+      lastScrollPageRef.current = pageIndex + 1;
+      
       // Gọi API trang tiếp theo, nối vào danh sách
+      // setPageIndex sẽ được gọi trong fetchVatTuList khi append thành công
       fetchVatTuList(currentKeyword, pageIndex + 1, true); // true: append
-      if (setPageIndex) setPageIndex(pageIndex + 1);
+      
+      // Reset scroll state sau 1 giây
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 1000);
     }
   };
 

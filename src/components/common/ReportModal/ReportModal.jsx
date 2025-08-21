@@ -259,13 +259,13 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
 
   return (
     <Modal
-      open={isOpen}
-      width={"95%"}
       title="Báo cáo kết ca"
-      destroyOnClose
+      open={isOpen}
       onCancel={onClose}
-      centered
       footer={null}
+      width={800}
+      centered
+      destroyOnHidden
     >
       <div className="report-modal_Container">
         <Table
