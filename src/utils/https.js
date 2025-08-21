@@ -14,6 +14,8 @@ class HttpService {
     }
     return axios.get(apiEndpoint, settings).then(
       (res) => {
+        // Không hiển thị thông báo ở tầng HTTP service để tránh trùng lặp.
+        // Việc hiển thị message sẽ do caller quyết định.
         return res;
       },
       (err) => {
@@ -30,6 +32,8 @@ class HttpService {
         if (res?.data?.errors) {
           return this.handleErorr(res?.data?.errors);
         }
+        // Không hiển thị thông báo ở tầng HTTP service để tránh trùng lặp.
+        // Việc hiển thị message sẽ do caller quyết định.
         return res;
       })
       .catch((err) => {
@@ -43,6 +47,8 @@ class HttpService {
         if (res?.data?.errors) {
           return this.handleErorr(res?.data?.errors);
         }
+        // Không hiển thị thông báo ở tầng HTTP service để tránh trùng lặp.
+        // Việc hiển thị message sẽ do caller quyết định.
         return res;
       },
       (err) => {

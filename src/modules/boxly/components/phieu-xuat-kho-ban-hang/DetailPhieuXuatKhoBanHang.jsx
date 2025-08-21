@@ -1,6 +1,5 @@
 import { EditOutlined, LeftOutlined } from "@ant-design/icons";
 import { Button, Form, message, Space, Typography } from "antd";
-import moment from "moment/moment";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
@@ -15,10 +14,9 @@ import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
 import {
   buildPayload,
-  deletePhieu,
+  convertApiDataToFormData,
+  createDataSnapshot,
   deletePhieuDynamic,
-  formatDetailDataFromResponse,
-  submitPhieu,
   submitPhieuDynamic,
   validateDataSource,
   validateQuantityAndShowConfirm,
@@ -44,6 +42,16 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
   const [currentKeyword, setCurrentKeyword] = useState("");
   const [vatTuList, setVatTuList] = useState([]);
   const [loadingVatTu, setLoadingVatTu] = useState(false);
+
+  // Dynamic payload states
+  const [originalApiData, setOriginalApiData] = useState({
+    master: null,
+    detail: [],
+  });
+  const [originalSnapshot, setOriginalSnapshot] = useState({
+    master: null,
+    detail: [],
+  });
 
   // Refs for preventing multiple calls and caching
   const vatTuSelectRef = useRef();
@@ -166,30 +174,26 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         const phieuHeader = data.master[0];
         const phieuDetails = data.detail;
 
-        setPhieuData({
-          ...phieuHeader,
-          details: phieuDetails,
-        });
+        // Lưu original API data cho dynamic payload
+        setOriginalApiData({ master: phieuHeader, detail: phieuDetails });
 
-        const ngayCt = phieuHeader.ngay_ct ? moment(phieuHeader.ngay_ct) : null;
+        // Sử dụng convertApiDataToFormData để có consistency
+        const { formData, dataSource: convertedDataSource } =
+          convertApiDataToFormData(phieuHeader, phieuDetails);
 
-        form.setFieldsValue({
-          maKhach: phieuHeader.ma_kh,
-          soPhieu: phieuHeader.so_ct,
-          dienGiai: phieuHeader.dien_giai,
-          ngay: ngayCt,
-          maNVBH: phieuHeader.ma_nvbh || "",
-          xe: phieuHeader.xe_vc || "",
-          taiXe: phieuHeader.tai_xe || "",
-          maGiaoDich: phieuHeader.ma_gd || "",
-          trangThai: phieuHeader.status || "3",
-        });
+        // Tạo snapshot để track changes
+        const snapshot = createDataSnapshot(formData, convertedDataSource);
+        setOriginalSnapshot(snapshot);
 
-        if (phieuDetails.length > 0) {
-          // Sử dụng helper function để format dữ liệu, giữ nguyên toàn bộ response data
-          const mappedItems = formatDetailDataFromResponse(phieuDetails);
-          setDataSource(mappedItems);
-        }
+        // Lưu chỉ data gốc từ API để sử dụng khi build payload (không merge với UI data)
+        setPhieuData(phieuHeader);
+
+        // Set form với converted data
+        form.setFieldsValue(formData);
+
+        // Set dataSource với converted data (đã có tất cả API fields)
+        setDataSource(convertedDataSource);
+
 
         // Mark as loaded
         phieuDetailLoadedRef.current = stt_rec;
@@ -331,14 +335,23 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
   const submitPhieuData = useCallback(
     async (values) => {
       try {
+        // Sử dụng buildPayload với dynamic logic đã được implement
         const payload = buildPayload(values, dataSource, phieuData, true);
+
+      
+
         if (!payload) {
+          message.error(
+            "Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu."
+          );
           setLoading(false);
           return;
         }
         const result = await submitPhieuDynamic(
           payload,
-          isEditMode ? "Cập nhật phiếu xuất kho bán hàng thành công" : "Lưu phiếu xuất kho bán hàng thành công",
+          isEditMode
+            ? "Cập nhật phiếu xuất kho bán hàng thành công"
+            : "Lưu phiếu xuất kho bán hàng thành công",
           true
         );
 

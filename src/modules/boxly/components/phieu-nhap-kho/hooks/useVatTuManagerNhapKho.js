@@ -72,8 +72,10 @@ export const useVatTuManagerNhapKho = () => {
 
     // Smart batch prefetch ĐVT - chỉ fetch unique maHang
     if (fetchDonViTinh) {
-      const uniqueMaHangList = [...new Set(processedData.map(item => item.maHang).filter(Boolean))];
-      
+      const uniqueMaHangList = [
+        ...new Set(processedData.map((item) => item.maHang).filter(Boolean)),
+      ];
+
       if (uniqueMaHangList.length > 0) {
         // Batch parallel fetch cho tất cả unique maHang
         Promise.all(
@@ -314,6 +316,14 @@ export const useVatTuManagerNhapKho = () => {
             donViTinhList: donViTinhList,
             isNewlyAdded: true,
 
+            // === DYNAMIC: THÊM TẤT CẢ TRƯỜNG API ĐỂ ĐỒNG NHẤT ===
+            // Core fields - sẽ được fill từ phieuData khi submit
+            stt_rec: "",
+            ma_ct: "",
+            ngay_ct: "",
+            so_ct: "",
+            ma_vt: value, // Mapping từ maHang
+
             // Thông tin nhập kho đặc thù
             stt_rec0: "",
             ma_sp: "",
@@ -325,6 +335,14 @@ export const useVatTuManagerNhapKho = () => {
             ma_nx: "",
             tk_du: "",
 
+            // Additional fields từ payload thực tế
+            ma_hd: "",
+            ma_ku: "",
+            ma_phi: "",
+            ma_td2: "",
+            ma_td3: "",
+            so_pn: "",
+
             // Thông tin giá
             gia_nt: 0,
             gia: 0,
@@ -332,10 +350,68 @@ export const useVatTuManagerNhapKho = () => {
             tien: 0,
             pn_gia_tb: false,
 
-            // Thông tin liên kết
+            // Thông tin liên kết phiếu xuất
             stt_rec_px: "",
             stt_rec0px: "",
-            line_nbr: 0,
+
+            // Thông tin liên kết phiếu nhập (từ payload thực tế)
+            stt_rec_pn: "",
+            stt_rec0pn: "",
+
+            // Các trường số lượng API
+            sl_td1: 0,
+            sl_td2: 0,
+            sl_td3: Math.round(soLuongHienThi * 1000) / 1000,
+            so_luong: Math.round(soLuongDeNghiHienThi * 1000) / 1000,
+
+            // Trường line number và các trường khác
+            line_nbr: prev.length + 1,
+
+            // Các trường thuế và chiết khấu (cho consistency)
+            thue_suat: 0,
+            ma_thue: "",
+            tk_thue: "",
+            tl_ck: 0,
+            ck: 0,
+            ck_nt: 0,
+            tl_ck_khac: 0,
+            gia_ck: 0,
+            tien_ck_khac: 0,
+
+            // Các trường tài khoản bổ sung
+            tk_gv: "",
+            tk_dt: "",
+            tk_ck: "",
+            tk_cpbh: "",
+
+            // Đơn hàng liên quan
+            sl_dh: 0,
+            sl_giao: 0,
+            dh_ln: 0,
+            px_ln: 0,
+            stt_rec_dh: "",
+            stt_rec0dh: "",
+            dh_so: "",
+            px_so: "",
+
+            // Boolean flags
+            taoma_yn: 0,
+            km_yn: 0,
+            px_gia_dd: false,
+
+            // Customer/partner info
+            ma_kh2: "",
+            ma_td1: "",
+
+            // Datetime fields
+            datetime0: "",
+            datetime2: "",
+            user_id0: "",
+            user_id2: "",
+
+            // Năm/kỳ
+            nam: 0,
+            ky: 0,
 
             _lastUpdated: Date.now(),
           };

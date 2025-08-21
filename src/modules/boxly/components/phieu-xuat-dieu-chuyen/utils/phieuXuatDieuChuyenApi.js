@@ -112,12 +112,7 @@ export const createPhieuXuatDieuChuyen = async (data) => {
       },
     });
 
-    const isSuccess =
-      response.data &&
-      (response.data.statusCode === 200 ||
-        response.data.responseModel?.isSucceded ||
-        (response.data?.responseModel?.message &&
-          response.data.responseModel.message.includes("thành công")));
+    const isSuccess = response?.data?.responseModel?.isSucceded === true;
 
     if (isSuccess) {
       message.success("Tạo phiếu xuất điều chuyển thành công");
@@ -153,12 +148,7 @@ export const updatePhieuXuatDieuChuyen = async (data) => {
       },
     });
 
-    const isSuccess =
-      response.data &&
-      (response.data.statusCode === 200 ||
-        response.data.responseModel?.isSucceded ||
-        (response.data?.responseModel?.message &&
-          response.data.responseModel.message.includes("thành công")));
+    const isSuccess = response?.data?.responseModel?.isSucceded === true;
 
     if (isSuccess) {
       message.success("Cập nhật phiếu xuất điều chuyển thành công");
@@ -196,12 +186,7 @@ export const deletePhieuXuatDieuChuyen = async (stt_rec) => {
       },
     });
 
-    const isSuccess =
-      response.data &&
-      (response.data.statusCode === 200 ||
-        response.data.responseModel?.isSucceded ||
-        (response.data?.responseModel?.message &&
-          response.data.responseModel.message.includes("thành công")));
+    const isSuccess = response?.data?.responseModel?.isSucceded === true;
 
     if (isSuccess) {
       message.success("Xóa phiếu xuất điều chuyển thành công");
@@ -239,12 +224,7 @@ export const deletePhieuXuatDieuChuyenDirect = async (stt_rec) => {
       },
     });
 
-    const isSuccess =
-      response.data &&
-      (response.data.statusCode === 200 ||
-        response.data.responseModel?.isSucceded ||
-        (response.data?.responseModel?.message &&
-          response.data.responseModel.message.includes("thành công")));
+    const isSuccess = response?.data?.responseModel?.isSucceded === true;
 
     if (isSuccess) {
       message.success("Xóa phiếu xuất điều chuyển thành công");

@@ -206,7 +206,11 @@ const AddPhieuXuatDieuChuyen = () => {
           // Callback khi user xác nhận tiếp tục
           try {
             const payload = buildPayload(values, dataSource, null, false);
+
             if (!payload) {
+              message.error(
+                "Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu."
+              );
               setLoading(false);
               return;
             }
@@ -223,18 +227,34 @@ const AddPhieuXuatDieuChuyen = () => {
               }
             );
 
-            if (
-              response.data &&
-              (response.data.statusCode === 200 ||
-                response.data.responseModel?.isSucceded)
-            ) {
+            if (!response) {
+              message.error("Không nhận được phản hồi từ server");
+              setLoading(false);
+              return;
+            }
+
+            const hasResponseModel =
+              response?.data &&
+              typeof response.data.responseModel !== "undefined";
+            const isSuccess = hasResponseModel
+              ? response.data.responseModel.isSucceded === true
+              : response?.data?.statusCode === 200;
+
+            if (isSuccess) {
               message.success("Tạo phiếu xuất điều chuyển thành công");
               navigate("/boxly/phieu-xuat-dieu-chuyen");
             } else {
-              message.error("Tạo phiếu xuất điều chuyển thất bại");
+              const serverMsg =
+                response.data?.responseModel?.message || response.data?.message;
+              message.error(serverMsg || "Tạo phiếu xuất điều chuyển thất bại");
             }
           } catch (error) {
             console.error("Submit failed:", error);
+            const serverMsg =
+              error?.response?.data?.responseModel?.message ||
+              error?.response?.data?.message ||
+              error?.message;
+            if (serverMsg) message.error(serverMsg);
           } finally {
             setLoading(false);
           }

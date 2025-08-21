@@ -57,10 +57,8 @@ instance.interceptors.response.use(
     PENDING_REQUESTS = Math.max(0, PENDING_REQUESTS - 1);
 
     if (error?.response?.status === 401) {
-
       // Kiểm tra xem token có thực sự hết hạn không
       if (jwt.isTokenExpired()) {
-
         // Clear tất cả tokens và localStorage
         jwt.clearTokens();
         localStorage.clear();

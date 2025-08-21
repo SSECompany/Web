@@ -1,5 +1,5 @@
 import { LeftOutlined } from "@ant-design/icons";
-import { Button, Form, Space, Typography } from "antd";
+import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -212,6 +212,9 @@ const AddPhieuXuatKho = () => {
             const payload = buildPayload(values, dataSource, null, false);
 
             if (!payload) {
+              message.error(
+                "Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu."
+              );
               setLoading(false);
               return;
             }
@@ -228,15 +231,27 @@ const AddPhieuXuatKho = () => {
               }
             );
 
-            if (
-              response.data &&
-              (response.data.statusCode === 200 ||
-                response.data.responseModel?.isSucceded)
-            ) {
+            const hasResponseModel =
+              response?.data &&
+              typeof response.data.responseModel !== "undefined";
+            const isSuccess = hasResponseModel
+              ? response.data.responseModel.isSucceded === true
+              : response?.data?.statusCode === 200;
+
+            if (isSuccess) {
               navigate("/boxly/phieu-xuat-kho");
+            } else {
+              const serverMsg =
+                response.data?.responseModel?.message || response.data?.message;
+              message.error(serverMsg || "Tạo phiếu xuất kho thất bại");
             }
           } catch (error) {
             console.error("Submit failed:", error);
+            const serverMsg =
+              error?.response?.data?.responseModel?.message ||
+              error?.response?.data?.message ||
+              error?.message;
+            if (serverMsg) message.error(serverMsg);
           } finally {
             setLoading(false);
           }

@@ -27,13 +27,10 @@ export const usePhieuXuatKhoData = () => {
 
   const token = localStorage.getItem("access_token");
 
-  const isCacheValid = useMemo(() => {
-    if (!masterDataCache.lastFetch) return false;
-    return Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY;
-  }, []);
+  // Remove isCacheValid useMemo as it causes re-renders
 
   const fetchMaGiaoDichList = useCallback(async () => {
-    if (isCacheValid && masterDataCache.maGiaoDich) {
+    if (masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.maGiaoDich) {
       setMaGiaoDichList(masterDataCache.maGiaoDich);
       return;
     }
@@ -58,7 +55,7 @@ export const usePhieuXuatKhoData = () => {
     } catch (error) {
       message.error("Không thể tải danh sách mã giao dịch");
     }
-  }, [isCacheValid, token]);
+  }, [token]);
 
   const fetchMaKhachList = useCallback(
     async (keyword = "", forceRefresh = false) => {
@@ -69,20 +66,20 @@ export const usePhieuXuatKhoData = () => {
           return;
         }
         // Nếu có cache valid, sử dụng cache
-        if (isCacheValid && masterDataCache.maKhach) {
-          setMaKhachList(masterDataCache.maKhach);
-          return;
-        }
+            if (masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.maKhach) {
+      setMaKhachList(masterDataCache.maKhach);
+      return;
+    }
       }
 
       // Nếu đang search với keyword, kiểm tra cache và filter local
-      if (keyword && masterDataCache.maKhach && isCacheValid) {
-        const filteredData = masterDataCache.maKhach.filter((item) =>
-          item.label.toLowerCase().includes(keyword.toLowerCase())
-        );
-        setMaKhachList(filteredData);
-        return;
-      }
+          if (keyword && masterDataCache.maKhach && masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY) {
+      const filteredData = masterDataCache.maKhach.filter((item) =>
+        item.label.toLowerCase().includes(keyword.toLowerCase())
+      );
+      setMaKhachList(filteredData);
+      return;
+    }
 
       setLoadingMaKhach(true);
       try {
@@ -118,14 +115,15 @@ export const usePhieuXuatKhoData = () => {
         setLoadingMaKhach(false);
       }
     },
-    [isCacheValid, token, maKhachList]
+    [token]
   );
 
   const fetchVatTuList = useCallback(
     async (keyword = "", page = 1, append = false, callback) => {
       if (
         !keyword &&
-        isCacheValid &&
+        masterDataCache.lastFetch &&
+        Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
         masterDataCache.vatTu &&
         page === 1 &&
         !append
@@ -175,7 +173,7 @@ export const usePhieuXuatKhoData = () => {
         setLoadingVatTu(false);
       }
     },
-    [isCacheValid]
+    [token]
   );
 
   const fetchVatTuDetail = useCallback(
@@ -210,7 +208,7 @@ export const usePhieuXuatKhoData = () => {
       if (!maHang) return [];
 
       // Kiểm tra cache trước khi gọi API
-      if (!forceRefresh && isCacheValid && masterDataCache.donViTinh[maHang]) {
+      if (!forceRefresh && masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.donViTinh[maHang]) {
         return masterDataCache.donViTinh[maHang];
       }
 
@@ -241,7 +239,7 @@ export const usePhieuXuatKhoData = () => {
         return [];
       }
     },
-    [token, isCacheValid]
+    [token]
   );
 
   const fetchMaKhachListDebounced = useMemo(
@@ -269,14 +267,14 @@ export const usePhieuXuatKhoData = () => {
           return;
         }
         // Nếu có cache valid, sử dụng cache
-        if (isCacheValid && masterDataCache.maKho) {
+        if (masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.maKho) {
           setMaKhoList(masterDataCache.maKho);
           return;
         }
       }
 
       // Nếu đang search với keyword, kiểm tra cache và filter local
-      if (keyword && masterDataCache.maKho && isCacheValid) {
+      if (keyword && masterDataCache.maKho && masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY) {
         const filteredData = masterDataCache.maKho.filter((item) =>
           item.label.toLowerCase().includes(keyword.toLowerCase())
         );
@@ -315,7 +313,7 @@ export const usePhieuXuatKhoData = () => {
         setLoadingMaKho(false);
       }
     },
-    [isCacheValid, token, maKhoList]
+    [token]
   );
 
   const fetchMaKhoListDebounced = useMemo(

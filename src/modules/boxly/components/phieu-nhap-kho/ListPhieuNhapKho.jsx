@@ -11,6 +11,7 @@ import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
 import CommonPhieuList from "../CommonPhieuList";
+import { fetchPhieuNhapKhoList, deletePhieuNhapKho } from "./utils/phieuNhapKhoApi";
 
 const { RangePicker } = DatePicker;
 
@@ -56,29 +57,32 @@ const ListPhieuNhapKho = () => {
   }, []);
 
   const fetchPhieuNhapKho = async (filterParams = filters) => {
-    const body = {
-      dateForm:
+    const params = {
+      so_ct: filterParams.so_ct || "",
+      ma_kh: filterParams.ma_kh || "",
+      ten_kh: filterParams.ten_kh || "",
+      DateFrom:
         filterParams.dateRange && filterParams.dateRange[0]
           ? filterParams.dateRange[0].format("YYYY-MM-DD")
           : dayjs().startOf("month").format("YYYY-MM-DD"),
-      dateTo:
+      DateTo:
         filterParams.dateRange && filterParams.dateRange[1]
           ? filterParams.dateRange[1].format("YYYY-MM-DD")
           : dayjs().endOf("month").format("YYYY-MM-DD"),
-      page_index: 1,
-      page_count: 50,
-      ...filterParams,
+      PageIndex: currentPage,
+      PageSize: pageSize,
+      Status: "",
     };
+
     try {
-      const res = await https.post("v1/web/danh-sach-phieu-nhap-kho", body, {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      });
-      const filteredData = (res.data.data || []).filter(
-        (item) => item.status !== "*" && item.status !== null
-      );
-      setAllData(filteredData);
-      setTotalRecords(filteredData.length);
+      const result = await fetchPhieuNhapKhoList(params);
+      
+      if (result.success) {
+        setAllData(result.data);
+        setTotalRecords(result.pagination.totalRecord || result.data.length);
+      } else {
+        console.error("Lỗi gọi API danh sách phiếu nhập kho:", result.error);
+      }
     } catch (err) {
       console.error("Lỗi gọi API danh sách phiếu nhập kho:", err);
     }
@@ -115,32 +119,14 @@ const ListPhieuNhapKho = () => {
             return;
           }
 
-          const response = await https.post(
-            `v1/web/xoa-ct-nhap-kho?sctRec=${sctRec}`,
-            {},
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const result = await deletePhieuNhapKho(sctRec);
 
-          if (response.data && response.data.statusCode === 200) {
-            message.success("Xóa phiếu nhập kho thành công");
+          if (result.success) {
             await fetchPhieuNhapKho();
-          } else {
-            message.error(
-              response.data?.message || "Xóa phiếu nhập kho thất bại"
-            );
           }
         } catch (error) {
           console.error("Lỗi khi xóa phiếu nhập kho:", error);
-          if (error.response?.data?.message) {
-            message.error(error.response.data.message);
-          } else {
-            message.error("Có lỗi xảy ra khi xóa phiếu nhập kho");
-          }
+          message.error("Có lỗi xảy ra khi xóa phiếu nhập kho");
         }
       },
     });

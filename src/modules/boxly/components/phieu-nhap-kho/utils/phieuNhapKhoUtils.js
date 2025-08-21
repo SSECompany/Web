@@ -70,6 +70,8 @@ export const buildPhieuNhapKhoPayload = (
 ) => {
   const userInfo = getUserInfo();
   const orderDate = formatDate(values.ngay);
+  // Chỉ giữ lại những trường thực sự có trong data từ API response
+  // Không gắn mặc định bất kỳ trường nào
   const totalQuantity = dataSource.reduce(
     (sum, item) => sum + parseFloat(item.soLuong || 0),
     0
@@ -85,21 +87,15 @@ export const buildPhieuNhapKhoPayload = (
     0
   );
 
-  // MASTER - Đơn giản hóa theo pattern phiếu xuất kho
+  // MASTER - Chỉ override vài trường theo UI, giữ nguyên tất cả trường từ API
   const masterData = {
-    stt_rec: phieuData?.stt_rec || "",
-    ma_dvcs: userInfo.unitId,
-    ma_ct: "PND",
-    loai_ct: values.maGiaoDich || "",
-    so_lo: "",
-    ngay_lo: "",
-    ma_nk: "",
+    // Giữ nguyên tất cả trường từ API response (khi update)
+    ...(phieuData || {}),
+
+    // Chỉ override các trường cần thiết từ form
     ma_gd: values.maGiaoDich || "",
-    ngay_lct: orderDate,
     ngay_ct: orderDate,
     so_ct: values.soPhieu || "",
-    ma_nt: values.donViTienTe || "VND",
-    ty_gia: parseFloat(values.tyGia || 1),
     ong_ba: values.maKhach || "",
     ma_kh: values.maKhach || "",
     dien_giai: values.dienGiai || "",
@@ -107,45 +103,270 @@ export const buildPhieuNhapKhoPayload = (
     t_so_luong: totalQuantity,
     t_tien_nt: totalAmountNt,
     t_tien: totalAmount,
-    nam: new Date(orderDate).getFullYear(),
-    ky: new Date(orderDate).getMonth() + 1,
-    datetime0: orderDate,
     datetime2: orderDate,
-    user_id0: userInfo.userId.toString(),
     user_id2: userInfo.userId.toString(),
   };
 
-  // DETAIL - Đơn giản hóa theo pattern phiếu xuất kho
-  const detailData = dataSource.map((item, index) => ({
-    stt_rec: phieuData?.stt_rec || "",
-    stt_rec0: "",
-    ma_ct: "PND",
-    ngay_ct: orderDate,
-    so_ct: values.soPhieu || "",
-    ma_vt: item.maHang?.trim() || "",
-    ma_sp: item.ma_sp || "",
-    ma_bp: item.ma_bp || "",
-    so_lsx: item.so_lsx || "",
-    dvt: item.dvt || "",
-    he_so: parseFloat(item.he_so || 1),
-    ma_kho: item.ma_kho || "",
-    ma_vi_tri: item.ma_vi_tri || "",
-    ma_lo: item.ma_lo || "",
-    ma_vv: item.ma_vv || "",
-    ma_nx: item.ma_nx || "",
-    tk_du: item.tk_du || "",
-    tk_vt: item.tk_vt || "",
-    so_luong: parseFloat(item.soLuongDeNghi || item.so_luong || 0),
-    sl_td3: parseFloat(item.soLuong || item.sl_td3 || 0),
-    gia_nt: parseFloat(item.gia_nt || 0),
-    gia: parseFloat(item.gia || 0),
-    tien_nt: parseFloat(item.tien_nt || 0),
-    tien: parseFloat(item.tien || 0),
-    pn_gia_tb: item.pn_gia_tb !== undefined ? (item.pn_gia_tb ? 1 : 0) : 0,
-    stt_rec_px: item.stt_rec_px || "",
-    stt_rec0px: item.stt_rec0px || "",
-    line_nbr: parseFloat(item.line_nbr || index + 1),
-  }));
+  // Đảm bảo các trường bắt buộc có mặt khi thêm mới
+  if (!isUpdate) {
+    // Các trường bắt buộc cho phiếu nhập kho
+    if (!masterData.stt_rec) {
+      masterData.stt_rec = ""; // Sẽ được tạo tự động bởi server
+    }
+    if (!masterData.ma_dvcs) {
+      masterData.ma_dvcs = userInfo.ma_dvcs || "";
+    }
+    if (!masterData.ma_ct) {
+      masterData.ma_ct = "PND";
+    }
+    if (!masterData.loai_ct) {
+      masterData.loai_ct = "2";
+    }
+    if (!masterData.so_lo) {
+      masterData.so_lo = "";
+    }
+    if (!masterData.ngay_lo) {
+      masterData.ngay_lo = null;
+    }
+    if (!masterData.ma_nk) {
+      masterData.ma_nk = "";
+    }
+    if (!masterData.ngay_lct) {
+      masterData.ngay_lct = orderDate;
+    }
+    if (!masterData.ma_nt) {
+      masterData.ma_nt = "VND";
+    }
+    if (!masterData.ty_gia) {
+      masterData.ty_gia = 1;
+    }
+    if (!masterData.nam) {
+      masterData.nam = new Date().getFullYear();
+    }
+    if (!masterData.ky) {
+      masterData.ky = new Date().getMonth() + 1;
+    }
+    if (!masterData.datetime0) {
+      masterData.datetime0 = orderDate;
+    }
+    if (!masterData.user_id0) {
+      masterData.user_id0 = userInfo.userId;
+    }
+  }
+
+  // Không gắn mặc định bất kỳ trường nào - chỉ giữ trường thực sự có trong data
+
+  // Clean up UI-only fields từ masterData trước khi gửi API
+  const uiOnlyMasterFields = [
+    "sttRec",
+    "ngay",
+    "soPhieu",
+    "maKhach",
+    "dienGiai",
+    "tenKhach",
+    "maGiaoDich",
+    "trangThai",
+    "donViTienTe",
+    "tyGia",
+  ];
+
+  uiOnlyMasterFields.forEach((field) => {
+    if (field in masterData) {
+      delete masterData[field];
+    }
+  });
+
+  // Xử lý tự động các loại trường master - chỉ xử lý những trường thực sự có
+  Object.keys(masterData).forEach((key) => {
+    const value = masterData[key];
+
+    // Các trường số - parse float (chỉ nếu có giá trị và là số)
+    if (
+      typeof value === "number" ||
+      (!isNaN(parseFloat(value)) && value !== null && value !== undefined)
+    ) {
+      masterData[key] = parseFloat(value || 0);
+    }
+
+    // Các trường string - đảm bảo không null/undefined (chỉ nếu có giá trị)
+    if (typeof value === "string") {
+      masterData[key] = value.trim();
+    } else if (value === null || value === undefined) {
+      // Chỉ set empty string cho những trường string đã được định nghĩa
+      if (
+        [
+          "stt_rec",
+          "ma_dvcs",
+          "ma_ct",
+          "loai_ct",
+          "so_lo",
+          "ngay_lo",
+          "ma_nk",
+          "ma_gd",
+          "ngay_lct",
+          "ngay_ct",
+          "so_ct",
+          "ma_nt",
+          "ong_ba",
+          "ma_kh",
+          "dien_giai",
+          "status",
+          "datetime0",
+          "datetime2",
+          "user_id0",
+          "user_id2",
+        ].includes(key)
+      ) {
+        masterData[key] = "";
+      }
+    }
+  });
+
+  // DETAIL - DYNAMIC: Tự động lấy TẤT CẢ trường từ API response
+  const detailData = dataSource.map((item, index) => {
+    // Bắt đầu với tất cả trường từ item (chứa data từ API response)
+    const dynamicItem = { ...item };
+
+    // Chỉ override các trường cần thiết từ form
+    dynamicItem.ngay_ct = orderDate;
+    dynamicItem.so_ct = values.soPhieu || "";
+
+    // Mapping từ UI fields sang API fields
+    if (item.maHang) dynamicItem.ma_vt = item.maHang.trim();
+    if (item.soLuongDeNghi !== undefined)
+      dynamicItem.so_luong = parseFloat(item.soLuongDeNghi || 0);
+    if (item.soLuong !== undefined)
+      dynamicItem.sl_td3 = parseFloat(item.soLuong || 0);
+
+    // Đảm bảo các trường bắt buộc có mặt (chỉ nếu không có trong API response)
+    if (!dynamicItem.stt_rec && phieuData?.stt_rec) {
+      dynamicItem.stt_rec = phieuData.stt_rec;
+    }
+    if (!dynamicItem.stt_rec0) {
+      dynamicItem.stt_rec0 = String(index + 1).padStart(3, "0");
+    }
+    if (!dynamicItem.ma_ct) {
+      dynamicItem.ma_ct = "PND";
+    }
+    if (!dynamicItem.gia_nt) {
+      dynamicItem.gia_nt = 0;
+    }
+    if (!dynamicItem.gia) {
+      dynamicItem.gia = 0;
+    }
+    if (!dynamicItem.tien_nt) {
+      dynamicItem.tien_nt = 0;
+    }
+    if (!dynamicItem.tien) {
+      dynamicItem.tien = 0;
+    }
+
+    // Đảm bảo các trường bắt buộc khác khi thêm mới
+    if (!isUpdate) {
+      if (!dynamicItem.ngay_ct) {
+        dynamicItem.ngay_ct = orderDate;
+      }
+      if (!dynamicItem.so_ct) {
+        dynamicItem.so_ct = values.soPhieu || "";
+      }
+      if (!dynamicItem.ma_dvcs) {
+        dynamicItem.ma_dvcs = userInfo.ma_dvcs || "";
+      }
+      if (!dynamicItem.loai_ct) {
+        dynamicItem.loai_ct = "2";
+      }
+    }
+
+    // Chỉ xử lý line_nbr nếu có trong data
+    if (item.line_nbr !== undefined) {
+      dynamicItem.line_nbr = parseFloat(item.line_nbr);
+    }
+
+    // Không gắn mặc định bất kỳ trường nào - chỉ giữ trường thực sự có trong data
+
+    // Xử lý tự động các loại trường - chỉ xử lý những trường thực sự có
+    Object.keys(dynamicItem).forEach((key) => {
+      const value = dynamicItem[key];
+
+      // Các trường số - parse float (chỉ nếu có giá trị và là số)
+      if (
+        typeof value === "number" ||
+        (!isNaN(parseFloat(value)) && value !== null && value !== undefined)
+      ) {
+        dynamicItem[key] = parseFloat(value || 0);
+      }
+
+      // Các trường boolean - handle boolean và number (chỉ nếu có giá trị)
+      if (typeof value === "boolean" && value !== undefined) {
+        dynamicItem[key] = value ? 1 : 0;
+      }
+
+      // Các trường string - đảm bảo không null/undefined (chỉ nếu có giá trị)
+      if (typeof value === "string") {
+        dynamicItem[key] = value.trim();
+      } else if (value === null || value === undefined) {
+        // Chỉ set empty string cho những trường string đã được định nghĩa
+        if (
+          [
+            "ma_vt",
+            "ma_sp",
+            "ma_bp",
+            "so_lsx",
+            "dvt",
+            "ma_kho",
+            "ma_vi_tri",
+            "ma_lo",
+            "ma_vv",
+            "ma_nx",
+            "tk_du",
+            "tk_vt",
+            "tk_gv",
+            "tk_dt",
+            "ma_thue",
+            "tk_thue",
+            "tk_ck",
+            "tk_cpbh",
+            "stt_rec_px",
+            "stt_rec0px",
+            "ma_kh2",
+            "ma_td1",
+            "dh_so",
+            "px_so",
+            "stt_rec_dh",
+            "stt_rec0dh",
+            "stt_rec0",
+          ].includes(key)
+        ) {
+          dynamicItem[key] = "";
+        }
+      }
+    });
+
+    // Clean up UI-only fields trước khi gửi API
+    // Chỉ loại bỏ những trường chỉ dùng cho UI, giữ lại tất cả trường API
+    const uiOnlyFields = [
+      "key",
+      "maHang",
+      "soLuong",
+      "ten_mat_hang",
+      "soLuongDeNghi",
+      "soLuong_goc",
+      "soLuongDeNghi_goc",
+      "he_so_goc",
+      "dvt_goc",
+      "donViTinhList",
+      "isNewlyAdded",
+      "_lastUpdated",
+    ];
+
+    uiOnlyFields.forEach((field) => {
+      if (field in dynamicItem) {
+        delete dynamicItem[field];
+      }
+    });
+
+    return dynamicItem;
+  });
 
   const payload = {
     orderDate: orderDate,
@@ -171,6 +392,23 @@ export const submitPhieuNhapKho = async (endpoint, payload, successMessage) => {
       }
     );
 
+    // Nếu có responseModel, chỉ dựa vào responseModel để xác định thành công/thất bại
+    const hasResponseModel =
+      response?.data && typeof response.data.responseModel !== "undefined";
+    if (hasResponseModel) {
+      if (response.data.responseModel?.isSucceded === true) {
+        message.success(response.data.responseModel.message || successMessage);
+        return { success: true };
+      }
+      message.error(
+        response.data.responseModel?.message ||
+          response.data?.message ||
+          "Có lỗi xảy ra"
+      );
+      return { success: false };
+    }
+
+    // Fallback cho cấu trúc cũ khi không có responseModel
     if (
       response.data &&
       (response.data.statusCode === 200 ||
@@ -181,10 +419,10 @@ export const submitPhieuNhapKho = async (endpoint, payload, successMessage) => {
     ) {
       message.success(successMessage);
       return { success: true };
-    } else {
-      message.error(response.data?.message || "Có lỗi xảy ra");
-      return { success: false };
     }
+
+    message.error(response.data?.message || "Có lỗi xảy ra");
+    return { success: false };
   } catch (error) {
     console.error("Error submitting phieu nhap kho:", error);
 
@@ -310,6 +548,20 @@ export const processMaKho = (apiMaKho, fallbackMaKho = "") => {
   return (apiMaKho || fallbackMaKho || "").trim();
 };
 
+/**
+ * Đảm bảo các trường bắt buộc có mặt trong object
+ * @param {Object} targetObject - Object cần kiểm tra
+ * @param {Object} requiredFields - Object chứa các trường bắt buộc và giá trị mặc định
+ */
+export const ensureRequiredFields = (targetObject, requiredFields) => {
+  Object.keys(requiredFields).forEach((field) => {
+    if (!(field in targetObject)) {
+      targetObject[field] = requiredFields[field];
+    }
+  });
+  return targetObject;
+};
+
 // Dynamic API functions for phieu nhap kho
 export const submitPhieuNhapKhoDynamic = async (
   payload,
@@ -317,6 +569,12 @@ export const submitPhieuNhapKhoDynamic = async (
   isUpdate = false
 ) => {
   const token = localStorage.getItem("access_token");
+
+  // Kiểm tra payload có hợp lệ không
+  if (!payload || !payload.master || !payload.detail) {
+    message.error("Dữ liệu payload không hợp lệ");
+    return { success: false };
+  }
 
   const storeName = isUpdate
     ? "Api_update_phieu_nhap_kho_voucher"
@@ -339,11 +597,30 @@ export const submitPhieuNhapKhoDynamic = async (
       },
     });
 
-    // Check new response structure with responseModel
-    if (response.data?.responseModel?.isSucceded === true) {
-      message.success(response.data.responseModel.message || successMessage);
-      return { success: true };
-    } else if (
+    // Kiểm tra response có tồn tại không
+    if (!response) {
+      message.error("Không nhận được phản hồi từ server");
+      return { success: false };
+    }
+
+    // Nếu có responseModel, chỉ dùng isSucceded để xác định thành công/thất bại
+    const hasResponseModel =
+      response?.data && typeof response.data.responseModel !== "undefined";
+    if (hasResponseModel) {
+      if (response.data.responseModel?.isSucceded === true) {
+        message.success(response.data.responseModel.message || successMessage);
+        return { success: true };
+      }
+      message.error(
+        response.data.responseModel?.message ||
+          response.data?.message ||
+          "Có lỗi xảy ra"
+      );
+      return { success: false };
+    }
+
+    // Fallback cho cấu trúc cũ chỉ khi KHÔNG có responseModel
+    if (
       response.data &&
       (response.data.statusCode === 200 ||
         response.data.statusCode === "200" ||
@@ -351,24 +628,22 @@ export const submitPhieuNhapKhoDynamic = async (
         response.data.success === true ||
         (response.data.message && response.data.message.includes("thành công")))
     ) {
-      // Fallback for old response structure
       message.success(successMessage);
       return { success: true };
-    } else {
-      message.error(
-        response.data?.responseModel?.message ||
-          response.data?.message ||
-          "Có lỗi xảy ra"
-      );
-      return { success: false };
     }
+
+    message.error(response.data?.message || "Có lỗi xảy ra");
+    return { success: false };
   } catch (error) {
     console.error("Error submitting phieu nhap kho:", error);
 
+    // Kiểm tra error.response có tồn tại không
     if (error.response?.data?.responseModel?.message) {
       message.error(error.response.data.responseModel.message);
     } else if (error.response?.data?.message) {
       message.error(error.response.data.message);
+    } else if (error.message) {
+      message.error(`Lỗi: ${error.message}`);
     } else {
       message.error("Vui lòng kiểm tra lại thông tin");
     }
@@ -395,6 +670,12 @@ export const deletePhieuNhapKhoDynamic = async (sctRec) => {
       },
     });
 
+    // Kiểm tra response có tồn tại không
+    if (!response) {
+      message.error("Không nhận được phản hồi từ server");
+      return { success: false };
+    }
+
     // Check new response structure with responseModel
     if (response.data?.responseModel?.isSucceded === true) {
       message.success(
@@ -413,6 +694,8 @@ export const deletePhieuNhapKhoDynamic = async (sctRec) => {
       message.error(error.response.data.responseModel.message);
     } else if (error.response?.data?.message) {
       message.error(error.response.data.message);
+    } else if (error.message) {
+      message.error(`Lỗi: ${error.message}`);
     } else {
       message.error("Có lỗi xảy ra khi xóa phiếu nhập kho");
     }

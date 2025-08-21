@@ -57,16 +57,15 @@ export const buildPayload = (
   };
 
   const orderDate = formatDate(values.ngay_ct || values.ngay);
+  // Chỉ giữ lại những trường thực sự có trong data từ API response
+  // Không gắn mặc định bất kỳ trường nào
 
-  // MASTER
+  // MASTER - Chỉ override vài trường theo UI, giữ nguyên tất cả trường từ API
   const master = {
-    stt_rec: phieuData?.stt_rec || "",
-    ma_dvcs: userInfo.unitId?.toLowerCase() || "vikosan",
-    ma_ct: "PXB",
-    loai_ct: values.ma_gd || values.maGiaoDich || "2",
-    so_lo: "",
-    ngay_lo: "",
-    ma_nk: "",
+    // Giữ nguyên tất cả trường từ API response (khi update)
+    ...(phieuData || {}),
+
+    // Chỉ override các trường cần thiết từ form
     ma_gd: values.ma_gd || values.maGiaoDich || "2",
     ngay_ct: orderDate,
     so_ct: values.so_ct || values.soPhieu || "",
@@ -75,27 +74,237 @@ export const buildPayload = (
     status: values.status || values.trangThai || "1",
   };
 
-  // DETAIL
-  const detail = dataSource.map((item, index) => ({
-    stt_rec: phieuData?.stt_rec || "",
-    stt_rec0: "",
-    ma_ct: "PXB",
-    ngay_ct: orderDate,
-    so_ct: values.so_ct || values.soPhieu || "",
-    ma_vt: item.maHang?.trim() || "",
-    dvt: item.dvt,
-    he_so: parseFloat(item.he_so || 1),
-    so_luong:
-      parseFloat(item.soLuongDeNghi ?? item.so_luong ?? item.sl_td3) || 0,
-    sl_td3: parseFloat(item.sl_td3) || 0,
-    gia_nt: 0,
-    gia: 0,
-    tien_nt: 0,
-    tien: 0,
-    ma_nx: "",
-    tk_du: "",
-    tk_vt: "",
-  }));
+  // Đảm bảo các trường bắt buộc có mặt khi thêm mới
+  if (!isUpdate) {
+    // Các trường bắt buộc cho phiếu xuất điều chuyển
+    if (!master.stt_rec) {
+      master.stt_rec = ""; // Sẽ được tạo tự động bởi server
+    }
+    if (!master.ma_dvcs) {
+      master.ma_dvcs = userInfo.ma_dvcs || "";
+    }
+    if (!master.ma_ct) {
+      master.ma_ct = "PXB";
+    }
+    if (!master.loai_ct) {
+      master.loai_ct = "2";
+    }
+    if (!master.so_lo) {
+      master.so_lo = "";
+    }
+    if (!master.ngay_lo) {
+      master.ngay_lo = null;
+    }
+    if (!master.ma_nk) {
+      master.ma_nk = "";
+    }
+  }
+
+  // Clean up UI-only fields từ master trước khi gửi API
+  const uiOnlyMasterFields = [
+    "ngay",
+    "soPhieu",
+    "maKhoXuat",
+    "maKhoNhap",
+    "trangThai",
+    "maGiaoDich",
+  ];
+
+  uiOnlyMasterFields.forEach((field) => {
+    if (field in master) {
+      delete master[field];
+    }
+  });
+
+  // Xử lý tự động các loại trường master - chỉ xử lý những trường thực sự có
+  Object.keys(master).forEach((key) => {
+    const value = master[key];
+
+    // Các trường số - parse float (chỉ nếu có giá trị và là số)
+    if (
+      typeof value === "number" ||
+      (!isNaN(parseFloat(value)) && value !== null && value !== undefined)
+    ) {
+      master[key] = parseFloat(value || 0);
+    }
+
+    // Các trường string - đảm bảo không null/undefined (chỉ nếu có giá trị)
+    if (typeof value === "string") {
+      master[key] = value.trim();
+    } else if (value === null || value === undefined) {
+      // Chỉ set empty string cho những trường string đã được định nghĩa
+      if (
+        [
+          "stt_rec",
+          "ma_dvcs",
+          "ma_ct",
+          "loai_ct",
+          "so_lo",
+          "ngay_lo",
+          "ma_nk",
+          "ma_gd",
+          "ngay_lct",
+          "ngay_ct",
+          "so_ct",
+          "ma_nt",
+          "ong_ba",
+          "ma_kh",
+          "dien_giai",
+          "status",
+          "datetime0",
+          "datetime2",
+          "user_id0",
+          "user_id2",
+        ].includes(key)
+      ) {
+        master[key] = "";
+      }
+    }
+  });
+
+  // DETAIL - DYNAMIC: Tự động lấy TẤT CẢ trường từ API response
+  const detail = dataSource.map((item, index) => {
+    const dynamicItem = { ...item }; // Giữ nguyên tất cả trường từ API
+
+    // Chỉ override các trường cần thiết từ form
+    dynamicItem.ngay_ct = orderDate;
+    dynamicItem.so_ct = values.so_ct || values.soPhieu || "";
+
+    // Mapping từ UI fields sang API fields
+    if (item.maHang) dynamicItem.ma_vt = item.maHang.trim();
+    if (item.soLuongDeNghi !== undefined)
+      dynamicItem.so_luong = parseFloat(item.soLuongDeNghi || 0);
+    if (item.sl_td3 !== undefined)
+      dynamicItem.sl_td3 = parseFloat(item.sl_td3 || 0);
+
+    // Đảm bảo các trường bắt buộc có mặt (chỉ nếu không có trong API response)
+    if (!dynamicItem.stt_rec && phieuData?.stt_rec) {
+      dynamicItem.stt_rec = phieuData.stt_rec;
+    }
+    if (!dynamicItem.stt_rec0) {
+      dynamicItem.stt_rec0 = String(index + 1).padStart(3, "0");
+    }
+    if (!dynamicItem.ma_ct) {
+      dynamicItem.ma_ct = "PXB";
+    }
+    if (!dynamicItem.gia_nt) {
+      dynamicItem.gia_nt = 0;
+    }
+    if (!dynamicItem.gia) {
+      dynamicItem.gia = 0;
+    }
+    if (!dynamicItem.tien_nt) {
+      dynamicItem.tien_nt = 0;
+    }
+    if (!dynamicItem.tien) {
+      dynamicItem.tien = 0;
+    }
+
+    // Đảm bảo các trường bắt buộc khác khi thêm mới
+    if (!isUpdate) {
+      if (!dynamicItem.ngay_ct) {
+        dynamicItem.ngay_ct = orderDate;
+      }
+      if (!dynamicItem.so_ct) {
+        dynamicItem.so_ct = values.so_ct || values.soPhieu || "";
+      }
+      if (!dynamicItem.ma_dvcs) {
+        dynamicItem.ma_dvcs = userInfo.ma_dvcs || "";
+      }
+      if (!dynamicItem.loai_ct) {
+        dynamicItem.loai_ct = "2";
+      }
+    }
+
+    // Chỉ xử lý line_nbr nếu có trong data
+    if (item.line_nbr !== undefined) {
+      dynamicItem.line_nbr = parseFloat(item.line_nbr);
+    }
+
+    // Không gắn mặc định bất kỳ trường nào - chỉ giữ trường thực sự có trong data
+
+    // Xử lý tự động các loại trường - chỉ xử lý những trường thực sự có
+    Object.keys(dynamicItem).forEach((key) => {
+      const value = dynamicItem[key];
+
+      // Các trường số - parse float (chỉ nếu có giá trị và là số)
+      if (
+        typeof value === "number" ||
+        (!isNaN(parseFloat(value)) && value !== null && value !== undefined)
+      ) {
+        dynamicItem[key] = parseFloat(value || 0);
+      }
+
+      // Các trường boolean - handle boolean và number (chỉ nếu có giá trị)
+      if (typeof value === "boolean" && value !== undefined) {
+        dynamicItem[key] = value ? 1 : 0;
+      }
+
+      // Các trường string - đảm bảo không null/undefined (chỉ nếu có giá trị)
+      if (typeof value === "string") {
+        dynamicItem[key] = value.trim();
+      } else if (value === null || value === undefined) {
+        // Chỉ set empty string cho những trường string đã được định nghĩa
+        if (
+          [
+            "ma_vt",
+            "ma_sp",
+            "ma_bp",
+            "so_lsx",
+            "dvt",
+            "ma_kho",
+            "ma_vi_tri",
+            "ma_lo",
+            "ma_vv",
+            "ma_nx",
+            "tk_du",
+            "tk_vt",
+            "tk_gv",
+            "tk_dt",
+            "ma_thue",
+            "tk_thue",
+            "tk_ck",
+            "tk_cpbh",
+            "stt_rec_px",
+            "stt_rec0px",
+            "ma_kh2",
+            "ma_td1",
+            "dh_so",
+            "px_so",
+            "stt_rec_dh",
+            "stt_rec0dh",
+            "stt_rec0",
+          ].includes(key)
+        ) {
+          dynamicItem[key] = "";
+        }
+      }
+    });
+
+    // Clean up UI-only fields trước khi gửi API
+    const uiOnlyFields = [
+      "key",
+      "maHang",
+      "soLuong",
+      "ten_mat_hang",
+      "soLuongDeNghi",
+      "soLuong_goc",
+      "soLuongDeNghi_goc",
+      "he_so_goc",
+      "dvt_goc",
+      "donViTinhList",
+      "isNewlyAdded",
+      "_lastUpdated",
+    ];
+
+    uiOnlyFields.forEach((field) => {
+      if (field in dynamicItem) {
+        delete dynamicItem[field];
+      }
+    });
+
+    return dynamicItem;
+  });
 
   // FINAL PAYLOAD
   return {

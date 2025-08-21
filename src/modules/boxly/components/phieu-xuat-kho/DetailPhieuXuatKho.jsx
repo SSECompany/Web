@@ -126,8 +126,8 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
       if (stt_rec) {
         const result = await fetchPhieuXuatKhoDetail(stt_rec);
         if (result) {
-          setPhieuData(result.master);
-          form.setFieldsValue({
+          // Lưu chỉ data gốc từ API để sử dụng khi build payload (không merge với UI data)
+          const formattedData = {
             ngay_ct: result.master.ngay_ct
               ? dayjs(result.master.ngay_ct)
               : null,
@@ -136,22 +136,34 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
             ten_kh: result.master.ten_kh?.trim() || "",
             ma_gd: result.master.ma_gd?.trim() || "",
             status: result.master.status || "",
-          });
+          };
+
+          setPhieuData(result.master);
+          form.setFieldsValue(formattedData);
 
           if (result.detail && result.detail.length > 0) {
+            // Process vật tư list - DYNAMIC: Giữ nguyên TẤT CẢ trường từ API
             const formattedDetail = result.detail.map((item, index) => {
-             
+              const soLuongHienThi = item.sl_td3 ?? 0; // sl_td3 - số lượng thực tế
+              const soLuongDeNghiHienThi = item.so_luong ?? 0; // so_luong - số lượng đề nghị
+              const dvtHienTai = item.dvt ? item.dvt.trim() : "cái";
 
               return {
+                // Giữ nguyên TẤT CẢ trường từ API response
+                ...item,
+
+                // Override với UI-friendly fields
                 key: index + 1,
-                maHang: item.ma_vt?.trim() || "",
-                dvt: item.dvt?.trim() || "",
-                so_luong: item.so_luong || 0,
-                sl_td3: item.sl_td3 || 0,
-                ma_kho: item.ma_kho?.trim() || "",
+                maHang: item.ma_vt || "",
+                soLuong: Math.round(soLuongHienThi * 1000) / 1000, // sl_td3 - số lượng thực tế
+                soLuongDeNghi: parseFloat(soLuongDeNghiHienThi) || 0, // so_luong - số lượng đề nghị
+                ten_mat_hang: item.ten_vt || item.ma_vt || "",
+                dvt: dvtHienTai,
+                ma_kho: item.ma_kho || "",
+                tk_vt: item.tk_vt || "",
+                line_nbr: item.line_nbr || index + 1,
               };
             });
-
             setDataSource(formattedDetail);
           } else {
             setDataSource([]);
@@ -197,6 +209,9 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
             const payload = buildPayload(values, dataSource, phieuData, true);
 
             if (!payload) {
+              message.error(
+                "Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu."
+              );
               setLoading(false);
               return;
             }

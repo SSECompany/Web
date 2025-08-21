@@ -36,6 +36,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   const [pageIndex, setPageIndex] = useState(1);
   const [totalPage, setTotalPage] = useState(1);
   const [currentKeyword, setCurrentKeyword] = useState("");
+  const [phieuDetailLoaded, setPhieuDetailLoaded] = useState(false);
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
@@ -85,21 +86,6 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
     });
   };
 
-  // Initialize data and load phieu details
-  // useEffect(() => {
-  //   const initializeData = async () => {
-  //     // Load master data
-  //     await Promise.all([
-  //       fetchMaGiaoDichList(),
-  //       fetchMaKhoList(),
-  //       fetchMaKhachList(),
-  //       fetchVatTuList(),
-  //     ]);
-  //   };
-
-  //   initializeData();
-  // }, []);
-
   // Set edit mode based on URL
   useEffect(() => {
     const isEditPath = location.pathname.includes("/edit/");
@@ -109,10 +95,11 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   // Load phieu details
   useEffect(() => {
     const fetchPhieuDetail = async () => {
-      if (apiCalled || !sctRec) return;
+      if (apiCalled || !sctRec || phieuDetailLoaded) return;
 
       setLoading(true);
       setApiCalled(true);
+      setPhieuDetailLoaded(true);
 
       try {
         const body = {
@@ -163,47 +150,31 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
               tyGia: 1,
             };
 
-            // Process vật tư list
-            const processedVatTu = await Promise.all(
-              vatTuList.map(async (item, index) => {
-                // Chỉ load thông tin cơ bản, không gọi API master data
-                const soLuongHienThi = item.sl_td3 ?? 0; // sl_td3 - số lượng thực tế
-                const soLuongDeNghiHienThi = item.so_luong ?? 0; // so_luong - số lượng đề nghị
-                const dvtHienTai = item.dvt ? item.dvt.trim() : "cái";
+            // Process vật tư list - DYNAMIC: Giữ nguyên TẤT CẢ trường từ API
+            const processedVatTu = vatTuList.map((item, index) => {
+              const soLuongHienThi = item.sl_td3 ?? 0; // sl_td3 - số lượng thực tế
+              const soLuongDeNghiHienThi = item.so_luong ?? 0; // so_luong - số lượng đề nghị
+              const dvtHienTai = item.dvt ? item.dvt.trim() : "cái";
 
-                return {
-                  key: index + 1,
-                  maHang: item.ma_vt || "",
-                  soLuong: Math.round(soLuongHienThi * 1000) / 1000, // sl_td3 - số lượng thực tế
-                  soLuongDeNghi: parseFloat(soLuongDeNghiHienThi) || 0, // so_luong - số lượng đề nghị
-                  ten_mat_hang: item.ten_vt || item.ma_vt || "",
-                  dvt: dvtHienTai,
-                  ma_kho: item.ma_kho || "",
-                  tk_vt: item.tk_vt || "",
+              return {
+                // Giữ nguyên TẤT CẢ trường từ API response
+                ...item,
 
-                  // Lưu thêm các trường từ API để gửi lại khi update
-                  stt_rec0: item.stt_rec0 || "",
-                  ma_sp: item.ma_sp || "",
-                  ma_bp: item.ma_bp || "",
-                  so_lsx: item.so_lsx || "",
-                  ma_vi_tri: item.ma_vi_tri || "",
-                  ma_lo: item.ma_lo || "",
-                  ma_vv: item.ma_vv || "",
-                  ma_nx: item.ma_nx || "",
-                  tk_du: item.tk_du || "",
-                  gia_nt: item.gia_nt || 0,
-                  gia: item.gia || 0,
-                  tien_nt: item.tien_nt || 0,
-                  tien: item.tien || 0,
-                  pn_gia_tb: item.pn_gia_tb || false,
-                  stt_rec_px: item.stt_rec_px || "",
-                  stt_rec0px: item.stt_rec0px || "",
-                  line_nbr: item.line_nbr || index + 1,
-                };
-              })
-            );
+                // Override với UI-friendly fields
+                key: index + 1,
+                maHang: item.ma_vt || "",
+                soLuong: Math.round(soLuongHienThi * 1000) / 1000, // sl_td3 - số lượng thực tế
+                soLuongDeNghi: parseFloat(soLuongDeNghiHienThi) || 0, // so_luong - số lượng đề nghị
+                ten_mat_hang: item.ten_vt || item.ma_vt || "",
+                dvt: dvtHienTai,
+                ma_kho: item.ma_kho || "",
+                tk_vt: item.tk_vt || "",
+                line_nbr: item.line_nbr || index + 1,
+              };
+            });
 
-            setPhieuData(formattedData);
+            // Lưu chỉ data gốc từ API để sử dụng khi build payload (không merge với UI data)
+            setPhieuData(phieuInfo);
             form.setFieldsValue(formattedData);
             setDataSource(processedVatTu);
           }
@@ -221,12 +192,9 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   }, [
     sctRec,
     apiCalled,
-    form,
-    setDataSource,
-    setLoading,
-    setApiCalled,
     token,
     stt_rec,
+    phieuDetailLoaded,
   ]);
 
   // Handle barcode focus
@@ -342,9 +310,11 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             );
 
             if (!payload) {
+              message.error("Không thể tạo payload");
               setLoading(false);
               return;
             }
+
 
             // Submit
             const result = await submitPhieuNhapKhoDynamic(

@@ -147,13 +147,14 @@ const ListPhieuXuatKho = () => {
             }
           );
 
-          if (
-            response.data &&
-            (response.data.statusCode === 200 ||
-              response.data.responseModel?.isSucceded ||
-              (response.data?.responseModel?.message &&
-                response.data.responseModel.message.includes("thành công")))
-          ) {
+          const hasResponseModel =
+            response?.data &&
+            typeof response.data.responseModel !== "undefined";
+          const isSuccess = hasResponseModel
+            ? response.data.responseModel.isSucceded === true
+            : response?.data?.statusCode === 200;
+
+          if (isSuccess) {
             message.success("Xóa phiếu xuất kho thành công");
             await fetchPhieuXuatKho();
           } else {
@@ -216,7 +217,7 @@ const ListPhieuXuatKho = () => {
                   setSelectedKeys([]);
                 }
               }}
-              style={{ marginBottom: 8}}
+              style={{ marginBottom: 8 }}
               format="DD/MM/YYYY"
               placeholder={["Từ ngày", "Đến ngày"]}
             />

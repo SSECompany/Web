@@ -87,8 +87,10 @@ export const useVatTuManager = () => {
 
     // Smart batch prefetch ĐVT - chỉ fetch unique maHang
     if (fetchDonViTinh) {
-      const uniqueMaHangList = [...new Set(processedData.map(item => item.maHang).filter(Boolean))];
-      
+      const uniqueMaHangList = [
+        ...new Set(processedData.map((item) => item.maHang).filter(Boolean)),
+      ];
+
       if (uniqueMaHangList.length > 0) {
         // Batch parallel fetch cho tất cả unique maHang
         Promise.all(
@@ -337,6 +339,15 @@ export const useVatTuManager = () => {
             donViTinhList: donViTinhList,
             isNewlyAdded: true,
 
+            // === DYNAMIC: THÊM TẤT CẢ TRƯỜNG API ĐỂ ĐỒNG NHẤT ===
+            // Core fields - sẽ được fill từ phieuData khi submit
+            stt_rec: "",
+            stt_rec0: "",
+            ma_ct: "",
+            ngay_ct: "",
+            so_ct: "",
+            ma_vt: value, // Mapping từ maHang
+
             // Thông tin giá và thuế
             gia_nt2: 0,
             gia2: 0,
@@ -353,14 +364,55 @@ export const useVatTuManager = () => {
             gia_ck: 0,
             tien_ck_khac: 0,
 
-            // Thông tin khác
+            // Thông tin tài khoản
             tk_gv: "",
             tk_dt: "",
             ma_thue: "",
             thue_suat: 0,
             tk_thue: "",
+            tk_ck: "",
+            tk_cpbh: "",
+
+            // Số lượng và đơn hàng
             sl_td1: 0,
             sl_td2: 0,
+            sl_dh: 0,
+            sl_giao: 0,
+            dh_ln: 0,
+            px_ln: 0,
+
+            // Reference fields
+            stt_rec_dh: "",
+            stt_rec0dh: "",
+            stt_rec_px: "",
+            stt_rec0px: "",
+            dh_so: "",
+            px_so: "",
+
+            // Boolean flags
+            taoma_yn: 0,
+            km_yn: 0,
+            px_gia_dd: false,
+
+            // Product info
+            ma_sp: "",
+            ma_bp: "",
+            so_lsx: "",
+            ma_vi_tri: "",
+            ma_lo: "",
+            ma_vv: "",
+
+            // Other financial fields
+            gia_nt: 0,
+            gia: 0,
+            tien_nt: 0,
+            tien: 0,
+            line_nbr: prev.length + 1,
+
+            // Customer/trade info
+            ma_kh2: "",
+            ma_td1: "",
+
             _lastUpdated: Date.now(),
           };
 
@@ -442,22 +494,31 @@ export const useVatTuManager = () => {
               _lastUpdated: Date.now(),
             };
           } else {
-            // Nếu newValue là số, tính toán bình thường
-            if (item.dvt?.trim() === item.dvt_goc?.trim()) {
-              const sl_td3_goc_moi = newValue / (item.he_so_goc ?? 1);
+            // Nếu field là sl_td3, chỉ cập nhật sl_td3 mà không cập nhật sl_td3_goc
+            if (field === "sl_td3") {
               return {
                 ...item,
                 [field]: newValue,
-                sl_td3_goc: Math.round(sl_td3_goc_moi * 1000) / 1000,
                 _lastUpdated: Date.now(),
               };
             } else {
-              return {
-                ...item,
-                [field]: newValue,
-                sl_td3_goc: newValue,
-                _lastUpdated: Date.now(),
-              };
+              // Xử lý các field khác như cũ
+              if (item.dvt?.trim() === item.dvt_goc?.trim()) {
+                const sl_td3_goc_moi = newValue / (item.he_so_goc ?? 1);
+                return {
+                  ...item,
+                  [field]: newValue,
+                  sl_td3_goc: Math.round(sl_td3_goc_moi * 1000) / 1000,
+                  _lastUpdated: Date.now(),
+                };
+              } else {
+                return {
+                  ...item,
+                  [field]: newValue,
+                  sl_td3_goc: newValue,
+                  _lastUpdated: Date.now(),
+                };
+              }
             }
           }
         }

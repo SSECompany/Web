@@ -26,15 +26,12 @@ export const usePhieuXuatKhoData = () => {
   const token = localStorage.getItem("access_token");
 
   // Check if cache is still valid
-  const isCacheValid = useMemo(() => {
-    if (!masterDataCache.lastFetch) return false;
-    return Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY;
-  }, []);
+  // Remove isCacheValid useMemo as it causes re-renders
 
   // Memoize all API functions to prevent re-creation
   const fetchMaGiaoDichList = useCallback(async () => {
     // Return cached data if valid
-    if (isCacheValid && masterDataCache.maGiaoDich) {
+    if (masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.maGiaoDich) {
       setMaGiaoDichList(masterDataCache.maGiaoDich);
       return;
     }
@@ -60,7 +57,7 @@ export const usePhieuXuatKhoData = () => {
     } catch (error) {
       message.error("Không thể tải danh sách mã giao dịch");
     }
-  }, [isCacheValid, token]);
+  }, [token]);
 
   const fetchMaKhachList = useCallback(
     async (keyword = "", forceRefresh = false) => {
@@ -71,20 +68,20 @@ export const usePhieuXuatKhoData = () => {
           return;
         }
         // Nếu có cache valid, sử dụng cache
-        if (isCacheValid && masterDataCache.maKhach) {
-          setMaKhachList(masterDataCache.maKhach);
-          return;
-        }
+            if (masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.maKhach) {
+      setMaKhachList(masterDataCache.maKhach);
+      return;
+    }
       }
 
       // Nếu đang search với keyword, kiểm tra cache và filter local
-      if (keyword && masterDataCache.maKhach && isCacheValid) {
-        const filteredData = masterDataCache.maKhach.filter((item) =>
-          item.label.toLowerCase().includes(keyword.toLowerCase())
-        );
-        setMaKhachList(filteredData);
-        return;
-      }
+          if (keyword && masterDataCache.maKhach && masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY) {
+      const filteredData = masterDataCache.maKhach.filter((item) =>
+        item.label.toLowerCase().includes(keyword.toLowerCase())
+      );
+      setMaKhachList(filteredData);
+      return;
+    }
 
       setLoadingMaKhach(true);
       try {
@@ -120,7 +117,7 @@ export const usePhieuXuatKhoData = () => {
         setLoadingMaKhach(false);
       }
     },
-    [isCacheValid, token, maKhachList]
+    [token]
   );
 
   const fetchVatTuList = useCallback(
@@ -128,7 +125,8 @@ export const usePhieuXuatKhoData = () => {
       // Use cache for empty search
       if (
         !keyword &&
-        isCacheValid &&
+        masterDataCache.lastFetch &&
+        Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
         masterDataCache.vatTu &&
         page === 1 &&
         !append
@@ -179,7 +177,7 @@ export const usePhieuXuatKhoData = () => {
         setLoadingVatTu(false);
       }
     },
-    [isCacheValid]
+    [token]
   );
 
   const fetchVatTuDetail = useCallback(
@@ -214,7 +212,7 @@ export const usePhieuXuatKhoData = () => {
       if (!maHang) return [];
 
       // Kiểm tra cache trước khi gọi API
-      if (!forceRefresh && isCacheValid && masterDataCache.donViTinh[maHang]) {
+      if (!forceRefresh && masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.donViTinh[maHang]) {
         return masterDataCache.donViTinh[maHang];
       }
 
@@ -245,7 +243,7 @@ export const usePhieuXuatKhoData = () => {
         return [];
       }
     },
-    [token, isCacheValid]
+    [token]
   );
 
   // Memoize debounced functions with stable references

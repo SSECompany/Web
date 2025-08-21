@@ -13,7 +13,6 @@ import { useVatTuManagerNhapKho } from "./hooks/useVatTuManagerNhapKho";
 import {
   buildPhieuNhapKhoPayload,
   fetchVoucherInfo,
-  submitPhieuNhapKho,
   submitPhieuNhapKhoDynamic,
   validateDataSource,
 } from "./utils/phieuNhapKhoUtils";
@@ -30,6 +29,7 @@ const AddPhieuNhapKho = () => {
   const [pageIndex, setPageIndex] = useState(1);
   const [totalPage, setTotalPage] = useState(1);
   const [currentKeyword, setCurrentKeyword] = useState("");
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
@@ -81,7 +81,11 @@ const AddPhieuNhapKho = () => {
 
   // Initialize data
   useEffect(() => {
+    if (isInitialized) return;
+    
     const initializeData = async () => {
+      setIsInitialized(true);
+      
       // Load master data
       await Promise.all([
         fetchMaGiaoDichList(),
@@ -110,7 +114,13 @@ const AddPhieuNhapKho = () => {
     };
 
     initializeData();
-  }, [fetchMaGiaoDichList, fetchMaKhoList, fetchMaKhachList, fetchVatTuList, form]);
+  }, [
+    fetchMaGiaoDichList,
+    fetchMaKhoList,
+    fetchMaKhachList,
+    fetchVatTuList,
+    isInitialized,
+  ]);
 
   // Handle barcode focus
   useEffect(() => {
@@ -166,6 +176,12 @@ const AddPhieuNhapKho = () => {
           try {
             // Build payload
             const payload = buildPhieuNhapKhoPayload(values, dataSource);
+
+            if (!payload) {
+              message.error("Không thể tạo payload");
+              setLoading(false);
+              return;
+            }
 
             // Submit
             const result = await submitPhieuNhapKhoDynamic(

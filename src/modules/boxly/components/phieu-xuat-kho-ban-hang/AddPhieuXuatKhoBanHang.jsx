@@ -1,5 +1,5 @@
 import { LeftOutlined } from "@ant-design/icons";
-import { Button, Form, Space, Typography } from "antd";
+import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -15,7 +15,6 @@ import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
 import {
   buildPayload,
-  submitPhieu,
   submitPhieuDynamic,
   validateDataSource,
   validateQuantityAndShowConfirm,
@@ -210,6 +209,14 @@ const AddPhieuXuatKhoBanHang = () => {
   const submitPhieuData = async (values) => {
     try {
       const payload = buildPayload(values, dataSource, null, false);
+
+
+      if (!payload) {
+        message.error("Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu.");
+        setLoading(false);
+        return;
+      }
+
       const result = await submitPhieuDynamic(
         payload,
         "Thêm phiếu xuất kho bán hàng thành công",

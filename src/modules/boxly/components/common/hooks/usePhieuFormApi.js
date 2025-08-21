@@ -122,7 +122,7 @@ export const usePhieuFormApi = (formType = 'nhap-kho') => {
   // Fetch mã giao dịch
   const fetchMaGiaoDichList = useCallback(async () => {
     // Check cache first
-    if (selectData.maGiaoDichList.length > 0) {
+    if (cache.current['maGiaoDich_'] && cache.current['maGiaoDich_'].length > 0) {
       return;
     }
 
@@ -136,7 +136,7 @@ export const usePhieuFormApi = (formType = 'nhap-kho') => {
       ...prev, 
       maGiaoDichList: result 
     }));
-  }, [fetchWithCache, formType, selectData.maGiaoDichList.length]);
+  }, [fetchWithCache, formType]);
 
   // Clear cache utility
   const clearCache = useCallback((key) => {
