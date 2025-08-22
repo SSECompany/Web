@@ -42,7 +42,6 @@ const PaymentModal = ({
     ma_so_thue_kh: "",
   });
   const [showCustomerInfo, setShowCustomerInfo] = useState(false);
-  const [showQRImage, setShowQRImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sync, setSync] = useState(true);
 
@@ -68,71 +67,6 @@ const PaymentModal = ({
     []
   );
 
-  // Tối ưu QR URL - loại bỏ timestamp, thêm caching
-  const qrUrl = useMemo(() => {
-    if (!showQRCode || !total || !account) {
-      return "";
-    }
-
-    const transferContent = `thanh toan Phenikaa : ${formatCurrency(total)}vnd`;
-    const url = `https://img.vietqr.io/image/${account}-qr_only.png?amount=${total}&addInfo=${encodeURIComponent(
-      transferContent
-    )}`;
-
-    return url;
-  }, [account, total, showQRCode]);
-
-  // QR Error handling
-  const [qrError, setQrError] = useState(false);
-  const [qrLoaded, setQrLoaded] = useState(false);
-  const [isRetrying, setIsRetrying] = useState(false);
-
-  const handleQRLoad = useCallback(() => {
-    setQrLoaded(true);
-    setQrError(false);
-  }, []);
-
-  const handleQRError = useCallback(() => {
-    setQrError(true);
-    setQrLoaded(false);
-    message.error("Không thể tải mã QR. Vui lòng thử lại!");
-  }, []);
-
-  // Simple retry function
-  const handleRetryQR = useCallback(() => {
-    setIsRetrying(true);
-    setQrError(false);
-    setQrLoaded(false);
-
-    // Reset QR image để force reload
-    setShowQRImage(false);
-
-    setTimeout(() => {
-      setShowQRImage(true);
-      setIsRetrying(false);
-    }, 500);
-  }, []);
-
-  // Reset QR state khi URL thay đổi
-  useEffect(() => {
-    setQrError(false);
-    setQrLoaded(false);
-  }, [qrUrl]);
-
-  // Preload QR khi modal mở và chọn chuyển khoản
-  useEffect(() => {
-    if (visible && showQRCode && qrUrl && !qrLoaded && !qrError) {
-      // Preload image để cache
-      const preloadImg = new Image();
-      preloadImg.onload = () => {
-        // QR preloaded successfully
-      };
-      preloadImg.onerror = () => {
-        // QR preload failed
-      };
-      preloadImg.src = qrUrl;
-    }
-  }, [visible, showQRCode, qrUrl, qrLoaded, qrError]);
 
   const handlePaymentSelection = (method) => {
     if (method === "ca_hai") {
@@ -243,7 +177,6 @@ const PaymentModal = ({
       ma_so_thue_kh: "",
     });
     setShowCustomerInfo(false);
-    setShowQRImage(false);
     setIsSubmitting(false);
     setSync(true);
     onClose();
@@ -323,15 +256,9 @@ const PaymentModal = ({
         ma_so_thue_kh: "",
       });
       setShowCustomerInfo(false);
-      setShowQRImage(false);
       setIsSubmitting(false);
       setSync(initialSync !== undefined ? initialSync : true);
 
-      const timer = setTimeout(() => {
-        setShowQRImage(true);
-      }, 200);
-
-      return () => clearTimeout(timer);
     }
   }, [
     visible,

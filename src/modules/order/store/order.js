@@ -407,6 +407,51 @@ const orders = createSlice({
         tab.detail[index].ap_voucher = "1";
       }
     },
+    updateProductMeal: (state, action) => {
+      const { index, mealValue, mealLabel, mealDescription } = action.payload;
+      const tab = state.orders.find(
+        (tab) => tab.internalId === state.internalActiveTabId
+      );
+      if (tab && tab.detail[index]) {
+        const item = tab.detail[index];
+        item.selected_meal = {
+          value: mealValue,
+          label: mealLabel,
+          description: mealDescription,
+        };
+
+        // Lưu mã vật tư vào gc_td1
+        item.gc_td1 = mealValue;
+
+        // Lưu tên vật tư vào ghi_chú (nối với ghi chú hiện có nếu có)
+        const currentNote = item.ghi_chu || "";
+        const mealInfo = mealLabel;
+
+        if (currentNote) {
+          // Nếu đã có ghi chú, nối thêm thông tin món suất
+          item.ghi_chu = `${currentNote}, ${mealInfo}`;
+        } else {
+          // Nếu chưa có ghi chú, tạo mới
+          item.ghi_chu = mealInfo;
+        }
+
+        // Không thay đổi giá tiền gốc của món, chỉ lưu thông tin món suất đã chọn
+        // item.don_gia giữ nguyên giá gốc
+        // item.thanh_tien giữ nguyên tính toán dựa trên giá gốc
+
+        // Cập nhật tổng tiền của tab (giữ nguyên logic tính toán dựa trên giá gốc)
+        let tongTien = 0;
+        let tongSl = 0;
+
+        tab.detail.forEach((d) => {
+          tongTien += parseFloat(d.thanh_tien) || 0;
+          tongSl += parseInt(d.so_luong) || 0;
+        });
+
+        tab.master.tong_tien = tongTien.toFixed(0);
+        tab.master.tong_sl = tongSl.toString();
+      }
+    },
     resetOrders: (state) => {
       Object.assign(state, {
         ...initialState,
@@ -464,6 +509,7 @@ export const {
   setListOrderInfo,
   addOrderFromSignal,
   applyVoucherToProduct,
+  updateProductMeal,
   resetOrders,
   setCustomerInfo,
   updateTabExtraProps,
