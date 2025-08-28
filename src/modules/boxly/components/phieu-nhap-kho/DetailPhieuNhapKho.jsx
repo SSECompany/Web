@@ -189,13 +189,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
     };
 
     fetchPhieuDetail();
-  }, [
-    sctRec,
-    apiCalled,
-    token,
-    stt_rec,
-    phieuDetailLoaded,
-  ]);
+  }, [sctRec, apiCalled, token, stt_rec, phieuDetailLoaded]);
 
   // Handle barcode focus
   useEffect(() => {
@@ -314,7 +308,6 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
               setLoading(false);
               return;
             }
-
 
             // Submit
             const result = await submitPhieuNhapKhoDynamic(

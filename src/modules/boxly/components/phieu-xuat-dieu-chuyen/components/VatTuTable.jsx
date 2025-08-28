@@ -29,8 +29,8 @@ const VatTuTable = ({
     },
     {
       title: "Tên mặt hàng",
-      dataIndex: "maHang",
-      key: "maHang",
+      dataIndex: "ten_mat_hang",
+      key: "ten_mat_hang",
       align: "center",
     },
     {
@@ -59,7 +59,11 @@ const VatTuTable = ({
             onDropdownVisibleChange={async (visible) => {
               if (visible && record.maHang) {
                 // Kiểm tra xem đã có cache trong record chưa
-                if (record.donViTinhList && Array.isArray(record.donViTinhList) && record.donViTinhList.length > 0) {
+                if (
+                  record.donViTinhList &&
+                  Array.isArray(record.donViTinhList) &&
+                  record.donViTinhList.length > 0
+                ) {
                   return; // Đã có data, không cần gọi API
                 }
 
@@ -253,8 +257,8 @@ const VatTuTable = ({
   ];
 
   const getScrollConfig = () => {
-    const baseWidth = 60 + 120 + 200 + 80 + 130 + 120 + 80; 
-    const minWidth = Math.max(baseWidth, window.innerWidth - 100); 
+    const baseWidth = 60 + 120 + 200 + 80 + 130 + 120 + 80;
+    const minWidth = Math.max(baseWidth, window.innerWidth - 100);
 
     const rowHeight = 40;
     const headerHeight = 50;
