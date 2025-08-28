@@ -71,7 +71,18 @@ const Navbar = () => {
 
   const handleRouteChange = (data) => {
     // Simplified route handling for pharmacy app
-    const validRoutes = ["", "/", "login", "pos"];
+    const validRoutes = [
+      "",
+      "/",
+      "login",
+      "pos",
+      "kho",
+      "kho/nhap-kho",
+      "kho/nhap-kho/them-moi",
+      "kho/xuat-ban",
+      "kho/xuat-dieu-chuyen",
+      "kho/xuat-kho",
+    ];
 
     if (!validRoutes.includes(data?.pathname?.substring(1))) {
       // Redirect to POS if invalid route
@@ -109,7 +120,16 @@ const Navbar = () => {
           <Menu
             mode="horizontal"
             className="navbar_routes"
-            items={[]}
+            items={[
+              {
+                key: "pos",
+                label: <Link to="/pos">POS</Link>,
+              },
+              {
+                key: "kho",
+                label: <Link to="/kho">Kho</Link>,
+              },
+            ]}
             style={{
               lineHeight: "30px",
               border: "none",

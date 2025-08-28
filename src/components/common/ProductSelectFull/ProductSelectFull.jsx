@@ -5,20 +5,20 @@ import "./ProductSelectFull.css";
 
 const ProductSelectFull = ({
   isEditMode = true,
-  barcodeEnabled,
-  setBarcodeEnabled,
-  setBarcodeJustEnabled,
-  vatTuInput,
-  setVatTuInput,
-  vatTuSelectRef,
-  loadingVatTu,
-  vatTuList,
-  searchTimeoutRef,
-  fetchVatTuList,
-  handleVatTuSelect,
+  barcodeEnabled = false,
+  setBarcodeEnabled = () => {},
+  setBarcodeJustEnabled = () => {},
+  vatTuInput = "",
+  setVatTuInput = () => {},
+  vatTuSelectRef = null,
+  loadingVatTu = false,
+  vatTuList = [],
+  searchTimeoutRef = null,
+  fetchVatTuList = () => {},
+  handleVatTuSelect = () => {},
   totalPage = 1,
   pageIndex = 1,
-  setPageIndex,
+  setPageIndex = () => {},
   currentKeyword = "",
   hasInitialData = false,
 }) => {
@@ -43,37 +43,44 @@ const ProductSelectFull = ({
       hasInitialDataRef.current = true;
     }
 
-    if (vatTuList.length > 0 && !vatTuList.every((item) => item.label)) {
+    if (
+      vatTuList &&
+      Array.isArray(vatTuList) &&
+      vatTuList.length > 0 &&
+      !vatTuList.every((item) => item.label)
+    ) {
       hasInitialDataRef.current = true;
     }
 
     return () => {
-      if (searchTimeoutRef.current) {
+      if (searchTimeoutRef && searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
     };
   }, [hasInitialData, vatTuList]);
 
   useEffect(() => {
-    if (barcodeEnabled && vatTuSelectRef.current) {
-      if (focusTimeoutRef.current) {
+    if (barcodeEnabled && vatTuSelectRef && vatTuSelectRef.current) {
+      if (focusTimeoutRef && focusTimeoutRef.current) {
         clearTimeout(focusTimeoutRef.current);
       }
 
-      focusTimeoutRef.current = setTimeout(() => {
-        if (vatTuSelectRef.current) {
-          vatTuSelectRef.current.focus();
-          setTimeout(() => {
-            if (vatTuSelectRef.current) {
-              vatTuSelectRef.current.focus();
-            }
-          }, 50);
-        }
-      }, 200);
+      if (focusTimeoutRef) {
+        focusTimeoutRef.current = setTimeout(() => {
+          if (vatTuSelectRef && vatTuSelectRef.current) {
+            vatTuSelectRef.current.focus();
+            setTimeout(() => {
+              if (vatTuSelectRef && vatTuSelectRef.current) {
+                vatTuSelectRef.current.focus();
+              }
+            }, 50);
+          }
+        }, 200);
+      }
     }
 
     return () => {
-      if (focusTimeoutRef.current) {
+      if (focusTimeoutRef && focusTimeoutRef.current) {
         clearTimeout(focusTimeoutRef.current);
       }
     };
@@ -85,7 +92,7 @@ const ProductSelectFull = ({
     }
     lastSearchValueRef.current = value;
 
-    if (searchTimeoutRef.current) {
+    if (searchTimeoutRef && searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
@@ -101,25 +108,34 @@ const ProductSelectFull = ({
       }
     }
 
-    searchTimeoutRef.current = setTimeout(() => {
-      if (setPageIndex) setPageIndex(1);
-      fetchVatTuList(value, 1, false);
-      hasInitialDataRef.current = true;
-      isSearchingRef.current = false;
-      // Reset scroll state khi search mới
-      isScrollingRef.current = false;
-      lastScrollPageRef.current = 0;
-    }, delay);
+    if (searchTimeoutRef) {
+      searchTimeoutRef.current = setTimeout(() => {
+        if (setPageIndex) setPageIndex(1);
+        if (fetchVatTuList) {
+          fetchVatTuList(value, 1, false);
+        }
+        hasInitialDataRef.current = true;
+        isSearchingRef.current = false;
+        // Reset scroll state khi search mới
+        isScrollingRef.current = false;
+        lastScrollPageRef.current = 0;
+      }, delay);
+    }
   };
 
   const handleDropdownVisibleChange = (open) => {
     if (open) {
       dropdownOpenedRef.current = true;
       if (
-        (vatTuList.length === 0 || vatTuList.every((item) => item.label)) &&
+        (!vatTuList ||
+          !Array.isArray(vatTuList) ||
+          vatTuList.length === 0 ||
+          vatTuList.every((item) => item.label)) &&
         !loadingVatTu
       ) {
-        fetchVatTuList("", 1, false);
+        if (fetchVatTuList) {
+          fetchVatTuList("", 1, false);
+        }
       }
     } else {
       dropdownOpenedRef.current = false;
@@ -129,10 +145,15 @@ const ProductSelectFull = ({
 
   const handleSelectFocus = () => {
     if (
-      (vatTuList.length === 0 || vatTuList.every((item) => item.label)) &&
+      (!vatTuList ||
+        !Array.isArray(vatTuList) ||
+        vatTuList.length === 0 ||
+        vatTuList.every((item) => item.label)) &&
       !loadingVatTu
     ) {
-      fetchVatTuList("", 1, false);
+      if (fetchVatTuList) {
+        fetchVatTuList("", 1, false);
+      }
     }
   };
 
@@ -169,10 +190,12 @@ const ProductSelectFull = ({
     };
 
     try {
-      const result = await handleVatTuSelect(barcodeValue);
-      if (result === false) {
-        // Không cần hiển thị message ở đây vì handleVatTuSelect đã hiển thị notification
-        setTimeout(() => setVatTuInput(""), 2000);
+      if (handleVatTuSelect) {
+        const result = await handleVatTuSelect(barcodeValue);
+        if (result === false) {
+          // Không cần hiển thị message ở đây vì handleVatTuSelect đã hiển thị notification
+          setTimeout(() => setVatTuInput(""), 2000);
+        }
       }
     } finally {
       setTimeout(() => {
@@ -197,9 +220,9 @@ const ProductSelectFull = ({
   };
 
   const handleBarcodeInputBlur = () => {
-    if (barcodeEnabled && vatTuSelectRef.current) {
+    if (barcodeEnabled && vatTuSelectRef && vatTuSelectRef.current) {
       setTimeout(() => {
-        if (barcodeEnabled && vatTuSelectRef.current) {
+        if (barcodeEnabled && vatTuSelectRef && vatTuSelectRef.current) {
           vatTuSelectRef.current.focus();
         }
       }, 100);
@@ -207,7 +230,7 @@ const ProductSelectFull = ({
   };
 
   const handleBarcodeInputFocus = () => {
-    if (vatTuSelectRef.current) {
+    if (vatTuSelectRef && vatTuSelectRef.current) {
       vatTuSelectRef.current.select();
     }
   };
@@ -250,7 +273,9 @@ const ProductSelectFull = ({
 
       // Gọi API trang tiếp theo, nối vào danh sách
       // setPageIndex sẽ được gọi trong fetchVatTuList khi append thành công
-      fetchVatTuList(currentKeyword, pageIndex + 1, true); // true: append
+      if (fetchVatTuList) {
+        fetchVatTuList(currentKeyword, pageIndex + 1, true); // true: append
+      }
 
       // Reset scroll state sau 1 giây
       setTimeout(() => {
@@ -273,10 +298,11 @@ const ProductSelectFull = ({
               loading={loadingVatTu}
               placeholder="Tìm kiếm hoặc chọn vật tư"
               style={{ width: "calc(100% - 40px)" }}
-              options={vatTuList}
+              options={Array.isArray(vatTuList) ? vatTuList : []}
               onSearch={handleSearch}
               filterOption={false}
               onSelect={handleVatTuSelect}
+              onFocus={handleSelectFocus}
               disabled={!isEditMode}
               classNames={{
                 popup: {

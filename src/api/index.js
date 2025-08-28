@@ -219,6 +219,109 @@ export const searchVatTu = async (
     });
 };
 
+export const getKhoInfo = async (unitId = null, userId = null) => {
+  const token = localStorage.getItem("access_token");
+
+  const payload = {
+    store: "api_getKhoInfo",
+    param: {
+      unitId: unitId,
+      userId: userId,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => {
+      if (res?.data?.responseModel?.isSucceded === true) {
+        return {
+          success: true,
+          data: res?.data?.listObject || res?.data || null,
+          message: null,
+        };
+      } else {
+        const errorMessage =
+          res?.data?.responseModel?.message || "Lỗi không xác định";
+        return {
+          success: false,
+          data: null,
+          message: errorMessage,
+        };
+      }
+    })
+    .catch((error) => {
+      console.error("Error getting kho info:", error);
+      return {
+        success: false,
+        data: null,
+        message: "Lỗi kết nối mạng",
+      };
+    });
+};
+
+export const createKhoOrder = async (
+  orderData,
+  unitId = null,
+  userId = null
+) => {
+  const token = localStorage.getItem("access_token");
+
+  const payload = {
+    store: "api_createKhoOrder",
+    param: {
+      unitId: unitId,
+      userId: userId,
+      customer: orderData.customer,
+      items: orderData.items,
+      totals: orderData.totals,
+      payment: orderData.payment,
+      Currency: "VND",
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => {
+      // Kiểm tra responseModel.isSucceded
+      if (res?.data?.responseModel?.isSucceded === true) {
+        return {
+          success: true,
+          data: res?.data?.listObject || res?.data || null,
+          message: null,
+        };
+      } else {
+        // Response có lỗi
+        const errorMessage =
+          res?.data?.responseModel?.message || "Lỗi không xác định";
+        return {
+          success: false,
+          data: null,
+          message: errorMessage,
+        };
+      }
+    })
+    .catch((error) => {
+      console.error("Error creating kho order:", error);
+      return {
+        success: false,
+        data: null,
+        message: "Lỗi kết nối mạng",
+      };
+    });
+};
+
 export const createPharmacyOrder = async (
   orderData,
   unitId = null,
