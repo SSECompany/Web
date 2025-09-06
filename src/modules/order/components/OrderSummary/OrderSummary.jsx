@@ -280,8 +280,11 @@ export default function OrderSummary({ total, itemCount }) {
         don_gia: (item.don_gia || 0).toString(),
         thanh_tien: ((item.so_luong || 0) * (item.don_gia || 0)).toString(),
         ghi_chu: item.ghi_chu || "",
+        gc_td1: item.gc_td1 || "",
         uniqueid,
         ap_voucher: item.ap_voucher || "0",
+        // Thêm mã ca bọc nếu có
+        ma_ca: item.selected_meal?.shift || "",
       };
       const extras = (item.extras || []).map((extra) => {
         const quantity = parseFloat(extra.quantity || extra.so_luong || 0);
@@ -296,6 +299,8 @@ export default function OrderSummary({ total, itemCount }) {
           don_gia: price.toString(),
           thanh_tien: amount.toString(),
           uniqueid,
+          // Thêm mã ca bọc cho extras (kế thừa từ item chính)
+          ma_ca: item.selected_meal?.shift || "",
         };
       });
       return [mainItem, ...extras];
