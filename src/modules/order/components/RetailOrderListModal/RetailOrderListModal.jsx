@@ -54,8 +54,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const fullName = claims?.FullName;
 
   const [isEditingOrder, setIsEditingOrder] = useState(false);
-  const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
-  const [pendingApproveRecord, setPendingApproveRecord] = useState(null);
+
 
   const fetchListOrderData = useCallback(
     async (pageIndex = currentPage, customFilters = null) => {
