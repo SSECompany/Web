@@ -1,7 +1,7 @@
-import { Modal, Radio, Space, Spin } from "antd";
+import { Modal, Radio, Space, Spin, Tabs } from "antd";
 import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { multipleTablePutApi } from "../../../../../api";
 import { updateProductMeal } from "../../../store/order";
 import "./SelectMealModal.css";
@@ -13,37 +13,67 @@ export default function SelectMealModal({
   item,
 }) {
   const [selectedMeal, setSelectedMeal] = useState("");
+  const [selectedShift, setSelectedShift] = useState("sang");
   const [mealOptions, setMealOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
-  const { id, unitId } = useSelector(
-    (state) => state.claimsReducer.userInfo || {}
-  );
 
-  // Khởi tạo selectedMeal khi modal mở
+  // Định nghĩa các ca bọc
+  const mealShifts = [
+    { key: "sang", label: "Ca Sáng", code: "CA1" },
+    { key: "trua", label: "Ca Trưa", code: "CA2" },
+    { key: "toi", label: "Ca Tối", code: "CA3" },
+  ];
+
   useEffect(() => {
     if (isVisible && item?.selected_meal) {
       setSelectedMeal(item.selected_meal.value);
+      // Nếu có thông tin ca bọc từ item, set ca bọc đó
+      if (item.selected_meal.shift) {
+        // Tìm key từ code (CA1 -> sang, CA2 -> trua, CA3 -> toi)
+        const shiftKey =
+          mealShifts.find((shift) => shift.code === item.selected_meal.shift)
+            ?.key || "sang";
+        setSelectedShift(shiftKey);
+      }
     } else if (isVisible) {
       setSelectedMeal("");
+      setSelectedShift("sang");
     }
   }, [isVisible, item?.selected_meal]);
 
-  // Gọi API để lấy danh sách món ăn khi modal mở
   useEffect(() => {
     if (isVisible) {
       fetchMealOptions();
     }
-  }, [isVisible]);
+  }, [isVisible, selectedShift]);
 
   const fetchMealOptions = async () => {
     setLoading(true);
     try {
+      // Tạo thời gian dựa trên ca bọc được chọn
+      const currentDate = dayjs().format("YYYY-MM-DD");
+      let mealTime;
+
+      switch (selectedShift) {
+        case "sang":
+          mealTime = `${currentDate} 08:00:00`;
+          break;
+        case "trua":
+          mealTime = `${currentDate} 12:00:00`;
+          break;
+        case "toi":
+          mealTime = `${currentDate} 18:00:00`;
+          break;
+        default:
+          mealTime = dayjs().format("YYYY-MM-DD HH:mm:ss");
+      }
+
       const res = await multipleTablePutApi({
         store: "api_getListFoodMealByPost",
         param: {
           searchValue: "",
-          ngay_an: dayjs().format("YYYY-MM-DD HH:mm:ss"), // Format: '2025-08-21 11:30:00'
+          ngay_an: mealTime,
           pageIndex: 1,
           pageSize: 100,
         },
@@ -52,9 +82,8 @@ export default function SelectMealModal({
 
       if (res?.responseModel?.isSucceded && res?.listObject?.[0]) {
         const foodList = res.listObject[0];
-        // Lọc ra các món ăn phù hợp (có thể tùy chỉnh logic lọc)
         const options = foodList
-          .filter((food) => food.ma_mon && food.ten_mon && food.gia_ban > 0)
+          .filter((food) => food.ma_mon && food.ten_mon)
           .map((food) => ({
             value: food.ma_mon,
             label: food.ten_mon,
@@ -64,21 +93,11 @@ export default function SelectMealModal({
         setMealOptions(options);
       } else {
         console.error("API response error:", res?.responseModel?.message);
-        // Fallback to default options if API fails
-        setMealOptions([
-          { value: "COMCHAY", label: "Cơm chay", price: 40000 },
-          { value: "COMCHIEN02", label: "Cơm chiên hải sản", price: 60000 },
-          { value: "COMCHIEN01", label: "Cơm chiên thập cẩm", price: 50000 },
-        ]);
+        setMealOptions([]);
       }
     } catch (error) {
       console.error("Error fetching meal options:", error);
-      // Fallback to default options if API fails
-      setMealOptions([
-        { value: "COMCHAY", label: "Cơm chay", price: 40000 },
-        { value: "COMCHIEN02", label: "Cơm chiên hải sản", price: 60000 },
-        { value: "COMCHIEN01", label: "Cơm chiên thập cẩm", price: 50000 },
-      ]);
+      setMealOptions([]);
     } finally {
       setLoading(false);
     }
@@ -89,12 +108,17 @@ export default function SelectMealModal({
       const selectedOption = mealOptions.find(
         (option) => option.value === selectedMeal
       );
+      const selectedShiftInfo = mealShifts.find(
+        (shift) => shift.key === selectedShift
+      );
       dispatch(
         updateProductMeal({
           index: orderIndex,
           mealValue: selectedMeal,
           mealLabel: selectedOption.label,
           mealDescription: selectedOption.description,
+          mealShift: selectedShiftInfo.code,
+          mealShiftLabel: selectedShiftInfo.label,
         })
       );
     }
@@ -107,26 +131,21 @@ export default function SelectMealModal({
     setSelectedMeal("");
   };
 
-  return (
-    <Modal
-      title="Chọn món suất"
-      open={isVisible}
-      onOk={handleOk}
-      onCancel={handleCancel}
-      okText="Xác nhận"
-      cancelText="Hủy"
-      okButtonProps={{ disabled: !selectedMeal || loading }}
-    >
-      <div className="select-meal-content">
-        <p>
-          Vui lòng chọn món suất cho <strong>{item?.ten_vt}</strong>:
-        </p>
+  const handleShiftChange = (key) => {
+    setSelectedShift(key);
+    setSelectedMeal(""); // Reset món ăn khi chuyển ca bọc
+  };
 
+  const tabItems = mealShifts.map((shift) => ({
+    key: shift.key,
+    label: shift.label,
+    children: (
+      <div className="meal-options-container">
         {loading ? (
           <div style={{ textAlign: "center", padding: "20px" }}>
             <Spin size="large" />
             <p style={{ marginTop: "10px", color: "#666" }}>
-              Đang tải danh sách món ăn...
+              Đang tải danh sách món ăn ca {shift.label.toLowerCase()}...
             </p>
           </div>
         ) : (
@@ -157,6 +176,32 @@ export default function SelectMealModal({
             </Space>
           </Radio.Group>
         )}
+      </div>
+    ),
+  }));
+
+  return (
+    <Modal
+      title="Chọn món suất"
+      open={isVisible}
+      onOk={handleOk}
+      onCancel={handleCancel}
+      okText="Xác nhận"
+      cancelText="Hủy"
+      okButtonProps={{ disabled: !selectedMeal || loading }}
+      width={600}
+    >
+      <div className="select-meal-content">
+        <p>
+          Vui lòng chọn ca bọc và món suất cho <strong>{item?.ten_vt}</strong>:
+        </p>
+
+        <Tabs
+          activeKey={selectedShift}
+          onChange={handleShiftChange}
+          items={tabItems}
+          className="meal-shift-tabs"
+        />
       </div>
     </Modal>
   );

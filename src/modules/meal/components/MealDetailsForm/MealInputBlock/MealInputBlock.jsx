@@ -1,5 +1,5 @@
 import { CloseOutlined, MinusOutlined, PlusOutlined } from "@ant-design/icons";
-import { Checkbox, Input, Select } from "antd";
+import { Input, Select } from "antd";
 import React from "react";
 
 const MealEntryRow = ({
@@ -125,7 +125,7 @@ const MealEntryRow = ({
           </div>
         </div>
 
-        <div className="price-input-group">
+        {/* <div className="price-input-group">
           <div>
             <span className="price-label">Bệnh nhân</span>
             <Checkbox
@@ -146,7 +146,7 @@ const MealEntryRow = ({
           <span className="price-display">
             {(meal.totalMoney || 0).toLocaleString()} đ
           </span>
-        </div>
+        </div> */}
 
         {/* Notes */}
         <div className="notes-input-group">

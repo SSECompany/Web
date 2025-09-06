@@ -123,6 +123,11 @@ export default function OrderItem({
         {item.selected_meal && (
           <div className="order-item-selected-meal">
             Món suất: <strong>{item.selected_meal.label}</strong>
+            {item.selected_meal.shiftLabel && (
+              <div className="meal-shift-info">
+                Ca: <strong>{item.selected_meal.shiftLabel}</strong>
+              </div>
+            )}
             {item.selected_meal.description && (
               <div className="meal-description-small">
                 {item.selected_meal.description}

@@ -408,7 +408,14 @@ const orders = createSlice({
       }
     },
     updateProductMeal: (state, action) => {
-      const { index, mealValue, mealLabel, mealDescription } = action.payload;
+      const {
+        index,
+        mealValue,
+        mealLabel,
+        mealDescription,
+        mealShift,
+        mealShiftLabel,
+      } = action.payload;
       const tab = state.orders.find(
         (tab) => tab.internalId === state.internalActiveTabId
       );
@@ -418,14 +425,16 @@ const orders = createSlice({
           value: mealValue,
           label: mealLabel,
           description: mealDescription,
+          shift: mealShift,
+          shiftLabel: mealShiftLabel,
         };
 
         // Lưu mã vật tư vào gc_td1
         item.gc_td1 = mealValue;
 
-        // Lưu tên vật tư vào ghi_chú (nối với ghi chú hiện có nếu có)
+        // Lưu tên vật tư và ca bọc vào ghi_chú (nối với ghi chú hiện có nếu có)
         const currentNote = item.ghi_chu || "";
-        const mealInfo = mealLabel;
+        const mealInfo = `${mealShiftLabel}: ${mealLabel}`;
 
         if (currentNote) {
           // Nếu đã có ghi chú, nối thêm thông tin món suất
