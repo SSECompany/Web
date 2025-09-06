@@ -1,5 +1,5 @@
 import { CloseOutlined, MinusOutlined, PlusOutlined } from "@ant-design/icons";
-import { Input, Select } from "antd";
+import { Checkbox, Input, Select } from "antd";
 import React from "react";
 
 const MealEntryRow = ({
@@ -109,7 +109,6 @@ const MealEntryRow = ({
               disabled={
                 !meal.mealType || meal.quantity <= 1 || meal.collectMoney
               }
-              // disabled={true}
             >
               <MinusOutlined />
             </button>
@@ -118,14 +117,13 @@ const MealEntryRow = ({
               onClick={() => handleQuantityChange(timeOfDay, index, 1)}
               className="quantity-button"
               disabled={!meal.mealType || meal.collectMoney}
-              // disabled={true}
             >
               <PlusOutlined />
             </button>
           </div>
         </div>
 
-        {/* <div className="price-input-group">
+        <div className="price-input-group">
           <div>
             <span className="price-label">Bệnh nhân</span>
             <Checkbox
@@ -146,7 +144,7 @@ const MealEntryRow = ({
           <span className="price-display">
             {(meal.totalMoney || 0).toLocaleString()} đ
           </span>
-        </div> */}
+        </div>
 
         {/* Notes */}
         <div className="notes-input-group">
