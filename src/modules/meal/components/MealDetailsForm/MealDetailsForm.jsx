@@ -15,8 +15,8 @@ import {
   setShowMealDetails,
   setShowRoomSelection,
 } from "../../store/meal";
+import MealEntryRow from "../MealInputBlock/MealInputBlock";
 import "./MealDetailsForm.css";
-import MealEntryRow from "./MealInputBlock/MealInputBlock";
 import { mealSchema } from "./validator/validationSchema";
 
 const { TabPane } = Tabs;

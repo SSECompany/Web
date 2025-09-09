@@ -25,6 +25,16 @@ export default function SelectMealModal({
     { key: "toi", label: "Ca Tối", code: "CA3" },
   ];
 
+  // Kiểm tra món ăn có ca cố định không
+  const getFixedShift = (itemCode) => {
+    if (itemCode === "COM01") return "trua"; // Cơm suất trưa -> Ca Trưa (COM01)
+    if (itemCode === "COM02") return "toi"; // Cơm suất tối -> Ca Tối (COM02)
+    return null;
+  };
+
+  const fixedShift = getFixedShift(item?.ma_vt);
+  const isFixedShiftItem = fixedShift !== null;
+
   useEffect(() => {
     if (isVisible && item?.selected_meal) {
       setSelectedMeal(item.selected_meal.value);
@@ -38,9 +48,14 @@ export default function SelectMealModal({
       }
     } else if (isVisible) {
       setSelectedMeal("");
-      setSelectedShift("sang");
+      // Nếu là món có ca cố định, tự động set ca đó
+      if (isFixedShiftItem) {
+        setSelectedShift(fixedShift);
+      } else {
+        setSelectedShift("sang");
+      }
     }
-  }, [isVisible, item?.selected_meal]);
+  }, [isVisible, item?.selected_meal, isFixedShiftItem, fixedShift]);
 
   useEffect(() => {
     if (isVisible) {
@@ -132,6 +147,10 @@ export default function SelectMealModal({
   };
 
   const handleShiftChange = (key) => {
+    // Không cho phép thay đổi ca nếu là món có ca cố định
+    if (isFixedShiftItem) {
+      return;
+    }
     setSelectedShift(key);
     setSelectedMeal(""); // Reset món ăn khi chuyển ca bọc
   };
@@ -193,15 +212,24 @@ export default function SelectMealModal({
     >
       <div className="select-meal-content">
         <p>
-          Vui lòng chọn ca bọc và món suất cho <strong>{item?.ten_vt}</strong>:
+          {isFixedShiftItem
+            ? `Vui lòng chọn món suất cho ${item?.ten_vt}:`
+            : `Vui lòng chọn ca bọc và món suất cho ${item?.ten_vt}:`}
         </p>
 
-        <Tabs
-          activeKey={selectedShift}
-          onChange={handleShiftChange}
-          items={tabItems}
-          className="meal-shift-tabs"
-        />
+        {isFixedShiftItem ? (
+          // Hiển thị trực tiếp nội dung ca cố định mà không có tabs và badge
+          <div className="fixed-meal-shift">
+            {tabItems.find((tab) => tab.key === fixedShift)?.children}
+          </div>
+        ) : (
+          <Tabs
+            activeKey={selectedShift}
+            onChange={handleShiftChange}
+            items={tabItems}
+            className="meal-shift-tabs"
+          />
+        )}
       </div>
     </Modal>
   );
