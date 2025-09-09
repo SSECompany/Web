@@ -7,7 +7,7 @@ import MealTicketForm from "../pages/mealTicket/MealTicketForm";
 import POSPage from "../pages/order/POSPage";
 import ProtectedRoute from "./ProtectedRoute";
 
-const Login = lazy(() => import("../pages/login/Login"));
+const Login = lazy(() => import("../pages/Login/Login"));
 
 const homeRoutes = [
   {
