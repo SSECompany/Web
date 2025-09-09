@@ -1,10 +1,11 @@
-import { ArrowLeftOutlined } from "@ant-design/icons";
-import { DatePicker, Tabs } from "antd";
+import { ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
+import { Checkbox, DatePicker, Select, Tabs } from "antd";
 import dayjs from "dayjs";
 import cloneDeep from "lodash.clonedeep";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../../../api";
+import { formatNumber } from "../../../../app/hook/dataFormatHelper";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import {
   markBedAsSubmitted,
@@ -14,8 +15,8 @@ import {
   setShowMealDetails,
   setShowRoomSelection,
 } from "../../store/meal";
+import MealEntryRow from "../MealInputBlock/MealInputBlock";
 import "./MealDetailsForm.css";
-import MealEntryRow from "./MealInputBlock/MealInputBlock";
 import { mealSchema } from "./validator/validationSchema";
 
 const { TabPane } = Tabs;
@@ -549,26 +550,22 @@ const MealDetailsForm = () => {
       >
         {listMealCode.map((meal) => (
           <TabPane
-            //   tab={`${meal.ten_ca}
-            //   - ${formatNumber(
-            //     calculateTotalByShift(meal.ma_ca)
-            //   )} đ
-            //   `
-            // }
-            tab={`${meal.ten_ca}`}
+            tab={`${meal.ten_ca}
+            - ${formatNumber(calculateTotalByShift(meal.ma_ca))} đ
+            `}
             key={meal.ma_ca}
           >
             {renderedMealEntries[meal.ma_ca]}
-            {/* <button
+            <button
               className="add-row-button"
               onClick={() => handleAddMeal(meal.ma_ca)}
             >
               <PlusOutlined />
-            </button> */}
+            </button>
           </TabPane>
         ))}
       </Tabs>
-      {/* <div style={{ marginTop: 16 }}>
+      <div style={{ marginTop: 16 }}>
         <Checkbox
           checked={isPaid}
           disabled={calculateTotalAllShift() === 0}
@@ -643,10 +640,10 @@ const MealDetailsForm = () => {
             { label: "Chuyển khoản", value: "chuyen_khoan" },
           ]}
         />
-      </div> */}
-      {/* <div className="total-money">
+      </div>
+      <div className="total-money">
         Tổng tiền: {formatNumber(calculateTotalAllShift())} đ
-      </div> */}
+      </div>
 
       <button
         className="submit-button"
