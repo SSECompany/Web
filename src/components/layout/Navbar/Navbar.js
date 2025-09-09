@@ -23,6 +23,9 @@ const Navbar = () => {
   const userInfo = useSelector(getUserInfo);
   const routeLocation = useLocation();
 
+  // Check if current page is meal ticket page
+  const isMealTicketPage = routeLocation.pathname === "/meal-ticket";
+
   useEffect(() => {
     dispatch(setClaims(jwt.getClaims() || {}));
   }, [dispatch]);
@@ -90,12 +93,14 @@ const Navbar = () => {
       </div>
 
       <div className="first_navbar_row_right flex gap-1">
-        <div className="px-1 text-center flex items-center">
-          <div className="navbar-controls-container">
-            <LogViewerButton isInNavbar={true} />
-            <VersionIndicator showDetails={true} size="small" />
+        {!isMealTicketPage && (
+          <div className="px-1 text-center flex items-center">
+            <div className="navbar-controls-container">
+              <LogViewerButton isInNavbar={true} />
+              <VersionIndicator showDetails={true} size="small" />
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="px-1 text-center flex full-name">
           <div className="primary_bold_text">{userInfo?.fullName || ""}</div>
