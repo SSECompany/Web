@@ -48,6 +48,10 @@ const orders = createSlice({
         dia_chi: "",
         cccd: "",
         email: "",
+        so_giuong: "",
+        so_phong: "",
+        ca_an: "",
+        thutien_yn: "",
       };
 
       let tong_tien = 0;
@@ -429,20 +433,26 @@ const orders = createSlice({
           shiftLabel: mealShiftLabel,
         };
 
-        // Lưu mã vật tư vào gc_td1
-        item.gc_td1 = mealValue;
-
-        // Lưu tên vật tư và ca bọc vào ghi_chú (nối với ghi chú hiện có nếu có)
-        const currentNote = item.ghi_chu || "";
-        const mealInfo = `${mealShiftLabel}: ${mealLabel}`;
-
-        if (currentNote) {
-          // Nếu đã có ghi chú, nối thêm thông tin món suất
-          item.ghi_chu = `${currentNote}, ${mealInfo}`;
-        } else {
-          // Nếu chưa có ghi chú, tạo mới
-          item.ghi_chu = mealInfo;
+        // Lưu mã vật tư ban đầu vào gc_td1 (nếu chưa có)
+        if (!item.gc_td1) {
+          item.gc_td1 = item.ma_vt;
         }
+
+        // Cập nhật ma_vt thành mã món suất đã chọn
+        item.ma_vt = mealValue;
+
+        // Lưu tên sản phẩm gốc vào ghi_chú (nối với ghi chú hiện có nếu có)
+        const currentNote = item.ghi_chu || "";
+        const originalProductName = item.ten_vt; // Tên sản phẩm gốc (ví dụ: "Cơm suất tối")
+
+        if (currentNote && !currentNote.includes(originalProductName)) {
+          // Nếu đã có ghi chú và chưa có tên sản phẩm gốc, nối thêm
+          item.ghi_chu = `${currentNote}, ${originalProductName}`;
+        } else if (!currentNote) {
+          // Nếu chưa có ghi chú, tạo mới với tên sản phẩm gốc
+          item.ghi_chu = originalProductName;
+        }
+        // Nếu đã có tên sản phẩm gốc trong ghi chú, không thêm nữa
 
         // Không thay đổi giá tiền gốc của món, chỉ lưu thông tin món suất đã chọn
         // item.don_gia giữ nguyên giá gốc

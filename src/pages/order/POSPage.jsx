@@ -509,7 +509,20 @@ const POSPage = () => {
                         drinkFilter={drinkFilter}
                         setDrinkFilter={setDrinkFilter}
                       />
-                      <MenuGrid onAdd={addToOrder} />
+                      <MenuGrid
+                        onAdd={addToOrder}
+                        isReadOnlyMode={
+                          (tab?.master?.isPrepaidStudent &&
+                            tab?.master?.isReadOnly) ||
+                          (tab?.metadata?.isPrepaidStudent &&
+                            tab?.metadata?.isReadOnly) ||
+                          (tab?.master?.isPostpaidStudent &&
+                            tab?.master?.isReadOnly) ||
+                          (tab?.metadata?.isPostpaidStudent &&
+                            tab?.metadata?.isReadOnly) ||
+                          tab?.metadata?.isConfirmed
+                        }
+                      />
                     </>
                   ),
                 }))}
@@ -537,10 +550,7 @@ const POSPage = () => {
                   </Button>
                 </Tooltip>
               )}
-              {/* <Tooltip
-                placement="topRight"
-                title="List suất ăn người nhà bệnh nhân"
-              >
+              <Tooltip placement="topRight" title="Suất ăn người nhà bệnh nhân">
                 <Button
                   className="default_button"
                   onClick={handleFamilyMealList}
@@ -550,7 +560,7 @@ const POSPage = () => {
               </Tooltip>
               <Tooltip
                 placement="topRight"
-                title="List suất ăn cho sinh viên trả trước"
+                title="Suất ăn cho sinh viên trả trước"
               >
                 <Button
                   className="default_button"
@@ -559,14 +569,17 @@ const POSPage = () => {
                   <i className="pi pi-credit-card sub_text_color"></i>
                 </Button>
               </Tooltip>
-              <Tooltip placement="topRight" title="List suất ăn cho sinh viên">
+              <Tooltip
+                placement="topRight"
+                title="Suất ăn cho sinh viên trả sau"
+              >
                 <Button
                   className="default_button"
                   onClick={handleStudentMealList}
                 >
                   <i className="pi pi-calendar sub_text_color"></i>
                 </Button>
-              </Tooltip> */}
+              </Tooltip>
             </div>
           )}
         </div>
@@ -576,7 +589,10 @@ const POSPage = () => {
               orders.find((tab) => tab.internalId === internalActiveTabId)
                 ?.detail || []
             }
-          /> 
+            currentTab={orders.find(
+              (tab) => tab.internalId === internalActiveTabId
+            )}
+          />
           <OrderSummary
             total={calculateTotal()}
             itemCount={calculateItemCount()}

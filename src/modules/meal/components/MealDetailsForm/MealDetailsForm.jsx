@@ -1,5 +1,5 @@
 import { ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
-import { Checkbox, DatePicker, Select, Tabs } from "antd";
+import { Checkbox, DatePicker, Modal, notification, Select, Tabs } from "antd";
 import dayjs from "dayjs";
 import cloneDeep from "lodash.clonedeep";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -191,7 +191,14 @@ const MealDetailsForm = () => {
           ? dayjs(selectedDate, "DD/MM/YYYY").format("DD/MM/YYYY")
           : dayjs().format("DD/MM/YYYY");
 
-      meals.push(createDefaultMeal(mealDate));
+      // Create new meal with current payment method and isPaid status
+      const newMeal = {
+        ...createDefaultMeal(mealDate),
+        isPaid: isPaid,
+        httt: isPaid ? paymentMethod : "",
+      };
+
+      meals.push(newMeal);
 
       bedMeals[timeOfDay] = meals;
       updatedMeals[currentBedIndex] = bedMeals;
@@ -307,7 +314,13 @@ const MealDetailsForm = () => {
               : dayjs().format("DD/MM/YYYY");
 
           if (meals.length === 1) {
-            bedMeals[timeOfDay] = [createDefaultMeal(mealDate)];
+            // Create new default meal with current payment method and isPaid status
+            const newDefaultMeal = {
+              ...createDefaultMeal(mealDate),
+              isPaid: isPaid,
+              httt: isPaid ? paymentMethod : "",
+            };
+            bedMeals[timeOfDay] = [newDefaultMeal];
           } else {
             meals.splice(index, 1);
             bedMeals[timeOfDay] = meals;
@@ -379,6 +392,113 @@ const MealDetailsForm = () => {
 
   const handleSubmit = async () => {
     const bedMeals = mealEntries[currentBedIndex] || {};
+
+    // Validate meals: check for price = 0 and benh_nhan_yn = 0, and missing payment method
+    const invalidPriceMeals = [];
+    const invalidPaymentMeals = [];
+
+    ["CA1", "CA2", "CA3"].forEach((shift) => {
+      const meals = bedMeals[shift] || [];
+      meals.forEach((meal) => {
+        if (!meal.mealType) return;
+
+        const price = meal.price || 0;
+        const collectMoney = meal.collectMoney;
+        const isPaid = meal.isPaid;
+        const httt = meal.httt;
+
+        const shiftName =
+          shift === "CA1"
+            ? "Ca sáng"
+            : shift === "CA2"
+            ? "Ca trưa"
+            : "Ca chiều";
+
+        // Find meal name from listFood
+        const mealName =
+          listFood.find((food) => food.ma_mon === meal.mealType)?.ten_mon ||
+          meal.mealType;
+
+        // Check for price = 0 and not paid by patient
+        if (price === 0 && !collectMoney) {
+          invalidPriceMeals.push({
+            shift: shiftName,
+            mealName: mealName,
+            issue: "Có giá = 0 nhưng không được tích 'Bệnh nhân trả tiền'",
+          });
+        }
+
+        // Check for isPaid = true but no payment method selected
+        if (isPaid && (!httt || httt.trim() === "")) {
+          invalidPaymentMeals.push({
+            shift: shiftName,
+            mealName: mealName,
+            issue: "Đã tích 'Thu tiền' nhưng chưa chọn hình thức thanh toán",
+          });
+        }
+      });
+    });
+
+    if (invalidPriceMeals.length > 0 || invalidPaymentMeals.length > 0) {
+      const allInvalidMeals = [...invalidPriceMeals, ...invalidPaymentMeals];
+
+      Modal.warning({
+        title: (
+          <div style={{ display: "flex", alignItems: "center" }}>
+            Không thể hoàn thành - Có món ăn chưa hợp lệ
+          </div>
+        ),
+        content: (
+          <div style={{ marginTop: "16px" }}>
+            <p style={{ marginBottom: "12px" }}>Các món ăn sau có vấn đề:</p>
+            <div
+              style={{
+                backgroundColor: "#fff7e6",
+                border: "1px solid #ffd591",
+                borderRadius: "4px",
+                padding: "12px",
+                marginBottom: "12px",
+              }}
+            >
+              {allInvalidMeals.map((detail, index) => (
+                <div key={index} style={{ marginBottom: "8px" }}>
+                  • <strong>{detail.shift}</strong>: {detail.mealName}
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#666",
+                      marginLeft: "12px",
+                      marginTop: "2px",
+                    }}
+                  >
+                    {detail.issue}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: "13px", color: "#666" }}>
+              <p style={{ marginBottom: "4px" }}>Vui lòng:</p>
+              <ul style={{ margin: "0", paddingLeft: "16px" }}>
+                {invalidPriceMeals.length > 0 && (
+                  <li>
+                    Tích "Bệnh nhân trả tiền" cho các món có giá = 0 hoặc cập
+                    nhật giá tiền
+                  </li>
+                )}
+                {invalidPaymentMeals.length > 0 && (
+                  <li>
+                    Chọn hình thức thanh toán cho các món đã tích "Thu tiền"
+                  </li>
+                )}
+              </ul>
+            </div>
+          </div>
+        ),
+        width: 550,
+        okText: "Đã hiểu",
+      });
+      return;
+    }
 
     const updatedMeals = cloneDeep(mealEntries);
 
@@ -519,6 +639,7 @@ const MealDetailsForm = () => {
     collectMoney: false,
     totalMoney: 0,
     isPaid: false,
+    httt: "",
   });
 
   return (

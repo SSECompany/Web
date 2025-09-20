@@ -117,7 +117,13 @@ const callPrintOrderApi = async (sttRec, userId) => {
 };
 
 // Helper function để chạy song song print-order và InvoiceReceipt
-const runParallelTasks = async (sttRec, userId, sync = true) => {
+const runParallelTasks = async (
+  sttRec,
+  userId,
+  sync = true,
+  isPrepaidStudent = false,
+  isPostpaidStudent = false
+) => {
   const parallelTasks = [];
 
   // Thêm task đồng bộ (nếu có)
@@ -133,20 +139,26 @@ const runParallelTasks = async (sttRec, userId, sync = true) => {
     parallelTasks.push(syncTask);
   }
 
-  // Thêm task in order - GỌI TRỰC TIẾP API
-  const printTask = callPrintOrderApi(sttRec, userId)
-    .then((result) => {
-      return { type: "print", success: result.success, result: result.result };
-    })
-    .catch((printError) => {
-      notification.error({
-        message: "Có lỗi xảy ra khi in đơn hàng!",
-        description: printError.message,
+  // Thêm task in order - GỌI TRỰC TIẾP API (bỏ qua nếu là sinh viên trả trước hoặc trả sau)
+  if (!isPrepaidStudent && !isPostpaidStudent) {
+    const printTask = callPrintOrderApi(sttRec, userId)
+      .then((result) => {
+        return {
+          type: "print",
+          success: result.success,
+          result: result.result,
+        };
+      })
+      .catch((printError) => {
+        notification.error({
+          message: "Có lỗi xảy ra khi in đơn hàng!",
+          description: printError.message,
+        });
+        return { type: "print", success: false, error: printError };
       });
-      return { type: "print", success: false, error: printError };
-    });
 
-  parallelTasks.push(printTask);
+    parallelTasks.push(printTask);
+  }
 
   // Chạy tất cả tasks SONG SONG
   return Promise.allSettled(parallelTasks)
@@ -191,6 +203,21 @@ export default function OrderSummary({ total, itemCount }) {
   const activeTab = orders?.find(
     (tab) => tab.internalId === internalActiveTabId
   );
+
+  // Kiểm tra chế độ read-only cho sinh viên đã xác nhận
+  const isPrepaidStudent =
+    activeTab?.master?.isPrepaidStudent ||
+    activeTab?.metadata?.isPrepaidStudent;
+  const isPostpaidStudent =
+    activeTab?.master?.isPostpaidStudent ||
+    activeTab?.metadata?.isPostpaidStudent;
+  const isReadOnly =
+    activeTab?.master?.isReadOnly || activeTab?.metadata?.isReadOnly;
+  const isConfirmed = activeTab?.metadata?.isConfirmed;
+  const isStudentReadOnlyMode =
+    (isPrepaidStudent && isReadOnly) ||
+    (isPostpaidStudent && isReadOnly) ||
+    isConfirmed;
 
   // Kiểm tra xem có phải khách hàng truy cập từ QR không
   const isCustomerQR = () => {
@@ -249,6 +276,7 @@ export default function OrderSummary({ total, itemCount }) {
 
     const masterData = {
       ma_ban: activeTab?.tableId,
+      ma_kh: activeTab?.master?.ma_kh || activeTab?.metadata?.ma_kh || "",
       dien_giai: activeTab?.master?.dien_giai || "",
       tong_tien: totalAmount.toString(),
       tong_sl: Number(activeTab?.master?.tong_sl || 0).toString(),
@@ -267,7 +295,19 @@ export default function OrderSummary({ total, itemCount }) {
       ma_so_thue_kh:
         customerInfo.ma_so_thue_kh ?? activeTab?.master?.ma_so_thue_kh ?? "",
       ten_dv_kh: customerInfo.ten_dv_kh ?? activeTab?.master?.ten_dv_kh ?? "",
+      so_giuong: activeTab?.master?.so_giuong ?? "",
+      so_phong: activeTab?.master?.so_phong ?? "",
+      ca_an: activeTab?.master?.ca_an ?? "",
+      thutien_yn: activeTab?.master?.thutien_yn ?? "",
       s3: sync ? "1" : "0",
+      StoreID: activeTab?.master?.StoreID || storeId || "",
+      // Thêm 3 trường cho sinh viên trả trước
+      ngay_ct: activeTab?.master?.ngay_ct || activeTab?.metadata?.ngay_ct || "",
+      ma_gd: activeTab?.master?.ma_gd || activeTab?.metadata?.ma_gd || "",
+      typeStudent:
+        activeTab?.master?.typeStudent ||
+        activeTab?.metadata?.typeStudent ||
+        "",
     };
 
     const detailData = activeTab?.detail?.flatMap((item) => {
@@ -275,11 +315,13 @@ export default function OrderSummary({ total, itemCount }) {
       const mainItem = {
         ten_vt: item.ten_vt,
         ma_vt_root: item.ma_vt_root || "",
+        // ma_vt giờ đã là mã món suất đã chọn rồi (được cập nhật trong store)
         ma_vt: item.ma_vt,
         so_luong: (item.so_luong || 0).toString(),
         don_gia: (item.don_gia || 0).toString(),
         thanh_tien: ((item.so_luong || 0) * (item.don_gia || 0)).toString(),
         ghi_chu: item.ghi_chu || "",
+        // gc_td1 giờ chứa mã vật tư ban đầu
         gc_td1: item.gc_td1 || "",
         uniqueid,
         ap_voucher: item.ap_voucher || "0",
@@ -293,6 +335,7 @@ export default function OrderSummary({ total, itemCount }) {
 
         return {
           ten_vt: extra.ten_vt,
+          // ma_vt_root sử dụng ma_vt hiện tại (đã là mã món suất đã chọn)
           ma_vt_root: item.ma_vt,
           ma_vt: extra.ma_vt_more || extra.ma_vt,
           so_luong: (quantity * (item.so_luong || 0)).toString(),
@@ -360,9 +403,25 @@ export default function OrderSummary({ total, itemCount }) {
             setIsPrinted(false);
           }
 
-          // BƯỚC 3: Chạy InvoiceReceipt và print-order trong background
           if (!isSaveOnly) {
-            runParallelTasks(sttRec, id, true)
+            // Kiểm tra xem có phải sinh viên trả trước hoặc trả sau không
+            const currentTab = orders.find(
+              (tab) => tab.internalId === internalActiveTabId
+            );
+            const isPrepaidStudent =
+              currentTab?.master?.typeStudent === "prepaid_student" ||
+              currentTab?.metadata?.typeStudent === "prepaid_student";
+            const isPostpaidStudent =
+              currentTab?.master?.typeStudent === "postpaid_student" ||
+              currentTab?.metadata?.typeStudent === "postpaid_student";
+
+            runParallelTasks(
+              sttRec,
+              id,
+              true,
+              isPrepaidStudent,
+              isPostpaidStudent
+            )
               .then((results) => {
                 // Silent success - chạy background
               })
@@ -501,6 +560,51 @@ export default function OrderSummary({ total, itemCount }) {
       return;
     }
 
+    // ✅ Kiểm tra món = 0đ mà không phải voucher
+    const invalidItems = [];
+    if (activeTab?.detail) {
+      activeTab.detail.forEach((item, index) => {
+        const price = parseFloat(item.don_gia || 0);
+        const isVoucher = item.ap_voucher === "1";
+        const itemName = item.selected_meal
+          ? item.selected_meal.label
+          : item.ten_vt;
+
+        if (price === 0 && !isVoucher) {
+          invalidItems.push({
+            index: index + 1,
+            name: itemName,
+            price: price,
+          });
+        }
+      });
+    }
+
+    if (invalidItems.length > 0) {
+      notification.error({
+        message: "Không thể thanh toán!",
+        description: (
+          <div>
+            <p>
+              Có {invalidItems.length} món có giá = 0đ mà không phải voucher:
+            </p>
+            <ul style={{ margin: "8px 0", paddingLeft: "20px" }}>
+              {invalidItems.map((item, idx) => (
+                <li key={idx}>
+                  {item.index}. {item.name} - {item.price}đ
+                </li>
+              ))}
+            </ul>
+            <p style={{ fontSize: "13px", color: "#666", marginTop: "8px" }}>
+              Vui lòng áp dụng voucher hoặc cập nhật giá cho các món này.
+            </p>
+          </div>
+        ),
+        duration: 8,
+      });
+      return;
+    }
+
     setIsProcessingPayment(true);
     // ✅ Sử dụng function riêng để đóng modal mà không reset processing state
     closeModalOnConfirm();
@@ -562,8 +666,18 @@ export default function OrderSummary({ total, itemCount }) {
         setIsPrinting(true);
         setIsPrinted(false);
 
-        // BƯỚC 3: Chạy InvoiceReceipt và print-order trong background
-        runParallelTasks(sttRec, id, sync)
+        // Kiểm tra xem có phải sinh viên trả trước hoặc trả sau không
+        const currentTab = orders.find(
+          (tab) => tab.internalId === internalActiveTabId
+        );
+        const isPrepaidStudent =
+          currentTab?.master?.typeStudent === "prepaid_student" ||
+          currentTab?.metadata?.typeStudent === "prepaid_student";
+        const isPostpaidStudent =
+          currentTab?.master?.typeStudent === "postpaid_student" ||
+          currentTab?.metadata?.typeStudent === "postpaid_student";
+
+        runParallelTasks(sttRec, id, sync, isPrepaidStudent, isPostpaidStudent)
           .then((results) => {
             // Silent success - chạy background
           })
@@ -599,6 +713,51 @@ export default function OrderSummary({ total, itemCount }) {
   // Hàm xử lý khi khách hàng xác nhận đơn hàng
   const handleConfirmCustomerPayment = async (customerInfo) => {
     if (isProcessingPayment) {
+      return;
+    }
+
+    // ✅ Kiểm tra món = 0đ mà không phải voucher
+    const invalidItems = [];
+    if (activeTab?.detail) {
+      activeTab.detail.forEach((item, index) => {
+        const price = parseFloat(item.don_gia || 0);
+        const isVoucher = item.ap_voucher === "1";
+        const itemName = item.selected_meal
+          ? item.selected_meal.label
+          : item.ten_vt;
+
+        if (price === 0 && !isVoucher) {
+          invalidItems.push({
+            index: index + 1,
+            name: itemName,
+            price: price,
+          });
+        }
+      });
+    }
+
+    if (invalidItems.length > 0) {
+      notification.error({
+        message: "Không thể xác nhận đơn hàng!",
+        description: (
+          <div>
+            <p>
+              Có {invalidItems.length} món có giá = 0đ mà không phải voucher:
+            </p>
+            <ul style={{ margin: "8px 0", paddingLeft: "20px" }}>
+              {invalidItems.map((item, idx) => (
+                <li key={idx}>
+                  {item.index}. {item.name} - {item.price}đ
+                </li>
+              ))}
+            </ul>
+            <p style={{ fontSize: "13px", color: "#666", marginTop: "8px" }}>
+              Vui lòng áp dụng voucher hoặc cập nhật giá cho các món này.
+            </p>
+          </div>
+        ),
+        duration: 8,
+      });
       return;
     }
 
@@ -785,6 +944,7 @@ export default function OrderSummary({ total, itemCount }) {
 
     const masterPayload = {
       ma_ban: "gop_don",
+      ma_kh: activeTab?.master?.ma_kh || activeTab?.metadata?.ma_kh || "",
       dien_giai: "",
       tong_tien: "0",
       tong_sl: formattedDetail.length.toString(),
@@ -901,8 +1061,19 @@ export default function OrderSummary({ total, itemCount }) {
               <button
                 className="summary-button secondary"
                 onClick={handleMergeOrders}
-                disabled={isCreatingOrder || isPrinting || !isOnline}
-                title={!isOnline ? "Không có kết nối internet" : ""}
+                disabled={
+                  isCreatingOrder ||
+                  isPrinting ||
+                  !isOnline ||
+                  isStudentReadOnlyMode
+                }
+                title={
+                  !isOnline
+                    ? "Không có kết nối internet"
+                    : isStudentReadOnlyMode
+                    ? "Đơn sinh viên đã xác nhận không thể gộp"
+                    : ""
+                }
               >
                 Gộp đơn
               </button>
@@ -915,9 +1086,16 @@ export default function OrderSummary({ total, itemCount }) {
                   isCreatingOrder ||
                   isPrinting ||
                   !activeTab?.detail?.length ||
-                  !isOnline
+                  !isOnline ||
+                  isStudentReadOnlyMode
                 }
-                title={!isOnline ? "Không có kết nối internet" : ""}
+                title={
+                  !isOnline
+                    ? "Không có kết nối internet"
+                    : isStudentReadOnlyMode
+                    ? "Đơn sinh viên đã xác nhận không thể lưu"
+                    : ""
+                }
               >
                 Lưu lại
               </button>

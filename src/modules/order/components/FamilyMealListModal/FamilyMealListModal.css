@@ -1,44 +1,184 @@
+.search_button {
+  width: 100%;
+}
+
+.edit_button {
+  background-color: #ff4d4f;
+  border-color: #ff4d4f;
+  color: white;
+}
+
 .family-meal-modal-container {
-  height: 70vh;
+  display: flex;
+  flex-direction: column;
+  height: 66vh;
+  scroll-behavior: auto;
   overflow: hidden;
 }
 
-.family-meal-table .ant-table-wrapper {
+.family-meal-table .ant-spin-nested-loading,
+.family-meal-table .ant-spin-container {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .family-meal-table .ant-table {
-  height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .family-meal-table .ant-table-container {
-  height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .family-meal-table .ant-table-content {
-  height: 100%;
-}
-
-.family-meal-table .ant-table-body {
-  height: calc(100% - 55px);
+  max-height: 60vh;
   overflow-y: auto;
+  overflow-x: auto;
+  position: relative;
 }
 
-.family-meal-table .ant-table-pagination {
-  margin: 16px 0;
-  text-align: center;
+.family-meal-table .ant-table-cell {
+  white-space: nowrap;
+  padding: 8px 12px;
+}
+
+.family-meal-table .ant-table-thead > tr > th:last-child {
+  position: sticky !important;
+  right: 0 !important;
+  top: 0 !important;
+  background: white !important;
+  z-index: 5 !important;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05) !important;
+  min-width: 80px !important;
+}
+
+.family-meal-table .ant-table-tbody > tr > td:last-child {
+  position: sticky !important;
+  right: 0 !important;
+  background: white !important;
+  z-index: 2 !important;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05) !important;
+  min-width: 80px !important;
 }
 
 .family-meal-table .ant-table-thead > tr > th {
-  background-color: #fafafa;
-  font-weight: 600;
   position: sticky;
   top: 0;
+  background: #fff;
   z-index: 1;
+  white-space: nowrap;
+  padding: 8px 12px;
+  text-align: center;
+  font-weight: 600;
+  background-color: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  min-width: 80px;
+  min-height: 40px;
 }
 
-.family-meal-table .ant-table-tbody > tr:hover > td {
-  background-color: #f5f5f5;
+.family-meal-table .ant-table-pagination {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding: 8px 16px;
+  z-index: 3;
+  flex-wrap: nowrap !important;
+}
+
+@media screen and (max-width: 768px) {
+  .family-meal-modal-container {
+    height: auto;
+  }
+  .family-meal-table .ant-table-content {
+    max-height: 55vh;
+  }
+  .family-meal-modal-container {
+    height: 66vh;
+  }
+
+  /* Responsive column title */
+  .column-title-with-tag {
+    gap: 4px;
+    font-size: 12px;
+  }
+
+  .column-title-with-tag .ant-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .family-meal-table .ant-table-thead > tr > th {
+    padding: 8px 4px;
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .family-meal-table .ant-table-pagination {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 4px;
+    padding: 12px 8px;
+  }
+
+  .family-meal-table .ant-pagination-item,
+  .family-meal-table .ant-pagination-prev,
+  .family-meal-table .ant-pagination-next,
+  .family-meal-table .ant-pagination-jump-next,
+  .family-meal-table .ant-pagination-jump-prev {
+    margin: 0 4px;
+    font-size: 13px;
+    min-width: 28px;
+    height: 28px;
+    line-height: 26px;
+  }
+
+  .family-meal-table .ant-pagination-item-active {
+    background-color: #1677ff;
+    border-color: #1677ff;
+    color: white;
+  }
+
+  /* Mobile responsive column title */
+  .column-title-with-tag {
+    gap: 2px;
+    font-size: 11px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .column-title-with-tag .ant-tag {
+    font-size: 9px;
+    padding: 1px 4px;
+    margin-left: 0;
+    margin-top: 2px;
+  }
+
+  .family-meal-table .ant-table-thead > tr > th {
+    padding: 6px 2px;
+    font-size: 11px;
+  }
+
+  .family-meal-table .ant-table-filter-trigger {
+    margin-left: 4px;
+  }
+}
+
+.family-meal-table .ant-table-content::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+.family-meal-table .ant-table-content {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Button styles */
@@ -75,6 +215,8 @@
 /* Filter dropdown styles */
 .filter-dropdown {
   padding: 8px;
+  z-index: 1000;
+  position: relative;
 }
 
 .filter-dropdown .ant-input,
@@ -88,47 +230,126 @@
   width: 200px;
 }
 
+/* Ensure filter dropdown is visible and clickable */
+.ant-table-filter-dropdown {
+  z-index: 1000 !important;
+}
+
+.ant-table-filter-dropdown .ant-dropdown-menu {
+  z-index: 1000 !important;
+}
+
+/* Column title styles - moved to below */
+
+/* Header container styles */
+.family-meal-table .ant-table-thead > tr > th {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 1;
+  padding: 12px 8px;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: ellipsis;
+}
+
+/* Filter button styles */
+.family-meal-table .ant-table-filter-trigger {
+  margin-left: 8px;
+  flex-shrink: 0;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 10;
+  position: relative;
+}
+
+/* Ensure filter dropdown is clickable */
+.family-meal-table .ant-table-filter-trigger-container {
+  pointer-events: auto !important;
+  z-index: 10;
+  position: relative;
+}
+
+.family-meal-table .ant-table-column-sorters {
+  pointer-events: auto !important;
+}
+
+/* Make sure filter icon is clickable */
+.family-meal-table .ant-table-filter-trigger .anticon {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Table header cell should allow clicks */
+.family-meal-table .ant-table-thead > tr > th {
+  pointer-events: auto !important;
+}
+
+/* Column title container */
+.column-title-with-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: nowrap;
+  pointer-events: auto;
+}
+
+.column-title-with-tag .ant-tag {
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
 /* Action column styles */
 .action-buttons {
   display: flex;
   gap: 10px;
 }
 
-/* Responsive styles */
-@media screen and (max-width: 768px) {
-  .family-meal-modal-container {
-    height: 66vh;
-  }
+/* Thêm khoảng cách giữa title và filter icon */
+.family-meal-table .ant-table-thead > tr > th .ant-table-column-title {
+  margin-right: 8px;
 }
 
-@media screen and (max-width: 576px) {
-  .family-meal-table .ant-table-pagination {
-    display: flex;
-    flex-wrap: nowrap;
-    justify-content: center;
-    gap: 4px;
-    padding: 12px 8px;
-  }
-
-  .family-meal-table .ant-pagination-item,
-  .family-meal-table .ant-pagination-prev,
-  .family-meal-table .ant-pagination-next,
-  .family-meal-table .ant-pagination-jump-next,
-  .family-meal-table .ant-pagination-jump-prev {
-    margin: 0 4px;
-    font-size: 13px;
-    min-width: 28px;
-    height: 28px;
-    line-height: 26px;
-  }
-
-  .family-meal-table .ant-pagination-item-active {
-    background-color: #1677ff;
-    border-color: #1677ff;
-    color: white;
-  }
+.family-meal-table .ant-table-thead > tr > th .ant-table-filter-trigger {
+  margin-left: 4px;
 }
 
+/* Hover effect cho table rows */
+.family-meal-table .ant-table-tbody > tr:hover > td {
+  background-color: #f5f5f5;
+}
+
+/* Đảm bảo các cột có kích thước phù hợp */
+.family-meal-table .ant-table-thead > tr > th,
+.family-meal-table .ant-table-tbody > tr > td {
+  padding: 8px 12px;
+}
+
+/* Cải thiện width và co giãn của các cột */
+.family-meal-table .ant-table-thead > tr > th {
+  min-width: 80px;
+  max-width: none;
+  word-wrap: break-word;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.family-meal-table .ant-table-tbody > tr > td {
+  min-width: 80px;
+  max-width: none;
+  word-wrap: break-word;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* Đảm bảo table có thể scroll ngang khi cần */
+.family-meal-table .ant-table-content {
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+/* Ẩn scrollbar cho table content */
 .family-meal-table .ant-table-content::-webkit-scrollbar {
   width: 0px;
   height: 0px;
@@ -137,4 +358,176 @@
 .family-meal-table .ant-table-content {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Cải thiện responsive cho các cột */
+@media screen and (max-width: 1200px) {
+  .family-meal-table .ant-table-thead > tr > th,
+  .family-meal-table .ant-table-tbody > tr > td {
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .family-meal-table .ant-table-thead > tr > th,
+  .family-meal-table .ant-table-tbody > tr > td {
+    padding: 4px 6px;
+    font-size: 12px;
+  }
+}
+
+/* Đảm bảo các cột có kích thước phù hợp */
+.family-meal-table .ant-table-thead > tr > th {
+  min-width: 80px;
+}
+
+/* Sticky header với background đẹp */
+.family-meal-table .ant-table-thead > tr > th {
+  background-color: #fafafa;
+  font-weight: 600;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* Đảm bảo header có đủ không gian cho title và filter */
+.family-meal-table .ant-table-thead > tr > th {
+  min-height: 40px;
+}
+
+/* Tbody cells styling */
+.family-meal-table .ant-table-tbody > tr > td {
+  white-space: nowrap;
+}
+
+/* Filter tags inline */
+.filter-tags-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: 8px;
+  align-items: center;
+}
+
+.filter-tag-inline {
+  margin: 0;
+  font-size: 12px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  height: auto;
+  line-height: 1.3;
+}
+
+.filter-tag-inline .ant-tag-close-icon {
+  margin-left: 4px;
+  font-size: 10px;
+}
+
+/* Responsive styles for filter tags inline */
+@media screen and (max-width: 768px) {
+  .filter-tags-inline {
+    gap: 4px;
+    margin-left: 4px;
+  }
+
+  .filter-tag-inline {
+    font-size: 11px;
+    padding: 1px 4px;
+  }
+}
+
+/* Clear filters button styles */
+.clear-filters-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  min-height: 48px;
+}
+
+.clear-filters-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.clear-filters-info .anticon {
+  color: #1890ff;
+  font-size: 16px;
+}
+
+.clear-filters-button {
+  flex-shrink: 0;
+  white-space: nowrap;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  color: #595959;
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 6px 16px;
+  height: auto;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.clear-filters-button:hover {
+  background: #f5f5f5;
+  border-color: #40a9ff;
+  color: #1890ff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.clear-filters-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive clear filters button */
+@media screen and (max-width: 768px) {
+  .clear-filters-container {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+
+  .clear-filters-info {
+    font-size: 13px;
+  }
+
+  .clear-filters-button {
+    font-size: 12px;
+    padding: 5px 12px;
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .clear-filters-container {
+    margin-bottom: 8px;
+    padding: 8px 10px;
+    min-height: 40px;
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .clear-filters-info {
+    font-size: 12px;
+    justify-content: center;
+  }
+
+  .clear-filters-button {
+    font-size: 11px;
+    padding: 4px 10px;
+    align-self: center;
+    width: fit-content;
+  }
 }
