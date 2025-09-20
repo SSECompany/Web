@@ -550,7 +550,7 @@ const POSPage = () => {
                   </Button>
                 </Tooltip>
               )}
-              <Tooltip placement="topRight" title="Suất ăn người nhà bệnh nhân">
+              {/* <Tooltip placement="topRight" title="Suất ăn người nhà bệnh nhân">
                 <Button
                   className="default_button"
                   onClick={handleFamilyMealList}
@@ -579,7 +579,7 @@ const POSPage = () => {
                 >
                   <i className="pi pi-calendar sub_text_color"></i>
                 </Button>
-              </Tooltip>
+              </Tooltip> */}
             </div>
           )}
         </div>
