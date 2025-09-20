@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   addDataMultiObjectApi,
+  apiProcessCombinedMealOrder,
   multipleTablePutApi,
   syncFastMutiApi,
 } from "../../../../api";
@@ -350,7 +351,7 @@ const RoomSelectionForm = () => {
             so_luong: meal.quantity,
             don_gia: meal.price || 0,
             thanh_tien: meal.totalMoney || 0,
-            benh_nhan_yn: meal.collectMoney ? 0 : 1,
+            benh_nhan_yn: meal.collectMoney ? 1 : 0,
             ghi_chu: meal.note || "",
             thu_tien_yn: meal.isPaid ? 1 : 0,
             httt: meal.httt || "",
@@ -359,21 +360,15 @@ const RoomSelectionForm = () => {
       });
     });
 
-    const payload = {
-      store: "Api_create_register_for_patient_meals",
-      param: {
+    try {
+      const response = await apiProcessCombinedMealOrder({
         StoreID: masterData.name,
         unitId: unitId,
         userId: id,
-      },
-      data: {
-        master,
-        detail,
-      },
-    };
+        masterData: master,
+        detailData: detail,
+      });
 
-    try {
-      const response = await multipleTablePutApi(payload);
       if (response?.responseModel?.isSucceded) {
         const sttRecList = JSON.parse(
           response?.listObject?.[0]?.[0]?.list_stt_rec || "[]"

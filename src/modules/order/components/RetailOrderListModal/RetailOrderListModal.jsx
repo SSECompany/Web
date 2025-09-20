@@ -55,7 +55,6 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
 
   const [isEditingOrder, setIsEditingOrder] = useState(false);
 
-
   const fetchListOrderData = useCallback(
     async (pageIndex = currentPage, customFilters = null) => {
       if (!isOpen || isLoading) return; // Chỉ gọi API khi modal đang mở và không đang loading
@@ -91,6 +90,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
             userId: id,
             unitId: unitId,
             storeId: storeId,
+            ma_gd: "2", // 2 = đơn POS
           },
           data: {},
         });
@@ -479,6 +479,10 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         email: masterData.email || record.email,
         ma_so_thue_kh: masterData.ma_so_thue_kh || record.ma_so_thue_kh,
         ten_dv_kh: masterData.ten_dv_kh || record.ten_dv_kh,
+        so_giuong: masterData.so_giuong || record.so_giuong || "",
+        so_phong: masterData.so_phong || record.so_phong || "",
+        ca_an: masterData.ca_an || record.ca_an || "",
+        thutien_yn: masterData.thutien_yn || record.thutien_yn || "",
       };
 
       const tableData = {
@@ -530,6 +534,10 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         email: masterData.email || record.email,
         ma_so_thue_kh: masterData.ma_so_thue_kh || record.ma_so_thue_kh,
         ten_dv_kh: masterData.ten_dv_kh || record.ten_dv_kh,
+        so_giuong: masterData.so_giuong || record.so_giuong || "",
+        so_phong: masterData.so_phong || record.so_phong || "",
+        ca_an: masterData.ca_an || record.ca_an || "",
+        thutien_yn: masterData.thutien_yn || record.thutien_yn || "",
       };
 
       setPrintMaster(mergedMasterData);
@@ -583,6 +591,10 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
             email: masterData.email || record.email,
             ma_so_thue_kh: masterData.ma_so_thue_kh || record.ma_so_thue_kh,
             ten_dv_kh: masterData.ten_dv_kh || record.ten_dv_kh,
+            so_giuong: masterData.so_giuong || record.so_giuong || "",
+            so_phong: masterData.so_phong || record.so_phong || "",
+            ca_an: masterData.ca_an || record.ca_an || "",
+            thutien_yn: masterData.thutien_yn || record.thutien_yn || "",
           };
 
           const tableData = {
