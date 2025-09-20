@@ -32,6 +32,7 @@ const MergeOrder = ({ visible, onClose, onSubmitCombineOrder }) => {
           unitId: unitId,
           storeId: storeId,
           so_ct: customFilters?.so_ct || "",
+          ma_gd: "2", // 2 = đơn POS
         },
         data: {},
       });

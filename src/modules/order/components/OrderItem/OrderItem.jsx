@@ -14,6 +14,7 @@ export default function OrderItem({
   onUpdateQuantity,
   onDeleteItem,
   onAddNote,
+  isReadOnlyMode = false,
 }) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSelectMealModalVisible, setIsSelectMealModalVisible] =
@@ -70,16 +71,29 @@ export default function OrderItem({
       <li className="order-item">
         <div className="order-item-main">
           <span className="order-item-index">{index + 1}.</span>
-          <span className="order-item-name">{item.ten_vt}</span>
+          <span className="order-item-name">
+            {item.selected_meal ? item.selected_meal.label : item.ten_vt}
+          </span>
           <div className="quantity-controls">
             <Button
               onClick={() => onUpdateQuantity(index, -1)}
-              disabled={item.so_luong <= 1}
+              disabled={item.so_luong <= 1 || isReadOnlyMode}
+              style={
+                isReadOnlyMode ? { opacity: 0.5, cursor: "not-allowed" } : {}
+              }
             >
               -
             </Button>
             <span>{item.so_luong}</span>
-            <Button onClick={() => onUpdateQuantity(index, 1)}>+</Button>
+            <Button
+              onClick={() => onUpdateQuantity(index, 1)}
+              disabled={isReadOnlyMode}
+              style={
+                isReadOnlyMode ? { opacity: 0.5, cursor: "not-allowed" } : {}
+              }
+            >
+              +
+            </Button>
           </div>
           <span
             className="order-item-price-input"
@@ -92,10 +106,19 @@ export default function OrderItem({
           >
             {formatNumber(priceInput)}
           </span>
-          <Dropdown overlay={menu} trigger={["click"]} placement="bottomRight">
+          <Dropdown
+            overlay={menu}
+            trigger={["click"]}
+            placement="bottomRight"
+            disabled={isReadOnlyMode}
+          >
             <Button
               type="text"
               icon={<EllipsisOutlined style={{ fontSize: "20px" }} />}
+              disabled={isReadOnlyMode}
+              style={
+                isReadOnlyMode ? { opacity: 0.5, cursor: "not-allowed" } : {}
+              }
             />
           </Dropdown>
         </div>
@@ -117,23 +140,18 @@ export default function OrderItem({
             })}
           </ul>
         )}
-        {item.ghi_chu && (
-          <div className="order-item-note">Ghi chú: {item.ghi_chu}</div>
-        )}
         {item.selected_meal && (
           <div className="order-item-selected-meal">
-            Món suất: <strong>{item.selected_meal.label}</strong>
-            {item.selected_meal.shiftLabel && (
-              <div className="meal-shift-info">
-                Ca: <strong>{item.selected_meal.shiftLabel}</strong>
-              </div>
-            )}
+            Ghi chú: <strong>{item.ten_vt}</strong>
             {item.selected_meal.description && (
               <div className="meal-description-small">
                 {item.selected_meal.description}
               </div>
             )}
           </div>
+        )}
+        {item.ghi_chu && !item.selected_meal && (
+          <div className="order-item-note">Ghi chú: {item.ghi_chu}</div>
         )}
       </li>
 
