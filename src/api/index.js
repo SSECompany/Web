@@ -563,45 +563,6 @@ export const api_countPrintStatus_ByDate = async (ngay) => {
     throw error;
   }
 };
-
-// API gọi stored procedure api_ProcessCombinedMealOrder
-export const apiProcessCombinedMealOrder = async ({
-  StoreID,
-  unitId,
-  userId,
-  masterData,
-  detailData,
-}) => {
-  const token = localStorage.getItem("access_token");
-
-  try {
-    const payload = {
-      store: "api_ProcessCombinedMealOrder",
-      param: {
-        StoreID,
-        unitId,
-        UserID: userId,
-      },
-      data: {
-        masterCombinedMealOrder: masterData,
-        detailCombinedMealOrder: detailData,
-      },
-    };
-
-    const response = await https.post(`User/AddData`, payload, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-        "Content-Type": "application/json",
-      },
-    });
-
-    return response?.data || [];
-  } catch (error) {
-    console.error("Error calling api_ProcessCombinedMealOrder:", error);
-    throw error;
-  }
-};
-
 // API lấy danh sách suất ăn người nhà bệnh nhân
 export const apiGetRetailOrderPatientIsFamily = async ({
   so_ct = "",
