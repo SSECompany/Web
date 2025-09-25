@@ -170,7 +170,7 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
                         color: "#000",
                       }}
                     >
-                      <span>{item?.ten_vt}</span>
+                      <span>{item?.selected_meal?.label || item?.ten_vt}</span>
                     </td>
                     <td
                       style={{
