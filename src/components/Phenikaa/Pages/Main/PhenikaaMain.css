@@ -1,0 +1,66 @@
+.phenikaa-main-container {
+  background: #f0f2f5;
+  min-height: calc(100vh - 64px); /* Subtract DMS navbar height */
+}
+
+.phenikaa-header {
+  margin-bottom: 24px;
+}
+
+.phenikaa-header h1 {
+  color: #1890ff;
+  margin-bottom: 8px;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.phenikaa-header p {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
+}
+
+.phenikaa-stats {
+  margin-bottom: 24px;
+}
+
+.phenikaa-content .ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.phenikaa-chart-placeholder {
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+  border-radius: 4px;
+  color: #999;
+}
+
+.phenikaa-orders-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.order-item span:first-child {
+  color: #333;
+  font-weight: 500;
+}
+
+.order-item span:last-child {
+  color: #1890ff;
+  font-weight: 600;
+}

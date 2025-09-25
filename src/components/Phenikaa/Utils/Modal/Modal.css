@@ -1,0 +1,12 @@
+.centered-buttons .ant-modal-confirm-btns {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.fixed-height .ant-modal-content {
+  height: 150px !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
