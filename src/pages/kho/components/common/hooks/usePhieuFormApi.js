@@ -1,12 +1,12 @@
-import { useState, useCallback, useRef, useEffect } from "react";
 import { debounce } from "lodash";
+import { useCallback, useEffect, useRef, useState } from "react";
 import axiosInstance from "../../../../utils/axiosInstance";
 
 /**
  * Custom hook tối ưu cho API calls trong form phiếu
  * Giảm duplicate code và tối ưu performance
  */
-export const usePhieuFormApi = (formType = 'nhap-kho') => {
+export const usePhieuFormApi = (formType = "nhat-hang") => {
   // Loading states
   const [loadingStates, setLoadingStates] = useState({
     maKhach: false,
@@ -34,58 +34,65 @@ export const usePhieuFormApi = (formType = 'nhap-kho') => {
   }, []);
 
   // Generic fetch function với caching
-  const fetchWithCache = useCallback(async (key, url, params = {}) => {
-    const cacheKey = `${key}_${JSON.stringify(params)}`;
-    
-    // Return cached data if exists
-    if (cache.current[cacheKey]) {
-      return cache.current[cacheKey];
-    }
+  const fetchWithCache = useCallback(
+    async (key, url, params = {}) => {
+      const cacheKey = `${key}_${JSON.stringify(params)}`;
 
-    cancelRequest(key);
-    
-    const controller = new AbortController();
-    abortControllers.current[key] = controller;
-
-    setLoadingStates(prev => ({ ...prev, [key]: true }));
-
-    try {
-      const response = await axiosInstance.get(url, {
-        params,
-        signal: controller.signal,
-      });
-
-      if (response.data && response.data.result) {
-        cache.current[cacheKey] = response.data.result;
-        return response.data.result;
+      // Return cached data if exists
+      if (cache.current[cacheKey]) {
+        return cache.current[cacheKey];
       }
-      return [];
-    } catch (error) {
-      if (error.name !== "AbortError") {
-        console.error(`Error fetching ${key}:`, error);
+
+      cancelRequest(key);
+
+      const controller = new AbortController();
+      abortControllers.current[key] = controller;
+
+      setLoadingStates((prev) => ({ ...prev, [key]: true }));
+
+      try {
+        const response = await axiosInstance.get(url, {
+          params,
+          signal: controller.signal,
+        });
+
+        if (response.data && response.data.result) {
+          cache.current[cacheKey] = response.data.result;
+          return response.data.result;
+        }
+        return [];
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error(`Error fetching ${key}:`, error);
+        }
+        return [];
+      } finally {
+        setLoadingStates((prev) => ({ ...prev, [key]: false }));
+        delete abortControllers.current[key];
       }
-      return [];
-    } finally {
-      setLoadingStates(prev => ({ ...prev, [key]: false }));
-      delete abortControllers.current[key];
-    }
-  }, [cancelRequest]);
+    },
+    [cancelRequest]
+  );
 
   // Fetch mã khách
-  const fetchMaKhachList = useCallback(async (searchTerm = "") => {
-    const result = await fetchWithCache(
-      'maKhach',
-      '/danh-muc/ma-khach',
-      { search: searchTerm, limit: 50 }
-    );
+  const fetchMaKhachList = useCallback(
+    async (searchTerm = "") => {
+      const result = await fetchWithCache("maKhach", "/danh-muc/ma-khach", {
+        search: searchTerm,
+        limit: 50,
+      });
 
-    const options = result.map((item) => ({
-      value: item.ma_khach || item.ma_kh,
-      label: `${item.ma_khach || item.ma_kh} - ${item.ten_khach || item.ten_kh}`,
-    }));
+      const options = result.map((item) => ({
+        value: item.ma_khach || item.ma_kh,
+        label: `${item.ma_khach || item.ma_kh} - ${
+          item.ten_khach || item.ten_kh
+        }`,
+      }));
 
-    setSelectData(prev => ({ ...prev, maKhachList: options }));
-  }, [fetchWithCache]);
+      setSelectData((prev) => ({ ...prev, maKhachList: options }));
+    },
+    [fetchWithCache]
+  );
 
   // Debounced search cho mã khách
   const fetchMaKhachListDebounced = useCallback(
@@ -96,20 +103,22 @@ export const usePhieuFormApi = (formType = 'nhap-kho') => {
   );
 
   // Fetch mã kho
-  const fetchMaKhoList = useCallback(async (searchTerm = "") => {
-    const result = await fetchWithCache(
-      'maKho',
-      '/danh-muc/ma-kho',
-      { search: searchTerm, limit: 50 }
-    );
+  const fetchMaKhoList = useCallback(
+    async (searchTerm = "") => {
+      const result = await fetchWithCache("maKho", "/danh-muc/ma-kho", {
+        search: searchTerm,
+        limit: 50,
+      });
 
-    const options = result.map((item) => ({
-      value: item.ma_kho,
-      label: `${item.ma_kho} - ${item.ten_kho}`,
-    }));
+      const options = result.map((item) => ({
+        value: item.ma_kho,
+        label: `${item.ma_kho} - ${item.ten_kho}`,
+      }));
 
-    setSelectData(prev => ({ ...prev, maKhoList: options }));
-  }, [fetchWithCache]);
+      setSelectData((prev) => ({ ...prev, maKhoList: options }));
+    },
+    [fetchWithCache]
+  );
 
   // Debounced search cho mã kho
   const fetchMaKhoListDebounced = useCallback(
@@ -122,26 +131,29 @@ export const usePhieuFormApi = (formType = 'nhap-kho') => {
   // Fetch mã giao dịch
   const fetchMaGiaoDichList = useCallback(async () => {
     // Check cache first
-    if (cache.current['maGiaoDich_'] && cache.current['maGiaoDich_'].length > 0) {
+    if (
+      cache.current["maGiaoDich_"] &&
+      cache.current["maGiaoDich_"].length > 0
+    ) {
       return;
     }
 
     const result = await fetchWithCache(
-      'maGiaoDich',
-      '/danh-muc/ma-giao-dich',
+      "maGiaoDich",
+      "/danh-muc/ma-giao-dich",
       { type: formType }
     );
 
-    setSelectData(prev => ({ 
-      ...prev, 
-      maGiaoDichList: result 
+    setSelectData((prev) => ({
+      ...prev,
+      maGiaoDichList: result,
     }));
   }, [fetchWithCache, formType]);
 
   // Clear cache utility
   const clearCache = useCallback((key) => {
     if (key) {
-      Object.keys(cache.current).forEach(cacheKey => {
+      Object.keys(cache.current).forEach((cacheKey) => {
         if (cacheKey.startsWith(key)) {
           delete cache.current[cacheKey];
         }
@@ -155,7 +167,7 @@ export const usePhieuFormApi = (formType = 'nhap-kho') => {
   useEffect(() => {
     return () => {
       // Cancel all pending requests
-      Object.keys(abortControllers.current).forEach(key => {
+      Object.keys(abortControllers.current).forEach((key) => {
         cancelRequest(key);
       });
     };
@@ -165,7 +177,7 @@ export const usePhieuFormApi = (formType = 'nhap-kho') => {
     // States
     loadingStates,
     selectData,
-    
+
     // Handlers
     selectHandlers: {
       fetchMaKhachList,
@@ -174,7 +186,7 @@ export const usePhieuFormApi = (formType = 'nhap-kho') => {
       fetchMaKhoListDebounced,
       fetchMaGiaoDichList,
     },
-    
+
     // Utilities
     clearCache,
   };
@@ -183,7 +195,9 @@ export const usePhieuFormApi = (formType = 'nhap-kho') => {
 /**
  * Hook wrapper cho từng loại phiếu
  */
-export const usePhieuNhapKhoApi = () => usePhieuFormApi('nhap-kho');
-export const usePhieuXuatKhoApi = () => usePhieuFormApi('xuat-kho');
-export const usePhieuXuatDieuChuyenApi = () => usePhieuFormApi('xuat-dieu-chuyen');
-export const usePhieuXuatKhoBanHangApi = () => usePhieuFormApi('xuat-kho-ban-hang');
+export const usePhieuNhapKhoApi = () => usePhieuFormApi("nhap-kho");
+export const usePhieuXuatKhoApi = () => usePhieuFormApi("xuat-kho");
+export const usePhieuXuatDieuChuyenApi = () =>
+  usePhieuFormApi("xuat-dieu-chuyen");
+export const usePhieuXuatKhoBanHangApi = () =>
+  usePhieuFormApi("xuat-kho-ban-hang");

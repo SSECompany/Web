@@ -14,7 +14,7 @@ const STATUS_CONFIG = {
   },
   phieu_nhap_kho: {
     statuses: ["2", "3"], // Nhập kho, Chuyển vào SC
-    name: "phiếu nhập kho",
+    name: "phiếu nhặt hàng",
   },
   phieu_xuat_kho_ban_hang: {
     statuses: ["5", "6"], // Xuất kho, Hoàn thành

@@ -15,7 +15,7 @@ import CartTable from "./components/CartTable";
 import PaymentSummary from "./components/PaymentSummary";
 import "./POS.css";
 
-const POS = () => {
+const ReturnPOS = () => {
   // Lấy dữ liệu từ Redux store
   const { id: userId, unitId } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
@@ -332,7 +332,7 @@ const POS = () => {
           size="small"
           title={
             <div className="search-title">
-              <span>Tìm kiếm & Quét mã</span>
+              <span>Tìm kiếm & Quét mã - Trả hàng</span>
             </div>
           }
           className="search-card"
@@ -363,7 +363,7 @@ const POS = () => {
 
       <div className="tool-tip">
         <div className="tool-tip-left">
-          <Tooltip placement="top" title="Danh sách đơn">
+          <Tooltip placement="top" title="Danh sách đơn trả">
             <Button className="default_button" onClick={handleOrderListModal}>
               <i className="pi pi-list sub_text_color"></i>
             </Button>
@@ -405,4 +405,5 @@ const POS = () => {
   );
 };
 
-export default POS;
+export default ReturnPOS;
+

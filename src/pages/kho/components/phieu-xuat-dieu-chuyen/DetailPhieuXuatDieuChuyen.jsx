@@ -13,7 +13,7 @@ import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
 
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
-import { fetchVatTuListDynamicApi } from "../phieu-nhap-kho/utils/phieuNhapKhoUtils";
+import { fetchVatTuListDynamicApi } from "../phieu-nhat-hang/utils/phieuNhatHangUtils";
 import {
   buildPayload,
   validateDataSource,

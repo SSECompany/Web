@@ -8,20 +8,20 @@ import VatTuSelectFull from "../../../../components/common/ProductSelectFull/Vat
 import https from "../../../../utils/https";
 import "../common-phieu.css";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
-import PhieuNhapKhoFormInputs from "./components/PhieuNhapKhoFormInputs";
-import VatTuNhapKhoTable from "./components/VatTuNhapKhoTable";
-import { usePhieuNhapKhoData } from "./hooks/usePhieuNhapKhoData";
-import { useVatTuManagerNhapKho } from "./hooks/useVatTuManagerNhapKho";
+import PhieuNhatHangFormInputs from "./components/PhieuNhatHangFormInputs";
+import VatTuNhatHangTable from "./components/VatTuNhatHangTable";
+import { usePhieuNhatHangData } from "./hooks/usePhieuNhatHangData";
+import { useVatTuManagerNhatHang } from "./hooks/useVatTuManagerNhatHang";
 import {
-  buildPhieuNhapKhoPayload,
-  deletePhieuNhapKhoDynamic,
-  submitPhieuNhapKhoDynamic,
+  buildPhieuNhatHangPayload,
+  deletePhieuNhatHangDynamic,
+  submitPhieuNhatHangDynamic,
   validateDataSource,
-} from "./utils/phieuNhapKhoUtils";
+} from "./utils/phieuNhatHangUtils";
 
 const { Title } = Typography;
 
-const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
+const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const { stt_rec } = useParams();
@@ -61,7 +61,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
     fetchVatTuDetail,
     fetchDonViTinh,
     setVatTuList,
-  } = usePhieuNhapKhoData();
+  } = usePhieuNhatHangData();
 
   const {
     dataSource,
@@ -71,7 +71,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
     handleSelectChange,
     handleDeleteItem,
     handleDvtChange,
-  } = useVatTuManagerNhapKho();
+  } = useVatTuManagerNhatHang();
 
   // Phân trang vật tư
   const fetchVatTuListPaging = async (
@@ -248,26 +248,26 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   };
 
   const handleEdit = () => {
-            navigate(`/kho/nhap-kho/chi-tiet/${stt_rec}`);
+    navigate(`/kho/nhat-hang/chi-tiet/${stt_rec}`);
     setIsEditMode(true);
   };
 
   const handleNew = () => {
-            navigate("/kho/nhap-kho/them-moi");
+    navigate("/kho/nhat-hang/them-moi");
   };
 
   const handleDelete = async () => {
     showConfirm({
-      title: "Xác nhận xóa phiếu nhập kho",
-      content: "Bạn có chắc chắn muốn xóa phiếu nhập kho này không?",
+      title: "Xác nhận xóa phiếu nhặt hàng",
+      content: "Bạn có chắc chắn muốn xóa phiếu nhặt hàng này không?",
       type: "warning",
       onOk: async () => {
         setLoading(true);
-        const result = await deletePhieuNhapKhoDynamic(sctRec);
+        const result = await deletePhieuNhatHangDynamic(sctRec);
         setLoading(false);
 
         if (result.success) {
-          navigate("/kho/nhap-kho");
+          navigate("/kho/nhat-hang");
         }
       },
     });
@@ -296,7 +296,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
           // Callback khi user xác nhận tiếp tục
           try {
             // Build payload
-            const payload = buildPhieuNhapKhoPayload(
+            const payload = buildPhieuNhatHangPayload(
               values,
               dataSource,
               phieuData,
@@ -310,9 +310,9 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             }
 
             // Submit
-            const result = await submitPhieuNhapKhoDynamic(
+            const result = await submitPhieuNhatHangDynamic(
               payload,
-              "Cập nhật phiếu nhập kho thành công",
+              "Cập nhật phiếu nhặt hàng thành công",
               true
             );
 
@@ -323,7 +323,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
 
               // Delay một chút để user thấy message trước khi navigate
               setTimeout(() => {
-                navigate("/kho/nhap-kho");
+                navigate("/kho/nhat-hang");
               }, 1000);
             } else {
             }
@@ -350,13 +350,15 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
         <Button
           type="text"
           icon={<LeftOutlined />}
-          onClick={() => navigate("/kho/nhap-kho")}
+          onClick={() => navigate("/kho/nhat-hang")}
           className="phieu-back-button"
         >
           Trở về
         </Button>
         <Title level={5} className="phieu-title">
-          {isEditMode ? "CHỈNH SỬA PHIẾU NHẬP KHO" : "CHI TIẾT PHIẾU NHẬP KHO"}
+          {isEditMode
+            ? "CHỈNH SỬA PHIẾU NHẶT HÀNG"
+            : "CHI TIẾT PHIẾU NHẶT HÀNG"}
         </Title>
         {!isEditMode ? (
           <Button
@@ -379,7 +381,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
           className="phieu-form"
           disabled={!isEditMode}
         >
-          <PhieuNhapKhoFormInputs
+          <PhieuNhatHangFormInputs
             isEditMode={isEditMode}
             maKhachList={maKhachList}
             loadingMaKhach={loadingMaKhach}
@@ -406,7 +408,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             handleVatTuSelect={handleVatTuSelect}
           />
 
-          <VatTuNhapKhoTable
+          <VatTuNhatHangTable
             dataSource={dataSource}
             isEditMode={isEditMode}
             handleQuantityChange={handleQuantityChange}
@@ -446,4 +448,4 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   );
 };
 
-export default DetailPhieuNhapKho;
+export default DetailPhieuNhatHang;

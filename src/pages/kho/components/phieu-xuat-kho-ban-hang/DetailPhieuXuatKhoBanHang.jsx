@@ -7,7 +7,7 @@ import VatTuSelectFull from "../../../../components/common/ProductSelectFull/Vat
 import https from "../../../../utils/https";
 import "../common-phieu.css";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
-import { fetchVatTuListDynamicApi } from "../phieu-nhap-kho/utils/phieuNhapKhoUtils";
+import { fetchVatTuListDynamicApi } from "../phieu-nhat-hang/utils/phieuNhatHangUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";

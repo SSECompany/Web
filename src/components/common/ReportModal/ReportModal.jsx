@@ -53,7 +53,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         const ngayCT = filterNgayCT || formatDate(new Date());
 
         const res = await multipleTablePutApi({
-          store: "api_get_pos_order_manv",
+          store: "api_get_ban_hang_order_manv",
           param: {
             so_ct: "",
             ma_kh: "",

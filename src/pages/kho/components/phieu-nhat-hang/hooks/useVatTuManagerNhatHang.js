@@ -1,7 +1,7 @@
 import { message } from "antd";
 import { useRef, useState } from "react";
 
-export const useVatTuManagerNhapKho = () => {
+export const useVatTuManagerNhatHang = () => {
   const [dataSource, setDataSource] = useState([]);
   const isProcessingRef = useRef(false);
   const lastProcessedValueRef = useRef("");

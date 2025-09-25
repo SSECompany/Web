@@ -2,8 +2,20 @@
  * Cấu hình cho từng loại bảng vật tư
  */
 
-// Cấu hình cho phiếu nhập kho
+// Cấu hình cho phiếu nhập kho (legacy)
 export const phieuNhapKhoConfig = {
+  tenMatHangField: "ten_mat_hang",
+  soLuongDeNghiField: "soLuongDeNghi",
+  soLuongDeNghiEditable: true,
+  showSoLuongDeNghi: true,
+  soLuongCheatField: "soLuong",
+  soLuongCheatTitle: "Số lượng cheat",
+  showSoLuongCheat: true,
+  showMaKho: true,
+};
+
+// Cấu hình cho phiếu nhặt hàng
+export const phieuNhatHangConfig = {
   tenMatHangField: "ten_mat_hang",
   soLuongDeNghiField: "soLuongDeNghi",
   soLuongDeNghiEditable: true,
@@ -52,15 +64,16 @@ export const phieuXuatKhoBanHangConfig = {
 
 /**
  * Lấy config theo loại phiếu
- * @param {string} type - Loại phiếu: 'nhap-kho', 'xuat-kho', 'xuat-dieu-chuyen', 'xuat-kho-ban-hang'
+ * @param {string} type - Loại phiếu: 'nhap-kho', 'nhat-hang', 'xuat-kho', 'xuat-dieu-chuyen', 'xuat-kho-ban-hang'
  * @returns {Object} Config tương ứng
  */
 export const getTableConfig = (type) => {
   const configs = {
-    'nhap-kho': phieuNhapKhoConfig,
-    'xuat-kho': phieuXuatKhoConfig,
-    'xuat-dieu-chuyen': phieuXuatDieuChuyenConfig,
-    'xuat-kho-ban-hang': phieuXuatKhoBanHangConfig,
+    "nhap-kho": phieuNhapKhoConfig,
+    "nhat-hang": phieuNhatHangConfig,
+    "xuat-kho": phieuXuatKhoConfig,
+    "xuat-dieu-chuyen": phieuXuatDieuChuyenConfig,
+    "xuat-kho-ban-hang": phieuXuatKhoBanHangConfig,
   };
 
   return configs[type] || phieuXuatKhoConfig; // Default

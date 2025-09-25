@@ -58,8 +58,8 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     await jwt.resetAccessToken();
-    localStorage.removeItem("pharmacy_activeTabId");
-    localStorage.removeItem("pharmacy_orders");
+    localStorage.removeItem("ban_hang_activeTabId");
+    localStorage.removeItem("ban_hang_orders");
     localStorage.clear();
     router.navigate("/login");
     dispatch(setClaims([]));
@@ -75,18 +75,29 @@ const Navbar = () => {
       "",
       "/",
       "login",
-      "pos",
+      "ban-hang", // Bán hàng
+      "tra-hang", // Trả hàng
       "kho",
-      "kho/nhap-kho",
-      "kho/nhap-kho/them-moi",
+      "kho/nhat-hang", // Phiếu nhặt hàng
+      "kho/nhat-hang/them-moi",
+      "kho/nhap-kho", // Legacy - có thể xóa sau
+      "kho/nhap-kho/them-moi", // Legacy - có thể xóa sau
       "kho/xuat-ban",
       "kho/xuat-dieu-chuyen",
       "kho/xuat-kho",
     ];
 
-    if (!validRoutes.includes(data?.pathname?.substring(1))) {
-      // Redirect to POS if invalid route
-      router.navigate("/pos");
+    const currentPath = data?.pathname?.substring(1);
+
+    // Check if current path matches any valid route or pattern
+    const isValidRoute =
+      validRoutes.includes(currentPath) ||
+      currentPath.match(/^kho\/nhat-hang\/chi-tiet\/\d+$/) || // Detail route pattern
+      currentPath.match(/^kho\/nhap-kho\/chi-tiet\/\d+$/); // Legacy detail route
+
+    if (!isValidRoute) {
+      // Redirect to Bán hàng if invalid route
+      router.navigate("/ban-hang");
     }
   };
 
@@ -122,8 +133,12 @@ const Navbar = () => {
             className="navbar_routes"
             items={[
               {
-                key: "pos",
-                label: <Link to="/pos">POS</Link>,
+                key: "ban-hang",
+                label: <Link to="/ban-hang">Bán hàng</Link>,
+              },
+              {
+                key: "tra-hang",
+                label: <Link to="/tra-hang">Trả hàng</Link>,
               },
               {
                 key: "kho",

@@ -98,7 +98,39 @@
   overflow: hidden;
   min-height: 0;
   flex: 2;
-  min-width: 0;
+}
+
+/* QR Scanner Button Styles */
+.search-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.qr-scan-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.qr-scan-button:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.qr-scan-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+.qr-scan-button .pi {
+  margin-right: 4px;
+  font-size: 12px;
 }
 
 /* Search Section - Clean and Professional */
@@ -346,6 +378,71 @@
 
 /* Ẩn nút tăng giảm cho discount input */
 .discount-input .ant-input-number-handler-wrap {
+  display: none !important;
+}
+
+/* Detail Input Styling */
+.detail-input {
+  width: 100% !important;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-size: 11px;
+  padding: 4px 6px;
+  height: 28px;
+}
+
+.detail-input:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.detail-input:focus,
+.detail-input-focused {
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.1);
+  outline: none;
+}
+
+.detail-input::placeholder {
+  color: #9ca3af;
+  font-size: 10px;
+}
+
+.detail-input-number {
+  width: 100% !important;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-size: 11px;
+  height: 28px;
+}
+
+.detail-input-number:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.detail-input-number:focus,
+.detail-input-number-focused {
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.1);
+  outline: none;
+}
+
+.detail-input-number .ant-input-number-input {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  height: 26px;
+  padding: 0 4px;
+}
+
+.detail-input-number .ant-input-number-handler-wrap {
   display: none !important;
 }
 

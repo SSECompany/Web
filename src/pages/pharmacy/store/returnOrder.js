@@ -17,8 +17,8 @@ const initialState = {
   listItemExtra: [],
 };
 
-const orders = createSlice({
-  name: "orders",
+const returnOrders = createSlice({
+  name: "returnOrders",
   initialState,
   reducers: {
     addTab: (state, action) => {
@@ -76,9 +76,10 @@ const orders = createSlice({
       });
 
       const resolvedTableName =
-        tableName || (roleWeb === "isPosMini" ? "POS Mini" : "POS");
+        tableName ||
+        (roleWeb === "isReturnMini" ? "Trả hàng Mini" : "Trả hàng");
       const resolvedTableId =
-        tableId || (roleWeb === "isPosMini" ? "POS_Mini" : "POS");
+        tableId || (roleWeb === "isReturnMini" ? "RETURN_Mini" : "RETURN");
       const internalId =
         providedInternalId || `${resolvedTableId}_${Date.now()}`;
 
@@ -121,8 +122,9 @@ const orders = createSlice({
       const { tableId, tableName, roleWeb } = action.payload;
       const tab = state.orders.find((tab) => tab.tableId === state.activeTabId);
       if (tab) {
-        tab.tableName = roleWeb === "isPosMini" ? "POS_Mini" : "POS";
-        tab.tableId = roleWeb === "isPosMini" ? "POS_Mini" : "POS";
+        tab.tableName =
+          roleWeb === "isReturnMini" ? "Trả hàng Mini" : "Trả hàng";
+        tab.tableId = roleWeb === "isReturnMini" ? "RETURN_Mini" : "RETURN";
         state.activeTabId = tab.tableId;
       }
     },
@@ -202,7 +204,7 @@ const orders = createSlice({
             .reduce((sum, item) => sum + parseInt(item.so_luong), 0)
             .toString();
 
-          localStorage.setItem("ban_hang_orders", JSON.stringify(state.orders));
+          localStorage.setItem("return_orders", JSON.stringify(state.orders));
         }
       }
     },
@@ -283,7 +285,7 @@ const orders = createSlice({
           httt: "",
           stt_rec: "",
           status: "2",
-          ma_ban: tab.tableId === "POS" ? "" : tab.master.ma_ban,
+          ma_ban: tab.tableId === "RETURN" ? "" : tab.master.ma_ban,
           ong_ba: "",
           so_dt: "",
           dia_chi: "",
@@ -467,6 +469,7 @@ export const {
   resetOrders,
   setCustomerInfo,
   updateTabExtraProps,
-} = orders.actions;
+} = returnOrders.actions;
 
-export default orders.reducer;
+export default returnOrders.reducer;
+

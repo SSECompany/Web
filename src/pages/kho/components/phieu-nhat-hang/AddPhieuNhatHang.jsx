@@ -6,20 +6,20 @@ import { useNavigate } from "react-router-dom";
 import VatTuSelectFull from "../../../../components/common/ProductSelectFull/VatTuSelectFull";
 import "../common-phieu.css";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
-import PhieuNhapKhoFormInputs from "./components/PhieuNhapKhoFormInputs";
-import VatTuNhapKhoTable from "./components/VatTuNhapKhoTable";
-import { usePhieuNhapKhoData } from "./hooks/usePhieuNhapKhoData";
-import { useVatTuManagerNhapKho } from "./hooks/useVatTuManagerNhapKho";
+import PhieuNhatHangFormInputs from "./components/PhieuNhatHangFormInputs";
+import VatTuNhatHangTable from "./components/VatTuNhatHangTable";
+import { usePhieuNhatHangData } from "./hooks/usePhieuNhatHangData";
+import { useVatTuManagerNhatHang } from "./hooks/useVatTuManagerNhatHang";
 import {
-  buildPhieuNhapKhoPayload,
+  buildPhieuNhatHangPayload,
   fetchVoucherInfo,
-  submitPhieuNhapKhoDynamic,
+  submitPhieuNhatHangDynamic,
   validateDataSource,
-} from "./utils/phieuNhapKhoUtils";
+} from "./utils/phieuNhatHangUtils";
 
 const { Title } = Typography;
 
-const AddPhieuNhapKho = () => {
+const AddPhieuNhatHang = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [isEditMode, setIsEditMode] = useState(true);
@@ -54,7 +54,7 @@ const AddPhieuNhapKho = () => {
     fetchVatTuDetail,
     fetchDonViTinh,
     setVatTuList,
-  } = usePhieuNhapKhoData();
+  } = usePhieuNhatHangData();
 
   const {
     dataSource,
@@ -64,7 +64,7 @@ const AddPhieuNhapKho = () => {
     handleSelectChange,
     handleDeleteItem,
     handleDvtChange,
-  } = useVatTuManagerNhapKho();
+  } = useVatTuManagerNhatHang();
 
   // Phân trang vật tư
   const fetchVatTuListPaging = async (
@@ -175,7 +175,7 @@ const AddPhieuNhapKho = () => {
           // Callback khi user xác nhận tiếp tục
           try {
             // Build payload
-            const payload = buildPhieuNhapKhoPayload(values, dataSource);
+            const payload = buildPhieuNhatHangPayload(values, dataSource);
 
             if (!payload) {
               message.error("Không thể tạo payload");
@@ -184,14 +184,14 @@ const AddPhieuNhapKho = () => {
             }
 
             // Submit
-            const result = await submitPhieuNhapKhoDynamic(
+            const result = await submitPhieuNhatHangDynamic(
               payload,
-              "Thêm phiếu nhập kho thành công",
+              "Thêm phiếu nhặt hàng thành công",
               false
             );
 
             if (result.success) {
-              navigate("/kho/nhap-kho");
+              navigate("/kho/nhat-hang");
             }
           } catch (error) {
             console.error("Submit failed:", error);
@@ -222,14 +222,14 @@ const AddPhieuNhapKho = () => {
           Trở về
         </Button>
         <Title level={5} className="phieu-title">
-          THÊM PHIẾU NHẬP KHO MỚI
+          THÊM PHIẾU NHẶT HÀNG MỚI
         </Title>
         <div style={{ width: "120px" }}></div>
       </div>
 
       <div className="phieu-form-container">
         <Form form={form} layout="vertical" className="phieu-form">
-          <PhieuNhapKhoFormInputs
+          <PhieuNhatHangFormInputs
             isEditMode={isEditMode}
             maKhachList={maKhachList}
             loadingMaKhach={loadingMaKhach}
@@ -256,7 +256,7 @@ const AddPhieuNhapKho = () => {
             handleVatTuSelect={handleVatTuSelect}
           />
 
-          <VatTuNhapKhoTable
+          <VatTuNhatHangTable
             dataSource={dataSource}
             isEditMode={isEditMode}
             handleQuantityChange={handleQuantityChange}
@@ -289,4 +289,4 @@ const AddPhieuNhapKho = () => {
   );
 };
 
-export default AddPhieuNhapKho;
+export default AddPhieuNhatHang;

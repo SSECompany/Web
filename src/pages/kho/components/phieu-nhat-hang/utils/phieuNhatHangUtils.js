@@ -62,7 +62,7 @@ export const validateDataSource = (dataSource) => {
   return { isValid: true };
 };
 
-export const buildPhieuNhapKhoPayload = (
+export const buildPhieuNhatHangPayload = (
   values,
   dataSource,
   phieuData = null,
@@ -109,7 +109,7 @@ export const buildPhieuNhapKhoPayload = (
 
   // Đảm bảo các trường bắt buộc có mặt khi thêm mới
   if (!isUpdate) {
-    // Các trường bắt buộc cho phiếu nhập kho
+    // Các trường bắt buộc cho phiếu nhặt hàng
     if (!masterData.stt_rec) {
       masterData.stt_rec = ""; // Sẽ được tạo tự động bởi server
     }
@@ -377,7 +377,11 @@ export const buildPhieuNhapKhoPayload = (
   return payload;
 };
 
-export const submitPhieuNhapKho = async (endpoint, payload, successMessage) => {
+export const submitPhieuNhatHang = async (
+  endpoint,
+  payload,
+  successMessage
+) => {
   const token = localStorage.getItem("access_token");
 
   try {
@@ -451,18 +455,18 @@ export const deletePhieuNhapKho = async (sctRec) => {
     );
 
     if (response.data && response.data.statusCode === 200) {
-      message.success("Xóa phiếu nhập kho thành công");
+      message.success("Xóa phiếu nhặt hàng thành công");
       return { success: true };
     } else {
-      message.error(response.data?.message || "Xóa phiếu nhập kho thất bại");
+      message.error(response.data?.message || "Xóa phiếu nhặt hàng thất bại");
       return { success: false };
     }
   } catch (error) {
-    console.error("Lỗi khi xóa phiếu nhập kho:", error);
+    console.error("Lỗi khi xóa phiếu nhặt hàng:", error);
     if (error.response?.data?.message) {
       message.error(error.response.data.message);
     } else {
-      message.error("Có lỗi xảy ra khi xóa phiếu nhập kho");
+      message.error("Có lỗi xảy ra khi xóa phiếu nhặt hàng");
     }
     return { success: false };
   }
@@ -563,7 +567,7 @@ export const ensureRequiredFields = (targetObject, requiredFields) => {
 };
 
 // Dynamic API functions for phieu nhap kho
-export const submitPhieuNhapKhoDynamic = async (
+export const submitPhieuNhatHangDynamic = async (
   payload,
   successMessage,
   isUpdate = false
@@ -651,7 +655,7 @@ export const submitPhieuNhapKhoDynamic = async (
   }
 };
 
-export const deletePhieuNhapKhoDynamic = async (sctRec) => {
+export const deletePhieuNhatHangDynamic = async (sctRec) => {
   const token = localStorage.getItem("access_token");
 
   const body = {
@@ -679,17 +683,17 @@ export const deletePhieuNhapKhoDynamic = async (sctRec) => {
     // Check new response structure with responseModel
     if (response.data?.responseModel?.isSucceded === true) {
       message.success(
-        response.data.responseModel.message || "Xóa phiếu nhập kho thành công"
+        response.data.responseModel.message || "Xóa phiếu nhặt hàng thành công"
       );
       return { success: true };
     } else {
       message.error(
-        response.data?.responseModel?.message || "Xóa phiếu nhập kho thất bại"
+        response.data?.responseModel?.message || "Xóa phiếu nhặt hàng thất bại"
       );
       return { success: false };
     }
   } catch (error) {
-    console.error("Lỗi khi xóa phiếu nhập kho:", error);
+    console.error("Lỗi khi xóa phiếu nhặt hàng:", error);
     if (error.response?.data?.responseModel?.message) {
       message.error(error.response.data.responseModel.message);
     } else if (error.response?.data?.message) {
@@ -697,7 +701,7 @@ export const deletePhieuNhapKhoDynamic = async (sctRec) => {
     } else if (error.message) {
       message.error(`Lỗi: ${error.message}`);
     } else {
-      message.error("Có lỗi xảy ra khi xóa phiếu nhập kho");
+      message.error("Có lỗi xảy ra khi xóa phiếu nhặt hàng");
     }
     return { success: false };
   }

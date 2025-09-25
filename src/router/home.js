@@ -7,18 +7,12 @@ import ProtectedRoute from "./ProtectedRoute";
 // Pages
 const Login = lazy(() => import("../pages/Login/Login"));
 const POSPage = lazy(() => import("../pages/pharmacy/POS"));
+const ReturnPOSPage = lazy(() => import("../pages/pharmacy/ReturnPOS"));
 const KhoPage = lazy(() => import("../pages/kho/Kho"));
 
-// Kho Components
-const ListPhieuNhapKho = lazy(() =>
-  import("../pages/kho/components/phieu-nhap-kho/ListPhieuNhapKho")
-);
-const AddPhieuNhapKho = lazy(() =>
-  import("../pages/kho/components/phieu-nhap-kho/AddPhieuNhapKho")
-);
-const DetailPhieuNhapKho = lazy(() =>
-  import("../pages/kho/components/phieu-nhap-kho/DetailPhieuNhapKho")
-);
+import AddPhieuNhatHang from "../pages/kho/components/phieu-nhat-hang/AddPhieuNhatHang";
+import DetailPhieuNhatHang from "../pages/kho/components/phieu-nhat-hang/DetailPhieuNhatHang";
+import ListPhieuNhatHang from "../pages/kho/components/phieu-nhat-hang/ListPhieuNhatHang";
 
 const ListPhieuXuatKho = lazy(() =>
   import("../pages/kho/components/phieu-xuat-kho/ListPhieuXuatKho")
@@ -63,24 +57,30 @@ const DetailPhieuXuatDieuChuyen = lazy(() =>
 );
 
 const protectedChildrenRoutes = [
-  { index: true, element: <Navigate to="pos" replace /> },
-  { label: "POS", path: "pos", element: <POSPage /> },
+  { label: "Bán hàng", path: "ban-hang", element: <POSPage /> },
+  { label: "Trả hàng", path: "tra-hang", element: <ReturnPOSPage /> },
 
-  // Kho routes - đặt trước route kho chính để tránh xung đột
+  // Kho routes - ĐẶT TRƯỚC route kho chính để tránh conflict
   {
-    label: "Danh sách phiếu nhập kho",
-    path: "kho/nhap-kho",
-    element: <ListPhieuNhapKho />,
+    label: "Danh sách phiếu nhặt hàng",
+    path: "kho/nhat-hang",
+    element: <ListPhieuNhatHang />,
+  },
+
+  // Route kho chính - đặt SAU các route con
+  { label: "Kho", path: "kho", element: <KhoPage /> },
+
+  // Default route - chỉ redirect khi path là "/"
+  { path: "", element: <Navigate to="ban-hang" replace /> },
+  {
+    label: "Thêm phiếu nhặt hàng",
+    path: "kho/nhat-hang/them-moi",
+    element: <AddPhieuNhatHang />,
   },
   {
-    label: "Thêm phiếu nhập kho",
-    path: "kho/nhap-kho/them-moi",
-    element: <AddPhieuNhapKho />,
-  },
-  {
-    label: "Chi tiết phiếu nhập kho",
-    path: "kho/nhap-kho/chi-tiet/:id",
-    element: <DetailPhieuNhapKho />,
+    label: "Chi tiết phiếu nhặt hàng",
+    path: "kho/nhat-hang/chi-tiet/:id",
+    element: <DetailPhieuNhatHang />,
   },
   {
     label: "Danh sách phiếu xuất kho",
@@ -127,9 +127,6 @@ const protectedChildrenRoutes = [
     path: "kho/xuat-dieu-chuyen/chi-tiet/:id",
     element: <DetailPhieuXuatDieuChuyen />,
   },
-
-  // Route kho chính - đặt sau các route con
-  { label: "Kho", path: "kho", element: <KhoPage /> },
 ];
 
 const mainRoutes = [

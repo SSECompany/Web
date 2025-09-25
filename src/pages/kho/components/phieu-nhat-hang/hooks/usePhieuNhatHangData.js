@@ -1,8 +1,8 @@
 import { message } from "antd";
 import { debounce } from "lodash";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import https from "../../../../../utils/https";
-import { fetchVatTuListDynamicApi } from "../utils/phieuNhapKhoUtils";
+import { fetchVatTuListDynamicApi } from "../utils/phieuNhatHangUtils";
 
 // Global cache for master data
 const masterDataCache = {
@@ -17,7 +17,7 @@ const masterDataCache = {
 
 const CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes - cache data trong 30 phút
 
-export const usePhieuNhapKhoData = () => {
+export const usePhieuNhatHangData = () => {
   const [loading, setLoading] = useState(false);
   const [maGiaoDichList, setMaGiaoDichList] = useState([]);
   const [tkCoList, setTkCoList] = useState([]);
@@ -53,7 +53,11 @@ export const usePhieuNhapKhoData = () => {
 
   const fetchMaGiaoDichList = useCallback(async () => {
     // Return cached data if valid
-    if (masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.maGiaoDich) {
+    if (
+      masterDataCache.lastFetch &&
+      Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
+      masterDataCache.maGiaoDich
+    ) {
       setMaGiaoDichList(masterDataCache.maGiaoDich);
       return;
     }
@@ -84,7 +88,12 @@ export const usePhieuNhapKhoData = () => {
   const fetchTkCoList = useCallback(
     async (keyword = "") => {
       // Use cache for empty search
-      if (!keyword && masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.tkCo) {
+      if (
+        !keyword &&
+        masterDataCache.lastFetch &&
+        Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
+        masterDataCache.tkCo
+      ) {
         setTkCoList(masterDataCache.tkCo);
         return;
       }
@@ -132,14 +141,23 @@ export const usePhieuNhapKhoData = () => {
           return;
         }
         // Nếu có cache valid, sử dụng cache
-        if (masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.maKho) {
+        if (
+          masterDataCache.lastFetch &&
+          Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
+          masterDataCache.maKho
+        ) {
           setMaKhoList(masterDataCache.maKho);
           return;
         }
       }
 
       // Nếu đang search với keyword, kiểm tra cache và filter local
-      if (keyword && masterDataCache.maKho && masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY) {
+      if (
+        keyword &&
+        masterDataCache.maKho &&
+        masterDataCache.lastFetch &&
+        Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY
+      ) {
         const filteredData = masterDataCache.maKho.filter((item) =>
           item.label.toLowerCase().includes(keyword.toLowerCase())
         );
@@ -190,14 +208,23 @@ export const usePhieuNhapKhoData = () => {
           return;
         }
         // Nếu có cache valid, sử dụng cache
-        if (masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.maKhach) {
+        if (
+          masterDataCache.lastFetch &&
+          Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
+          masterDataCache.maKhach
+        ) {
           setMaKhachList(masterDataCache.maKhach);
           return;
         }
       }
 
       // Nếu đang search với keyword, kiểm tra cache và filter local
-      if (keyword && masterDataCache.maKhach && masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY) {
+      if (
+        keyword &&
+        masterDataCache.maKhach &&
+        masterDataCache.lastFetch &&
+        Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY
+      ) {
         const filteredData = masterDataCache.maKhach.filter((item) =>
           item.label.toLowerCase().includes(keyword.toLowerCase())
         );
@@ -335,22 +362,26 @@ export const usePhieuNhapKhoData = () => {
       if (!maVatTu) return [];
 
       // Clean maVatTu để tránh encoding issues
-      const cleanMaVatTu = maVatTu.trim().replace(/\s+/g, ' ');
-      
+      const cleanMaVatTu = maVatTu.trim().replace(/\s+/g, " ");
+
       // Kiểm tra cache trước khi gọi API
-      if (!forceRefresh && masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.donViTinh[cleanMaVatTu]) {
+      if (
+        !forceRefresh &&
+        masterDataCache.lastFetch &&
+        Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
+        masterDataCache.donViTinh[cleanMaVatTu]
+      ) {
         return masterDataCache.donViTinh[cleanMaVatTu];
       }
 
       try {
-        
         // Alternative approach: use manual URL construction to avoid double encoding
         const encodedMaVt = encodeURIComponent(cleanMaVatTu);
         const url = `v1/web/danh-sach-dv?ma_vt=${encodedMaVt}`;
-        
+
         const response = await https.get(
           url,
-          {},  // Empty params since we manually built the URL
+          {}, // Empty params since we manually built the URL
           {
             headers: {
               "Content-Type": "application/json",
@@ -379,7 +410,7 @@ export const usePhieuNhapKhoData = () => {
   const clearCache = useCallback((type = null) => {
     if (type) {
       // Clear specific cache
-      if (type === 'donViTinh') {
+      if (type === "donViTinh") {
         masterDataCache.donViTinh = {};
       } else if (masterDataCache[type]) {
         masterDataCache[type] = null;

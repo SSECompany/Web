@@ -1,5 +1,5 @@
 import { DeleteOutlined, ShoppingCartOutlined } from "@ant-design/icons";
-import { Button, Card, InputNumber, Table, Tag } from "antd";
+import { Button, Card, Input, InputNumber, Table, Tag } from "antd";
 import React from "react";
 
 const CartTable = ({ cart, removeAt, updateLine }) => {
@@ -20,7 +20,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "name",
       key: "name",
-      width: "30%",
+      width: "20%",
       render: (text, record) => (
         <div className="product-info">
           <div className="product-name">{text}</div>
@@ -44,7 +44,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "unit",
       key: "unit",
-      width: "10%",
+      width: "8%",
       render: (text) => <Tag color="blue">{text}</Tag>,
     },
     {
@@ -63,7 +63,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "price",
       key: "price",
-      width: "15%",
+      width: "10%",
       render: (price) => (
         <span className="price-text">
           {new Intl.NumberFormat("vi-VN").format(price)}đ
@@ -86,7 +86,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "qty",
       key: "qty",
-      width: "15%",
+      width: "10%",
       render: (qty, record, index) => (
         <div className="qty-control">
           <button
@@ -130,7 +130,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "discount",
       key: "discount",
-      width: "15%",
+      width: "10%",
       render: (discount, record, index) => (
         <InputNumber
           value={discount || 0}
@@ -155,11 +155,148 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             letterSpacing: "0.5px",
           }}
         >
+          MÃ ĐTQG
+        </span>
+      ),
+      dataIndex: "maDTQG",
+      key: "maDTQG",
+      width: "10%",
+      render: (text, record, index) => (
+        <Input
+          value={text || ""}
+          size="small"
+          className="detail-input"
+          placeholder="Mã ĐTQG"
+          onChange={(e) => updateLine(index, "maDTQG", e.target.value)}
+        />
+      ),
+    },
+    {
+      title: (
+        <span
+          style={{
+            fontWeight: "600",
+            fontSize: "12px",
+            color: "#475569",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          TÊN ĐTQG
+        </span>
+      ),
+      dataIndex: "tenDTQG",
+      key: "tenDTQG",
+      width: "12%",
+      render: (text, record, index) => (
+        <Input
+          value={text || ""}
+          size="small"
+          className="detail-input"
+          placeholder="Tên ĐTQG"
+          onChange={(e) => updateLine(index, "tenDTQG", e.target.value)}
+        />
+      ),
+    },
+    {
+      title: (
+        <span
+          style={{
+            fontWeight: "600",
+            fontSize: "12px",
+            color: "#475569",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          SL ĐTQG
+        </span>
+      ),
+      dataIndex: "slDTQG",
+      key: "slDTQG",
+      width: "8%",
+      render: (text, record, index) => (
+        <InputNumber
+          value={text || 0}
+          min={0}
+          size="small"
+          className="detail-input-number"
+          placeholder="SL"
+          onChange={(value) => updateLine(index, "slDTQG", value || 0)}
+          controls={false}
+        />
+      ),
+    },
+    {
+      title: (
+        <span
+          style={{
+            fontWeight: "600",
+            fontSize: "12px",
+            color: "#475569",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          HOẠT CHẤT
+        </span>
+      ),
+      dataIndex: "hoatChat",
+      key: "hoatChat",
+      width: "12%",
+      render: (text, record, index) => (
+        <Input
+          value={text || ""}
+          size="small"
+          className="detail-input"
+          placeholder="Hoạt chất"
+          onChange={(e) => updateLine(index, "hoatChat", e.target.value)}
+        />
+      ),
+    },
+    {
+      title: (
+        <span
+          style={{
+            fontWeight: "600",
+            fontSize: "12px",
+            color: "#475569",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          CÁCH DÙNG
+        </span>
+      ),
+      dataIndex: "cachDung",
+      key: "cachDung",
+      width: "12%",
+      render: (text, record, index) => (
+        <Input
+          value={text || ""}
+          size="small"
+          className="detail-input"
+          placeholder="Cách dùng"
+          onChange={(e) => updateLine(index, "cachDung", e.target.value)}
+        />
+      ),
+    },
+    {
+      title: (
+        <span
+          style={{
+            fontWeight: "600",
+            fontSize: "12px",
+            color: "#475569",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
           THÀNH TIỀN
         </span>
       ),
       key: "total",
-      width: "15%",
+      width: "10%",
       render: (_, record) => {
         const total =
           record.price * (record.qty || 1) * (1 - (record.discount || 0) / 100);
@@ -185,7 +322,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
         </span>
       ),
       key: "action",
-      width: "10%",
+      width: "8%",
       render: (_, record, index) => (
         <Button
           type="text"
@@ -223,7 +360,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             pagination={false}
             size="small"
             tableLayout="fixed"
-            scroll={{ y: 300 }}
+            scroll={{ x: 1200, y: 300 }}
           />
         </div>
       )}

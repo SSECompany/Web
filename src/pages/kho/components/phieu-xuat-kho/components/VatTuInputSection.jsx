@@ -1,6 +1,7 @@
 import { QrcodeOutlined } from "@ant-design/icons";
 import { Button, Col, Form, Input, Row, Select } from "antd";
 import { useEffect, useRef, useState } from "react";
+import QRScanner from "../../../common/QRScanner/QRScanner";
 
 const VatTuInputSection = ({
   isEditMode,
@@ -29,6 +30,7 @@ const VatTuInputSection = ({
   const lastProcessedBarcodeRef = useRef("");
   const [hiddenBarcode, setHiddenBarcode] = useState("");
   const hiddenInputRef = useRef();
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
 
   // Auto focus khi chuyển sang chế độ barcode
   useEffect(() => {
@@ -215,73 +217,107 @@ const VatTuInputSection = ({
     }
   };
 
+  // QR Scanner handlers
+  const handleQRScannerOpen = () => {
+    // Đăng ký callback để chuyển đổi mode barcode
+    window.triggerBarcodeMode = () => {
+      // Chỉ chuyển sang mode barcode nếu đang ở mode select
+      if (!barcodeEnabled) {
+        setBarcodeEnabled(true);
+        setBarcodeJustEnabled(true);
+        setVatTuInput("");
+        setHiddenBarcode("");
+        dropdownOpenedRef.current = false;
+        lastSearchValueRef.current = "";
+        // Reset processing flags
+        isProcessingRef.current = false;
+        lastProcessedBarcodeRef.current = null;
+      }
+    };
+    setIsQRScannerOpen(true);
+  };
+
+  const handleQRScannerClose = () => {
+    setIsQRScannerOpen(false);
+  };
+
+  const handleQRScanSuccess = (decodedText, decodedResult) => {
+    console.log("QR Code scanned in VatTuInputSection:", decodedText);
+
+    // Tự động tìm kiếm sản phẩm với mã QR đã quét
+    if (decodedText && decodedText.trim()) {
+      setVatTuInput(decodedText.trim());
+      processBarcode(decodedText.trim());
+    }
+  };
+
   return (
-    <Row gutter={16}>
-      <Col span={24}>
-        <Form.Item label="Vật tư">
-          <Input.Group compact>
-            {barcodeEnabled && (
-              <input
-                ref={hiddenInputRef}
-                value={hiddenBarcode}
-                onChange={handleHiddenInput}
-                style={{
-                  position: "absolute",
-                  opacity: 0,
-                  width: 1,
-                  height: 1,
-                  zIndex: -1,
-                }}
-                tabIndex={-1}
-                autoFocus
-              />
-            )}
-            {!barcodeEnabled ? (
-              <Select
-                ref={vatTuSelectRef}
-                value={vatTuInput}
-                onChange={setVatTuInput}
-                allowClear
-                showSearch
-                loading={loadingVatTu}
-                placeholder="Tìm kiếm hoặc chọn vật tư"
-                style={{ width: "calc(100% - 40px)" }}
-                options={vatTuList}
-                onSearch={handleSearch}
-                onDropdownVisibleChange={handleDropdownVisibleChange}
-                filterOption={false}
-                onSelect={handleVatTuSelect}
-                disabled={!isEditMode}
-                dropdownClassName="vat-tu-dropdown"
-                popupMatchSelectWidth={true}
-                showArrow={true}
-                optionFilterProp="label"
-                notFoundContent={
-                  loadingVatTu ? "Đang tải..." : "Không tìm thấy"
-                }
-                onPopupScroll={handlePopupScroll}
-              />
-            ) : (
-              <Input
-                value={vatTuInput}
-                readOnly
-                placeholder="Quét barcode vật tư..."
-                style={{ width: "calc(100% - 40px)" }}
-                disabled={!isEditMode}
-                key={vatTuInput || ""}
-              />
-            )}
-            <Button
-              icon={<QrcodeOutlined />}
-              type={barcodeEnabled ? "primary" : "default"}
-              onClick={() => {
-                if (!isEditMode) {
-                  return;
-                }
-                setBarcodeEnabled((prev) => {
-                  const next = !prev;
-                  if (next) {
-                    setBarcodeJustEnabled(true);
+    <>
+      <Row gutter={16}>
+        <Col span={24}>
+          <Form.Item label="Vật tư">
+            <Input.Group compact>
+              {barcodeEnabled && (
+                <input
+                  ref={hiddenInputRef}
+                  value={hiddenBarcode}
+                  onChange={handleHiddenInput}
+                  style={{
+                    position: "absolute",
+                    opacity: 0,
+                    width: 1,
+                    height: 1,
+                    zIndex: -1,
+                  }}
+                  tabIndex={-1}
+                  autoFocus
+                />
+              )}
+              {!barcodeEnabled ? (
+                <Select
+                  ref={vatTuSelectRef}
+                  value={vatTuInput}
+                  onChange={setVatTuInput}
+                  allowClear
+                  showSearch
+                  loading={loadingVatTu}
+                  placeholder="Tìm kiếm hoặc chọn vật tư"
+                  style={{ width: "calc(100% - 40px)" }}
+                  options={vatTuList}
+                  onSearch={handleSearch}
+                  onDropdownVisibleChange={handleDropdownVisibleChange}
+                  filterOption={false}
+                  onSelect={handleVatTuSelect}
+                  disabled={!isEditMode}
+                  dropdownClassName="vat-tu-dropdown"
+                  popupMatchSelectWidth={true}
+                  showArrow={true}
+                  optionFilterProp="label"
+                  notFoundContent={
+                    loadingVatTu ? "Đang tải..." : "Không tìm thấy"
+                  }
+                  onPopupScroll={handlePopupScroll}
+                />
+              ) : (
+                <Input
+                  value={vatTuInput}
+                  readOnly
+                  placeholder="Quét barcode vật tư..."
+                  style={{ width: "calc(100% - 40px)" }}
+                  disabled={!isEditMode}
+                  key={vatTuInput || ""}
+                />
+              )}
+              <Button
+                icon={<QrcodeOutlined />}
+                type={barcodeEnabled ? "primary" : "default"}
+                onClick={() => {
+                  if (!isEditMode) {
+                    return;
+                  }
+                  if (barcodeEnabled) {
+                    // Nếu đang ở mode barcode, click để tắt mode barcode
+                    setBarcodeEnabled(false);
                     setVatTuInput("");
                     setHiddenBarcode("");
                     dropdownOpenedRef.current = false;
@@ -289,16 +325,50 @@ const VatTuInputSection = ({
                     // Reset processing flags
                     isProcessingRef.current = false;
                     lastProcessedBarcodeRef.current = null;
+                  } else {
+                    // Nếu đang ở mode select, mở QR Scanner
+                    handleQRScannerOpen();
                   }
-                  return next;
-                });
-              }}
-              disabled={!isEditMode}
-            />
-          </Input.Group>
-        </Form.Item>
-      </Col>
-    </Row>
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  if (!isEditMode) {
+                    return;
+                  }
+                  // Right click để toggle barcode mode (giữ nguyên chức năng ban đầu)
+                  setBarcodeEnabled((prev) => {
+                    const next = !prev;
+                    if (next) {
+                      setBarcodeJustEnabled(true);
+                      setVatTuInput("");
+                      setHiddenBarcode("");
+                      dropdownOpenedRef.current = false;
+                      lastSearchValueRef.current = "";
+                      // Reset processing flags
+                      isProcessingRef.current = false;
+                      lastProcessedBarcodeRef.current = null;
+                    }
+                    return next;
+                  });
+                }}
+                disabled={!isEditMode}
+                title={
+                  barcodeEnabled
+                    ? "Click: Tắt mode barcode | Right-click: Chuyển đổi mode"
+                    : "Click: Quét QR/Camera | Right-click: Chuyển đổi mode barcode"
+                }
+              />
+            </Input.Group>
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <QRScanner
+        isOpen={isQRScannerOpen}
+        onClose={handleQRScannerClose}
+        onScanSuccess={handleQRScanSuccess}
+      />
+    </>
   );
 };
 

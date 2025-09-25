@@ -82,7 +82,7 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
       const unitCode = user.unitCode || unitsResponse.unitCode;
       const {
         fetchVatTuListDynamicApi,
-      } = require("../phieu-nhap-kho/utils/phieuNhapKhoUtils");
+      } = require("../phieu-nhat-hang/utils/phieuNhatHangUtils");
       const res = await fetchVatTuListDynamicApi({
         keyword,
         unitCode,

@@ -2,7 +2,7 @@ import { message } from "antd";
 import { debounce } from "lodash";
 import { useCallback, useMemo, useState } from "react";
 import https from "../../../../../utils/https";
-import { fetchVatTuListDynamicApi } from "../../phieu-nhap-kho/utils/phieuNhapKhoUtils";
+import { fetchVatTuListDynamicApi } from "../../phieu-nhat-hang/utils/phieuNhatHangUtils";
 
 const masterDataCache = {
   maGiaoDich: null,
@@ -27,7 +27,11 @@ export const usePhieuXuatKhoData = () => {
   // Remove isCacheValid useMemo as it causes re-renders
 
   const fetchMaGiaoDichList = useCallback(async () => {
-    if (masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.maGiaoDich) {
+    if (
+      masterDataCache.lastFetch &&
+      Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
+      masterDataCache.maGiaoDich
+    ) {
       setMaGiaoDichList(masterDataCache.maGiaoDich);
       return;
     }
@@ -63,20 +67,29 @@ export const usePhieuXuatKhoData = () => {
           return;
         }
         // Nếu có cache valid, sử dụng cache
-            if (masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.maKho) {
-      setMaKhoList(masterDataCache.maKho);
-      return;
-    }
+        if (
+          masterDataCache.lastFetch &&
+          Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
+          masterDataCache.maKho
+        ) {
+          setMaKhoList(masterDataCache.maKho);
+          return;
+        }
       }
 
       // Nếu đang search với keyword, kiểm tra cache và filter local
-          if (keyword && masterDataCache.maKho && masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY) {
-      const filteredData = masterDataCache.maKho.filter((item) =>
-        item.label.toLowerCase().includes(keyword.toLowerCase())
-      );
-      setMaKhoList(filteredData);
-      return;
-    }
+      if (
+        keyword &&
+        masterDataCache.maKho &&
+        masterDataCache.lastFetch &&
+        Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY
+      ) {
+        const filteredData = masterDataCache.maKho.filter((item) =>
+          item.label.toLowerCase().includes(keyword.toLowerCase())
+        );
+        setMaKhoList(filteredData);
+        return;
+      }
 
       setLoadingMaKho(true);
       try {
@@ -202,7 +215,12 @@ export const usePhieuXuatKhoData = () => {
       if (!maHang) return [];
 
       // Kiểm tra cache trước khi gọi API
-      if (!forceRefresh && masterDataCache.lastFetch && Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY && masterDataCache.donViTinh[maHang]) {
+      if (
+        !forceRefresh &&
+        masterDataCache.lastFetch &&
+        Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
+        masterDataCache.donViTinh[maHang]
+      ) {
         return masterDataCache.donViTinh[maHang];
       }
 

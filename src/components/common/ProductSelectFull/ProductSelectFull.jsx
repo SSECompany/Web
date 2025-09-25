@@ -1,4 +1,4 @@
-import { QrcodeOutlined } from "@ant-design/icons";
+import { BarcodeOutlined } from "@ant-design/icons";
 import { Button, Col, Input, Row, Select, Space } from "antd";
 import { useEffect, useRef } from "react";
 import "./ProductSelectFull.css";
@@ -285,89 +285,97 @@ const ProductSelectFull = ({
   };
 
   return (
-    <Row gutter={16}>
-      <Col span={24}>
-        <Space.Compact style={{ width: "100%" }}>
-          {!barcodeEnabled ? (
-            <Select
-              ref={vatTuSelectRef}
-              value={vatTuInput}
-              onChange={setVatTuInput}
-              allowClear
-              showSearch
-              loading={loadingVatTu}
-              placeholder="Tìm kiếm hoặc chọn vật tư"
-              style={{ width: "calc(100% - 40px)" }}
-              options={Array.isArray(vatTuList) ? vatTuList : []}
-              onSearch={handleSearch}
-              filterOption={false}
-              onSelect={handleVatTuSelect}
-              onFocus={handleSelectFocus}
-              disabled={!isEditMode}
-              classNames={{
-                popup: {
-                  root: "vat-tu-dropdown",
-                },
-              }}
-              popupMatchSelectWidth={true}
-              optionFilterProp="label"
-              notFoundContent={loadingVatTu ? "Đang tải..." : "Không tìm thấy"}
-              onPopupScroll={handlePopupScroll}
-              styles={{
-                popup: {
-                  root: {
-                    maxHeight: "200px",
-                    overflow: "auto",
+    <>
+      <Row gutter={16}>
+        <Col span={24}>
+          <Space.Compact style={{ width: "100%" }}>
+            {!barcodeEnabled ? (
+              <Select
+                ref={vatTuSelectRef}
+                value={vatTuInput}
+                onChange={setVatTuInput}
+                allowClear
+                showSearch
+                loading={loadingVatTu}
+                placeholder="Tìm kiếm hoặc chọn vật tư"
+                style={{ width: "calc(100% - 40px)" }}
+                options={Array.isArray(vatTuList) ? vatTuList : []}
+                onSearch={handleSearch}
+                filterOption={false}
+                onSelect={handleVatTuSelect}
+                onFocus={handleSelectFocus}
+                disabled={!isEditMode}
+                classNames={{
+                  popup: {
+                    root: "vat-tu-dropdown",
                   },
-                },
-              }}
-            />
-          ) : (
-            <Input
-              ref={vatTuSelectRef}
-              value={vatTuInput}
-              onChange={handleBarcodeInputChange}
-              onKeyPress={handleBarcodeInputKeyPress}
-              onKeyDown={handleBarcodeInputKeyDown}
-              onBlur={handleBarcodeInputBlur}
-              onFocus={handleBarcodeInputFocus}
-              placeholder="Quét barcode vật tư..."
-              style={{ width: "calc(100% - 40px)" }}
-              disabled={!isEditMode}
-              autoFocus={barcodeEnabled}
-              autoComplete="off"
-              spellCheck={false}
-              className="barcode-input"
-              inputMode="text"
-              pattern="[0-9A-Za-z]*"
-              maxLength={50}
-            />
-          )}
-          <Button
-            icon={<QrcodeOutlined />}
-            type={barcodeEnabled ? "primary" : "default"}
-            onClick={() => {
-              if (!isEditMode) {
-                return;
-              }
-              setBarcodeEnabled((prev) => {
-                const next = !prev;
-                if (next) {
-                  setBarcodeJustEnabled(true);
-                  setVatTuInput("");
-                  dropdownOpenedRef.current = false;
-                  lastSearchValueRef.current = "";
-                  isProcessingRef.current = false;
-                  lastProcessedBarcodeRef.current = null;
+                }}
+                popupMatchSelectWidth={true}
+                optionFilterProp="label"
+                notFoundContent={
+                  loadingVatTu ? "Đang tải..." : "Không tìm thấy"
                 }
-                return next;
-              });
-            }}
-            disabled={!isEditMode}
-          />
-        </Space.Compact>
-      </Col>
-    </Row>
+                onPopupScroll={handlePopupScroll}
+                styles={{
+                  popup: {
+                    root: {
+                      maxHeight: "200px",
+                      overflow: "auto",
+                    },
+                  },
+                }}
+              />
+            ) : (
+              <Input
+                ref={vatTuSelectRef}
+                value={vatTuInput}
+                onChange={handleBarcodeInputChange}
+                onKeyPress={handleBarcodeInputKeyPress}
+                onKeyDown={handleBarcodeInputKeyDown}
+                onBlur={handleBarcodeInputBlur}
+                onFocus={handleBarcodeInputFocus}
+                placeholder="Quét barcode vật tư..."
+                style={{ width: "calc(100% - 40px)" }}
+                disabled={!isEditMode}
+                autoFocus={barcodeEnabled}
+                autoComplete="off"
+                spellCheck={false}
+                className="barcode-input"
+                inputMode="text"
+                pattern="[0-9A-Za-z]*"
+                maxLength={50}
+              />
+            )}
+            <Button
+              icon={<BarcodeOutlined />}
+              type={barcodeEnabled ? "primary" : "default"}
+              onClick={() => {
+                if (!isEditMode) {
+                  return;
+                }
+                // Toggle barcode mode
+                setBarcodeEnabled((prev) => {
+                  const next = !prev;
+                  if (next) {
+                    setBarcodeJustEnabled(true);
+                    setVatTuInput("");
+                    dropdownOpenedRef.current = false;
+                    lastSearchValueRef.current = "";
+                    isProcessingRef.current = false;
+                    lastProcessedBarcodeRef.current = null;
+                  }
+                  return next;
+                });
+              }}
+              disabled={!isEditMode}
+              title={
+                barcodeEnabled ? "Tắt chế độ barcode" : "Bật chế độ barcode"
+              }
+            />
+          </Space.Compact>
+        </Col>
+      </Row>
+    </>
   );
 };
 

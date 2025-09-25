@@ -11,15 +11,15 @@ import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import "../common-phieu.css";
 import CommonPhieuList from "../CommonPhieuList";
 import {
-  deletePhieuNhapKho,
-  fetchPhieuNhapKhoList,
-} from "./utils/phieuNhapKhoApi";
+  deletePhieuNhatHang,
+  fetchPhieuNhatHangList,
+} from "./utils/phieuNhatHangApi";
 
 const { RangePicker } = DatePicker;
 
 const { Title } = Typography;
 
-const ListPhieuNhapKho = () => {
+const ListPhieuNhatHang = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("access_token");
   const [allData, setAllData] = useState([]);
@@ -58,7 +58,7 @@ const ListPhieuNhapKho = () => {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  const fetchPhieuNhapKho = async (filterParams = filters) => {
+  const fetchPhieuNhatHang = async (filterParams = filters) => {
     const params = {
       so_ct: filterParams.so_ct || "",
       ma_kh: filterParams.ma_kh || "",
@@ -77,21 +77,21 @@ const ListPhieuNhapKho = () => {
     };
 
     try {
-      const result = await fetchPhieuNhapKhoList(params);
+      const result = await fetchPhieuNhatHangList(params);
 
       if (result.success) {
         setAllData(result.data);
         setTotalRecords(result.pagination.totalRecord || result.data.length);
       } else {
-        console.error("Lỗi gọi API danh sách phiếu nhập kho:", result.error);
+        console.error("Lỗi gọi API danh sách phiếu nhặt hàng:", result.error);
       }
     } catch (err) {
-      console.error("Lỗi gọi API danh sách phiếu nhập kho:", err);
+      console.error("Lỗi gọi API danh sách phiếu nhặt hàng:", err);
     }
   };
 
   useEffect(() => {
-    fetchPhieuNhapKho();
+    fetchPhieuNhatHang();
   }, []);
 
   const getStatusColor = (status) => {
@@ -111,8 +111,8 @@ const ListPhieuNhapKho = () => {
 
   const handleDelete = async (sctRec) => {
     showConfirm({
-      title: "Xác nhận xóa phiếu nhập kho",
-      content: "Bạn có chắc chắn muốn xóa phiếu nhập kho này không?",
+      title: "Xác nhận xóa phiếu nhặt hàng",
+      content: "Bạn có chắc chắn muốn xóa phiếu nhặt hàng này không?",
       type: "warning",
       onOk: async () => {
         try {
@@ -121,14 +121,14 @@ const ListPhieuNhapKho = () => {
             return;
           }
 
-          const result = await deletePhieuNhapKho(sctRec);
+          const result = await deletePhieuNhatHang(sctRec);
 
           if (result.success) {
-            await fetchPhieuNhapKho();
+            await fetchPhieuNhatHang();
           }
         } catch (error) {
-          console.error("Lỗi khi xóa phiếu nhập kho:", error);
-          message.error("Có lỗi xảy ra khi xóa phiếu nhập kho");
+          console.error("Lỗi khi xóa phiếu nhặt hàng:", error);
+          message.error("Có lỗi xảy ra khi xóa phiếu nhặt hàng");
         }
       },
     });
@@ -197,7 +197,7 @@ const ListPhieuNhapKho = () => {
                       : null,
                 };
                 setFilters(newFilters);
-                fetchPhieuNhapKho(newFilters);
+                fetchPhieuNhatHang(newFilters);
               }}
               size="small"
             >
@@ -246,7 +246,7 @@ const ListPhieuNhapKho = () => {
                 confirm();
                 const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
                 setFilters(newFilters);
-                fetchPhieuNhapKho(newFilters);
+                fetchPhieuNhatHang(newFilters);
               }}
               style={{ marginBottom: 8, display: "block" }}
             />
@@ -257,7 +257,7 @@ const ListPhieuNhapKho = () => {
                 confirm();
                 const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
                 setFilters(newFilters);
-                fetchPhieuNhapKho(newFilters);
+                fetchPhieuNhatHang(newFilters);
               }}
               size="small"
             >
@@ -399,9 +399,9 @@ const ListPhieuNhapKho = () => {
         const getStatusText = (status) => {
           const statusMap = {
             0: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
-            2: screenSize === "mobile" ? "Nhập" : "Nhập kho",
+            2: screenSize === "mobile" ? "Nhặt" : "Nhặt hàng",
             3: screenSize === "mobile" ? "Chuyển" : "Chuyển số cài",
-            5: screenSize === "mobile" ? "Đề nghị" : "Đề nghị nhập kho",
+            5: screenSize === "mobile" ? "Đề nghị" : "Đề nghị nhặt hàng",
           };
           return statusMap[status] || "Không xác định";
         };
@@ -425,7 +425,7 @@ const ListPhieuNhapKho = () => {
             className="phieu-action-btn phieu-action-btn--view"
             title="Xem chi tiết"
             onClick={() =>
-              navigate(`/kho/nhap-kho/chi-tiet/${record.stt_rec}`, {
+              navigate(`/kho/nhat-hang/chi-tiet/${record.stt_rec}`, {
                 state: { sctRec: record.stt_rec },
               })
             }
@@ -436,7 +436,7 @@ const ListPhieuNhapKho = () => {
             className="phieu-action-btn phieu-action-btn--edit"
             title="Chỉnh sửa"
             onClick={() =>
-              navigate(`/kho/nhap-kho/chi-tiet/${record.stt_rec}`, {
+              navigate(`/kho/nhat-hang/chi-tiet/${record.stt_rec}`, {
                 state: { sctRec: record.stt_rec },
               })
             }
@@ -493,11 +493,13 @@ const ListPhieuNhapKho = () => {
   return (
     <CommonPhieuList
       title={
-        screenSize === "mobile" ? "PHIẾU NHẬP KHO" : "DANH SÁCH PHIẾU NHẬP KHO"
+        screenSize === "mobile"
+          ? "PHIẾU NHẶT HÀNG"
+          : "DANH SÁCH PHIẾU NHẶT HÀNG"
       }
       columns={getColumns()}
       data={paginatedData}
-      onAdd={() => navigate("/kho/nhap-kho/them-moi")}
+      onAdd={() => navigate("/kho/nhat-hang/them-moi")}
       onBack={() => navigate("/kho")}
       addLabel={screenSize === "mobile" ? "Thêm" : "Thêm mới"}
       rowKey="stt_rec"
@@ -513,4 +515,4 @@ const ListPhieuNhapKho = () => {
   );
 };
 
-export default ListPhieuNhapKho;
+export default ListPhieuNhatHang;

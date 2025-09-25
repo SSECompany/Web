@@ -1,8 +1,8 @@
 import { message } from "antd";
 import { multipleTablePutApi } from "../../../../../api";
 
-// API để lấy danh sách phiếu nhập kho
-export const fetchPhieuNhapKhoList = async (params) => {
+// API để lấy danh sách phiếu nhặt hàng
+export const fetchPhieuNhatHangList = async (params) => {
   const token = localStorage.getItem("access_token");
 
   const body = {
@@ -37,7 +37,7 @@ export const fetchPhieuNhapKhoList = async (params) => {
       success: true,
     };
   } catch (error) {
-    console.error("Lỗi gọi API danh sách phiếu nhập kho:", error);
+    console.error("Lỗi gọi API danh sách phiếu nhặt hàng:", error);
     return {
       data: [],
       pagination: {},
@@ -47,8 +47,8 @@ export const fetchPhieuNhapKhoList = async (params) => {
   }
 };
 
-// API để lấy chi tiết phiếu nhập kho
-export const fetchPhieuNhapKhoDetail = async (stt_rec) => {
+// API để lấy chi tiết phiếu nhặt hàng
+export const fetchPhieuNhatHangDetail = async (stt_rec) => {
   const token = localStorage.getItem("access_token");
 
   const body = {
@@ -71,7 +71,7 @@ export const fetchPhieuNhapKhoDetail = async (stt_rec) => {
       success: true,
     };
   } catch (error) {
-    console.error("Lỗi gọi API chi tiết phiếu nhập kho:", error);
+    console.error("Lỗi gọi API chi tiết phiếu nhặt hàng:", error);
     return {
       master: null,
       detail: [],
@@ -81,8 +81,8 @@ export const fetchPhieuNhapKhoDetail = async (stt_rec) => {
   }
 };
 
-// API để tạo mới phiếu nhập kho
-export const createPhieuNhapKho = async (payload) => {
+// API để tạo mới phiếu nhặt hàng
+export const createPhieuNhatHang = async (payload) => {
   const token = localStorage.getItem("access_token");
 
   const body = {
@@ -112,7 +112,7 @@ export const createPhieuNhapKho = async (payload) => {
       return { success: false };
     }
   } catch (error) {
-    console.error("Error creating phieu nhap kho:", error);
+    console.error("Error creating phieu nhat hang:", error);
 
     if (error.response?.data?.responseModel?.message) {
       message.error(error.response.data.responseModel.message);
@@ -125,8 +125,8 @@ export const createPhieuNhapKho = async (payload) => {
   }
 };
 
-// API để cập nhật phiếu nhập kho
-export const updatePhieuNhapKho = async (payload) => {
+// API để cập nhật phiếu nhặt hàng
+export const updatePhieuNhatHang = async (payload) => {
   const token = localStorage.getItem("access_token");
 
   const body = {
@@ -158,7 +158,7 @@ export const updatePhieuNhapKho = async (payload) => {
       return { success: false };
     }
   } catch (error) {
-    console.error("Error updating phieu nhap kho:", error);
+    console.error("Error updating phieu nhat hang:", error);
 
     if (error.response?.data?.responseModel?.message) {
       message.error(error.response.data.responseModel.message);
@@ -171,8 +171,8 @@ export const updatePhieuNhapKho = async (payload) => {
   }
 };
 
-// API để xóa phiếu nhập kho
-export const deletePhieuNhapKho = async (stt_rec) => {
+// API để xóa phiếu nhặt hàng
+export const deletePhieuNhatHang = async (stt_rec) => {
   const token = localStorage.getItem("access_token");
 
   const body = {
@@ -204,7 +204,7 @@ export const deletePhieuNhapKho = async (stt_rec) => {
       return { success: false };
     }
   } catch (error) {
-    console.error("Error deleting phieu nhap kho:", error);
+    console.error("Error deleting phieu nhat hang:", error);
 
     if (error.response?.data?.responseModel?.message) {
       message.error(error.response.data.responseModel.message);

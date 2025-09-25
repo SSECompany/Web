@@ -1,6 +1,6 @@
-import { VatTuTable, phieuNhapKhoConfig } from "../../common/VatTuTable";
+import { VatTuTable, phieuNhatHangConfig } from "../../common/VatTuTable";
 
-const VatTuNhapKhoTable = ({
+const VatTuNhatHangTable = ({
   dataSource,
   isEditMode = true,
   handleQuantityChange,
@@ -23,7 +23,7 @@ const VatTuNhapKhoTable = ({
       onDeleteItem={handleDeleteItem}
       onDvtChange={handleDvtChange}
       onDataSourceUpdate={onDataSourceUpdate}
-      columnConfig={phieuNhapKhoConfig}
+      columnConfig={phieuNhatHangConfig}
       apiHandlers={{
         fetchMaKhoList,
         fetchMaKhoListDebounced,
@@ -39,4 +39,4 @@ const VatTuNhapKhoTable = ({
   );
 };
 
-export default VatTuNhapKhoTable;
+export default VatTuNhatHangTable;

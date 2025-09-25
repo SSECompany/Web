@@ -1,9 +1,8 @@
-import { QrcodeOutlined } from "@ant-design/icons";
+import { BarcodeOutlined } from "@ant-design/icons";
 import { Button, Col, Input, Row, Select, Space, message } from "antd";
-import { useEffect, useRef, useState } from "react";
-import QRScanner from "../QRScanner/QRScanner";
+import { useEffect, useRef } from "react";
 
-const ProductSelectFull = ({
+const VatTuSelectFullPOS = ({
   isEditMode = true,
   barcodeEnabled,
   setBarcodeEnabled,
@@ -33,7 +32,6 @@ const ProductSelectFull = ({
   // Thêm ref để tránh gọi API scroll trùng lặp
   const isScrollingRef = useRef(false);
   const lastScrollPageRef = useRef(0);
-  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
 
   useEffect(() => {
     if (!didInitRef.current) {
@@ -45,25 +43,14 @@ const ProductSelectFull = ({
   // Auto focus khi chuyển sang chế độ barcode
   useEffect(() => {
     if (barcodeEnabled && vatTuSelectRef.current) {
-      // Clear any existing timeout
-      if (focusTimeoutRef.current) {
-        clearTimeout(focusTimeoutRef.current);
-      }
-
-      // Use longer delay for tablet
+      // Delay để đảm bảo DOM đã render
       focusTimeoutRef.current = setTimeout(() => {
         if (vatTuSelectRef.current) {
           vatTuSelectRef.current.focus();
-          // Force focus again after a short delay to ensure it works on tablet
-          setTimeout(() => {
-            if (vatTuSelectRef.current) {
-              vatTuSelectRef.current.focus();
-            }
-          }, 50);
+          vatTuSelectRef.current.select();
         }
-      }, 200);
+      }, 100);
     }
-
     return () => {
       if (focusTimeoutRef.current) {
         clearTimeout(focusTimeoutRef.current);
@@ -83,20 +70,17 @@ const ProductSelectFull = ({
     }
 
     searchTimeoutRef.current = setTimeout(() => {
-      if (setPageIndex) setPageIndex(1);
-      fetchVatTuList(value, 1, false); // reset page, không append
-      // Reset scroll state khi search mới
-      isScrollingRef.current = false;
-      lastScrollPageRef.current = 0;
+      fetchVatTuList(value);
     }, 500);
   };
 
   const handleDropdownVisibleChange = (open) => {
-    if (open && !dropdownOpenedRef.current) {
-      // Chỉ gọi lại nếu chưa từng mở dropdown (đã gọi ở useEffect rồi)
+    if (open) {
+      // Always fetch full list when dropdown opens to ensure fresh data
+      fetchVatTuList("");
       dropdownOpenedRef.current = true;
-    } else if (!open) {
-      // Reset state khi đóng dropdown
+    } else {
+      // Reset state when dropdown closes
       dropdownOpenedRef.current = false;
       lastSearchValueRef.current = "";
     }
@@ -203,69 +187,17 @@ const ProductSelectFull = ({
     }
   }, [vatTuInput, barcodeEnabled]);
 
-  // Cải thiện logic scroll phân trang
+  // Xử lý scroll phân trang
   const handlePopupScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
-
-    // Kiểm tra điều kiện scroll đến cuối
-    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 20;
-    const hasMorePages = pageIndex < totalPage;
-    const notLoading = !loadingVatTu;
-    const notCurrentlyScrolling = !isScrollingRef.current;
-    const notSamePage = lastScrollPageRef.current !== pageIndex + 1;
-
     if (
-      isNearBottom &&
-      hasMorePages &&
-      notLoading &&
-      notCurrentlyScrolling &&
-      notSamePage
+      scrollTop + clientHeight >= scrollHeight - 20 &&
+      pageIndex < totalPage &&
+      !loadingVatTu
     ) {
-      // Đánh dấu đang scroll để tránh gọi trùng lặp
-      isScrollingRef.current = true;
-      lastScrollPageRef.current = pageIndex + 1;
-
       // Gọi API trang tiếp theo, nối vào danh sách
-      // setPageIndex sẽ được gọi trong fetchVatTuList khi append thành công
       fetchVatTuList(currentKeyword, pageIndex + 1, true); // true: append
-
-      // Reset scroll state sau 1 giây
-      setTimeout(() => {
-        isScrollingRef.current = false;
-      }, 1000);
-    }
-  };
-
-  // QR Scanner handlers
-  const handleQRScannerOpen = () => {
-    // Đăng ký callback để chuyển đổi mode barcode
-    window.triggerBarcodeMode = () => {
-      // Chỉ chuyển sang mode barcode nếu đang ở mode select
-      if (!barcodeEnabled) {
-        setBarcodeEnabled(true);
-        setBarcodeJustEnabled(true);
-        setVatTuInput("");
-        dropdownOpenedRef.current = false;
-        lastSearchValueRef.current = "";
-        // Reset processing flags
-        isProcessingRef.current = false;
-        lastProcessedBarcodeRef.current = null;
-      }
-    };
-    setIsQRScannerOpen(true);
-  };
-
-  const handleQRScannerClose = () => {
-    setIsQRScannerOpen(false);
-  };
-
-  const handleQRScanSuccess = (decodedText, decodedResult) => {
-    console.log("QR Code scanned in VatTuSelectFull:", decodedText);
-
-    // Tự động tìm kiếm sản phẩm với mã QR đã quét
-    if (decodedText && decodedText.trim()) {
-      setVatTuInput(decodedText.trim());
-      handleVatTuSelect(decodedText.trim());
+      if (setPageIndex) setPageIndex(pageIndex + 1);
     }
   };
 
@@ -277,26 +209,35 @@ const ProductSelectFull = ({
             {!barcodeEnabled ? (
               <Select
                 ref={vatTuSelectRef}
-                value={vatTuInput}
-                onChange={setVatTuInput}
-                allowClear
                 showSearch
+                placeholder="Chọn vật tư"
+                optionFilterProp="children"
                 loading={loadingVatTu}
-                placeholder="Tìm kiếm hoặc chọn vật tư"
-                style={{ width: "calc(100% - 40px)" }}
-                options={vatTuList}
+                value={vatTuInput}
                 onSearch={handleSearch}
-                filterOption={false}
                 onSelect={handleVatTuSelect}
-                disabled={!isEditMode}
-                popupClassName="vat-tu-dropdown"
-                popupMatchSelectWidth={true}
-                optionFilterProp="label"
+                onDropdownVisibleChange={handleDropdownVisibleChange}
+                onPopupScroll={handlePopupScroll}
+                filterOption={false}
                 notFoundContent={
                   loadingVatTu ? "Đang tải..." : "Không tìm thấy"
                 }
-                onPopupScroll={handlePopupScroll}
-              />
+                style={{ width: "calc(100% - 40px)" }}
+                disabled={!isEditMode}
+                dropdownStyle={{ maxHeight: 300, overflow: "auto" }}
+                getPopupContainer={(trigger) => trigger.parentNode}
+              >
+                {vatTuList.map((item) => (
+                  <Select.Option key={item.value} value={item.value}>
+                    <div>
+                      <div style={{ fontWeight: "bold" }}>{item.value}</div>
+                      <div style={{ fontSize: "12px", color: "#666" }}>
+                        {item.label}
+                      </div>
+                    </div>
+                  </Select.Option>
+                ))}
+              </Select>
             ) : (
               <Input
                 ref={vatTuSelectRef}
@@ -319,32 +260,13 @@ const ProductSelectFull = ({
               />
             )}
             <Button
-              icon={<QrcodeOutlined />}
+              icon={<BarcodeOutlined />}
               type={barcodeEnabled ? "primary" : "default"}
               onClick={() => {
                 if (!isEditMode) {
                   return;
                 }
-                if (barcodeEnabled) {
-                  // Nếu đang ở mode barcode, click để tắt mode barcode
-                  setBarcodeEnabled(false);
-                  setVatTuInput("");
-                  dropdownOpenedRef.current = false;
-                  lastSearchValueRef.current = "";
-                  // Reset processing flags
-                  isProcessingRef.current = false;
-                  lastProcessedBarcodeRef.current = null;
-                } else {
-                  // Nếu đang ở mode select, mở QR Scanner
-                  handleQRScannerOpen();
-                }
-              }}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                if (!isEditMode) {
-                  return;
-                }
-                // Right click để toggle barcode mode (giữ nguyên chức năng ban đầu)
+                // Toggle barcode mode
                 setBarcodeEnabled((prev) => {
                   const next = !prev;
                   if (next) {
@@ -361,22 +283,14 @@ const ProductSelectFull = ({
               }}
               disabled={!isEditMode}
               title={
-                barcodeEnabled
-                  ? "Click: Tắt mode barcode | Right-click: Chuyển đổi mode"
-                  : "Click: Quét QR/Camera | Right-click: Chuyển đổi mode barcode"
+                barcodeEnabled ? "Tắt chế độ barcode" : "Bật chế độ barcode"
               }
             />
           </Space.Compact>
         </Col>
       </Row>
-
-      <QRScanner
-        isOpen={isQRScannerOpen}
-        onClose={handleQRScannerClose}
-        onScanSuccess={handleQRScanSuccess}
-      />
     </>
   );
 };
 
-export default ProductSelectFull;
+export default VatTuSelectFullPOS;

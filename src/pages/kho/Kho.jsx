@@ -1,56 +1,44 @@
-import {
-  ExportOutlined,
-  InboxOutlined,
-  SendOutlined,
-  ShoppingCartOutlined,
-} from "@ant-design/icons";
+import { InboxOutlined } from "@ant-design/icons";
 import { Card, Col, Row, Typography } from "antd";
 import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 import "./Kho.css";
 
 const { Title, Text } = Typography;
 
 const Kho = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  console.log("Current location:", location.pathname);
-
   const menuItems = [
     {
-      title: "Phiếu nhập kho",
-      subtitle: "Quản lý nhập kho hàng hóa",
+      title: "Phiếu nhặt hàng",
+      subtitle: "Quản lý nhặt hàng",
       icon: <InboxOutlined style={{ fontSize: "32px" }} />,
       color: "linear-gradient(135deg, #52c41a 0%, #73d13d 100%)",
-      path: "/kho/nhap-kho",
+      path: "/kho/nhat-hang",
     },
-    {
-      title: "Phiếu xuất kho bán hàng",
-      subtitle: "Quản lý xuất kho bán hàng",
-      icon: <ShoppingCartOutlined style={{ fontSize: "32px" }} />,
-      color: "linear-gradient(135deg, #722ed1 0%, #9254de 100%)",
-      path: "/kho/xuat-ban",
-    },
-    {
-      title: "Phiếu xuất điều chuyển",
-      subtitle: "Quản lý xuất kho điều chuyển",
-      icon: <SendOutlined style={{ fontSize: "32px" }} />,
-      color: "linear-gradient(135deg, #eb2f96 0%, #f759ab 100%)",
-      path: "/kho/xuat-dieu-chuyen",
-    },
-    {
-      title: "Phiếu xuất kho",
-      subtitle: "Quản lý xuất kho",
-      icon: <ExportOutlined style={{ fontSize: "32px" }} />,
-      color: "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
-      path: "/kho/xuat-kho",
-    },
+    // {
+    //   title: "Phiếu xuất kho bán hàng",
+    //   subtitle: "Quản lý xuất kho bán hàng",
+    //   icon: <ShoppingCartOutlined style={{ fontSize: "32px" }} />,
+    //   color: "linear-gradient(135deg, #722ed1 0%, #9254de 100%)",
+    //   path: "/kho/xuat-ban",
+    // },
+    // {
+    //   title: "Phiếu xuất điều chuyển",
+    //   subtitle: "Quản lý xuất kho điều chuyển",
+    //   icon: <SendOutlined style={{ fontSize: "32px" }} />,
+    //   color: "linear-gradient(135deg, #eb2f96 0%, #f759ab 100%)",
+    //   path: "/kho/xuat-dieu-chuyen",
+    // },
+    // {
+    //   title: "Phiếu xuất kho",
+    //   subtitle: "Quản lý xuất kho",
+    //   icon: <ExportOutlined style={{ fontSize: "32px" }} />,
+    //   color: "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
+    //   path: "/kho/xuat-kho",
+    // },
   ];
 
   const handleMenuClick = (path) => {
-    console.log("Navigating to:", path);
-    navigate(path);
+    window.location.href = path;
   };
 
   return (
