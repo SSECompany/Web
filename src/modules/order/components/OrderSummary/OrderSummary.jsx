@@ -313,7 +313,7 @@ export default function OrderSummary({ total, itemCount }) {
     const detailData = activeTab?.detail?.flatMap((item) => {
       const uniqueid = item.uniqueid || generateRandomId();
       const mainItem = {
-        ten_vt: item.ten_vt,
+        ten_vt: item.selected_meal?.label || item.ten_vt,
         ma_vt_root: item.ma_vt_root || "",
         // ma_vt giờ đã là mã món suất đã chọn rồi (được cập nhật trong store)
         ma_vt: item.ma_vt,
