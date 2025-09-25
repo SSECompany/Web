@@ -1,21 +1,25 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Errorpage.css";
 
 const Errorpage = () => {
   const [Count, setCount] = useState(5);
   const navigate = useNavigate();
-  useEffect((e) => {
-    setInterval(() => {
+  useEffect(() => {
+    const interval = setInterval(() => {
       setCount((old) => {
-        if (old == 1) return navigate("/");
-        return (old = old - 1);
+        if (old === 1) {
+          navigate("/");
+          return old;
+        }
+        return old - 1;
       });
     }, 1000);
+
     return () => {
-      clearInterval();
+      clearInterval(interval);
     };
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="ErrorPage">

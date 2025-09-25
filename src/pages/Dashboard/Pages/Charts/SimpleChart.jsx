@@ -1,11 +1,7 @@
 import ReactECharts from "echarts-for-react";
 import _ from "lodash";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { formatCurrency } from "../../../../app/hooks/dataFormatHelper";
-import {
-  getCircleOption,
-  getLineOptions,
-} from "../../../../app/Options/SimpleChartOptions";
 import { multipleTablePutApi } from "../../../../components/SaleOrder/API";
 import { SIMPLECHARTS } from "../../../../utils/constants";
 
@@ -28,23 +24,8 @@ const SimpleChart = ({ chartId, type, numCharts }) => {
         var data = [];
         var columns = [];
 
-        if (master?.ChartType == "Bar") {
-          data = res?.listObject[1] || [];
-          columns = res?.listObject[1]?.map((item) => {
-            return item.Month;
-          });
-          setOptions(getLineOptions(data, columns) || {});
-        }
-
-        if (master?.ChartType == "Circle") {
-          data = [
-            {
-              value: master?.value || 0,
-              name: `${master?.value}%` || "",
-            },
-          ];
-          setOptions(getCircleOption(data) || {});
-        }
+        // Chart options removed - SimpleChartOptions functionality disabled
+        setOptions({});
         setMasterInfo(master);
         setLoading(false);
       })

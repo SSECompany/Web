@@ -15,7 +15,7 @@ import documentsRoutes from "./document";
 import imageRoutes from "./images";
 import itemsRoute from "./items";
 import kpiRoutes from "./KPI";
-import phenikaaRoutes from "./phenikaa";
+import posRoutes from "./pos";
 import reportsRoute from "./report";
 import RORoutes from "./retail";
 import SORoutes from "./saleorder";
@@ -106,7 +106,7 @@ const homeRoutes = [
       ...kpiRoutes,
 
       ///////////Phenikaa POS///////////////
-      ...phenikaaRoutes,
+      ...posRoutes,
 
       ///////////DMS///////////////
       ...RORoutes,
