@@ -51,15 +51,15 @@ const getRoutesAccess = async (routes) => {
     //         claims: r.claims,
     //         isParent: r.children ? true : false,
     //       }));
-  [...routesToFlat, ...childRoutes]
-  .filter((route) => claims.includes(route.claims))
-  .map((r) => ({
-    label: r.label,
-    path: r.path,
-    claims: r.claims,
-    isParent: r.children ? true : false,
-  }))
-  const userRoute = allRoutes.filter((route) => claims.includes(route.claims));
+    [...routesToFlat, ...childRoutes]
+      // .filter((route) => claims.includes(route.claims)) // TẠM THỜI BỎ QUA PERMISSION CHECK
+      .map((r) => ({
+        label: r.label,
+        path: r.path,
+        claims: r.claims,
+        isParent: r.children ? true : false,
+      }));
+  const userRoute = allRoutes; // TẠM THỜI BỎ QUA PERMISSION CHECK - HIỂN THỊ TẤT CẢ ROUTES
   // const userRoute =  userData?.RoleId == "1"
   //     ? [...allRoutes]
   //     : allRoutes.filter((route) => claims.includes(route.claims));

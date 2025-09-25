@@ -1,8 +1,11 @@
 import { lazy } from "react";
 import App from "../App";
+import BusinessMap from "../components/DMS/Pages/BusinessMap/BusinessMap";
 import DMSCustomerList from "../components/DMS/Pages/DMSCustomerList/DMSCustomerList";
 import TourList from "../components/DMS/Pages/Tour/TourList";
 import Errorpage from "../components/Error/Errorpage";
+import TimeKeepingSchedule from "../components/HR/Pages/TimeKeepingSchedule/TimeKeepingSchedule";
+import TimeKeepingDetail from "../components/HR/Pages/TimeKeepingScheduleDetail/TimeKeepingDetail";
 import ApproveInvoice from "../components/Invoices/Pages/ApproveInvoice/ApproveInvoice";
 import Contact from "../pages/Contact/Contact";
 import Dashboard from "../pages/Dashboard/Pages/Dashboard";
@@ -12,6 +15,7 @@ import documentsRoutes from "./document";
 import imageRoutes from "./images";
 import itemsRoute from "./items";
 import kpiRoutes from "./KPI";
+import phenikaaRoutes from "./phenikaa";
 import reportsRoute from "./report";
 import RORoutes from "./retail";
 import SORoutes from "./saleorder";
@@ -53,26 +57,26 @@ const homeRoutes = [
       },
 
       ///////////////////////////////////////
-      // {
-      //   label: "HR",
-      //   claims: "Permissions.HR",
-      //   path: "HR",
-      //   children: [],
-      // },
-      // {
-      //   label: "Bảng chấm công",
-      //   claims: "Permissions.HR.Schedule",
-      //   path: "HR/Schedule",
-      //   parent: "HR",
-      //   element: <TimeKeepingSchedule />,
-      // },
-      // {
-      //   label: "Bảng chấm công chi tiết",
-      //   claims: "Permissions.HR.ScheduleDetail",
-      //   path: "HR/ScheduleDetail",
-      //   parent: "HR",
-      //   element: <TimeKeepingDetail />,
-      // },
+      {
+        label: "HR",
+        claims: "Permissions.HR",
+        path: "HR",
+        children: [],
+      },
+      {
+        label: "Bảng chấm công",
+        claims: "Permissions.HR.Schedule",
+        path: "HR/Schedule",
+        parent: "HR",
+        element: <TimeKeepingSchedule />,
+      },
+      {
+        label: "Bảng chấm công chi tiết",
+        claims: "Permissions.HR.ScheduleDetail",
+        path: "HR/ScheduleDetail",
+        parent: "HR",
+        element: <TimeKeepingDetail />,
+      },
       /////////////////////////
       ...documentsRoutes,
       ...ticketRoutes,
@@ -82,12 +86,12 @@ const homeRoutes = [
         path: "DMSCustomer",
         element: <DMSCustomerList />,
       },
-      // {
-      //   label: "Bản đồ kinh doanh",
-      //   claims: "Permissions.DMSCustomers",
-      //   path: "BusinessMap",
-      //   element: <BusinessMap />,
-      // },
+      {
+        label: "Bản đồ kinh doanh",
+        claims: "Permissions.DMSCustomers",
+        path: "BusinessMap",
+        element: <BusinessMap />,
+      },
       ...imageRoutes,
       ...systemRoutes,
       ...SORoutes,
@@ -100,6 +104,9 @@ const homeRoutes = [
         element: <ApproveInvoice />,
       },
       ...kpiRoutes,
+
+      ///////////Phenikaa POS///////////////
+      ...phenikaaRoutes,
 
       ///////////DMS///////////////
       ...RORoutes,
