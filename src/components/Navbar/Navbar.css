@@ -69,11 +69,36 @@
   padding: 4px 8px !important;
   border-radius: 6px !important;
   background: rgba(255, 255, 255, 0.1) !important;
+  font-weight: 600 !important;
 }
 
 .system_selector:hover {
-  color: #1677ff !important;
   background: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Dynamic colors based on system */
+.system_selector[data-system="DMS"] {
+  color: #f97316 !important;
+}
+
+.system_selector[data-system="DMS"]:hover {
+  color: #ea580c !important;
+}
+
+.system_selector[data-system="HRM"] {
+  color: #10b981 !important;
+}
+
+.system_selector[data-system="HRM"]:hover {
+  color: #059669 !important;
+}
+
+.system_selector[data-system="WORKFLOW"] {
+  color: #8b5cf6 !important;
+}
+
+.system_selector[data-system="WORKFLOW"]:hover {
+  color: #7c3aed !important;
 }
 
 .system_selector i {
@@ -419,21 +444,39 @@
   border-bottom: none;
 }
 
-/* DMS Theme - Blue Corporate */
+/* DMS Theme - Orange Corporate */
+.system_dropdown_item.dms_theme {
+  color: #f97316 !important;
+}
+
+.system_dropdown_item.dms_theme .system_name {
+  color: #f97316;
+  font-weight: 600;
+}
+
 .system_dropdown_item.dms_theme:hover {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
   color: #ffffff !important;
   transform: none;
   box-shadow: none;
 }
 
 .system_dropdown_item.dms_theme.active {
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%) !important;
   color: #ffffff !important;
   box-shadow: none;
 }
 
 /* HRM Theme - Green Human */
+.system_dropdown_item.hrm_theme {
+  color: #10b981 !important;
+}
+
+.system_dropdown_item.hrm_theme .system_name {
+  color: #10b981;
+  font-weight: 600;
+}
+
 .system_dropdown_item.hrm_theme:hover {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
   color: #ffffff !important;
@@ -448,6 +491,15 @@
 }
 
 /* WORKFLOW Theme - Purple Creative */
+.system_dropdown_item.workflow_theme {
+  color: #8b5cf6 !important;
+}
+
+.system_dropdown_item.workflow_theme .system_name {
+  color: #8b5cf6;
+  font-weight: 600;
+}
+
 .system_dropdown_item.workflow_theme:hover {
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
   color: #ffffff !important;
@@ -469,11 +521,11 @@
 }
 
 .system_dropdown_item:hover .system_name {
-  color: #ffffff;
+  color: #ffffff !important;
   font-weight: 600;
 }
 
 .system_dropdown_item.active .system_name {
-  color: #ffffff;
+  color: #ffffff !important;
   font-weight: 600;
 }

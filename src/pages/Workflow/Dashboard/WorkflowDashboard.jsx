@@ -169,7 +169,7 @@ const WorkflowDashboard = () => {
         >
           <div>
             <Title level={2} style={{ margin: 0 }}>
-              📊 Dashboard Workflow
+              📊 Dashboard
             </Title>
             <Text type="secondary">
               Tổng quan về tình hình dự án và công việc

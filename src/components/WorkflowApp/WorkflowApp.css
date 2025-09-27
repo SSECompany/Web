@@ -1,6 +1,7 @@
 .workflow-layout {
   min-height: 100vh;
-  background: transparent;
+  background: url('../../assets/images/work-flow.jpg') center center / cover no-repeat;
+  background-attachment: fixed;
 }
 
 .workflow-header {
@@ -31,6 +32,7 @@
   background: transparent;
   min-height: calc(100vh - 60px);
   overflow: auto;
+  margin: 20px;
 }
 
 /* Workflow specific styles */`
@@ -46,7 +48,12 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .workflow-layout {
+    background-attachment: local;
+  }
+  
   .workflow-content-wrapper {
-    padding: 0;
+    margin: 10px;
+    min-height: calc(100vh - 80px);
   }
 }

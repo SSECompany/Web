@@ -46,11 +46,11 @@ const workflowRoutes = [
         description: "Tổng quan 5 modules cốt lõi",
       },
 
-      // 1. Dashboard Workflow
+      // 1. Dashboard
       {
         path: "dashboard",
         element: WorkflowDashboard,
-        label: "Dashboard Workflow",
+        label: "Dashboard",
         description: "Tổng quan dự án & công việc",
         icon: "📊",
         priority: "HIGH",

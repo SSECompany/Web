@@ -6,7 +6,7 @@
 export const WORKFLOW_CORE_MODULES = [
   {
     id: "dashboard-workflow",
-    title: "Dashboard Workflow",
+    title: "Dashboard",
     description: "Tổng quan về tình hình dự án và công việc",
     icon: "📊",
     route: "/workflow/dashboard",

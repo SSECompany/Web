@@ -20,7 +20,7 @@ const WorkflowApp = () => {
     document.body.classList.add("workflow-app");
 
     // Update page title
-    document.title = "Workflow Management System";
+    document.title = "Workflow";
 
     return () => {
       document.body.classList.remove("workflow-app");

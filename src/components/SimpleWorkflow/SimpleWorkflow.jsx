@@ -116,7 +116,7 @@ const SimpleWorkflow = () => {
             fontWeight: "500",
           }}
         >
-          📊 Vào Dashboard Workflow
+          📊 Vào Dashboard
         </a>
       </div>
 
@@ -364,7 +364,7 @@ const SimpleWorkflow = () => {
               {
                 href: "/workflow/dashboard",
                 icon: "📊",
-                title: "Dashboard Workflow",
+                title: "Dashboard",
                 color: "#667eea",
               },
               {

@@ -193,7 +193,7 @@ const Navbar = () => {
       // CHỈ 5 MODULES CỐT LÕI - Đã được user confirm
       filteredSearchFunctions = [
         {
-          label: "Dashboard Workflow",
+          label: "Dashboard",
           path: "workflow/dashboard",
           icon: "📊",
           description: "Tổng quan dự án & công việc",
@@ -493,6 +493,7 @@ const Navbar = () => {
               <span
                 onClick={() => setSystemDropdownVisible(!systemDropdownVisible)}
                 className="default_header_label system_selector"
+                data-system={currentSystem}
               >
                 {currentSystem}
                 <i

@@ -5,13 +5,14 @@
 }
 
 .dashboard-header {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.95);
   padding: 24px;
   border-radius: 8px;
   margin-bottom: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid #f0f0f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(240, 240, 240, 0.3);
   text-align: center;
+  backdrop-filter: blur(10px);
 }
 
 .dashboard-header h1 {
@@ -29,9 +30,11 @@
 
 .stat-card {
   border-radius: 8px;
-  border: 1px solid #f0f0f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(240, 240, 240, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(8px);
 }
 
 .stat-card:hover {
@@ -54,8 +57,10 @@
 .warning-card,
 .activities-card {
   border-radius: 8px;
-  border: 1px solid #f0f0f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(240, 240, 240, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(8px);
 }
 
 .progress-card .ant-card-head-title,
