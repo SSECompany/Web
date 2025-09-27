@@ -16,12 +16,15 @@ import imageRoutes from "./images";
 import itemsRoute from "./items";
 import kpiRoutes from "./KPI";
 import posRoutes from "./pos";
+import projectRoutes from "./project";
 import reportsRoute from "./report";
 import RORoutes from "./retail";
 import SORoutes from "./saleorder";
 import systemRoutes from "./system";
 import taskRoutes from "./task";
+import taskManagementRoutes from "./taskManagement";
 import ticketRoutes from "./ticket";
+import workflowRoutes from "./workflow";
 
 const LoginHub = lazy(() => import("../pages/LoginHub/LoginHub"));
 const Login = lazy(() => import("../pages/Login/Login"));
@@ -49,6 +52,8 @@ const homeRoutes = [
         children: [],
       },
       ...taskRoutes,
+      ...projectRoutes,
+      ...taskManagementRoutes,
       {
         label: "Danh mục tuyến",
         claims: "Permissions.tour",
@@ -133,6 +138,9 @@ const homeRoutes = [
     element: <TransferHub />,
     index: true,
   },
+
+  // Workflow System - separate from DMS
+  ...workflowRoutes,
 
   {
     path: "*",

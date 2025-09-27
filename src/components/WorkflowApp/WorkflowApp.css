@@ -1,0 +1,52 @@
+.workflow-layout {
+  min-height: 100vh;
+  background: transparent;
+}
+
+.workflow-header {
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 0;
+  height: auto;
+  line-height: normal;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.workflow-header.hidden {
+  display: none;
+}
+
+.workflow-content {
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  overflow: auto;
+  height: calc(100vh - 60px);
+}
+
+.workflow-content-wrapper {
+  background: transparent;
+  min-height: calc(100vh - 60px);
+  overflow: auto;
+}
+
+/* Workflow specific styles */`
+
+/* Override any conflicting styles */
+.workflow-app .ant-layout {
+  background: transparent;
+}
+
+.workflow-app .ant-layout-content {
+  background: transparent;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .workflow-content-wrapper {
+    padding: 0;
+  }
+}

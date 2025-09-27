@@ -1,15 +1,14 @@
-import React, { useState } from 'react'
-import './Footer.css'
-import { UilAngleDoubleUp } from '@iconscout/react-unicons'
+import { useState } from "react";
+import "./Footer.css";
 
 const Footer = () => {
-    const [footer_detail,setFooterDetail] =  useState(false)
+  const [footer_detail, setFooterDetail] = useState(false);
 
   return (
-    <div className={`Footer ${footer_detail?'show_detail':''}`}>
-        <span className={`btn_show_detail`} onClick={e=> setFooterDetail(!footer_detail)}><UilAngleDoubleUp size="50"></UilAngleDoubleUp></span>
+    <div className="Footer" style={{ display: "none" }}>
+      {/* Footer bị ẩn để hiển thị full trang */}
     </div>
-  )
-}
+  );
+};
 
-export default Footer
+export default Footer;

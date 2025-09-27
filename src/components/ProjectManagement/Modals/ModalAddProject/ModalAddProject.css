@@ -1,0 +1,138 @@
+.modal-add-project .ant-modal-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.modal-add-project .ant-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.modal-add-project .ant-modal-body {
+  padding: 0 24px 24px 24px;
+}
+
+.modal-add-project .ant-form-item-label > label {
+  font-weight: 500;
+  color: #262626;
+}
+
+.modal-add-project .ant-form-item-label > label.ant-form-item-required:not(.ant-form-item-required-mark-optional)::before {
+  color: #ff4d4f;
+}
+
+.modal-add-project .ant-input,
+.modal-add-project .ant-select-selector,
+.modal-add-project .ant-picker,
+.modal-add-project .ant-input-number {
+  border-radius: 6px;
+  border: 1px solid #d9d9d9;
+  transition: all 0.2s ease;
+}
+
+.modal-add-project .ant-input:hover,
+.modal-add-project .ant-select-selector:hover,
+.modal-add-project .ant-picker:hover,
+.modal-add-project .ant-input-number:hover {
+  border-color: #40a9ff;
+}
+
+.modal-add-project .ant-input:focus,
+.modal-add-project .ant-select-focused .ant-select-selector,
+.modal-add-project .ant-picker:focus,
+.modal-add-project .ant-input-number:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.modal-add-project .ant-btn-primary {
+  background-color: #1890ff;
+  border-color: #1890ff;
+  border-radius: 6px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-add-project .ant-btn-primary:hover {
+  background-color: #40a9ff;
+  border-color: #40a9ff;
+}
+
+.modal-add-project .ant-btn {
+  border-radius: 6px;
+  font-weight: 500;
+  height: 36px;
+}
+
+.modal-add-project .ant-form-item {
+  margin-bottom: 16px;
+}
+
+.modal-add-project .ant-col {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.modal-add-project .ant-row {
+  margin-left: -8px;
+  margin-right: -8px;
+}
+
+/* Custom scrollbar for modal content */
+.modal-add-project .ant-modal-body > div:first-child::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-add-project .ant-modal-body > div:first-child::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.modal-add-project .ant-modal-body > div:first-child::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.modal-add-project .ant-modal-body > div:first-child::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .modal-add-project {
+    margin: 0;
+    padding: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .modal-add-project .ant-modal {
+    margin: 0;
+    padding: 0;
+    max-width: 100%;
+  }
+  
+  .modal-add-project .ant-modal-content {
+    border-radius: 0;
+  }
+  
+  .modal-add-project .ant-modal-body {
+    padding: 16px;
+  }
+  
+  .modal-add-project .ant-modal-body > div:first-child {
+    max-height: 60vh;
+  }
+}
+
+
+
+
+
+
+
+
+

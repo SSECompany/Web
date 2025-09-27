@@ -1,17 +1,21 @@
-import { DownOutlined } from '@ant-design/icons';
+import { DownOutlined } from "@ant-design/icons";
 import { UilSearch } from "@iconscout/react-unicons";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import "./Navbar.css";
 
-import { Dropdown, Input, Menu, Modal } from "antd";
+import { Dropdown, Input, Modal } from "antd";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getRoutesAccess } from "../../app/Functions/getRouteAccess";
 import options__icon from "../../Icons/options__icon.svg";
 import white from "../../Icons/white.png";
 import router, { routes } from "../../router/routes";
-import { setClaims, setIsBackgrouds, setUserSetting } from "../../store/reducers/claimsSlice";
-import { getClaims, getIsHideNav, getUserInfo } from "../../store/selectors/Selectors";
+import {
+  setClaims,
+  setIsBackgrouds,
+  setUserSetting,
+} from "../../store/reducers/claimsSlice";
+import { getClaims, getUserInfo } from "../../store/selectors/Selectors";
 import jwt from "../../utils/jwt";
 import { multipleTablePutApi } from "../SaleOrder/API";
 import Notify from "./Notify/Notify.jsx";
@@ -23,7 +27,10 @@ const Navbar = () => {
   const [navbarSelectedKey, setnavbarSelectedKey] = useState("");
   const [navbarItems, setNavbarItems] = useState();
   const [searchFunctions, setSearchFunctions] = useState([]);
-  const isHideNav = useSelector(getIsHideNav);
+  const [currentSystem, setCurrentSystem] = useState("DMS");
+  const [systemDropdownVisible, setSystemDropdownVisible] = useState(false);
+  // Navbar luôn hiển thị - bỏ logic ẩn navbar
+  // const isHideNav = useSelector(getIsHideNav);
   const userInfo = useSelector(getUserInfo);
   const userClaims = useSelector(getClaims);
   const [isShowAlert, setIsShowAlert] = useState(false);
@@ -115,7 +122,6 @@ const Navbar = () => {
     dispatch(setClaims([]));
   };
   const handleNavbarClick = (item) => {
-    console.log("routeLocation.pathname", routeLocation);
     if (routeLocation.pathname === "/RO/Reatailorder") {
       setIsShowAlert(true);
       setNextRoute(
@@ -133,16 +139,109 @@ const Navbar = () => {
     if (!router.state.location.pathname.includes("Dashboard")) navigate("/");
   };
 
-  const handleLoadNavbar = async () => {
+  const handleLoadNavbar = async (systemType = "DMS") => {
     const navitems = { ...(await getRoutesAccess(routes)) };
-    console.log(navitems)
+
+    let filteredSearchFunctions = navitems.flatRoutes.filter(
+      (item) =>
+        (!item.children || !item?.children?.length > 0) && !item.isParent
+    );
+
+    // Tạo các groups modules riêng biệt
+    const dmsModules = filteredSearchFunctions.filter(
+      (route) =>
+        // Loại bỏ tất cả workflow và HR modules
+        !route.path?.includes("workflow") &&
+        !route.path?.includes("project") &&
+        !route.path?.includes("task") &&
+        !route.path?.includes("HR") &&
+        !route.path?.includes("schedule") &&
+        !route.label.toLowerCase().includes("dự án") &&
+        !route.label.toLowerCase().includes("công việc") &&
+        !route.label.toLowerCase().includes("chấm công") &&
+        !route.label.toLowerCase().includes("project") &&
+        !route.label.toLowerCase().includes("task")
+    );
+
+    const workflowModules = filteredSearchFunctions.filter(
+      (route) =>
+        // Chỉ các route thực sự thuộc workflow system
+        route.path?.includes("workflow") ||
+        route.path?.includes("project") ||
+        route.path?.includes("task") ||
+        route.label.toLowerCase().includes("dự án") ||
+        route.label.toLowerCase().includes("công việc") ||
+        route.label.toLowerCase().includes("project") ||
+        route.label.toLowerCase().includes("task") ||
+        // Dashboard chỉ khi ở workflow
+        (route.label.toLowerCase() === "dashboard" &&
+          route.path?.includes("workflow"))
+    );
+
+    const hrmModules = filteredSearchFunctions.filter(
+      (route) =>
+        // Chỉ các route thực sự thuộc HR system
+        route.path?.includes("HR") ||
+        route.path?.includes("schedule") ||
+        route.label.toLowerCase().includes("chấm công") ||
+        route.label.toLowerCase().includes("nhân sự") ||
+        route.label.toLowerCase().includes("hr")
+    );
+
+    // Filter theo system hiện tại
+    if (systemType === "WORKFLOW") {
+      // CHỈ 5 MODULES CỐT LÕI - Đã được user confirm
+      filteredSearchFunctions = [
+        {
+          label: "Dashboard Workflow",
+          path: "workflow/dashboard",
+          icon: "📊",
+          description: "Tổng quan dự án & công việc",
+        },
+        {
+          label: "Danh sách dự án",
+          path: "workflow/projects",
+          icon: "📁",
+          description: "Quản lý tất cả dự án",
+        },
+        {
+          label: "Danh sách công việc",
+          path: "workflow/tasks",
+          icon: "✅",
+          description: "Quản lý tasks như Redmine",
+        },
+        {
+          label: "Giao việc",
+          path: "workflow/assignment",
+          icon: "👥",
+          description: "Phân công công việc",
+        },
+        {
+          label: "Báo cáo tổng hợp",
+          path: "workflow/reports",
+          icon: "📈",
+          description: "Reports & Analytics",
+        },
+      ];
+    } else if (systemType === "HRM") {
+      // LUÔN sử dụng modules tùy chỉnh cho HRM để đảm bảo hoàn toàn riêng biệt
+      filteredSearchFunctions = [
+        { label: "Dashboard HR", path: "hrm/dashboard" },
+        { label: "Bảng chấm công", path: "HR/Schedule" },
+        { label: "Bảng chấm công chi tiết", path: "HR/ScheduleDetail" },
+        { label: "Quản lý nhân sự", path: "hrm/employees" },
+        { label: "Báo cáo nhân sự", path: "hrm/reports" },
+        { label: "Quản lý ca làm việc", path: "hrm/shifts" },
+        { label: "Nghỉ phép", path: "hrm/leaves" },
+        { label: "Tính lương", path: "hrm/payroll" },
+      ];
+    } else {
+      // DMS hiển thị modules DMS + một số chung
+      filteredSearchFunctions = dmsModules;
+    }
+
     renderNavbar(navitems.nestedRoutes);
-    setSearchFunctions((item) => {
-      return (item = navitems.flatRoutes.filter(
-        (item) =>
-          (!item.children || !item?.children?.length > 0) && !item.isParent
-      ));
-    });
+    setSearchFunctions(filteredSearchFunctions);
   };
   const getUserSetting = async (ma_dvcs) => {
     const t = await multipleTablePutApi({
@@ -154,23 +253,41 @@ const Navbar = () => {
 
       const setting = {
         tk_nh: data[0][0]?.tk_nh,
-        bin: data[0][0]?.bin | '',
-        bank_account_name: data[0][0]?.bank_account_name | '',
+        bin: data[0][0]?.bin | "",
+        bank_account_name: data[0][0]?.bank_account_name | "",
         hs_quy_doi: data[0][0]?.hs_quy_doi | 0,
         maxPoint: data[0][0]?.maxPoint,
-        address_bp:data[0][0]?.address_bp,
-        tell_bp:data[0][0]?.tell_bp,
-        name_dvcs:data[0][0]?.name_dvcs,
+        address_bp: data[0][0]?.address_bp,
+        tell_bp: data[0][0]?.tell_bp,
+        name_dvcs: data[0][0]?.name_dvcs,
       };
 
       dispatch(setUserSetting(setting));
-    })
-  }
+    });
+  };
 
   useEffect(() => {
     dispatch(setClaims(jwt.getClaims() ? jwt.getClaims() : {}));
     getUserSetting(jwt.getClaims().MA_DVCS);
-    handleLoadNavbar();
+
+    // Auto-detect system from URL
+    const currentPath = window.location.pathname;
+    if (currentPath.includes("/workflow")) {
+      setCurrentSystem("WORKFLOW");
+    } else if (currentPath.includes("/hrm")) {
+      setCurrentSystem("HRM");
+    } else {
+      setCurrentSystem("DMS");
+    }
+
+    // Sử dụng system đã được detect thay vì default
+    const detectedSystem = currentPath.includes("/workflow")
+      ? "WORKFLOW"
+      : currentPath.includes("/hrm")
+      ? "HRM"
+      : "DMS";
+
+    handleLoadNavbar(detectedSystem);
   }, []);
 
   const items = [
@@ -197,15 +314,26 @@ const Navbar = () => {
       item.label.toLocaleLowerCase().includes(query.toLocaleLowerCase())
     );
     return results.map((result, idx) => {
-      const category = `${query}`;
+      // Highlight matching text
+      const label = result.label;
+      const regex = new RegExp(`(${query})`, "gi");
+      const highlightedLabel = label.replace(regex, "<mark>$1</mark>");
+
       return {
         value: result.label,
+        path: result.path,
         label: (
           <div
             className="modal_search_results_item"
             onClick={() => handleSelectFuntion(result.path)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSelectFuntion(result.path);
+              }
+            }}
+            tabIndex={0}
           >
-            <span>{result.label}</span>
+            <span dangerouslySetInnerHTML={{ __html: highlightedLabel }}></span>
           </div>
         ),
       };
@@ -224,6 +352,77 @@ const Navbar = () => {
   const handleSetBackground = () => {
     dispatch(setIsBackgrouds(true));
   };
+
+  const handleSystemChange = (system) => {
+    setCurrentSystem(system);
+    setSystemDropdownVisible(false);
+
+    // Reload navbar với search functions phù hợp cho system mới
+    handleLoadNavbar(system);
+
+    // Logic để chuyển đổi giao diện theo hệ thống
+    switch (system) {
+      case "DMS":
+        // Navigate to DMS interface và kích hoạt background
+        handleSetBackground();
+        navigate("/");
+        break;
+      case "HRM":
+        // Navigate to HRM interface - tắt background để phân biệt
+        dispatch(setIsBackgrouds(false));
+        navigate("/hrm");
+        break;
+      case "WORKFLOW":
+        // Navigate to WORKFLOW dashboard - tắt background để phân biệt
+        dispatch(setIsBackgrouds(false));
+        navigate("/workflow/dashboard");
+        break;
+      default:
+        navigate("/");
+    }
+  };
+
+  const systemItems = [
+    {
+      key: "DMS",
+      label: (
+        <div
+          className={`system_dropdown_item dms_theme ${
+            currentSystem === "DMS" ? "active" : ""
+          }`}
+          onClick={() => handleSystemChange("DMS")}
+        >
+          <span className="system_name">DMS</span>
+        </div>
+      ),
+    },
+    {
+      key: "HRM",
+      label: (
+        <div
+          className={`system_dropdown_item hrm_theme ${
+            currentSystem === "HRM" ? "active" : ""
+          }`}
+          onClick={() => handleSystemChange("HRM")}
+        >
+          <span className="system_name">HRM</span>
+        </div>
+      ),
+    },
+    {
+      key: "WORKFLOW",
+      label: (
+        <div
+          className={`system_dropdown_item workflow_theme ${
+            currentSystem === "WORKFLOW" ? "active" : ""
+          }`}
+          onClick={() => handleSystemChange("WORKFLOW")}
+        >
+          <span className="system_name">WORKFLOW</span>
+        </div>
+      ),
+    },
+  ];
 
   const handleRouteChange = async (data) => {
     setnavbarSelectedKey(data?.pathname?.substring(1) || "");
@@ -249,10 +448,25 @@ const Navbar = () => {
 
   useEffect(() => {
     handleRouteChange(routeLocation);
-  }, [routeLocation]);
+
+    // Auto-update system based on route changes - NHƯNG KHÔNG RELOAD NAVBAR
+    const currentPath = routeLocation.pathname;
+    let detectedSystem = "DMS";
+    if (currentPath.includes("/workflow")) {
+      detectedSystem = "WORKFLOW";
+    } else if (currentPath.includes("/hrm")) {
+      detectedSystem = "HRM";
+    }
+
+    // Chỉ update system nếu khác với hiện tại
+    if (detectedSystem !== currentSystem) {
+      setCurrentSystem(detectedSystem);
+      // KHÔNG gọi handleLoadNavbar ở đây để tránh override
+    }
+  }, [routeLocation, currentSystem]);
 
   return (
-    <div className={`navbar${isHideNav ? "hidden" : ""}`}>
+    <div className="navbar">
       <div className="first_navbar_row_left">
         <div className="navbar_logo_functions">
           <img
@@ -268,33 +482,30 @@ const Navbar = () => {
               onClick={handleOpenSearchModal}
               color="red"
             ></img>
-            <span
-              onClick={handleSetBackground}
-              className="default_header_label"
+            <Dropdown
+              menu={{ items: systemItems }}
+              trigger={["click"]}
+              open={systemDropdownVisible}
+              onOpenChange={setSystemDropdownVisible}
+              overlayClassName="system_dropdown"
+              placement="bottomLeft"
             >
-              DMS
-            </span>
+              <span
+                onClick={() => setSystemDropdownVisible(!systemDropdownVisible)}
+                className="default_header_label system_selector"
+              >
+                {currentSystem}
+                <i
+                  className={`pi pi-chevron-down ${
+                    systemDropdownVisible ? "rotated" : ""
+                  }`}
+                ></i>
+              </span>
+            </Dropdown>
           </div>
         </div>
 
-        <Menu
-          mode="horizontal"
-          items={navbarItems}
-          className="navbar_routes"
-          onSelect={handleNavbarClick}
-          selectedKeys={navbarSelectedKey}
-          style={{
-            height: "30px",
-            lineHeight: "30px",
-            border: "none",
-            width: "100%",
-            minWidth: "0",
-            userSelect: "none",
-          }}
-          overflowedIndicator={
-            <span style={{ color: "#1677ff" }}>Mở rộng ...</span>
-          }
-        />
+        {/* Menu routes đã được ẩn - sử dụng tìm kiếm để truy cập các chức năng */}
       </div>
       <div className="first_navbar_row_right flex gap-1">
         <div className="px-1 text-center">
@@ -314,7 +525,6 @@ const Navbar = () => {
                 placement="bottomRight"
                 trigger={["click"]}
               >
-
                 <DownOutlined />
               </Dropdown>
             </div>
@@ -341,30 +551,86 @@ const Navbar = () => {
             <Input
               id="navbar_input_search"
               className="navbar_input_search"
-              placeholder="Tìm kiếm..."
+              placeholder="Tìm kiếm chức năng..."
               value={inputSearchModal}
               onChange={(e) => {
                 setInputSearchModal(e.target.value);
                 handleSearchInModal(e.target.value);
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  handleCancelSearchModal();
+                } else if (e.key === "Enter" && resultsSearchModal.length > 0) {
+                  // Navigate to first result when pressing Enter
+                  const firstResult = resultsSearchModal[0];
+                  if (firstResult.path) {
+                    handleSelectFuntion(firstResult.path);
+                  }
+                }
+              }}
               prefix={<UilSearch size="18" color="#1677ff" />}
+              autoFocus
             />
           </div>
           <div className="modal_search_results">
             {resultsSearchModal.length === 0 && !inputSearchModal && (
-              <p>
-                Tìm gì đó{" "}
-                <i className="pi  pi-comments" style={{ fontSize: "26px" }}></i>
-              </p>
+              <div className="search_help_container">
+                <div className="search_help_title">
+                  <i
+                    className="pi pi-search"
+                    style={{ fontSize: "24px", color: "#1677ff" }}
+                  ></i>
+                  <h3>Tìm kiếm nhanh chức năng</h3>
+                </div>
+
+                <div className="search_suggestions">
+                  <h4>📌 Tất cả các modules có thể truy cập:</h4>
+                  <div className="popular_functions">
+                    {searchFunctions.map((func, index) => (
+                      <div
+                        key={index}
+                        className="popular_function_item"
+                        onClick={() => handleSelectFuntion(func.path)}
+                      >
+                        <span>{func.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             )}
 
             {resultsSearchModal.length === 0 && inputSearchModal && (
-              <p>Không có chức năng tương ứng</p>
+              <div className="no_results">
+                <i
+                  className="pi pi-exclamation-triangle"
+                  style={{ fontSize: "48px", color: "#ffa500" }}
+                ></i>
+                <p>Không tìm thấy chức năng phù hợp</p>
+                <small>
+                  Thử tìm với từ khóa khác hoặc chọn từ danh sách bên dưới
+                </small>
+                <div className="alternative_suggestions">
+                  {searchFunctions.slice(0, 4).map((func, index) => (
+                    <div
+                      key={index}
+                      className="alternative_item"
+                      onClick={() => handleSelectFuntion(func.path)}
+                    >
+                      {func.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
 
-            {resultsSearchModal.map((item, index) => (
-              <span key={index}>{item.label}</span>
-            ))}
+            {resultsSearchModal.length > 0 && (
+              <div className="search_results_grid">
+                {resultsSearchModal.map((item, index) => (
+                  <span key={index}>{item.label}</span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </Modal>
@@ -393,3 +659,5 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
+

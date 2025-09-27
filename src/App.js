@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import { useSelector } from "react-redux";
-import { Navigate, Outlet, useNavigate } from "react-router-dom";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import "./App.css";
 import Navbar from "./components/Navbar/Navbar";
 import router from "./router/routes";
@@ -8,7 +9,16 @@ import jwt from "./utils/jwt";
 
 function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const isBackgound = useSelector(getIsBackgound);
+
+  // Set default DMS title when app loads or route changes
+  useEffect(() => {
+    // Check if not on workflow route
+    if (!location.pathname.includes("/workflow")) {
+      document.title = "DMS PRO";
+    }
+  }, [location.pathname]);
 
   const backgroundStyled = {
     backgroundImage:

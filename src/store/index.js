@@ -17,6 +17,8 @@ import { saleOrderReducer } from "../components/SaleOrder/Store/Slice/SaleOrderS
 import { saleoutDetailsReducer } from "../components/SaleOrder/Store/Slice/SaleOutSlice";
 import { AccountsReducer } from "../components/SystemOptions/Store/Reducers/Reducers";
 import { TransferReducer } from "../components/Transfer/Store/Slices/TransferSlice";
+import { projectReducer } from "../components/ProjectManagement/Store/Slices/ProjectSlice";
+import { taskManagementReducer } from "../components/TaskManagement/Store/Slices/TaskSlice";
 import claimsReducer from "./reducers/claimsSlice";
 import loadingReducer from "./reducers/loadingSlice";
 import todoReducer from "./reducers/todoSlice";
@@ -41,6 +43,8 @@ const store = configureStore({
     retailOrderReducer,
     businessMapReducer,
     TransferReducer,
+    projects: projectReducer,
+    tasks: taskManagementReducer,
     posReducer,
     orders: orderReducer,
     meal: mealReducer,

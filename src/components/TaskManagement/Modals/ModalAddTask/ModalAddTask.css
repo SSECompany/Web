@@ -1,0 +1,47 @@
+.modal-add-task .ant-modal-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.modal-add-task .ant-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.modal-add-task .ant-modal-body {
+  padding: 0 24px 24px 24px;
+}
+
+.modal-add-task .ant-form-item-label > label {
+  font-weight: 500;
+  color: #262626;
+}
+
+.modal-add-task .ant-input,
+.modal-add-task .ant-select-selector,
+.modal-add-task .ant-picker,
+.modal-add-task .ant-input-number {
+  border-radius: 6px;
+  border: 1px solid #d9d9d9;
+  transition: all 0.2s ease;
+}
+
+.modal-add-task .ant-btn-primary {
+  background-color: #1890ff;
+  border-color: #1890ff;
+  border-radius: 6px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,152 @@
+.task-list-container {
+  padding: 24px;
+  background: #fff;
+  min-height: 100vh;
+}
+
+.task-filters {
+  background: #f5f5f5;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.task-list-container .ant-table {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.task-list-container .ant-table-thead > tr > th {
+  background-color: #fafafa;
+  font-weight: 600;
+  color: #262626;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.task-list-container .ant-table-tbody > tr {
+  transition: all 0.2s ease;
+}
+
+.task-list-container .ant-table-tbody > tr:hover {
+  background-color: #f5f5f5;
+}
+
+.task-list-container .ant-btn-link {
+  padding: 4px 8px;
+  height: auto;
+  font-size: 14px;
+}
+
+.task-list-container .ant-btn-link:hover {
+  background-color: rgba(24, 144, 255, 0.1);
+  border-radius: 4px;
+}
+
+.task-list-container .ant-btn-link.ant-btn-dangerous:hover {
+  background-color: rgba(255, 77, 79, 0.1);
+}
+
+.task-list-container .ant-tag {
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.task-list-container .ant-space {
+  gap: 4px !important;
+}
+
+/* Task specific styles */
+.task-list-container .ant-table-tbody > tr > td {
+  font-size: 13px;
+}
+
+.task-list-container .overdue-task {
+  color: #ff4d4f;
+  font-weight: 500;
+}
+
+.task-list-container .due-soon-task {
+  color: #fa8c16;
+  font-weight: 500;
+}
+
+/* Priority colors */
+.task-priority-urgent {
+  background-color: #ff7875 !important;
+  color: #fff !important;
+}
+
+.task-priority-high {
+  background-color: #ffa940 !important;
+  color: #fff !important;
+}
+
+.task-priority-medium {
+  background-color: #40a9ff !important;
+  color: #fff !important;
+}
+
+.task-priority-low {
+  background-color: #73d13d !important;
+  color: #fff !important;
+}
+
+/* Status colors */
+.task-status-pending {
+  background-color: #d9d9d9 !important;
+  color: #595959 !important;
+}
+
+.task-status-in-progress {
+  background-color: #1890ff !important;
+  color: #fff !important;
+}
+
+.task-status-review {
+  background-color: #fa8c16 !important;
+  color: #fff !important;
+}
+
+.task-status-completed {
+  background-color: #52c41a !important;
+  color: #fff !important;
+}
+
+.task-status-cancelled {
+  background-color: #ff4d4f !important;
+  color: #fff !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .task-list-container {
+    padding: 16px;
+  }
+  
+  .task-filters {
+    padding: 12px;
+  }
+  
+  .task-filters .ant-space {
+    width: 100%;
+  }
+  
+  .task-filters .ant-input {
+    width: 100% !important;
+  }
+  
+  .task-filters .ant-select {
+    width: 100% !important;
+  }
+}
+
+
+
+
+
+
+
+
+
