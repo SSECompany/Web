@@ -157,22 +157,53 @@
 }
 
 /* Submit Button */
-.total-money .submit-button {
-  padding: 12px;
-  background-color: #007bff;
-  color: white;
-  font-size: 16px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
+.meal-ticket-form .submit-button {
+  flex: 1 !important;
+  padding: 12px !important;
+  background-color: #007bff !important;
+  color: white !important;
+  font-size: 16px !important;
+  border-radius: 6px !important;
+  border: none !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 500 !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  width: auto !important;
 }
 
-.total-money .submit-button:hover {
-  background-color: #0056b3;
+.meal-ticket-form .submit-button:hover {
+  background-color: #0056b3 !important;
+}
+
+.meal-ticket-form .submit-button:disabled {
+  background-color: #cccccc !important;
+  cursor: not-allowed !important;
+}
+
+.meal-ticket-form .cancel-button {
+  flex: 1 !important;
+  padding: 12px !important;
+  background-color: #ff4d4f !important;
+  color: white !important;
+  font-size: 16px !important;
+  border-radius: 6px !important;
+  border: none !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 500 !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  width: auto !important;
+}
+
+.meal-ticket-form .cancel-button:hover {
+  background-color: #ff7875 !important;
 }
 
 .submit-icon {
@@ -231,6 +262,7 @@
   font-size: 16px;
   font-weight: bold;
   margin-top: 15px;
+  margin-bottom: 15px;
   text-align: right;
 }
 

@@ -8,12 +8,13 @@ import { multipleTablePutApi } from "../../../../api";
 import { formatNumber } from "../../../../app/hook/dataFormatHelper";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import {
-  markBedAsSubmitted,
-  removeMeal,
-  setListFood,
-  setMeal,
-  setShowMealDetails,
-  setShowRoomSelection,
+    appendListFood,
+    markBedAsSubmitted,
+    removeMeal,
+    setListFood,
+    setMeal,
+    setShowMealDetails,
+    setShowRoomSelection,
 } from "../../store/meal";
 import MealEntryRow from "../MealInputBlock/MealInputBlock";
 import "./MealDetailsForm.css";
@@ -30,6 +31,7 @@ const MealDetailsForm = () => {
   const bedName = listBeds[currentBedIndex];
   const listFood = useSelector((state) => state.meals.listFood);
   const detailData = useSelector((state) => state.meals.meals.detailData);
+  const mealHistory = useSelector((state) => state.meals.mealHistory || []);
   const [isPaid, setIsPaid] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
 
@@ -40,11 +42,10 @@ const MealDetailsForm = () => {
   const [selectedPatientInShift, setSelectedPatientInShift] = useState({});
 
   const [mealEntries, setMealEntries] = useState(detailData);
-  const [localFoodList, setLocalFoodList] = useState({});
 
   useEffect(() => {
     setMealEntries(detailData);
-  }, [detailData]);
+  }, [detailData, currentBedIndex]);
 
   useEffect(() => {
     const bedMeals = detailData[currentBedIndex];
@@ -78,7 +79,9 @@ const MealDetailsForm = () => {
         });
 
         const foodList = response?.listObject?.[0] || [];
-        dispatch(setListFood(foodList));
+        if (foodList.length > 0) {
+          dispatch(setListFood(foodList));
+        }
       } catch (error) {
         console.error("Lỗi lấy listFood theo ngày:", error);
       }
@@ -146,12 +149,24 @@ const MealDetailsForm = () => {
           const selectedFood = listFood.find(
             (food) => food.ma_mon === value && food.ma_ca === timeOfDay
           );
-          const price = selectedFood?.gia_ban || 0;
+          const price = selectedFood?.gia_ban || meal.price || 0;
+          
+          // Only reset quantity and price if this is a NEW selection (meal didn't have mealType before)
+          // If meal already has mealType and price, keep them (from history)
+          const isNewSelection = !meal.mealType;
+          
           meal.mealType = value;
           meal.mealTypeName = selectedFood?.ten_mon || "";
-          meal.quantity = 1;
-          meal.totalMoney = price * meal.quantity;
-          meal.price = price;
+          
+          if (isNewSelection) {
+            // New selection - use default quantity and price from listFood
+            meal.quantity = 1;
+            meal.price = price;
+            meal.totalMoney = price * 1;
+          } else {
+            // Existing meal (from history) - keep existing quantity and price
+            meal.totalMoney = meal.price * meal.quantity;
+          }
         } else if (name === "note") {
           meal.note = value;
         } else {
@@ -240,33 +255,9 @@ const MealDetailsForm = () => {
 
           const foodList = response?.listObject?.[0] || [];
 
-          // Lưu vào state local thay vì Redux
-          setLocalFoodList((prev) => {
-            const key = `${timeOfDay}_${value}`;
-            return {
-              ...prev,
-              [key]: foodList,
-            };
-          });
-
-          // Cập nhật danh sách món ăn trong redux để component MealInputBlock có thể truy cập
-          const currentFoodList = [...listFood];
-
-          // Lọc ra các món ăn đã tồn tại trong danh sách hiện tại để tránh trùng lặp
-          const newFoodItems = foodList.filter(
-            (newFood) =>
-              !currentFoodList.some(
-                (existingFood) =>
-                  existingFood.ma_mon === newFood.ma_mon &&
-                  existingFood.ma_ca === newFood.ma_ca &&
-                  existingFood.ma_nh === newFood.ma_nh
-              )
-          );
-
-          // Nếu có món ăn mới, thêm vào danh sách và cập nhật Redux
-          if (newFoodItems.length > 0) {
-            const updatedFoodList = [...currentFoodList, ...newFoodItems];
-            dispatch(setListFood(updatedFoodList));
+          // Append to Redux listFood (will filter duplicates)
+          if (foodList.length > 0) {
+            dispatch(appendListFood(foodList));
           }
         } catch (error) {
           console.error("Lỗi lấy listFood theo chế độ:", error);
@@ -275,7 +266,7 @@ const MealDetailsForm = () => {
 
       fetchListFood();
     },
-    [selectedDate, dispatch, listFood]
+    [selectedDate, dispatch]
   );
 
   // Thêm hàm helper để lấy danh sách món ăn theo ca và chế độ
@@ -283,20 +274,12 @@ const MealDetailsForm = () => {
     (timeOfDay, mode) => {
       if (!timeOfDay || !mode) return [];
 
-      const key = `${timeOfDay}_${mode}`;
-      const localList = localFoodList[key] || [];
-
-      // Nếu đã có trong local state, trả về từ đó
-      if (localList.length > 0) {
-        return localList;
-      }
-
-      // Nếu không, lọc từ listFood trong redux
+      // Lọc từ listFood trong redux
       return listFood.filter(
         (food) => food.ma_ca === timeOfDay && food.ma_nh === mode
       );
     },
-    [localFoodList, listFood]
+    [listFood]
   );
 
   const handleDeleteMeal = (timeOfDay, index) => {
@@ -567,6 +550,32 @@ const MealDetailsForm = () => {
     });
   };
 
+  // Check if current bed has existing order (from history)
+  const hasExistingOrder = useMemo(() => {
+    const bedMaGiuong = bedName?.ma_giuong;
+    return mealHistory.some((m) => m.ma_giuong?.trim() === bedMaGiuong?.trim());
+  }, [mealHistory, bedName]);
+
+  const handleCancelOrder = () => {
+    showConfirm({
+      title: "Bạn có chắc chắn muốn huỷ đơn đã đặt?",
+      onOk: async () => {
+        try {
+          // TODO: Call API to cancel order
+          // const response = await cancelMealOrderApi({ ... });
+          
+          notification.success({ message: "Huỷ đơn thành công!" });
+          
+          dispatch(setShowMealDetails(false));
+          dispatch(setShowRoomSelection(true));
+        } catch (error) {
+          console.error("Lỗi khi huỷ đơn:", error);
+          notification.error({ message: "Huỷ đơn thất bại!" });
+        }
+      },
+    });
+  };
+
   const renderedMealEntries = useMemo(() => {
     const bedMeals = mealEntries[currentBedIndex] || {};
     const result = {};
@@ -766,19 +775,29 @@ const MealDetailsForm = () => {
         Tổng tiền: {formatNumber(calculateTotalAllShift())} đ
       </div>
 
-      <button
-        className="submit-button"
-        onClick={handleSubmit}
-        disabled={
-          !(
-            mealEntries[currentBedIndex]?.CA1?.some((meal) => meal.mealType) &&
-            mealEntries[currentBedIndex]?.CA2?.some((meal) => meal.mealType) &&
-            mealEntries[currentBedIndex]?.CA3?.some((meal) => meal.mealType)
-          )
-        }
-      >
-        Hoàn thành
-      </button>
+      <div style={{ display: 'flex', gap: '12px' }}>
+        {hasExistingOrder && (
+          <button
+            className="cancel-button"
+            onClick={handleCancelOrder}
+          >
+            Huỷ đơn
+          </button>
+        )}
+        <button
+          className="submit-button"
+          onClick={handleSubmit}
+          disabled={
+            !(
+              mealEntries[currentBedIndex]?.CA1?.some((meal) => meal.mealType) &&
+              mealEntries[currentBedIndex]?.CA2?.some((meal) => meal.mealType) &&
+              mealEntries[currentBedIndex]?.CA3?.some((meal) => meal.mealType)
+            )
+          }
+        >
+          Hoàn thành
+        </button>
+      </div>
     </div>
   );
 };

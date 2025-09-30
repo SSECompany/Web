@@ -25,7 +25,7 @@ import {
   setRoomSelectedDate,
   setShowMealDetails,
   setShowRoomSelection,
-  setSubmittedBeds,
+  setSubmittedBeds
 } from "../../store/meal";
 import "./RoomSelectionForm.css";
 
@@ -52,8 +52,10 @@ const RoomSelectionForm = () => {
   const { userName, unitId, id } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
   );
+  const mealHistory = useSelector((state) => state.meals.mealHistory || []);
   const lastLoadedDateRef = useRef(null);
   const lastRoomCodeRef = useRef(null);
+  const fetchedModesRef = useRef(new Set());
 
   // Đặt handleDepartmentSearch và handleRoomSearch lên trước useEffect debounce
   const handleDepartmentSearch = useCallback(
@@ -154,10 +156,85 @@ const RoomSelectionForm = () => {
     (bed, index) => {
       dispatch(setMasterData({ beds: [bed] }));
       dispatch(setCurrentBedIndex(index));
+
+      // Check if this bed has meal history data
+      const bedMealsHistory = mealHistory.filter(
+        (m) => m.ma_giuong?.trim() === bed.ma_giuong?.trim()
+      );
+
+      if (bedMealsHistory.length > 0) {
+        // Convert history data to detail data format
+        const convertedMeals = {
+          CA1: [],
+          CA2: [],
+          CA3: [],
+        };
+
+        // Map ca labels to CA codes
+        const caMapping = {
+          "Ca sáng": "CA1",
+          "Ca trưa": "CA2",
+          "Ca chiều": "CA3",
+        };
+
+        bedMealsHistory.forEach((meal) => {
+          const caCode = caMapping[meal.ten_ca?.trim()];
+          if (caCode) {
+            // Extract ma_che_do from ten_che_do (e.g., "BT01-Cơm bình thường" -> "BT01")
+            const maCheDoMatch = meal.ten_che_do?.match(/^([^-]+)/);
+            const maCheDoExtracted = maCheDoMatch ? maCheDoMatch[1].trim() : "";
+
+            // Use data directly from API response
+            // Backend should provide: ma_mon, ma_che_do, don_gia/gia_ban
+            const maMon = meal.ma_mon || meal.ten_mon; // Fallback to ten_mon if ma_mon not provided yet
+            const price = meal.don_gia || meal.gia_ban || 0;
+            const quantity = meal.so_luong || 1;
+
+            convertedMeals[caCode].push({
+              mode: meal.ma_che_do || maCheDoExtracted,
+              mealType: maMon,
+              mealTypeName: meal.ten_mon || "",
+              quantity: quantity,
+              note: meal.ghi_chu || "",
+              collectMoney: false,
+              totalMoney: quantity * price,
+              price: price,
+              isPaid: meal.thu_tien ? true : false,
+              httt: meal.httt || "",
+              date: roomSelectedDate,
+            });
+          }
+        });
+
+        // Ensure each shift has at least one meal entry
+        ["CA1", "CA2", "CA3"].forEach((shift) => {
+          if (convertedMeals[shift].length === 0) {
+            convertedMeals[shift].push({
+              mode: "",
+              mealType: "",
+              mealTypeName: "",
+              quantity: 0,
+              note: "",
+              collectMoney: false,
+              totalMoney: 0,
+              price: 0,
+              isPaid: false,
+              httt: "",
+              date: roomSelectedDate,
+            });
+          }
+        });
+
+        // Update the meal data in Redux
+        const updatedDetailData = [...detailData];
+        updatedDetailData[index] = convertedMeals;
+        dispatch(setMeal({ mealEntries: updatedDetailData, bedIndex: index }));
+      }
+
       dispatch(setShowMealDetails(true));
       dispatch(setShowRoomSelection(false));
     },
-    [dispatch]
+    [dispatch, mealHistory, roomSelectedDate]
   );
 
   const loadBedsWithMeals = async (roomCode, date) => {
@@ -413,8 +490,6 @@ const RoomSelectionForm = () => {
     }
   };
 
-  const mealHistory = useSelector((state) => state.meals.mealHistory || []);
-
   const isBedInMealHistory = (ma_giuong) => {
     return mealHistory.some((m) => m.ma_giuong?.trim() === ma_giuong?.trim());
   };
@@ -513,15 +588,15 @@ const RoomSelectionForm = () => {
               <div key={index}>
                 <div
                   className="list-item"
-                  onClick={() => !isDisabled && handleBedClick(bed, index)}
+                  onClick={() => handleBedClick(bed, index)}
                   style={{
                     backgroundColor: isDisabled
                       ? "#f5f5f5"
                       : isSubmitted
                       ? "#e6fffb"
                       : "white",
-                    cursor: isDisabled ? "not-allowed" : "pointer",
-                    opacity: isDisabled ? 0.5 : 1,
+                    cursor: "pointer",
+                    opacity: isDisabled ? 0.8 : 1,
                   }}
                 >
                   <span>{bed?.ten_giuong}</span>
@@ -530,9 +605,7 @@ const RoomSelectionForm = () => {
                       Đã đặt
                     </span>
                   )}
-                  {!isDisabled && (
-                    <RightOutlined style={{ fontSize: "18px" }} />
-                  )}
+                  <RightOutlined style={{ fontSize: "18px" }} />
                 </div>
 
                 {isDisabled && (

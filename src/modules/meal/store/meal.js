@@ -289,6 +289,20 @@ const mealSlice = createSlice({
     setListFood: (state, action) => {
       state.listFood = action.payload;
     },
+    appendListFood: (state, action) => {
+      const newFoods = action.payload;
+      const existingFoods = state.listFood || [];
+      const uniqueNewFoods = newFoods.filter(
+        (newFood) =>
+          !existingFoods.some(
+            (existingFood) =>
+              existingFood.ma_mon === newFood.ma_mon &&
+              existingFood.ma_ca === newFood.ma_ca &&
+              existingFood.ma_nh === newFood.ma_nh
+          )
+      );
+      state.listFood = [...existingFoods, ...uniqueNewFoods];
+    },
     setListDepartment: (state, action) => {
       state.listDepartment = action.payload;
     },
@@ -393,6 +407,7 @@ export const {
   setListDietCategory,
   setListMealCode,
   setListFood,
+  appendListFood,
   setListDepartment,
   setListRoom,
   resetAllMeals,

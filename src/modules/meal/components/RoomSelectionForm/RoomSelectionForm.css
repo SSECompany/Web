@@ -66,14 +66,6 @@
 /* Styling for the form submit button */
 .submit-button {
   padding: 12px;
-  width: 100%;
-  background-color: #007bff;
-  color: white;
-  font-size: 16px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  margin-top: 20px;
 }
 
 .submit-button:hover {
