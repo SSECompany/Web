@@ -31,18 +31,22 @@ export const formatDate = (date) => {
   return d.toISOString().split(".")[0];
 };
 
-export const validateDataSource = (dataSource) => {
+export const validateDataSource = (dataSource, formType = "default") => {
   if (dataSource.length === 0) {
     message.error("Vui lòng thêm ít nhất một vật tư");
     return { isValid: false };
   }
 
   const missingData = [];
-  dataSource.forEach((item, index) => {
-    if (!item.ma_kho) {
-      missingData.push(`Dòng ${index + 1}: Chưa chọn mã kho`);
-    }
-  });
+  
+  // Phiếu nhặt hàng không bắt buộc mã kho
+  if (formType !== "nhat-hang") {
+    dataSource.forEach((item, index) => {
+      if (!item.ma_kho) {
+        missingData.push(`Dòng ${index + 1}: Chưa chọn mã kho`);
+      }
+    });
+  }
 
   if (missingData.length > 0) {
     message.error({
@@ -237,6 +241,22 @@ export const buildPhieuNhatHangPayload = (
       dynamicItem.so_luong = parseFloat(item.soLuongDeNghi || 0);
     if (item.soLuong !== undefined)
       dynamicItem.sl_td3 = parseFloat(item.soLuong || 0);
+    
+    // Mapping các trường mới cho phiếu nhặt hàng
+    if (item.so_luong_don !== undefined)
+      dynamicItem.so_luong_don = parseFloat(item.so_luong_don || 0);
+    if (item.nhat !== undefined)
+      dynamicItem.nhat = parseFloat(item.nhat || 0);
+    if (item.ghi_chu !== undefined)
+      dynamicItem.ghi_chu = item.ghi_chu ? item.ghi_chu.trim() : "";
+    if (item.so_luong_ton !== undefined)
+      dynamicItem.so_luong_ton = parseFloat(item.so_luong_ton || 0);
+    if (item.tong_nhat !== undefined)
+      dynamicItem.tong_nhat = parseFloat(item.tong_nhat || 0);
+    if (item.ma_lo !== undefined)
+      dynamicItem.ma_lo = item.ma_lo ? item.ma_lo.trim() : "";
+    if (item.ma_vi_tri !== undefined)
+      dynamicItem.ma_vi_tri = item.ma_vi_tri ? item.ma_vi_tri.trim() : "";
 
     // Đảm bảo các trường bắt buộc có mặt (chỉ nếu không có trong API response)
     if (!dynamicItem.stt_rec && phieuData?.stt_rec) {
@@ -335,6 +355,7 @@ export const buildPhieuNhatHangPayload = (
             "stt_rec_dh",
             "stt_rec0dh",
             "stt_rec0",
+            "ghi_chu",
           ].includes(key)
         ) {
           dynamicItem[key] = "";

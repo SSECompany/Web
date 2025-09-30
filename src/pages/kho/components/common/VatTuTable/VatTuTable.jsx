@@ -232,10 +232,64 @@ const VatTuTable = ({
       },
     ];
 
+    // Thêm cột mã lô
+    if (columnConfig.showMaLo) {
+      baseColumns.push({
+        title: "Mã lô",
+        dataIndex: columnConfig.maLoField || "ma_lo",
+        key: "ma_lo",
+        width: 100,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) => {
+          if (!isEditMode) {
+            return value;
+          }
+          return (
+            <Input
+              value={value}
+              onChange={(e) => onSelectChange(e.target.value, record, "ma_lo")}
+              style={{ width: "100%", textAlign: "center" }}
+              className="vat-tu-table-input"
+              placeholder="Nhập mã lô"
+              size="small"
+            />
+          );
+        },
+      });
+    }
+
+    // Thêm cột mã vị trí
+    if (columnConfig.showMaViTri) {
+      baseColumns.push({
+        title: "Mã vị trí",
+        dataIndex: columnConfig.maViTriField || "ma_vi_tri",
+        key: "ma_vi_tri",
+        width: 100,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) => {
+          if (!isEditMode) {
+            return value;
+          }
+          return (
+            <Input
+              value={value}
+              onChange={(e) => onSelectChange(e.target.value, record, "ma_vi_tri")}
+              style={{ width: "100%", textAlign: "center" }}
+              className="vat-tu-table-input"
+              placeholder="Nhập mã vị trí"
+              size="small"
+            />
+          );
+        },
+      });
+    }
+
     // Thêm cột số lượng đề nghị
     if (columnConfig.showSoLuongDeNghi !== false) {
       baseColumns.push({
-        title: "Số lượng đề nghị",
+        title: columnConfig.soLuongDeNghiTitle || "Số lượng đề nghị",
         dataIndex: columnConfig.soLuongDeNghiField || "so_luong",
         key: "so_luong_de_nghi",
         width: 130,
@@ -266,6 +320,81 @@ const VatTuTable = ({
             record,
             columnConfig.soLuongCheatField || "sl_td3"
           ),
+      });
+    }
+
+    // Thêm cột ghi chú
+    if (columnConfig.showGhiChu) {
+      baseColumns.push({
+        title: "Ghi chú",
+        dataIndex: columnConfig.ghiChuField || "ghi_chu",
+        key: "ghi_chu",
+        width: 150,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) => {
+          if (!isEditMode) {
+            return value;
+          }
+          return (
+            <Input
+              value={value}
+              onChange={(e) => onSelectChange(e.target.value, record, "ghi_chu")}
+              style={{ width: "100%" }}
+              className="vat-tu-table-input"
+              placeholder="Nhập ghi chú"
+              size="small"
+            />
+          );
+        },
+      });
+    }
+
+    // Thêm cột số lượng tồn
+    if (columnConfig.showSoLuongTon) {
+      baseColumns.push({
+        title: "Số lượng tồn",
+        dataIndex: columnConfig.soLuongTonField || "so_luong_ton",
+        key: "so_luong_ton",
+        width: 120,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) => (
+          <span
+            style={{
+              fontWeight: "bold",
+              display: "block",
+              textAlign: "center",
+              color: value && value > 0 ? "#52c41a" : "#999",
+            }}
+          >
+            {formatQuantityDisplay(value || 0)}
+          </span>
+        ),
+      });
+    }
+
+    // Thêm cột tổng nhặt
+    if (columnConfig.showTongNhat) {
+      baseColumns.push({
+        title: "Tổng nhặt",
+        dataIndex: columnConfig.tongNhatField || "tong_nhat",
+        key: "tong_nhat",
+        width: 120,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) => (
+          <span
+            style={{
+              fontWeight: "bold",
+              display: "block",
+              textAlign: "center",
+              color: value && value > 0 ? "#1890ff" : "#999",
+            }}
+          >
+            {formatQuantityDisplay(value || 0)}
+          </span>
+        ),
       });
     }
 

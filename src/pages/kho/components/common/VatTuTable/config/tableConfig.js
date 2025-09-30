@@ -17,13 +17,25 @@ export const phieuNhapKhoConfig = {
 // Cấu hình cho phiếu nhặt hàng
 export const phieuNhatHangConfig = {
   tenMatHangField: "ten_mat_hang",
-  soLuongDeNghiField: "soLuongDeNghi",
+  soLuongDeNghiField: "so_luong_don",
   soLuongDeNghiEditable: true,
   showSoLuongDeNghi: true,
-  soLuongCheatField: "soLuong",
-  soLuongCheatTitle: "Số lượng cheat",
+  soLuongDeNghiTitle: "Số lượng đơn",
+  soLuongCheatField: "nhat",
+  soLuongCheatTitle: "Nhặt",
   showSoLuongCheat: true,
-  showMaKho: true,
+  showMaKho: false,
+  // Các trường mới cho phiếu nhặt hàng
+  showMaLo: true,
+  maLoField: "ma_lo",
+  showMaViTri: true,
+  maViTriField: "ma_vi_tri", 
+  showGhiChu: true,
+  ghiChuField: "ghi_chu",
+  showSoLuongTon: true,
+  soLuongTonField: "so_luong_ton",
+  showTongNhat: true,
+  tongNhatField: "tong_nhat",
 };
 
 // Cấu hình cho phiếu xuất kho

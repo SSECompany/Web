@@ -1,8 +1,8 @@
 import {
-  doReadNumber,
-  InvalidFormatError,
-  InvalidNumberError,
-  ReadingConfig,
+    doReadNumber,
+    InvalidNumberError,
+    ReadingConfig,
+    ReadVietnameseNumberError,
 } from "read-vietnamese-number";
 
 const quantityFormat = "0.01";
@@ -24,7 +24,7 @@ function num2words(num) {
     return result;
   } catch (err) {
     // Handle errors
-    if (err instanceof InvalidFormatError) {
+    if (err instanceof ReadVietnameseNumberError) {
       return "Định dạng input không hợp lệ";
     } else if (err instanceof InvalidNumberError) {
       return "Số không hợp lệ";
@@ -35,10 +35,11 @@ function num2words(num) {
 }
 
 export {
-  datetimeFormat,
-  datetimeFormat2,
-  num2words,
-  PriceFormat,
-  quantityFormat,
-  quantityFormatNonDecimal,
+    datetimeFormat,
+    datetimeFormat2,
+    num2words,
+    PriceFormat,
+    quantityFormat,
+    quantityFormatNonDecimal
 };
+

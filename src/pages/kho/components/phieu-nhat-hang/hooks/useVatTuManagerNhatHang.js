@@ -59,6 +59,13 @@ export const useVatTuManagerNhatHang = () => {
         ma_kho: item.ma_kho ? item.ma_kho.trim() : "",
         tk_vt: item.tk_vt ? item.tk_vt.trim() : "",
 
+        // Thông tin phiếu nhặt hàng
+        so_luong_don: parseFloat(item.so_luong_don) || 0,
+        nhat: parseFloat(item.nhat) || parseFloat(item.soLuong) || 0,
+        ghi_chu: item.ghi_chu ? item.ghi_chu.trim() : "",
+        so_luong_ton: parseFloat(item.so_luong_ton) || 0,
+        tong_nhat: parseFloat(item.tong_nhat) || parseFloat(item.soLuong) || 0,
+
         // Đánh dấu không phải là item mới thêm
         isNewlyAdded: false,
         _lastUpdated: Date.now(),
@@ -334,6 +341,13 @@ export const useVatTuManagerNhatHang = () => {
             ma_vv: "",
             ma_nx: "",
             tk_du: "",
+            
+            // Thông tin phiếu nhặt hàng
+            so_luong_don: Math.round(soLuongDeNghiHienThi * 1000) / 1000, // Số lượng đơn
+            nhat: Math.round(soLuongHienThi * 1000) / 1000, // Nhặt
+            ghi_chu: "", // Ghi chú
+            so_luong_ton: 0, // Số lượng tồn
+            tong_nhat: Math.round(soLuongHienThi * 1000) / 1000, // Tổng nhặt
 
             // Additional fields từ payload thực tế
             ma_hd: "",
@@ -512,6 +526,25 @@ export const useVatTuManagerNhatHang = () => {
               }
             } else if (field === "soLuongDeNghi") {
               // Xử lý thay đổi số lượng đề nghị (so_luong) - không ảnh hưởng đến soLuong_goc
+              return {
+                ...item,
+                [field]: newValue,
+              };
+            } else if (field === "so_luong_don") {
+              // Xử lý thay đổi số lượng đơn
+              return {
+                ...item,
+                [field]: newValue,
+              };
+            } else if (field === "nhat") {
+              // Xử lý thay đổi nhặt - cập nhật cả tổng nhặt
+              return {
+                ...item,
+                [field]: newValue,
+                tong_nhat: newValue, // Cập nhật tổng nhặt bằng số lượng nhặt
+              };
+            } else if (field === "tong_nhat") {
+              // Xử lý thay đổi tổng nhặt
               return {
                 ...item,
                 [field]: newValue,

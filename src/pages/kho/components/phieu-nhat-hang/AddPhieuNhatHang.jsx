@@ -11,10 +11,10 @@ import VatTuNhatHangTable from "./components/VatTuNhatHangTable";
 import { usePhieuNhatHangData } from "./hooks/usePhieuNhatHangData";
 import { useVatTuManagerNhatHang } from "./hooks/useVatTuManagerNhatHang";
 import {
-  buildPhieuNhatHangPayload,
-  fetchVoucherInfo,
-  submitPhieuNhatHangDynamic,
-  validateDataSource,
+    buildPhieuNhatHangPayload,
+    fetchVoucherInfo,
+    submitPhieuNhatHangDynamic,
+    validateDataSource,
 } from "./utils/phieuNhatHangUtils";
 
 const { Title } = Typography;
@@ -159,7 +159,7 @@ const AddPhieuNhatHang = () => {
       const values = await form.validateFields();
 
       // Validate data source
-      const validation = validateDataSource(dataSource);
+      const validation = validateDataSource(dataSource, "nhat-hang");
       if (!validation.isValid) {
         return;
       }
