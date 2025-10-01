@@ -1,4 +1,8 @@
 
+## [0.1.12] - 2025-10-01
+
+Test with buildHash
+
 ## [0.1.11] - 2025-10-01
 
 - Version bump
