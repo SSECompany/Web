@@ -1,6 +1,6 @@
 {
   "name": "phenika",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "dependencies": {
     "@ant-design/charts": "^2.1.1",
@@ -85,9 +85,17 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "node scripts/auto-build.js",
+    "build:nobump": "node scripts/auto-build.js --skip-bump",
+    "build:patch": "node scripts/auto-build.js patch",
+    "build:minor": "node scripts/auto-build.js minor",
+    "build:major": "node scripts/auto-build.js major",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "update-version": "node scripts/update-version.js",
+    "bump:patch": "node scripts/bump-version.js patch",
+    "bump:minor": "node scripts/bump-version.js minor",
+    "bump:major": "node scripts/bump-version.js major"
   },
   "eslintConfig": {
     "extends": [
