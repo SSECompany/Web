@@ -1,7 +1,7 @@
 {
-  "version": "0.1.12",
-  "buildTime": "2025-10-01T05:58:04.057Z",
-  "buildHash": "27ececcc",
-  "releaseNotes": "Test with buildHash",
-  "previousVersion": "0.1.11"
+  "version": "0.1.13",
+  "buildTime": "2025-10-01T05:58:31.756Z",
+  "buildHash": "eb6dae27",
+  "releaseNotes": "Version 0.1.13",
+  "previousVersion": "0.1.12"
 }
