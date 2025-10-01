@@ -1,6 +1,6 @@
 {
-  "version": "0.1.1",
-  "buildTime": "2025-10-01T04:59:51.493Z",
-  "releaseNotes": "Test version bump system",
-  "previousVersion": "0.1.0"
+  "version": "0.1.3",
+  "buildTime": "2025-10-01T05:04:07.622Z",
+  "releaseNotes": "Version 0.1.3",
+  "previousVersion": "0.1.2"
 }
