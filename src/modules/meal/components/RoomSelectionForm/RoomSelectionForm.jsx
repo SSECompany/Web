@@ -6,26 +6,26 @@ import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  addDataMultiObjectApi,
-  apiProcessCombinedMealOrder,
-  multipleTablePutApi,
-  syncFastMutiApi,
+    addDataMultiObjectApi,
+    apiProcessCombinedMealOrder,
+    multipleTablePutApi,
+    syncFastMutiApi,
 } from "../../../../api";
 import {
-  markBedAsSubmitted,
-  resetAllMeals,
-  setCurrentBedIndex,
-  setListBeds,
-  setListDepartment,
-  setListRoom,
-  setMasterData,
-  setMeal,
-  setMealHistory,
-  setRoomCode,
-  setRoomSelectedDate,
-  setShowMealDetails,
-  setShowRoomSelection,
-  setSubmittedBeds
+    markBedAsSubmitted,
+    resetAllMeals,
+    setCurrentBedIndex,
+    setListBeds,
+    setListDepartment,
+    setListRoom,
+    setMasterData,
+    setMeal,
+    setMealHistory,
+    setRoomCode,
+    setRoomSelectedDate,
+    setShowMealDetails,
+    setShowRoomSelection,
+    setSubmittedBeds
 } from "../../store/meal";
 import "./RoomSelectionForm.css";
 
@@ -38,6 +38,7 @@ const RoomSelectionForm = () => {
   const [searchRoom, setSearchRoom] = useState("");
   const [loadingDepartment, setLoadingDepartment] = useState(false);
   const [loadingRoom, setLoadingRoom] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     meals: { masterData = {}, detailData = [] },
@@ -202,6 +203,10 @@ const RoomSelectionForm = () => {
               isPaid: meal.thu_tien ? true : false,
               httt: meal.httt || "",
               date: roomSelectedDate,
+              // Lưu thêm field để update
+              stt_rec: meal.stt_rec || "",
+              stt_rec0: meal.stt_rec0 || "",
+              so_ct: meal.so_ct || "",
             });
           }
         });
@@ -221,6 +226,10 @@ const RoomSelectionForm = () => {
               isPaid: false,
               httt: "",
               date: roomSelectedDate,
+              // Empty cho meal mới
+              stt_rec: "",
+              stt_rec0: "",
+              so_ct: "",
             });
           }
         });
@@ -392,6 +401,11 @@ const RoomSelectionForm = () => {
   }, [roomSelectedDate, masterData.roomCode]);
 
   const handleSubmit = useCallback(async () => {
+    if (isSubmitting) {
+      notification.warning({ message: "Đang xử lý, vui lòng đợi..." });
+      return;
+    }
+
     if (!masterData.name || !masterData.roomCode) {
       console.warn("⚠️ Vui lòng chọn đủ Mã khoa và Mã phòng trước khi gửi.");
       return;
@@ -410,32 +424,46 @@ const RoomSelectionForm = () => {
       },
     ];
 
-    const detail = [];
-
+    // Gửi tất cả các món ăn của các giường có thay đổi (cả 3 ca)
+    const filteredDetail = [];
     detailData.forEach((bedMeals, bedIndex) => {
       const bed = listBeds[bedIndex];
       if (!bed || !bedMeals) return;
 
-      ["CA1", "CA2", "CA3"].forEach((shift) => {
+      // Kiểm tra xem giường này có món nào được chỉnh sửa hoặc là món mới không
+      const hasChanges = ["CA1", "CA2", "CA3"].some((shift) => {
         const meals = bedMeals[shift] || [];
-        meals.forEach((meal) => {
-          if (!meal.mealType) return;
-          detail.push({
-            ma_giuong: bed.ma_giuong,
-            ma_ca: shift,
-            ma_che_do: meal.mode || "",
-            ma_mon: meal.mealType,
-            so_luong: meal.quantity,
-            don_gia: meal.price || 0,
-            thanh_tien: meal.totalMoney || 0,
-            benh_nhan_yn: meal.collectMoney ? 1 : 0,
-            ghi_chu: meal.note || "",
-            thu_tien_yn: meal.isPaid ? 1 : 0,
-            httt: meal.httt || "",
+        return meals.some((meal) => meal.mealType && (!meal.stt_rec || meal.isEdit));
+      });
+
+      // Nếu giường này có thay đổi, gửi TẤT CẢ các món ăn của cả 3 ca
+      if (hasChanges) {
+        ["CA1", "CA2", "CA3"].forEach((shift) => {
+          const meals = bedMeals[shift] || [];
+          meals.forEach((meal) => {
+            if (!meal.mealType) return;
+            filteredDetail.push({
+              ma_giuong: bed.ma_giuong,
+              ma_ca: shift,
+              ma_che_do: meal.mode || "",
+              ma_mon: meal.mealType,
+              so_luong: meal.quantity,
+              don_gia: meal.price || 0,
+              thanh_tien: meal.totalMoney || 0,
+              benh_nhan_yn: meal.collectMoney ? 1 : 0,
+              ghi_chu: meal.note || "",
+              thu_tien_yn: meal.isPaid ? 1 : 0,
+              httt: meal.httt || "",
+              stt_rec: meal.stt_rec || "",
+              stt_rec0: meal.stt_rec0 || "",
+              so_ct: meal.so_ct || "",
+            });
           });
         });
-      });
+      }
     });
+
+    setIsSubmitting(true);
 
     try {
       const response = await apiProcessCombinedMealOrder({
@@ -443,7 +471,7 @@ const RoomSelectionForm = () => {
         unitId: unitId,
         userId: id,
         masterData: master,
-        detailData: detail,
+        detailData: filteredDetail,
       });
 
       if (response?.responseModel?.isSucceded) {
@@ -459,14 +487,18 @@ const RoomSelectionForm = () => {
           dispatch(setMasterData({ name: "", roomCode: "", beds: [] }));
           dispatch(setShowMealDetails(false));
           dispatch(setShowRoomSelection(true));
+          setIsSubmitting(false);
         }, 500);
       } else {
         notification.warning({ message: response?.responseModel?.message });
+        setIsSubmitting(false);
       }
     } catch (error) {
       console.error("Lỗi gửi đơn hàng:", error);
+      notification.error({ message: "Có lỗi xảy ra, vui lòng thử lại!" });
+      setIsSubmitting(false);
     }
-  }, [masterData, detailData, listBeds, roomSelectedDate]);
+  }, [masterData, detailData, listBeds, roomSelectedDate, isSubmitting]);
 
   const handleDateChange = (date) => {
     if (!date || !dayjs(date).isValid()) return;
@@ -587,25 +619,31 @@ const RoomSelectionForm = () => {
             return (
               <div key={index}>
                 <div
-                  className="list-item"
+                  className={`list-item ${isDisabled ? 'bed-already-ordered' : ''}`}
                   onClick={() => handleBedClick(bed, index)}
                   style={{
                     backgroundColor: isDisabled
-                      ? "#f5f5f5"
+                      ? "#fff3e0"
                       : isSubmitted
                       ? "#e6fffb"
                       : "white",
                     cursor: "pointer",
-                    opacity: isDisabled ? 0.8 : 1,
+                    opacity: 1,
+                    borderColor: isDisabled ? "#ff9800" : "#ddd",
+                    borderWidth: isDisabled ? "2px" : "1px",
                   }}
                 >
-                  <span>{bed?.ten_giuong}</span>
-                  {isDisabled && (
-                    <span style={{ color: "#999", fontStyle: "italic" }}>
-                      Đã đặt
-                    </span>
-                  )}
-                  <RightOutlined style={{ fontSize: "18px" }} />
+                  <span style={{ fontWeight: isDisabled ? "600" : "500" }}>
+                    {bed?.ten_giuong}
+                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    {isDisabled && (
+                      <span className="bed-status-badge">
+                        Đã đặt
+                      </span>
+                    )}
+                    <RightOutlined style={{ fontSize: "18px", color: isDisabled ? "#ff9800" : "#4caf50" }} />
+                  </div>
                 </div>
 
                 {isDisabled && (
@@ -732,6 +770,7 @@ const RoomSelectionForm = () => {
         className="submit-button"
         onClick={handleSubmit}
         disabled={
+          isSubmitting ||
           !detailData.some((bedMeals) =>
             ["CA1", "CA2", "CA3"].some((shift) =>
               (bedMeals?.[shift] || []).some((m) => m.mode || m.mealType)
@@ -739,7 +778,7 @@ const RoomSelectionForm = () => {
           )
         }
       >
-        Gửi
+        {isSubmitting ? "Đang gửi..." : "Gửi"}
       </button>
     </div>
   );

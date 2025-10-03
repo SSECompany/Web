@@ -20,6 +20,7 @@ const PaymentModal = ({
   initialPaymentAmounts,
   initialCustomerInfo,
   initialSync,
+  prepaidAmounts = {},
 }) => {
   const [selectedPayments, setSelectedPayments] = useState(["chuyen_khoan"]);
   const [paymentAmounts, setPaymentAmounts] = useState({
@@ -73,18 +74,26 @@ const PaymentModal = ({
       // Chọn cả hai - để input 0 nhưng tính đúng tiền trả lại
       setSelectedPayments(["tien_mat", "chuyen_khoan"]);
       setPaymentAmounts({ tien_mat: 0, chuyen_khoan: 0 });
-      setChange(-total); // Số tiền trả lại = 0 - total = -total
+      setChange(totalPrepaid - total); // Tính luôn tiền trả trước
     } else {
       // Chọn một phương thức duy nhất
       setSelectedPayments([method]);
+      const remainingAmount = Math.max(0, total - totalPrepaid);
       setPaymentAmounts((amounts) => {
         const updatedAmounts = { tien_mat: 0, chuyen_khoan: 0 };
-        updatedAmounts[method] = total;
+        updatedAmounts[method] = remainingAmount;
         return updatedAmounts;
       });
       setChange(0);
     }
   };
+
+  // Tính tổng tiền trả trước
+  const totalPrepaid = useMemo(() => {
+    const familyPrepaid = Number(prepaidAmounts.tien_nguoi_nha_tra_truoc || 0);
+    const studentPrepaid = Number(prepaidAmounts.tien_sinh_vien_tra_truoc || 0);
+    return familyPrepaid + studentPrepaid;
+  }, [prepaidAmounts]);
 
   const handleAmountChange = (method, value) => {
     const newAmounts = { ...paymentAmounts, [method]: value || 0 };
@@ -94,7 +103,7 @@ const PaymentModal = ({
       (sum, val) => sum + val,
       0
     );
-    setChange(totalAmount - total);
+    setChange(totalAmount + totalPrepaid - total);
   };
 
   const validateCCCD = (value) => {
@@ -195,6 +204,7 @@ const PaymentModal = ({
 
       // Tính toán payment amounts dựa trên phương thức thanh toán
       const newPaymentAmounts = { tien_mat: 0, chuyen_khoan: 0 };
+      const remainingAmount = Math.max(0, total - totalPrepaid);
 
       // Nếu có initialPaymentAmounts từ order đã lưu, sử dụng nó
       if (
@@ -212,9 +222,9 @@ const PaymentModal = ({
         // Nếu không, tính toán dựa trên phương thức thanh toán
         if (defaultPayments.length === 1) {
           if (defaultPayments[0] === "tien_mat") {
-            newPaymentAmounts.tien_mat = total;
+            newPaymentAmounts.tien_mat = remainingAmount;
           } else {
-            newPaymentAmounts.chuyen_khoan = total;
+            newPaymentAmounts.chuyen_khoan = remainingAmount;
           }
         } else if (defaultPayments.length === 2) {
           // Nếu có 2 phương thức thanh toán, để input 0 và tính đúng tiền trả lại
@@ -236,9 +246,9 @@ const PaymentModal = ({
           (initialPaymentAmounts.tien_mat === 0 &&
             initialPaymentAmounts.chuyen_khoan === 0))
       ) {
-        setChange(-total);
+        setChange(totalPrepaid - total);
       } else {
-        setChange(totalPaid - total);
+        setChange(totalPaid + totalPrepaid - total);
       }
 
       setCustomerInfo({
@@ -267,6 +277,7 @@ const PaymentModal = ({
     initialPaymentAmounts,
     initialCustomerInfo,
     initialSync,
+    totalPrepaid,
   ]);
 
   return (
@@ -542,6 +553,32 @@ const PaymentModal = ({
 
       <div className="payment-divider"></div>
 
+      {/* Hiển thị tiền trả trước nếu có */}
+      {(prepaidAmounts.tien_nguoi_nha_tra_truoc > 0 || prepaidAmounts.tien_sinh_vien_tra_truoc > 0) && (
+        <div style={{ marginBottom: 16 }}>
+          <p className="payment-text">
+            <strong>Tiền trả trước:</strong>
+          </p>
+          {prepaidAmounts.tien_nguoi_nha_tra_truoc > 0 && (
+            <div className="payment-summary">
+              <span>Người nhà bệnh nhân:</span>
+              <strong>{formatCurrency(prepaidAmounts.tien_nguoi_nha_tra_truoc)}</strong>
+            </div>
+          )}
+          {prepaidAmounts.tien_sinh_vien_tra_truoc > 0 && (
+            <div className="payment-summary">
+              <span>Sinh viên:</span>
+              <strong>{formatCurrency(prepaidAmounts.tien_sinh_vien_tra_truoc)}</strong>
+            </div>
+          )}
+          <div className="payment-summary" style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e8e8e8' }}>
+            <span>Tổng trả trước:</span>
+            <strong style={{ color: '#1890ff' }}>{formatCurrency(totalPrepaid)}</strong>
+          </div>
+          <div className="payment-divider"></div>
+        </div>
+      )}
+
       <div className="payment-summary">
         <span>Trả lại:</span>
         <strong style={{ color: change < 0 ? "red" : "black" }}>
@@ -606,11 +643,11 @@ const PaymentModal = ({
               ? Object.values(paymentAmounts).reduce(
                   (sum, val) => sum + val,
                   0
-                ) !== total
+                ) + totalPrepaid !== total
               : Object.values(paymentAmounts).reduce(
                   (sum, val) => sum + val,
                   0
-                ) < total)
+                ) + totalPrepaid < total)
           }
           loading={isCreatingOrder || isSubmitting}
         >

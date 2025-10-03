@@ -7,7 +7,6 @@ const MealEntryRow = ({
   index,
   timeOfDay,
   listDietCategory,
-  listFood,
   foodListForSelection,
   handleDeleteMeal,
   handleModeChange,
@@ -17,11 +16,8 @@ const MealEntryRow = ({
   firstMealInputRef,
   isAnotherMealSelected,
 }) => {
-  const availableFoods =
-    foodListForSelection ||
-    listFood.filter(
-      (food) => food.ma_ca === timeOfDay && food.ma_nh === meal.mode
-    );
+  // CHỈ dùng foodListForSelection từ parent, KHÔNG fallback sang listFood
+  const availableFoods = foodListForSelection || [];
 
   // Determine shift name for display
   const shiftName =
@@ -112,7 +108,7 @@ const MealEntryRow = ({
             )}
             {meal.mealType &&
               (() => {
-                const selectedFood = listFood.find(
+                const selectedFood = availableFoods.find(
                   (food) => food.ma_mon === meal.mealType
                 );
                 if (selectedFood?.ma_mon_phu) {
