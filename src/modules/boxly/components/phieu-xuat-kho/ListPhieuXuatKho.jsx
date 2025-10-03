@@ -3,7 +3,15 @@ import {
   EditOutlined,
   FileTextOutlined,
 } from "@ant-design/icons";
-import { Button, DatePicker, Input, message, Tag, Typography } from "antd";
+import {
+  Button,
+  DatePicker,
+  Input,
+  message,
+  Select,
+  Tag,
+  Typography,
+} from "antd";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -23,12 +31,69 @@ const ListPhieuXuatKho = () => {
   const [totalRecords, setTotalRecords] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [screenSize, setScreenSize] = useState("desktop");
-  const [filters, setFilters] = useState({
-    so_ct: "",
-    ma_kh: "",
-    ten_kh: "",
-    dateRange: null,
-  });
+
+  // Key để lưu filters riêng cho phiếu xuất kho
+  const FILTER_STORAGE_KEY = "phieu_xuat_kho_filters";
+
+  // Khôi phục filters từ localStorage
+  const getSavedFilters = () => {
+    try {
+      const saved = localStorage.getItem(FILTER_STORAGE_KEY);
+      if (saved) {
+        const parsedFilters = JSON.parse(saved);
+        // Chuyển đổi dateRange từ string array về dayjs objects nếu có
+        if (parsedFilters.dateRange && Array.isArray(parsedFilters.dateRange)) {
+          parsedFilters.dateRange = parsedFilters.dateRange.map((date) =>
+            date ? dayjs(date) : null
+          );
+        }
+        return parsedFilters;
+      }
+    } catch (error) {
+      console.error("Error loading saved filters:", error);
+    }
+    return {
+      so_ct: "",
+      ma_kh: "",
+      ten_kh: "",
+      dateRange: null,
+      status: "",
+    };
+  };
+
+  const [filters, setFilters] = useState(getSavedFilters());
+
+  // Hàm lấy text trạng thái
+  const getStatusText = (status) => {
+    const statusMap = {
+      0: "Lập chứng từ",
+      1: "Xuất kho",
+      3: "Chuyển vào SC",
+    };
+    return statusMap[status] || "Không xác định";
+  };
+
+  // Lưu filters vào localStorage
+  const saveFilters = (filtersToSave) => {
+    try {
+      // Chuyển đổi dateRange từ dayjs objects về strings để lưu
+      const filtersForStorage = { ...filtersToSave };
+      if (
+        filtersForStorage.dateRange &&
+        Array.isArray(filtersForStorage.dateRange)
+      ) {
+        filtersForStorage.dateRange = filtersForStorage.dateRange.map((date) =>
+          date ? date.format("YYYY-MM-DD") : null
+        );
+      }
+      localStorage.setItem(
+        FILTER_STORAGE_KEY,
+        JSON.stringify(filtersForStorage)
+      );
+    } catch (error) {
+      console.error("Error saving filters:", error);
+    }
+  };
 
   const pageSize = 20;
   const startIndex = (currentPage - 1) * pageSize;
@@ -55,6 +120,16 @@ const ListPhieuXuatKho = () => {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
+  // Tự động lưu filters khi thay đổi
+  useEffect(() => {
+    saveFilters(filters);
+  }, [filters]);
+
+  // Load data với saved filters khi component mount
+  useEffect(() => {
+    fetchPhieuXuatKho();
+  }, []);
+
   const fetchPhieuXuatKho = async (filterParams = filters) => {
     const body = {
       store: "api_list_phieu_xuat_kho_voucher",
@@ -73,7 +148,7 @@ const ListPhieuXuatKho = () => {
             : dayjs().endOf("month").format("YYYY-MM-DD"),
         PageIndex: currentPage,
         PageSize: pageSize,
-        Status: "",
+        Status: filterParams.status || "",
       },
       data: {},
       resultSetNames: ["data", "pagination"],
@@ -182,6 +257,65 @@ const ListPhieuXuatKho = () => {
         render: (_, __, index) => index + 1,
         width: 60,
         align: "center",
+      },
+      {
+        title: "Trạng thái",
+        dataIndex: "statusname",
+        key: "status",
+        width: screenSize === "mobile" ? 80 : 120,
+        align: "center",
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+          <div style={{ padding: 8 }}>
+            <Select
+              placeholder="Chọn trạng thái"
+              value={selectedKeys[0]}
+              onChange={(value) => setSelectedKeys(value ? [value] : [])}
+              style={{ width: "100%", marginBottom: 8 }}
+              allowClear
+            >
+              <Select.Option value="0">Lập chứng từ</Select.Option>
+              <Select.Option value="1">Xuất kho</Select.Option>
+              <Select.Option value="3">Chuyển vào SC</Select.Option>
+            </Select>
+            <Button
+              className="search_button"
+              type="primary"
+              onClick={() => {
+                confirm();
+                const newFilters = {
+                  ...filters,
+                  status: selectedKeys[0] || "",
+                };
+                setFilters(newFilters);
+                fetchPhieuXuatKho(newFilters);
+              }}
+              size="small"
+            >
+              Tìm kiếm
+            </Button>
+          </div>
+        ),
+        filteredValue: filters.status ? [filters.status] : null,
+        render: (statusname, record) => {
+          if (record.status === "*" || record.status === null) {
+            return "";
+          }
+
+          // Fallback cho statusname nếu API không trả về
+          const getStatusTextLocal = (status) => {
+            const statusMap = {
+              0: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
+              1: screenSize === "mobile" ? "Xuất" : "Xuất kho",
+              3: screenSize === "mobile" ? "Chuyển" : "Chuyển vào SC",
+            };
+            return statusMap[status] || "Không xác định";
+          };
+
+          const displayText = statusname || getStatusTextLocal(record.status);
+          const statusColor = getStatusColor(record.status);
+
+          return <Tag color={statusColor}>{displayText}</Tag>;
+        },
       },
       {
         title: "Mã phiếu",
@@ -423,35 +557,6 @@ const ListPhieuXuatKho = () => {
         }
       );
     }
-
-    baseColumns.push({
-      title: "Trạng thái",
-      dataIndex: "statusname",
-      key: "status",
-      width: screenSize === "mobile" ? 80 : 120,
-      align: "center",
-      render: (statusname, record) => {
-        if (record.status === "*" || record.status === null) {
-          return "";
-        }
-
-        // Fallback cho statusname nếu API không trả về
-        const getStatusText = (status) => {
-          const statusMap = {
-            0: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
-            2: screenSize === "mobile" ? "Nhập" : "Nhập kho",
-            3: screenSize === "mobile" ? "Chuyển" : "Chuyển số cái",
-            5: screenSize === "mobile" ? "Đề nghị" : "Đề nghị xuất kho",
-          };
-          return statusMap[status] || "Không xác định";
-        };
-
-        const displayText = statusname || getStatusText(record.status);
-        const statusColor = getStatusColor(record.status);
-
-        return <Tag color={statusColor}>{displayText}</Tag>;
-      },
-    });
 
     baseColumns.push({
       title: "Hành động",

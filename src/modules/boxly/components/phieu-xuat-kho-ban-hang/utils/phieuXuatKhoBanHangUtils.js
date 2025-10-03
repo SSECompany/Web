@@ -525,12 +525,6 @@ export const submitPhieuDynamic = async (
       },
     });
 
-    // Kiểm tra response có tồn tại không
-    if (!response) {
-      message.error("Không nhận được phản hồi từ server");
-      return { success: false };
-    }
-
     // Check new response structure with responseModel
     if (response.data?.responseModel?.isSucceded === true) {
       message.success(response.data.responseModel.message || successMessage);
@@ -553,12 +547,15 @@ export const submitPhieuDynamic = async (
     }
   } catch (error) {
     console.error("Error submitting phieu:", error);
-    console.error("Error details:", error.message);
-
+    
     if (error.response?.data?.responseModel?.message) {
       message.error(error.response.data.responseModel.message);
     } else if (error.response?.data?.message) {
       message.error(error.response.data.message);
+    } else if (error.code === "ERR_NETWORK") {
+      message.error("Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet.");
+    } else if (error.code === "ECONNABORTED") {
+      message.error("Hết thời gian chờ. Vui lòng thử lại.");
     } else {
       message.error("Vui lòng kiểm tra lại thông tin");
     }
@@ -607,7 +604,6 @@ export const deletePhieuDynamic = async (stt_rec) => {
     }
   } catch (error) {
     console.error("Lỗi khi xóa phiếu xuất kho bán hàng:", error);
-    console.error("Error details:", error.message);
     if (error.response?.data?.responseModel?.message) {
       message.error(error.response.data.responseModel.message);
     } else if (error.response?.data?.message) {

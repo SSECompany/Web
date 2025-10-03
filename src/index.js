@@ -18,7 +18,6 @@ import "primereact/resources/primereact.min.css";
 import "primereact/resources/themes/lara-light-indigo/theme.css";
 import { Suspense } from "react";
 import App from "./App";
-import Loading from "./components/common/Loading/Loading";
 import reportWebVitals from "./reportWebVitals";
 import themeComponents from "./utils/theme";
 
@@ -28,7 +27,21 @@ dayjs.updateLocale("vi", {});
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <Provider store={store}>
-    <Suspense fallback={<Loading />}>
+    <Suspense
+      fallback={
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100vh",
+            fontSize: "18px",
+          }}
+        >
+          Đang tải...
+        </div>
+      }
+    >
       <ConfigProvider
         locale={locale}
         theme={{

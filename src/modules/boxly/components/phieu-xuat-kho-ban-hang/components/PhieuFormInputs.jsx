@@ -2,6 +2,7 @@ import { Col, DatePicker, Form, Input, Row, Select } from "antd";
 
 const PhieuFormInputs = ({
   isEditMode,
+  isEditPhieu = false, // Thêm prop mới để phân biệt chế độ chỉnh sửa phiếu
   maKhachList,
   loadingMaKhach,
   fetchMaKhachListDebounced,
@@ -109,10 +110,21 @@ const PhieuFormInputs = ({
         <Col span={12}>
           <Form.Item name="trangThai" label="Trạng thái">
             <Select placeholder="Chọn trạng thái" disabled={!isEditMode}>
-              <Select.Option value="0">Lập chứng từ</Select.Option>
-              <Select.Option value="4">Đề nghị xuất kho</Select.Option>
-              <Select.Option value="5">Xuất kho</Select.Option>
-              <Select.Option value="6">Hoàn thành</Select.Option>
+              {isEditPhieu ? (
+                // Chỉnh sửa phiếu: chỉ 2 trạng thái
+                <>
+                  <Select.Option value="4">Đề nghị xuất kho</Select.Option>
+                  <Select.Option value="5">Xuất kho</Select.Option>
+                </>
+              ) : (
+                // Thêm mới phiếu: đầy đủ 4 trạng thái
+                <>
+                  <Select.Option value="0">Lập chứng từ</Select.Option>
+                  <Select.Option value="4">Đề nghị xuất kho</Select.Option>
+                  <Select.Option value="5">Xuất kho</Select.Option>
+                  <Select.Option value="6">Hoàn thành</Select.Option>
+                </>
+              )}
             </Select>
           </Form.Item>
         </Col>

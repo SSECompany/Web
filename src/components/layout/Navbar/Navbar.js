@@ -1,14 +1,15 @@
-import { MoreOutlined } from "@ant-design/icons";
-import { Dropdown, Menu } from "antd";
+import { MoreOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Dropdown, Menu, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
 
 import { getRoutesAccess } from "../../../app/Functions/getRouteAccess";
+import useVersionChecker from "../../../hooks/useVersionChecker";
 import router, { routes } from "../../../router/routes";
 import {
-  setClaims,
-  setIsBackgrouds,
+    setClaims,
+    setIsBackgrouds,
 } from "../../../store/reducers/claimsSlice";
 import { getUserInfo } from "../../../store/selectors/Selectors";
 import jwt from "../../../utils/jwt";
@@ -21,6 +22,7 @@ const Navbar = () => {
   const userInfo = useSelector(getUserInfo);
   const [userFromStorage, setUserFromStorage] = useState(null);
   const routeLocation = useLocation();
+  const { currentVersion, hasNewVersion, forceReload } = useVersionChecker();
 
   useEffect(() => {
     dispatch(setClaims(jwt.getClaims() || {}));
@@ -98,6 +100,74 @@ const Navbar = () => {
         </div>
 
         <div className="first_navbar_row_right flex gap-1">
+          {/* Version Badge - Phenikaa Style */}
+          <Tooltip
+            title={
+              hasNewVersion
+                ? "Có phiên bản mới! Click để cập nhật"
+                : `Phiên bản hiện tại: v${currentVersion}`
+            }
+          >
+            <div
+              onClick={hasNewVersion ? forceReload : undefined}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "0 12px",
+                fontSize: "13px",
+                cursor: hasNewVersion ? "pointer" : "default",
+                transition: "all 0.3s",
+              }}
+            >
+              {/* Dot indicator */}
+              <span
+                style={{
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "50%",
+                  background: hasNewVersion ? "#1890ff" : "#8c8c8c",
+                  transition: "background 0.3s",
+                }}
+              />
+              
+              {/* Version text */}
+              <span
+                style={{
+                  color: hasNewVersion ? "#1890ff" : "#8c8c8c",
+                  fontWeight: 500,
+                  transition: "color 0.3s",
+                }}
+              >
+                v{currentVersion}
+              </span>
+
+              {/* "Có cập nhật mới" text */}
+              {hasNewVersion && (
+                <span
+                  style={{
+                    color: "#1890ff",
+                    fontSize: "12px",
+                    fontWeight: 400,
+                  }}
+                >
+                  (Có cập nhật mới)
+                </span>
+              )}
+
+              {/* Reload icon */}
+              {hasNewVersion && (
+                <ReloadOutlined
+                  spin
+                  style={{
+                    fontSize: "14px",
+                    color: "#1890ff",
+                  }}
+                />
+              )}
+            </div>
+          </Tooltip>
+
           <div className="px-1 text-center flex full-name">
             <div className="primary_bold_text">
               {userFromStorage?.fullName || ""}

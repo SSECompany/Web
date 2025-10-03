@@ -7,6 +7,11 @@ import ProtectedRoute from "./ProtectedRoute";
 // Sử dụng lazy loading cho tất cả các component trang
 const Login = lazy(() => import("../pages/Login/Login"));
 const Boxly = lazy(() => import("../pages/boxly/Boxly"));
+
+// Preload component Boxly để tránh màn hình trắng
+const preloadBoxly = () => import("../pages/boxly/Boxly");
+// Preload ngay khi module được import
+preloadBoxly();
 const ListPhieuNhapKho = lazy(() =>
   import("../modules/boxly/components/phieu-nhap-kho/ListPhieuNhapKho")
 );

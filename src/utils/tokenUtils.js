@@ -42,7 +42,7 @@ export const setTokenExpiry = (expiryTime) => {
 
 export const calculateTokenExpiry = () => {
   const expiryDate = new Date();
-  expiryDate.setDate(expiryDate.getDate() + 1); // 1 ngày
+  expiryDate.setHours(expiryDate.getHours() + 8); // 8 giờ
   return expiryDate.getTime();
 };
 

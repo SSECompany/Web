@@ -194,7 +194,6 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         // Set dataSource với converted data (đã có tất cả API fields)
         setDataSource(convertedDataSource);
 
-
         // Mark as loaded
         phieuDetailLoadedRef.current = stt_rec;
       }
@@ -338,8 +337,6 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         // Sử dụng buildPayload với dynamic logic đã được implement
         const payload = buildPayload(values, dataSource, phieuData, true);
 
-      
-
         if (!payload) {
           message.error(
             "Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu."
@@ -458,6 +455,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         >
           <PhieuFormInputs
             isEditMode={isEditMode}
+            isEditPhieu={true}
             maGiaoDichList={maGiaoDichList}
             maKhachList={maKhachList}
             loadingMaKhach={loadingMaKhach}

@@ -1,8 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
-import * as jwt from "../../utils/jwt";
 import {
-  calculateTokenExpiry,
-  isTokenExpired as checkTokenExpired,
+    calculateTokenExpiry,
+    isTokenExpired as checkTokenExpired,
 } from "../../utils/tokenUtils";
 
 // 🚀 Helper functions để optimize performance và safety
@@ -157,7 +156,7 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.lastLogin = new Date().toISOString();
 
-      // Thiết lập thời gian hết hạn token (1 ngày) - CHỈ KHI LOGIN LẦN ĐẦU
+      // Thiết lập thời gian hết hạn token (8 giờ) - CHỈ KHI LOGIN LẦN ĐẦU
       const tokenExpiry = calculateTokenExpiry();
       state.tokenExpiry = tokenExpiry;
 

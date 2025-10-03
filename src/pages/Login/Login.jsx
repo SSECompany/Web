@@ -1,35 +1,35 @@
 import {
-  EyeInvisibleOutlined,
-  EyeTwoTone,
-  UserOutlined,
+    EyeInvisibleOutlined,
+    EyeTwoTone,
+    UserOutlined,
 } from "@ant-design/icons";
 import { UilExclamationOctagon } from "@iconscout/react-unicons";
 import {
-  Button,
-  Carousel,
-  Checkbox,
-  Form,
-  Input,
-  notification,
-  Select,
-  Space,
+    Button,
+    Carousel,
+    Checkbox,
+    Form,
+    Input,
+    notification,
+    Select,
+    Space,
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useDebouncedCallback } from "use-debounce";
 import router from "../../router/routes";
 import {
-  setClaims,
-  setRefreshToken,
-  setTokenExpiry,
+    setClaims,
+    setRefreshToken,
+    setTokenExpiry,
 } from "../../store/reducers/claimsSlice";
 import {
-  login,
-  logout,
-  refreshToken,
-  selectIsValidSession,
-  selectNeedsTokenRefresh,
-  selectRefreshToken,
+    login,
+    logout,
+    refreshToken,
+    selectIsValidSession,
+    selectNeedsTokenRefresh,
+    selectRefreshToken,
 } from "../../store/slices/authSlice";
 import https from "../../utils/https";
 import jwt from "../../utils/jwt";
@@ -49,6 +49,7 @@ const Login = () => {
   const [loginWaitingUnits, setLoginWaitingUnits] = useState(false);
   const [isLoginInProgress, setIsLoginInProgress] = useState(false); // Thêm state để track login progress
   const [allUnitsData, setAllUnitsData] = useState([]); // Lưu toàn bộ dữ liệu units từ API
+  const [isNavigating, setIsNavigating] = useState(false); // Thêm state cho navigation
 
   const dispatch = useDispatch();
   const isValidSession = useSelector(selectIsValidSession);
@@ -202,17 +203,17 @@ const Login = () => {
         newRefreshToken = jwt.getRefreshToken();
       }
 
-      // Thiết lập thời gian hết hạn (1 ngày) - CHỈ KHI LOGIN LẦN ĐẦU
+      // Thiết lập thời gian hết hạn (8 giờ) - CHỈ KHI LOGIN LẦN ĐẦU
       const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() + 1);
+      expiryDate.setHours(expiryDate.getHours() + 8);
       const tokenExpiry = expiryDate.getTime();
 
-      // Cập nhật redux store
-      await dispatch(setClaims(jwt.saveClaims(accessToken)));
-      await dispatch(setRefreshToken(newRefreshToken));
-      await dispatch(setTokenExpiry(tokenExpiry));
+      // Cập nhật redux store - đảm bảo thứ tự
+      dispatch(setClaims(jwt.saveClaims(accessToken)));
+      dispatch(setRefreshToken(newRefreshToken));
+      dispatch(setTokenExpiry(tokenExpiry));
 
-      // Cập nhật auth store
+      // Cập nhật auth store - chờ hoàn tất
       await dispatch(
         login({
           token: accessToken,
@@ -236,8 +237,15 @@ const Login = () => {
         message: `Đăng nhập thành công`,
       });
 
-      // Navigate sau khi mọi thứ hoàn tất
-      setTimeout(() => router.navigate("/"), 100);
+      // Đặt trạng thái navigating và navigate
+      setIsNavigating(true);
+
+      // Navigate sau khi mọi thứ hoàn tất - tăng thời gian chờ
+      setTimeout(() => {
+        router.navigate("/");
+        // Reset navigating state sau khi navigate
+        setTimeout(() => setIsNavigating(false), 1000);
+      }, 500);
     } catch (error) {
       setLoginLoading(false);
       notification.warning({
@@ -572,7 +580,7 @@ const Login = () => {
                   className="default_button"
                   type="primary"
                   htmlType="submit"
-                  loading={loginLoading || loginWaitingUnits}
+                  loading={loginLoading || loginWaitingUnits || isNavigating}
                   style={{ flexShrink: "0", color: "white", width: "100%" }}
                   disabled={!unitsLoaded && !loginWaitingUnits}
                 >

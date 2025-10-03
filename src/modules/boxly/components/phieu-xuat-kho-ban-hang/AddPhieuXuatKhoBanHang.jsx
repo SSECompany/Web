@@ -210,7 +210,6 @@ const AddPhieuXuatKhoBanHang = () => {
     try {
       const payload = buildPayload(values, dataSource, null, false);
 
-
       if (!payload) {
         message.error("Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu.");
         setLoading(false);
@@ -307,6 +306,7 @@ const AddPhieuXuatKhoBanHang = () => {
         <Form form={form} layout="vertical" className="phieu-form">
           <PhieuFormInputs
             isEditMode={true}
+            isEditPhieu={false}
             maGiaoDichList={maGiaoDichList}
             maKhachList={maKhachList}
             loadingMaKhach={loadingMaKhach}
