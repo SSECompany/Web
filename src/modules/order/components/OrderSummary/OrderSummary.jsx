@@ -262,16 +262,30 @@ export default function OrderSummary({ total, itemCount }) {
     let finalTienMat = 0;
     let finalChuyenKhoan = 0;
     const totalAmount = Number(activeTab?.master?.tong_tien || 0);
+    const totalPrepaid = Number(activeTab?.master?.benhnhan_tratruoc || 0) + Number(activeTab?.master?.sinhvien_tratruoc || 0);
+    const remainingAmount = totalAmount - totalPrepaid;
 
     if (selectedPayments.length === 1) {
       if (selectedPayments[0] === "tien_mat") {
-        finalTienMat = totalAmount;
+        finalTienMat = remainingAmount;
       } else {
-        finalChuyenKhoan = totalAmount;
+        finalChuyenKhoan = remainingAmount;
       }
-    } else {
+    } else if (selectedPayments.length === 2) {
       finalChuyenKhoan = Number(paymentAmounts.chuyen_khoan || 0);
-      finalTienMat = totalAmount - finalChuyenKhoan;
+      finalTienMat = remainingAmount - finalChuyenKhoan;
+    }
+
+    // Xây dựng httt: nếu có prepaid method, thêm vào đầu
+    const initialHttt = activeTab?.master?.httt || "";
+    const isPrepaidMethod = initialHttt === "benhnhan_tratruoc" || initialHttt === "sinhvien_tratruoc";
+    let finalHttt = selectedPayments.join(",");
+    if (isPrepaidMethod && totalPrepaid > 0) {
+      if (selectedPayments.length > 0) {
+        finalHttt = `${initialHttt},${selectedPayments.join(",")}`;
+      } else {
+        finalHttt = initialHttt;
+      }
     }
 
     const masterData = {
@@ -282,8 +296,10 @@ export default function OrderSummary({ total, itemCount }) {
       tong_sl: Number(activeTab?.master?.tong_sl || 0).toString(),
       tien_mat: finalTienMat.toString(),
       chuyen_khoan: finalChuyenKhoan.toString(),
+      benhnhan_tratruoc: (activeTab?.master?.benhnhan_tratruoc || 0).toString(),
+      sinhvien_tratruoc: (activeTab?.master?.sinhvien_tratruoc || 0).toString(),
       tong_tt: totalAmount.toString(),
-      httt: selectedPayments.join(","),
+      httt: finalHttt,
       stt_rec: activeTab?.master?.stt_rec || "",
       status,
       cccd: customerInfo.cccd ?? activeTab?.master?.cccd ?? "",
@@ -1020,6 +1036,10 @@ export default function OrderSummary({ total, itemCount }) {
           ten_dv_kh: (activeTab?.master?.ten_dv_kh || "").trim(),
         }}
         initialSync={activeTab?.master?.s3 !== "0"}
+        prepaidAmounts={{
+          benhnhan_tratruoc: activeTab?.master?.benhnhan_tratruoc || 0,
+          sinhvien_tratruoc: activeTab?.master?.sinhvien_tratruoc || 0,
+        }}
       />
 
       <CustomerPaymentModal

@@ -90,8 +90,8 @@ const PaymentModal = ({
 
   // Tính tổng tiền trả trước
   const totalPrepaid = useMemo(() => {
-    const familyPrepaid = Number(prepaidAmounts.tien_nguoi_nha_tra_truoc || 0);
-    const studentPrepaid = Number(prepaidAmounts.tien_sinh_vien_tra_truoc || 0);
+    const familyPrepaid = Number(prepaidAmounts.benhnhan_tratruoc || 0);
+    const studentPrepaid = Number(prepaidAmounts.sinhvien_tratruoc || 0);
     return familyPrepaid + studentPrepaid;
   }, [prepaidAmounts]);
 
@@ -196,9 +196,14 @@ const PaymentModal = ({
       // Parse initialPaymentMethod - có thể là "chuyen_khoan" hoặc "tien_mat,chuyen_khoan"
       let defaultPayments = ["chuyen_khoan"];
       if (initialPaymentMethod) {
-        defaultPayments = initialPaymentMethod
-          .split(",")
-          .map((method) => method.trim());
+        // Nếu là prepaid method (benhnhan_tratruoc hoặc sinhvien_tratruoc), không chọn payment method nào
+        if (initialPaymentMethod === "benhnhan_tratruoc" || initialPaymentMethod === "sinhvien_tratruoc") {
+          defaultPayments = [];
+        } else {
+          defaultPayments = initialPaymentMethod
+            .split(",")
+            .map((method) => method.trim());
+        }
       }
       setSelectedPayments(defaultPayments);
 
@@ -417,6 +422,28 @@ const PaymentModal = ({
         </div>
       )}
       <div style={{ borderBottom: "1px solid #ccc", margin: "16px 0" }}></div>
+
+      {/* Hiển thị tiền trả trước nếu có */}
+      {totalPrepaid > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <p className="payment-text">
+            <strong>Tiền trả trước:</strong>
+          </p>
+          {prepaidAmounts.benhnhan_tratruoc > 0 && (
+            <div className="payment-summary">
+              <span>Bệnh nhân trả trước:</span>
+              <strong style={{ color: '#1890ff' }}>{formatCurrency(prepaidAmounts.benhnhan_tratruoc)}</strong>
+            </div>
+          )}
+          {prepaidAmounts.sinhvien_tratruoc > 0 && (
+            <div className="payment-summary">
+              <span>Sinh viên trả trước:</span>
+              <strong style={{ color: '#1890ff' }}>{formatCurrency(prepaidAmounts.sinhvien_tratruoc)}</strong>
+            </div>
+          )}
+        </div>
+      )}
+
       <p className="payment-text">
         <strong>Hình thức thanh toán:</strong>
       </p>
@@ -456,128 +483,107 @@ const PaymentModal = ({
         </Checkbox>
       </div>
 
-      {showQRCode && (
-        <div className="qr-code-container">
-          <p className="payment-text">
-            <strong>Quét mã QR để thanh toán:</strong>
-          </p>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <VietQR amount={total} soChungTu={""} size={200} />
-            <div className="qr-info">
-              {accountName?.split(" - ").map((line, index) => (
-                <div key={index} className="qr-info-line">
-                  {line.trim()}
-                </div>
-              ))}
-              <div className="qr-info-line">{account}</div>
-              <div className="qr-info-line">
-                Số tiền: {formatCurrency(total)}đ
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!showQRCode && (
+      {/* Chỉ hiển thị phần nhập số tiền khi đã chọn hình thức thanh toán */}
+      {selectedPayments.length > 0 && (
         <>
-          <p className="payment-text">
-            <strong>Nhập số tiền:</strong>
-          </p>
-          {selectedPayments.length === 1 ? (
-            // Chỉ hiển thị input cho phương thức được chọn
-            <div className="payment-amount-container">
-              <span>
-                {selectedPayments[0] === "tien_mat"
-                  ? "Tiền mặt"
-                  : "Chuyển khoản"}
-              </span>
-              <InputNumber
-                value={paymentAmounts[selectedPayments[0]] || 0}
-                onChange={(value) =>
-                  handleAmountChange(selectedPayments[0], value)
-                }
-                className="payment-input"
-                style={{ width: 120 }}
-                controls={false}
-                min="0"
-                formatter={(value) => (value ? formatNumber(value) : "")}
-                parser={(value) => (value ? parserNumber(value) : 0)}
-                onKeyDownCapture={(event) => {
-                  if (
-                    !/[0-9]/.test(event.key) &&
-                    ![8, 46, 37, 38, 39, 40].includes(event.keyCode)
-                  ) {
-                    event.preventDefault();
-                  }
+          {showQRCode && (
+            <div className="qr-code-container">
+              <p className="payment-text">
+                <strong>Quét mã QR để thanh toán:</strong>
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 8,
                 }}
-              />
-            </div>
-          ) : (
-            // Hiển thị cả hai input khi chọn "Cả hai"
-            selectedPayments.map((method) => (
-              <div key={method} className="payment-amount-container">
-                <span>
-                  {method === "tien_mat" ? "Tiền mặt" : "Chuyển khoản"}
-                </span>
-                <InputNumber
-                  value={paymentAmounts[method] || 0}
-                  onChange={(value) => handleAmountChange(method, value)}
-                  className="payment-input"
-                  style={{ width: 120 }}
-                  controls={false}
-                  min="0"
-                  formatter={(value) => (value ? formatNumber(value) : "")}
-                  parser={(value) => (value ? parserNumber(value) : 0)}
-                  onKeyDownCapture={(event) => {
-                    if (
-                      !/[0-9]/.test(event.key) &&
-                      ![8, 46, 37, 38, 39, 40].includes(event.keyCode)
-                    ) {
-                      event.preventDefault();
-                    }
-                  }}
-                />
+              >
+                <VietQR amount={Math.max(0, total - totalPrepaid)} soChungTu={""} size={200} />
+                <div className="qr-info">
+                  {accountName?.split(" - ").map((line, index) => (
+                    <div key={index} className="qr-info-line">
+                      {line.trim()}
+                    </div>
+                  ))}
+                  <div className="qr-info-line">{account}</div>
+                  <div className="qr-info-line">
+                    Số tiền: {formatCurrency(Math.max(0, total - totalPrepaid))}đ
+                  </div>
+                </div>
               </div>
-            ))
+            </div>
+          )}
+
+          {!showQRCode && (
+            <>
+              <p className="payment-text">
+                <strong>Nhập số tiền:</strong>
+              </p>
+              {selectedPayments.length === 1 ? (
+                // Chỉ hiển thị input cho phương thức được chọn
+                <div className="payment-amount-container">
+                  <span>
+                    {selectedPayments[0] === "tien_mat"
+                      ? "Tiền mặt"
+                      : "Chuyển khoản"}
+                  </span>
+                  <InputNumber
+                    value={paymentAmounts[selectedPayments[0]] || 0}
+                    onChange={(value) =>
+                      handleAmountChange(selectedPayments[0], value)
+                    }
+                    className="payment-input"
+                    style={{ width: 120 }}
+                    controls={false}
+                    min="0"
+                    formatter={(value) => (value ? formatNumber(value) : "")}
+                    parser={(value) => (value ? parserNumber(value) : 0)}
+                    onKeyDownCapture={(event) => {
+                      if (
+                        !/[0-9]/.test(event.key) &&
+                        ![8, 46, 37, 38, 39, 40].includes(event.keyCode)
+                      ) {
+                        event.preventDefault();
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                // Hiển thị cả hai input khi chọn "Cả hai"
+                selectedPayments.map((method) => (
+                  <div key={method} className="payment-amount-container">
+                    <span>
+                      {method === "tien_mat" ? "Tiền mặt" : "Chuyển khoản"}
+                    </span>
+                    <InputNumber
+                      value={paymentAmounts[method] || 0}
+                      onChange={(value) => handleAmountChange(method, value)}
+                      className="payment-input"
+                      style={{ width: 120 }}
+                      controls={false}
+                      min="0"
+                      formatter={(value) => (value ? formatNumber(value) : "")}
+                      parser={(value) => (value ? parserNumber(value) : 0)}
+                      onKeyDownCapture={(event) => {
+                        if (
+                          !/[0-9]/.test(event.key) &&
+                          ![8, 46, 37, 38, 39, 40].includes(event.keyCode)
+                        ) {
+                          event.preventDefault();
+                        }
+                      }}
+                    />
+                  </div>
+                ))
+              )}
+            </>
           )}
         </>
       )}
 
       <div className="payment-divider"></div>
-
-      {/* Hiển thị tiền trả trước nếu có */}
-      {(prepaidAmounts.tien_nguoi_nha_tra_truoc > 0 || prepaidAmounts.tien_sinh_vien_tra_truoc > 0) && (
-        <div style={{ marginBottom: 16 }}>
-          <p className="payment-text">
-            <strong>Tiền trả trước:</strong>
-          </p>
-          {prepaidAmounts.tien_nguoi_nha_tra_truoc > 0 && (
-            <div className="payment-summary">
-              <span>Người nhà bệnh nhân:</span>
-              <strong>{formatCurrency(prepaidAmounts.tien_nguoi_nha_tra_truoc)}</strong>
-            </div>
-          )}
-          {prepaidAmounts.tien_sinh_vien_tra_truoc > 0 && (
-            <div className="payment-summary">
-              <span>Sinh viên:</span>
-              <strong>{formatCurrency(prepaidAmounts.tien_sinh_vien_tra_truoc)}</strong>
-            </div>
-          )}
-          <div className="payment-summary" style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e8e8e8' }}>
-            <span>Tổng trả trước:</span>
-            <strong style={{ color: '#1890ff' }}>{formatCurrency(totalPrepaid)}</strong>
-          </div>
-          <div className="payment-divider"></div>
-        </div>
-      )}
 
       <div className="payment-summary">
         <span>Trả lại:</span>
@@ -618,12 +624,13 @@ const PaymentModal = ({
             };
 
             const adjustedPaymentAmounts = { ...paymentAmounts };
+            const remainingAfterPrepaid = Math.max(0, total - totalPrepaid);
             if (selectedPayments.includes("tien_mat")) {
               if (selectedPayments.length === 1) {
-                adjustedPaymentAmounts.tien_mat = total;
+                adjustedPaymentAmounts.tien_mat = remainingAfterPrepaid;
               } else {
                 adjustedPaymentAmounts.tien_mat =
-                  total - (adjustedPaymentAmounts.chuyen_khoan || 0);
+                  remainingAfterPrepaid - (adjustedPaymentAmounts.chuyen_khoan || 0);
               }
             }
 
@@ -638,16 +645,20 @@ const PaymentModal = ({
           disabled={
             isCreatingOrder ||
             isSubmitting ||
-            selectedPayments.length === 0 ||
-            (selectedPayments.length === 2
-              ? Object.values(paymentAmounts).reduce(
-                  (sum, val) => sum + val,
-                  0
-                ) + totalPrepaid !== total
-              : Object.values(paymentAmounts).reduce(
-                  (sum, val) => sum + val,
-                  0
-                ) + totalPrepaid < total)
+            // Nếu đã trả đủ bằng prepaid, cho phép thanh toán luôn
+            (totalPrepaid >= total
+              ? false
+              : // Nếu chưa đủ, phải chọn httt và số tiền phải đủ
+                selectedPayments.length === 0 ||
+                (selectedPayments.length === 2
+                  ? Object.values(paymentAmounts).reduce(
+                      (sum, val) => sum + val,
+                      0
+                    ) + totalPrepaid !== total
+                  : Object.values(paymentAmounts).reduce(
+                      (sum, val) => sum + val,
+                      0
+                    ) + totalPrepaid < total))
           }
           loading={isCreatingOrder || isSubmitting}
         >

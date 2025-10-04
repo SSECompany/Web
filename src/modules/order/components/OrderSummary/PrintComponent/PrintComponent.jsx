@@ -25,6 +25,10 @@ const PrintComponent = forwardRef(
             return "Chuyển khoản";
           case "tien_mat":
             return "Tiền mặt";
+          case "benhnhan_tratruoc":
+            return "Bệnh nhân trả trước";
+          case "sinhvien_tratruoc":
+            return "Sinh viên trả trước";
           default:
             return "Tiền mặt";
         }
@@ -101,6 +105,16 @@ const PrintComponent = forwardRef(
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
         </div>
+        {(Number(master?.benhnhan_tratruoc || 0) > 0 || Number(master?.sinhvien_tratruoc || 0) > 0) && (
+          <div style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}>
+            {Number(master?.benhnhan_tratruoc || 0) > 0 && (
+              <div>• Bệnh nhân trả trước: {formatNumber(master.benhnhan_tratruoc)}đ</div>
+            )}
+            {Number(master?.sinhvien_tratruoc || 0) > 0 && (
+              <div>• Sinh viên trả trước: {formatNumber(master.sinhvien_tratruoc)}đ</div>
+            )}
+          </div>
+        )}
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Số CT:</strong> {orderNumber || "Chưa có"}
         </div>
@@ -326,19 +340,22 @@ const PrintComponent = forwardRef(
               background: "#fff",
             }}
           >
-            <VietQR
-              amount={
-                master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
-                  ? master.chuyen_khoan
-                  : master?.tong_tien
-              }
-              soChungTu={`Thanh toan Phenikaa so CT ${orderNumber} ${
-                master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
-                  ? master.chuyen_khoan
-                  : master?.tong_tien
-              }vnd`}
-              size={80}
-            />
+            {(() => {
+              const totalAmount = Number(master?.tong_tien || 0);
+              const prepaidAmount = Number(master?.benhnhan_tratruoc || 0) + Number(master?.sinhvien_tratruoc || 0);
+              const remainingAmount = totalAmount - prepaidAmount;
+              const qrAmount = master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
+                ? master.chuyen_khoan
+                : (remainingAmount > 0 ? remainingAmount : totalAmount);
+
+              return (
+                <VietQR
+                  amount={qrAmount}
+                  soChungTu={`Thanh toan Phenikaa so CT ${orderNumber} ${qrAmount}vnd`}
+                  size={80}
+                />
+              );
+            })()}
           </div>
         </div>
 
