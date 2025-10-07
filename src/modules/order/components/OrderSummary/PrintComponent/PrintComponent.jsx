@@ -105,13 +105,19 @@ const PrintComponent = forwardRef(
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
         </div>
-        {(Number(master?.benhnhan_tratruoc || 0) > 0 || Number(master?.sinhvien_tratruoc || 0) > 0) && (
+        {(Number(master?.benhnhan_tratruoc || 0) > 0 || Number(master?.sinhvien_tratruoc || 0) > 0 || Number(master?.chuyen_khoan || 0) > 0 || Number(master?.tien_mat || 0) > 0) && (
           <div style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}>
             {Number(master?.benhnhan_tratruoc || 0) > 0 && (
               <div>• Bệnh nhân trả trước: {formatNumber(master.benhnhan_tratruoc)}đ</div>
             )}
             {Number(master?.sinhvien_tratruoc || 0) > 0 && (
               <div>• Sinh viên trả trước: {formatNumber(master.sinhvien_tratruoc)}đ</div>
+            )}
+            {Number(master?.chuyen_khoan || 0) > 0 && (
+              <div>• Chuyển khoản: {formatNumber(master.chuyen_khoan)}đ</div>
+            )}
+            {Number(master?.tien_mat || 0) > 0 && (
+              <div>• Tiền mặt: {formatNumber(master.tien_mat)}đ</div>
             )}
           </div>
         )}

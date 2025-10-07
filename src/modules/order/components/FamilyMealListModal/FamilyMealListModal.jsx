@@ -49,6 +49,16 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
   const [printMaster, setPrintMaster] = useState({});
   const [printDetail, setPrintDetail] = useState([]);
   const printContent = useRef();
+
+  // Tính chiều cao scroll động - tối đa 10 dòng
+  const getScrollY = useMemo(() => {
+    const rowCount = allData.length;
+    if (rowCount === 0) return 100;
+    // Tối đa 10 dòng, mỗi dòng 55px
+    const maxRows = 10;
+    const actualRows = Math.min(rowCount, maxRows);
+    return actualRows * 55;
+  }, [allData.length]);
   const lastApiCall = useRef({ pageIndex: 0, filters: {} });
 
   const rawToken = localStorage.getItem("access_token");
@@ -338,12 +348,14 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       dataIndex: "username",
       key: "username",
       width: 150,
+      align: "center",
     },
     {
       title: "Số chứng từ",
       dataIndex: "so_ct",
       key: "so_ct",
       width: 180,
+      align: "center",
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div className="filter-dropdown">
           <Input
@@ -370,6 +382,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       dataIndex: "ngay_ct",
       key: "ngay_ct",
       width: 120,
+      align: "center",
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div className="filter-dropdown">
           <DatePicker
@@ -396,6 +409,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       dataIndex: "ten_bp",
       key: "ten_bp",
       width: 200,
+      align: "center",
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div className="filter-dropdown">
           <Input
@@ -581,6 +595,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       dataIndex: "t_tt",
       key: "t_tt",
       width: 150,
+      align: "center",
       render: (value) => (
         <span style={{ color: "#1890ff", fontWeight: "600" }}>
           {Number(value || 0).toLocaleString()} VNĐ
@@ -925,7 +940,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
                 record.stt_rec || record.so_ct || Math.random()
               }
               className="family-meal-table"
-              scroll={{ x: "max-content", y: 400 }}
+              scroll={{ x: "max-content", y: getScrollY }}
               size="middle"
               pagination={{
                 current: currentPage,

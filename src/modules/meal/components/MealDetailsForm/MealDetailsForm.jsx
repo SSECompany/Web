@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import cloneDeep from "lodash.clonedeep";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { multipleTablePutApi } from "../../../../api";
+import { multipleTablePutApi, apiProcessCombinedMealOrder, syncFastMutiApi } from "../../../../api";
 import { formatNumber } from "../../../../app/hook/dataFormatHelper";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import {
@@ -41,6 +41,10 @@ const MealDetailsForm = () => {
   const selectedDate = useSelector((state) => state.meals.roomSelectedDate);
   const listMealCode = useSelector((state) => state.meals.listMealCode);
   const listDietCategory = useSelector((state) => state.meals.listDietCategory);
+  const masterData = useSelector((state) => state.meals.meals.masterData);
+  const { unitId, id: userId } = useSelector(
+    (state) => state.claimsReducer.userInfo || {}
+  );
   const [activeTab, setActiveTab] = useState(listMealCode[0]?.ma_ca || "CA1");
   const [selectedPatientInShift, setSelectedPatientInShift] = useState({});
 
@@ -48,10 +52,13 @@ const MealDetailsForm = () => {
 
   useEffect(() => {
     setMealEntries(detailData);
-    
+
     // Clear TOÀN BỘ cache khi chuyển giường hoặc load data mới
     setFoodListByShiftAndMode({});
-    
+    setPaymentMethod("");
+    setIsPaid(false);
+    setSelectedPatientInShift({});
+
     // Auto fetch food list khi có mode từ API
     const bedMeals = detailData[currentBedIndex];
     if (bedMeals && selectedDate) {
@@ -471,17 +478,27 @@ const MealDetailsForm = () => {
 
       bedMeals[timeOfDay] = meals.map((meal, i) => {
         if (i === index) {
-          return {
+          const updatedMeal = {
             ...meal,
             collectMoney: checked,
             quantity: 1,
             totalMoney: checked ? 0 : price * 1,
           };
+          // Mark as edited if it has stt_rec
+          if (updatedMeal.stt_rec) {
+            updatedMeal.isEdit = true;
+          }
+          return updatedMeal;
         } else {
-          return {
+          const updatedMeal = {
             ...meal,
             collectMoney: false,
           };
+          // Mark as edited if collectMoney was changed and has stt_rec
+          if (meal.collectMoney && meal.stt_rec) {
+            updatedMeal.isEdit = true;
+          }
+          return updatedMeal;
         }
       });
 
@@ -655,21 +672,92 @@ const MealDetailsForm = () => {
     return mealHistory.some((m) => m.ma_giuong?.trim() === bedMaGiuong?.trim());
   }, [mealHistory, bedName]);
 
+  // Check if all orders are cancelled (status = 3)
+  const allOrdersCancelled = useMemo(() => {
+    const bedMaGiuong = bedName?.ma_giuong;
+    const bedMeals = mealHistory.filter((m) => m.ma_giuong?.trim() === bedMaGiuong?.trim());
+    if (bedMeals.length === 0) return false;
+    return bedMeals.every((m) => m.status === "3" || m.status === 3);
+  }, [mealHistory, bedName]);
+
   const handleCancelOrder = () => {
     showConfirm({
       title: "Bạn có chắc chắn muốn huỷ đơn đã đặt?",
       onOk: async () => {
         try {
-          // TODO: Call API to cancel order
-          // const response = await cancelMealOrderApi({ ... });
-          
-          notification.success({ message: "Huỷ đơn thành công!" });
-          
-          dispatch(setShowMealDetails(false));
-          dispatch(setShowRoomSelection(true));
+          const master = [
+            {
+              ngay_ct: selectedDate,
+              ma_khoa: masterData.name,
+              ma_phong: masterData.roomCode,
+            },
+          ];
+
+          // Lấy tất cả món ăn của giường này từ history và set status = 3 để huỷ
+          const cancelDetail = [];
+          const bedMealsHistory = mealHistory.filter(
+            (m) => m.ma_giuong?.trim() === bedName?.ma_giuong?.trim()
+          );
+
+          bedMealsHistory.forEach((meal) => {
+            const caMapping = {
+              "Ca sáng": "CA1",
+              "Ca trưa": "CA2",
+              "Ca chiều": "CA3",
+            };
+            const caCode = caMapping[meal.ten_ca?.trim()];
+
+            if (caCode && meal.stt_rec) {
+              cancelDetail.push({
+                ma_giuong: bedName.ma_giuong,
+                ma_ca: caCode,
+                ma_che_do: meal.ma_che_do || "",
+                ma_mon: meal.ma_mon || "",
+                so_luong: meal.so_luong || 1,
+                don_gia: meal.don_gia || meal.gia_ban || 0,
+                thanh_tien: meal.thanh_tien || 0,
+                benh_nhan_yn: 0,
+                ghi_chu: meal.ghi_chu || "",
+                thu_tien_yn: meal.thu_tien ? 1 : 0,
+                httt: meal.httt || "",
+                stt_rec: meal.stt_rec || "",
+                stt_rec0: meal.stt_rec0 || "",
+                status: "3", // Status 3 để huỷ đơn
+                so_ct: meal.so_ct || "",
+              });
+            }
+          });
+
+          if (cancelDetail.length === 0) {
+            notification.warning({ message: "Không tìm thấy đơn để huỷ!" });
+            return;
+          }
+
+          const response = await apiProcessCombinedMealOrder({
+            StoreID: masterData.name,
+            unitId: unitId,
+            userId: userId,
+            masterData: master,
+            detailData: cancelDetail,
+          });
+
+          if (response?.responseModel?.isSucceded) {
+            const sttRecList = JSON.parse(
+              response?.listObject?.[0]?.[0]?.list_stt_rec || "[]"
+            );
+            if (Array.isArray(sttRecList) && sttRecList.length > 0) {
+              await syncFastMutiApi(sttRecList, userId);
+            }
+            notification.success({ message: "Huỷ đơn thành công!" });
+
+            dispatch(setShowMealDetails(false));
+            dispatch(setShowRoomSelection(true));
+          } else {
+            notification.warning({ message: response?.responseModel?.message || "Huỷ đơn thất bại!" });
+          }
         } catch (error) {
           console.error("Lỗi khi huỷ đơn:", error);
-          notification.error({ message: "Huỷ đơn thất bại!" });
+          notification.error({ message: "Có lỗi xảy ra khi huỷ đơn!" });
         }
       },
     });
@@ -849,7 +937,7 @@ const MealDetailsForm = () => {
       </div>
 
       <div style={{ display: 'flex', gap: '12px' }}>
-        {hasExistingOrder && (
+        {hasExistingOrder && !allOrdersCancelled && (
           <button
             className="cancel-button"
             onClick={handleCancelOrder}

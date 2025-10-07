@@ -219,6 +219,9 @@ export default function OrderSummary({ total, itemCount }) {
     (isPostpaidStudent && isReadOnly) ||
     isConfirmed;
 
+  // Kiểm tra có phải đơn người nhà bệnh nhân không
+  const isFamilyMeal = Number(activeTab?.master?.benhnhan_tratruoc || 0) > 0;
+
   // Kiểm tra xem có phải khách hàng truy cập từ QR không
   const isCustomerQR = () => {
     const path = window.location.pathname;
@@ -265,26 +268,43 @@ export default function OrderSummary({ total, itemCount }) {
     const totalPrepaid = Number(activeTab?.master?.benhnhan_tratruoc || 0) + Number(activeTab?.master?.sinhvien_tratruoc || 0);
     const remainingAmount = totalAmount - totalPrepaid;
 
-    if (selectedPayments.length === 1) {
+    // Xây dựng httt: nếu có prepaid method, thêm vào đầu
+    const initialHttt = activeTab?.master?.httt || "";
+    const isPrepaidMethod = initialHttt === "benhnhan_tratruoc" || initialHttt === "sinhvien_tratruoc";
+
+    // Kiểm tra nếu là bệnh nhân/sinh viên trả trước và có thêm món (tổng tiền > tiền trả trước)
+    const hasPrepaidExtra = isPrepaidMethod && totalPrepaid > 0 && remainingAmount > 0;
+
+    let finalHttt = "";
+
+    if (hasPrepaidExtra) {
+      // Trường hợp trả trước + thêm món: tự động dùng chuyển khoản cho phần thêm
+      finalChuyenKhoan = remainingAmount;
+      finalTienMat = 0;
+      finalHttt = `${initialHttt},chuyen_khoan`;
+    } else if (selectedPayments.length === 1) {
       if (selectedPayments[0] === "tien_mat") {
         finalTienMat = remainingAmount;
       } else {
         finalChuyenKhoan = remainingAmount;
       }
+      finalHttt = selectedPayments.join(",");
+      if (isPrepaidMethod && totalPrepaid > 0) {
+        finalHttt = `${initialHttt},${selectedPayments.join(",")}`;
+      }
     } else if (selectedPayments.length === 2) {
       finalChuyenKhoan = Number(paymentAmounts.chuyen_khoan || 0);
       finalTienMat = remainingAmount - finalChuyenKhoan;
-    }
-
-    // Xây dựng httt: nếu có prepaid method, thêm vào đầu
-    const initialHttt = activeTab?.master?.httt || "";
-    const isPrepaidMethod = initialHttt === "benhnhan_tratruoc" || initialHttt === "sinhvien_tratruoc";
-    let finalHttt = selectedPayments.join(",");
-    if (isPrepaidMethod && totalPrepaid > 0) {
-      if (selectedPayments.length > 0) {
+      finalHttt = selectedPayments.join(",");
+      if (isPrepaidMethod && totalPrepaid > 0) {
         finalHttt = `${initialHttt},${selectedPayments.join(",")}`;
-      } else {
+      }
+    } else {
+      // Không có payment method nào được chọn
+      if (isPrepaidMethod && totalPrepaid > 0) {
         finalHttt = initialHttt;
+      } else {
+        finalHttt = selectedPayments.join(",");
       }
     }
 
@@ -1040,6 +1060,8 @@ export default function OrderSummary({ total, itemCount }) {
           benhnhan_tratruoc: activeTab?.master?.benhnhan_tratruoc || 0,
           sinhvien_tratruoc: activeTab?.master?.sinhvien_tratruoc || 0,
         }}
+        isPrepaidStudent={isPrepaidStudent}
+        isFamilyMeal={isFamilyMeal}
       />
 
       <CustomerPaymentModal

@@ -20,6 +20,7 @@ export default function MenuGrid({ onAdd, isReadOnlyMode = false }) {
                 unit: item.dvt,
                 id: item.value,
                 image: item.image,
+                tonDuTru: item.tonDuTru || 0,
               }}
               onAdd={onAdd}
               isReadOnlyMode={isReadOnlyMode}
