@@ -680,6 +680,15 @@ const MealDetailsForm = () => {
     return bedMeals.every((m) => m.status === "3" || m.status === 3);
   }, [mealHistory, bedName]);
 
+  // Check if order is confirmed (status = 0) - chỉ cho xem, không cho sửa
+  const isConfirmedOrder = useMemo(() => {
+    const bedMaGiuong = bedName?.ma_giuong;
+    const bedMeals = mealHistory.filter((m) => m.ma_giuong?.trim() === bedMaGiuong?.trim());
+    if (bedMeals.length === 0) return false;
+    // Nếu có ít nhất 1 món có status = 0 (đã đặt) thì là đơn đã đặt
+    return bedMeals.some((m) => m.status === "0" || m.status === 0);
+  }, [mealHistory, bedName]);
+
   const handleCancelOrder = () => {
     showConfirm({
       title: "Bạn có chắc chắn muốn huỷ đơn đã đặt?",
@@ -694,9 +703,10 @@ const MealDetailsForm = () => {
           ];
 
           // Lấy tất cả món ăn của giường này từ history và set status = 3 để huỷ
+          // Chỉ lấy món chưa bị huỷ (status !== 3)
           const cancelDetail = [];
           const bedMealsHistory = mealHistory.filter(
-            (m) => m.ma_giuong?.trim() === bedName?.ma_giuong?.trim()
+            (m) => m.ma_giuong?.trim() === bedName?.ma_giuong?.trim() && m.status !== "3" && m.status !== 3
           );
 
           bedMealsHistory.forEach((meal) => {
@@ -790,6 +800,7 @@ const MealDetailsForm = () => {
           isAnotherMealSelected={
             selectedIndex !== undefined && selectedIndex !== index
           } // Kiểm tra nếu đã có suất khác được chọn
+          isReadOnly={isConfirmedOrder} // Disable form khi là đơn đã đặt
         />
       ));
     });
@@ -805,6 +816,7 @@ const MealDetailsForm = () => {
     handleModeChange,
     handleChange,
     handleQuantityChange,
+    isConfirmedOrder,
   ]);
 
   useEffect(() => {
@@ -879,19 +891,21 @@ const MealDetailsForm = () => {
             key={meal.ma_ca}
           >
             {renderedMealEntries[meal.ma_ca]}
-            <button
-              className="add-row-button"
-              onClick={() => handleAddMeal(meal.ma_ca)}
-            >
-              <PlusOutlined />
-            </button>
+            {!isConfirmedOrder && (
+              <button
+                className="add-row-button"
+                onClick={() => handleAddMeal(meal.ma_ca)}
+              >
+                <PlusOutlined />
+              </button>
+            )}
           </TabPane>
         ))}
       </Tabs>
       <div style={{ marginTop: 16 }}>
         <Checkbox
           checked={isPaid}
-          disabled={calculateTotalAllShift() === 0}
+          disabled={isConfirmedOrder || calculateTotalAllShift() === 0}
           onChange={(e) => {
             const newIsPaid = e.target.checked;
             setIsPaid(newIsPaid);
@@ -937,6 +951,7 @@ const MealDetailsForm = () => {
       </div>
 
       <div style={{ display: 'flex', gap: '12px' }}>
+        {/* Hiển thị nút Hủy đơn nếu có đơn và chưa bị hủy toàn bộ */}
         {hasExistingOrder && !allOrdersCancelled && (
           <button
             className="cancel-button"
@@ -945,19 +960,23 @@ const MealDetailsForm = () => {
             Huỷ đơn
           </button>
         )}
-        <button
-          className="submit-button"
-          onClick={handleSubmit}
-          disabled={
-            !(
-              mealEntries[currentBedIndex]?.CA1?.some((meal) => meal.mealType) &&
-              mealEntries[currentBedIndex]?.CA2?.some((meal) => meal.mealType) &&
-              mealEntries[currentBedIndex]?.CA3?.some((meal) => meal.mealType)
-            )
-          }
-        >
-          Hoàn thành
-        </button>
+        
+        {/* Chỉ hiển thị nút Hoàn thành nếu KHÔNG phải đơn đã đặt (status = 0) */}
+        {!isConfirmedOrder && (
+          <button
+            className="submit-button"
+            onClick={handleSubmit}
+            disabled={
+              !(
+                mealEntries[currentBedIndex]?.CA1?.some((meal) => meal.mealType) &&
+                mealEntries[currentBedIndex]?.CA2?.some((meal) => meal.mealType) &&
+                mealEntries[currentBedIndex]?.CA3?.some((meal) => meal.mealType)
+              )
+            }
+          >
+            Hoàn thành
+          </button>
+        )}
       </div>
     </div>
   );

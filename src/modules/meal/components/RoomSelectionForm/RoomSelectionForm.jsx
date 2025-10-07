@@ -154,17 +154,37 @@ const RoomSelectionForm = () => {
   }, [roomSelectedDate, masterData.roomCode]);
 
   const handleBedClick = useCallback(
-    (bed, index) => {
+    async (bed, index) => {
       dispatch(setMasterData({ beds: [bed] }));
       dispatch(setCurrentBedIndex(index));
 
-      // Check if this bed has meal history data (không bao gồm đơn đã huỷ)
-      // Khi giường có đơn đã huỷ, không load dữ liệu cũ - để form trống cho tạo mới
-      const bedMealsHistory = mealHistory.filter(
-        (m) => m.ma_giuong?.trim() === bed.ma_giuong?.trim() && m.status !== "3" && m.status !== 3
-      );
+      // Kiểm tra xem giường này có trong mealHistory không (đã đặt hoặc đã hủy)
+      const hasHistory = mealHistory.some((m) => m.ma_giuong?.trim() === bed.ma_giuong?.trim());
 
-      if (bedMealsHistory.length > 0) {
+      if (hasHistory) {
+        // Giường có đơn (đã đặt hoặc đã hủy) → Call API để lấy chi tiết đầy đủ
+        try {
+          const response = await multipleTablePutApi({
+            store: "api_getMealDetailsByDepartmentRoomBed",
+            param: {
+              ngay_ct: roomSelectedDate,
+              ma_bp: masterData.name,
+              ma_phong: masterData.roomCode,
+              username: userName,
+            },
+            data: {},
+          });
+
+          // Lấy data từ response và filter theo ma_giuong
+          const allMeals = Array.isArray(response?.listObject?.[0]) 
+            ? response.listObject[0] 
+            : [];
+          
+          const bedMealsHistory = allMeals.filter(
+            (m) => m.ma_giuong?.trim() === bed.ma_giuong?.trim()
+          );
+
+        if (bedMealsHistory.length > 0) {
         // Convert history data to detail data format
         const convertedMeals = {
           CA1: [],
@@ -182,33 +202,43 @@ const RoomSelectionForm = () => {
         bedMealsHistory.forEach((meal) => {
           const caCode = caMapping[meal.ten_ca?.trim()];
           if (caCode) {
-            // Extract ma_che_do from ten_che_do (e.g., "BT01-Cơm bình thường" -> "BT01")
-            const maCheDoMatch = meal.ten_che_do?.match(/^([^-]+)/);
-            const maCheDoExtracted = maCheDoMatch ? maCheDoMatch[1].trim() : "";
-
-            // Use data directly from API response
-            // Backend should provide: ma_mon, ma_che_do, don_gia/gia_ban
-            const maMon = meal.ma_mon || meal.ten_mon; // Fallback to ten_mon if ma_mon not provided yet
-            const price = meal.don_gia || meal.gia_ban || 0;
-            const quantity = meal.so_luong || 1;
-
+            // Trim các field có thể có khoảng trắng thừa
+            const maCheDoTrimmed = meal.ma_che_do?.trim() || "";
+            const maMonTrimmed = meal.ma_mon?.trim() || "";
+            const soCtTrimmed = meal.so_ct?.trim() || "";
+            
+            // Parse các giá trị số
+            const quantity = parseFloat(meal.so_luong) || 1;
+            const price = parseFloat(meal.don_gia) || 0;
+            const totalMoney = parseFloat(meal.thanh_tien) || 0;
+            
+            // Parse boolean
+            const collectMoney = meal.benh_nhan_yn === true || meal.benh_nhan_yn === 1;
+            const isPaid = meal.thu_tien_yn === true || meal.thu_tien_yn === 1;
+            
+            // Kiểm tra trạng thái
+            const wasCancelled = meal.status === "3" || meal.status === 3;
+            
             convertedMeals[caCode].push({
-              mode: meal.ma_che_do || maCheDoExtracted,
-              mealType: maMon,
+              mode: maCheDoTrimmed,
+              mealType: maMonTrimmed,
               mealTypeName: meal.ten_mon || "",
               quantity: quantity,
               note: meal.ghi_chu || "",
-              collectMoney: false,
-              totalMoney: quantity * price,
+              collectMoney: collectMoney,
+              totalMoney: totalMoney,
               price: price,
-              isPaid: meal.thu_tien ? true : false,
+              isPaid: isPaid,
               httt: meal.httt || "",
               date: roomSelectedDate,
-              // Lưu thêm field để update
+              // Giữ nguyên stt_rec để UPDATE đơn cũ (không tạo mới)
+              // Nếu món đã hủy (status = 3), khi hoàn thành sẽ chuyển về status = 0
               stt_rec: meal.stt_rec || "",
               stt_rec0: meal.stt_rec0 || "",
-              status: meal.status || "0",
-              so_ct: meal.so_ct || "",
+              status: wasCancelled ? "0" : (meal.status?.toString() || "0"),
+              so_ct: soCtTrimmed,
+              // Đánh dấu món đã hủy cần được gửi lại để update
+              isEdit: wasCancelled ? true : false,
             });
           }
         });
@@ -237,12 +267,134 @@ const RoomSelectionForm = () => {
           }
         });
 
-        // Update the meal data in Redux
-        const updatedDetailData = [...detailData];
-        updatedDetailData[index] = convertedMeals;
-        dispatch(setMeal({ mealEntries: updatedDetailData, bedIndex: index }));
+          // Update the meal data in Redux
+          const updatedDetailData = [...detailData];
+          updatedDetailData[index] = convertedMeals;
+          dispatch(setMeal({ mealEntries: updatedDetailData, bedIndex: index }));
+        } else {
+          // API trả về rỗng cho giường này
+          const emptyMeals = {
+            CA1: [{
+              mode: "",
+              mealType: "",
+              mealTypeName: "",
+              quantity: 0,
+              note: "",
+              collectMoney: false,
+              totalMoney: 0,
+              price: 0,
+              isPaid: false,
+              httt: "",
+              date: roomSelectedDate,
+              stt_rec: "",
+              stt_rec0: "",
+              status: "0",
+              so_ct: "",
+            }],
+            CA2: [{
+              mode: "",
+              mealType: "",
+              mealTypeName: "",
+              quantity: 0,
+              note: "",
+              collectMoney: false,
+              totalMoney: 0,
+              price: 0,
+              isPaid: false,
+              httt: "",
+              date: roomSelectedDate,
+              stt_rec: "",
+              stt_rec0: "",
+              status: "0",
+              so_ct: "",
+            }],
+            CA3: [{
+              mode: "",
+              mealType: "",
+              mealTypeName: "",
+              quantity: 0,
+              note: "",
+              collectMoney: false,
+              totalMoney: 0,
+              price: 0,
+              isPaid: false,
+              httt: "",
+              date: roomSelectedDate,
+              stt_rec: "",
+              stt_rec0: "",
+              status: "0",
+              so_ct: "",
+            }],
+          };
+          const updatedDetailData = [...detailData];
+          updatedDetailData[index] = emptyMeals;
+          dispatch(setMeal({ mealEntries: updatedDetailData, bedIndex: index }));
+        }
+
+        } catch (error) {
+          console.error("❌ Lỗi khi load chi tiết món ăn:", error);
+          notification.error({ message: "Có lỗi khi tải dữ liệu món ăn!" });
+          
+          // Nếu lỗi, tạo data rỗng
+          const emptyMeals = {
+            CA1: [{
+              mode: "",
+              mealType: "",
+              mealTypeName: "",
+              quantity: 0,
+              note: "",
+              collectMoney: false,
+              totalMoney: 0,
+              price: 0,
+              isPaid: false,
+              httt: "",
+              date: roomSelectedDate,
+              stt_rec: "",
+              stt_rec0: "",
+              status: "0",
+              so_ct: "",
+            }],
+            CA2: [{
+              mode: "",
+              mealType: "",
+              mealTypeName: "",
+              quantity: 0,
+              note: "",
+              collectMoney: false,
+              totalMoney: 0,
+              price: 0,
+              isPaid: false,
+              httt: "",
+              date: roomSelectedDate,
+              stt_rec: "",
+              stt_rec0: "",
+              status: "0",
+              so_ct: "",
+            }],
+            CA3: [{
+              mode: "",
+              mealType: "",
+              mealTypeName: "",
+              quantity: 0,
+              note: "",
+              collectMoney: false,
+              totalMoney: 0,
+              price: 0,
+              isPaid: false,
+              httt: "",
+              date: roomSelectedDate,
+              stt_rec: "",
+              stt_rec0: "",
+              status: "0",
+              so_ct: "",
+            }],
+          };
+          const updatedDetailData = [...detailData];
+          updatedDetailData[index] = emptyMeals;
+          dispatch(setMeal({ mealEntries: updatedDetailData, bedIndex: index }));
+        }
       } else {
-        // Giường không có history - tạo data rỗng mới
+        // Giường mới (chưa có đơn) - KHÔNG call API, tạo data rỗng trực tiếp
         const emptyMeals = {
           CA1: [{
             mode: "",
@@ -296,8 +448,6 @@ const RoomSelectionForm = () => {
             so_ct: "",
           }],
         };
-
-        // Clear old data and set new empty data
         const updatedDetailData = [...detailData];
         updatedDetailData[index] = emptyMeals;
         dispatch(setMeal({ mealEntries: updatedDetailData, bedIndex: index }));
@@ -306,7 +456,7 @@ const RoomSelectionForm = () => {
       dispatch(setShowMealDetails(true));
       dispatch(setShowRoomSelection(false));
     },
-    [dispatch, mealHistory, roomSelectedDate, detailData]
+    [dispatch, roomSelectedDate, detailData, masterData.name, masterData.roomCode, userName, mealHistory]
   );
 
   const loadBedsWithMeals = async (roomCode, date) => {
@@ -714,7 +864,8 @@ const RoomSelectionForm = () => {
             const isSubmitted = submittedBeds.includes(index);
             const bedStatus = getBedStatus(bed.ma_giuong);
             const isDisabled = bedStatus === "ordered" || bedStatus === "partial_cancelled";
-            const isCancelled = bedStatus === "all_cancelled";
+            // Nếu đã submit (đã click hoàn thành), ẩn trạng thái "đã hủy" đi
+            const isCancelled = bedStatus === "all_cancelled" && !isSubmitted;
             const isPartialCancelled = bedStatus === "partial_cancelled";
 
             return (
@@ -723,26 +874,26 @@ const RoomSelectionForm = () => {
                   className={`list-item ${isDisabled ? 'bed-already-ordered' : ''}`}
                   onClick={() => handleBedClick(bed, index)}
                   style={{
-                    backgroundColor: isCancelled
+                    backgroundColor: isSubmitted
+                      ? "#f6ffed"   // Màu xanh lá nhạt cho đơn đã sửa/submit
+                      : isCancelled
                       ? "#fff1f0"   // Màu đỏ nhạt cho đơn đã huỷ toàn bộ
                       : isPartialCancelled
                       ? "#fffbe6"   // Màu vàng nhạt cho đơn có một phần huỷ
                       : isDisabled
                       ? "#fff3e0"   // Màu cam nhạt cho đơn đã đặt
-                      : isSubmitted
-                      ? "#e6fffb"   // Màu xanh nhạt cho đơn mới submit
                       : "white",
                     cursor: "pointer",
                     opacity: isCancelled ? 0.7 : 1,
-                    borderColor: isCancelled ? "#ff4d4f" : isPartialCancelled ? "#faad14" : isDisabled ? "#ff9800" : "#ddd",
-                    borderWidth: isDisabled || isCancelled ? "2px" : "1px",
+                    borderColor: isSubmitted ? "#52c41a" : isCancelled ? "#ff4d4f" : isPartialCancelled ? "#faad14" : isDisabled ? "#ff9800" : "#ddd",
+                    borderWidth: isSubmitted || isDisabled || isCancelled ? "2px" : "1px",
                   }}
                 >
                   <span style={{ fontWeight: isDisabled || isCancelled ? "600" : "500" }}>
                     {bed?.ten_giuong}
                   </span>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    {bedStatus === "ordered" && (
+                    {bedStatus === "ordered" && !isSubmitted && (
                       <span className="bed-status-badge" style={{
                         backgroundColor: "#ff9800",
                         color: "white",
@@ -753,7 +904,7 @@ const RoomSelectionForm = () => {
                         Đã đặt
                       </span>
                     )}
-                    {isPartialCancelled && (
+                    {isPartialCancelled && !isSubmitted && (
                       <span className="bed-status-badge" style={{
                         backgroundColor: "#faad14",
                         color: "white",
@@ -775,11 +926,23 @@ const RoomSelectionForm = () => {
                         Đã huỷ toàn bộ
                       </span>
                     )}
+                    {isSubmitted && (bedStatus === "ordered" || bedStatus === "all_cancelled" || bedStatus === "partial_cancelled") && (
+                      <span className="bed-status-badge" style={{
+                        backgroundColor: "#52c41a",
+                        color: "white",
+                        padding: "2px 8px",
+                        borderRadius: "4px",
+                        fontSize: "12px"
+                      }}>
+                        Đã sửa - Sẵn sàng gửi
+                      </span>
+                    )}
                     <RightOutlined style={{ fontSize: "18px", color: isCancelled ? "#ff4d4f" : isPartialCancelled ? "#faad14" : isDisabled ? "#ff9800" : "#4caf50" }} />
                   </div>
                 </div>
 
-                {(isDisabled || isCancelled) && (
+                {/* Chỉ hiển thị history nếu CHƯA submit lại */}
+                {(isDisabled || isCancelled) && !isSubmitted && (
                   <div className="submitted-item">
                     {["Ca sáng", "Ca trưa", "Ca chiều"].map((caLabel) => {
                       const caMeals = getBedMealsFromHistory(
@@ -824,11 +987,6 @@ const RoomSelectionForm = () => {
                                 <p>
                                   + Số chứng từ: {m.so_ct?.trim() || "Không có"}
                                 </p>
-                                {isItemCancelled && (
-                                  <p style={{ color: "#ff4d4f", fontWeight: "600" }}>
-                                    + Trạng thái: ĐÃ HUỶ
-                                  </p>
-                                )}
                               </div>
                             );
                           })}
@@ -838,7 +996,7 @@ const RoomSelectionForm = () => {
                   </div>
                 )}
 
-                {/* Người dùng tự submit trên client */}
+                {/* Người dùng tự submit trên client - hiển thị cho cả đơn đã hủy và đơn mới */}
                 {isSubmitted && !isDisabled && (
                   <div className="submitted-item">
                     {["CA1", "CA2", "CA3"].map((mealType) => {
