@@ -35,7 +35,10 @@ const MealDetailsForm = () => {
   const mealHistory = useSelector((state) => state.meals.mealHistory || []);
   const [isPaid, setIsPaid] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
-  
+
+  // Track xem user có thay đổi gì trong session hiện tại không
+  const hasChangedInThisSession = useRef(false);
+
   // Local state để lưu food list riêng cho từng ca + chế độ
   const [foodListByShiftAndMode, setFoodListByShiftAndMode] = useState({});
 
@@ -53,6 +56,9 @@ const MealDetailsForm = () => {
 
   useEffect(() => {
     setMealEntries(detailData);
+
+    // Reset flag khi load data mới
+    hasChangedInThisSession.current = false;
 
     // Clear TOÀN BỘ cache khi chuyển giường hoặc load data mới
     setFoodListByShiftAndMode({});
@@ -141,7 +147,7 @@ const MealDetailsForm = () => {
     }, 0);
   };
 
-  const updateMealEntry = (timeOfDay, index, updateFn, shouldMarkAsEdit = true) => {
+  const updateMealEntry = useCallback((timeOfDay, index, updateFn, shouldMarkAsEdit = true) => {
     setMealEntries((prev) => {
       const updatedMeals = [...prev];
       if (!updatedMeals[currentBedIndex]) {
@@ -155,6 +161,8 @@ const MealDetailsForm = () => {
       // CHỈ đánh dấu isEdit nếu shouldMarkAsEdit = true VÀ meal có stt_rec
       if (shouldMarkAsEdit && meal.stt_rec) {
         meal.isEdit = true;
+        // Đánh dấu có thay đổi trong session này
+        hasChangedInThisSession.current = true;
       }
 
       meals[index] = meal;
@@ -166,7 +174,7 @@ const MealDetailsForm = () => {
 
       return updatedMeals;
     });
-  };
+  }, [currentBedIndex, dispatch]);
 
   const handleChange = useCallback(
     (timeOfDay, index, e) => {
@@ -179,6 +187,11 @@ const MealDetailsForm = () => {
 
       // CHỈ đánh dấu isEdit nếu có thay đổi thực sự
       const hasRealChange = oldValue !== value;
+
+      // Danh dau co thay doi neu co stt_rec va co thay doi that su
+      if (hasRealChange && oldMeal?.stt_rec) {
+        hasChangedInThisSession.current = true;
+      }
 
       updateMealEntry(timeOfDay, index, (meal) => {
         if (name === "mealType") {
@@ -226,6 +239,11 @@ const MealDetailsForm = () => {
       const oldQuantity = currentMeal?.quantity || 0;
       const newQuantity = Math.max(1, oldQuantity + change);
       const hasRealChange = oldQuantity !== newQuantity;
+
+      // Set flag if has real change and has stt_rec
+      if (hasRealChange && currentMeal?.stt_rec) {
+        hasChangedInThisSession.current = true;
+      }
 
       updateMealEntry(timeOfDay, index, (meal) => {
         // Lấy food list từ local state theo ca và chế độ hiện tại
@@ -276,14 +294,29 @@ const MealDetailsForm = () => {
 
   const handleModeChange = useCallback(
     (timeOfDay, index, value) => {
+      // Check if mode really changed
+      const meals = mealEntries[currentBedIndex]?.[timeOfDay] || [];
+      const oldMeal = meals[index];
+      const hasRealChange = oldMeal?.mode !== value;
+
+      // Set flag if has real change and has stt_rec
+      if (hasRealChange && oldMeal?.stt_rec) {
+        hasChangedInThisSession.current = true;
+      }
+
+      // Tìm tên chế độ từ listDietCategory
+      const selectedMode = listDietCategory.find(cat => cat.ma_nh === value);
+      const modeName = selectedMode?.ten_nh || "";
+
       updateMealEntry(timeOfDay, index, (meal) => {
         meal.mode = value;
+        meal.modeName = modeName;
         // Reset meal type when mode changes
         meal.mealType = "";
         meal.mealTypeName = "";
         meal.quantity = 0;
         meal.totalMoney = 0;
-      });
+      }, hasRealChange);
 
       // Fetch food list when mode changes - LUÔN fetch mới từ API
       const fetchListFood = async () => {
@@ -328,7 +361,7 @@ const MealDetailsForm = () => {
 
       fetchListFood();
     },
-    [selectedDate]
+    [selectedDate, listDietCategory, updateMealEntry, currentBedIndex, mealEntries]
   );
 
   // Hàm để fetch food list khi user click vào dropdown món ăn
@@ -405,10 +438,11 @@ const MealDetailsForm = () => {
           if (mealToDelete?.stt_rec) {
             meals[index] = {
               ...mealToDelete,
-              status: "3", // Đánh dấu xóa
-              isEdit: true, // Đánh dấu đã thay đổi để gửi lên API
+              status: "3", // Danh dau xoa
+              isEdit: true, // Danh dau da thay doi de gui len API
             };
             bedMeals[timeOfDay] = meals;
+            hasChangedInThisSession.current = true;
           } else {
             // Món mới (không có stt_rec), xóa khỏi UI
             if (meals.length === 1) {
@@ -485,6 +519,7 @@ const MealDetailsForm = () => {
           // CHỈ đánh dấu isEdit nếu THỰC SỰ có thay đổi
           if (updatedMeal.stt_rec && meal.collectMoney !== checked) {
             updatedMeal.isEdit = true;
+            hasChangedInThisSession.current = true;
           }
           return updatedMeal;
         } else {
@@ -497,6 +532,7 @@ const MealDetailsForm = () => {
             // CHỈ đánh dấu isEdit nếu món này THỰC SỰ bị thay đổi
             if (meal.stt_rec) {
               updatedMeal.isEdit = true;
+              hasChangedInThisSession.current = true;
             }
             return updatedMeal;
           }
@@ -658,8 +694,23 @@ const MealDetailsForm = () => {
       return;
     }
 
+    // Kiểm tra xem có thay đổi thực sự trong session này không
+    // 1. Sử dụng flag hasChangedInThisSession để track thay đổi (sửa, xóa, tích thu tiền)
+    // 2. HOẶC có món mới (không có stt_rec) - vì món mới không set flag
+    const hasNewMeals = ["CA1", "CA2", "CA3"].some((shift) => {
+      const meals = bedMeals[shift] || [];
+      return meals.some((meal) => meal.mealType && !meal.stt_rec);
+    });
+
+    const hasChanges = hasChangedInThisSession.current || hasNewMeals;
+
     dispatch(setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex }));
-    dispatch(markBedAsSubmitted(currentBedIndex));
+
+    // CHỈ đánh dấu submitted nếu có thay đổi trong session này
+    if (hasChanges) {
+      dispatch(markBedAsSubmitted(currentBedIndex));
+    }
+
     dispatch(setShowMealDetails(false));
     dispatch(setShowRoomSelection(true));
   };
@@ -957,11 +1008,21 @@ const MealDetailsForm = () => {
               shifts.forEach((shift) => {
                 updatedMeals[currentBedIndex][shift] = (
                   updatedMeals[currentBedIndex][shift] || []
-                ).map((meal) => ({
-                  ...meal,
-                  isPaid: newIsPaid,
-                  httt: newIsPaid ? "chuyen_khoan" : "",
-                }));
+                ).map((meal) => {
+                  const hasIsPaidChanged = meal.isPaid !== newIsPaid;
+                  const shouldMarkAsEdit = meal.stt_rec && hasIsPaidChanged;
+
+                  if (shouldMarkAsEdit) {
+                    hasChangedInThisSession.current = true;
+                  }
+
+                  return {
+                    ...meal,
+                    isPaid: newIsPaid,
+                    httt: newIsPaid ? "chuyen_khoan" : "",
+                    isEdit: shouldMarkAsEdit ? true : meal.isEdit,
+                  };
+                });
               });
 
               if (newIsPaid) {

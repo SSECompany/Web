@@ -158,11 +158,28 @@ const RoomSelectionForm = () => {
       dispatch(setMasterData({ beds: [bed] }));
       dispatch(setCurrentBedIndex(index));
 
+      // Kiểm tra xem giường này đã được sửa chưa (có trong submittedBeds)
+      const isAlreadyEdited = submittedBeds.includes(index);
+
+      // Kiểm tra xem đã có dữ liệu trong detailData chưa
+      const hasLocalData = detailData[index] &&
+        (detailData[index].CA1?.some(m => m.mode || m.mealType) ||
+         detailData[index].CA2?.some(m => m.mode || m.mealType) ||
+         detailData[index].CA3?.some(m => m.mode || m.mealType));
+
+      // Nếu đã sửa HOẶC đã có dữ liệu local → Dùng dữ liệu từ detailData, KHÔNG fetch API
+      if (isAlreadyEdited || hasLocalData) {
+        // Dùng dữ liệu đã có, không làm gì cả
+        dispatch(setShowMealDetails(true));
+        dispatch(setShowRoomSelection(false));
+        return;
+      }
+
       // Kiểm tra xem giường này có trong mealHistory không (đã đặt hoặc đã hủy)
       const hasHistory = mealHistory.some((m) => m.ma_giuong?.trim() === bed.ma_giuong?.trim());
 
       if (hasHistory) {
-        // Giường có đơn (đã đặt hoặc đã hủy) → Call API để lấy chi tiết đầy đủ
+        // Giường có đơn (đã đặt hoặc đã hủy) VÀ chưa có dữ liệu local → Call API để lấy chi tiết đầy đủ
         try {
           const response = await multipleTablePutApi({
             store: "api_getMealDetailsByDepartmentRoomBed",
@@ -227,6 +244,7 @@ const RoomSelectionForm = () => {
             
             convertedMeals[caCode].push({
               mode: maCheDoTrimmed,
+              modeName: meal.ten_che_do || "",
               mealType: maMonTrimmed,
               mealTypeName: meal.ten_mon || "",
               quantity: quantity,
@@ -238,13 +256,12 @@ const RoomSelectionForm = () => {
               httt: meal.httt || "",
               date: roomSelectedDate,
               // Giữ nguyên stt_rec để UPDATE đơn cũ (không tạo mới)
-              // Nếu món đã hủy (status = 3), khi hoàn thành sẽ chuyển về status = 0
               stt_rec: meal.stt_rec || "",
               stt_rec0: meal.stt_rec0 || "",
-              status: wasCancelled ? "0" : (meal.status?.toString() || "0"),
+              status: meal.status?.toString() || "0",
               so_ct: soCtTrimmed,
-              // Đánh dấu món đã hủy cần được gửi lại để update
-              isEdit: wasCancelled ? true : false,
+              // KHÔNG tự động đánh dấu isEdit, chỉ khi user thay đổi thực sự
+              isEdit: false,
             });
           }
         });
@@ -254,6 +271,7 @@ const RoomSelectionForm = () => {
           if (convertedMeals[shift].length === 0) {
             convertedMeals[shift].push({
               mode: "",
+              modeName: "",
               mealType: "",
               mealTypeName: "",
               quantity: 0,
@@ -282,6 +300,7 @@ const RoomSelectionForm = () => {
           const emptyMeals = {
             CA1: [{
               mode: "",
+              modeName: "",
               mealType: "",
               mealTypeName: "",
               quantity: 0,
@@ -299,6 +318,7 @@ const RoomSelectionForm = () => {
             }],
             CA2: [{
               mode: "",
+              modeName: "",
               mealType: "",
               mealTypeName: "",
               quantity: 0,
@@ -316,6 +336,7 @@ const RoomSelectionForm = () => {
             }],
             CA3: [{
               mode: "",
+              modeName: "",
               mealType: "",
               mealTypeName: "",
               quantity: 0,
@@ -345,6 +366,7 @@ const RoomSelectionForm = () => {
           const emptyMeals = {
             CA1: [{
               mode: "",
+              modeName: "",
               mealType: "",
               mealTypeName: "",
               quantity: 0,
@@ -362,6 +384,7 @@ const RoomSelectionForm = () => {
             }],
             CA2: [{
               mode: "",
+              modeName: "",
               mealType: "",
               mealTypeName: "",
               quantity: 0,
@@ -379,6 +402,7 @@ const RoomSelectionForm = () => {
             }],
             CA3: [{
               mode: "",
+              modeName: "",
               mealType: "",
               mealTypeName: "",
               quantity: 0,
@@ -404,6 +428,7 @@ const RoomSelectionForm = () => {
         const emptyMeals = {
           CA1: [{
             mode: "",
+            modeName: "",
             mealType: "",
             mealTypeName: "",
             quantity: 0,
@@ -421,6 +446,7 @@ const RoomSelectionForm = () => {
           }],
           CA2: [{
             mode: "",
+            modeName: "",
             mealType: "",
             mealTypeName: "",
             quantity: 0,
@@ -438,6 +464,7 @@ const RoomSelectionForm = () => {
           }],
           CA3: [{
             mode: "",
+            modeName: "",
             mealType: "",
             mealTypeName: "",
             quantity: 0,
@@ -462,7 +489,7 @@ const RoomSelectionForm = () => {
       dispatch(setShowMealDetails(true));
       dispatch(setShowRoomSelection(false));
     },
-    [dispatch, roomSelectedDate, detailData, masterData.name, masterData.roomCode, userName, mealHistory]
+    [dispatch, roomSelectedDate, detailData, masterData.name, masterData.roomCode, userName, mealHistory, submittedBeds]
   );
 
   const loadBedsWithMeals = async (roomCode, date) => {
@@ -643,13 +670,29 @@ const RoomSelectionForm = () => {
       },
     ];
 
-    // CHỈ gửi các món ăn có thay đổi (isEdit = true hoặc món mới)
+    // Kiểm tra xem có giường nào có thu tiền không
+    // Nếu có thu tiền thì phải gửi TẤT CẢ món của giường đó (cả 3 ca)
+    const bedIndexesWithPayment = new Set();
+    detailData.forEach((bedMeals, bedIndex) => {
+      if (!bedMeals) return;
+      ["CA1", "CA2", "CA3"].forEach((shift) => {
+        const meals = bedMeals[shift] || [];
+        meals.forEach((meal) => {
+          if (meal.isPaid) {
+            bedIndexesWithPayment.add(bedIndex);
+          }
+        });
+      });
+    });
+
     const filteredDetail = [];
     let hasAnyChanges = false;
 
     detailData.forEach((bedMeals, bedIndex) => {
       const bed = listBeds[bedIndex];
       if (!bed || !bedMeals) return;
+
+      const hasPaidMeals = bedIndexesWithPayment.has(bedIndex);
 
       ["CA1", "CA2", "CA3"].forEach((shift) => {
         const meals = bedMeals[shift] || [];
@@ -661,14 +704,13 @@ const RoomSelectionForm = () => {
           // Nhưng GỬI món đã xóa nếu có stt_rec để backend xóa khỏi database
           if (meal.status === "3" && !meal.stt_rec) return;
 
-          // CHỈ GỬI món nếu:
-          // 1. Món mới (không có stt_rec) HOẶC
-          // 2. Món đã chỉnh sửa (isEdit = true) - bao gồm cả món đã xóa
-          if (!meal.stt_rec || meal.isEdit) {
+          // GỬI món nếu:
+          // 1. Giường này có thu tiền → Gửi TẤT CẢ món của cả 3 ca
+          // 2. HOẶC món mới (không có stt_rec)
+          // 3. HOẶC món đã chỉnh sửa (isEdit = true)
+          if (hasPaidMeals || !meal.stt_rec || meal.isEdit) {
             hasAnyChanges = true;
 
-            // Với món đã chỉnh sửa, dùng giá trị hiện tại từ UI
-            // Với món mới, dùng giá trị hiện tại
             const benhNhanYn = meal.collectMoney ? 1 : 0;
             const thuTienYn = meal.isPaid ? 1 : 0;
 
@@ -1023,7 +1065,7 @@ const RoomSelectionForm = () => {
                 )}
 
                 {/* Người dùng tự submit trên client - hiển thị cho cả đơn đã hủy và đơn mới */}
-                {isSubmitted && !isDisabled && (
+                {isSubmitted && (
                   <div className="submitted-item">
                     {["CA1", "CA2", "CA3"].map((mealType) => {
                       const meals = detailData[index]?.[mealType] || [];
@@ -1042,17 +1084,9 @@ const RoomSelectionForm = () => {
                           </p>
 
                           {meals.map((m, idx) => {
-                            const foodName =
-                              listFood.find(
-                                (food) => food.ma_mon === m.mealType
-                              )?.ten_mon ||
-                              m.mealType ||
-                              "Chưa chọn món";
-                            const dietName =
-                              listDietCategory.find((d) => d.ma_nh === m.mode)
-                                ?.ten_nh ||
-                              m.mode ||
-                              "Chưa chọn chế độ";
+                            // Dùng tên từ data (mealTypeName, modeName) thay vì tra cứu từ listFood
+                            const foodName = m.mealTypeName || m.mealType || "Chưa chọn món";
+                            const dietName = m.modeName || m.mode || "Chưa chọn chế độ";
 
                             return (
                               <div
@@ -1069,12 +1103,10 @@ const RoomSelectionForm = () => {
                                 {m.quantity > 0 && (
                                   <p>+ Số lượng: {m.quantity}</p>
                                 )}
-                                {typeof m.collectMoney === "boolean" && (
-                                  <p>
-                                    + Thu tiền:{" "}
-                                    {m.isPaid ? "Đã thu tiền" : "Chưa thu tiền"}
-                                  </p>
-                                )}
+                                <p>
+                                  + Thu tiền:{" "}
+                                  {m.isPaid ? "Đã thu tiền" : "Chưa thu tiền"}
+                                </p>
                                 {m.httt && (
                                   <p>
                                     + Hình thức thanh toán:{" "}
@@ -1100,16 +1132,20 @@ const RoomSelectionForm = () => {
         onClick={handleSubmit}
         disabled={
           isSubmitting ||
+          (submittedBeds.length === 0 && // Nếu chưa có giường nào submit
           !detailData.some((bedMeals, bedIndex) => {
-            // Kiểm tra xem có dữ liệu mới hoặc chỉnh sửa không
+            // Kiểm tra xem có dữ liệu mới, chỉnh sửa, hoặc thu tiền không
             return ["CA1", "CA2", "CA3"].some((shift) => {
               const meals = bedMeals?.[shift] || [];
               return meals.some((meal) => {
-                // Chỉ enable nếu có món mới (!stt_rec) hoặc đã chỉnh sửa (isEdit)
-                return meal.mealType && (!meal.stt_rec || meal.isEdit);
+                // Enable nếu:
+                // 1. Có món mới (!stt_rec)
+                // 2. HOẶC đã chỉnh sửa (isEdit)
+                // 3. HOẶC có thu tiền (isPaid) - vì thu tiền phải gửi tất cả món
+                return meal.mealType && (!meal.stt_rec || meal.isEdit || meal.isPaid);
               });
             });
-          })
+          }))
         }
       >
         {isSubmitting ? "Đang gửi..." : "Gửi"}
