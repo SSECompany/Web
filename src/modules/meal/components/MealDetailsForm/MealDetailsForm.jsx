@@ -54,10 +54,15 @@ const MealDetailsForm = () => {
 
   const [mealEntries, setMealEntries] = useState(detailData);
 
+  // Sync detailData to local state khi detailData thay doi
   useEffect(() => {
     setMealEntries(detailData);
+  }, [detailData]);
 
-    // Reset flag khi load data mới
+  // Chi reset flag va clear cache khi chuyen giuong hoac doi ngay
+  // KHONG reset khi chi thay doi detailData (do user edit)
+  useEffect(() => {
+    // Reset flag khi load data mới (chuyen giuong hoac doi ngay)
     hasChangedInThisSession.current = false;
 
     // Clear TOÀN BỘ cache khi chuyển giường hoặc load data mới
@@ -65,11 +70,7 @@ const MealDetailsForm = () => {
     setPaymentMethod("");
     setIsPaid(false);
     setSelectedPatientInShift({});
-
-    // KHÔNG auto-fetch api_getListFood khi load form
-    // Data từ api_getMealDetailsByDepartmentRoomBed đã đủ để fill ra form
-    // Chỉ fetch api_getListFood khi user click vào dropdown chọn món
-  }, [detailData, currentBedIndex, selectedDate]);
+  }, [currentBedIndex, selectedDate]);
 
   useEffect(() => {
     const bedMeals = detailData[currentBedIndex];
@@ -183,10 +184,11 @@ const MealDetailsForm = () => {
       // Lấy giá trị cũ để so sánh
       const meals = mealEntries[currentBedIndex]?.[timeOfDay] || [];
       const oldMeal = meals[index];
-      const oldValue = name === "note" ? oldMeal?.note : oldMeal?.[name];
+      const oldValue = name === "note" ? (oldMeal?.note || "") : (oldMeal?.[name] || "");
+      const newValue = value || "";
 
       // CHỈ đánh dấu isEdit nếu có thay đổi thực sự
-      const hasRealChange = oldValue !== value;
+      const hasRealChange = oldValue !== newValue;
 
       // Danh dau co thay doi neu co stt_rec va co thay doi that su
       if (hasRealChange && oldMeal?.stt_rec) {
@@ -506,7 +508,10 @@ const MealDetailsForm = () => {
       const selectedFood = foodsForThisShiftAndMode.find(
         (food) => food.ma_mon === meals[index]?.mealType
       );
-      const price = selectedFood?.gia_ban || 0;
+      // Uu tien dung gia tu meal hien tai, neu khong co thi dung gia tu foodList
+      const priceFromFood = selectedFood?.gia_ban || 0;
+      const currentMeal = meals[index];
+      const priceToUse = currentMeal?.price || priceFromFood || 0;
 
       bedMeals[timeOfDay] = meals.map((meal, i) => {
         if (i === index) {
@@ -514,7 +519,7 @@ const MealDetailsForm = () => {
             ...meal,
             collectMoney: checked,
             quantity: 1,
-            totalMoney: checked ? 0 : price * 1,
+            totalMoney: checked ? 0 : priceToUse * 1,
           };
           // CHỈ đánh dấu isEdit nếu THỰC SỰ có thay đổi
           if (updatedMeal.stt_rec && meal.collectMoney !== checked) {
@@ -525,9 +530,14 @@ const MealDetailsForm = () => {
         } else {
           // CHỈ update nếu món này đang có collectMoney = true (cần bỏ tích)
           if (meal.collectMoney) {
+            // Tinh lai tong tien khi bo tich benh nhan
+            const priceToUse = meal.price || 0;
+            const quantityToUse = meal.quantity || 1;
+
             const updatedMeal = {
               ...meal,
               collectMoney: false,
+              totalMoney: priceToUse * quantityToUse,
             };
             // CHỈ đánh dấu isEdit nếu món này THỰC SỰ bị thay đổi
             if (meal.stt_rec) {
