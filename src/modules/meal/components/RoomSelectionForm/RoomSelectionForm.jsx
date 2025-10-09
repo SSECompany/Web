@@ -211,10 +211,16 @@ const RoomSelectionForm = () => {
             const quantity = parseFloat(meal.so_luong) || 1;
             const price = parseFloat(meal.don_gia) || 0;
             const totalMoney = parseFloat(meal.thanh_tien) || 0;
-            
-            // Parse boolean
-            const collectMoney = meal.benh_nhan_yn === true || meal.benh_nhan_yn === 1;
-            const isPaid = meal.thu_tien_yn === true || meal.thu_tien_yn === 1;
+
+            // Parse boolean - hỗ trợ nhiều format (true, 1, "1", "true")
+            const collectMoney = meal.benh_nhan_yn === true ||
+                                 meal.benh_nhan_yn === 1 ||
+                                 meal.benh_nhan_yn === "1" ||
+                                 meal.benh_nhan_yn === "true";
+            const isPaid = meal.thu_tien_yn === true ||
+                          meal.thu_tien_yn === 1 ||
+                          meal.thu_tien_yn === "1" ||
+                          meal.thu_tien_yn === "true";
             
             // Kiểm tra trạng thái
             const wasCancelled = meal.status === "3" || meal.status === 3;
@@ -637,7 +643,7 @@ const RoomSelectionForm = () => {
       },
     ];
 
-    // Gửi tất cả các món ăn của các giường có thay đổi (cả 3 ca)
+    // CHỈ gửi các món ăn có thay đổi (isEdit = true hoặc món mới)
     const filteredDetail = [];
     let hasAnyChanges = false;
 
@@ -645,40 +651,50 @@ const RoomSelectionForm = () => {
       const bed = listBeds[bedIndex];
       if (!bed || !bedMeals) return;
 
-      // Kiểm tra xem giường này có món nào được chỉnh sửa hoặc là món mới không
-      // Bao gồm cả đơn đã huỷ (không có stt_rec do đã xóa khi load)
-      const hasChanges = ["CA1", "CA2", "CA3"].some((shift) => {
+      ["CA1", "CA2", "CA3"].forEach((shift) => {
         const meals = bedMeals[shift] || [];
-        return meals.some((meal) => meal.mealType && (!meal.stt_rec || meal.isEdit));
-      });
+        meals.forEach((meal, mealIndex) => {
+          // Bỏ qua món rỗng (không có mealType) NHƯNG giữ món đã xóa nếu có stt_rec
+          if (!meal.mealType && meal.status !== "3") return;
 
-      // Nếu giường này có thay đổi, gửi TẤT CẢ các món ăn của cả 3 ca
-      if (hasChanges) {
-        hasAnyChanges = true;
-        ["CA1", "CA2", "CA3"].forEach((shift) => {
-          const meals = bedMeals[shift] || [];
-          meals.forEach((meal) => {
-            if (!meal.mealType) return;
+          // Bỏ qua món đã xóa nếu là món mới (chưa có stt_rec)
+          // Nhưng GỬI món đã xóa nếu có stt_rec để backend xóa khỏi database
+          if (meal.status === "3" && !meal.stt_rec) return;
+
+          // CHỈ GỬI món nếu:
+          // 1. Món mới (không có stt_rec) HOẶC
+          // 2. Món đã chỉnh sửa (isEdit = true) - bao gồm cả món đã xóa
+          if (!meal.stt_rec || meal.isEdit) {
+            hasAnyChanges = true;
+
+            // Với món đã chỉnh sửa, dùng giá trị hiện tại từ UI
+            // Với món mới, dùng giá trị hiện tại
+            const benhNhanYn = meal.collectMoney ? 1 : 0;
+            const thuTienYn = meal.isPaid ? 1 : 0;
+
+            // Nếu thu_tien_yn = 1 thì httt phải là "chuyen_khoan"
+            const httt = thuTienYn === 1 ? (meal.httt || "chuyen_khoan") : "";
+
             filteredDetail.push({
               ma_giuong: bed.ma_giuong,
               ma_ca: shift,
               ma_che_do: meal.mode || "",
-              ma_mon: meal.mealType,
-              so_luong: meal.quantity,
+              ma_mon: meal.mealType || "",
+              so_luong: meal.quantity || 0,
               don_gia: meal.price || 0,
               thanh_tien: meal.totalMoney || 0,
-              benh_nhan_yn: meal.collectMoney ? 1 : 0,
+              benh_nhan_yn: benhNhanYn,
               ghi_chu: meal.note || "",
-              thu_tien_yn: meal.isPaid ? 1 : 0,
-              httt: meal.httt || "",
+              thu_tien_yn: thuTienYn,
+              httt: httt,
               stt_rec: meal.stt_rec || "",
               stt_rec0: meal.stt_rec0 || "",
-              status: meal.status || "0",
+              status: "0", // LUÔN dùng status = "0" khi SỬA ĐƠN
               so_ct: meal.so_ct || "",
             });
-          });
+          }
         });
-      }
+      });
     });
 
     // Kiểm tra nếu không có thay đổi gì thì không gửi
@@ -706,11 +722,16 @@ const RoomSelectionForm = () => {
           await syncFastMutiApi(sttRecList, id);
         }
         notification.success({ message: "Đăng ký thành công !" });
-        setTimeout(() => {
-          dispatch(resetAllMeals());
-          dispatch(setMasterData({ name: "", roomCode: "", beds: [] }));
-          dispatch(setShowMealDetails(false));
-          dispatch(setShowRoomSelection(true));
+
+        // Reload data từ API để cập nhật UI thay vì reset toàn bộ
+        setTimeout(async () => {
+          dispatch(setSubmittedBeds([])); // Clear submitted beds
+
+          // Reload beds và meals từ API
+          if (masterData.roomCode && roomSelectedDate) {
+            await loadBedsWithMeals(masterData.roomCode, roomSelectedDate);
+          }
+
           setIsSubmitting(false);
         }, 500);
       } else {
@@ -976,7 +997,12 @@ const RoomSelectionForm = () => {
                                 <p>+ Chế độ: {m.ten_che_do || "Không"}</p>
                                 <p>
                                   + Thu tiền:{" "}
-                                  {m.thu_tien ? "Đã thu tiền" : "Chưa thu tiền"}
+                                  {(m.thu_tien_yn === true ||
+                                    m.thu_tien_yn === 1 ||
+                                    m.thu_tien_yn === "1" ||
+                                    m.thu_tien_yn === "true")
+                                    ? "Đã thu tiền"
+                                    : "Chưa thu tiền"}
                                 </p>
                                 {m.httt && (
                                   <p>

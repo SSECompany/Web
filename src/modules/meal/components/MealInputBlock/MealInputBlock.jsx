@@ -13,12 +13,43 @@ const MealEntryRow = ({
   handleChange,
   handleQuantityChange,
   handleCollectMoneyChange,
+  refetchDietCategory,
+  refetchFoodList,
   firstMealInputRef,
   isAnotherMealSelected,
   isReadOnly = false, // Thêm prop để disable form khi xem đơn đã đặt
 }) => {
-  // CHỈ dùng foodListForSelection từ parent, KHÔNG fallback sang listFood
-  const availableFoods = foodListForSelection || [];
+  // Dùng foodListForSelection từ parent, NHƯNG thêm món hiện tại từ history nếu chưa có
+  let availableFoods = [...(foodListForSelection || [])]; // Clone array để tránh mutate
+
+  // Nếu meal có mealType mà không có trong foodListForSelection
+  // Thì thêm vào để hiển thị trong dropdown (tránh bị mất value)
+  if (meal.mealType) {
+    const isInList = availableFoods.some(food => food.ma_mon === meal.mealType);
+    if (!isInList) {
+      // Thêm món hiện tại vào đầu danh sách
+      // Nếu mealTypeName là mã món (chưa fetch API), dùng nó làm tên tạm thời
+      availableFoods = [
+        {
+          ma_mon: meal.mealType,
+          ten_mon: meal.mealTypeName || meal.mealType // Fallback to ma_mon if no ten_mon
+        },
+        ...availableFoods
+      ];
+    }
+  }
+
+  // Tương tự, thêm chế độ từ history vào listDietCategory nếu chưa có
+  let availableDietCategories = listDietCategory || [];
+  if (meal.mode && meal.modeName) {
+    const isInList = availableDietCategories.some(cat => cat.ma_nh === meal.mode);
+    if (!isInList) {
+      availableDietCategories = [
+        { ma_nh: meal.mode, ten_nh: meal.modeName },
+        ...availableDietCategories
+      ];
+    }
+  }
 
   // Determine shift name for display
   const shiftName =
@@ -69,11 +100,17 @@ const MealEntryRow = ({
             id={`mode-${timeOfDay}-${index}`}
             value={meal.mode}
             onChange={(value) => handleModeChange(timeOfDay, index, value)}
+            onDropdownVisibleChange={(open) => {
+              // Fetch api_getListDietCategory khi dropdown mở
+              if (open && refetchDietCategory) {
+                refetchDietCategory(timeOfDay);
+              }
+            }}
             className="mode-dropdown"
             disabled={isReadOnly}
           >
             <Select.Option value="">Chọn chế độ</Select.Option>
-            {listDietCategory.map((category) => (
+            {availableDietCategories.map((category) => (
               <Select.Option key={category.ma_nh} value={category.ma_nh}>
                 {category.ten_nh}
               </Select.Option>
@@ -90,6 +127,12 @@ const MealEntryRow = ({
                   target: { name: "mealType", value },
                 })
               }
+              onDropdownVisibleChange={(open) => {
+                // Call API khi dropdown mở
+                if (open && meal.mode && refetchFoodList) {
+                  refetchFoodList(timeOfDay, meal.mode);
+                }
+              }}
               placeholder="Chọn món ăn"
               disabled={isReadOnly || !meal.mode}
             >

@@ -337,6 +337,7 @@ export default function OrderSummary({ total, itemCount }) {
       thutien_yn: activeTab?.master?.thutien_yn ?? "",
       s3: sync ? "1" : "0",
       StoreID: activeTab?.master?.StoreID || storeId || "",
+      fcode1: "",
       // Thêm 3 trường cho sinh viên trả trước
       ngay_ct: activeTab?.master?.ngay_ct || activeTab?.metadata?.ngay_ct || "",
       ma_gd: activeTab?.master?.ma_gd || activeTab?.metadata?.ma_gd || "",
