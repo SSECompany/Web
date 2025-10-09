@@ -75,6 +75,7 @@ const initialState = {
   showMealDetails: false,
   currentBedIndex: 0,
   submittedBeds: [],
+  bedsPaymentToggled: {},
   listDietCategory: [],
   listMealCode: [],
   listFood: [],
@@ -289,6 +290,12 @@ const mealSlice = createSlice({
     setSubmittedBeds: (state, action) => {
       state.submittedBeds = action.payload;
     },
+    setBedPaymentToggled: (state, action) => {
+      const { bedIndex, toggled } = action.payload || {};
+      if (typeof bedIndex === "number") {
+        state.bedsPaymentToggled[bedIndex] = !!toggled;
+      }
+    },
     setListDietCategory: (state, action) => {
       state.listDietCategory = action.payload;
     },
@@ -413,6 +420,7 @@ export const {
   setCurrentBedIndex,
   markBedAsSubmitted,
   setSubmittedBeds,
+  setBedPaymentToggled,
   setListDietCategory,
   setListMealCode,
   setListFood,

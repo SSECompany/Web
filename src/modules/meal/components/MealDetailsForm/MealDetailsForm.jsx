@@ -14,9 +14,10 @@ import {
     setListFood,
     setMeal,
     setMealHistory,
-    setShowMealDetails,
+      setShowMealDetails,
     setShowRoomSelection
 } from "../../store/meal";
+  import { setBedPaymentToggled } from "../../store/meal";
 import MealEntryRow from "../MealInputBlock/MealInputBlock";
 import "./MealDetailsForm.css";
 import { mealSchema } from "./validator/validationSchema";
@@ -255,7 +256,8 @@ const MealDetailsForm = () => {
         const selectedFood = foodsForThisShiftAndMode.find(
           (food) => food.ma_mon === meal.mealType
         );
-        const price = selectedFood?.gia_ban || 0;
+        // Ưu tiên dùng giá đã có trong meal (đã load từ lịch sử), fallback giá từ danh sách món
+        const price = (meal.price ?? 0) || selectedFood?.gia_ban || 0;
         meal.quantity = newQuantity;
         meal.totalMoney = meal.collectMoney ? 0 : price * newQuantity;
       }, hasRealChange); // Chỉ đánh dấu isEdit nếu số lượng thay đổi
@@ -515,11 +517,12 @@ const MealDetailsForm = () => {
 
       bedMeals[timeOfDay] = meals.map((meal, i) => {
         if (i === index) {
+          const quantityToUse = meal.quantity || 1;
           const updatedMeal = {
             ...meal,
             collectMoney: checked,
-            quantity: 1,
-            totalMoney: checked ? 0 : priceToUse * 1,
+            // Khi bỏ tích bệnh nhân, tính lại theo số lượng hiện tại thay vì reset về 1
+            totalMoney: checked ? 0 : priceToUse * quantityToUse,
           };
           // CHỈ đánh dấu isEdit nếu THỰC SỰ có thay đổi
           if (updatedMeal.stt_rec && meal.collectMoney !== checked) {
@@ -1047,6 +1050,8 @@ const MealDetailsForm = () => {
                   bedIndex: currentBedIndex,
                 })
               );
+              // Đánh dấu giường này vừa được toggle thu tiền trong phiên hiện tại
+              dispatch(setBedPaymentToggled({ bedIndex: currentBedIndex, toggled: newIsPaid }));
               return updatedMeals;
             });
           }}

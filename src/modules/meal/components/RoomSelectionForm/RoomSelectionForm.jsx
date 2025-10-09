@@ -25,7 +25,8 @@ import {
     setRoomSelectedDate,
     setShowMealDetails,
     setShowRoomSelection,
-    setSubmittedBeds
+    setSubmittedBeds,
+    setBedPaymentToggled
 } from "../../store/meal";
 import "./RoomSelectionForm.css";
 
@@ -49,6 +50,7 @@ const RoomSelectionForm = () => {
     listFood = [],
     listDietCategory = [],
     roomSelectedDate,
+    bedsPaymentToggled = {},
   } = useSelector((state) => state.meals);
   const { userName, unitId, id } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
@@ -691,7 +693,6 @@ const RoomSelectionForm = () => {
     detailData.forEach((bedMeals, bedIndex) => {
       const bed = listBeds[bedIndex];
       if (!bed || !bedMeals) return;
-
       const hasPaidMeals = bedIndexesWithPayment.has(bedIndex);
 
       ["CA1", "CA2", "CA3"].forEach((shift) => {
@@ -705,14 +706,23 @@ const RoomSelectionForm = () => {
           if (meal.status === "3" && !meal.stt_rec) return;
 
           // GỬI món nếu:
-          // 1. Giường này có thu tiền → Gửi TẤT CẢ món của cả 3 ca
-          // 2. HOẶC món mới (không có stt_rec)
-          // 3. HOẶC món đã chỉnh sửa (isEdit = true)
-          if (hasPaidMeals || !meal.stt_rec || meal.isEdit) {
+          // 1) Giường có thu tiền → gửi tất cả món (trừ dòng rỗng và bỏ qua xóa mới chưa có stt_rec)
+          // 2) HOẶC món mới (!stt_rec)
+          // 3) HOẶC món đã chỉnh sửa (isEdit)
+          // 4) HOẶC món cần xóa đã tồn tại (status = 3 và có stt_rec)
+          // Nếu giường đã thu tiền từ trước nhưng KHÔNG toggle trong phiên này → chỉ gửi dòng thay đổi
+          // Nếu giường được toggle sang thu tiền trong phiên này → gửi tất cả món
+          const isPaymentToggledThisSession = !!bedsPaymentToggled[bedIndex];
+          if (
+            (hasPaidMeals && isPaymentToggledThisSession) ||
+            !meal.stt_rec ||
+            meal.isEdit ||
+            (meal.status === "3" && meal.stt_rec)
+          ) {
             hasAnyChanges = true;
 
             const benhNhanYn = meal.collectMoney ? 1 : 0;
-            const thuTienYn = meal.isPaid ? 1 : 0;
+            const thuTienYn = (hasPaidMeals && isPaymentToggledThisSession) ? 1 : (meal.isPaid ? 1 : 0);
 
             // Nếu thu_tien_yn = 1 thì httt phải là "chuyen_khoan"
             const httt = thuTienYn === 1 ? (meal.httt || "chuyen_khoan") : "";
