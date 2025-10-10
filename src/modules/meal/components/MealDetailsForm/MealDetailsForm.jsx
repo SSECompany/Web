@@ -14,10 +14,11 @@ import {
     setListFood,
     setMeal,
     setMealHistory,
-      setShowMealDetails,
-    setShowRoomSelection
+    setShowMealDetails,
+    setShowRoomSelection,
+    setBedPaymentToggled,
+    setSubmittedBeds
 } from "../../store/meal";
-  import { setBedPaymentToggled } from "../../store/meal";
 import MealEntryRow from "../MealInputBlock/MealInputBlock";
 import "./MealDetailsForm.css";
 import { mealSchema } from "./validator/validationSchema";
@@ -997,6 +998,151 @@ const MealDetailsForm = () => {
     });
   };
 
+  // Hàm hủy một ca cụ thể
+  const handleCancelShift = (shift) => {
+    const shiftName = shift === "CA1" ? "Ca sáng" : shift === "CA2" ? "Ca trưa" : "Ca chiều";
+    
+    showConfirm({
+      title: `Bạn có chắc chắn muốn huỷ ${shiftName}?`,
+      onOk: async () => {
+        try {
+          const master = [
+            {
+              ngay_ct: selectedDate,
+              ma_khoa: masterData.name,
+              ma_phong: masterData.roomCode,
+            },
+          ];
+
+          // Lấy món ăn của CA này từ history và set status = 3 để huỷ
+          // Chỉ lấy món chưa bị huỷ (status !== 3)
+          const caMapping = {
+            "Ca sáng": "CA1",
+            "Ca trưa": "CA2",
+            "Ca chiều": "CA3",
+          };
+          const shiftLabel = shift === "CA1" ? "Ca sáng" : shift === "CA2" ? "Ca trưa" : "Ca chiều";
+          
+          const cancelDetail = [];
+          const shiftMealsHistory = mealHistory.filter(
+            (m) => m.ma_giuong?.trim() === bedName?.ma_giuong?.trim() 
+                && m.ten_ca?.trim() === shiftLabel
+                && m.status !== "3" && m.status !== 3
+          );
+
+          shiftMealsHistory.forEach((meal) => {
+            if (meal.stt_rec) {
+              // Convert boolean/number/string sang 0/1
+              const benhNhanYn = (meal.benh_nhan_yn === true ||
+                                  meal.benh_nhan_yn === 1 ||
+                                  meal.benh_nhan_yn === "1" ||
+                                  meal.benh_nhan_yn === "true") ? 1 : 0;
+              const thuTienYn = (meal.thu_tien_yn === true ||
+                                meal.thu_tien_yn === 1 ||
+                                meal.thu_tien_yn === "1" ||
+                                meal.thu_tien_yn === "true" ||
+                                meal.thu_tien === true) ? 1 : 0;
+
+              cancelDetail.push({
+                ma_giuong: bedName.ma_giuong,
+                ma_ca: shift,
+                ma_che_do: meal.ma_che_do || "",
+                ma_mon: meal.ma_mon || "",
+                so_luong: meal.so_luong || 1,
+                don_gia: meal.don_gia || meal.gia_ban || 0,
+                thanh_tien: meal.thanh_tien || 0,
+                benh_nhan_yn: benhNhanYn,
+                ghi_chu: meal.ghi_chu || "",
+                thu_tien_yn: thuTienYn,
+                httt: meal.httt || "",
+                stt_rec: meal.stt_rec || "",
+                stt_rec0: meal.stt_rec0 || "",
+                status: "3", // Status 3 để huỷ ca
+                so_ct: meal.so_ct || "",
+              });
+            }
+          });
+
+          if (cancelDetail.length === 0) {
+            notification.warning({ message: `Không tìm thấy món nào để huỷ trong ${shiftName}!` });
+            return;
+          }
+
+          const response = await apiProcessCombinedMealOrder({
+            StoreID: masterData.name,
+            unitId: unitId,
+            userId: userId,
+            masterData: master,
+            detailData: cancelDetail,
+          });
+
+          if (response?.responseModel?.isSucceded) {
+            const sttRecList = JSON.parse(
+              response?.listObject?.[0]?.[0]?.list_stt_rec || "[]"
+            );
+            if (Array.isArray(sttRecList) && sttRecList.length > 0) {
+              await syncFastMutiApi(sttRecList, userId);
+            }
+            notification.success({ message: `Huỷ ${shiftName} thành công!` });
+
+            // Fetch lại data và clear cache
+            try {
+              const reloadResponse = await multipleTablePutApi({
+                store: "api_getMealDetailsByDepartmentRoomBed",
+                param: {
+                  ngay_ct: selectedDate,
+                  ma_bp: masterData.name,
+                  ma_phong: masterData.roomCode,
+                  username: userName,
+                },
+                data: {},
+              });
+
+              if (Array.isArray(reloadResponse?.listObject)) {
+                dispatch(setMealHistory(reloadResponse.listObject));
+              }
+              
+              // Clear detailData của giường hiện tại
+              const updatedDetailData = [...mealEntries];
+              updatedDetailData[currentBedIndex] = {
+                CA1: [],
+                CA2: [],
+                CA3: [],
+              };
+              dispatch(setMeal({ mealEntries: updatedDetailData, bedIndex: currentBedIndex }));
+              dispatch(setSubmittedBeds([]));
+            } catch (error) {
+              console.error("Lỗi reload data sau khi hủy ca:", error);
+            }
+
+            // Quay về RoomSelectionForm
+            dispatch(setShowMealDetails(false));
+            dispatch(setShowRoomSelection(true));
+          } else {
+            notification.warning({ message: response?.responseModel?.message || `Huỷ ${shiftName} thất bại!` });
+          }
+        } catch (error) {
+          console.error("Lỗi khi huỷ ca:", error);
+          notification.error({ message: "Có lỗi xảy ra khi huỷ ca!" });
+        }
+      },
+    });
+  };
+
+  // Check xem ca này có món chưa bị hủy không (để hiện nút "Hủy ca")
+  const hasActiveShiftMeals = useCallback((shift) => {
+    const shiftLabel = shift === "CA1" ? "Ca sáng" : shift === "CA2" ? "Ca trưa" : "Ca chiều";
+    const bedMaGiuong = bedName?.ma_giuong;
+    
+    const shiftMeals = mealHistory.filter(
+      (m) => m.ma_giuong?.trim() === bedMaGiuong?.trim() 
+          && m.ten_ca?.trim() === shiftLabel
+          && m.status !== "3" && m.status !== 3
+    );
+    
+    return shiftMeals.length > 0;
+  }, [mealHistory, bedName]);
+
   const renderedMealEntries = useMemo(() => {
     const bedMeals = mealEntries[currentBedIndex] || {};
     const result = {};
@@ -1122,13 +1268,48 @@ const MealDetailsForm = () => {
             `}
             key={meal.ma_ca}
           >
-            {renderedMealEntries[meal.ma_ca]}
-            <button
-              className="add-row-button"
-              onClick={() => handleAddMeal(meal.ma_ca)}
-            >
-              <PlusOutlined />
-            </button>
+            <div>
+              {/* Nút Hủy ca - căn giữa phía trên */}
+              {hasActiveShiftMeals(meal.ma_ca) && (
+                <div style={{ 
+                  display: 'flex',
+                  justifyContent: 'right',
+                }}>
+                  <button
+                    onClick={() => handleCancelShift(meal.ma_ca)}
+                    style={{
+                      padding: '6px 16px',
+                      fontSize: '12px',
+                      backgroundColor: '#ff4d4f',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#ff7875';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#ff4d4f';
+                    }}
+                  >
+                    Huỷ ca
+                  </button>
+                </div>
+              )}
+              
+              {renderedMealEntries[meal.ma_ca]}
+              
+              {/* Nút + thêm món - giữ nguyên vị trí */}
+              <button
+                className="add-row-button"
+                onClick={() => handleAddMeal(meal.ma_ca)}
+              >
+                <PlusOutlined />
+              </button>
+            </div>
           </TabPane>
         ))}
       </Tabs>
