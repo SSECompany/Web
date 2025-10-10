@@ -57,8 +57,10 @@ const MealDetailsForm = () => {
 
   // Sync detailData to local state khi detailData thay doi
   useEffect(() => {
-    setMealEntries(detailData);
-  }, [detailData]);
+    if (detailData && Array.isArray(detailData)) {
+      setMealEntries(detailData);
+    }
+  }, [detailData, currentBedIndex]);
 
   // Chi reset flag va clear cache khi chuyen giuong hoac doi ngay
   // KHONG reset khi chi thay doi detailData (do user edit)
@@ -72,6 +74,11 @@ const MealDetailsForm = () => {
     setIsPaid(false);
     setSelectedPatientInShift({});
   }, [currentBedIndex, selectedDate]);
+
+  // Clear cache khi mealHistory thay đổi (sau khi gửi đơn thành công)
+  useEffect(() => {
+    setFoodListByShiftAndMode({});
+  }, [mealHistory]);
 
   useEffect(() => {
     const bedMeals = detailData[currentBedIndex];
@@ -107,12 +114,32 @@ const MealDetailsForm = () => {
         });
 
         const dietCategoryList = response?.listObject?.[0] || [];
-        dispatch(setListDietCategory(dietCategoryList));
+        
+        // Kiểm tra nếu API trả về data hợp lệ
+        if (Array.isArray(dietCategoryList) && dietCategoryList.length > 0 && dietCategoryList[0].ma_nh) {
+          // Merge với danh sách hiện có thay vì ghi đè
+          const currentCategories = listDietCategory || [];
+          const mergedCategories = [...currentCategories];
+          
+          dietCategoryList.forEach(newCategory => {
+            const exists = mergedCategories.some(cat => cat.ma_nh === newCategory.ma_nh);
+            if (!exists) {
+              mergedCategories.push(newCategory);
+            }
+          });
+          
+          dispatch(setListDietCategory(mergedCategories));
+        } else {
+          console.warn(`⚠️ Invalid diet category data for ${timeOfDay}:`, dietCategoryList);
+          // Nếu API trả về rỗng, vẫn dispatch để clear cache cũ
+          dispatch(setListDietCategory([]));
+        }
       } catch (error) {
-        console.error("Lỗi fetch diet category:", error);
+        console.error(`❌ Lỗi fetch diet category cho ${timeOfDay}:`, error);
+        // Trong trường hợp lỗi, không thay đổi listDietCategory
       }
     },
-    [selectedDate, dispatch]
+    [selectedDate, dispatch, listDietCategory]
   );
 
   const updateMealEntriesInRedux = (updatedMeals) => {
@@ -139,9 +166,7 @@ const MealDetailsForm = () => {
   const calculateTotalByShift = (shift) => {
     const entries = mealEntries[currentBedIndex]?.[shift] || [];
     return entries.reduce((total, meal) => {
-      // Bỏ qua món đã xóa (status = "3")
-      if (meal.status === "3") return total;
-
+      // Món đã xóa được xóa thật khỏi array, không cần check status
       if (meal.totalMoney && !meal.collectMoney) {
         return total + meal.totalMoney;
       }
@@ -404,6 +429,11 @@ const MealDetailsForm = () => {
         }));
       } catch (error) {
         console.error("Lỗi fetch food list:", error);
+        // Trong trường hợp lỗi, vẫn lưu array rỗng để tránh fetch lại
+        setFoodListByShiftAndMode((prev) => ({
+          ...prev,
+          [key]: []
+        }));
       }
     },
     [selectedDate, foodListByShiftAndMode]
@@ -429,6 +459,12 @@ const MealDetailsForm = () => {
       onOk: () => {
         setMealEntries((prev) => {
           const updatedMeals = cloneDeep(prev);
+
+          // Đảm bảo cấu trúc dữ liệu tồn tại
+          if (!updatedMeals[currentBedIndex]) {
+            updatedMeals[currentBedIndex] = { CA1: [], CA2: [], CA3: [] };
+          }
+
           const bedMeals = { ...updatedMeals[currentBedIndex] };
           const meals = [...(bedMeals[timeOfDay] || [])];
 
@@ -438,43 +474,31 @@ const MealDetailsForm = () => {
               ? dayjs(selectedDate, "DD/MM/YYYY").format("DD/MM/YYYY")
               : dayjs().format("DD/MM/YYYY");
 
-          // Nếu món có stt_rec (từ database), đánh dấu status = "3" để xóa thay vì xóa khỏi UI
-          if (mealToDelete?.stt_rec) {
-            meals[index] = {
-              ...mealToDelete,
-              status: "3", // Danh dau xoa
-              isEdit: true, // Danh dau da thay doi de gui len API
+          // XÓA THẬT món khỏi array (không đánh dấu status="3")
+          if (meals.length === 1) {
+            // Nếu chỉ còn 1 món, tạo món rỗng mới
+            const newDefaultMeal = {
+              ...createDefaultMeal(mealDate),
+              isPaid: isPaid,
+              httt: isPaid ? paymentMethod : "",
             };
-            bedMeals[timeOfDay] = meals;
-            hasChangedInThisSession.current = true;
+            bedMeals[timeOfDay] = [newDefaultMeal];
           } else {
-            // Món mới (không có stt_rec), xóa khỏi UI
-            if (meals.length === 1) {
-              // Nếu chỉ còn 1 món, tạo món rỗng mới
-              const newDefaultMeal = {
-                ...createDefaultMeal(mealDate),
-                isPaid: isPaid,
-                httt: isPaid ? paymentMethod : "",
-              };
-              bedMeals[timeOfDay] = [newDefaultMeal];
-            } else {
-              // Nhiều hơn 1 món, xóa món này
-              meals.splice(index, 1);
-              bedMeals[timeOfDay] = meals;
-            }
+            // Nhiều hơn 1 món, xóa món này khỏi array
+            meals.splice(index, 1);
+            bedMeals[timeOfDay] = meals;
+          }
+
+          // Đánh dấu có thay đổi nếu món bị xóa có stt_rec (để biết ca này cần gửi lên server)
+          if (mealToDelete?.stt_rec) {
+            hasChangedInThisSession.current = true;
           }
 
           updatedMeals[currentBedIndex] = bedMeals;
 
-          dispatch(
-            removeMeal({
-              mealTime: timeOfDay,
-              mealIndex: index,
-              bedIndex: currentBedIndex,
-            })
-          );
-
-          updateMealEntriesInRedux(updatedMeals);
+          // Update Redux store NGAY LẬP TỨC
+          dispatch(setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex }));
+          
           return updatedMeals;
         });
         setTimeout(() => {
@@ -486,7 +510,7 @@ const MealDetailsForm = () => {
     });
   };
 
-  const handlePatientCheckboxChange = (timeOfDay, index, checked) => {
+  const handlePatientCheckboxChange = async (timeOfDay, index, checked) => {
     setSelectedPatientInShift((prev) => {
       const updated = { ...prev };
       if (checked) {
@@ -497,6 +521,43 @@ const MealDetailsForm = () => {
       return updated;
     });
 
+    // Nếu bỏ tích bệnh nhân, kiểm tra xem có cần fetch food list không
+    const meals = mealEntries[currentBedIndex]?.[timeOfDay] || [];
+    const currentMeal = meals[index];
+    const mealMode = currentMeal?.mode;
+    const key = `${timeOfDay}_${mealMode}`;
+    
+    let freshFoodList = null; // Lưu food list vừa fetch để dùng ngay
+    
+    // Nếu bỏ tích VÀ (chưa có food list HOẶC giá hiện tại = 0)
+    if (!checked && mealMode && (!foodListByShiftAndMode[key] || currentMeal?.price === 0)) {
+      try {
+        const response = await multipleTablePutApi({
+          store: "[api_getListFood]",
+          param: {
+            bn_yn: "",
+            ma_ca: timeOfDay,
+            ma_nh: mealMode,
+            searchValue: "",
+            ngay_an: selectedDate,
+            pageindex: 1,
+            pagesize: 50,
+          },
+          data: {},
+        });
+
+        freshFoodList = response?.listObject?.[0] || [];
+        
+        // Cập nhật cache
+        setFoodListByShiftAndMode((prev) => ({
+          ...prev,
+          [key]: freshFoodList
+        }));
+      } catch (error) {
+        console.error("❌ Lỗi fetch food list:", error);
+      }
+    }
+
     setMealEntries((prev) => {
       const updatedMeals = [...prev];
       const bedMeals = { ...updatedMeals[currentBedIndex] };
@@ -505,24 +566,41 @@ const MealDetailsForm = () => {
       // Lấy food list từ local state theo ca và chế độ
       const mealMode = meals[index]?.mode;
       const key = `${timeOfDay}_${mealMode}`;
-      const foodsForThisShiftAndMode = foodListByShiftAndMode[key] || [];
+      
+      // Ưu tiên dùng freshFoodList (vừa fetch), nếu không có thì dùng từ cache
+      const foodsForThisShiftAndMode = freshFoodList || foodListByShiftAndMode[key] || [];
 
       const selectedFood = foodsForThisShiftAndMode.find(
         (food) => food.ma_mon === meals[index]?.mealType
       );
-      // Uu tien dung gia tu meal hien tai, neu khong co thi dung gia tu foodList
       const priceFromFood = selectedFood?.gia_ban || 0;
       const currentMeal = meals[index];
-      const priceToUse = currentMeal?.price || priceFromFood || 0;
+      
+      // Khi BỎ TÍCH bệnh nhân (checked = false), ưu tiên dùng giá từ foodList
+      // Vì giá cũ có thể = 0 (do món ban đầu là bệnh nhân trả)
+      const priceToUse = !checked && priceFromFood > 0 
+        ? priceFromFood  // Dùng giá mới từ API
+        : (currentMeal?.price || priceFromFood || 0); // Giữ giá cũ
 
       bedMeals[timeOfDay] = meals.map((meal, i) => {
         if (i === index) {
           const quantityToUse = meal.quantity || 1;
+          
+          // Tính giá cho món này
+          const mealSelectedFood = foodsForThisShiftAndMode.find(
+            (food) => food.ma_mon === meal.mealType
+          );
+          const mealPriceFromFood = mealSelectedFood?.gia_ban || 0;
+          const finalPrice = !checked && mealPriceFromFood > 0 
+            ? mealPriceFromFood 
+            : (meal.price || mealPriceFromFood || 0);
+          
           const updatedMeal = {
             ...meal,
             collectMoney: checked,
-            // Khi bỏ tích bệnh nhân, tính lại theo số lượng hiện tại thay vì reset về 1
-            totalMoney: checked ? 0 : priceToUse * quantityToUse,
+            price: finalPrice, // CẬP NHẬT giá mới
+            // Khi bỏ tích bệnh nhân, tính lại theo giá MỚI
+            totalMoney: checked ? 0 : finalPrice * quantityToUse,
           };
           // CHỈ đánh dấu isEdit nếu THỰC SỰ có thay đổi
           if (updatedMeal.stt_rec && meal.collectMoney !== checked) {
@@ -533,13 +611,18 @@ const MealDetailsForm = () => {
         } else {
           // CHỈ update nếu món này đang có collectMoney = true (cần bỏ tích)
           if (meal.collectMoney) {
-            // Tinh lai tong tien khi bo tich benh nhan
-            const priceToUse = meal.price || 0;
+            // Lấy giá mới từ foodList khi bỏ tích (dùng freshFoodList nếu có)
+            const mealSelectedFood = foodsForThisShiftAndMode.find(
+              (food) => food.ma_mon === meal.mealType
+            );
+            const mealPriceFromFood = mealSelectedFood?.gia_ban || 0;
+            const priceToUse = mealPriceFromFood > 0 ? mealPriceFromFood : (meal.price || 0);
             const quantityToUse = meal.quantity || 1;
 
             const updatedMeal = {
               ...meal,
               collectMoney: false,
+              price: priceToUse, // CẬP NHẬT giá mới
               totalMoney: priceToUse * quantityToUse,
             };
             // CHỈ đánh dấu isEdit nếu món này THỰC SỰ bị thay đổi
@@ -572,8 +655,8 @@ const MealDetailsForm = () => {
     ["CA1", "CA2", "CA3"].forEach((shift) => {
       const meals = bedMeals[shift] || [];
       meals.forEach((meal) => {
-        // Bỏ qua món rỗng hoặc món đã xóa (status = "3")
-        if (!meal.mealType || meal.status === "3") return;
+        // Bỏ qua món rỗng (món đã xóa được xóa thật khỏi array)
+        if (!meal.mealType) return;
 
         const price = meal.price || 0;
         const collectMoney = meal.collectMoney;
@@ -707,19 +790,50 @@ const MealDetailsForm = () => {
       return;
     }
 
-    // Kiểm tra xem có thay đổi thực sự trong session này không
-    // 1. Sử dụng flag hasChangedInThisSession để track thay đổi (sửa, xóa, tích thu tiền)
-    // 2. HOẶC có món mới (không có stt_rec) - vì món mới không set flag
+    dispatch(setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex }));
+
+    // Kiểm tra xem có thay đổi thực sự không
+    // 1. Có món mới (không có stt_rec)
+    // 2. Có món bị sửa (isEdit = true)
+    // 3. Có món bị xóa (hasChangedInThisSession = true khi xóa món có stt_rec)
+    // 4. Có món đã bị hủy (status = "3") - cần khôi phục
+    // 5. Có món từ history (stt_rec) - luôn mark để user có thể gửi lại nếu cần
     const hasNewMeals = ["CA1", "CA2", "CA3"].some((shift) => {
       const meals = bedMeals[shift] || [];
       return meals.some((meal) => meal.mealType && !meal.stt_rec);
     });
 
-    const hasChanges = hasChangedInThisSession.current || hasNewMeals;
+    const hasEditedMeals = ["CA1", "CA2", "CA3"].some((shift) => {
+      const meals = bedMeals[shift] || [];
+      return meals.some((meal) => meal.isEdit);
+    });
 
-    dispatch(setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex }));
+    // Kiểm tra có món nào đã bị hủy (status = "3") không
+    // Nếu có → LUÔN mark submitted để cho phép khôi phục đơn
+    const cancelledMealsList = [];
+    ["CA1", "CA2", "CA3"].forEach((shift) => {
+      const meals = bedMeals[shift] || [];
+      meals.forEach((meal, idx) => {
+        if (meal.mealType && meal.stt_rec && (meal.status === "3" || meal.status === 3)) {
+          cancelledMealsList.push({
+            shift,
+            index: idx,
+            mealType: meal.mealType,
+            status: meal.status,
+            stt_rec: meal.stt_rec
+          });
+        }
+      });
+    });
+    
+    const hasCancelledMeals = cancelledMealsList.length > 0;
 
-    // CHỈ đánh dấu submitted nếu có thay đổi trong session này
+    // Logic khác nhau:
+    // - Đơn đã hủy (hasCancelledMeals): LUÔN mark submitted (cho phép khôi phục)
+    // - Đơn đang hoạt động: CHỈ mark khi có thay đổi thực sự
+    const hasRealChanges = hasChangedInThisSession.current || hasNewMeals || hasEditedMeals;
+    const hasChanges = hasCancelledMeals || hasRealChanges;
+
     if (hasChanges) {
       dispatch(markBedAsSubmitted(currentBedIndex));
     }
@@ -852,6 +966,19 @@ const MealDetailsForm = () => {
               if (Array.isArray(reloadResponse?.listObject)) {
                 dispatch(setMealHistory(reloadResponse.listObject));
               }
+              
+              // Clear detailData của giường hiện tại để force reload khi click lại
+              const updatedDetailData = [...mealEntries];
+              updatedDetailData[currentBedIndex] = {
+                CA1: [],
+                CA2: [],
+                CA3: [],
+              };
+              dispatch(setMeal({ mealEntries: updatedDetailData, bedIndex: currentBedIndex }));
+              
+              // Reload submittedBeds từ Redux để clear mark "đã sửa" nếu có
+              // (sẽ được fetch lại từ RoomSelectionForm khi reload beds)
+              dispatch(setSubmittedBeds([]));
             } catch (error) {
               console.error("Lỗi reload data sau khi hủy đơn:", error);
             }
@@ -878,12 +1005,10 @@ const MealDetailsForm = () => {
       const entries = bedMeals[shift] || [];
       const selectedIndex = selectedPatientInShift[shift]; // Lấy index của suất ăn được chọn trong ca
 
-      // Lọc bỏ các món có status = "3" (đã xóa) trước khi render
-      const visibleEntries = entries.filter((meal) => meal.status !== "3");
-
-      result[shift] = visibleEntries.map((meal, index) => (
+      // Món đã bị xóa thật khỏi array, không cần filter status="3"
+      result[shift] = entries.map((meal, index) => (
         <MealEntryRow
-          key={index}
+          key={`${shift}-${index}-${meal.mealType || 'empty'}`}
           meal={meal}
           index={index}
           timeOfDay={shift}
@@ -902,7 +1027,6 @@ const MealDetailsForm = () => {
           isAnotherMealSelected={
             selectedIndex !== undefined && selectedIndex !== index
           } // Kiểm tra nếu đã có suất khác được chọn
-          isReadOnly={false} // Cho phép chỉnh sửa đơn đã đặt
         />
       ));
     });
@@ -918,6 +1042,7 @@ const MealDetailsForm = () => {
     handleModeChange,
     handleChange,
     handleQuantityChange,
+    handlePatientCheckboxChange,
     refetchDietCategory,
     refetchFoodList,
   ]);
@@ -984,7 +1109,11 @@ const MealDetailsForm = () => {
         ref={tabsRef}
         defaultActiveKey={listMealCode[0]?.ma_ca || "CA1"}
         activeKey={activeTab}
-        onChange={setActiveTab}
+        onChange={(key) => {
+          setActiveTab(key);
+          // Force re-render khi chuyển tab
+          setMealEntries(prev => [...prev]);
+        }}
       >
         {listMealCode.map((meal) => (
           <TabPane
@@ -1006,7 +1135,6 @@ const MealDetailsForm = () => {
       <div style={{ marginTop: 16 }}>
         <Checkbox
           checked={isPaid}
-          disabled={calculateTotalAllShift() === 0}
           onChange={(e) => {
             const newIsPaid = e.target.checked;
             setIsPaid(newIsPaid);
@@ -1079,13 +1207,6 @@ const MealDetailsForm = () => {
         <button
           className="submit-button"
           onClick={handleSubmit}
-          disabled={
-            !(
-              mealEntries[currentBedIndex]?.CA1?.some((meal) => meal.mealType) &&
-              mealEntries[currentBedIndex]?.CA2?.some((meal) => meal.mealType) &&
-              mealEntries[currentBedIndex]?.CA3?.some((meal) => meal.mealType)
-            )
-          }
         >
           Hoàn thành
         </button>

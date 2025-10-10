@@ -17,7 +17,6 @@ const MealEntryRow = ({
   refetchFoodList,
   firstMealInputRef,
   isAnotherMealSelected,
-  isReadOnly = false, // Thêm prop để disable form khi xem đơn đã đặt
 }) => {
   // Dùng foodListForSelection từ parent, NHƯNG thêm món hiện tại từ history nếu chưa có
   let availableFoods = [...(foodListForSelection || [])]; // Clone array để tránh mutate
@@ -87,14 +86,12 @@ const MealEntryRow = ({
               <span style={{ color: "#ff4d4f", marginRight: "4px" }}>*</span>
               Chế độ - {shiftName}
             </label>
-            {!isReadOnly && (
-              <button
-                className="mode-delete-button"
-                onClick={() => handleDeleteMeal(timeOfDay, index)}
-              >
-                <CloseOutlined />
-              </button>
-            )}
+            <button
+              className="mode-delete-button"
+              onClick={() => handleDeleteMeal(timeOfDay, index)}
+            >
+              <CloseOutlined />
+            </button>
           </div>
           <Select
             id={`mode-${timeOfDay}-${index}`}
@@ -107,7 +104,6 @@ const MealEntryRow = ({
               }
             }}
             className="mode-dropdown"
-            disabled={isReadOnly}
           >
             <Select.Option value="">Chọn chế độ</Select.Option>
             {availableDietCategories.map((category) => (
@@ -134,7 +130,7 @@ const MealEntryRow = ({
                 }
               }}
               placeholder="Chọn món ăn"
-              disabled={isReadOnly || !meal.mode}
+              disabled={!meal.mode}
             >
               <Select.Option value="">Chọn món ăn</Select.Option>
               {availableFoods.map((food) => (
@@ -175,7 +171,7 @@ const MealEntryRow = ({
               onClick={() => handleQuantityChange(timeOfDay, index, -1)}
               className="quantity-button"
               disabled={
-                isReadOnly || !meal.mealType || meal.quantity <= 1 || meal.collectMoney
+                !meal.mealType || meal.quantity <= 1 || meal.collectMoney
               }
             >
               <MinusOutlined />
@@ -184,7 +180,7 @@ const MealEntryRow = ({
             <button
               onClick={() => handleQuantityChange(timeOfDay, index, 1)}
               className="quantity-button"
-              disabled={isReadOnly || !meal.mealType || meal.collectMoney}
+              disabled={!meal.mealType || meal.collectMoney}
             >
               <PlusOutlined />
             </button>
@@ -204,7 +200,6 @@ const MealEntryRow = ({
               }}
               className="price-checkbox"
               disabled={
-                isReadOnly ||
                 !meal.mealType || // Không có món ăn thì disable
                 (!meal.collectMoney && isAnotherMealSelected) // Nếu đã có suất khác được chọn thì disable
               }
@@ -230,7 +225,7 @@ const MealEntryRow = ({
             onChange={(e) => handleChange(timeOfDay, index, e)}
             placeholder="Nhập ghi chú"
             className="note-input"
-            disabled={isReadOnly || !meal.mealType}
+            disabled={!meal.mealType}
           />
         </div>
       </div>
