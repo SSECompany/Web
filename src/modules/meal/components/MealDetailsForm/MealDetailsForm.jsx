@@ -1143,6 +1143,22 @@ const MealDetailsForm = () => {
     return shiftMeals.length > 0;
   }, [mealHistory, bedName]);
 
+  // Check xem ca này đã bị hủy toàn bộ chưa (để hiện badge "Đã hủy")
+  const isShiftCancelled = useCallback((shift) => {
+    const shiftLabel = shift === "CA1" ? "Ca sáng" : shift === "CA2" ? "Ca trưa" : "Ca chiều";
+    const bedMaGiuong = bedName?.ma_giuong;
+    
+    const allShiftMeals = mealHistory.filter(
+      (m) => m.ma_giuong?.trim() === bedMaGiuong?.trim() 
+          && m.ten_ca?.trim() === shiftLabel
+    );
+    
+    // Ca đã hủy nếu: có món VÀ TẤT CẢ đều bị hủy
+    if (allShiftMeals.length === 0) return false;
+    
+    return allShiftMeals.every((m) => m.status === "3" || m.status === 3);
+  }, [mealHistory, bedName]);
+
   const renderedMealEntries = useMemo(() => {
     const bedMeals = mealEntries[currentBedIndex] || {};
     const result = {};
@@ -1269,24 +1285,25 @@ const MealDetailsForm = () => {
             key={meal.ma_ca}
           >
             <div>
-              {/* Nút Hủy ca - căn giữa phía trên */}
-              {hasActiveShiftMeals(meal.ma_ca) && (
-                <div style={{ 
-                  display: 'flex',
-                  justifyContent: 'right',
-                }}>
+              {/* Nút Hủy ca hoặc Badge Đã hủy - góc phải trên */}
+              <div style={{ 
+                display: 'flex',
+                justifyContent: 'flex-end',
+                marginBottom: '8px',
+              }}>
+                {hasActiveShiftMeals(meal.ma_ca) ? (
                   <button
                     onClick={() => handleCancelShift(meal.ma_ca)}
                     style={{
-                      padding: '6px 16px',
-                      fontSize: '12px',
+                      padding: '4px 12px',
+                      fontSize: '11px',
                       backgroundColor: '#ff4d4f',
                       color: 'white',
                       border: 'none',
-                      borderRadius: '4px',
+                      borderRadius: '3px',
                       cursor: 'pointer',
                       fontWeight: '500',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = '#ff7875';
@@ -1297,8 +1314,22 @@ const MealDetailsForm = () => {
                   >
                     Huỷ ca
                   </button>
-                </div>
-              )}
+                ) : isShiftCancelled(meal.ma_ca) ? (
+                  <span
+                    style={{
+                      padding: '4px 12px',
+                      fontSize: '11px',
+                      backgroundColor: '#ffa39e',
+                      color: '#820014',
+                      borderRadius: '3px',
+                      fontWeight: '500',
+                      display: 'inline-block',
+                    }}
+                  >
+                    Đã hủy
+                  </span>
+                ) : null}
+              </div>
               
               {renderedMealEntries[meal.ma_ca]}
               

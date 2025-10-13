@@ -673,35 +673,44 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       width: 180,
       align: "center",
       fixed: "right",
-      render: (_, record) => (
-        <div className="action-buttons">
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            type="danger"
-            size="small"
-            className="edit_button"
-            disabled={
-              isEditingOrder || (record.status === "2" && record.s3 === true)
-            }
-          />
-          <Button
-            icon={<PrinterOutlined />}
-            onClick={() => handleReprint(record)}
-            size="small"
-            type="primary"
-            className="print_button"
-          />
-          <Button
-            icon={<CheckOutlined />}
-            onClick={() => handleApprove(record)}
-            size="small"
-            type="primary"
-            className="approve_button"
-            disabled={record.status !== "0"}
-          />
-        </div>
-      ),
+      render: (_, record) => {
+        // Kiểm tra trạng thái "Hủy" (status khác 0 và 2, tức là status = 3)
+        const isCancelled = record.status !== "0" && record.status !== "2" &&
+                            record.status !== 0 && record.status !== 2;
+
+        return (
+          <div className="action-buttons">
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+              type="danger"
+              size="small"
+              className="edit_button"
+              disabled={
+                isCancelled ||
+                isEditingOrder ||
+                (record.status === "2" && record.s3 === true)
+              }
+            />
+            <Button
+              icon={<PrinterOutlined />}
+              onClick={() => handleReprint(record)}
+              size="small"
+              type="primary"
+              className="print_button"
+              disabled={isCancelled}
+            />
+            <Button
+              icon={<CheckOutlined />}
+              onClick={() => handleApprove(record)}
+              size="small"
+              type="primary"
+              className="approve_button"
+              disabled={isCancelled || record.status !== "0"}
+            />
+          </div>
+        );
+      },
     },
   ];
 
