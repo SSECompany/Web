@@ -32,30 +32,54 @@
 }
 
 .meal-option-content {
-  display: flex;
-  justify-content: flex-start;
-  align-items: flex-start;
-  width: 100%;
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  min-height: 40px !important;
+  padding-right: 80px !important;
 }
 
-.meal-info {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+.meal-left {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
 }
 
-.meal-description {
-  font-size: 12px;
-  color: #666;
-  margin-top: 4px;
-  font-style: italic;
+.meal-right {
+  position: absolute !important;
+  top: 50% !important;
+  right: 12px !important;
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  align-items: center !important;
+  width: auto !important;
+  min-width: fit-content !important;
 }
 
 .meal-label {
   font-weight: 500;
   color: #333;
   font-size: 14px;
+  margin-bottom: 4px;
 }
+
+.meal-inventory {
+  font-size: 12px;
+  color: #1890ff;
+  background-color: #e6f7ff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 500;
+  border: 1px solid #91d5ff;
+  white-space: nowrap;
+}
+
+.meal-description {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
 
 .meal-price {
   font-weight: 600;
@@ -65,6 +89,25 @@
 
 .ant-radio {
   margin-right: 12px;
+}
+
+/* Override Ant Design Radio wrapper */
+.meal-option.ant-radio-wrapper {
+  display: flex !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+}
+
+.meal-option.ant-radio-wrapper .ant-radio {
+  margin-top: 2px !important;
+  margin-right: 12px !important;
+}
+
+/* Target the span that Ant Design creates for Radio content */
+.meal-option.ant-radio-wrapper .ant-radio + span {
+  display: flex !important;
+  width: 100% !important;
+  padding: 0 !important;
 }
 
 .ant-modal-content {

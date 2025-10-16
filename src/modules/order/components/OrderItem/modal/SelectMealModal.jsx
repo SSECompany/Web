@@ -104,6 +104,7 @@ export default function SelectMealModal({
             label: food.ten_mon,
             price: food.gia_ban,
             description: food.ma_mon_phu || "",
+            tonDuTru: food.tonDuTru || 0,
           }));
         setMealOptions(options);
       } else {
@@ -181,13 +182,18 @@ export default function SelectMealModal({
                   className="meal-option"
                 >
                   <div className="meal-option-content">
-                    <div className="meal-info">
-                      <span className="meal-label">{option.label}</span>
+                    <div className="meal-left">
+                      <div className="meal-label">{option.label}</div>
                       {option.description && (
-                        <span className="meal-description">
+                        <div className="meal-description">
                           {option.description}
-                        </span>
+                        </div>
                       )}
+                    </div>
+                    <div className="meal-right">
+                      <span className="meal-inventory">
+                        Tồn: {option.tonDuTru}
+                      </span>
                     </div>
                   </div>
                 </Radio>
