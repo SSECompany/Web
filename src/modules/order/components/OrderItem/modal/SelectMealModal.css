@@ -31,29 +31,50 @@
   background-color: #e6f7ff;
 }
 
+.meal-option-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f5f5f5;
+  border-color: #d9d9d9;
+}
+
+.meal-option-disabled:hover {
+  border-color: #d9d9d9;
+  background-color: #f5f5f5;
+}
+
+.meal-option-disabled .meal-label {
+  color: #999;
+}
+
+.meal-option-disabled .meal-description {
+  color: #ccc;
+}
+
+.meal-inventory-disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  border-color: #d9d9d9;
+}
+
 .meal-option-content {
-  position: relative !important;
-  display: block !important;
-  width: 100% !important;
-  min-height: 40px !important;
-  padding-right: 80px !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
 }
 
 .meal-left {
-  display: flex !important;
-  flex-direction: column !important;
-  width: 100% !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .meal-right {
-  position: absolute !important;
-  top: 50% !important;
-  right: 12px !important;
-  transform: translateY(-50%) !important;
-  display: flex !important;
-  align-items: center !important;
-  width: auto !important;
-  min-width: fit-content !important;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  margin-left: 16px;
 }
 
 .meal-label {
