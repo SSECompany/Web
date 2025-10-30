@@ -64,8 +64,8 @@
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1), 0 8px 32px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   padding: 48px 40px;
-  max-width: 480px;
-  width: 100%;
+  max-width: 400px;
+  width: 400px; /* Fix stable width to avoid layout jumping */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -159,6 +159,15 @@
   font-size: 14px;
   font-weight: 500;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Truncate long selected unit name with ellipsis */
+.login_form .ant-select .ant-select-selection-item {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .login_form .ant-input:focus,

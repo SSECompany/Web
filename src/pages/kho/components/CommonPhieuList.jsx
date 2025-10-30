@@ -35,16 +35,18 @@ const CommonPhieuList = ({
             {title}
           </Title>
         </Col>
-        <Col>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={onAdd}
-            className="phieu-add-button"
-          >
-            {addLabel}
-          </Button>
-        </Col>
+        {onAdd && (
+          <Col>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={onAdd}
+              className="phieu-add-button"
+            >
+              {addLabel}
+            </Button>
+          </Col>
+        )}
       </Row>
       {extraHeader}
       <div className="phieu-table-container">

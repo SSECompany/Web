@@ -1,19 +1,15 @@
 import {
-  BankOutlined,
-  BarcodeOutlined,
-  CalendarOutlined,
   DownOutlined,
-  FileTextOutlined,
-  HomeOutlined,
   IdcardOutlined,
-  MedicineBoxOutlined,
   PhoneOutlined,
-  TeamOutlined,
+  PlusOutlined,
+  SearchOutlined,
   UpOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Col, Input, Row } from "antd";
-import React, { useRef, useState } from "react";
+import { AutoComplete, Button, Card, Input, Modal, notification } from "antd";
+import React, { useMemo, useRef, useState } from "react";
+import { createCustomer, searchCustomer } from "../../../api";
 
 const CustomerInfo = ({
   customer,
@@ -21,57 +17,114 @@ const CustomerInfo = ({
   customerOpen,
   setCustomerOpen,
 }) => {
-  const [barcodeEnabled, setBarcodeEnabled] = useState(false);
-  const inputRef = useRef(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [tempCustomer, setTempCustomer] = useState({
+    phone: "",
+    name: "",
+    idNumber: "",
+    patientName: "",
+  });
+  const [searchValue, setSearchValue] = useState("");
+  const [options, setOptions] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef();
 
-  const handleBarcodeToggle = () => {
-    const newBarcodeEnabled = !barcodeEnabled;
-    setBarcodeEnabled(newBarcodeEnabled);
+  const isCreateDisabled = useMemo(() => {
+    return !tempCustomer.name?.trim() || !tempCustomer.phone?.trim();
+  }, [tempCustomer]);
 
-    if (newBarcodeEnabled && inputRef.current) {
-      // Focus vào input khi bật barcode mode
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-          inputRef.current.select();
-        }
-      }, 100);
-    }
+  const handleOpenCreate = () => {
+    setTempCustomer({
+      phone: customer?.phone || "",
+      name: customer?.name || "",
+      idNumber: customer?.idNumber || "",
+      patientName: customer?.patientName || "",
+    });
+    setIsCreateOpen(true);
   };
 
-  const handleBarcodeInputChange = (e) => {
-    const value = e.target.value;
-    setCustomer({ ...customer, prescriptionCode: value });
-
-    // Auto-submit khi có barcode (thường barcode có độ dài >= 8)
-    if (barcodeEnabled && value && value.length >= 8) {
-      setTimeout(() => {
-        // Có thể thêm logic xử lý barcode ở đây nếu cần
-        console.log("Barcode scanned:", value);
-      }, 200);
+  const handleSearch = (value) => {
+    setSearchValue(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!value || value.trim().length < 2) {
+      setOptions([]);
+      return;
     }
-  };
-
-  const handleBarcodeInputKeyPress = (e) => {
-    if (e.key === "Enter" && barcodeEnabled) {
-      e.preventDefault();
-      const value = customer.prescriptionCode;
-      if (value && value.trim()) {
-        console.log("Barcode submitted:", value);
-        // Có thể thêm logic xử lý barcode ở đây
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await searchCustomer(value.trim());
+        const list = res?.listObject?.[0] || [];
+        const mapped = list.map((c) => ({
+          value: c?.value || c?.phone || c?.id || Math.random().toString(),
+          label: `${c?.label || c?.name || "Khách hàng"} • ${c?.phone || ""}`,
+          raw: c,
+        }));
+        setOptions(mapped);
+      } catch (e) {
+        setOptions([]);
+      } finally {
+        setSearching(false);
       }
+    }, 400);
+  };
+
+  const handleSelect = (_value, option) => {
+    const raw = option?.raw || {};
+    setCustomer({
+      phone: raw.phone || raw.so_dt || "",
+      name: raw.name || raw.ong_ba || raw.label || "",
+      idNumber: raw.idNumber || raw.cccd || "",
+      patientName: raw.patientName || "",
+    });
+  };
+
+  const handleCreate = async () => {
+    setCreating(true);
+    try {
+      // Gọi API lưu khách hàng nếu backend hỗ trợ, nếu lỗi vẫn set local state
+      const res = await createCustomer({
+        phone: tempCustomer.phone?.trim(),
+        name: tempCustomer.name?.trim(),
+        idNumber: tempCustomer.idNumber?.trim(),
+        patientName: tempCustomer.patientName?.trim(),
+      });
+
+      setCustomer({ ...tempCustomer });
+
+      if (res?.responseModel?.isSucceded) {
+        notification.success({ message: "Đã thêm khách hàng" });
+      } else if (res?.success) {
+        notification.success({ message: "Đã lưu khách hàng" });
+      } else {
+        notification.info({
+          message: "Đã cập nhật thông tin KH trên đơn",
+          description: res?.responseModel?.message,
+        });
+      }
+      setIsCreateOpen(false);
+    } catch (e) {
+      setCustomer({ ...tempCustomer });
+      notification.warning({
+        message: "Không thể lưu lên máy chủ",
+        description: "Đã dùng thông tin KH cục bộ cho đơn hàng",
+      });
+      setIsCreateOpen(false);
+    } finally {
+      setCreating(false);
     }
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-      {/* Thẻ Mã đơn thuốc */}
+      {/* Thẻ Thông tin khách hàng - có thể ẩn/hiện */}
       <Card
         size="small"
         title={
           <div className="customer-title">
             <span style={{ fontSize: "13px", fontWeight: "500" }}>
-              Mã đơn thuốc
+              Thông tin khách hàng
             </span>
             <Button
               type="text"
@@ -93,258 +146,145 @@ const CustomerInfo = ({
         bodyStyle={{ padding: "8px 12px" }}
       >
         {customerOpen && (
-          <div style={{ position: "relative" }}>
-            <style>
-              {`
-                .prescription-input .ant-input {
-                  padding: 0 8px !important;
-                  height: 30px !important;
-                  line-height: 30px !important;
-                  display: flex !important;
-                  align-items: center !important;
-                }
-                .prescription-input .ant-input-prefix {
-                  margin-right: 8px !important;
-                  display: flex !important;
-                  align-items: center !important;
-                }
-                .prescription-input .ant-input::placeholder {
-                  line-height: 30px !important;
-                  vertical-align: middle !important;
-                }
-              `}
-            </style>
-            <div
-              style={{
-                display: "flex",
-                width: "100%",
-                borderRadius: "8px",
-                overflow: "hidden",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                border: "1px solid #d9d9d9",
-                backgroundColor: "#fff",
-                height: "32px",
-              }}
-            >
-              <Input
-                ref={inputRef}
-                placeholder={
-                  barcodeEnabled
-                    ? "Quét barcode mã đơn thuốc..."
-                    : "Mã đơn thuốc"
-                }
-                value={customer.prescriptionCode}
-                onChange={handleBarcodeInputChange}
-                onKeyPress={handleBarcodeInputKeyPress}
-                size="small"
-                prefix={
-                  <FileTextOutlined
-                    style={{ fontSize: "12px", color: "#1890ff" }}
-                  />
-                }
-                style={{
-                  fontSize: "12px",
-                  border: "none",
-                  borderRadius: "0",
-                  flex: 1,
-                  boxShadow: "none",
-                  height: "30px",
-                  lineHeight: "30px",
-                  padding: "0 8px",
-                  backgroundColor: barcodeEnabled ? "#f0f8ff" : "#fff",
-                }}
-                bordered={false}
-                className="prescription-input"
-              />
-              <div
-                style={{
-                  width: "1px",
-                  backgroundColor: "#d9d9d9",
-                  height: "20px",
-                  alignSelf: "center",
-                }}
-              />
-              <Button
-                type={barcodeEnabled ? "primary" : "text"}
-                size="small"
-                icon={<BarcodeOutlined style={{ fontSize: "12px" }} />}
-                onClick={handleBarcodeToggle}
-                title={
-                  barcodeEnabled ? "Tắt chế độ barcode" : "Bật chế độ barcode"
-                }
-                style={{
-                  border: "none",
-                  borderRadius: "0",
-                  width: "44px",
-                  height: "30px",
-                  backgroundColor: barcodeEnabled ? "#1890ff" : "transparent",
-                  color: barcodeEnabled ? "#fff" : "#1890ff",
-                  transition: "all 0.3s ease",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "0",
-                  minWidth: "44px",
-                }}
-              />
-            </div>
-          </div>
-        )}
-      </Card>
-
-      {/* Thẻ Thông tin khách hàng */}
-      <Card
-        size="small"
-        title={
-          <span style={{ fontSize: "13px", fontWeight: "500" }}>
-            Thông tin khách hàng
-          </span>
-        }
-        className="customer-info-card"
-        headStyle={{ padding: "8px 12px", minHeight: "auto" }}
-        bodyStyle={{ padding: "8px 12px" }}
-      >
-        {customerOpen && (
           <div style={{ fontSize: "12px" }}>
-            {/* Nhóm 1: Thông tin liên hệ */}
-            <div style={{ marginBottom: "8px" }}>
-              <Row gutter={[6, 4]}>
-                <Col span={12}>
-                  <Input
-                    placeholder="Số điện thoại"
-                    value={customer.phone}
-                    onChange={(e) =>
-                      setCustomer({ ...customer, phone: e.target.value })
-                    }
-                    size="small"
-                    prefix={<PhoneOutlined style={{ fontSize: "11px" }} />}
-                    style={{ fontSize: "12px" }}
-                  />
-                </Col>
-                <Col span={12}>
-                  <Input
-                    placeholder="Tên khách hàng"
-                    value={customer.name}
-                    onChange={(e) =>
-                      setCustomer({ ...customer, name: e.target.value })
-                    }
-                    size="small"
-                    prefix={<UserOutlined style={{ fontSize: "11px" }} />}
-                    style={{ fontSize: "12px" }}
-                  />
-                </Col>
-              </Row>
+            {/* Dòng 0: Tìm KH + Thêm mới */}
+            <div
+              className="customer-actions-row"
+              style={{ display: "flex", gap: 8, marginBottom: 8 }}
+            >
+              <AutoComplete
+                value={searchValue}
+                onChange={setSearchValue}
+                onSearch={handleSearch}
+                options={options}
+                onSelect={handleSelect}
+                className="customer-search-input"
+                popupMatchSelectWidth={500}
+                allowClear
+              >
+                <Input
+                  placeholder={
+                    searching ? "Đang tìm..." : "Tìm KH theo SĐT/Tên"
+                  }
+                  size="small"
+                  prefix={<SearchOutlined style={{ fontSize: "11px" }} />}
+                />
+              </AutoComplete>
+              <Button
+                size="small"
+                type="primary"
+                icon={<PlusOutlined style={{ fontSize: 12 }} />}
+                onClick={handleOpenCreate}
+                className="add-customer-btn"
+              />
             </div>
-
-            {/* Nhóm 2: Thông tin định danh */}
-            <div style={{ marginBottom: "8px" }}>
-              <Row gutter={[6, 4]}>
-                <Col span={12}>
-                  <Input
-                    placeholder="CMND/CCCD"
-                    value={customer.idNumber}
-                    onChange={(e) =>
-                      setCustomer({ ...customer, idNumber: e.target.value })
-                    }
-                    size="small"
-                    prefix={<IdcardOutlined style={{ fontSize: "11px" }} />}
-                    style={{ fontSize: "12px" }}
-                  />
-                </Col>
-                <Col span={12}>
-                  <Input
-                    placeholder="Họ tên người bệnh"
-                    value={customer.patientName}
-                    onChange={(e) =>
-                      setCustomer({ ...customer, patientName: e.target.value })
-                    }
-                    size="small"
-                    prefix={<UserOutlined style={{ fontSize: "11px" }} />}
-                    style={{ fontSize: "12px" }}
-                  />
-                </Col>
-              </Row>
-            </div>
-
-            {/* Nhóm 3: Địa chỉ */}
+            {/* Dòng 1: Số điện thoại */}
             <div style={{ marginBottom: "8px" }}>
               <Input
-                placeholder="Địa chỉ người bệnh"
-                value={customer.patientAddress}
+                placeholder="Số điện thoại"
+                value={customer.phone}
                 onChange={(e) =>
-                  setCustomer({ ...customer, patientAddress: e.target.value })
+                  setCustomer({ ...customer, phone: e.target.value })
                 }
                 size="small"
-                prefix={<HomeOutlined style={{ fontSize: "11px" }} />}
+                prefix={<PhoneOutlined style={{ fontSize: "11px" }} />}
                 style={{ fontSize: "12px" }}
               />
             </div>
 
-            {/* Nhóm 4: Thông tin y tế */}
+            {/* Dòng 2: Tên khách hàng */}
             <div style={{ marginBottom: "8px" }}>
               <Input
-                placeholder="Chuẩn đoán"
-                value={customer.diagnosis}
+                placeholder="Tên khách hàng"
+                value={customer.name}
                 onChange={(e) =>
-                  setCustomer({ ...customer, diagnosis: e.target.value })
+                  setCustomer({ ...customer, name: e.target.value })
                 }
                 size="small"
-                prefix={<MedicineBoxOutlined style={{ fontSize: "11px" }} />}
+                prefix={<UserOutlined style={{ fontSize: "11px" }} />}
                 style={{ fontSize: "12px" }}
               />
             </div>
 
+            {/* Dòng 3: CMND/CCCD */}
             <div style={{ marginBottom: "8px" }}>
               <Input
-                placeholder="Đợt điều trị"
-                value={customer.treatmentPeriod}
+                placeholder="CMND/CCCD"
+                value={customer.idNumber}
                 onChange={(e) =>
-                  setCustomer({
-                    ...customer,
-                    treatmentPeriod: e.target.value,
-                  })
+                  setCustomer({ ...customer, idNumber: e.target.value })
                 }
                 size="small"
-                prefix={<CalendarOutlined style={{ fontSize: "11px" }} />}
+                prefix={<IdcardOutlined style={{ fontSize: "11px" }} />}
                 style={{ fontSize: "12px" }}
               />
             </div>
 
-            {/* Nhóm 5: Thông tin bác sĩ và cơ sở */}
+            {/* Dòng 4: Họ tên người bệnh */}
             <div style={{ marginBottom: "8px" }}>
               <Input
-                placeholder="Bác sĩ kê đơn"
-                value={customer.prescribingDoctor}
+                placeholder="Họ tên người bệnh"
+                value={customer.patientName}
                 onChange={(e) =>
-                  setCustomer({
-                    ...customer,
-                    prescribingDoctor: e.target.value,
-                  })
+                  setCustomer({ ...customer, patientName: e.target.value })
                 }
                 size="small"
-                prefix={<TeamOutlined style={{ fontSize: "11px" }} />}
-                style={{ fontSize: "12px" }}
-              />
-            </div>
-
-            <div>
-              <Input
-                placeholder="Cơ sở khám"
-                value={customer.examinationFacility}
-                onChange={(e) =>
-                  setCustomer({
-                    ...customer,
-                    examinationFacility: e.target.value,
-                  })
-                }
-                size="small"
-                prefix={<BankOutlined style={{ fontSize: "11px" }} />}
+                prefix={<UserOutlined style={{ fontSize: "11px" }} />}
                 style={{ fontSize: "12px" }}
               />
             </div>
           </div>
         )}
       </Card>
+
+      <Modal
+        title="Thêm mới khách hàng"
+        open={isCreateOpen}
+        onCancel={() => setIsCreateOpen(false)}
+        okText="Lưu"
+        onOk={handleCreate}
+        confirmLoading={creating}
+        okButtonProps={{ disabled: isCreateDisabled }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Input
+            placeholder="Số điện thoại"
+            value={tempCustomer.phone}
+            onChange={(e) =>
+              setTempCustomer({ ...tempCustomer, phone: e.target.value })
+            }
+            size="middle"
+            prefix={<PhoneOutlined style={{ fontSize: "12px" }} />}
+          />
+          <Input
+            placeholder="Tên khách hàng"
+            value={tempCustomer.name}
+            onChange={(e) =>
+              setTempCustomer({ ...tempCustomer, name: e.target.value })
+            }
+            size="middle"
+            prefix={<UserOutlined style={{ fontSize: "12px" }} />}
+          />
+          <Input
+            placeholder="CMND/CCCD"
+            value={tempCustomer.idNumber}
+            onChange={(e) =>
+              setTempCustomer({ ...tempCustomer, idNumber: e.target.value })
+            }
+            size="middle"
+            prefix={<IdcardOutlined style={{ fontSize: "12px" }} />}
+          />
+          <Input
+            placeholder="Họ tên người bệnh"
+            value={tempCustomer.patientName}
+            onChange={(e) =>
+              setTempCustomer({ ...tempCustomer, patientName: e.target.value })
+            }
+            size="middle"
+            prefix={<UserOutlined style={{ fontSize: "12px" }} />}
+          />
+        </div>
+      </Modal>
     </div>
   );
 };

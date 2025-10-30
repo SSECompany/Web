@@ -54,8 +54,8 @@
 /* POS Container - Giao diện hiện đại và chuyên nghiệp cho quầy thuốc */
 .pos-container {
   display: flex;
+  flex-direction: column;
   gap: 6px;
-
   padding: 12px;
   margin: 8px;
   overflow: hidden;
@@ -89,7 +89,44 @@
   border-radius: var(--glassmorphism-radius);
 }
 
-/* Left Column - Product Management */
+/* Search Full Width Section */
+.pos-search-full-width {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* Bottom Section - Cart and Payment */
+.pos-bottom-section {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Left Wrapper - Contains Cart and Tooltip */
+.pos-left-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  overflow: hidden;
+  min-height: 0;
+  flex: 2;
+  position: relative;
+}
+
+/* Cart Column */
+.pos-cart-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Left Column - Product Management (Legacy - keeping for compatibility) */
 .pos-left-column {
   display: flex;
   flex-direction: column;
@@ -379,6 +416,113 @@
 /* Ẩn nút tăng giảm cho discount input */
 .discount-input .ant-input-number-handler-wrap {
   display: none !important;
+}
+
+/* Product Code Styling */
+.product-code {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Batch Input Styling */
+.batch-input {
+  width: 100% !important;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-size: 11px;
+  padding: 4px 6px;
+  height: 28px;
+}
+
+.batch-input:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.batch-input:focus,
+.batch-input-focused {
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.1);
+  outline: none;
+}
+
+.batch-input::placeholder {
+  color: #9ca3af;
+  font-size: 10px;
+}
+
+/* VAT Input Styling */
+.vat-input {
+  width: 60px !important;
+  text-align: center;
+}
+
+.vat-input .ant-input-number-input {
+  font-size: var(--base-font-size);
+  font-weight: 600;
+  text-align: center;
+}
+
+.vat-input .ant-input-number-handler-wrap {
+  display: none !important;
+}
+
+/* VAT Text Styling */
+.vat-text {
+  font-weight: 600;
+  color: #059669;
+  font-size: var(--base-font-size);
+  text-align: center;
+}
+
+/* Remaining Input Styling */
+.remaining-input {
+  width: 60px !important;
+  text-align: center;
+}
+
+.remaining-input .ant-input-number-input {
+  font-size: var(--base-font-size);
+  font-weight: 600;
+  text-align: center;
+}
+
+.remaining-input .ant-input-number-handler-wrap {
+  display: none !important;
+}
+
+/* Instructions Input Styling */
+.instructions-input {
+  width: 100% !important;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-size: 11px;
+  padding: 4px 6px;
+  height: 28px;
+}
+
+.instructions-input:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.instructions-input:focus,
+.instructions-input-focused {
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.1);
+  outline: none;
+}
+
+.instructions-input::placeholder {
+  color: #9ca3af;
+  font-size: 10px;
 }
 
 /* Detail Input Styling */
@@ -1010,6 +1154,30 @@
   padding: 12px 16px !important;
 }
 
+/* Customer actions row */
+.customer-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.customer-actions-row .customer-search-input {
+  flex: 1;
+  height: 34px;
+}
+
+.customer-actions-row .add-customer-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .pos-container {
@@ -1019,6 +1187,15 @@
     margin: 4px;
     border-radius: 8px;
     backdrop-filter: blur(15px);
+  }
+
+  .pos-bottom-section {
+    flex-direction: column;
+  }
+
+  .pos-cart-column {
+    flex: 1;
+    min-width: auto;
   }
 
   .pos-left-column {
@@ -1077,8 +1254,7 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
   pointer-events: auto;
   justify-content: space-between;
-  animation: slideUp 0.5s ease-out;
-  width: 71%;
+  width: calc(((100vw - 40px) * 2 / 3) + 12px);
 }
 
 @keyframes slideUp {
@@ -1143,6 +1319,10 @@
   color: #52c41a;
 }
 
+.tool-tip .default_button:hover i.pi-file-text {
+  color: #f59e0b;
+}
+
 /* Company label on the right */
 .tool-tip .company-label {
   background: #374151;
@@ -1178,10 +1358,6 @@
 /* Responsive tooltip bar */
 @media (max-width: 768px) {
   .tool-tip {
-    bottom: 16px;
-    left: 16px;
-    right: 16px;
-    transform: none;
     border-radius: 12px;
     padding: 6px 12px;
     gap: 8px;
@@ -1199,5 +1375,68 @@
   .tool-tip .company-label {
     font-size: 11px;
     padding: 4px 8px;
+  }
+}
+
+/* Search row layout */
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.search-input-container {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.prescription-search-btn {
+  background: #10b981 !important;
+  border-color: #10b981 !important;
+  color: white !important;
+  border-radius: 8px !important;
+  height: 40px !important;
+  padding: 0 20px !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  white-space: nowrap !important;
+}
+
+.prescription-search-btn:hover {
+  background: #059669 !important;
+  border-color: #059669 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.prescription-search-btn:active {
+  transform: translateY(0);
+}
+
+/* Responsive for search row */
+@media (max-width: 768px) {
+  .search-row {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .search-actions {
+    width: 100%;
+  }
+
+  .prescription-search-btn {
+    width: 100% !important;
+    justify-content: center !important;
   }
 }

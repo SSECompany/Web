@@ -10,9 +10,9 @@ import {
   Checkbox,
   Form,
   Input,
-  notification,
   Select,
   Space,
+  notification,
 } from "antd";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -251,6 +251,7 @@ const Login = () => {
                 className="default_select"
                 value={unitSelected}
                 options={units}
+                dropdownMatchSelectWidth={false}
                 onSelect={handleChangeUnit}
               />
             </Space>

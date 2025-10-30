@@ -6,6 +6,7 @@ const VatTuNhatHangTable = ({
   handleQuantityChange,
   handleSelectChange,
   handleDeleteItem,
+  handleAddItem,
   handleDvtChange,
   maKhoList,
   loadingMaKho,
@@ -21,6 +22,7 @@ const VatTuNhatHangTable = ({
       onQuantityChange={handleQuantityChange}
       onSelectChange={handleSelectChange}
       onDeleteItem={handleDeleteItem}
+      onAddItem={handleAddItem}
       onDvtChange={handleDvtChange}
       onDataSourceUpdate={onDataSourceUpdate}
       columnConfig={phieuNhatHangConfig}

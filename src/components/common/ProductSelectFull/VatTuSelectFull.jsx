@@ -92,11 +92,14 @@ const ProductSelectFull = ({
   };
 
   const handleDropdownVisibleChange = (open) => {
-    if (open && !dropdownOpenedRef.current) {
-      // Chỉ gọi lại nếu chưa từng mở dropdown (đã gọi ở useEffect rồi)
+    console.log("🔽 Dropdown visible change:", open);
+    if (open) {
+      // Always fetch fresh data when dropdown opens (like POS)
+      console.log("📞 Calling fetchVatTuList on dropdown open");
+      fetchVatTuList("", 1, false);
       dropdownOpenedRef.current = true;
-    } else if (!open) {
-      // Reset state khi đóng dropdown
+    } else {
+      // Reset state when dropdown closes
       dropdownOpenedRef.current = false;
       lastSearchValueRef.current = "";
     }
@@ -214,6 +217,17 @@ const ProductSelectFull = ({
     const notCurrentlyScrolling = !isScrollingRef.current;
     const notSamePage = lastScrollPageRef.current !== pageIndex + 1;
 
+    console.log("🔄 Scroll debug:", {
+      isNearBottom,
+      hasMorePages,
+      notLoading,
+      notCurrentlyScrolling,
+      notSamePage,
+      pageIndex,
+      totalPage,
+      currentKeyword,
+    });
+
     if (
       isNearBottom &&
       hasMorePages &&
@@ -221,13 +235,18 @@ const ProductSelectFull = ({
       notCurrentlyScrolling &&
       notSamePage
     ) {
+      console.log("📞 Triggering scroll pagination...");
+
       // Đánh dấu đang scroll để tránh gọi trùng lặp
       isScrollingRef.current = true;
       lastScrollPageRef.current = pageIndex + 1;
 
       // Gọi API trang tiếp theo, nối vào danh sách
-      // setPageIndex sẽ được gọi trong fetchVatTuList khi append thành công
       fetchVatTuList(currentKeyword, pageIndex + 1, true); // true: append
+      // Cập nhật pageIndex ngay để đồng bộ với POS, hạn chế gọi trùng
+      if (setPageIndex) {
+        setPageIndex(pageIndex + 1);
+      }
 
       // Reset scroll state sau 1 giây
       setTimeout(() => {
@@ -288,6 +307,7 @@ const ProductSelectFull = ({
                 onSearch={handleSearch}
                 filterOption={false}
                 onSelect={handleVatTuSelect}
+                onDropdownVisibleChange={handleDropdownVisibleChange}
                 disabled={!isEditMode}
                 popupClassName="vat-tu-dropdown"
                 popupMatchSelectWidth={true}
@@ -296,6 +316,8 @@ const ProductSelectFull = ({
                   loadingVatTu ? "Đang tải..." : "Không tìm thấy"
                 }
                 onPopupScroll={handlePopupScroll}
+                getPopupContainer={(trigger) => trigger.parentNode}
+                dropdownStyle={{ maxHeight: 300, overflow: "auto" }}
               />
             ) : (
               <Input

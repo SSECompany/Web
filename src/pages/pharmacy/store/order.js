@@ -398,6 +398,51 @@ const orders = createSlice({
         tab.master.tong_sl = tongSl.toString();
       }
     },
+    updateProductDiscount: (state, action) => {
+      const { index, discountPercent, discountAmount } = action.payload;
+      const tab = state.orders.find(
+        (tab) => tab.internalId === state.internalActiveTabId
+      );
+      if (tab && tab.detail[index]) {
+        const item = tab.detail[index];
+
+        // Cập nhật giá trị giảm giá với field names nhất quán
+        item.discountPercent = discountPercent.toString();
+        item.discountAmount = discountAmount.toString();
+
+        // Tính lại thanh_tien với giảm giá
+        const mainTotal =
+          parseFloat(item.don_gia || 0) * parseInt(item.so_luong || 0);
+        const extrasTotal = (item.extras || []).reduce(
+          (sum, extra) =>
+            sum +
+            parseFloat(extra.don_gia || extra.gia || 0) *
+              parseInt(extra.so_luong || extra.quantity || 0) *
+              parseInt(item.so_luong || 0),
+          0
+        );
+
+        const totalBeforeDiscount = mainTotal + extrasTotal;
+        const discountPercentValue = parseFloat(discountPercent || 0);
+        const discountAmountValue = parseFloat(discountAmount || 0);
+
+        let finalDiscount = 0;
+        if (discountPercentValue > 0) {
+          finalDiscount = (totalBeforeDiscount * discountPercentValue) / 100;
+          // Tự động cập nhật discountAmount khi discountPercent > 0
+          item.discountAmount = finalDiscount.toFixed(0);
+        } else {
+          finalDiscount = discountAmountValue;
+        }
+
+        item.thanh_tien = (totalBeforeDiscount - finalDiscount).toFixed(0);
+
+        // Cập nhật tổng tiền của tab
+        tab.master.tong_tien = tab.detail
+          .reduce((sum, item) => sum + parseFloat(item.thanh_tien), 0)
+          .toFixed(0);
+      }
+    },
     applyVoucherToProduct: (state, action) => {
       const { index } = action.payload;
       const tab = state.orders.find(
@@ -467,6 +512,7 @@ export const {
   resetOrders,
   setCustomerInfo,
   updateTabExtraProps,
+  updateProductDiscount,
 } = orders.actions;
 
 export default orders.reducer;

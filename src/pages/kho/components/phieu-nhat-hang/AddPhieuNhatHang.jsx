@@ -1,7 +1,8 @@
-import { LeftOutlined } from "@ant-design/icons";
-import { Button, Form, message, Space, Typography } from "antd";
+import { DownOutlined, LeftOutlined, UpOutlined } from "@ant-design/icons";
+import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import VatTuSelectFull from "../../../../components/common/ProductSelectFull/VatTuSelectFull";
 import "../common-phieu.css";
@@ -11,10 +12,10 @@ import VatTuNhatHangTable from "./components/VatTuNhatHangTable";
 import { usePhieuNhatHangData } from "./hooks/usePhieuNhatHangData";
 import { useVatTuManagerNhatHang } from "./hooks/useVatTuManagerNhatHang";
 import {
-    buildPhieuNhatHangPayload,
-    fetchVoucherInfo,
-    submitPhieuNhatHangDynamic,
-    validateDataSource,
+  buildPhieuNhatHangPayload,
+  fetchVoucherInfo,
+  submitPhieuNhatHangDynamic,
+  validateDataSource,
 } from "./utils/phieuNhatHangUtils";
 
 const { Title } = Typography;
@@ -22,6 +23,9 @@ const { Title } = Typography;
 const AddPhieuNhatHang = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
+
+  // Get user info from Redux
+  const userInfo = useSelector((state) => state?.claimsReducer?.userInfo || {});
   const [isEditMode, setIsEditMode] = useState(true);
   const [vatTuInput, setVatTuInput] = useState(undefined);
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
@@ -30,6 +34,7 @@ const AddPhieuNhatHang = () => {
   const [totalPage, setTotalPage] = useState(1);
   const [currentKeyword, setCurrentKeyword] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showFormFields, setShowFormFields] = useState(true);
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
@@ -63,6 +68,7 @@ const AddPhieuNhatHang = () => {
     handleQuantityChange,
     handleSelectChange,
     handleDeleteItem,
+    handleAddItem,
     handleDvtChange,
   } = useVatTuManagerNhatHang();
 
@@ -91,14 +97,14 @@ const AddPhieuNhatHang = () => {
         fetchMaGiaoDichList(),
         fetchMaKhoList(),
         fetchMaKhachList(),
-        fetchVatTuList(),
+        fetchVatTuListPaging("", 1, false),
       ]);
 
       // Load voucher info
       const voucherData = await fetchVoucherInfo();
       if (voucherData) {
         const formData = {
-          soPhieu: voucherData.so_phieu_nhap,
+          soPhieu: voucherData.so_phieu_nhat_hang,
           ngay: voucherData.ngay_lap ? dayjs(voucherData.ngay_lap) : dayjs(),
           maGiaoDich: voucherData.ma_giao_dich,
           maCt: voucherData.ma_ct,
@@ -120,6 +126,7 @@ const AddPhieuNhatHang = () => {
     fetchMaKhachList,
     fetchVatTuList,
     isInitialized,
+    form,
   ]);
 
   // Handle barcode focus
@@ -169,13 +176,19 @@ const AddPhieuNhatHang = () => {
 
       validateQuantityForPhieu(
         dataSource,
-        "phieu_nhap_kho",
+        "phieu_nhat_hang",
         currentStatus,
         async () => {
           // Callback khi user xác nhận tiếp tục
           try {
             // Build payload
-            const payload = buildPhieuNhatHangPayload(values, dataSource);
+            const payload = buildPhieuNhatHangPayload(
+              values,
+              dataSource,
+              null,
+              false,
+              userInfo
+            );
 
             if (!payload) {
               message.error("Không thể tạo payload");
@@ -187,7 +200,8 @@ const AddPhieuNhatHang = () => {
             const result = await submitPhieuNhatHangDynamic(
               payload,
               "Thêm phiếu nhặt hàng thành công",
-              false
+              false,
+              userInfo
             );
 
             if (result.success) {
@@ -216,52 +230,113 @@ const AddPhieuNhatHang = () => {
         <Button
           type="text"
           icon={<LeftOutlined />}
-          onClick={() => navigate("/kho/nhap-kho")}
+          onClick={() => navigate("/kho/nhat-hang")}
           className="phieu-back-button"
         >
           Trở về
         </Button>
         <Title level={5} className="phieu-title">
-          THÊM PHIẾU NHẶT HÀNG MỚI
+          THÊM MỚI PHIẾU NHẶT HÀNG
         </Title>
         <div style={{ width: "120px" }}></div>
       </div>
 
+      {/* Small toggle button at top left */}
+      <div style={{ marginBottom: 8 }}>
+        <Button
+          size="small"
+          type="text"
+          icon={showFormFields ? <UpOutlined /> : <DownOutlined />}
+          onClick={() => setShowFormFields(!showFormFields)}
+          style={{
+            color: "#1890ff",
+            fontWeight: "bold",
+            fontSize: "12px",
+            padding: "4px 8px",
+            height: "auto",
+          }}
+        >
+          {showFormFields ? "Ẩn thông tin đơn" : "Hiện thông tin đơn"}
+        </Button>
+      </div>
+
+      {/* Div 1: Thông tin đơn (Mã khách => Ghi chú) */}
+      {showFormFields && (
+        <div className="phieu-form-container" style={{ marginBottom: 16 }}>
+          <Form form={form} layout="vertical" className="phieu-form">
+            <PhieuNhatHangFormInputs
+              isEditMode={isEditMode}
+              maKhachList={maKhachList}
+              loadingMaKhach={loadingMaKhach}
+              fetchMaKhachListDebounced={fetchMaKhachListDebounced}
+              maGiaoDichList={maGiaoDichList}
+              fetchMaKhachList={fetchMaKhachList}
+              fetchMaGiaoDichList={fetchMaGiaoDichList}
+              barcodeEnabled={barcodeEnabled}
+              setBarcodeEnabled={setBarcodeEnabled}
+              setBarcodeJustEnabled={setBarcodeJustEnabled}
+              vatTuInput={vatTuInput}
+              setVatTuInput={setVatTuInput}
+              vatTuSelectRef={vatTuSelectRef}
+              loadingVatTu={loadingVatTu}
+              vatTuList={vatTuList}
+              searchTimeoutRef={searchTimeoutRef}
+              fetchVatTuList={fetchVatTuListPaging}
+              totalPage={totalPage}
+              pageIndex={pageIndex}
+              setPageIndex={setPageIndex}
+              setVatTuList={setVatTuList}
+              currentKeyword={currentKeyword}
+              VatTuSelectComponent={VatTuSelectFull}
+              handleVatTuSelect={handleVatTuSelect}
+            />
+          </Form>
+        </div>
+      )}
+
+      {/* Div 2: Vật tư và bảng */}
       <div className="phieu-form-container">
         <Form form={form} layout="vertical" className="phieu-form">
-          <PhieuNhatHangFormInputs
-            isEditMode={isEditMode}
-            maKhachList={maKhachList}
-            loadingMaKhach={loadingMaKhach}
-            fetchMaKhachListDebounced={fetchMaKhachListDebounced}
-            maGiaoDichList={maGiaoDichList}
-            fetchMaKhachList={fetchMaKhachList}
-            fetchMaGiaoDichList={fetchMaGiaoDichList}
-            barcodeEnabled={barcodeEnabled}
-            setBarcodeEnabled={setBarcodeEnabled}
-            setBarcodeJustEnabled={setBarcodeJustEnabled}
-            vatTuInput={vatTuInput}
-            setVatTuInput={setVatTuInput}
-            vatTuSelectRef={vatTuSelectRef}
-            loadingVatTu={loadingVatTu}
-            vatTuList={vatTuList}
-            searchTimeoutRef={searchTimeoutRef}
-            fetchVatTuList={fetchVatTuListPaging}
-            totalPage={totalPage}
-            pageIndex={pageIndex}
-            setPageIndex={setPageIndex}
-            setVatTuList={setVatTuList}
-            currentKeyword={currentKeyword}
-            VatTuSelectComponent={VatTuSelectFull}
-            handleVatTuSelect={handleVatTuSelect}
-          />
+          {/* Title Vật tư */}
+          <div style={{ marginBottom: 8 }}>
+            <span
+              style={{ fontSize: "14px", fontWeight: "normal", color: "#000" }}
+            >
+              Vật tư
+            </span>
+          </div>
 
+          {/* Vật tư section */}
+          <div>
+            <VatTuSelectFull
+              isEditMode={isEditMode}
+              barcodeEnabled={barcodeEnabled}
+              setBarcodeEnabled={setBarcodeEnabled}
+              setBarcodeJustEnabled={setBarcodeJustEnabled}
+              vatTuInput={vatTuInput}
+              setVatTuInput={setVatTuInput}
+              vatTuSelectRef={vatTuSelectRef}
+              loadingVatTu={loadingVatTu}
+              vatTuList={vatTuList}
+              searchTimeoutRef={searchTimeoutRef}
+              fetchVatTuList={fetchVatTuListPaging}
+              totalPage={totalPage}
+              pageIndex={pageIndex}
+              setPageIndex={setPageIndex}
+              setVatTuList={setVatTuList}
+              currentKeyword={currentKeyword}
+              handleVatTuSelect={handleVatTuSelect}
+            />
+          </div>
+
+          {/* Bảng vật tư */}
           <VatTuNhatHangTable
             dataSource={dataSource}
             isEditMode={isEditMode}
             handleQuantityChange={handleQuantityChange}
             handleSelectChange={handleSelectChange}
             handleDeleteItem={handleDeleteItem}
+            handleAddItem={handleAddItem}
             handleDvtChange={handleDvtChange}
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
@@ -269,6 +344,7 @@ const AddPhieuNhatHang = () => {
             fetchMaKhoList={fetchMaKhoList}
           />
 
+          {/* Action buttons */}
           <div
             style={{
               display: "flex",
@@ -280,7 +356,7 @@ const AddPhieuNhatHang = () => {
               <Button type="primary" onClick={handleSubmit} loading={loading}>
                 Lưu
               </Button>
-              <Button onClick={() => navigate("/kho/nhap-kho")}>Hủy</Button>
+              <Button onClick={() => navigate("/kho/nhat-hang")}>Hủy</Button>
             </Space>
           </div>
         </Form>

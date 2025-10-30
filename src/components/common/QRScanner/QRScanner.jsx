@@ -5,12 +5,12 @@ import {
   KeyOutlined,
   QrcodeOutlined,
 } from "@ant-design/icons";
-import { Alert, Button, Card, Modal, notification, Space } from "antd";
+import { Alert, Button, Card, Modal, Space, notification } from "antd";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import React, { useEffect, useRef, useState } from "react";
 import "./QRScanner.css";
 
-const QRScanner = ({ isOpen, onClose, onScanSuccess }) => {
+const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode }) => {
   const [scanner, setScanner] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [cameraError, setCameraError] = useState(false);
@@ -211,13 +211,10 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess }) => {
                 onClick={() => {
                   // Đóng modal và chuyển về màn hình bên ngoài
                   onClose();
-                  // Trigger chuyển đổi mode barcode
-                  setTimeout(() => {
-                    // Gọi callback để chuyển đổi mode barcode
-                    if (window.triggerBarcodeMode) {
-                      window.triggerBarcodeMode();
-                    }
-                  }, 100);
+                  // Gọi callback để chuyển đổi mode barcode
+                  if (onSwitchToBarcode) {
+                    onSwitchToBarcode();
+                  }
                 }}
               >
                 <div className="scan-mode-content">

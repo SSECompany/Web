@@ -92,8 +92,9 @@ const Navbar = () => {
     // Check if current path matches any valid route or pattern
     const isValidRoute =
       validRoutes.includes(currentPath) ||
-      currentPath.match(/^kho\/nhat-hang\/chi-tiet\/\d+$/) || // Detail route pattern
-      currentPath.match(/^kho\/nhap-kho\/chi-tiet\/\d+$/); // Legacy detail route
+      currentPath.match(/^kho\/nhat-hang\/chi-tiet\/[^/]+$/) || // Detail route pattern (allow alphanumeric IDs)
+      currentPath.match(/^kho\/nhat-hang\/edit\/[^/]+$/) || // Edit route pattern
+      currentPath.match(/^kho\/nhap-kho\/chi-tiet\/[^/]+$/); // Legacy detail route
 
     if (!isValidRoute) {
       // Redirect to Bán hàng if invalid route

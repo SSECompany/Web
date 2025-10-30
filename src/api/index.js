@@ -470,3 +470,123 @@ export const createRetailOrder = async (
       };
     });
 };
+
+// ===== PRESCRIPTION APIs =====
+
+export const searchPrescriptionByCode = async (
+  prescriptionCode,
+  unitId = null,
+  userId = null
+) => {
+  const token = localStorage.getItem("access_token");
+
+  const payload = {
+    store: "api_getPrescriptionByCode",
+    param: {
+      prescriptionCode: prescriptionCode,
+      unitId: unitId,
+      userId: userId,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => {
+      // Kiểm tra responseModel.isSucceded
+      if (res?.data?.responseModel?.isSucceded === true) {
+        return {
+          success: true,
+          data: res?.data?.listObject || res?.data || null,
+          message: null,
+        };
+      } else {
+        // Response có lỗi
+        const errorMessage =
+          res?.data?.responseModel?.message || "Không tìm thấy đơn thuốc";
+        return {
+          success: false,
+          data: null,
+          message: errorMessage,
+        };
+      }
+    })
+    .catch((error) => {
+      console.error("❌ Error searching prescription:", error);
+      return {
+        success: false,
+        data: null,
+        message: "Lỗi kết nối mạng",
+      };
+    });
+};
+
+// ===== CUSTOMER APIs =====
+export const createCustomer = async ({
+  phone,
+  name,
+  idNumber,
+  patientName,
+}) => {
+  const token = localStorage.getItem("access_token");
+
+  const payload = {
+    store: "api_createCustomer",
+    param: {},
+    data: {
+      customer: [
+        {
+          phone: phone || "",
+          name: name || "",
+          idNumber: idNumber || "",
+          patientName: patientName || "",
+        },
+      ],
+    },
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => res?.data)
+    .catch((error) => {
+      console.error("Error creating customer:", error);
+      return {
+        responseModel: {
+          isSucceded: false,
+          message: "Lỗi kết nối mạng",
+        },
+      };
+    });
+};
+
+export const searchCustomer = async (keyword = "") => {
+  const token = localStorage.getItem("access_token");
+  const payload = {
+    store: "api_searchCustomer",
+    param: { keyword },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => res?.data || { listObject: [[]] })
+    .catch((error) => {
+      console.error("Error searching customer:", error);
+      return { listObject: [[]] };
+    });
+};

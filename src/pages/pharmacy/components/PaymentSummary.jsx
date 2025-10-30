@@ -82,7 +82,7 @@ const PaymentSummary = ({
   payment,
   setPayment,
   subtotal,
-  discountAmount,
+  discount,
   vat,
   total,
   change,
@@ -469,14 +469,14 @@ const PaymentSummary = ({
               </Text>
             </div>
             <div className="summary-row">
-              <Text>Giảm giá:</Text>
-              <Text type="danger">
-                -{new Intl.NumberFormat("vi-VN").format(discountAmount)}đ
-              </Text>
+              <Text>VAT:</Text>
+              <Text>{new Intl.NumberFormat("vi-VN").format(vat)}đ</Text>
             </div>
             <div className="summary-row">
-              <Text>VAT (10%):</Text>
-              <Text>{new Intl.NumberFormat("vi-VN").format(vat)}đ</Text>
+              <Text>Tiền chiết khấu:</Text>
+              <Text style={{ color: "#f59e0b" }}>
+                -{new Intl.NumberFormat("vi-VN").format(discount || 0)}đ
+              </Text>
             </div>
             <div className="summary-row total-row">
               <Text strong>Tổng cộng:</Text>

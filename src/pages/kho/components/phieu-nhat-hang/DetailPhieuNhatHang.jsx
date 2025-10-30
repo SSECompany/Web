@@ -1,11 +1,17 @@
-import { EditOutlined, LeftOutlined } from "@ant-design/icons";
-import { Button, Form, message, Space, Typography } from "antd";
+import {
+  DownOutlined,
+  EditOutlined,
+  LeftOutlined,
+  UpOutlined,
+} from "@ant-design/icons";
+import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
-import VatTuSelectFull from "../../../../components/common/ProductSelectFull/VatTuSelectFull";
-import https from "../../../../utils/https";
+import VatTuSelectFullPOS from "../../../../components/common/ProductSelectFull/VatTuSelectFullPOS";
+import QRScanner from "../../../../components/common/QRScanner/QRScanner";
 import "../common-phieu.css";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import PhieuNhatHangFormInputs from "./components/PhieuNhatHangFormInputs";
@@ -13,9 +19,13 @@ import VatTuNhatHangTable from "./components/VatTuNhatHangTable";
 import { usePhieuNhatHangData } from "./hooks/usePhieuNhatHangData";
 import { useVatTuManagerNhatHang } from "./hooks/useVatTuManagerNhatHang";
 import {
+  fetchPhieuNhatHangData,
+  startPhieuNhatHang,
+  updatePhieuNhatHang,
+} from "./utils/phieuNhatHangApi";
+import {
   buildPhieuNhatHangPayload,
   deletePhieuNhatHangDynamic,
-  submitPhieuNhatHangDynamic,
   validateDataSource,
 } from "./utils/phieuNhatHangUtils";
 
@@ -24,7 +34,7 @@ const { Title } = Typography;
 const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const { stt_rec } = useParams();
+  const { id } = useParams();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [phieuData, setPhieuData] = useState(null);
@@ -32,16 +42,21 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   const [vatTuInput, setVatTuInput] = useState(undefined);
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
   const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
   const [apiCalled, setApiCalled] = useState(false);
   const [pageIndex, setPageIndex] = useState(1);
   const [totalPage, setTotalPage] = useState(1);
   const [currentKeyword, setCurrentKeyword] = useState("");
   const [phieuDetailLoaded, setPhieuDetailLoaded] = useState(false);
+  const [showFormFields, setShowFormFields] = useState(true);
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
-  const sctRec = location.state?.sctRec || stt_rec;
+  const sctRec = location.state?.sctRec || id;
   const token = localStorage.getItem("access_token");
+
+  // Get user info from Redux instead of localStorage
+  const userInfo = useSelector((state) => state?.claimsReducer?.userInfo || {});
 
   // Custom hooks
   const {
@@ -70,27 +85,30 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
     handleQuantityChange,
     handleSelectChange,
     handleDeleteItem,
+    handleAddItem,
     handleDvtChange,
   } = useVatTuManagerNhatHang();
 
-  // Phân trang vật tư
+  // Phân trang vật tư - sử dụng API giống POS
   const fetchVatTuListPaging = async (
     keyword = "",
     page = 1,
     append = false
   ) => {
     setCurrentKeyword(keyword);
+
+    // Gọi hàm trong hook để quản lý loading + transform thống nhất
     await fetchVatTuList(keyword, page, append, (pagination) => {
       setPageIndex(page);
       setTotalPage(pagination?.totalPage || 1);
     });
   };
 
-  // Set edit mode based on URL
+  // Set edit mode based on URL (or prop)
   useEffect(() => {
     const isEditPath = location.pathname.includes("/edit/");
-    setIsEditMode(isEditPath);
-  }, [location.pathname]);
+    setIsEditMode(initialEditMode || isEditPath);
+  }, [location.pathname, initialEditMode]);
 
   // Load phieu details
   useEffect(() => {
@@ -102,33 +120,11 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       setPhieuDetailLoaded(true);
 
       try {
-        const body = {
-          store: "api_get_data_detail_phieu_nhap_kho_voucher",
-          param: {
-            stt_rec: sctRec,
-          },
-          data: {},
-          resultSetNames: ["master", "detail"],
-        };
+        const result = await fetchPhieuNhatHangData(sctRec);
 
-        const response = await https.post(
-          "v1/dynamicApi/call-dynamic-api",
-          body,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response && response.data) {
-          const apiData = response.data.listObject?.dataLists || {};
-          const phieuInfo =
-            apiData.master && apiData.master.length > 0
-              ? apiData.master[0]
-              : null;
-          const vatTuList = apiData.detail || [];
+        if (result.success) {
+          const phieuInfo = result.master;
+          const vatTuList = result.detail;
 
           if (phieuInfo) {
             let statusValue = phieuInfo.status;
@@ -137,23 +133,31 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             }
 
             const formattedData = {
-              stt_rec: stt_rec,
+              stt_rec: id,
               sttRec: phieuInfo.stt_rec,
               ngay: phieuInfo.ngay_ct ? dayjs(phieuInfo.ngay_ct) : dayjs(),
               soPhieu: phieuInfo.so_ct || "",
               maKhach: phieuInfo.ma_kh || "",
-              dienGiai: phieuInfo.dien_giai || "",
-              tenKhach: phieuInfo.ong_ba || "",
+              dienGiai: phieuInfo.ghi_chu || "",
+              tenKhach: phieuInfo.ten_kh || "",
               maGiaoDich: phieuInfo.ma_gd || "",
+              soDonHang: phieuInfo.so_don_hang || "",
+              vung: phieuInfo.ma_nhomvitri || "",
+              nhanVien: phieuInfo.ma_nvbh || "",
+              banDongGoi: phieuInfo.ban_dong_goi || "",
               trangThai: statusValue,
               donViTienTe: "VND",
               tyGia: 1,
+              // Add missing fields from API response
+              loaiVanChuyen: phieuInfo.loai_van_chuyen || "",
+              soPhieuXuatBan:
+                phieuInfo.so_phieu_xuat1 || phieuInfo.so_phieu_xuat2 || "",
             };
 
             // Process vật tư list - DYNAMIC: Giữ nguyên TẤT CẢ trường từ API
             const processedVatTu = vatTuList.map((item, index) => {
-              const soLuongHienThi = item.sl_td3 ?? 0; // sl_td3 - số lượng thực tế
-              const soLuongDeNghiHienThi = item.so_luong ?? 0; // so_luong - số lượng đề nghị
+              const soLuongNhat = item.nhat ?? 0; // số lượng nhặt thực tế
+              const soLuongDon = item.so_luong ?? 0; // số lượng theo đơn
               const dvtHienTai = item.dvt ? item.dvt.trim() : "cái";
 
               return {
@@ -163,13 +167,21 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 // Override với UI-friendly fields
                 key: index + 1,
                 maHang: item.ma_vt || "",
-                soLuong: Math.round(soLuongHienThi * 1000) / 1000, // sl_td3 - số lượng thực tế
-                soLuongDeNghi: parseFloat(soLuongDeNghiHienThi) || 0, // so_luong - số lượng đề nghị
+                soLuong:
+                  Math.round((parseFloat(soLuongNhat) || 0) * 1000) / 1000, // nhặt
+                soLuongDeNghi: parseFloat(item.so_luong) || 0, // số lượng đơn
                 ten_mat_hang: item.ten_vt || item.ma_vt || "",
                 dvt: dvtHienTai,
                 ma_kho: item.ma_kho || "",
                 tk_vt: item.tk_vt || "",
                 line_nbr: item.line_nbr || index + 1,
+                // Add missing fields for table display
+                ma_lo: item.ma_lo || "",
+                ma_vi_tri: item.ma_vi_tri || "",
+                nhat: item.nhat || false,
+                so_luong_ton: item.so_luong_ton || 0,
+                tong_nhat: item.tong_nhat || 0,
+                ghi_chu: item.ghi_chu || "",
               };
             });
 
@@ -178,6 +190,9 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             form.setFieldsValue(formattedData);
             setDataSource(processedVatTu);
           }
+        } else {
+          message.error("Không thể tải dữ liệu phiếu");
+          setApiCalled(false);
         }
       } catch (error) {
         console.error("Lỗi khi tải dữ liệu phiếu:", error);
@@ -189,7 +204,23 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
     };
 
     fetchPhieuDetail();
-  }, [sctRec, apiCalled, token, stt_rec, phieuDetailLoaded]);
+  }, [sctRec, apiCalled, token, id, phieuDetailLoaded]);
+
+  // Wrapper function to match VatTuSelectFullPOS expected signature
+  const fetchVatTuListWrapper = async (
+    keyword = "",
+    page = 1,
+    append = false
+  ) => {
+    return fetchVatTuListPaging(keyword, page, append);
+  };
+
+  // Load initial search data when component mounts
+  useEffect(() => {
+    if (isEditMode) {
+      fetchVatTuListPaging("", 1, false);
+    }
+  }, [isEditMode]);
 
   // Handle barcode focus
   useEffect(() => {
@@ -235,21 +266,144 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   }, []);
 
   const handleVatTuSelect = async (value) => {
-    await vatTuSelectHandler(
-      value,
-      isEditMode,
-      fetchVatTuDetail,
-      fetchDonViTinh,
-      setVatTuInput,
-      setVatTuList,
-      fetchVatTuList,
-      vatTuSelectRef
-    );
+    try {
+      // Tìm item trong danh sách hiện tại
+      const selectedItem = vatTuList.find((item) => item.value === value);
+
+      if (selectedItem) {
+        // Tạo item mới cho bảng
+        const newItem = {
+          key: Date.now(),
+          maHang: selectedItem.item.sku,
+          ten_mat_hang: selectedItem.item.name,
+          dvt: selectedItem.item.unit,
+          soLuong: 0,
+          soLuongDeNghi: 0,
+          ma_kho: "ST", // Default kho
+          tk_vt: "",
+          line_nbr: dataSource.length + 1,
+        };
+
+        // Thêm vào dataSource
+        setDataSource((prev) => [...prev, newItem]);
+        setVatTuInput("");
+
+        return true;
+      } else {
+        message.error("Không tìm thấy vật tư");
+        return false;
+      }
+    } catch (error) {
+      console.error("Lỗi khi chọn vật tư:", error);
+      message.error("Có lỗi xảy ra khi chọn vật tư");
+      return false;
+    }
   };
 
-  const handleEdit = () => {
-    navigate(`/kho/nhat-hang/chi-tiet/${stt_rec}`);
-    setIsEditMode(true);
+  const handleQRScanSuccess = async (scannedCode) => {
+    try {
+      // Tìm vật tư theo mã đã quét
+      const foundVatTu = vatTuList.find(
+        (item) => item.item.sku === scannedCode.trim()
+      );
+
+      if (foundVatTu) {
+        // Tạo item mới cho bảng
+        const newItem = {
+          key: Date.now(),
+          maHang: foundVatTu.item.sku,
+          ten_mat_hang: foundVatTu.item.name,
+          dvt: foundVatTu.item.unit,
+          soLuong: 0,
+          soLuongDeNghi: 0,
+          ma_kho: "ST", // Default kho
+          tk_vt: "",
+          line_nbr: dataSource.length + 1,
+        };
+
+        // Thêm vào dataSource
+        setDataSource((prev) => [...prev, newItem]);
+        message.success(`Đã thêm vật tư: ${foundVatTu.item.name}`);
+      } else {
+        message.error(`Không tìm thấy vật tư với mã: ${scannedCode}`);
+      }
+    } catch (error) {
+      console.error("Lỗi khi xử lý mã quét:", error);
+      message.error("Có lỗi xảy ra khi xử lý mã quét");
+    }
+  };
+
+  const handleSwitchToBarcodeMode = () => {
+    setShowQRScanner(false);
+    setBarcodeEnabled(true);
+    setBarcodeJustEnabled(true);
+  };
+
+  const handleEdit = async () => {
+    try {
+      // Check if employee field is empty
+      const isEmployeeEmpty =
+        !phieuData?.ma_nvbh || phieuData.ma_nvbh.trim() === "";
+
+      if (isEmployeeEmpty) {
+        setLoading(true);
+
+        // Call start picking API
+        const startResult = await startPhieuNhatHang(sctRec, userInfo.id);
+
+        if (!startResult.success) {
+          message.error("Không thể bắt đầu nhặt hàng");
+          setLoading(false);
+          return;
+        }
+
+        // Reload phieu details to get updated employee info
+        const result = await fetchPhieuNhatHangData(sctRec);
+
+        if (result.success && result.master) {
+          setPhieuData(result.master);
+
+          // Update form with new data
+          const updatedFormattedData = {
+            stt_rec: id,
+            sttRec: result.master.stt_rec,
+            ngay: result.master.ngay_ct
+              ? dayjs(result.master.ngay_ct)
+              : dayjs(),
+            soPhieu: result.master.so_ct || "",
+            maKhach: result.master.ma_kh || "",
+            dienGiai: result.master.ghi_chu || "",
+            tenKhach: result.master.ten_kh || "",
+            maGiaoDich: result.master.ma_gd || "",
+            soDonHang: result.master.so_don_hang || "",
+            vung: result.master.ma_nhomvitri || "",
+            nhanVien: result.master.ma_nvbh || "",
+            banDongGoi: result.master.ban_dong_goi || "",
+            trangThai: result.master.status || "0",
+            donViTienTe: "VND",
+            tyGia: 1,
+            loaiVanChuyen: result.master.loai_van_chuyen || "",
+            soPhieuXuatBan:
+              result.master.so_phieu_xuat1 ||
+              result.master.so_phieu_xuat2 ||
+              "",
+          };
+
+          form.setFieldsValue(updatedFormattedData);
+          message.success("Đã bắt đầu nhặt hàng thành công");
+        }
+
+        setLoading(false);
+      }
+
+      // Switch to edit mode
+      navigate(`/kho/nhat-hang/chi-tiet/${id}`);
+      setIsEditMode(true);
+    } catch (error) {
+      console.error("Error in handleEdit:", error);
+      message.error("Có lỗi xảy ra khi bắt đầu chỉnh sửa");
+      setLoading(false);
+    }
   };
 
   const handleNew = () => {
@@ -263,7 +417,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       type: "warning",
       onOk: async () => {
         setLoading(true);
-        const result = await deletePhieuNhatHangDynamic(sctRec);
+        const result = await deletePhieuNhatHangDynamic(sctRec, userInfo);
         setLoading(false);
 
         if (result.success) {
@@ -290,7 +444,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
 
       validateQuantityForPhieu(
         dataSource,
-        "phieu_nhap_kho",
+        "phieu_nhat_hang",
         currentStatus,
         async () => {
           // Callback khi user xác nhận tiếp tục
@@ -300,7 +454,8 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               values,
               dataSource,
               phieuData,
-              true
+              true,
+              userInfo
             );
 
             if (!payload) {
@@ -309,12 +464,13 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               return;
             }
 
-            // Submit
-            const result = await submitPhieuNhatHangDynamic(
-              payload,
-              "Cập nhật phiếu nhặt hàng thành công",
-              true
-            );
+            // Gọi API cập nhật với stored procedure
+            // Wrap payload in Data structure như API cũ mong đợi
+            const wrappedPayload = {
+              Data: payload,
+            };
+
+            const result = await updatePhieuNhatHang(wrappedPayload, userInfo);
 
             if (result.success) {
               message.success(
@@ -325,10 +481,10 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               setTimeout(() => {
                 navigate("/kho/nhat-hang");
               }, 1000);
-            } else {
             }
           } catch (error) {
             console.error("Submit failed:", error);
+            message.error("Có lỗi xảy ra khi cập nhật phiếu");
           } finally {
             setLoading(false);
           }
@@ -381,32 +537,95 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           className="phieu-form"
           disabled={!isEditMode}
         >
-          <PhieuNhatHangFormInputs
-            isEditMode={isEditMode}
-            maKhachList={maKhachList}
-            loadingMaKhach={loadingMaKhach}
-            fetchMaKhachListDebounced={fetchMaKhachListDebounced}
-            maGiaoDichList={maGiaoDichList}
-            fetchMaKhachList={fetchMaKhachList}
-            fetchMaGiaoDichList={fetchMaGiaoDichList}
-            barcodeEnabled={barcodeEnabled}
-            setBarcodeEnabled={setBarcodeEnabled}
-            setBarcodeJustEnabled={setBarcodeJustEnabled}
-            vatTuInput={vatTuInput}
-            setVatTuInput={setVatTuInput}
-            vatTuSelectRef={vatTuSelectRef}
-            loadingVatTu={loadingVatTu}
-            vatTuList={vatTuList}
-            searchTimeoutRef={searchTimeoutRef}
-            fetchVatTuList={fetchVatTuListPaging}
-            totalPage={totalPage}
-            pageIndex={pageIndex}
-            setPageIndex={setPageIndex}
-            setVatTuList={setVatTuList}
-            currentKeyword={currentKeyword}
-            VatTuSelectComponent={VatTuSelectFull}
-            handleVatTuSelect={handleVatTuSelect}
+          {/* Toggle hiển/ẩn thông tin phiếu */}
+          <div style={{ marginBottom: 8 }}>
+            <Button
+              size="small"
+              type="text"
+              icon={showFormFields ? <UpOutlined /> : <DownOutlined />}
+              onClick={() => setShowFormFields(!showFormFields)}
+              disabled={false}
+              style={{
+                color: "#1890ff",
+                fontWeight: "bold",
+                fontSize: "12px",
+                padding: "4px 8px",
+                height: "auto",
+              }}
+            >
+              {showFormFields ? "Ẩn thông tin đơn" : "Hiện thông tin đơn"}
+            </Button>
+          </div>
+
+          {showFormFields && (
+            <PhieuNhatHangFormInputs
+              isEditMode={isEditMode}
+              maKhachList={maKhachList}
+              loadingMaKhach={loadingMaKhach}
+              fetchMaKhachListDebounced={fetchMaKhachListDebounced}
+              maGiaoDichList={maGiaoDichList}
+              fetchMaKhachList={fetchMaKhachList}
+              fetchMaGiaoDichList={fetchMaGiaoDichList}
+              barcodeEnabled={barcodeEnabled}
+              setBarcodeEnabled={setBarcodeEnabled}
+              setBarcodeJustEnabled={setBarcodeJustEnabled}
+              vatTuInput={vatTuInput}
+              setVatTuInput={setVatTuInput}
+              vatTuSelectRef={vatTuSelectRef}
+              loadingVatTu={loadingVatTu}
+              vatTuList={vatTuList}
+              searchTimeoutRef={searchTimeoutRef}
+              fetchVatTuList={fetchVatTuListPaging}
+              totalPage={totalPage}
+              pageIndex={pageIndex}
+              setPageIndex={setPageIndex}
+              setVatTuList={setVatTuList}
+              currentKeyword={currentKeyword}
+              handleVatTuSelect={handleVatTuSelect}
+            />
+          )}
+
+          {/* Divider to separate form and table area */}
+          <div
+            style={{
+              borderTop: "1px solid rgba(255,255,255,0.12)",
+              margin: "8px 0 12px 0",
+            }}
           />
+
+          {/* Thanh tìm kiếm/ chọn vật tư đặt ngay trên bảng */}
+          <div style={{ marginTop: 8, marginBottom: 8 }}>
+            <div
+              style={{
+                marginBottom: 8,
+                fontWeight: "bold",
+                fontSize: "14px",
+                color: "#333",
+              }}
+            >
+              Vật tư
+            </div>
+            <VatTuSelectFullPOS
+              isEditMode={isEditMode}
+              barcodeEnabled={barcodeEnabled}
+              setBarcodeEnabled={setBarcodeEnabled}
+              setBarcodeJustEnabled={setBarcodeJustEnabled}
+              vatTuInput={vatTuInput}
+              setVatTuInput={setVatTuInput}
+              vatTuSelectRef={vatTuSelectRef}
+              loadingVatTu={loadingVatTu}
+              vatTuList={vatTuList}
+              searchTimeoutRef={searchTimeoutRef}
+              fetchVatTuList={fetchVatTuListWrapper}
+              handleVatTuSelect={handleVatTuSelect}
+              totalPage={totalPage}
+              pageIndex={pageIndex}
+              setPageIndex={setPageIndex}
+              setVatTuList={setVatTuList}
+              currentKeyword={currentKeyword}
+              onOpenQRScanner={() => setShowQRScanner(true)}
+            />
+          </div>
 
           <VatTuNhatHangTable
             dataSource={dataSource}
@@ -414,6 +633,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             handleQuantityChange={handleQuantityChange}
             handleSelectChange={handleSelectChange}
             handleDeleteItem={handleDeleteItem}
+            handleAddItem={handleAddItem}
             handleDvtChange={handleDvtChange}
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
@@ -444,6 +664,14 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           )}
         </Form>
       </div>
+
+      {/* QR Scanner Modal */}
+      <QRScanner
+        isOpen={showQRScanner}
+        onClose={() => setShowQRScanner(false)}
+        onScanSuccess={handleQRScanSuccess}
+        onSwitchToBarcode={handleSwitchToBarcodeMode}
+      />
     </div>
   );
 };

@@ -83,6 +83,16 @@ const protectedChildrenRoutes = [
     element: <DetailPhieuNhatHang />,
   },
   {
+    label: "Chỉnh sửa phiếu nhặt hàng",
+    path: "kho/nhat-hang/edit/:id",
+    element: <DetailPhieuNhatHang isEditMode={true} />,
+  },
+  {
+    label: "Chỉnh sửa phiếu nhặt hàng",
+    path: "kho/nhat-hang/chi-tiet/edit/:id",
+    element: <DetailPhieuNhatHang isEditMode={true} />,
+  },
+  {
     label: "Danh sách phiếu xuất kho",
     path: "kho/xuat-kho",
     element: <ListPhieuXuatKho />,

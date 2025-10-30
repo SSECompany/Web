@@ -38,7 +38,7 @@ export const validateDataSource = (dataSource, formType = "default") => {
   }
 
   const missingData = [];
-  
+
   // Phiếu nhặt hàng không bắt buộc mã kho
   if (formType !== "nhat-hang") {
     dataSource.forEach((item, index) => {
@@ -70,9 +70,11 @@ export const buildPhieuNhatHangPayload = (
   values,
   dataSource,
   phieuData = null,
-  isUpdate = false
+  isUpdate = false,
+  userInfo = null
 ) => {
-  const userInfo = getUserInfo();
+  // Use passed userInfo or fallback to localStorage if not provided
+  const finalUserInfo = userInfo || getUserInfo();
   const orderDate = formatDate(values.ngay);
   // Chỉ giữ lại những trường thực sự có trong data từ API response
   // Không gắn mặc định bất kỳ trường nào
@@ -108,7 +110,10 @@ export const buildPhieuNhatHangPayload = (
     t_tien_nt: totalAmountNt,
     t_tien: totalAmount,
     datetime2: orderDate,
-    user_id2: userInfo.userId.toString(),
+    user_id2:
+      finalUserInfo.userId?.toString() ||
+      finalUserInfo.id?.toString() ||
+      "4061",
   };
 
   // Đảm bảo các trường bắt buộc có mặt khi thêm mới
@@ -118,7 +123,7 @@ export const buildPhieuNhatHangPayload = (
       masterData.stt_rec = ""; // Sẽ được tạo tự động bởi server
     }
     if (!masterData.ma_dvcs) {
-      masterData.ma_dvcs = userInfo.ma_dvcs || "";
+      masterData.ma_dvcs = finalUserInfo.ma_dvcs || finalUserInfo.unitId || "";
     }
     if (!masterData.ma_ct) {
       masterData.ma_ct = "PND";
@@ -154,7 +159,7 @@ export const buildPhieuNhatHangPayload = (
       masterData.datetime0 = orderDate;
     }
     if (!masterData.user_id0) {
-      masterData.user_id0 = userInfo.userId;
+      masterData.user_id0 = finalUserInfo.userId || finalUserInfo.id || 4061;
     }
   }
 
@@ -241,12 +246,11 @@ export const buildPhieuNhatHangPayload = (
       dynamicItem.so_luong = parseFloat(item.soLuongDeNghi || 0);
     if (item.soLuong !== undefined)
       dynamicItem.sl_td3 = parseFloat(item.soLuong || 0);
-    
+
     // Mapping các trường mới cho phiếu nhặt hàng
     if (item.so_luong_don !== undefined)
       dynamicItem.so_luong_don = parseFloat(item.so_luong_don || 0);
-    if (item.nhat !== undefined)
-      dynamicItem.nhat = parseFloat(item.nhat || 0);
+    if (item.nhat !== undefined) dynamicItem.nhat = parseFloat(item.nhat || 0);
     if (item.ghi_chu !== undefined)
       dynamicItem.ghi_chu = item.ghi_chu ? item.ghi_chu.trim() : "";
     if (item.so_luong_ton !== undefined)
@@ -290,7 +294,8 @@ export const buildPhieuNhatHangPayload = (
         dynamicItem.so_ct = values.soPhieu || "";
       }
       if (!dynamicItem.ma_dvcs) {
-        dynamicItem.ma_dvcs = userInfo.ma_dvcs || "";
+        dynamicItem.ma_dvcs =
+          finalUserInfo.ma_dvcs || finalUserInfo.unitId || "";
       }
       if (!dynamicItem.loai_ct) {
         dynamicItem.loai_ct = "2";
@@ -449,7 +454,7 @@ export const submitPhieuNhatHang = async (
     message.error(response.data?.message || "Có lỗi xảy ra");
     return { success: false };
   } catch (error) {
-    console.error("Error submitting phieu nhap kho:", error);
+    console.error("Error submitting phieu nhat hang:", error);
 
     if (error.response?.data?.message) {
       message.error(error.response.data.message);
@@ -460,12 +465,12 @@ export const submitPhieuNhatHang = async (
   }
 };
 
-export const deletePhieuNhapKho = async (sctRec) => {
+export const deletePhieuNhatHang = async (sctRec) => {
   const token = localStorage.getItem("access_token");
 
   try {
     const response = await https.post(
-      `v1/web/xoa-ct-nhap-kho?sctRec=${sctRec}`,
+      `v1/web/xoa-ct-nhat-hang?sctRec=${sctRec}`,
       {},
       {
         headers: {
@@ -587,11 +592,12 @@ export const ensureRequiredFields = (targetObject, requiredFields) => {
   return targetObject;
 };
 
-// Dynamic API functions for phieu nhap kho
+// Dynamic API functions for phieu nhat hang
 export const submitPhieuNhatHangDynamic = async (
   payload,
   successMessage,
-  isUpdate = false
+  isUpdate = false,
+  userInfo = null
 ) => {
   const token = localStorage.getItem("access_token");
 
@@ -601,16 +607,25 @@ export const submitPhieuNhatHangDynamic = async (
     return { success: false };
   }
 
+  // Lấy thông tin user từ Redux thay vì localStorage
+  const userId = userInfo?.id || userInfo?.userId || 4061;
+  const unitId = userInfo?.unitId || "TAPMED";
+  const storeId = userInfo?.storeId || "";
+
   const storeName = isUpdate
-    ? "Api_update_phieu_nhap_kho_voucher"
-    : "Api_create_phieu_nhap_kho_voucher";
+    ? "Api_update_phieu_nhat_hang"
+    : "Api_create_phieu_nhat_hang";
 
   const body = {
     store: storeName,
-    param: {},
+    param: {
+      UnitId: unitId,
+      StoreID: storeId,
+      userId: userId,
+    },
     data: {
-      master: [payload.master],
-      detail: payload.detail,
+      m28: [payload.master],
+      d28: payload.detail,
     },
   };
 
@@ -660,7 +675,7 @@ export const submitPhieuNhatHangDynamic = async (
     message.error(response.data?.message || "Có lỗi xảy ra");
     return { success: false };
   } catch (error) {
-    console.error("Error submitting phieu nhap kho:", error);
+    console.error("Error submitting phieu nhat hang:", error);
 
     // Kiểm tra error.response có tồn tại không
     if (error.response?.data?.responseModel?.message) {
@@ -676,12 +691,20 @@ export const submitPhieuNhatHangDynamic = async (
   }
 };
 
-export const deletePhieuNhatHangDynamic = async (sctRec) => {
+export const deletePhieuNhatHangDynamic = async (sctRec, userInfo) => {
   const token = localStorage.getItem("access_token");
 
+  // Lấy thông tin user từ Redux thay vì localStorage
+  const userId = userInfo?.id || userInfo?.userId || 4061;
+  const unitId = userInfo?.unitId || "TAPMED";
+  const storeId = userInfo?.storeId || "";
+
   const body = {
-    store: "api_delete_phieu_nhap_kho_voucher",
+    store: "api_delete_phieu_nhat_hang",
     param: {
+      UnitId: unitId,
+      StoreID: storeId,
+      userId: userId,
       stt_rec: sctRec,
     },
     data: {},

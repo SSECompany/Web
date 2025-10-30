@@ -1,9 +1,41 @@
 import { DeleteOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import { Button, Card, Input, InputNumber, Table, Tag } from "antd";
-import React from "react";
+import React, { useState } from "react";
+import DiscountModal from "./DiscountModal";
 
 const CartTable = ({ cart, removeAt, updateLine }) => {
+  const [discountModalVisible, setDiscountModalVisible] = useState(false);
+  const [selectedItemIndex, setSelectedItemIndex] = useState(null);
+  const [focusField, setFocusField] = useState(null); // Track which field to focus
+
+  const handleDiscountConfirm = (index, field, value) => {
+    // Modal đã gửi các cập nhật cần thiết theo cặp; chỉ cần áp dụng cập nhật đơn lẻ này
+    updateLine(index, field, value);
+  };
+
   const columns = [
+    {
+      title: "",
+      key: "delete",
+      width: "50px",
+      render: (_, record, index) => (
+        <Button
+          type="text"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={() => removeAt(index)}
+          size="small"
+          style={{
+            padding: "0",
+            minWidth: "32px",
+            height: "32px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        />
+      ),
+    },
     {
       title: (
         <span
@@ -15,16 +47,30 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             letterSpacing: "0.5px",
           }}
         >
-          SẢN PHẨM
+          TÊN SẢN PHẨM(1)
         </span>
       ),
       dataIndex: "name",
       key: "name",
-      width: "20%",
+      width: "22%",
       render: (text, record) => (
         <div className="product-info">
           <div className="product-name">{text}</div>
-          <div className="product-sku">SKU: {record.sku}</div>
+          <div
+            className="product-code"
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              marginTop: "4px",
+            }}
+          >
+            <span
+              style={{ color: "#1890ff", fontWeight: "bold", fontSize: "13px" }}
+            >
+              {record.sku}
+            </span>
+          </div>
         </div>
       ),
     },
@@ -39,7 +85,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             letterSpacing: "0.5px",
           }}
         >
-          ĐƠN VỊ
+          ĐVT
         </span>
       ),
       dataIndex: "unit",
@@ -58,16 +104,20 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             letterSpacing: "0.5px",
           }}
         >
-          GIÁ
+          SỐ LÔ/HẠN DÙNG
         </span>
       ),
-      dataIndex: "price",
-      key: "price",
-      width: "10%",
-      render: (price) => (
-        <span className="price-text">
-          {new Intl.NumberFormat("vi-VN").format(price)}đ
-        </span>
+      dataIndex: "batchExpiry",
+      key: "batchExpiry",
+      width: "12%",
+      render: (text, record, index) => (
+        <Input
+          value={text || ""}
+          size="small"
+          className="batch-input"
+          placeholder="Số lô/Hạn dùng"
+          onChange={(e) => updateLine(index, "batchExpiry", e.target.value)}
+        />
       ),
     },
     {
@@ -81,12 +131,12 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             letterSpacing: "0.5px",
           }}
         >
-          SL
+          SỐ LƯỢNG
         </span>
       ),
       dataIndex: "qty",
       key: "qty",
-      width: "10%",
+      width: "8%",
       render: (qty, record, index) => (
         <div className="qty-control">
           <button
@@ -125,51 +175,17 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             letterSpacing: "0.5px",
           }}
         >
-          GIẢM GIÁ (%)
+          GIÁ BÁN
         </span>
       ),
-      dataIndex: "discount",
-      key: "discount",
+      dataIndex: "price",
+      key: "price",
       width: "10%",
-      render: (discount, record, index) => (
-        <InputNumber
-          value={discount || 0}
-          min={0}
-          max={100}
-          size="small"
-          className="discount-input"
-          onChange={(value) => updateLine(index, "discount", value || 0)}
-          controls={false}
-          suffix="%"
-        />
-      ),
-    },
-    {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          MÃ ĐTQG
+      render: (price) => (
+        <span className="price-text">
+          {new Intl.NumberFormat("vi-VN").format(price)}đ
         </span>
       ),
-      dataIndex: "maDTQG",
-      key: "maDTQG",
-      width: "10%",
-      render: (text, record, index) => (
-        <Input
-          value={text || ""}
-          size="small"
-          className="detail-input"
-          placeholder="Mã ĐTQG"
-          onChange={(e) => updateLine(index, "maDTQG", e.target.value)}
-        />
-      ),
     },
     {
       title: (
@@ -182,124 +198,13 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             letterSpacing: "0.5px",
           }}
         >
-          TÊN ĐTQG
-        </span>
-      ),
-      dataIndex: "tenDTQG",
-      key: "tenDTQG",
-      width: "12%",
-      render: (text, record, index) => (
-        <Input
-          value={text || ""}
-          size="small"
-          className="detail-input"
-          placeholder="Tên ĐTQG"
-          onChange={(e) => updateLine(index, "tenDTQG", e.target.value)}
-        />
-      ),
-    },
-    {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          SL ĐTQG
-        </span>
-      ),
-      dataIndex: "slDTQG",
-      key: "slDTQG",
-      width: "8%",
-      render: (text, record, index) => (
-        <InputNumber
-          value={text || 0}
-          min={0}
-          size="small"
-          className="detail-input-number"
-          placeholder="SL"
-          onChange={(value) => updateLine(index, "slDTQG", value || 0)}
-          controls={false}
-        />
-      ),
-    },
-    {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          HOẠT CHẤT
-        </span>
-      ),
-      dataIndex: "hoatChat",
-      key: "hoatChat",
-      width: "12%",
-      render: (text, record, index) => (
-        <Input
-          value={text || ""}
-          size="small"
-          className="detail-input"
-          placeholder="Hoạt chất"
-          onChange={(e) => updateLine(index, "hoatChat", e.target.value)}
-        />
-      ),
-    },
-    {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          CÁCH DÙNG
-        </span>
-      ),
-      dataIndex: "cachDung",
-      key: "cachDung",
-      width: "12%",
-      render: (text, record, index) => (
-        <Input
-          value={text || ""}
-          size="small"
-          className="detail-input"
-          placeholder="Cách dùng"
-          onChange={(e) => updateLine(index, "cachDung", e.target.value)}
-        />
-      ),
-    },
-    {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          THÀNH TIỀN
+          TỔNG TIỀN
         </span>
       ),
       key: "total",
       width: "10%",
       render: (_, record) => {
-        const total =
-          record.price * (record.qty || 1) * (1 - (record.discount || 0) / 100);
+        const total = record.price * (record.qty || 1);
         return (
           <span className="total-text">
             {new Intl.NumberFormat("vi-VN").format(total)}đ
@@ -318,19 +223,210 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             letterSpacing: "0.5px",
           }}
         >
-          THAO TÁC
+          % CK
         </span>
       ),
-      key: "action",
+      dataIndex: "discountPercent",
+      key: "discountPercent",
+      width: "6%",
+      render: (discountPercent, record, index) => {
+        // Display the exact discountPercent value from modal, don't calculate from discountAmount
+        const displayPercent = discountPercent || 0;
+
+        return (
+          <div
+            onClick={() => {
+              setSelectedItemIndex(index);
+              setFocusField("percent");
+              setDiscountModalVisible(true);
+            }}
+            style={{
+              textAlign: "center",
+              fontSize: "12px",
+              fontWeight: "500",
+              color: displayPercent > 0 ? "#1890ff" : "#666",
+              cursor: "pointer",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              transition: "background-color 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#f0f0f0";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+            }}
+          >
+            {displayPercent > 0 ? `${displayPercent}%` : "-"}
+          </div>
+        );
+      },
+    },
+    {
+      title: (
+        <span
+          style={{
+            fontWeight: "600",
+            fontSize: "12px",
+            color: "#475569",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          CK TIỀN
+        </span>
+      ),
+      key: "discountAmountDisplay",
       width: "8%",
-      render: (_, record, index) => (
-        <Button
-          type="text"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => removeAt(index)}
+      render: (_, record, index) => {
+        // Display the exact discountAmount value from modal, don't calculate from discountPercent
+        const finalDiscount = record.discountAmount || 0;
+
+        return (
+          <div
+            onClick={() => {
+              setSelectedItemIndex(index);
+              setFocusField("amount");
+              setDiscountModalVisible(true);
+            }}
+            style={{
+              textAlign: "center",
+              fontSize: "12px",
+              fontWeight: "500",
+              color: finalDiscount > 0 ? "#1890ff" : "#666",
+              cursor: "pointer",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              transition: "background-color 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#f0f0f0";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+            }}
+          >
+            {new Intl.NumberFormat("vi-VN").format(finalDiscount)}đ
+          </div>
+        );
+      },
+    },
+    {
+      title: (
+        <span
+          style={{
+            fontWeight: "600",
+            fontSize: "12px",
+            color: "#475569",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          %VAT
+        </span>
+      ),
+      dataIndex: "vatPercent",
+      key: "vatPercent",
+      width: "6%",
+      render: (vatPercent, record, index) => (
+        <InputNumber
+          value={vatPercent || 0}
+          min={0}
+          max={100}
           size="small"
-          className="remove-btn"
+          className="vat-input"
+          onChange={(value) => updateLine(index, "vatPercent", value || 0)}
+          controls={false}
+          suffix="%"
+        />
+      ),
+    },
+    {
+      title: (
+        <span
+          style={{
+            fontWeight: "600",
+            fontSize: "12px",
+            color: "#475569",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          VAT
+        </span>
+      ),
+      key: "vatAmount",
+      width: "8%",
+      render: (_, record) => {
+        const total = record.price * (record.qty || 1);
+        // Phenikaa logic: Ưu tiên giảm tiền, nếu không có thì dùng giảm %
+        const discountAmount =
+          record.discountAmount > 0
+            ? record.discountAmount
+            : Math.round((total * (record.discountPercent || 0)) / 100);
+        const totalAfterDiscount = total - discountAmount;
+        const vatAmount = Math.round(
+          (totalAfterDiscount * (record.vatPercent || 0)) / 100
+        );
+        return (
+          <span className="vat-text">
+            {new Intl.NumberFormat("vi-VN").format(vatAmount)}đ
+          </span>
+        );
+      },
+    },
+    {
+      title: (
+        <span
+          style={{
+            fontWeight: "600",
+            fontSize: "12px",
+            color: "#475569",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          CÒN LẠI
+        </span>
+      ),
+      dataIndex: "remaining",
+      key: "remaining",
+      width: "8%",
+      render: (remaining, record, index) => (
+        <InputNumber
+          value={remaining || 0}
+          min={0}
+          size="small"
+          className="remaining-input"
+          onChange={(value) => updateLine(index, "remaining", value || 0)}
+          controls={false}
+        />
+      ),
+    },
+    {
+      title: (
+        <span
+          style={{
+            fontWeight: "600",
+            fontSize: "12px",
+            color: "#475569",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          CHỈ DẪN
+        </span>
+      ),
+      dataIndex: "instructions",
+      key: "instructions",
+      width: "12%",
+      render: (text, record, index) => (
+        <Input
+          value={text || ""}
+          size="small"
+          className="instructions-input"
+          placeholder="Chỉ dẫn"
+          onChange={(e) => updateLine(index, "instructions", e.target.value)}
         />
       ),
     },
@@ -364,6 +460,19 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
           />
         </div>
       )}
+
+      <DiscountModal
+        visible={discountModalVisible}
+        onCancel={() => {
+          setDiscountModalVisible(false);
+          setSelectedItemIndex(null);
+          setFocusField(null);
+        }}
+        onConfirm={handleDiscountConfirm}
+        item={selectedItemIndex !== null ? cart[selectedItemIndex] : null}
+        index={selectedItemIndex}
+        focusField={focusField}
+      />
     </Card>
   );
 };

@@ -1,8 +1,8 @@
 import { message } from "antd";
 import { debounce } from "lodash";
 import { useCallback, useRef, useState } from "react";
+import { searchVatTu } from "../../../../../api";
 import https from "../../../../../utils/https";
-import { fetchVatTuListDynamicApi } from "../utils/phieuNhatHangUtils";
 
 // Global cache for master data
 const masterDataCache = {
@@ -271,57 +271,120 @@ export const usePhieuNhatHangData = () => {
 
   const fetchVatTuList = useCallback(
     async (keyword = "", page = 1, append = false, callback) => {
-      // Use cache for empty search
-      if (
-        !keyword &&
-        masterDataCache.lastFetch &&
-        Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
-        masterDataCache.vatTu &&
-        page === 1 &&
-        !append
-      ) {
-        setVatTuList(masterDataCache.vatTu);
-        if (callback) callback({ totalPage: 1 });
-        return;
-      }
+      // TẠM THỜI TẮT CACHE để test pagination
+      // Use cache for empty search - CHỈ cache khi không có keyword và page 1
+      // if (
+      //   !keyword &&
+      //   masterDataCache.lastFetch &&
+      //   Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
+      //   masterDataCache.vatTu &&
+      //   page === 1 &&
+      //   !append
+      // ) {
+      //   console.log("📦 usePhieuNhatHangData - Using cached data");
+      //   setVatTuList(masterDataCache.vatTu);
+      //   // KHÔNG set totalPage = 1 cố định, để API tự tính
+      //   if (callback) callback({ totalPage: 1 });
+      //   return;
+      // }
 
       try {
         setLoadingVatTu(true);
-        // Lấy unitCode từ localStorage hoặc mặc định
+
+        // Lấy thông tin user và unit từ localStorage
         const userStr = localStorage.getItem("user");
         const unitsResponseStr = localStorage.getItem("unitsResponse");
         const user = userStr ? JSON.parse(userStr) : {};
         const unitsResponse = unitsResponseStr
           ? JSON.parse(unitsResponseStr)
           : {};
-        const unitCode = user.unitCode || unitsResponse.unitCode;
-        // Gọi dynamic API
-        const res = await fetchVatTuListDynamicApi({
-          keyword,
-          unitCode,
-          pageIndex: page,
-          pageSize: 100,
-        });
-        if (res.success && res.data) {
-          const options = res.data.map((item) => ({
-            label: `${item.ma_vt} - ${item.ten_vt}`,
-            value: item.ma_vt,
+
+        const unitId = user.unitId || unitsResponse.unitId;
+        const userId = user.userId || user.id;
+
+        // Sử dụng searchVatTu API giống như POS
+        const response = await searchVatTu(keyword, page, 20, unitId, userId);
+
+        // Kiểm tra response success - sử dụng cấu trúc API mới
+        if (response?.responseModel?.isSucceded) {
+          const listObject = response.listObject;
+
+          // listObject[0] chứa array các items
+          const data = listObject?.[0] || [];
+          // listObject[1] chứa array thông tin pagination
+          const paginationInfo = listObject?.[1]?.[0] || {};
+
+          // Transform API data to match expected format
+          const transformedData = data.map((item) => ({
+            value: item.value || `ITEM${page}${Math.random()}`,
+            label: item.label || `Sản phẩm - ${item.value || "N/A"}`,
+            ma_vt: item.value,
+            ten_vt: item.label,
+            gia: item.gia || 0,
+            dvt: item.dvt || "viên",
             ...item,
           }));
-          setVatTuList((prev) => (append ? [...prev, ...options] : options));
+
+          if (append) {
+            setVatTuList((prev) => [...prev, ...transformedData]);
+          } else {
+            setVatTuList(transformedData);
+          }
+
           // Cache only if no search keyword and first page
           if (!keyword && page === 1 && !append) {
-            masterDataCache.vatTu = options;
+            masterDataCache.vatTu = transformedData;
             masterDataCache.lastFetch = Date.now();
           }
-          if (callback) callback(res.pagination);
+
+          // Parse phân trang linh hoạt từ API
+          const pageSize = 20;
+          const totalRecord =
+            paginationInfo.totalrecord ??
+            paginationInfo.totalRecord ??
+            paginationInfo.TotalRecord ??
+            paginationInfo.Totalrecord;
+          let newTotalPage =
+            paginationInfo.totalpage ??
+            paginationInfo.totalPage ??
+            paginationInfo.TotalPage ??
+            paginationInfo.Totalpage ??
+            0;
+
+          if (!newTotalPage) {
+            if (typeof totalRecord === "number") {
+              newTotalPage = Math.max(1, Math.ceil(totalRecord / pageSize));
+            } else {
+              // Fallback: nếu dữ liệu trang < pageSize coi như hết trang
+              newTotalPage = data.length < pageSize ? page : page + 1;
+            }
+          }
+
+          if (callback) callback({ totalPage: newTotalPage });
         } else {
-          if (!append) setVatTuList([]);
+          // Hiển thị error message từ API
+          const errorMessage =
+            response?.responseModel?.message || "Không thể tìm kiếm vật tư";
+          message.error({
+            message: "Lỗi tìm kiếm",
+            description: errorMessage,
+          });
+
+          if (!append) {
+            setVatTuList([]);
+          }
           if (callback) callback({ totalPage: 1 });
         }
       } catch (error) {
-        console.error("Error fetching vat tu list (dynamic):", error);
-        message.error("Không thể tải danh sách vật tư");
+        console.error("Error fetching vat tu list:", error);
+        message.error({
+          message: "Lỗi kết nối",
+          description: "Không thể kết nối đến máy chủ",
+        });
+
+        if (!append) {
+          setVatTuList([]);
+        }
         if (callback) callback({ totalPage: 1 });
       } finally {
         setLoadingVatTu(false);
@@ -333,19 +396,32 @@ export const usePhieuNhatHangData = () => {
   const fetchVatTuDetail = useCallback(
     async (maVatTu) => {
       try {
-        const response = await https.post(
-          "v1/web/tim-kiem-vat-tu",
-          {
-            key_word: maVatTu,
-          },
-          {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          }
-        );
+        // Lấy thông tin user và unit từ localStorage
+        const userStr = localStorage.getItem("user");
+        const unitsResponseStr = localStorage.getItem("unitsResponse");
+        const user = userStr ? JSON.parse(userStr) : {};
+        const unitsResponse = unitsResponseStr
+          ? JSON.parse(unitsResponseStr)
+          : {};
 
-        if (response.data && response.data.data) {
-          return response.data.data;
+        const unitId = user.unitId || unitsResponse.unitId;
+        const userId = user.userId || user.id;
+
+        // Sử dụng searchVatTu API để tìm kiếm chi tiết vật tư
+        const response = await searchVatTu(maVatTu, 1, 1, unitId, userId);
+
+        if (
+          response?.responseModel?.isSucceded &&
+          response.listObject?.[0]?.length > 0
+        ) {
+          const foundItem = response.listObject[0][0];
+          return {
+            ma_vt: foundItem.value,
+            ten_vt: foundItem.label,
+            gia: foundItem.gia || 0,
+            dvt: foundItem.dvt || "viên",
+            ...foundItem,
+          };
         }
         return null;
       } catch (error) {

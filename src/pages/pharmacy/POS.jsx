@@ -11,9 +11,10 @@ import { searchVatTu } from "../../api";
 import VatTuSelectFullPOS from "../../components/common/ProductSelectFull/VatTuSelectFullPOS";
 import ReportModal from "../../components/common/ReportModal/ReportModal";
 import RetailOrderListModal from "../../components/common/RetailOrderListModal/RetailOrderListModal";
+import "./POS.css";
 import CartTable from "./components/CartTable";
 import PaymentSummary from "./components/PaymentSummary";
-import "./POS.css";
+import PrescriptionModal from "./components/PrescriptionModal";
 
 const POS = () => {
   // Lấy dữ liệu từ Redux store
@@ -26,13 +27,7 @@ const POS = () => {
     phone: "",
     name: "",
     idNumber: "",
-    prescriptionCode: "",
     patientName: "",
-    patientAddress: "",
-    diagnosis: "",
-    treatmentPeriod: "",
-    prescribingDoctor: "",
-    examinationFacility: "",
   });
   const [payment, setPayment] = useState({ method: "cash", cash: 0 });
 
@@ -55,6 +50,7 @@ const POS = () => {
   // Tooltip modal states
   const [isOrderListModalOpen, setIsOrderListModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
 
   // Load initial data when component mounts
   useEffect(() => {
@@ -123,18 +119,39 @@ const POS = () => {
     () => cart.reduce((s, x) => s + x.price * x.qty, 0),
     [cart]
   );
-  const discountAmount = useMemo(
+  const discount = useMemo(
     () =>
-      cart.reduce((s, x) => s + ((x.discount || 0) / 100) * x.price * x.qty, 0),
+      cart.reduce((s, x) => {
+        const itemTotal = x.price * x.qty;
+        // Phenikaa logic: Ưu tiên giảm tiền, nếu không có thì dùng giảm %
+        const itemDiscount =
+          x.discountAmount > 0
+            ? x.discountAmount
+            : Math.round((itemTotal * (x.discountPercent || 0)) / 100);
+        return s + itemDiscount;
+      }, 0),
     [cart]
   );
   const vat = useMemo(
-    () => Math.round((subtotal - discountAmount) * 0.1),
-    [subtotal, discountAmount]
+    () =>
+      cart.reduce((s, x) => {
+        const itemTotal = x.price * x.qty;
+        // Phenikaa logic: Tính VAT sau khi trừ giảm giá
+        const itemDiscount =
+          x.discountAmount > 0
+            ? x.discountAmount
+            : Math.round((itemTotal * (x.discountPercent || 0)) / 100);
+        const itemTotalAfterDiscount = itemTotal - itemDiscount;
+        const itemVat = Math.round(
+          (itemTotalAfterDiscount * (x.vatPercent || 0)) / 100
+        );
+        return s + itemVat;
+      }, 0),
+    [cart]
   );
   const total = useMemo(
-    () => Math.max(0, subtotal - discountAmount + vat),
-    [subtotal, discountAmount, vat]
+    () => Math.max(0, subtotal + vat - discount),
+    [subtotal, vat, discount]
   );
   const change = useMemo(
     () => Math.max(0, (payment.cash || 0) - total),
@@ -155,12 +172,12 @@ const POS = () => {
         {
           ...item,
           qty: 1,
-          discount: 0,
-          maDTQG: "",
-          tenDTQG: "",
-          slDTQG: 0,
-          hoatChat: "",
-          cachDung: "",
+          batchExpiry: "",
+          vatPercent: 0,
+          discountPercent: 0,
+          discountAmount: 0,
+          remaining: 0,
+          instructions: "",
         },
       ]);
     }
@@ -325,9 +342,14 @@ const POS = () => {
     setIsReportModalOpen(!isReportModalOpen);
   }, [isReportModalOpen]);
 
+  const handlePrescriptionModal = useCallback(() => {
+    setIsPrescriptionModalOpen(!isPrescriptionModalOpen);
+  }, [isPrescriptionModalOpen]);
+
   return (
     <div className="pos-container">
-      <div className="pos-left-column">
+      {/* Phần tìm kiếm full width */}
+      <div className="pos-search-full-width">
         <Card
           size="small"
           title={
@@ -337,30 +359,77 @@ const POS = () => {
           }
           className="search-card"
         >
-          <VatTuSelectFullPOS
-            isEditMode={true}
-            barcodeEnabled={barcodeEnabled}
-            setBarcodeEnabled={setBarcodeEnabled}
-            setBarcodeJustEnabled={setBarcodeJustEnabled}
-            vatTuInput={vatTuInput}
-            setVatTuInput={setVatTuInput}
-            vatTuSelectRef={vatTuSelectRef}
-            loadingVatTu={loadingVatTu}
-            vatTuList={vatTuList}
-            searchTimeoutRef={searchTimeoutRef}
-            fetchVatTuList={fetchVatTuList}
-            handleVatTuSelect={handleVatTuSelect}
-            totalPage={totalPage}
-            pageIndex={pageIndex}
-            setPageIndex={setPageIndex}
-            setVatTuList={setVatTuList}
-            currentKeyword={currentKeyword}
-          />
+          <div className="search-row">
+            <div className="search-input-container">
+              <VatTuSelectFullPOS
+                isEditMode={true}
+                barcodeEnabled={barcodeEnabled}
+                setBarcodeEnabled={setBarcodeEnabled}
+                setBarcodeJustEnabled={setBarcodeJustEnabled}
+                vatTuInput={vatTuInput}
+                setVatTuInput={setVatTuInput}
+                vatTuSelectRef={vatTuSelectRef}
+                loadingVatTu={loadingVatTu}
+                vatTuList={vatTuList}
+                searchTimeoutRef={searchTimeoutRef}
+                fetchVatTuList={fetchVatTuList}
+                handleVatTuSelect={handleVatTuSelect}
+                totalPage={totalPage}
+                pageIndex={pageIndex}
+                setPageIndex={setPageIndex}
+                setVatTuList={setVatTuList}
+                currentKeyword={currentKeyword}
+              />
+            </div>
+            <div className="search-actions">
+              <Button
+                type="primary"
+                icon={<i className="pi pi-file-text"></i>}
+                onClick={handlePrescriptionModal}
+                className="prescription-search-btn"
+                size="large"
+              >
+                Tìm đơn thuốc
+              </Button>
+            </div>
+          </div>
         </Card>
-
-        <CartTable cart={cart} removeAt={removeAt} updateLine={updateLine} />
       </div>
 
+      {/* Phần giỏ hàng và thanh toán */}
+      <div className="pos-bottom-section">
+        {/* Left side: Cart wrapper */}
+        <div className="pos-left-wrapper">
+          <div className="pos-cart-column">
+            <CartTable
+              cart={cart}
+              removeAt={removeAt}
+              updateLine={updateLine}
+            />
+          </div>
+        </div>
+
+        {/* Right side: Payment Summary */}
+        <div className="pos-right-column">
+          <PaymentSummary
+            customer={customer}
+            setCustomer={setCustomer}
+            customerOpen={customerOpen}
+            setCustomerOpen={setCustomerOpen}
+            payment={payment}
+            setPayment={setPayment}
+            subtotal={subtotal}
+            discount={discount}
+            vat={vat}
+            total={total}
+            change={change}
+            cart={cart}
+            onClearCart={() => setCart([])}
+          />
+        </div>
+      </div>
+
+      {/* Fixed Tooltip at bottom left */}
       <div className="tool-tip">
         <div className="tool-tip-left">
           <Tooltip placement="top" title="Danh sách đơn">
@@ -377,30 +446,34 @@ const POS = () => {
         <div className="company-label">Design by SSE</div>
       </div>
 
-      <div className="pos-right-column">
-        <PaymentSummary
-          customer={customer}
-          setCustomer={setCustomer}
-          customerOpen={customerOpen}
-          setCustomerOpen={setCustomerOpen}
-          payment={payment}
-          setPayment={setPayment}
-          subtotal={subtotal}
-          discountAmount={discountAmount}
-          vat={vat}
-          total={total}
-          change={change}
-          cart={cart}
-          onClearCart={() => setCart([])}
-        />
-      </div>
-
       <RetailOrderListModal
         isOpen={isOrderListModalOpen}
         onClose={handleOrderListModal}
       />
 
       <ReportModal isOpen={isReportModalOpen} onClose={handleReportModal} />
+
+      <PrescriptionModal
+        isOpen={isPrescriptionModalOpen}
+        onClose={handlePrescriptionModal}
+        onApplyPrescription={(prescriptionItems) => {
+          // Logic để áp dụng đơn thuốc vào giỏ hàng
+          prescriptionItems.forEach((item) => {
+            addToCart({
+              sku: item.maThuoc,
+              name: item.tenThuoc,
+              price: item.gia || 0,
+              unit: item.dvt || "viên",
+              qty: item.slDuocBan || 1, // Sử dụng SL được bán
+              batchExpiry: "",
+              vatPercent: 0,
+              remaining: 0,
+              instructions: item.cachDung || "",
+            });
+          });
+          setIsPrescriptionModalOpen(false);
+        }}
+      />
     </div>
   );
 };

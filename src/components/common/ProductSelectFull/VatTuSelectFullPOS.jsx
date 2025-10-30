@@ -20,6 +20,7 @@ const VatTuSelectFullPOS = ({
   setPageIndex,
   setVatTuList,
   currentKeyword = "",
+  onOpenQRScanner,
 }) => {
   // Refs to prevent unnecessary API calls
   const dropdownOpenedRef = useRef(false);
@@ -263,27 +264,42 @@ const VatTuSelectFullPOS = ({
               icon={<BarcodeOutlined />}
               type={barcodeEnabled ? "primary" : "default"}
               onClick={() => {
-                if (!isEditMode) {
-                  return;
-                }
-                // Toggle barcode mode
-                setBarcodeEnabled((prev) => {
-                  const next = !prev;
-                  if (next) {
+                if (!isEditMode) return;
+
+                if (barcodeEnabled) {
+                  // Đang bật barcode -> tắt barcode
+                  setBarcodeEnabled(false);
+                  setVatTuInput("");
+                  dropdownOpenedRef.current = false;
+                  lastSearchValueRef.current = "";
+                  isProcessingRef.current = false;
+                  lastProcessedBarcodeRef.current = null;
+                } else {
+                  // Đang tắt barcode
+                  if (onOpenQRScanner) {
+                    // Có callback -> mở modal camera (phiếu nhặt hàng)
+                    onOpenQRScanner();
+                  } else {
+                    // Không có callback -> bật barcode mode trực tiếp (POS)
+                    setBarcodeEnabled(true);
                     setBarcodeJustEnabled(true);
                     setVatTuInput("");
                     dropdownOpenedRef.current = false;
                     lastSearchValueRef.current = "";
-                    // Reset processing flags
                     isProcessingRef.current = false;
                     lastProcessedBarcodeRef.current = null;
                   }
-                  return next;
-                });
+                }
               }}
               disabled={!isEditMode}
               title={
-                barcodeEnabled ? "Tắt chế độ barcode" : "Bật chế độ barcode"
+                onOpenQRScanner
+                  ? barcodeEnabled
+                    ? "Tắt chế độ barcode"
+                    : "Mở camera quét mã"
+                  : barcodeEnabled
+                  ? "Tắt chế độ barcode"
+                  : "Bật chế độ barcode"
               }
             />
           </Space.Compact>

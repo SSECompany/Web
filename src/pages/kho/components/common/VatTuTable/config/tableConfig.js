@@ -17,25 +17,29 @@ export const phieuNhapKhoConfig = {
 // Cấu hình cho phiếu nhặt hàng
 export const phieuNhatHangConfig = {
   tenMatHangField: "ten_mat_hang",
-  soLuongDeNghiField: "so_luong_don",
+  soLuongDeNghiField: "soLuongDeNghi",
   soLuongDeNghiEditable: true,
   showSoLuongDeNghi: true,
   soLuongDeNghiTitle: "Số lượng đơn",
   soLuongCheatField: "nhat",
   soLuongCheatTitle: "Nhặt",
-  showSoLuongCheat: true,
+  showSoLuongCheat: false,
   showMaKho: false,
   // Các trường mới cho phiếu nhặt hàng
   showMaLo: true,
   maLoField: "ma_lo",
   showMaViTri: true,
-  maViTriField: "ma_vi_tri", 
+  maViTriField: "ma_vi_tri",
   showGhiChu: true,
   ghiChuField: "ghi_chu",
   showSoLuongTon: true,
   soLuongTonField: "so_luong_ton",
   showTongNhat: true,
   tongNhatField: "tong_nhat",
+  // Sắp xếp lại thứ tự: tồn -> đơn -> tổng nhặt -> ghi chú
+  tonDeNghiTongNhatGhiChuOrder: true,
+  // Thay đổi nút xóa thành nút thêm dòng mới
+  useAddButtonInsteadOfDelete: true,
 };
 
 // Cấu hình cho phiếu xuất kho
