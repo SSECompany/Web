@@ -18,13 +18,15 @@ export const phieuNhapKhoConfig = {
 export const phieuNhatHangConfig = {
   tenMatHangField: "ten_mat_hang",
   soLuongDeNghiField: "soLuongDeNghi",
-  soLuongDeNghiEditable: true,
+  soLuongDeNghiEditable: false,
   showSoLuongDeNghi: true,
   soLuongDeNghiTitle: "Số lượng đơn",
   soLuongCheatField: "nhat",
   soLuongCheatTitle: "Nhặt",
   showSoLuongCheat: false,
   showMaKho: false,
+  // Lock ĐVT editing for nhặt hàng (read-only display)
+  dvtEditable: false,
   // Các trường mới cho phiếu nhặt hàng
   showMaLo: true,
   maLoField: "ma_lo",
@@ -36,8 +38,12 @@ export const phieuNhatHangConfig = {
   soLuongTonField: "so_luong_ton",
   showTongNhat: true,
   tongNhatField: "tong_nhat",
+  tongNhatEditable: true,
+  combineMaLoViTri: true,
   // Sắp xếp lại thứ tự: tồn -> đơn -> tổng nhặt -> ghi chú
   tonDeNghiTongNhatGhiChuOrder: true,
+  // Hiển thị cột ghi chú ở cuối bảng
+  placeGhiChuAtEnd: true,
   // Thay đổi nút xóa thành nút thêm dòng mới
   useAddButtonInsteadOfDelete: true,
 };

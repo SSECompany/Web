@@ -457,12 +457,6 @@ const PaymentSummary = ({
           {/* Order Summary - Compact */}
           <div className="order-summary">
             <div className="summary-row">
-              <Text>Số lượng:</Text>
-              <Tag color="blue" size="small">
-                {cart.reduce((total, item) => total + (item.qty || 1), 0)}
-              </Tag>
-            </div>
-            <div className="summary-row">
               <Text>Tạm tính:</Text>
               <Text strong>
                 {new Intl.NumberFormat("vi-VN").format(subtotal)}đ

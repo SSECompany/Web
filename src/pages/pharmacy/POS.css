@@ -337,6 +337,21 @@
   text-align: center;
 }
 
+/* Discount cells (% CK, CK TIỀN) */
+.discount-cell {
+  text-align: center;
+  font-size: var(--base-font-size);
+  font-weight: 400;
+  color: #475569;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.discount-cell.positive {
+  color: #059669;
+  font-weight: 700;
+  font-size: var(--large-font-size);
+}
+
 /* Unit Button Styling */
 .unit-btn {
   background: #e0f2fe;

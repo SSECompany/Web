@@ -14,6 +14,8 @@ const VatTuNhatHangTable = ({
   fetchMaKhoList,
   fetchDonViTinh,
   onDataSourceUpdate,
+  fetchLoList,
+  fetchViTriList,
 }) => {
   return (
     <VatTuTable
@@ -30,6 +32,8 @@ const VatTuNhatHangTable = ({
         fetchMaKhoList,
         fetchMaKhoListDebounced,
         fetchDonViTinh,
+        fetchLoList,
+        fetchViTriList,
       }}
       selectData={{
         maKhoList,

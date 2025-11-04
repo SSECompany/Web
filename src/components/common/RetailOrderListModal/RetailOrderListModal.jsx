@@ -430,18 +430,6 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
     if (isEditingOrder) return;
     setIsEditingOrder(true);
     try {
-      const existingTab = tabs.some(
-        (tab) => tab.master.stt_rec === record.stt_rec
-      );
-      if (existingTab) {
-        notification.error({
-          message: "Tab đã tồn tại!",
-          duration: 3,
-        });
-        setIsEditingOrder(false);
-        return;
-      }
-
       const { masterData, flatDetailData } = await fetchOrderDetail(
         record.stt_rec
       );

@@ -66,6 +66,77 @@ export const validateDataSource = (dataSource, formType = "default") => {
   return { isValid: true };
 };
 
+/**
+ * Validate tổng nhặt không được vượt quá số lượng (so_luong) cho từng dòng (cả cha và con)
+ * @param {Array} dataSource - Dữ liệu bảng
+ * @returns {Object} { isValid: boolean, errors: Array }
+ */
+export const validateTongNhat = (dataSource) => {
+  const errors = [];
+
+  dataSource.forEach((item, index) => {
+    // Lấy so_luong để check với tong_nhat (không dùng so_luong_don)
+    // Với dòng con, so_luong đã được copy từ parent
+    let soLuong = 0;
+    
+    if (item.so_luong !== undefined && item.so_luong !== null && item.so_luong !== "") {
+      soLuong = parseFloat(item.so_luong) || 0;
+    } else if (item.soLuongDeNghi !== undefined && item.soLuongDeNghi !== null && item.soLuongDeNghi !== "") {
+      soLuong = parseFloat(item.soLuongDeNghi) || 0;
+    }
+    
+    const tongNhat = parseFloat(item.tong_nhat || 0);
+    
+    // Debug log để kiểm tra tất cả các dòng
+    console.log(`Validation check - Row ${index + 1}:`, {
+      isChild: item.isChild,
+      so_luong: item.so_luong,
+      soLuongDeNghi: item.soLuongDeNghi,
+      soLuong,
+      tongNhat,
+      willFail: tongNhat > soLuong,
+    });
+    
+    // Kiểm tra tong_nhat không được vượt quá so_luong
+    // Nếu soLuong = 0 và tongNhat > 0 thì cũng là lỗi
+    if (tongNhat > soLuong) {
+      const stt = item.isChild ? `(Dòng con của dòng ${item.parentKey})` : `Dòng ${index + 1}`;
+      const maHang = item.maHang || item.ma_vt || "";
+      const tenMatHang = item.ten_mat_hang || item.ten_vt || "";
+      const itemInfo = maHang && tenMatHang ? `${maHang} - ${tenMatHang}` : maHang || tenMatHang || `Dòng ${index + 1}`;
+      
+      errors.push({
+        stt: stt,
+        itemInfo: itemInfo,
+        soLuong: soLuong,
+        tongNhat: tongNhat,
+      });
+    }
+  });
+
+  if (errors.length > 0) {
+    message.error({
+      content: (
+        <div>
+          <div style={{ fontWeight: "bold", marginBottom: 8 }}>
+            Tổng nhặt không được vượt quá số lượng:
+          </div>
+          {errors.map((error, idx) => (
+            <div key={idx} style={{ marginBottom: 4 }}>
+              • <strong>{error.stt}</strong> - {error.itemInfo}: 
+              Tổng nhặt ({error.tongNhat}) &gt; Số lượng ({error.soLuong})
+            </div>
+          ))}
+        </div>
+      ),
+      duration: 8,
+    });
+    return { isValid: false, errors };
+  }
+
+  return { isValid: true, errors: [] };
+};
+
 export const buildPhieuNhatHangPayload = (
   values,
   dataSource,
@@ -172,7 +243,6 @@ export const buildPhieuNhatHangPayload = (
     "soPhieu",
     "maKhach",
     "dienGiai",
-    "tenKhach",
     "maGiaoDich",
     "trangThai",
     "donViTienTe",
@@ -241,20 +311,33 @@ export const buildPhieuNhatHangPayload = (
     dynamicItem.so_ct = values.soPhieu || "";
 
     // Mapping từ UI fields sang API fields
-    if (item.maHang) dynamicItem.ma_vt = item.maHang.trim();
-    if (item.soLuongDeNghi !== undefined)
+    // Với dòng cha: set ma_vt từ maHang
+    if (item.maHang) {
+      dynamicItem.ma_vt = item.maHang.trim();
+    }
+    // Với dòng con (isChild): ma_vt đã được copy từ parent qua {...parent}
+    // Chỉ đảm bảo ma_vt có giá trị từ parent
+    
+    // Mapping số lượng
+    // Với dòng cha: set so_luong từ soLuongDeNghi
+    // Với dòng con: so_luong đã được copy từ parent qua {...parent}, giữ nguyên
+    if (!item.isChild && item.soLuongDeNghi !== undefined) {
       dynamicItem.so_luong = parseFloat(item.soLuongDeNghi || 0);
+    }
+    // Với dòng con, so_luong đã được copy từ parent, không cần override
     if (item.soLuong !== undefined)
       dynamicItem.sl_td3 = parseFloat(item.soLuong || 0);
 
     // Mapping các trường mới cho phiếu nhặt hàng
-    if (item.so_luong_don !== undefined)
-      dynamicItem.so_luong_don = parseFloat(item.so_luong_don || 0);
+    // so_luong_don sẽ bị xóa khỏi payload (thêm vào uiOnlyFields)
+    // Dòng con sẽ gửi so_luong (đã được set về 0)
     if (item.nhat !== undefined) dynamicItem.nhat = parseFloat(item.nhat || 0);
     if (item.ghi_chu !== undefined)
       dynamicItem.ghi_chu = item.ghi_chu ? item.ghi_chu.trim() : "";
-    if (item.so_luong_ton !== undefined)
-      dynamicItem.so_luong_ton = parseFloat(item.so_luong_ton || 0);
+    // so_luong_ton đã được copy từ parent, chỉ parse lại nếu có giá trị
+    if (item.so_luong_ton !== undefined && item.so_luong_ton !== null) {
+      dynamicItem.so_luong_ton = parseFloat(item.so_luong_ton);
+    }
     if (item.tong_nhat !== undefined)
       dynamicItem.tong_nhat = parseFloat(item.tong_nhat || 0);
     if (item.ma_lo !== undefined)
@@ -266,8 +349,22 @@ export const buildPhieuNhatHangPayload = (
     if (!dynamicItem.stt_rec && phieuData?.stt_rec) {
       dynamicItem.stt_rec = phieuData.stt_rec;
     }
-    if (!dynamicItem.stt_rec0) {
+    // Với dòng con (isChild), stt_rec0 đã được copy từ parent qua {...parent}
+    // Chỉ set stt_rec0 theo index nếu không phải dòng con và chưa có giá trị
+    if (!dynamicItem.stt_rec0 && !item.isChild) {
       dynamicItem.stt_rec0 = String(index + 1).padStart(3, "0");
+    } else if (item.isChild && !dynamicItem.stt_rec0) {
+      // Nếu dòng con không có stt_rec0 (trường hợp hiếm), tìm parent để copy
+      // Nhưng thường thì đã được copy qua {...parent}
+      const parentIndex = dataSource.findIndex(
+        (row) => row.key === item.parentKey || row.line_nbr === item.parentKey
+      );
+      if (parentIndex >= 0 && dataSource[parentIndex]?.stt_rec0) {
+        dynamicItem.stt_rec0 = dataSource[parentIndex].stt_rec0;
+      } else {
+        // Fallback: set theo index của parent gần nhất
+        dynamicItem.stt_rec0 = String(index + 1).padStart(3, "0");
+      }
     }
     if (!dynamicItem.ma_ct) {
       dynamicItem.ma_ct = "PND";
@@ -310,8 +407,17 @@ export const buildPhieuNhatHangPayload = (
     // Không gắn mặc định bất kỳ trường nào - chỉ giữ trường thực sự có trong data
 
     // Xử lý tự động các loại trường - chỉ xử lý những trường thực sự có
+    // Các trường đã được parse ở trên (so_luong_ton) không parse lại
+    // so_luong_don sẽ bị xóa khỏi payload, không cần parse
+    const alreadyParsedFields = ["so_luong_ton"];
+    
     Object.keys(dynamicItem).forEach((key) => {
       const value = dynamicItem[key];
+
+      // Bỏ qua các trường đã được parse ở trên
+      if (alreadyParsedFields.includes(key)) {
+        return;
+      }
 
       // Các trường số - parse float (chỉ nếu có giá trị và là số)
       if (
@@ -370,6 +476,7 @@ export const buildPhieuNhatHangPayload = (
 
     // Clean up UI-only fields trước khi gửi API
     // Chỉ loại bỏ những trường chỉ dùng cho UI, giữ lại tất cả trường API
+    // Với dòng con (isChild), giữ lại tất cả trường API từ parent, chỉ xóa UI fields
     const uiOnlyFields = [
       "key",
       "maHang",
@@ -381,10 +488,13 @@ export const buildPhieuNhatHangPayload = (
       "he_so_goc",
       "dvt_goc",
       "donViTinhList",
+      "loOptions",
+      "so_luong_don", // Xóa so_luong_don khỏi payload, dòng con sẽ gửi so_luong
       "isNewlyAdded",
       "_lastUpdated",
     ];
 
+    // Xóa các trường chỉ dùng cho UI (giữ lại tất cả trường API)
     uiOnlyFields.forEach((field) => {
       if (field in dynamicItem) {
         delete dynamicItem[field];

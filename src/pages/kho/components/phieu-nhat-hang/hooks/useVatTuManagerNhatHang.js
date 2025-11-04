@@ -172,12 +172,10 @@ export const useVatTuManagerNhatHang = () => {
         return;
       }
 
-      const donViTinhList = await fetchDonViTinh(value.trim());
-      if (!Array.isArray(donViTinhList)) {
-        message.error("Không thể lấy danh sách đơn vị tính");
-        if (setVatTuInput) setTimeout(() => setVatTuInput(""), 2000);
-        return;
-      }
+      // Bỏ API danh-sach-dv, sử dụng đơn vị tính từ vatTuInfo
+      const donViTinhList = vatTuInfo.dvt 
+        ? [{ dvt: vatTuInfo.dvt.trim(), he_so: parseFloat(vatTuInfo.he_so) || 1 }]
+        : [];
 
       setDataSource((prev) => {
         const existingIndex = prev.findIndex(
@@ -246,7 +244,8 @@ export const useVatTuManagerNhatHang = () => {
                   dvtHienTai || (vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái"),
                 dvt_goc: dvtAPI,
 
-                ma_kho: (vatTuInfo.ma_kho || item.ma_kho || "").trim(), // Cập nhật ma_kho từ API, fallback về giá trị cũ
+                // Giữ nguyên ma_kho từ item hiện tại (đã lấy từ dòng cha khi thêm)
+                ma_kho: item.ma_kho || (vatTuInfo.ma_kho || "").trim(),
 
                 donViTinhList: donViTinhList,
                 isNewlyAdded: item.isNewlyAdded,
@@ -306,6 +305,11 @@ export const useVatTuManagerNhatHang = () => {
             soLuongDeNghiHienThi = soLuongDeNghiGoc * heSoHienTai;
           }
 
+          // Lấy ma_vi_tri và ma_kho từ dòng cha (item đầu tiên) nếu có
+          const parentRow = prev.length > 0 ? prev[0] : null;
+          const parentMaViTri = parentRow?.ma_vi_tri || "";
+          const parentMaKho = parentRow?.ma_kho || (vatTuInfo.ma_kho || "").trim();
+
           const newItem = {
             key: prev.length + 1,
             maHang: value,
@@ -319,7 +323,8 @@ export const useVatTuManagerNhatHang = () => {
             dvt: dvtHienTai,
             dvt_goc: dvtGocFromAPI,
             tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",
-            ma_kho: (vatTuInfo.ma_kho || "").trim(),
+            // Lấy ma_kho từ dòng cha, không hiển thị trong UI
+            ma_kho: parentMaKho,
             donViTinhList: donViTinhList,
             isNewlyAdded: true,
 
@@ -336,7 +341,8 @@ export const useVatTuManagerNhatHang = () => {
             ma_sp: "",
             ma_bp: "",
             so_lsx: "",
-            ma_vi_tri: "",
+            // Lấy ma_vi_tri từ dòng cha
+            ma_vi_tri: parentMaViTri,
             ma_lo: "",
             ma_vv: "",
             ma_nx: "",
@@ -591,6 +597,68 @@ export const useVatTuManagerNhatHang = () => {
     message.success("Đã xóa vật tư");
   };
 
+  const handleAddItem = (parentIndex, parentRecord) => {
+    setDataSource((prev) => {
+      if (
+        parentIndex === undefined ||
+        parentIndex < 0 ||
+        parentIndex >= prev.length
+      ) {
+        return prev;
+      }
+
+      const parent = parentRecord || prev[parentIndex];
+
+      // Copy tất cả các trường từ dòng cha
+      const newChild = {
+        ...parent,
+        key: 0, // sẽ re-index sau
+        
+        // Override: dòng con để trống mã hàng và tên (ẩn trên UI)
+        // Nhưng giữ nguyên ma_vt, ten_vt từ parent để có trong payload
+        maHang: "",
+        ten_mat_hang: "",
+        // ma_vt giữ nguyên từ parent (đã được copy từ {...parent})
+        
+        // Override: Chỉ các trường số lượng nhặt hàng về 0
+        soLuong: 0,
+        soLuong_goc: 0,
+        soLuongDeNghi: 0,
+        nhat: 0,
+        tong_nhat: 0, // Tổng nhặt - về 0 cho dòng con mới
+        // so_luong và so_luong_ton giữ nguyên từ parent (đã được copy từ {...parent})
+        // so_luong: giữ nguyên từ parent
+        // so_luong_ton: giữ nguyên từ parent
+        sl_td3: 0,
+        // so_luong_don: sẽ bị xóa khỏi payload (thêm vào uiOnlyFields)
+        
+        // Override: Ghi chú để trống
+        ghi_chu: "",
+        
+        // Override: Mã lô để trống (dòng con không cần theo dòng cha)
+        ma_lo: "",
+        
+        // Liên kết cha
+        parentKey: parent.key,
+        isChild: true,
+        _lastUpdated: Date.now(),
+      };
+
+      const newData = [
+        ...prev.slice(0, parentIndex + 1),
+        newChild,
+        ...prev.slice(parentIndex + 1),
+      ];
+
+      // Re-index keys và line_nbr nếu có
+      return newData.map((item, i) => ({
+        ...item,
+        key: i + 1,
+        line_nbr: i + 1,
+      }));
+    });
+  };
+
   const handleDvtChange = (newValue, record) => {
     if (!record || !record.donViTinhList) {
       message.error("Thông tin vật tư không hợp lệ");
@@ -668,6 +736,7 @@ export const useVatTuManagerNhatHang = () => {
     handleQuantityChange,
     handleSelectChange,
     handleDeleteItem,
+    handleAddItem,
     handleDvtChange,
   };
 };

@@ -24,6 +24,7 @@ const POS = () => {
 
   const [cart, setCart] = useState([]);
   const [customer, setCustomer] = useState({
+    code: "",
     phone: "",
     name: "",
     idNumber: "",
@@ -424,7 +425,12 @@ const POS = () => {
             total={total}
             change={change}
             cart={cart}
-            onClearCart={() => setCart([])}
+            onClearCart={() => {
+              setCart([]);
+              setPayment({ method: "cash", cash: 0 });
+              setCustomer({ code: "", phone: "", name: "", idNumber: "", patientName: "" });
+              setCustomerOpen(false);
+            }}
           />
         </div>
       </div>

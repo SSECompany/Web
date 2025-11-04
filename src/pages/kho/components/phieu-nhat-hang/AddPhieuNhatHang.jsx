@@ -1,9 +1,10 @@
 import { DownOutlined, LeftOutlined, UpOutlined } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { getLoItem, getViTriByKho } from "../../../../api";
 import VatTuSelectFull from "../../../../components/common/ProductSelectFull/VatTuSelectFull";
 import "../common-phieu.css";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
@@ -16,6 +17,7 @@ import {
   fetchVoucherInfo,
   submitPhieuNhatHangDynamic,
   validateDataSource,
+  validateTongNhat,
 } from "./utils/phieuNhatHangUtils";
 
 const { Title } = Typography;
@@ -50,11 +52,15 @@ const AddPhieuNhatHang = () => {
     loadingMaKhach,
     vatTuList,
     loadingVatTu,
+    fcode3List,
+    loadingFcode3,
     fetchMaKhoListDebounced,
     fetchMaKhachListDebounced,
+    fetchFcode3ListDebounced,
     fetchMaGiaoDichList,
     fetchMaKhoList,
     fetchMaKhachList,
+    fetchFcode3List,
     fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
@@ -97,6 +103,7 @@ const AddPhieuNhatHang = () => {
         fetchMaGiaoDichList(),
         fetchMaKhoList(),
         fetchMaKhachList(),
+        fetchFcode3List(),
         fetchVatTuListPaging("", 1, false),
       ]);
 
@@ -124,6 +131,7 @@ const AddPhieuNhatHang = () => {
     fetchMaGiaoDichList,
     fetchMaKhoList,
     fetchMaKhachList,
+    fetchFcode3List,
     fetchVatTuList,
     isInitialized,
     form,
@@ -160,6 +168,66 @@ const AddPhieuNhatHang = () => {
     );
   };
 
+  // === API: fetch lists for Mã lô / Vị trí ===
+
+  const fetchLoList = useCallback(
+    async (keyword = "", record = {}, page = 1) => {
+      try {
+        const response = await getLoItem({
+          ma_vt: (record?.maHang || record?.ma_vt || "").toString(),
+          ma_lo: "",
+          ten_lo: keyword,
+          ngay_hhsd_tu: null,
+          ngay_hhsd_den: null,
+          pageIndex: page,
+          pageSize: 10,
+        });
+
+        const data = response?.listObject?.[0] || [];
+        const options = data.map((x) => {
+          const value = (x?.ma_lo || x?.value || x?.ten_lo || "").toString();
+          const label = x?.ma_lo || x?.ten_lo || x?.label || value;
+          return { value, label };
+        });
+        return options;
+      } catch (e) {
+        console.error("fetchLoList error", e);
+        return [];
+      }
+    },
+    []
+  );
+
+  const fetchViTriList = useCallback(
+    async (keyword = "", record = {}, page = 1) => {
+      try {
+        const response = await getViTriByKho({
+          ma_kho: (record?.ma_kho || "ST").toString(),
+          ten_vi_tri: keyword,
+          pageIndex: page,
+          pageSize: 10,
+        });
+
+        const data = response?.listObject?.[0] || [];
+        const options = data.map((x) => {
+          const value = (
+            x?.ma_vi_tri ||
+            x?.value ||
+            x?.ten_vi_tri ||
+            ""
+          ).toString();
+          const label = x?.ma_vi_tri || x?.ten_vi_tri || x?.label || value;
+          return { value, label };
+        });
+        return options;
+      } catch (e) {
+        console.error("fetchViTriList error", e);
+        return [];
+      }
+    },
+    []
+  );
+
   const handleSubmit = async () => {
     try {
       setLoading(true);
@@ -168,11 +236,25 @@ const AddPhieuNhatHang = () => {
       // Validate data source
       const validation = validateDataSource(dataSource, "nhat-hang");
       if (!validation.isValid) {
+        setLoading(false);
         return;
       }
 
+      // Validate tổng nhặt không được vượt quá số lượng đơn
+      const tongNhatValidation = validateTongNhat(dataSource);
+      if (!tongNhatValidation.isValid) {
+        setLoading(false);
+        return;
+      }
+
+      // Set status = 1 cho nút Lưu
+      const updatedValues = {
+        ...values,
+        trangThai: "1",
+      };
+
       // Kiểm tra số lượng lệch nhau trước khi submit
-      const currentStatus = values.trangThai || "0";
+      const currentStatus = updatedValues.trangThai || "1";
 
       validateQuantityForPhieu(
         dataSource,
@@ -181,9 +263,9 @@ const AddPhieuNhatHang = () => {
         async () => {
           // Callback khi user xác nhận tiếp tục
           try {
-            // Build payload
+            // Build payload với status = 1
             const payload = buildPhieuNhatHangPayload(
-              values,
+              updatedValues,
               dataSource,
               null,
               false,
@@ -199,13 +281,13 @@ const AddPhieuNhatHang = () => {
             // Submit
             const result = await submitPhieuNhatHangDynamic(
               payload,
-              "Thêm phiếu nhặt hàng thành công",
+              "Lưu thành công",
               false,
               userInfo
             );
 
             if (result.success) {
-              navigate("/kho/nhat-hang");
+              // Giữ nguyên màn hình chỉnh sửa, không navigate về trang chủ
             }
           } catch (error) {
             console.error("Submit failed:", error);
@@ -265,13 +347,17 @@ const AddPhieuNhatHang = () => {
         <div className="phieu-form-container" style={{ marginBottom: 16 }}>
           <Form form={form} layout="vertical" className="phieu-form">
             <PhieuNhatHangFormInputs
-              isEditMode={isEditMode}
+              isEditMode={false}
               maKhachList={maKhachList}
               loadingMaKhach={loadingMaKhach}
               fetchMaKhachListDebounced={fetchMaKhachListDebounced}
               maGiaoDichList={maGiaoDichList}
               fetchMaKhachList={fetchMaKhachList}
               fetchMaGiaoDichList={fetchMaGiaoDichList}
+              fcode3List={fcode3List}
+              loadingFcode3={loadingFcode3}
+              fetchFcode3ListDebounced={fetchFcode3ListDebounced}
+              fetchFcode3List={fetchFcode3List}
               barcodeEnabled={barcodeEnabled}
               setBarcodeEnabled={setBarcodeEnabled}
               setBarcodeJustEnabled={setBarcodeJustEnabled}
@@ -338,10 +424,13 @@ const AddPhieuNhatHang = () => {
             handleDeleteItem={handleDeleteItem}
             handleAddItem={handleAddItem}
             handleDvtChange={handleDvtChange}
+            onDataSourceUpdate={setDataSource}
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
             fetchMaKhoList={fetchMaKhoList}
+            fetchLoList={fetchLoList}
+            fetchViTriList={fetchViTriList}
           />
 
           {/* Action buttons */}

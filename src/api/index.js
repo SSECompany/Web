@@ -219,6 +219,109 @@ export const searchVatTu = async (
     });
 };
 
+// === Warehouse helpers for Mã lô / Vị trí ===
+export const getViTriByKho = async ({
+  ma_kho = "ST",
+  ten_vi_tri = "",
+  pageIndex = 1,
+  pageSize = 10,
+} = {}) => {
+  const token = localStorage.getItem("access_token");
+
+  const payload = {
+    store: "api_getViTriByKho",
+    param: {
+      ma_kho,
+      ten_vi_tri,
+      pageIndex,
+      pageSize,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => {
+      const data = res?.data || {};
+      const responseModel = data?.responseModel || { isSucceded: true };
+      const list = data?.listObject;
+      let listObject;
+      if (Array.isArray(list)) {
+        listObject = Array.isArray(list[0]) ? list : [list];
+      } else {
+        const fallback = Array.isArray(data?.data) ? data.data : [];
+        listObject = [fallback];
+      }
+      return { responseModel, listObject };
+    })
+    .catch((error) => {
+      console.error("Error getViTriByKho:", error);
+      return {
+        responseModel: { isSucceded: false, message: "Lỗi kết nối mạng" },
+        listObject: [[]],
+      };
+    });
+};
+
+export const getLoItem = async ({
+  ma_vt = "",
+  ma_lo = "",
+  ten_lo = "",
+  ngay_hhsd_tu = null,
+  ngay_hhsd_den = null,
+  pageIndex = 1,
+  pageSize = 10,
+} = {}) => {
+  const token = localStorage.getItem("access_token");
+
+  const payload = {
+    store: "api_getLoItem",
+    param: {
+      ma_vt,
+      ma_lo,
+      ten_lo,
+      ngay_hhsd_tu,
+      ngay_hhsd_den,
+      pageIndex,
+      pageSize,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => {
+      const data = res?.data || {};
+      const responseModel = data?.responseModel || { isSucceded: true };
+      const list = data?.listObject;
+      let listObject;
+      if (Array.isArray(list)) {
+        listObject = Array.isArray(list[0]) ? list : [list];
+      } else {
+        const fallback = Array.isArray(data?.data) ? data.data : [];
+        listObject = [fallback];
+      }
+      return { responseModel, listObject };
+    })
+    .catch((error) => {
+      console.error("Error getLoItem:", error);
+      return {
+        responseModel: { isSucceded: false, message: "Lỗi kết nối mạng" },
+        listObject: [[]],
+      };
+    });
+};
+
 export const getKhoInfo = async (unitId = null, userId = null) => {
   const token = localStorage.getItem("access_token");
 
@@ -530,24 +633,24 @@ export const searchPrescriptionByCode = async (
 export const createCustomer = async ({
   phone,
   name,
-  idNumber,
-  patientName,
+  birthday,
+  address,
+  note,
+  userId,
 }) => {
   const token = localStorage.getItem("access_token");
 
   const payload = {
-    store: "api_createCustomer",
-    param: {},
-    data: {
-      customer: [
-        {
-          phone: phone || "",
-          name: name || "",
-          idNumber: idNumber || "",
-          patientName: patientName || "",
-        },
-      ],
+    store: "api_createKhachHang",
+    param: {
+      ten_kh: name || "",
+      dien_thoai: phone || "",
+      ngay_sinh: birthday || "",
+      dia_chi: address || "",
+      ghi_chu: note || "",
+      userid: Number(userId) || 0,
     },
+    data: {},
   };
 
   return await https
@@ -587,6 +690,37 @@ export const searchCustomer = async (keyword = "") => {
     .then((res) => res?.data || { listObject: [[]] })
     .catch((error) => {
       console.error("Error searching customer:", error);
+      return { listObject: [[]] };
+    });
+};
+
+// Search customers via api_getKhachHang
+export const searchKhachHang = async (
+  keyword = "",
+  pageIndex = 1,
+  pageSize = 10
+) => {
+  const token = localStorage.getItem("access_token");
+  const payload = {
+    store: "api_getKhachHang",
+    param: {
+      searchValue: keyword || "",
+      pageIndex,
+      pageSize,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => res?.data || { listObject: [[]] })
+    .catch((error) => {
+      console.error("Error searching khach hang:", error);
       return { listObject: [[]] };
     });
 };

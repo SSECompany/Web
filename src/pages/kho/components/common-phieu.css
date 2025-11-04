@@ -705,3 +705,77 @@ body {
     overflow: visible;
   }
 }
+
+/* ========== FILTER CHIPS BAR (Phenikaa-like) ========== */
+.filter-chips-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #eef2f7;
+  background: #fafcff;
+  border-radius: 10px;
+  margin: 8px 0 12px 0;
+}
+
+.filter-chips-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-chips-icon {
+  color: #5b9bd5;
+}
+
+.filter-chips-title {
+  color: #64748b;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.filter-chips-list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  border: 1px solid transparent !important;
+}
+
+.filter-chip--blue {
+  background: #e6f7ff !important;
+  color: #1890ff !important;
+  border-color: #bae7ff !important;
+}
+
+.filter-chip--green {
+  background: #f0fff4 !important;
+  color: #08979c !important;
+  border-color: #b7eb8f !important;
+}
+
+.filter-chip--gray {
+  background: #f5f7fb !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+
+.filter-chips-right .ant-btn {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  border-radius: 6px;
+  height: 28px;
+  font-weight: 600;
+}
+
+.filter-chips-right .ant-btn:hover {
+  background: #f8fafc;
+}

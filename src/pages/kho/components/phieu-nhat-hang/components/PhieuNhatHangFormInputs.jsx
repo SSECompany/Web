@@ -1,14 +1,8 @@
-import { Col, DatePicker, Form, Input, Row, Select } from "antd";
-import React, { useMemo } from "react";
+import { Col, Form, Input, Row } from "antd";
+import dayjs from "dayjs";
 
 const PhieuNhatHangFormInputs = ({
   isEditMode = true,
-  maKhachList,
-  loadingMaKhach,
-  fetchMaKhachListDebounced,
-  maGiaoDichList,
-  fetchMaKhachList,
-  fetchMaGiaoDichList,
   barcodeEnabled,
   setBarcodeEnabled,
   setBarcodeJustEnabled,
@@ -27,212 +21,182 @@ const PhieuNhatHangFormInputs = ({
   currentKeyword,
   VatTuSelectComponent,
 }) => {
-  // Group các props theo category để dễ quản lý
-  const selectData = useMemo(
-    () => ({
-      maKhachList,
-      maGiaoDichList,
-    }),
-    [maKhachList, maGiaoDichList]
-  );
-
-  const selectHandlers = useMemo(
-    () => ({
-      fetchMaKhachList,
-      fetchMaKhachListDebounced,
-      fetchMaGiaoDichList,
-    }),
-    [fetchMaKhachList, fetchMaKhachListDebounced, fetchMaGiaoDichList]
-  );
-
-  const loadingStates = useMemo(
-    () => ({
-      loadingMaKhach,
-    }),
-    [loadingMaKhach]
-  );
-
-  const vatTuProps = useMemo(
-    () => ({
-      barcodeEnabled,
-      setBarcodeEnabled,
-      setBarcodeJustEnabled,
-      vatTuInput,
-      setVatTuInput,
-      vatTuSelectRef,
-      loadingVatTu,
-      vatTuList,
-      searchTimeoutRef,
-      fetchVatTuList,
-      handleVatTuSelect,
-      totalPage,
-      pageIndex,
-      setPageIndex,
-      setVatTuList,
-      currentKeyword,
-    }),
-    [
-      barcodeEnabled,
-      setBarcodeEnabled,
-      setBarcodeJustEnabled,
-      vatTuInput,
-      setVatTuInput,
-      vatTuSelectRef,
-      loadingVatTu,
-      vatTuList,
-      searchTimeoutRef,
-      fetchVatTuList,
-      handleVatTuSelect,
-      totalPage,
-      pageIndex,
-      setPageIndex,
-      setVatTuList,
-      currentKeyword,
-    ]
-  );
-
   return (
     <>
       {/* Header fields customized per ERP screenshots */}
       <Row gutter={16}>
         <Col span={12}>
-          {/* Mã khách */}
+          {/* Khách hàng: mã khách - tên khách - Input chỉ hiển thị */}
           <Form.Item
-            name="maKhach"
-            label="Mã khách"
-            rules={[{ required: true, message: "Vui lòng chọn mã khách" }]}
+            label="Khách hàng"
+            shouldUpdate={(prevValues, curValues) =>
+              prevValues.maKhach !== curValues.maKhach ||
+              prevValues.tenKhach !== curValues.tenKhach
+            }
           >
-            <Select
-              showSearch
-              allowClear
-              placeholder="Chọn khách hàng"
-              loading={loadingStates.loadingMaKhach}
-              filterOption={false}
-              onSearch={selectHandlers.fetchMaKhachListDebounced}
-              onDropdownVisibleChange={(open) => {
-                if (open && selectHandlers.fetchMaKhachList) {
-                  selectHandlers.fetchMaKhachList("");
-                }
-              }}
-              options={selectData.maKhachList}
-              dropdownClassName="phieu-form-dropdown"
-              optionLabelProp="value"
-              disabled={!isEditMode}
-              popupMatchSelectWidth={false}
-            />
+            {({ getFieldValue }) => {
+              const maKhach = getFieldValue("maKhach") || "";
+              const tenKhach = getFieldValue("tenKhach") || "";
+              const displayValue =
+                maKhach && tenKhach
+                  ? `${maKhach} - ${tenKhach}`
+                  : maKhach || tenKhach || "";
+              return (
+                <Input
+                  value={displayValue}
+                  placeholder="Khách hàng"
+                  disabled={true}
+                />
+              );
+            }}
+          </Form.Item>
+          <Form.Item name="maKhach" hidden>
+            <Input />
+          </Form.Item>
+          <Form.Item name="tenKhach" hidden>
+            <Input />
           </Form.Item>
         </Col>
         <Col span={12}>
-          {/* Số chứng từ */}
           <Form.Item
-            name="soPhieu"
-            label="Số chứng từ"
-            rules={[{ required: true, message: "Vui lòng nhập số chứng từ" }]}
+            label="Phiếu nhặt hàng"
+            shouldUpdate={(prevValues, curValues) =>
+              prevValues.soPhieu !== curValues.soPhieu ||
+              prevValues.ngay !== curValues.ngay
+            }
           >
-            <Input placeholder="Nhập số chứng từ" disabled={!isEditMode} />
+            {({ getFieldValue }) => {
+              const soPhieu = getFieldValue("soPhieu") || "";
+              const ngay = getFieldValue("ngay");
+              const ngayStr = ngay ? dayjs(ngay).format("DD/MM/YYYY") : "";
+              const displayValue =
+                soPhieu && ngayStr
+                  ? `${soPhieu} - ${ngayStr}`
+                  : soPhieu || ngayStr || "";
+              return (
+                <Input
+                  value={displayValue}
+                  placeholder="Số chứng từ - Ngày lập"
+                  disabled={true}
+                />
+              );
+            }}
+          </Form.Item>
+          <Form.Item name="soPhieu" hidden>
+            <Input />
+          </Form.Item>
+          <Form.Item name="ngay" hidden>
+            <Input />
           </Form.Item>
         </Col>
       </Row>
 
       <Row gutter={16}>
         <Col span={12}>
-          {/* Tên khách hàng - Read only display */}
-          <Form.Item name="tenKhach" label="Tên khách hàng">
-            <Input placeholder="Tên khách hàng" disabled={true} />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          {/* Ngày lập */}
           <Form.Item
-            name="ngay"
-            label="Ngày lập"
-            rules={[{ required: true, message: "Vui lòng chọn ngày lập" }]}
+            label="Phương tiện vận chuyển"
+            shouldUpdate={(prevValues, curValues) =>
+              prevValues.loaiVanChuyen !== curValues.loaiVanChuyen ||
+              prevValues.tenVc !== curValues.tenVc
+            }
           >
-            <DatePicker
-              style={{ width: "100%" }}
-              format="DD/MM/YYYY"
-              placeholder="Chọn ngày"
-              inputReadOnly
-              disabled={!isEditMode}
-            />
+            {({ getFieldValue }) => {
+              const loaiVanChuyen = getFieldValue("loaiVanChuyen") || "";
+              const tenVc = getFieldValue("tenVc") || "";
+              const displayValue =
+                loaiVanChuyen && tenVc
+                  ? `${loaiVanChuyen} - ${tenVc}`
+                  : tenVc || loaiVanChuyen || "";
+              return (
+                <Input
+                  value={displayValue}
+                  placeholder="Phương tiện vận chuyển"
+                  disabled={true}
+                />
+              );
+            }}
+          </Form.Item>
+          <Form.Item name="loaiVanChuyen" hidden>
+            <Input />
+          </Form.Item>
+          <Form.Item name="tenVc" hidden>
+            <Input />
           </Form.Item>
         </Col>
-      </Row>
-
-      <Row gutter={16}>
         <Col span={12}>
-          {/* Loại vận chuyển */}
-          <Form.Item name="loaiVanChuyen" label="Loại vận chuyển">
-            <Input placeholder="Nhập loại vận chuyển" disabled={!isEditMode} />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          {/* Vùng */}
           <Form.Item name="vung" label="Vùng">
-            <Input placeholder="Nhập vùng" disabled={!isEditMode} />
+            <Input placeholder="Vùng" disabled={true} />
           </Form.Item>
         </Col>
       </Row>
 
       <Row gutter={16}>
         <Col span={12}>
-          {/* Số đơn hàng */}
           <Form.Item name="soDonHang" label="Số đơn hàng">
-            <Input placeholder="Nhập số đơn hàng" disabled={!isEditMode} />
+            <Input placeholder="Số đơn hàng" disabled={true} />
           </Form.Item>
         </Col>
         <Col span={12}>
-          {/* Nhân viên */}
-          <Form.Item name="nhanVien" label="Nhân viên">
-            <Input placeholder="Nhập nhân viên" disabled={!isEditMode} />
+          <Form.Item name="nhanVien" label="Nhân viên nhặt hàng">
+            <Input placeholder="Nhân viên nhặt hàng" disabled={true} />
           </Form.Item>
         </Col>
       </Row>
 
       <Row gutter={16}>
         <Col span={12}>
-          {/* Số phiếu xuất bán */}
-          <Form.Item name="soPhieuXuatBan" label="Số phiếu xuất bán">
-            <Input
-              placeholder="Nhập số phiếu xuất bán"
-              disabled={!isEditMode}
-            />
+          <Form.Item name="batDauNhatHang" label="Bắt đầu nhặt hàng">
+            <Input placeholder="Bắt đầu nhặt hàng" disabled={true} />
           </Form.Item>
         </Col>
         <Col span={12}>
-          {/* Bàn đóng gói */}
+          <Form.Item name="ketThucNhatHang" label="Kết thúc nhặt hàng">
+            <Input placeholder="Kết thúc nhặt hàng" disabled={true} />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <Row gutter={16}>
+        <Col span={12}>
+          {/* Bàn đóng gói - Input chỉ hiển thị */}
           <Form.Item name="banDongGoi" label="Bàn đóng gói">
-            <Input placeholder="Nhập bàn đóng gói" disabled={!isEditMode} />
+            <Input placeholder="Bàn đóng gói" disabled={true} />
           </Form.Item>
         </Col>
-      </Row>
-
-      <Row gutter={16}>
         <Col span={12}>
-          {/* Trạng thái */}
-          <Form.Item name="trangThai" label="Trạng thái">
-            <Select
-              placeholder="Chọn trạng thái"
-              disabled={!isEditMode}
-              dropdownClassName="phieu-form-dropdown"
-              popupMatchSelectWidth={false}
-              options={[
-                { value: "0", label: "Mới chia đơn" },
-                { value: "2", label: "Nhặt hàng" },
-                { value: "3", label: "Chuyển số cái" },
-                { value: "5", label: "Đề nghị nhặt hàng" },
-              ]}
-            />
+          {/* Trạng thái - Input chỉ hiển thị - sử dụng statusname từ API */}
+          <Form.Item
+            label="Trạng thái"
+            shouldUpdate={(prevValues, curValues) =>
+              prevValues.statusname !== curValues.statusname
+            }
+          >
+            {({ getFieldValue }) => {
+              const statusname = getFieldValue("statusname") || "";
+              return (
+                <Input
+                  value={statusname}
+                  placeholder="Trạng thái"
+                  disabled={true}
+                />
+              );
+            }}
+          </Form.Item>
+          {/* Hidden fields to store actual values */}
+          <Form.Item name="trangThai" hidden>
+            <Input />
+          </Form.Item>
+          <Form.Item name="statusname" hidden>
+            <Input />
           </Form.Item>
         </Col>
-        <Col span={12}>{/* Empty column for layout balance */}</Col>
       </Row>
 
       <Row gutter={16}>
         <Col span={24}>
-          {/* Ghi chú */}
+          {/* Ghi chú - Input chỉ hiển thị */}
           <Form.Item name="dienGiai" label="Ghi chú">
-            <Input placeholder="Nhập ghi chú" disabled={!isEditMode} />
+            <Input placeholder="Ghi chú" disabled={true} />
           </Form.Item>
         </Col>
       </Row>

@@ -7,9 +7,11 @@ import {
   UpOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import { AutoComplete, Button, Card, Input, Modal, notification } from "antd";
+import { Button, Card, Input, Modal, Select, notification, DatePicker } from "antd";
 import React, { useMemo, useRef, useState } from "react";
-import { createCustomer, searchCustomer } from "../../../api";
+import dayjs from "dayjs";
+import { useSelector } from "react-redux";
+import { createCustomer, searchKhachHang } from "../../../api";
 
 const CustomerInfo = ({
   customer,
@@ -19,27 +21,39 @@ const CustomerInfo = ({
 }) => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const { id: userId } = useSelector((state) => state.claims?.userInfo || {});
   const [tempCustomer, setTempCustomer] = useState({
     phone: "",
     name: "",
-    idNumber: "",
-    patientName: "",
+    birthday: "",
+    address: "",
+    note: "",
   });
   const [searchValue, setSearchValue] = useState("");
   const [options, setOptions] = useState([]);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef();
 
+  const isPhoneValid = useMemo(() => {
+    return /^\d{10}$/.test((tempCustomer.phone || "").trim());
+  }, [tempCustomer.phone]);
+
   const isCreateDisabled = useMemo(() => {
-    return !tempCustomer.name?.trim() || !tempCustomer.phone?.trim();
-  }, [tempCustomer]);
+    return !tempCustomer.name?.trim() || !isPhoneValid;
+  }, [tempCustomer.name, isPhoneValid]);
+
+  const handlePhoneChange = (e) => {
+    const onlyDigits = (e.target.value || "").replace(/\D/g, "").slice(0, 10);
+    setTempCustomer({ ...tempCustomer, phone: onlyDigits });
+  };
 
   const handleOpenCreate = () => {
     setTempCustomer({
-      phone: customer?.phone || "",
-      name: customer?.name || "",
-      idNumber: customer?.idNumber || "",
-      patientName: customer?.patientName || "",
+      phone: "",
+      name: "",
+      birthday: "",
+      address: "",
+      note: "",
     });
     setIsCreateOpen(true);
   };
@@ -47,20 +61,20 @@ const CustomerInfo = ({
   const handleSearch = (value) => {
     setSearchValue(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!value || value.trim().length < 2) {
-      setOptions([]);
-      return;
-    }
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await searchCustomer(value.trim());
+        const res = await searchKhachHang((value || "").trim(), 1, 10);
         const list = res?.listObject?.[0] || [];
-        const mapped = list.map((c) => ({
-          value: c?.value || c?.phone || c?.id || Math.random().toString(),
-          label: `${c?.label || c?.name || "Khách hàng"} • ${c?.phone || ""}`,
-          raw: c,
-        }));
+        const mapped = list.map((c) => {
+          const code = c?.ma_kh || c?.value || c?.id || Math.random().toString();
+          const name = c?.ten_kh || c?.label || c?.name || "";
+          return {
+            value: code,
+            label: `${code} - ${name}`.trim(),
+            raw: c,
+          };
+        });
         setOptions(mapped);
       } catch (e) {
         setOptions([]);
@@ -73,10 +87,12 @@ const CustomerInfo = ({
   const handleSelect = (_value, option) => {
     const raw = option?.raw || {};
     setCustomer({
-      phone: raw.phone || raw.so_dt || "",
-      name: raw.name || raw.ong_ba || raw.label || "",
-      idNumber: raw.idNumber || raw.cccd || "",
-      patientName: raw.patientName || "",
+      code: raw.ma_kh || raw.code || "",
+      phone: raw.dien_thoai || raw.phone || raw.so_dt || "",
+      name: raw.ten_kh || raw.name || raw.ong_ba || raw.label || "",
+      birthday: raw.ngay_sinh || raw.birthday || "",
+      address: raw.dia_chi || raw.address || "",
+      note: raw.ghi_chu || raw.note || "",
     });
   };
 
@@ -87,11 +103,26 @@ const CustomerInfo = ({
       const res = await createCustomer({
         phone: tempCustomer.phone?.trim(),
         name: tempCustomer.name?.trim(),
-        idNumber: tempCustomer.idNumber?.trim(),
-        patientName: tempCustomer.patientName?.trim(),
+        birthday: tempCustomer.birthday?.trim(),
+        address: tempCustomer.address?.trim(),
+        note: tempCustomer.note?.trim(),
+        userId: userId,
       });
 
-      setCustomer({ ...tempCustomer });
+      // Sau khi lưu, đồng bộ thông tin ra form bên ngoài
+      const createdRaw =
+        res?.listObject?.[0]?.[0] ||
+        res?.data ||
+        res ||
+        {};
+      setCustomer({
+        code: createdRaw.ma_kh || createdRaw.code || customer.code || "",
+        phone: tempCustomer.phone?.trim(),
+        name: tempCustomer.name?.trim(),
+        birthday: tempCustomer.birthday?.trim(),
+        address: tempCustomer.address?.trim(),
+        note: tempCustomer.note?.trim(),
+      });
 
       if (res?.responseModel?.isSucceded) {
         notification.success({ message: "Đã thêm khách hàng" });
@@ -104,8 +135,14 @@ const CustomerInfo = ({
         });
       }
       setIsCreateOpen(false);
+      setTempCustomer({
+        phone: "",
+        name: "",
+        birthday: "",
+        address: "",
+        note: "",
+      });
     } catch (e) {
-      setCustomer({ ...tempCustomer });
       notification.warning({
         message: "Không thể lưu lên máy chủ",
         description: "Đã dùng thông tin KH cục bộ cho đơn hàng",
@@ -118,7 +155,7 @@ const CustomerInfo = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-      {/* Thẻ Thông tin khách hàng - có thể ẩn/hiện */}
+      {/* Thẻ Thông tin khách hàng - luôn hiển thị, bỏ toggle ẩn/hiện */}
       <Card
         size="small"
         title={
@@ -126,115 +163,88 @@ const CustomerInfo = ({
             <span style={{ fontSize: "13px", fontWeight: "500" }}>
               Thông tin khách hàng
             </span>
-            <Button
-              type="text"
-              size="small"
-              onClick={() => setCustomerOpen(!customerOpen)}
-              className="toggle-btn"
-              icon={
-                customerOpen ? (
-                  <UpOutlined style={{ fontSize: "11px" }} />
-                ) : (
-                  <DownOutlined style={{ fontSize: "11px" }} />
-                )
-              }
-            />
           </div>
         }
         className="customer-info-card"
         headStyle={{ padding: "8px 12px", minHeight: "auto" }}
         bodyStyle={{ padding: "8px 12px" }}
       >
-        {customerOpen && (
-          <div style={{ fontSize: "12px" }}>
-            {/* Dòng 0: Tìm KH + Thêm mới */}
-            <div
-              className="customer-actions-row"
-              style={{ display: "flex", gap: 8, marginBottom: 8 }}
-            >
-              <AutoComplete
-                value={searchValue}
-                onChange={setSearchValue}
-                onSearch={handleSearch}
-                options={options}
-                onSelect={handleSelect}
-                className="customer-search-input"
-                popupMatchSelectWidth={500}
-                allowClear
-              >
-                <Input
-                  placeholder={
-                    searching ? "Đang tìm..." : "Tìm KH theo SĐT/Tên"
-                  }
-                  size="small"
-                  prefix={<SearchOutlined style={{ fontSize: "11px" }} />}
-                />
-              </AutoComplete>
-              <Button
-                size="small"
-                type="primary"
-                icon={<PlusOutlined style={{ fontSize: 12 }} />}
-                onClick={handleOpenCreate}
-                className="add-customer-btn"
-              />
-            </div>
-            {/* Dòng 1: Số điện thoại */}
-            <div style={{ marginBottom: "8px" }}>
-              <Input
-                placeholder="Số điện thoại"
-                value={customer.phone}
-                onChange={(e) =>
-                  setCustomer({ ...customer, phone: e.target.value })
+        <div style={{ fontSize: "12px" }}>
+          {/* Dòng 0: Tìm KH + Thêm mới */}
+          <div
+            className="customer-actions-row"
+            style={{ display: "flex", gap: 8, marginBottom: 8 }}
+          >
+            <Select
+              showSearch
+              value={searchValue || undefined}
+              onSearch={handleSearch}
+              onChange={(v) => {
+                setSearchValue(v);
+              }}
+              onSelect={(v, option) => handleSelect(v, option)}
+              onDropdownVisibleChange={(open) => {
+                if (open) {
+                  handleSearch(searchValue || "");
                 }
-                size="small"
-                prefix={<PhoneOutlined style={{ fontSize: "11px" }} />}
-                style={{ fontSize: "12px" }}
-              />
-            </div>
-
-            {/* Dòng 2: Tên khách hàng */}
-            <div style={{ marginBottom: "8px" }}>
-              <Input
-                placeholder="Tên khách hàng"
-                value={customer.name}
-                onChange={(e) =>
-                  setCustomer({ ...customer, name: e.target.value })
-                }
-                size="small"
-                prefix={<UserOutlined style={{ fontSize: "11px" }} />}
-                style={{ fontSize: "12px" }}
-              />
-            </div>
-
-            {/* Dòng 3: CMND/CCCD */}
-            <div style={{ marginBottom: "8px" }}>
-              <Input
-                placeholder="CMND/CCCD"
-                value={customer.idNumber}
-                onChange={(e) =>
-                  setCustomer({ ...customer, idNumber: e.target.value })
-                }
-                size="small"
-                prefix={<IdcardOutlined style={{ fontSize: "11px" }} />}
-                style={{ fontSize: "12px" }}
-              />
-            </div>
-
-            {/* Dòng 4: Họ tên người bệnh */}
-            <div style={{ marginBottom: "8px" }}>
-              <Input
-                placeholder="Họ tên người bệnh"
-                value={customer.patientName}
-                onChange={(e) =>
-                  setCustomer({ ...customer, patientName: e.target.value })
-                }
-                size="small"
-                prefix={<UserOutlined style={{ fontSize: "11px" }} />}
-                style={{ fontSize: "12px" }}
-              />
-            </div>
+              }}
+              options={options}
+              className="customer-search-input"
+              dropdownMatchSelectWidth={400}
+              allowClear
+              placeholder={
+                searching ? "Đang tìm..." : "Tìm KH theo SĐT/Tên"
+              }
+              size="small"
+              filterOption={false}
+              style={{ width: "100%" }}
+              optionLabelProp="label"
+              optionFilterProp="label"
+              suffixIcon={<SearchOutlined style={{ fontSize: "11px" }} />}
+            />
+            <Button
+              size="small"
+              type="primary"
+              icon={<PlusOutlined style={{ fontSize: 12 }} />}
+              onClick={handleOpenCreate}
+              className="add-customer-btn"
+            />
           </div>
-        )}
+          {/* Dòng 0.5: Mã KH */}
+          <div style={{ marginBottom: "8px" }}>
+            <Input
+              placeholder="Mã KH"
+              value={customer.code}
+              onChange={(e) => setCustomer({ ...customer, code: e.target.value })}
+              size="small"
+              prefix={<IdcardOutlined style={{ fontSize: "11px" }} />}
+              style={{ fontSize: "12px" }}
+            />
+          </div>
+          {/* Dòng 1: Số điện thoại */}
+          <div style={{ marginBottom: "8px" }}>
+            <Input
+              placeholder="Số điện thoại"
+              value={customer.phone}
+              onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
+              size="small"
+              prefix={<PhoneOutlined style={{ fontSize: "11px" }} />}
+              style={{ fontSize: "12px" }}
+            />
+          </div>
+          {/* Dòng 2: Tên khách hàng */}
+          <div style={{ marginBottom: "8px" }}>
+            <Input
+              placeholder="Tên khách hàng"
+              value={customer.name}
+              onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
+              size="small"
+              prefix={<UserOutlined style={{ fontSize: "11px" }} />}
+              style={{ fontSize: "12px" }}
+            />
+          </div>
+          {/* Bỏ các dòng CMND/CCCD và Họ tên người bệnh theo yêu cầu */}
+        </div>
       </Card>
 
       <Modal
@@ -250,11 +260,10 @@ const CustomerInfo = ({
           <Input
             placeholder="Số điện thoại"
             value={tempCustomer.phone}
-            onChange={(e) =>
-              setTempCustomer({ ...tempCustomer, phone: e.target.value })
-            }
+            onChange={handlePhoneChange}
             size="middle"
             prefix={<PhoneOutlined style={{ fontSize: "12px" }} />}
+            status={!isPhoneValid ? "error" : ""}
           />
           <Input
             placeholder="Tên khách hàng"
@@ -264,24 +273,41 @@ const CustomerInfo = ({
             }
             size="middle"
             prefix={<UserOutlined style={{ fontSize: "12px" }} />}
+            status={!tempCustomer.name?.trim() ? "error" : ""}
+          />
+          <DatePicker
+            placeholder="Ngày sinh (dd/mm/yyyy)"
+            value={
+              tempCustomer.birthday
+                ? dayjs(tempCustomer.birthday, ["YYYY-MM-DD", "DD/MM/YYYY"])
+                : null
+            }
+            onChange={(d) =>
+              setTempCustomer({
+                ...tempCustomer,
+                // Lưu theo chuẩn YYYY-MM-DD, hiển thị dd/mm/yyyy
+                birthday: d ? d.format("YYYY-MM-DD") : "",
+              })
+            }
+            format="DD/MM/YYYY"
+            style={{ width: "100%" }}
+            size="middle"
           />
           <Input
-            placeholder="CMND/CCCD"
-            value={tempCustomer.idNumber}
+            placeholder="Địa chỉ"
+            value={tempCustomer.address}
             onChange={(e) =>
-              setTempCustomer({ ...tempCustomer, idNumber: e.target.value })
+              setTempCustomer({ ...tempCustomer, address: e.target.value })
             }
             size="middle"
-            prefix={<IdcardOutlined style={{ fontSize: "12px" }} />}
           />
           <Input
-            placeholder="Họ tên người bệnh"
-            value={tempCustomer.patientName}
+            placeholder="Ghi chú"
+            value={tempCustomer.note}
             onChange={(e) =>
-              setTempCustomer({ ...tempCustomer, patientName: e.target.value })
+              setTempCustomer({ ...tempCustomer, note: e.target.value })
             }
             size="middle"
-            prefix={<UserOutlined style={{ fontSize: "12px" }} />}
           />
         </div>
       </Modal>

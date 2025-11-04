@@ -11,6 +11,7 @@ const masterDataCache = {
   maKho: null,
   maKhach: null,
   vatTu: null,
+  fcode3: null,
   donViTinh: {}, // Cache ĐVT theo maHang: { "ABC123": [{dvt: "Bo"}, {dvt: "Cai"}], ... }
   lastFetch: null,
 };
@@ -28,6 +29,8 @@ export const usePhieuNhatHangData = () => {
   const [loadingMaKhach, setLoadingMaKhach] = useState(false);
   const [vatTuList, setVatTuList] = useState([]);
   const [loadingVatTu, setLoadingVatTu] = useState(false);
+  const [fcode3List, setFcode3List] = useState([]);
+  const [loadingFcode3, setLoadingFcode3] = useState(false);
 
   const token = localStorage.getItem("access_token");
 
@@ -48,6 +51,12 @@ export const usePhieuNhatHangData = () => {
   const fetchMaKhachListDebounced = useRef(
     debounce((keyword) => {
       fetchMaKhachList(keyword);
+    }, 500)
+  ).current;
+
+  const fetchFcode3ListDebounced = useRef(
+    debounce((keyword) => {
+      fetchFcode3List(keyword);
     }, 500)
   ).current;
 
@@ -264,6 +273,87 @@ export const usePhieuNhatHangData = () => {
         message.error("Không thể tải danh sách khách hàng");
       } finally {
         setLoadingMaKhach(false);
+      }
+    },
+    [token]
+  );
+
+  const fetchFcode3List = useCallback(
+    async (keyword = "", forceRefresh = false) => {
+      // Kiểm tra cache trước khi call API
+      if (!forceRefresh && !keyword) {
+        // Nếu đã có data trong state, không cần gọi API
+        if (fcode3List && fcode3List.length > 0) {
+          return;
+        }
+        // Nếu có cache valid, sử dụng cache
+        if (
+          masterDataCache.lastFetch &&
+          Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
+          masterDataCache.fcode3
+        ) {
+          setFcode3List(masterDataCache.fcode3);
+          return;
+        }
+      }
+
+      // Nếu đang search với keyword, kiểm tra cache và filter local
+      if (
+        keyword &&
+        masterDataCache.fcode3 &&
+        masterDataCache.lastFetch &&
+        Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY
+      ) {
+        const filteredData = masterDataCache.fcode3.filter((item) =>
+          item.label.toLowerCase().includes(keyword.toLowerCase())
+        );
+        setFcode3List(filteredData);
+        return;
+      }
+
+      setLoadingFcode3(true);
+      try {
+        const response = await https.get(
+          "v1/web/danh-sach-phuong-tien-van-chuyen",
+          {
+            keyword: keyword,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (response.data && response.data.data) {
+          const options = response.data.data.map((item) => ({
+            value: item.fcode3?.trim() || "",
+            label: item.ten_vc?.trim() || item.fcode3?.trim() || "",
+          }));
+          setFcode3List(options);
+
+          // Cache only if no search keyword
+          if (!keyword) {
+            masterDataCache.fcode3 = options;
+            masterDataCache.lastFetch = Date.now();
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching fcode3:", error);
+        // If API doesn't exist, use hardcoded data for now
+        const defaultOptions = [
+          {
+            value: "NX.0001",
+            label: "Nhà Khách Sơn La - Mộc Châu, Sơn La",
+          },
+        ];
+        setFcode3List(defaultOptions);
+        if (!keyword) {
+          masterDataCache.fcode3 = defaultOptions;
+          masterDataCache.lastFetch = Date.now();
+        }
+      } finally {
+        setLoadingFcode3(false);
       }
     },
     [token]
@@ -498,6 +588,7 @@ export const usePhieuNhatHangData = () => {
       masterDataCache.maKho = null;
       masterDataCache.maKhach = null;
       masterDataCache.vatTu = null;
+      masterDataCache.fcode3 = null;
       masterDataCache.donViTinh = {};
       masterDataCache.lastFetch = null;
     }
@@ -515,17 +606,22 @@ export const usePhieuNhatHangData = () => {
     loadingMaKhach,
     vatTuList,
     loadingVatTu,
+    fcode3List,
+    loadingFcode3,
     fetchTkCoListDebounced,
     fetchMaKhoListDebounced,
     fetchMaKhachListDebounced,
+    fetchFcode3ListDebounced,
     fetchMaGiaoDichList,
     fetchTkCoList,
     fetchMaKhoList,
     fetchMaKhachList,
+    fetchFcode3List,
     fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
     setVatTuList,
+    setFcode3List,
     clearCache,
   };
 };
