@@ -28,6 +28,8 @@ import {
   deletePhieuNhatHangDynamic,
   validateDataSource,
   validateTongNhat,
+    validateCompletionRules,
+    computeGroupState,
 } from "./utils/phieuNhatHangUtils";
 
 const { Title } = Typography;
@@ -591,6 +593,46 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         return;
       }
 
+      // Validate điều kiện hoàn thành: có mã lô cho dòng đã nhập tổng nhặt và tổng nhặt = tổng đơn
+      // Reset previous invalid flags
+      setDataSource((prev) => prev.map((r) => ({ ...r, _invalid_missing_lot: false, _invalid_sum_mismatch: false })));
+
+      const completionCheck = validateCompletionRules(dataSource);
+      if (!completionCheck.isValid) {
+        // Highlight invalid rows in table instead of long message
+        setDataSource((prev) => {
+          let updated = prev.map((r) => ({ ...r, _invalid_missing_lot: false, _invalid_sum_mismatch: false }));
+
+          if (completionCheck.type === "missingLot") {
+            updated = updated.map((row) => {
+              const picked = parseFloat(row.tong_nhat || 0) || 0;
+              const lot = (row.ma_lo || "").toString().trim();
+              return picked > 0 && !lot ? { ...row, _invalid_missing_lot: true } : row;
+            });
+          }
+
+          if (completionCheck.type === "sumNotEqual") {
+            const groups = computeGroupState(prev);
+            const mismatchKeys = new Set();
+            for (const [, g] of groups) {
+              const isMismatch = (parseFloat(g.pickedSum) || 0) !== (parseFloat(g.orderQty) || 0);
+              if (isMismatch) {
+                g.members.forEach((m) => mismatchKeys.add(m.key));
+              }
+            }
+            updated = updated.map((row) =>
+              mismatchKeys.has(row.key) ? { ...row, _invalid_sum_mismatch: true } : row
+            );
+          }
+
+          return updated;
+        });
+
+        message.error("Có dòng chưa hợp lệ. Vui lòng kiểm tra các dòng màu đỏ.");
+        setLoading(false);
+        return;
+      }
+
       // Set status = 2 cho nút Hoàn thành
       const updatedValues = {
         ...values,
@@ -618,7 +660,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         Data: payload,
       };
 
-      const result = await updatePhieuNhatHang(wrappedPayload, userInfo);
+      const result = await updatePhieuNhatHang(wrappedPayload, userInfo, { showSuccess: false });
 
       if (result.success) {
         message.success(

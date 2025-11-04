@@ -35,7 +35,7 @@ const ListPhieuNhatHang = () => {
         const dateRange =
           parsed.dateRange && parsed.dateRange.from && parsed.dateRange.to
             ? [dayjs(parsed.dateRange.from), dayjs(parsed.dateRange.to)]
-            : [dayjs(), dayjs()];
+            : null;
         return {
           so_ct: parsed.so_ct || "",
           so_don_hang: parsed.so_don_hang || "",
@@ -56,7 +56,7 @@ const ListPhieuNhatHang = () => {
       ten_kh: "",
       ma_nhomvitri: "",
       status: "",
-      dateRange: [dayjs(), dayjs()],
+      dateRange: null,
     };
   };
 
@@ -162,7 +162,7 @@ const ListPhieuNhatHang = () => {
       const dateRange =
         parsed.dateRange && parsed.dateRange.from && parsed.dateRange.to
           ? [dayjs(parsed.dateRange.from), dayjs(parsed.dateRange.to)]
-          : [dayjs(), dayjs()];
+          : null;
       return {
         so_ct: parsed.so_ct || "",
         so_don_hang: parsed.so_don_hang || "",
@@ -405,8 +405,7 @@ const ListPhieuNhatHang = () => {
   const removeChip = (chipKey) => {
     const newFilters = { ...filters };
     if (chipKey === "dateRange") {
-      newFilters.dateRange = [dayjs(), dayjs()];
-      // Nếu remove dateRange chip, vẫn giữ dateRange mặc định nhưng không hiển thị chip
+      newFilters.dateRange = null;
     } else {
       newFilters[chipKey] = "";
     }
@@ -425,7 +424,7 @@ const ListPhieuNhatHang = () => {
       ten_kh: "",
       ma_nhomvitri: "",
       status: "",
-      dateRange: [dayjs(), dayjs()],
+      dateRange: null,
     };
     setFilters(cleared);
     setHasUserAppliedFilters(false); // Reset về trạng thái chưa filter

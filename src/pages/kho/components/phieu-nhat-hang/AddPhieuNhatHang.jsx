@@ -1,7 +1,7 @@
 import { DownOutlined, LeftOutlined, UpOutlined } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { getLoItem, getViTriByKho } from "../../../../api";
@@ -17,7 +17,8 @@ import {
   fetchVoucherInfo,
   submitPhieuNhatHangDynamic,
   validateDataSource,
-  validateTongNhat,
+    validateTongNhat,
+    validateTongNhatByGroup,
 } from "./utils/phieuNhatHangUtils";
 
 const { Title } = Typography;
@@ -77,6 +78,12 @@ const AddPhieuNhatHang = () => {
     handleAddItem,
     handleDvtChange,
   } = useVatTuManagerNhatHang();
+
+  // Disable actions if any group exceeded
+  const hasExceededGroup = useMemo(() => {
+    const { anyExceeded } = validateTongNhatByGroup(dataSource || []);
+    return anyExceeded;
+  }, [dataSource]);
 
   // Phân trang vật tư
   const fetchVatTuListPaging = async (
@@ -442,7 +449,7 @@ const AddPhieuNhatHang = () => {
             }}
           >
             <Space>
-              <Button type="primary" onClick={handleSubmit} loading={loading}>
+              <Button type="primary" onClick={handleSubmit} loading={loading} disabled={hasExceededGroup}>
                 Lưu
               </Button>
               <Button onClick={() => navigate("/kho/nhat-hang")}>Hủy</Button>

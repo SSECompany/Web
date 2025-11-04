@@ -41,6 +41,17 @@ const VatTuNhatHangTable = ({
       loadingStates={{
         maKho: loadingMaKho,
       }}
+      // Highlight invalid rows (set via flags on each record)
+      onRow={(record) => {
+        const isInvalid = record._invalid_missing_lot || record._invalid_sum_mismatch;
+        return isInvalid
+          ? {
+              style: {
+                backgroundColor: "#fff1f0", // Ant Design error background
+              },
+            }
+          : {};
+      }}
     />
   );
 };

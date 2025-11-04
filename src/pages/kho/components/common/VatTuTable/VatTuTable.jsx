@@ -82,8 +82,21 @@ const VatTuTable = ({
             width: "100%",
             textAlign: "center",
             fontWeight: "bold",
+            borderColor:
+              (field === (columnConfig.tongNhatField || "tong_nhat") && record.groupExceeded)
+                ? "#ff4d4f"
+                : undefined,
+            boxShadow:
+              (field === (columnConfig.tongNhatField || "tong_nhat") && record.groupExceeded)
+                ? "0 0 0 2px rgba(255,77,79,0.2)"
+                : undefined,
           }}
           className="vat-tu-table-input"
+          title={
+            field === (columnConfig.tongNhatField || "tong_nhat") && record.groupExceeded
+              ? "Tổng nhặt nhóm vượt Số lượng đơn"
+              : undefined
+          }
           tabIndex={-1}
           autoComplete="off"
           spellCheck={false}

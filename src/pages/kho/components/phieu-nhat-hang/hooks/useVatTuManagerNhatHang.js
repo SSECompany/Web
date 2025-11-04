@@ -1,4 +1,5 @@
 import { message } from "antd";
+import { computeGroupState } from "../utils/phieuNhatHangUtils";
 import { useRef, useState } from "react";
 
 export const useVatTuManagerNhatHang = () => {
@@ -503,8 +504,8 @@ export const useVatTuManagerNhatHang = () => {
       }
     }
 
-    setDataSource((prev) =>
-      prev.map((item) => {
+    setDataSource((prev) => {
+      const next = prev.map((item) => {
         if (item.key === record.key) {
           // Nếu newValue là chuỗi (có dấu chấm ở cuối), chỉ cập nhật field
           if (typeof newValue === "string") {
@@ -565,13 +566,25 @@ export const useVatTuManagerNhatHang = () => {
           }
         }
         return item;
-      })
-    );
+      });
+
+      // Recompute group validation flags for next data
+      const groups = computeGroupState(next);
+      const nextWithFlags = next.map((row) => {
+        const groupKey = row.isChild ? row.parentKey : row.key;
+        const g = groups.get(groupKey);
+        return {
+          ...row,
+          groupExceeded: !!g?.exceeded,
+        };
+      });
+      return nextWithFlags;
+    });
   };
 
   const handleSelectChange = (value, record, field) => {
-    setDataSource((prev) =>
-      prev.map((item) =>
+    setDataSource((prev) => {
+      const next = prev.map((item) =>
         item.key === record.key
           ? {
               ...item,
@@ -581,8 +594,14 @@ export const useVatTuManagerNhatHang = () => {
               viTriOptions: item.viTriOptions || record.viTriOptions,
             }
           : item
-      )
-    );
+      );
+      const groups = computeGroupState(next);
+      return next.map((row) => {
+        const groupKey = row.isChild ? row.parentKey : row.key;
+        const g = groups.get(groupKey);
+        return { ...row, groupExceeded: !!g?.exceeded };
+      });
+    });
   };
 
   const handleDeleteItem = (index, isEditMode) => {
@@ -596,7 +615,13 @@ export const useVatTuManagerNhatHang = () => {
       ...item,
       key: i + 1,
     }));
-    setDataSource(reIndexedDataSource);
+    const groups = computeGroupState(reIndexedDataSource);
+    const withFlags = reIndexedDataSource.map((row) => {
+      const groupKey = row.isChild ? row.parentKey : row.key;
+      const g = groups.get(groupKey);
+      return { ...row, groupExceeded: !!g?.exceeded };
+    });
+    setDataSource(withFlags);
     message.success("Đã xóa vật tư");
   };
 
@@ -654,11 +679,17 @@ export const useVatTuManagerNhatHang = () => {
       ];
 
       // Re-index keys và line_nbr nếu có
-      return newData.map((item, i) => ({
+      const reindexed = newData.map((item, i) => ({
         ...item,
         key: i + 1,
         line_nbr: i + 1,
       }));
+      const groups = computeGroupState(reindexed);
+      return reindexed.map((row) => {
+        const groupKey = row.isChild ? row.parentKey : row.key;
+        const g = groups.get(groupKey);
+        return { ...row, groupExceeded: !!g?.exceeded };
+      });
     });
   };
 

@@ -72,69 +72,125 @@ export const validateDataSource = (dataSource, formType = "default") => {
  * @returns {Object} { isValid: boolean, errors: Array }
  */
 export const validateTongNhat = (dataSource) => {
+  const { anyExceeded, errors, groups } = validateTongNhatByGroup(dataSource);
+
+  if (anyExceeded) {
+    return { isValid: false, errors, groups };
+  }
+
+  return { isValid: true, errors: [], groups };
+};
+
+/**
+ * Validate điều kiện hoàn thành:
+ * - Dòng nào có tổng nhặt (> 0) thì bắt buộc phải có mã lô
+ * - Tổng nhặt nhóm phải BẰNG số lượng đơn (không thiếu, không dư)
+ */
+export const validateCompletionRules = (dataSource = []) => {
   const errors = [];
 
-  dataSource.forEach((item, index) => {
-    // Lấy so_luong để check với tong_nhat (không dùng so_luong_don)
-    // Với dòng con, so_luong đã được copy từ parent
-    let soLuong = 0;
-    
-    if (item.so_luong !== undefined && item.so_luong !== null && item.so_luong !== "") {
-      soLuong = parseFloat(item.so_luong) || 0;
-    } else if (item.soLuongDeNghi !== undefined && item.soLuongDeNghi !== null && item.soLuongDeNghi !== "") {
-      soLuong = parseFloat(item.soLuongDeNghi) || 0;
-    }
-    
-    const tongNhat = parseFloat(item.tong_nhat || 0);
-    
-    // Debug log để kiểm tra tất cả các dòng
-    console.log(`Validation check - Row ${index + 1}:`, {
-      isChild: item.isChild,
-      so_luong: item.so_luong,
-      soLuongDeNghi: item.soLuongDeNghi,
-      soLuong,
-      tongNhat,
-      willFail: tongNhat > soLuong,
-    });
-    
-    // Kiểm tra tong_nhat không được vượt quá so_luong
-    // Nếu soLuong = 0 và tongNhat > 0 thì cũng là lỗi
-    if (tongNhat > soLuong) {
-      const stt = item.isChild ? `(Dòng con của dòng ${item.parentKey})` : `Dòng ${index + 1}`;
-      const maHang = item.maHang || item.ma_vt || "";
-      const tenMatHang = item.ten_mat_hang || item.ten_vt || "";
-      const itemInfo = maHang && tenMatHang ? `${maHang} - ${tenMatHang}` : maHang || tenMatHang || `Dòng ${index + 1}`;
-      
-      errors.push({
-        stt: stt,
-        itemInfo: itemInfo,
-        soLuong: soLuong,
-        tongNhat: tongNhat,
-      });
+  // 1) Kiểm tra mã lô cho mọi dòng có picked > 0
+  const missingLotRows = [];
+  dataSource.forEach((row, idx) => {
+    const picked = parseFloat(row.tong_nhat || 0) || 0;
+    const lot = (row.ma_lo || "").toString().trim();
+    if (picked > 0 && !lot) {
+      const maHang = row.maHang || row.ma_vt || "";
+      const ten = row.ten_mat_hang || row.ten_vt || "";
+      const itemInfo = maHang && ten ? `${maHang} - ${ten}` : maHang || ten || `Dòng ${idx + 1}`;
+      missingLotRows.push({ index: idx + 1, itemInfo });
     }
   });
 
-  if (errors.length > 0) {
-    message.error({
-      content: (
-        <div>
-          <div style={{ fontWeight: "bold", marginBottom: 8 }}>
-            Tổng nhặt không được vượt quá số lượng:
-          </div>
-          {errors.map((error, idx) => (
-            <div key={idx} style={{ marginBottom: 4 }}>
-              • <strong>{error.stt}</strong> - {error.itemInfo}: 
-              Tổng nhặt ({error.tongNhat}) &gt; Số lượng ({error.soLuong})
-            </div>
-          ))}
-        </div>
-      ),
-      duration: 8,
-    });
-    return { isValid: false, errors };
+  if (missingLotRows.length > 0) {
+    return { isValid: false, type: "missingLot", details: missingLotRows };
   }
 
-  return { isValid: true, errors: [] };
+  // 2) Tổng nhặt nhóm phải bằng số lượng đơn
+  const groups = computeGroupState(dataSource);
+  const notEqualGroups = [];
+  for (const [, g] of groups) {
+    // Chỉ kiểm tra nhóm có parent (dòng cha)
+    if (g && g.parentItem) {
+      const equal = (parseFloat(g.pickedSum) || 0) === (parseFloat(g.orderQty) || 0);
+      if (!equal) {
+        const parent = g.parentItem;
+        const maHang = parent.maHang || parent.ma_vt || "";
+        const ten = parent.ten_mat_hang || parent.ten_vt || "";
+        const itemInfo = maHang && ten ? `${maHang} - ${ten}` : maHang || ten || `Dòng ${g.parentIndex}`;
+        notEqualGroups.push({
+          parentIndex: g.parentIndex || 0,
+          itemInfo,
+          pickedSum: g.pickedSum || 0,
+          orderQty: g.orderQty || 0,
+        });
+      }
+    }
+  }
+
+  if (notEqualGroups.length > 0) {
+    return { isValid: false, type: "sumNotEqual", details: notEqualGroups };
+  }
+
+  return { isValid: true };
+};
+
+/**
+ * Tính trạng thái nhóm: tổng nhặt của nhóm (cha + các dòng con) không vượt quá số lượng đơn của dòng cha
+ * GroupKey: dòng cha dùng key của chính nó; dòng con dùng parentKey
+ */
+export const computeGroupState = (dataSource = []) => {
+  const groups = new Map();
+  dataSource.forEach((row, index) => {
+    const groupKey = row.isChild ? row.parentKey : row.key;
+    const state = groups.get(groupKey) || {
+      parentIndex: null,
+      orderQty: 0,
+      pickedSum: 0,
+      members: [],
+      parentItem: null,
+    };
+    const picked = parseFloat(row.tong_nhat || 0) || 0;
+    state.pickedSum += picked;
+    state.members.push(row);
+    if (!row.isChild) {
+      state.parentIndex = index + 1; // 1-based for display
+      // Ưu tiên so_luong_don, fallback so_luong/soLuongDeNghi
+      const orderQty =
+        parseFloat(row.so_luong_don ?? row.so_luong ?? row.soLuongDeNghi ?? 0) || 0;
+      state.orderQty = orderQty;
+      state.parentItem = row;
+    }
+    groups.set(groupKey, state);
+  });
+  // Mark exceeded
+  for (const [key, g] of groups) {
+    g.exceeded = g.pickedSum > g.orderQty;
+  }
+  return groups;
+};
+
+/**
+ * Validate theo nhóm dựa trên computeGroupState
+ */
+export const validateTongNhatByGroup = (dataSource = []) => {
+  const groups = computeGroupState(dataSource);
+  const errors = [];
+  for (const [, g] of groups) {
+    if (g.exceeded) {
+      const parent = g.parentItem || {};
+      const maHang = parent.maHang || parent.ma_vt || "";
+      const ten = parent.ten_mat_hang || parent.ten_vt || "";
+      const itemInfo = maHang && ten ? `${maHang} - ${ten}` : maHang || ten || `Dòng ${g.parentIndex}`;
+      errors.push({
+        parentIndex: g.parentIndex || 0,
+        itemInfo,
+        orderQty: g.orderQty || 0,
+        pickedSum: g.pickedSum || 0,
+      });
+    }
+  }
+  return { anyExceeded: errors.length > 0, errors, groups };
 };
 
 export const buildPhieuNhatHangPayload = (

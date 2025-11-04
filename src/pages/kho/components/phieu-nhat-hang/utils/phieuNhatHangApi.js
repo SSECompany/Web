@@ -142,7 +142,11 @@ export const createPhieuNhatHang = async (payload, userInfo) => {
 };
 
 // API để cập nhật phiếu nhặt hàng
-export const updatePhieuNhatHang = async (payload, userInfo) => {
+export const updatePhieuNhatHang = async (
+  payload,
+  userInfo,
+  options = { showSuccess: true }
+) => {
   const token = localStorage.getItem("access_token");
 
   // Lấy thông tin user từ Redux thay vì localStorage
@@ -168,13 +172,17 @@ export const updatePhieuNhatHang = async (payload, userInfo) => {
 
     // Check new response structure with responseModel
     if (response?.responseModel?.isSucceded === true) {
-      message.success(
-        response.responseModel.message || "Cập nhật phiếu thành công"
-      );
+      if (options?.showSuccess) {
+        message.success(
+          response.responseModel.message || "Cập nhật phiếu thành công"
+        );
+      }
       return { success: true };
     } else if (response && response.statusCode === 200) {
       // Fallback for old response structure
-      message.success("Cập nhật phiếu thành công");
+      if (options?.showSuccess) {
+        message.success("Cập nhật phiếu thành công");
+      }
       return { success: true };
     } else {
       message.error(
