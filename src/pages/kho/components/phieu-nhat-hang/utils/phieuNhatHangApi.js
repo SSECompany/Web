@@ -93,9 +93,9 @@ export const createPhieuNhatHang = async (payload, userInfo) => {
   const token = localStorage.getItem("access_token");
 
   // Lấy thông tin user từ Redux thay vì localStorage
-  const userId = userInfo?.id || 4061;
-  const unitId = userInfo?.unitId || "TAPMED";
-  const storeId = userInfo?.storeId || "";
+  const userId = userInfo?.id;
+  const unitId = userInfo?.unitId;
+  const storeId = userInfo?.storeId;
 
   const body = {
     store: "Api_create_phieu_nhat_hang",
@@ -146,8 +146,8 @@ export const updatePhieuNhatHang = async (payload, userInfo) => {
   const token = localStorage.getItem("access_token");
 
   // Lấy thông tin user từ Redux thay vì localStorage
-  const userId = userInfo?.id || 4061;
-  const unitId = userInfo?.unitId || "TAPMED";
+  const userId = userInfo?.id || userInfo?.userId || "";
+  const unitId = userInfo?.unitId || "";
   const storeId = userInfo?.storeId || "";
 
   const body = {
@@ -215,29 +215,46 @@ export const startPhieuNhatHang = async (stt_rec, userId) => {
 
     // Check new response structure with responseModel
     if (response?.responseModel?.isSucceded === true) {
-      message.success(
-        response.responseModel.message || "Bắt đầu nhặt hàng thành công"
-      );
+      // Không hiển thị message ở đây, để component tự hiển thị message cụ thể
       return { success: true };
     } else if (response && response.statusCode === 200) {
       // Fallback for old response structure
-      message.success("Bắt đầu nhặt hàng thành công");
+      // Không hiển thị message ở đây, để component tự hiển thị message cụ thể
       return { success: true };
     } else {
-      message.error(
-        response?.responseModel?.message || response?.message || "Có lỗi xảy ra"
-      );
+      // Kiểm tra nếu message liên quan đến "đã hoàn thành" thì không hiển thị
+      const errorMessage =
+        response?.responseModel?.message ||
+        response?.message ||
+        "Có lỗi xảy ra";
+      const lowerMessage = errorMessage.toLowerCase();
+      if (
+        !lowerMessage.includes("đã hoàn thành") &&
+        !lowerMessage.includes("hoàn thành")
+      ) {
+        message.error(errorMessage);
+      }
       return { success: false };
     }
   } catch (error) {
     console.error("Error starting phieu nhat hang:", error);
 
+    // Kiểm tra nếu message liên quan đến "đã hoàn thành" thì không hiển thị
+    let errorMessage = "";
     if (error.response?.data?.responseModel?.message) {
-      message.error(error.response.data.responseModel.message);
+      errorMessage = error.response.data.responseModel.message;
     } else if (error.response?.data?.message) {
-      message.error(error.response.data.message);
+      errorMessage = error.response.data.message;
     } else {
-      message.error("Vui lòng kiểm tra lại thông tin");
+      errorMessage = "Vui lòng kiểm tra lại thông tin";
+    }
+
+    const lowerMessage = errorMessage.toLowerCase();
+    if (
+      !lowerMessage.includes("đã hoàn thành") &&
+      !lowerMessage.includes("hoàn thành")
+    ) {
+      message.error(errorMessage);
     }
     return { success: false };
   }
@@ -342,8 +359,8 @@ export const deletePhieuNhatHang = async (stt_rec, userInfo) => {
   const token = localStorage.getItem("access_token");
 
   // Lấy thông tin user từ Redux thay vì localStorage
-  const userId = userInfo?.id || 4061;
-  const unitId = userInfo?.unitId || "TAPMED";
+  const userId = userInfo?.id || userInfo?.userId || "";
+  const unitId = userInfo?.unitId || "";
   const storeId = userInfo?.storeId || "";
 
   const body = {

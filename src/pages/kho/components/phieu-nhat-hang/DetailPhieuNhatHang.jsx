@@ -54,6 +54,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
   const sctRec = location.state?.sctRec || id;
+  const returnUrl = location.state?.returnUrl || "/kho/nhat-hang";
   const token = localStorage.getItem("access_token");
 
   // Get user info from Redux instead of localStorage
@@ -400,7 +401,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
     // Không cho chỉnh sửa nếu phiếu đã hoàn thành (status = "2")
     const currentStatus = form.getFieldValue("trangThai") || phieuData?.status;
     if (currentStatus === "2" || currentStatus === 2) {
-      message.warning("Phiếu đã hoàn thành, không thể chỉnh sửa");
+      message.warning("Phiếu nhặt hàng đã hoàn thành");
       return;
     }
     try {
@@ -409,13 +410,24 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         !phieuData?.ma_nvbh || phieuData.ma_nvbh.trim() === "";
 
       if (isEmployeeEmpty) {
+        // Kiểm tra lại status trước khi gọi API để tránh gọi API khi đã hoàn thành
+        const statusCheck = form.getFieldValue("trangThai") || phieuData?.status;
+        if (statusCheck === "2" || statusCheck === 2) {
+          message.warning("Phiếu nhặt hàng đã hoàn thành");
+          return;
+        }
+
         setLoading(true);
 
         // Call start picking API
         const startResult = await startPhieuNhatHang(sctRec, userInfo.id);
 
         if (!startResult.success) {
-          message.error("Không thể bắt đầu nhặt hàng");
+          // Kiểm tra lại status sau khi API trả về để tránh hiển thị message nếu đã hoàn thành
+          const statusAfter = form.getFieldValue("trangThai") || phieuData?.status;
+          if (statusAfter !== "2" && statusAfter !== 2) {
+            message.error("Không thể bắt đầu nhặt hàng");
+          }
           setLoading(false);
           return;
         }
@@ -493,7 +505,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         setLoading(false);
 
         if (result.success) {
-          navigate("/kho/nhat-hang");
+          navigate(returnUrl);
         }
       },
     });
@@ -615,7 +627,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
 
         // Delay một chút để user thấy message trước khi navigate
         setTimeout(() => {
-          navigate("/kho/nhat-hang");
+          navigate(returnUrl);
         }, 1000);
       } else {
         setLoading(false);
@@ -633,7 +645,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         <Button
           type="text"
           icon={<LeftOutlined />}
-          onClick={() => navigate("/kho/nhat-hang")}
+          onClick={() => navigate(returnUrl)}
           className="phieu-back-button"
         >
           Trở về

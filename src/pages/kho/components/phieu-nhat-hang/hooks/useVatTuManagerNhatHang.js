@@ -576,6 +576,9 @@ export const useVatTuManagerNhatHang = () => {
           ? {
               ...item,
               [field]: value,
+              // Preserve loOptions and viTriOptions when updating other fields
+              loOptions: item.loOptions || record.loOptions,
+              viTriOptions: item.viTriOptions || record.viTriOptions,
             }
           : item
       )

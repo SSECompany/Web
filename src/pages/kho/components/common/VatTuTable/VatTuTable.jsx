@@ -1,6 +1,6 @@
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Empty, Input, Select, Table, Spin } from "antd";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
 import { validateQuantityInput } from "./utils/validation";
 
@@ -39,6 +39,12 @@ const VatTuTable = ({
   const [loadingViTri, setLoadingViTri] = useState({});
   const [openLo, setOpenLo] = useState({});
   const [openViTri, setOpenViTri] = useState({});
+  
+  // Use ref to track latest dataSource to avoid stale closure in async callbacks
+  const dataSourceRef = useRef(dataSource);
+  useEffect(() => {
+    dataSourceRef.current = dataSource;
+  }, [dataSource]);
 
   // Xử lý thay đổi số lượng với validation
   const handleQuantityChange = useCallback(
@@ -258,16 +264,18 @@ const VatTuTable = ({
         align: "center",
         ellipsis: true,
         render: (_, record) => {
-          const maLo = record[columnConfig.maLoField || "ma_lo"]; 
-          const maViTri = record[columnConfig.maViTriField || "ma_vi_tri"]; 
+          // Get current record from dataSource to avoid stale data
+          const currentRecord = dataSource.find((item) => item.key === record.key) || record;
+          const maLo = currentRecord[columnConfig.maLoField || "ma_lo"]; 
+          const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"]; 
           if (!isEditMode) {
             const display = `${maLo || ""}${maLo || maViTri ? " / " : ""}${
               maViTri || ""
             }`;
             return display;
           }
-          const loOpts = record.loOptions || [];
-          const viTriOpts = record.viTriOptions || [];
+          const loOpts = currentRecord.loOptions || [];
+          const viTriOpts = currentRecord.viTriOptions || [];
 
           const isLoLoading = !!loadingLo[record.key];
           const isViTriLoading = !!loadingViTri[record.key];
@@ -280,7 +288,8 @@ const VatTuTable = ({
                 </div>
               ) : (
               <Select
-                value={maLo}
+                key={`ma-lo-${record.key}`}
+                value={maLo || undefined}
                 showSearch
                 allowClear
                 placeholder="Mã lô"
@@ -293,9 +302,15 @@ const VatTuTable = ({
                   if (!apiHandlers.fetchLoList) return;
                   setLoadingLo((prev) => ({ ...prev, [record.key]: true }));
                   try {
-                    const options = await apiHandlers.fetchLoList("", record, 1);
-                    const updatedRecord = { ...record, loOptions: options };
-                    const updatedDataSource = dataSource.map((item) =>
+                    // Get current record from latest dataSource using ref to avoid stale closure
+                    const currentDataSource = dataSourceRef.current;
+                    const currentRecord = currentDataSource.find((item) => item.key === record.key) || record;
+                    const options = await apiHandlers.fetchLoList("", currentRecord, 1);
+                    // Get latest dataSource from ref again after async operation
+                    const latestDataSource = dataSourceRef.current;
+                    const latestRecord = latestDataSource.find((item) => item.key === record.key) || currentRecord;
+                    const updatedRecord = { ...latestRecord, loOptions: options };
+                    const updatedDataSource = latestDataSource.map((item) =>
                       item.key === record.key ? updatedRecord : item
                     );
                     if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
@@ -307,9 +322,15 @@ const VatTuTable = ({
                   if (!apiHandlers.fetchLoList) return;
                   setLoadingLo((prev) => ({ ...prev, [record.key]: true }));
                   try {
-                    const options = await apiHandlers.fetchLoList(keyword, record, 1);
-                    const updatedRecord = { ...record, loOptions: options };
-                    const updatedDataSource = dataSource.map((item) =>
+                    // Get current record from latest dataSource using ref to avoid stale closure
+                    const currentDataSource = dataSourceRef.current;
+                    const currentRecord = currentDataSource.find((item) => item.key === record.key) || record;
+                    const options = await apiHandlers.fetchLoList(keyword, currentRecord, 1);
+                    // Get latest dataSource from ref again after async operation
+                    const latestDataSource = dataSourceRef.current;
+                    const latestRecord = latestDataSource.find((item) => item.key === record.key) || currentRecord;
+                    const updatedRecord = { ...latestRecord, loOptions: options };
+                    const updatedDataSource = latestDataSource.map((item) =>
                       item.key === record.key ? updatedRecord : item
                     );
                     if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
@@ -319,24 +340,58 @@ const VatTuTable = ({
                 }}
                 onDropdownVisibleChange={(visible) => {
                   setOpenLo((prev) => ({ ...prev, [record.key]: visible }));
+                  // Only load options when opening dropdown, not when closing
+                  // Also check if options already exist to avoid unnecessary API calls
                   if (visible && apiHandlers.fetchLoList) {
-                    // ensure fetch on open
-                    (async () => {
-                      setLoadingLo((prev) => ({ ...prev, [record.key]: true }));
-                      try {
-                        const options = await apiHandlers.fetchLoList("", record, 1);
-                        const updatedRecord = { ...record, loOptions: options };
-                        const updatedDataSource = dataSource.map((item) =>
-                          item.key === record.key ? updatedRecord : item
-                        );
-                        if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
-                      } finally {
-                        setLoadingLo((prev) => ({ ...prev, [record.key]: false }));
-                      }
-                    })();
+                    // Always get current record from latest dataSource using ref to avoid stale closure
+                    const currentDataSource = dataSourceRef.current;
+                    const currentRecord = currentDataSource.find((item) => item.key === record.key) || record;
+                    const hasOptions = currentRecord?.loOptions && currentRecord.loOptions.length > 0;
+                    
+                    // Only fetch if options don't exist
+                    if (!hasOptions) {
+                      (async () => {
+                        setLoadingLo((prev) => ({ ...prev, [record.key]: true }));
+                        try {
+                          const options = await apiHandlers.fetchLoList("", currentRecord, 1);
+                          // Get latest dataSource from ref to avoid stale closure
+                          const latestDataSource = dataSourceRef.current;
+                          const latestRecord = latestDataSource.find((item) => item.key === record.key) || currentRecord;
+                          const updatedRecord = { 
+                            ...latestRecord, 
+                            loOptions: options 
+                          };
+                          const updatedDataSource = latestDataSource.map((item) =>
+                            item.key === record.key ? updatedRecord : item
+                          );
+                          if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
+                        } finally {
+                          setLoadingLo((prev) => ({ ...prev, [record.key]: false }));
+                        }
+                      })();
+                    }
                   }
                 }}
-                onChange={(val) => onSelectChange(val, record, "ma_lo")}
+                onChange={(val) => {
+                  // Close dropdown when selection is made
+                  setOpenLo((prev) => ({ ...prev, [record.key]: false }));
+                  
+                  // Find the latest record from dataSource using ref to avoid stale reference
+                  // Match POS behavior: ensure value is string (val || "")
+                  const currentDataSource = dataSourceRef.current;
+                  const currentRecord = currentDataSource.find((item) => item.key === record.key);
+                  if (currentRecord) {
+                    // Preserve loOptions when updating ma_lo - important to keep options after selection
+                    const recordWithOptions = {
+                      ...currentRecord,
+                      loOptions: currentRecord.loOptions || record.loOptions,
+                    };
+                    onSelectChange(val || "", recordWithOptions, "ma_lo");
+                  } else {
+                    // Fallback to original record if not found
+                    onSelectChange(val || "", record, "ma_lo");
+                  }
+                }}
                 options={loOpts}
                 dropdownClassName="vat-tu-dropdown"
                 popupMatchSelectWidth={false}
@@ -353,7 +408,8 @@ const VatTuTable = ({
                 </div>
               ) : (
               <Select
-                value={maViTri}
+                key={`ma-vi-tri-${record.key}`}
+                value={maViTri || undefined}
                 showSearch
                 allowClear
                 placeholder="Vị trí"
@@ -366,9 +422,15 @@ const VatTuTable = ({
                   if (!apiHandlers.fetchViTriList) return;
                   setLoadingViTri((prev) => ({ ...prev, [record.key]: true }));
                   try {
-                    const options = await apiHandlers.fetchViTriList("", record, 1);
-                    const updatedRecord = { ...record, viTriOptions: options };
-                    const updatedDataSource = dataSource.map((item) =>
+                    // Get current record from latest dataSource using ref to avoid stale closure
+                    const currentDataSource = dataSourceRef.current;
+                    const currentRecord = currentDataSource.find((item) => item.key === record.key) || record;
+                    const options = await apiHandlers.fetchViTriList("", currentRecord, 1);
+                    // Get latest dataSource from ref again after async operation
+                    const latestDataSource = dataSourceRef.current;
+                    const latestRecord = latestDataSource.find((item) => item.key === record.key) || currentRecord;
+                    const updatedRecord = { ...latestRecord, viTriOptions: options };
+                    const updatedDataSource = latestDataSource.map((item) =>
                       item.key === record.key ? updatedRecord : item
                     );
                     if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
@@ -380,13 +442,19 @@ const VatTuTable = ({
                   if (!apiHandlers.fetchViTriList) return;
                   setLoadingViTri((prev) => ({ ...prev, [record.key]: true }));
                   try {
+                    // Get current record from latest dataSource using ref to avoid stale closure
+                    const currentDataSource = dataSourceRef.current;
+                    const currentRecord = currentDataSource.find((item) => item.key === record.key) || record;
                     const options = await apiHandlers.fetchViTriList(
                       keyword,
-                      record,
+                      currentRecord,
                       1
                     );
-                    const updatedRecord = { ...record, viTriOptions: options };
-                    const updatedDataSource = dataSource.map((item) =>
+                    // Get latest dataSource from ref again after async operation
+                    const latestDataSource = dataSourceRef.current;
+                    const latestRecord = latestDataSource.find((item) => item.key === record.key) || currentRecord;
+                    const updatedRecord = { ...latestRecord, viTriOptions: options };
+                    const updatedDataSource = latestDataSource.map((item) =>
                       item.key === record.key ? updatedRecord : item
                     );
                     if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
@@ -397,22 +465,51 @@ const VatTuTable = ({
                 onDropdownVisibleChange={(visible) => {
                   setOpenViTri((prev) => ({ ...prev, [record.key]: visible }));
                   if (visible && apiHandlers.fetchViTriList) {
-                    (async () => {
-                      setLoadingViTri((prev) => ({ ...prev, [record.key]: true }));
-                      try {
-                        const options = await apiHandlers.fetchViTriList("", record, 1);
-                        const updatedRecord = { ...record, viTriOptions: options };
-                        const updatedDataSource = dataSource.map((item) =>
-                          item.key === record.key ? updatedRecord : item
-                        );
-                        if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
-                      } finally {
-                        setLoadingViTri((prev) => ({ ...prev, [record.key]: false }));
-                      }
-                    })();
+                    // Always get current record from latest dataSource using ref to avoid stale closure
+                    const currentDataSource = dataSourceRef.current;
+                    const currentRecord = currentDataSource.find((item) => item.key === record.key) || record;
+                    const hasOptions = currentRecord?.viTriOptions && currentRecord.viTriOptions.length > 0;
+                    
+                    // Only fetch if options don't exist
+                    if (!hasOptions) {
+                      (async () => {
+                        setLoadingViTri((prev) => ({ ...prev, [record.key]: true }));
+                        try {
+                          const options = await apiHandlers.fetchViTriList("", currentRecord, 1);
+                          // Get latest dataSource from ref to avoid stale closure
+                          const latestDataSource = dataSourceRef.current;
+                          const latestRecord = latestDataSource.find((item) => item.key === record.key) || currentRecord;
+                          const updatedRecord = { ...latestRecord, viTriOptions: options };
+                          const updatedDataSource = latestDataSource.map((item) =>
+                            item.key === record.key ? updatedRecord : item
+                          );
+                          if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
+                        } finally {
+                          setLoadingViTri((prev) => ({ ...prev, [record.key]: false }));
+                        }
+                      })();
+                    }
                   }
                 }}
-                onChange={(val) => onSelectChange(val, record, "ma_vi_tri")}
+                onChange={(val) => {
+                  // Close dropdown when selection is made
+                  setOpenViTri((prev) => ({ ...prev, [record.key]: false }));
+                  
+                  // Find the latest record from dataSource using ref to avoid stale reference
+                  const currentDataSource = dataSourceRef.current;
+                  const currentRecord = currentDataSource.find((item) => item.key === record.key);
+                  if (currentRecord) {
+                    // Preserve viTriOptions when updating ma_vi_tri - important to keep options after selection
+                    const recordWithOptions = {
+                      ...currentRecord,
+                      viTriOptions: currentRecord.viTriOptions || record.viTriOptions,
+                    };
+                    onSelectChange(val || "", recordWithOptions, "ma_vi_tri");
+                  } else {
+                    // Fallback to original record if not found
+                    onSelectChange(val || "", record, "ma_vi_tri");
+                  }
+                }}
                 options={viTriOpts}
                 dropdownClassName="vat-tu-dropdown"
                 popupMatchSelectWidth={false}

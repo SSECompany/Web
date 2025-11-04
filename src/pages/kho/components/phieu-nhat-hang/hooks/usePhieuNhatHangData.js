@@ -1,6 +1,7 @@
 import { message } from "antd";
 import { debounce } from "lodash";
 import { useCallback, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import { searchVatTu } from "../../../../../api";
 import https from "../../../../../utils/https";
 
@@ -19,6 +20,9 @@ const masterDataCache = {
 const CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes - cache data trong 30 phút
 
 export const usePhieuNhatHangData = () => {
+  // Get user info from Redux instead of localStorage
+  const userInfo = useSelector((state) => state?.claimsReducer?.userInfo || {});
+
   const [loading, setLoading] = useState(false);
   const [maGiaoDichList, setMaGiaoDichList] = useState([]);
   const [tkCoList, setTkCoList] = useState([]);
@@ -381,16 +385,15 @@ export const usePhieuNhatHangData = () => {
       try {
         setLoadingVatTu(true);
 
-        // Lấy thông tin user và unit từ localStorage
-        const userStr = localStorage.getItem("user");
+        // Get unitsResponse from localStorage as fallback for unitId
         const unitsResponseStr = localStorage.getItem("unitsResponse");
-        const user = userStr ? JSON.parse(userStr) : {};
         const unitsResponse = unitsResponseStr
           ? JSON.parse(unitsResponseStr)
           : {};
 
-        const unitId = user.unitId || unitsResponse.unitId;
-        const userId = user.userId || user.id;
+        // Get user info from Redux instead of localStorage
+        const unitId = userInfo?.unitId || unitsResponse?.unitId || "";
+        const userId = userInfo?.id || userInfo?.userId || "";
 
         // Sử dụng searchVatTu API giống như POS
         const response = await searchVatTu(keyword, page, 20, unitId, userId);
@@ -480,22 +483,21 @@ export const usePhieuNhatHangData = () => {
         setLoadingVatTu(false);
       }
     },
-    [token]
+    [token, userInfo]
   );
 
   const fetchVatTuDetail = useCallback(
     async (maVatTu) => {
       try {
-        // Lấy thông tin user và unit từ localStorage
-        const userStr = localStorage.getItem("user");
+        // Get unitsResponse from localStorage as fallback for unitId
         const unitsResponseStr = localStorage.getItem("unitsResponse");
-        const user = userStr ? JSON.parse(userStr) : {};
         const unitsResponse = unitsResponseStr
           ? JSON.parse(unitsResponseStr)
           : {};
 
-        const unitId = user.unitId || unitsResponse.unitId;
-        const userId = user.userId || user.id;
+        // Get user info from Redux instead of localStorage
+        const unitId = userInfo?.unitId || unitsResponse?.unitId || "";
+        const userId = userInfo?.id || userInfo?.userId || "";
 
         // Sử dụng searchVatTu API để tìm kiếm chi tiết vật tư
         const response = await searchVatTu(maVatTu, 1, 1, unitId, userId);
@@ -520,7 +522,7 @@ export const usePhieuNhatHangData = () => {
         return null;
       }
     },
-    [token]
+    [token, userInfo]
   );
 
   const fetchDonViTinh = useCallback(

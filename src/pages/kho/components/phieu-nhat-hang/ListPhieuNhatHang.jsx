@@ -2,6 +2,7 @@ import { EyeOutlined, FilterOutlined } from "@ant-design/icons";
 import { Button, DatePicker, Input, Select, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import CommonPhieuList from "../CommonPhieuList";
 import "../common-phieu.css";
@@ -16,25 +17,89 @@ const ListPhieuNhatHang = () => {
   const location = useLocation();
   const token = localStorage.getItem("access_token");
 
+  // Get user info from Redux instead of localStorage
+  const userInfo = useSelector((state) => state?.claimsReducer?.userInfo || {});
+
   const [allData, setAllData] = useState([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [screenSize, setScreenSize] = useState("desktop");
   const [isLoading, setIsLoading] = useState(false);
-  const [filters, setFilters] = useState({
-    so_ct: "",
-    so_don_hang: "",
-    ma_kh: "",
-    ten_kh: "",
-    ma_nhomvitri: "",
-    status: "",
-    dateRange: [dayjs(), dayjs()],
-  });
+
+  // Initialize filters from sessionStorage immediately (synchronous)
+  const getInitialFilters = () => {
+    try {
+      const saved = sessionStorage.getItem("phieuNhatHang_filters");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const dateRange =
+          parsed.dateRange && parsed.dateRange.from && parsed.dateRange.to
+            ? [dayjs(parsed.dateRange.from), dayjs(parsed.dateRange.to)]
+            : [dayjs(), dayjs()];
+        return {
+          so_ct: parsed.so_ct || "",
+          so_don_hang: parsed.so_don_hang || "",
+          ma_kh: parsed.ma_kh || "",
+          ten_kh: parsed.ten_kh || "",
+          ma_nhomvitri: parsed.ma_nhomvitri || "",
+          status: parsed.status || "",
+          dateRange,
+        };
+      }
+    } catch (error) {
+      console.error("Error loading initial filters:", error);
+    }
+    return {
+      so_ct: "",
+      so_don_hang: "",
+      ma_kh: "",
+      ten_kh: "",
+      ma_nhomvitri: "",
+      status: "",
+      dateRange: [dayjs(), dayjs()],
+    };
+  };
+
+  const initialFilters = getInitialFilters();
+  const [filters, setFilters] = useState(initialFilters);
+
+  // Check if user has applied filters based on initial filters
+  const checkHasAppliedFilters = (f) => {
+    return !!(
+      f.so_ct ||
+      f.so_don_hang ||
+      f.ma_kh ||
+      f.ma_nhomvitri ||
+      f.status ||
+      (f.dateRange &&
+        f.dateRange.length === 2 &&
+        !f.dateRange[0].isSame(dayjs(), "day"))
+    );
+  };
+
+  const [hasUserAppliedFilters, setHasUserAppliedFilters] = useState(
+    checkHasAppliedFilters(initialFilters)
+  );
 
   const pageSize = 20;
-  const lastApiCall = useRef({ pageIndex: 0, filters: {} });
+  const lastApiCall = useRef({
+    pageIndex: 0,
+    filters: {},
+    userId: null,
+    unitId: null,
+    storeId: null,
+  });
+  const hasInitialLoad = useRef(false); // Track đã load lần đầu chưa
+  const userInfoRef = useRef(userInfo); // Track userInfo để tránh re-render
+  const filtersLoadedFromStorage = useRef(true); // Track đã load filters từ sessionStorage (true vì đã load trong getInitialFilters)
+  const filtersInitialized = useRef(false); // Track filters đã được khởi tạo chưa
   const EMPTY_FILTERS = {};
   const stableFilters = useMemo(() => filters, [filters]);
+
+  // Update userInfoRef khi userInfo thay đổi
+  useEffect(() => {
+    userInfoRef.current = userInfo;
+  }, [userInfo]);
 
   // Detect screen size
   useEffect(() => {
@@ -56,53 +121,87 @@ const ListPhieuNhatHang = () => {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  // URL <-> filters sync helpers
-  const buildQueryFromFilters = useCallback((f) => {
-    const params = new URLSearchParams();
-    if (f.so_ct) params.set("so_ct", f.so_ct);
-    if (f.so_don_hang) params.set("so_don_hang", f.so_don_hang);
-    if (f.ma_kh) params.set("ma_kh", f.ma_kh);
-    if (f.ma_nhomvitri) params.set("ma_nhomvitri", f.ma_nhomvitri);
-    if (f.status !== "" && f.status !== undefined && f.status !== null)
-      params.set("status", f.status);
-    if (f.dateRange && f.dateRange.length === 2) {
-      params.set("from", f.dateRange[0].format("MM/DD/YYYY"));
-      params.set("to", f.dateRange[1].format("MM/DD/YYYY"));
+  // SessionStorage key for filters
+  const FILTERS_STORAGE_KEY = "phieuNhatHang_filters";
+
+  // Save filters to sessionStorage
+  const saveFiltersToStorage = useCallback((f) => {
+    try {
+      const filtersToSave = {
+        so_ct: f.so_ct || "",
+        so_don_hang: f.so_don_hang || "",
+        ma_kh: f.ma_kh || "",
+        ten_kh: f.ten_kh || "",
+        ma_nhomvitri: f.ma_nhomvitri || "",
+        status: f.status || "",
+        dateRange:
+          f.dateRange && f.dateRange.length === 2
+            ? {
+                from: f.dateRange[0].format("YYYY-MM-DD"),
+                to: f.dateRange[1].format("YYYY-MM-DD"),
+              }
+            : null,
+      };
+      sessionStorage.setItem(
+        FILTERS_STORAGE_KEY,
+        JSON.stringify(filtersToSave)
+      );
+    } catch (error) {
+      console.error("Error saving filters to sessionStorage:", error);
     }
-    return params.toString();
   }, []);
 
-  const parseFiltersFromQuery = useCallback(() => {
-    const sp = new URLSearchParams(location.search);
-    const so_ct = sp.get("so_ct") || "";
-    const so_don_hang = sp.get("so_don_hang") || "";
-    const ma_kh = sp.get("ma_kh") || "";
-    const ma_nhomvitri = sp.get("ma_nhomvitri") || "";
-    const status = sp.get("status") || "";
-    const from = sp.get("from");
-    const to = sp.get("to");
-    const dateRange =
-      from && to ? [dayjs(from), dayjs(to)] : [dayjs(), dayjs()];
-    return {
-      so_ct,
-      so_don_hang,
-      ma_kh,
-      ten_kh: "",
-      ma_nhomvitri,
-      status,
-      dateRange,
-    };
-  }, [location.search]);
+  // Load filters from sessionStorage
+  const loadFiltersFromStorage = useCallback(() => {
+    try {
+      const saved = sessionStorage.getItem(FILTERS_STORAGE_KEY);
+      if (!saved) {
+        return null;
+      }
+      const parsed = JSON.parse(saved);
+      const dateRange =
+        parsed.dateRange && parsed.dateRange.from && parsed.dateRange.to
+          ? [dayjs(parsed.dateRange.from), dayjs(parsed.dateRange.to)]
+          : [dayjs(), dayjs()];
+      return {
+        so_ct: parsed.so_ct || "",
+        so_don_hang: parsed.so_don_hang || "",
+        ma_kh: parsed.ma_kh || "",
+        ten_kh: parsed.ten_kh || "",
+        ma_nhomvitri: parsed.ma_nhomvitri || "",
+        status: parsed.status || "",
+        dateRange,
+      };
+    } catch (error) {
+      console.error("Error loading filters from sessionStorage:", error);
+      return null;
+    }
+  }, []);
 
-  // Load initial filters from URL
+  // Auto-save filters to sessionStorage when they change (except initial load)
   useEffect(() => {
-    const parsed = parseFiltersFromQuery();
-    setFilters((prev) => ({ ...prev, ...parsed }));
-  }, [parseFiltersFromQuery]);
+    // Only save if filters have actually changed from initial load
+    // This prevents saving on initial mount since filters are already loaded from storage
+    if (filtersLoadedFromStorage.current) {
+      // Reset flag after first render to allow future saves
+      filtersLoadedFromStorage.current = false;
+    } else {
+      saveFiltersToStorage(filters);
+    }
+  }, [filters, saveFiltersToStorage]);
 
   const fetchPhieuNhatHang = useCallback(
     async (pageIndex = currentPage, customFilters = null) => {
       if (isLoading) return;
+
+      // Chỉ gọi API khi userInfo đã có dữ liệu (tránh gọi lần đầu với empty userInfo)
+      const currentUserInfo = userInfoRef.current;
+      if (
+        !currentUserInfo ||
+        (!currentUserInfo.id && !currentUserInfo.userId)
+      ) {
+        return;
+      }
 
       const filtersToUse = customFilters || stableFilters;
       const normalizeStatus = (val) => {
@@ -117,12 +216,30 @@ const ListPhieuNhatHang = () => {
         return map[str] || "";
       };
 
-      // Duplicate prevention logic như POS
-      const currentCall = { pageIndex, filters: filtersToUse };
+      // Get unitsResponse from localStorage as fallback for unitId
+      const unitsResponse = JSON.parse(
+        localStorage.getItem("unitsResponse") || "{}"
+      );
+
+      const userId = currentUserInfo?.id || currentUserInfo?.userId || "";
+      const unitId = currentUserInfo?.unitId || unitsResponse?.unitId || "";
+      const storeId = currentUserInfo?.storeId || "";
+
+      // Duplicate prevention logic - bao gồm cả userInfo để tránh gọi lại khi userInfo thay đổi nhưng params giống nhau
+      const currentCall = {
+        pageIndex,
+        filters: filtersToUse,
+        userId,
+        unitId,
+        storeId,
+      };
       if (
         lastApiCall.current.pageIndex === pageIndex &&
         JSON.stringify(lastApiCall.current.filters) ===
-          JSON.stringify(filtersToUse)
+          JSON.stringify(filtersToUse) &&
+        lastApiCall.current.userId === userId &&
+        lastApiCall.current.unitId === unitId &&
+        lastApiCall.current.storeId === storeId
       ) {
         return;
       }
@@ -130,11 +247,6 @@ const ListPhieuNhatHang = () => {
 
       setIsLoading(true);
       try {
-        const userInfo = JSON.parse(localStorage.getItem("user") || "{}");
-        const unitsResponse = JSON.parse(
-          localStorage.getItem("unitsResponse") || "{}"
-        );
-
         const params = {
           so_ct: filtersToUse.so_ct || "",
           DateFrom:
@@ -155,9 +267,9 @@ const ListPhieuNhatHang = () => {
           ma_nhomvitri: filtersToUse.ma_nhomvitri || "",
           pageIndex: pageIndex,
           pageSize: pageSize,
-          userId: userInfo.userId || "3",
-          unitId: userInfo.unitId || unitsResponse.unitId || "TAPMED",
-          storeId: "",
+          userId: userId,
+          unitId: unitId,
+          storeId: storeId,
         };
 
         const result = await fetchPhieuNhatHangList(params);
@@ -177,10 +289,44 @@ const ListPhieuNhatHang = () => {
     [stableFilters, currentPage, pageSize, isLoading]
   );
 
-  // Initial load - sử dụng fetchPhieuNhatHang như POS
+  // Effect duy nhất để load data - chỉ gọi khi userInfo sẵn sàng và filters đã được khởi tạo
   useEffect(() => {
-    fetchPhieuNhatHang(1, filters);
-  }, [fetchPhieuNhatHang, filters]);
+    const currentUserInfo = userInfoRef.current;
+
+    // Chỉ gọi khi userInfo đã có dữ liệu
+    if (!currentUserInfo || (!currentUserInfo.id && !currentUserInfo.userId)) {
+      return;
+    }
+
+    // Chỉ gọi một lần khi userInfo sẵn sàng lần đầu
+    // Filters đã được khởi tạo từ sessionStorage ngay từ đầu, nên không cần đợi
+    if (!hasInitialLoad.current) {
+      hasInitialLoad.current = true;
+      fetchPhieuNhatHang(1, filters);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userInfo?.id, userInfo?.userId]);
+
+  // Effect riêng cho filters - chỉ gọi khi filters thay đổi và đã load lần đầu
+  // Bỏ qua lần đầu tiên vì filters đã được set từ sessionStorage và đã được gọi trong effect trên
+  useEffect(() => {
+    const currentUserInfo = userInfoRef.current;
+    if (!currentUserInfo || (!currentUserInfo.id && !currentUserInfo.userId)) {
+      return;
+    }
+
+    // Đánh dấu filters đã được khởi tạo sau lần render đầu tiên
+    if (!filtersInitialized.current) {
+      filtersInitialized.current = true;
+      return; // Bỏ qua lần đầu tiên vì filters đã được load từ sessionStorage
+    }
+
+    // Chỉ gọi nếu đã load lần đầu để tránh double call với effect trên
+    if (hasInitialLoad.current) {
+      fetchPhieuNhatHang(1, filters);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -193,13 +339,10 @@ const ListPhieuNhatHang = () => {
 
     const newFilters = { ...filters, [key]: filterValue };
     setFilters(newFilters);
+    setHasUserAppliedFilters(true); // User đã apply filter
     setCurrentPage(1);
-    // persist to URL
-    const query = buildQueryFromFilters(newFilters);
-    navigate(
-      { pathname: location.pathname, search: query ? `?${query}` : "" },
-      { replace: true }
-    );
+    // Save to sessionStorage
+    saveFiltersToStorage(newFilters);
     fetchPhieuNhatHang(1, newFilters);
   };
 
@@ -242,7 +385,12 @@ const ListPhieuNhatHang = () => {
         value: statusMap[String(filters.status)] || String(filters.status),
       });
     }
-    if (filters.dateRange && filters.dateRange.length === 2) {
+    // Chỉ hiển thị dateRange chip khi user đã thực sự apply filter (không phải mặc định)
+    if (
+      hasUserAppliedFilters &&
+      filters.dateRange &&
+      filters.dateRange.length === 2
+    ) {
       chips.push({
         key: "dateRange",
         label: "Ngày",
@@ -252,19 +400,20 @@ const ListPhieuNhatHang = () => {
       });
     }
     return chips;
-  }, [filters]);
+  }, [filters, hasUserAppliedFilters]);
 
   const removeChip = (chipKey) => {
     const newFilters = { ...filters };
-    if (chipKey === "dateRange") newFilters.dateRange = [dayjs(), dayjs()];
-    else newFilters[chipKey] = "";
+    if (chipKey === "dateRange") {
+      newFilters.dateRange = [dayjs(), dayjs()];
+      // Nếu remove dateRange chip, vẫn giữ dateRange mặc định nhưng không hiển thị chip
+    } else {
+      newFilters[chipKey] = "";
+    }
     setFilters(newFilters);
     setCurrentPage(1);
-    const query = buildQueryFromFilters(newFilters);
-    navigate(
-      { pathname: location.pathname, search: query ? `?${query}` : "" },
-      { replace: true }
-    );
+    // Save to sessionStorage
+    saveFiltersToStorage(newFilters);
     fetchPhieuNhatHang(1, newFilters);
   };
 
@@ -279,8 +428,14 @@ const ListPhieuNhatHang = () => {
       dateRange: [dayjs(), dayjs()],
     };
     setFilters(cleared);
+    setHasUserAppliedFilters(false); // Reset về trạng thái chưa filter
     setCurrentPage(1);
-    navigate({ pathname: location.pathname }, { replace: true });
+    // Clear sessionStorage
+    try {
+      sessionStorage.removeItem(FILTERS_STORAGE_KEY);
+    } catch (error) {
+      console.error("Error clearing filters from sessionStorage:", error);
+    }
     fetchPhieuNhatHang(1, cleared);
   };
 
@@ -648,7 +803,10 @@ const ListPhieuNhatHang = () => {
               title="Xem chi tiết"
               onClick={() =>
                 navigate(`/kho/nhat-hang/chi-tiet/${record.stt_rec}`, {
-                  state: { sctRec: record.stt_rec },
+                  state: {
+                    sctRec: record.stt_rec,
+                    returnUrl: location.pathname,
+                  },
                 })
               }
             >

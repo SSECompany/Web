@@ -10,18 +10,18 @@ export const getUserInfo = () => {
     const unitsResponse = unitsResponseStr ? JSON.parse(unitsResponseStr) : {};
 
     return {
-      userId: user.userId || 4061,
+      userId: user.userId || user.id || null,
       userName: user.userName || "",
-      unitId: user.unitId || unitsResponse.unitId || "VIKOSAN",
-      unitName: user.unitName || unitsResponse.unitName || "VIKOSAN",
+      unitId: user.unitId || unitsResponse.unitId || "",
+      unitName: user.unitName || unitsResponse.unitName || "",
     };
   } catch (error) {
     console.error("Error parsing localStorage:", error);
     return {
-      userId: 4061,
+      userId: null,
       userName: "",
-      unitId: "VIKOSAN",
-      unitName: "VIKOSAN",
+      unitId: "",
+      unitName: "",
     };
   }
 };
@@ -171,7 +171,8 @@ export const buildPhieuNhatHangPayload = (
 
     // Chỉ override các trường cần thiết từ form
     ma_gd: values.maGiaoDich || "",
-    ngay_ct: orderDate,
+    // Khi update, giữ nguyên ngay_ct từ API; khi tạo mới mới dùng orderDate
+    ngay_ct: isUpdate && phieuData?.ngay_ct ? phieuData.ngay_ct : orderDate,
     so_ct: values.soPhieu || "",
     ong_ba: values.maKhach || "",
     ma_kh: values.maKhach || "",
@@ -180,11 +181,12 @@ export const buildPhieuNhatHangPayload = (
     t_so_luong: totalQuantity,
     t_tien_nt: totalAmountNt,
     t_tien: totalAmount,
-    datetime2: orderDate,
+    // Khi update, giữ nguyên datetime2 từ API; khi tạo mới mới dùng orderDate
+    datetime2: isUpdate && phieuData?.datetime2 ? phieuData.datetime2 : orderDate,
     user_id2:
-      finalUserInfo.userId?.toString() ||
-      finalUserInfo.id?.toString() ||
-      "4061",
+      finalUserInfo?.userId?.toString() ||
+      finalUserInfo?.id?.toString() ||
+      "",
   };
 
   // Đảm bảo các trường bắt buộc có mặt khi thêm mới
@@ -212,7 +214,8 @@ export const buildPhieuNhatHangPayload = (
       masterData.ma_nk = "";
     }
     if (!masterData.ngay_lct) {
-      masterData.ngay_lct = orderDate;
+      // Khi update, giữ nguyên ngay_lct từ API; khi tạo mới mới dùng orderDate
+      masterData.ngay_lct = isUpdate && phieuData?.ngay_lct ? phieuData.ngay_lct : orderDate;
     }
     if (!masterData.ma_nt) {
       masterData.ma_nt = "VND";
@@ -227,10 +230,11 @@ export const buildPhieuNhatHangPayload = (
       masterData.ky = new Date().getMonth() + 1;
     }
     if (!masterData.datetime0) {
-      masterData.datetime0 = orderDate;
+      // Khi update, giữ nguyên datetime0 từ API; khi tạo mới mới dùng orderDate
+      masterData.datetime0 = isUpdate && phieuData?.datetime0 ? phieuData.datetime0 : orderDate;
     }
     if (!masterData.user_id0) {
-      masterData.user_id0 = finalUserInfo.userId || finalUserInfo.id || 4061;
+      masterData.user_id0 = finalUserInfo?.userId || finalUserInfo?.id || "";
     }
   }
 
@@ -307,7 +311,8 @@ export const buildPhieuNhatHangPayload = (
     const dynamicItem = { ...item };
 
     // Chỉ override các trường cần thiết từ form
-    dynamicItem.ngay_ct = orderDate;
+    // Khi update, giữ nguyên ngay_ct từ item (API); khi tạo mới mới dùng orderDate
+    dynamicItem.ngay_ct = isUpdate && item.ngay_ct ? item.ngay_ct : orderDate;
     dynamicItem.so_ct = values.soPhieu || "";
 
     // Mapping từ UI fields sang API fields
@@ -489,6 +494,7 @@ export const buildPhieuNhatHangPayload = (
       "dvt_goc",
       "donViTinhList",
       "loOptions",
+      "viTriOptions", // Xóa viTriOptions khỏi payload (chỉ dùng cho UI dropdown)
       "so_luong_don", // Xóa so_luong_don khỏi payload, dòng con sẽ gửi so_luong
       "isNewlyAdded",
       "_lastUpdated",
@@ -718,8 +724,8 @@ export const submitPhieuNhatHangDynamic = async (
   }
 
   // Lấy thông tin user từ Redux thay vì localStorage
-  const userId = userInfo?.id || userInfo?.userId || 4061;
-  const unitId = userInfo?.unitId || "TAPMED";
+  const userId = userInfo?.id || userInfo?.userId || "";
+  const unitId = userInfo?.unitId || "";
   const storeId = userInfo?.storeId || "";
 
   const storeName = isUpdate
@@ -805,8 +811,8 @@ export const deletePhieuNhatHangDynamic = async (sctRec, userInfo) => {
   const token = localStorage.getItem("access_token");
 
   // Lấy thông tin user từ Redux thay vì localStorage
-  const userId = userInfo?.id || userInfo?.userId || 4061;
-  const unitId = userInfo?.unitId || "TAPMED";
+  const userId = userInfo?.id || userInfo?.userId || "";
+  const unitId = userInfo?.unitId || "";
   const storeId = userInfo?.storeId || "";
 
   const body = {
