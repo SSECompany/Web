@@ -2,6 +2,7 @@ import {
   CloseCircleOutlined,
   DeleteOutlined,
   InfoCircleOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import { Modal } from "antd";
 import "./Modal.css";
@@ -29,6 +30,12 @@ const showConfirm = ({
         return (
           <CloseCircleOutlined
             style={{ color: "#ff4d4f", fontSize: "20px", marginBottom: "6px" }}
+          />
+        );
+      case "success":
+        return (
+          <CheckCircleOutlined
+            style={{ color: "#52c41a", fontSize: "20px", marginBottom: "6px" }}
           />
         );
       case "info":

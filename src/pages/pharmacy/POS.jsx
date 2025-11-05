@@ -347,6 +347,55 @@ const POS = () => {
     setIsPrescriptionModalOpen(!isPrescriptionModalOpen);
   }, [isPrescriptionModalOpen]);
 
+  // Load an existing retail order (from RetailOrderListModal)
+  const handleLoadOrderFromModal = useCallback(({ master, detail }) => {
+    try {
+      // Map detail lines to cart structure
+      const mappedCart = (detail || []).map((d) => ({
+        sku: d.ma_vt || "",
+        name: d.ten_vt || "",
+        price: Number(d.don_gia) || 0,
+        unit: (d.dvt || "").trim(),
+        qty: Number(d.so_luong) || 1,
+        batchExpiry: (d.ma_lo || "").trim(),
+        vatPercent: Number(d.thue_suat) || 0,
+        discountPercent: Number(d.tl_ck) || 0,
+        discountAmount: Number(d.ck_nt) || 0,
+        remaining: 0,
+        instructions: "",
+      }));
+
+      setCart(mappedCart);
+
+      // Map master -> customer (sử dụng dien_thoai thay vì so_dt)
+      setCustomer({
+        code: (master?.ma_kh || "").trim(),
+        phone: (master?.dien_thoai || master?.so_dt || "").trim(),
+        name: (master?.ten_kh || "").trim(),
+        idNumber: (master?.ma_thue || master?.cccd || "").trim(),
+        patientName: (master?.ong_ba || "").trim(),
+      });
+
+      // Map master -> payment
+      const rawMethod = (master?.httt || "").trim().toLowerCase();
+      const isTransfer =
+        rawMethod === "chuyen_khoan" || Number(master?.chuyen_khoan || 0) > 0;
+      const paymentMethod = isTransfer ? "transfer" : "cash";
+      const cashAmount = isTransfer ? 0 : Number(master?.tien_mat || 0);
+
+      setPayment({
+        method: paymentMethod,
+        cash: cashAmount,
+      });
+
+      setCustomerOpen(Boolean(master?.ma_kh || master?.ten_kh));
+      setIsOrderListModalOpen(false);
+    } catch (e) {
+      console.error("Error loading order into POS:", e);
+      notification.error({ message: "Không thể nạp đơn vào POS" });
+    }
+  }, []);
+
   return (
     <div className="pos-container">
       {/* Phần tìm kiếm full width */}
@@ -428,7 +477,13 @@ const POS = () => {
             onClearCart={() => {
               setCart([]);
               setPayment({ method: "cash", cash: 0 });
-              setCustomer({ code: "", phone: "", name: "", idNumber: "", patientName: "" });
+              setCustomer({
+                code: "",
+                phone: "",
+                name: "",
+                idNumber: "",
+                patientName: "",
+              });
               setCustomerOpen(false);
             }}
           />
@@ -449,12 +504,13 @@ const POS = () => {
             </Button>
           </Tooltip>
         </div>
-        <div className="company-label">Design by SSE</div>
+        <div className="company-label">Designed by SSE</div>
       </div>
 
       <RetailOrderListModal
         isOpen={isOrderListModalOpen}
         onClose={handleOrderListModal}
+        onLoadOrder={handleLoadOrderFromModal}
       />
 
       <ReportModal isOpen={isReportModalOpen} onClose={handleReportModal} />

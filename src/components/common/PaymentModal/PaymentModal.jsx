@@ -18,10 +18,48 @@ import PrintComponent from "./PrintComponent/PrintComponent";
 const prettyMoney = (v) => formatCurrency(v || 0, 0);
 
 const numberToVietnameseWords = (num) => {
-  if (num === null || num === undefined || isNaN(num) || num === 0) {
+  try {
+    // Kiểm tra null/undefined
+    if (num === null || num === undefined) {
+      return "Không";
+    }
+    
+    // Chuyển đổi sang số
+    const numValue = Number(num);
+    
+    // Kiểm tra NaN hoặc Infinity
+    if (isNaN(numValue) || !isFinite(numValue)) {
+      return "Không";
+    }
+    
+    // Lấy giá trị tuyệt đối và làm tròn xuống (đảm bảo là integer)
+    const absValue = Math.abs(Math.floor(Math.round(numValue)));
+    
+    // Nếu bằng 0 thì trả về "Không"
+    if (absValue === 0) {
+      return "Không";
+    }
+    
+    // Kiểm tra số quá lớn (giới hạn của thư viện read-vietnamese-number)
+    if (absValue > 999999999999) {
+      return "Số quá lớn";
+    }
+    
+    // Truyền số nguyên dương vào num2words
+    // num2words sẽ tự xử lý việc convert sang string cho thư viện
+    const result = num2words(absValue);
+    
+    // Nếu num2words trả về lỗi, hiển thị lỗi thực tế
+    if (result === "Lỗi đọc số" || result === "Định dạng input không hợp lệ" || result === "Số không hợp lệ") {
+      console.error("num2words failed. Value:", absValue, "Type:", typeof absValue);
+      return result;
+    }
+    
+    return result;
+  } catch (error) {
+    console.error("Error converting number to words:", error, "Input:", num);
     return "Không";
   }
-  return num2words(Math.floor(Number(num)));
 };
 
 const PaymentModal = ({
@@ -55,6 +93,8 @@ const PaymentModal = ({
   const [multiCash, setMultiCash] = useState(0);
   const [multiTransfer, setMultiTransfer] = useState(0);
   const printContent = useRef();
+  const prevPaymentMethodRef = useRef(paymentMethod);
+  const prevVisibleRef = useRef(visible);
 
   // Reset data when modal closes
   React.useEffect(() => {
@@ -68,6 +108,32 @@ const PaymentModal = ({
     }
   }, [visible]);
 
+  // Đồng bộ paymentMethod với initialPaymentMethod khi modal mở hoặc initialPaymentMethod thay đổi
+  React.useEffect(() => {
+    if (visible) {
+      setPaymentMethod(initialPaymentMethod);
+      prevPaymentMethodRef.current = initialPaymentMethod;
+    }
+  }, [visible, initialPaymentMethod]);
+
+  // Tự động fill tiền mặt = total khi chọn phương thức "cash"
+  React.useEffect(() => {
+    if (visible && paymentMethod === "cash") {
+      // Fill khi vừa chuyển sang "cash" hoặc khi modal vừa mở với phương thức "cash"
+      const justSwitchedToCash = prevPaymentMethodRef.current !== "cash" && paymentMethod === "cash";
+      const justOpenedWithCash = !prevVisibleRef.current && visible && paymentMethod === "cash";
+      
+      if (justSwitchedToCash || justOpenedWithCash) {
+        const safeTotal = Math.round(Number(total) || 0);
+        setPaymentAmounts((prev) => ({ ...prev, tien_mat: safeTotal }));
+      }
+      prevPaymentMethodRef.current = paymentMethod;
+    } else {
+      prevPaymentMethodRef.current = paymentMethod;
+    }
+    prevVisibleRef.current = visible;
+  }, [visible, paymentMethod, total]);
+
   // Reset multi payment when method changes
   React.useEffect(() => {
     if (paymentMethod !== "multi") {
@@ -76,13 +142,18 @@ const PaymentModal = ({
     }
   }, [paymentMethod]);
 
-  const lack = Math.max(0, total - (paymentAmounts.tien_mat || 0));
+  // Đảm bảo total và paymentAmounts là số hợp lệ (làm tròn về số nguyên)
+  const safeTotal = Math.round(Number(total) || 0);
+  const safeTienMat = Math.round(Number(paymentAmounts?.tien_mat) || 0);
+  const lack = Math.max(0, Math.round(safeTotal - safeTienMat));
+  const change = Math.max(0, Math.round(safeTienMat - safeTotal));
+  
   const multiTotal = useMemo(
-    () => multiCash + multiTransfer,
+    () => Math.round((Number(multiCash) || 0) + (Number(multiTransfer) || 0)),
     [multiCash, multiTransfer]
   );
-  const multiRemaining = Math.max(0, total - multiTotal);
-  const multiChange = Math.max(0, multiTotal - total);
+  const multiRemaining = Math.max(0, Math.round(safeTotal - multiTotal));
+  const multiChange = Math.max(0, Math.round(multiTotal - safeTotal));
 
   // Prepare print data theo mẫu Phenika
   const preparePrintData = () => {
@@ -417,26 +488,22 @@ const PaymentModal = ({
                       color:
                         lack > 0
                           ? "#ff4d4f"
-                          : (paymentAmounts.tien_mat || 0) > total
+                          : change > 0
                           ? "#52c41a"
                           : "#262626",
                     }}
                   >
                     {lack > 0
                       ? `-${prettyMoney(lack)}đ`
-                      : (paymentAmounts.tien_mat || 0) > total
-                      ? `+${prettyMoney(
-                          (paymentAmounts.tien_mat || 0) - total
-                        )}đ`
+                      : change > 0
+                      ? `+${prettyMoney(change)}đ`
                       : "0đ"}
                   </span>
                   <span style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
                     {lack > 0
                       ? numberToVietnameseWords(lack)
-                      : (paymentAmounts.tien_mat || 0) > total
-                      ? numberToVietnameseWords(
-                          (paymentAmounts.tien_mat || 0) - total
-                        )
+                      : change > 0
+                      ? numberToVietnameseWords(change)
                       : "Không"}
                   </span>
                 </div>
@@ -461,7 +528,13 @@ const PaymentModal = ({
                   <InputNumber
                     min={0}
                     value={multiCash}
-                    onChange={setMultiCash}
+                    onChange={(value) => {
+                      const cashValue = Math.round(Number(value) || 0);
+                      const safeTotal = Math.round(Number(total) || 0);
+                      const transferValue = Math.max(0, safeTotal - cashValue);
+                      setMultiCash(cashValue);
+                      setMultiTransfer(transferValue);
+                    }}
                     formatter={(val) =>
                       `${Number(val || 0).toLocaleString("vi-VN")}đ`
                     }
@@ -481,7 +554,13 @@ const PaymentModal = ({
                   <InputNumber
                     min={0}
                     value={multiTransfer}
-                    onChange={setMultiTransfer}
+                    onChange={(value) => {
+                      const transferValue = Math.round(Number(value) || 0);
+                      const safeTotal = Math.round(Number(total) || 0);
+                      const cashValue = Math.max(0, safeTotal - transferValue);
+                      setMultiCash(cashValue);
+                      setMultiTransfer(transferValue);
+                    }}
                     formatter={(val) =>
                       `${Number(val || 0).toLocaleString("vi-VN")}đ`
                     }

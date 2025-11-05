@@ -449,7 +449,7 @@ const ReturnPOS = () => {
             </Button>
           </Tooltip>
         </div>
-        <div className="company-label">Design by SSE</div>
+        <div className="company-label">Designed by SSE</div>
       </div>
 
       <RetailOrderListModal

@@ -211,7 +211,7 @@ const ListPhieuNhatHang = () => {
         const map = {
           "Mới chia đơn": "0",
           "Đang nhặt hàng": "1",
-          "Đã nhặt hàng": "2",
+          "Nhặt xong": "2",
         };
         return map[str] || "";
       };
@@ -377,7 +377,7 @@ const ListPhieuNhatHang = () => {
       const statusMap = {
         0: "Mới chia đơn",
         1: "Đang nhặt hàng",
-        2: "Đã nhặt hàng",
+        2: "Nhặt xong",
       };
       chips.push({
         key: "status",
@@ -737,8 +737,8 @@ const ListPhieuNhatHang = () => {
       },
       {
         title: "Trạng thái",
-        dataIndex: "status",
-        key: "status",
+        dataIndex: "statusname",
+        key: "statusname",
         width: screenSize === "mobile" ? 80 : 120,
         align: "center",
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
@@ -752,7 +752,7 @@ const ListPhieuNhatHang = () => {
             >
               <Select.Option value="0">Mới chia đơn</Select.Option>
               <Select.Option value="1">Đang nhặt hàng</Select.Option>
-              <Select.Option value="2">Đã nhặt hàng</Select.Option>
+              <Select.Option value="2">Nhặt xong</Select.Option>
             </Select>
             <Button
               className="search_button"
@@ -767,7 +767,8 @@ const ListPhieuNhatHang = () => {
           </div>
         ),
         filteredValue: filters.status ? [filters.status] : null,
-        render: (status) => {
+        render: (_, record) => {
+          const status = record?.status;
           if (status === "*" || status === null) {
             return "";
           }
@@ -776,14 +777,14 @@ const ListPhieuNhatHang = () => {
             const statusMap = {
               0: screenSize === "mobile" ? "Mới chia" : "Mới chia đơn",
               1: screenSize === "mobile" ? "Đang nhặt" : "Đang nhặt hàng",
-              2: screenSize === "mobile" ? "Đã nhặt" : "Đã nhặt hàng",
+              2: screenSize === "mobile" ? "Nhặt xong" : "Nhặt xong",
               3: screenSize === "mobile" ? "Chuyển" : "Chuyển số cài",
               5: screenSize === "mobile" ? "Đề nghị" : "Đề nghị nhặt hàng",
             };
             return statusMap[status] || "Không xác định";
           };
 
-          const displayText = getStatusText(status);
+          const displayText = record?.statusname || getStatusText(status);
           const statusColor = getStatusColor(status);
 
           return <Tag color={statusColor}>{displayText}</Tag>;

@@ -16,6 +16,7 @@ import PaymentModal from "../../../components/common/PaymentModal/PaymentModal";
 import PrintComponent from "../../../components/common/PaymentModal/PrintComponent/PrintComponent";
 import jwt from "../../../utils/jwt";
 import CustomerInfo from "./CustomerInfo";
+import emitter from "../../../utils/emitter";
 
 const { Text } = Typography;
 
@@ -150,6 +151,8 @@ const PaymentSummary = ({
       httt: selectedPayments.join(","),
       stt_rec: "",
       status,
+      // Add customer code into master
+      ma_kh: customerInfo.ma_kh ?? customer?.code ?? "",
       cccd: customerInfo.cccd ?? customer?.idNumber ?? "",
       ong_ba: customerInfo.ong_ba?.trim() || customer?.name?.trim() || "",
       so_dt: customerInfo.so_dt ?? customer?.phone ?? "",
@@ -299,6 +302,19 @@ const PaymentSummary = ({
       handlePrint();
     }
   }, [printMaster, printDetail, isPrinting, isPrinted]);
+
+  // Allow external trigger to open payment modal (e.g., from order list approve)
+  useEffect(() => {
+    const openHandler = () => {
+      if (!isProcessingPayment) {
+        setIsPaymentModalVisible(true);
+      }
+    };
+    emitter.on("OPEN_PAYMENT_MODAL", openHandler);
+    return () => {
+      emitter.off("OPEN_PAYMENT_MODAL", openHandler);
+    };
+  }, [isProcessingPayment]);
 
   const handleOpenPaymentModal = () => {
     if (isProcessingPayment) {

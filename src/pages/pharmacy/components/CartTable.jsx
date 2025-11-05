@@ -77,7 +77,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             letterSpacing: "0.5px",
           }}
         >
-          TÊN SẢN PHẨM(1)
+          TÊN SẢN PHẨM
         </span>
       ),
       dataIndex: "name",
@@ -418,16 +418,23 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       dataIndex: "remaining",
       key: "remaining",
       width: "8%",
-      render: (remaining, record, index) => (
-        <InputNumber
-          value={remaining || 0}
-          min={0}
-          size="small"
-          className="remaining-input"
-          onChange={(value) => updateLine(index, "remaining", value || 0)}
-          controls={false}
-        />
-      ),
+      render: (_, record) => {
+        const total = record.price * (record.qty || 1);
+        const discountAmount =
+          record.discountAmount > 0
+            ? record.discountAmount
+            : Math.round((total * (record.discountPercent || 0)) / 100);
+        const totalAfterDiscount = total - discountAmount;
+        const vatAmount = Math.round(
+          (totalAfterDiscount * (record.vatPercent || 0)) / 100
+        );
+        const remaining = Math.max(0, total - discountAmount + vatAmount);
+        return (
+          <span className="remaining-text">
+            {new Intl.NumberFormat("vi-VN").format(remaining)}đ
+          </span>
+        );
+      },
     },
     {
       title: (

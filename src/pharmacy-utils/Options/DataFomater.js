@@ -11,16 +11,25 @@ const datetimeFormat = "DD/MM/YYYY";
 const datetimeFormat2 = "DD-MM-YYYY";
 const PriceFormat = "0.01";
 
+// Config cố định như Phenikaa (tạo một lần và dùng lại)
 const config = new ReadingConfig();
 config.unit = [""];
 
 function num2words(num) {
   try {
-    var result = doReadNumber(config, num.toString());
+    // Chuyển đổi sang string trực tiếp (thư viện yêu cầu string hoặc bigint)
+    // Phenikaa cách: đơn giản, truyền string trực tiếp
+    const numString = String(num);
+    
+    // Gọi thư viện với string
+    var result = doReadNumber(numString, config);
+    
+    // Viết hoa chữ cái đầu
     var first = result.charAt(0);
     first = first.toUpperCase();
     result = result.slice(1);
     result = first + result;
+    
     return result;
   } catch (err) {
     // Handle errors

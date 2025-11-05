@@ -8,13 +8,14 @@ import {
   DatePicker,
   Input,
   Modal,
-  notification,
   Select,
   Spin,
   Table,
   Tag,
+  notification,
 } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dayjs from "dayjs";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../api";
@@ -23,13 +24,13 @@ import showConfirm from "../Modal/ModalConfirm";
 import PrintComponent from "./PrintComponent/PrintComponent";
 import "./RetailOrderListModal.css";
 
-const RetailOrderListModal = ({ isOpen, onClose }) => {
+const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
   const [totalRecords, setTotalRecords] = useState(0);
   const [allData, setAllData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const EMPTY_FILTERS = {};
+  const EMPTY_FILTERS = { so_ct: "", ngay_ct: "", status: "" };
   const [filters, setFilters] = useState(EMPTY_FILTERS);
 
   const stableFilters = useMemo(() => filters, [JSON.stringify(filters)]);
@@ -50,6 +51,37 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const fullName = claims?.FullName;
 
   const [isEditingOrder, setIsEditingOrder] = useState(false);
+
+  // Persist and show active filters like picking list
+  const FILTERS_STORAGE_KEY = "retailOrder_filters";
+
+  const saveFiltersToStorage = (f) => {
+    try {
+      sessionStorage.setItem(
+        FILTERS_STORAGE_KEY,
+        JSON.stringify({
+          so_ct: f.so_ct || "",
+          ngay_ct: f.ngay_ct || "",
+          status: f.status || "",
+        })
+      );
+    } catch {}
+  };
+
+  const loadFiltersFromStorage = () => {
+    try {
+      const raw = sessionStorage.getItem(FILTERS_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return {
+        so_ct: parsed.so_ct || "",
+        ngay_ct: parsed.ngay_ct || "",
+        status: parsed.status || "",
+      };
+    } catch {
+      return null;
+    }
+  };
 
   const fetchListOrderData = useCallback(
     async (pageIndex = currentPage, customFilters = null) => {
@@ -112,7 +144,13 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
-      fetchListOrderData(1, filters);
+      const loaded = loadFiltersFromStorage();
+      if (loaded) {
+        setFilters(loaded);
+        fetchListOrderData(1, loaded);
+      } else {
+        fetchListOrderData(1, filters);
+      }
     } else {
       setCurrentPage(1);
       setFilters(EMPTY_FILTERS);
@@ -141,7 +179,46 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
     const newFilters = { ...filters, [key]: filterValue };
     setFilters(newFilters);
     setCurrentPage(1);
+    saveFiltersToStorage(newFilters);
     fetchListOrderData(1, newFilters);
+  };
+
+  const activeChips = useMemo(() => {
+    const chips = [];
+    if (filters.so_ct) chips.push({ key: "so_ct", label: "Số CT", value: filters.so_ct });
+    if (filters.ngay_ct) {
+      // convert MM/DD/YYYY to DD/MM/YYYY for display
+      const parts = String(filters.ngay_ct).split(/[\/-]/);
+      let display = filters.ngay_ct;
+      if (parts.length === 3) {
+        const [mm, dd, yyyy] = parts;
+        display = `${String(dd).padStart(2, "0")}/${String(mm).padStart(2, "0")}/${yyyy}`;
+      }
+      chips.push({ key: "ngay_ct", label: "Ngày CT", value: display });
+    }
+    if (filters.status !== "" && filters.status !== null && filters.status !== undefined) {
+      const statusMap = { "2": "Hoàn thành", "0": "Chưa hoàn thành" };
+      chips.push({ key: "status", label: "Trạng thái", value: statusMap[String(filters.status)] || String(filters.status) });
+    }
+    return chips;
+  }, [filters]);
+
+  const removeChip = (key) => {
+    const newFilters = { ...filters };
+    if (key === "ngay_ct") newFilters.ngay_ct = "";
+    else newFilters[key] = "";
+    setFilters(newFilters);
+    setCurrentPage(1);
+    saveFiltersToStorage(newFilters);
+    fetchListOrderData(1, newFilters);
+  };
+
+  const clearAllChips = () => {
+    const cleared = { so_ct: "", ngay_ct: "", status: "" };
+    setFilters(cleared);
+    setCurrentPage(1);
+    try { sessionStorage.removeItem(FILTERS_STORAGE_KEY); } catch {}
+    fetchListOrderData(1, cleared);
   };
 
   const handlePageChange = (page) => {
@@ -198,52 +275,27 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       dataIndex: "stt",
       key: "stt",
       render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
+      width: 80,
+      align: "center",
     },
     {
-      title: "Nhân viên",
-      dataIndex: "username",
-      key: "username",
+      title: "Đơn vị",
+      dataIndex: "ten_bp",
+      key: "ten_bp",
+      align: "center",
+      render: (text, record) =>
+        (typeof text === "string" && text.trim()) ||
+        (typeof record?.dept_id === "string"
+          ? record.dept_id.trim()
+          : record?.dept_id) ||
+        "",
     },
     {
-      title: () => (
-        <div className="column-title-with-tag">
-          Mã bàn {filters.ma_ban && <Tag color="blue">{filters.ma_ban}</Tag>}
-        </div>
-      ),
-      dataIndex: "ma_ban",
-      key: "ma_ban",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div className="filter-dropdown">
-          <Input
-            placeholder="Tìm kiếm Mã bàn"
-            value={selectedKeys[0]}
-            onChange={(e) =>
-              setSelectedKeys(e.target.value ? [e.target.value] : [])
-            }
-            onPressEnter={() =>
-              handleFilter("ma_ban", selectedKeys[0], confirm)
-            }
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => handleFilter("ma_ban", selectedKeys[0], confirm)}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
-    },
-    {
-      title: () => (
-        <div className="column-title-with-tag">
-          Số chứng từ {filters.so_ct && <Tag color="blue">{filters.so_ct}</Tag>}
-        </div>
-      ),
+      title: "Số chứng từ",
       dataIndex: "so_ct",
       key: "so_ct",
-      width: 200,
+      align: "center",
+      render: (text) => (typeof text === "string" ? text.trim() : text),
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div className="filter-dropdown">
           <Input
@@ -266,16 +318,37 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       ),
     },
     {
-      title: "Ngày CT",
+      title: "Ngày chứng từ",
       dataIndex: "ngay_ct",
       key: "ngay_ct",
-      width: 200,
+      align: "center",
+      render: (text) => {
+        if (!text) return "";
+        // Try native Date first
+        const tryDate = new Date(text);
+        if (!isNaN(tryDate.getTime())) {
+          const dd = String(tryDate.getDate()).padStart(2, "0");
+          const mm = String(tryDate.getMonth() + 1).padStart(2, "0");
+          const yyyy = tryDate.getFullYear();
+          return `${dd}/${mm}/${yyyy}`;
+        }
+        // Fallback for strings like MM/DD/YYYY or MM-DD-YYYY
+        const parts = String(text).split(/[\/-]/);
+        if (parts.length === 3) {
+          const [mm, dd, yyyy] = parts;
+          const dd2 = String(dd).padStart(2, "0");
+          const mm2 = String(mm).padStart(2, "0");
+          return `${dd2}/${mm2}/${yyyy}`;
+        }
+        return text;
+      },
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div className="filter-dropdown">
           <DatePicker
             inputReadOnly
+            value={selectedKeys[0] ? dayjs(selectedKeys[0], "MM/DD/YYYY") : null}
             onChange={(date) => {
-              setSelectedKeys(date ? [date.format("DD/MM/YYYY")] : []);
+              setSelectedKeys(date ? [date.format("MM/DD/YYYY")] : []);
             }}
             format="DD/MM/YYYY"
             placeholder="Chọn ngày CT"
@@ -290,77 +363,21 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           </Button>
         </div>
       ),
+      filteredValue: filters.ngay_ct ? [filters.ngay_ct] : null,
     },
     {
-      title: "Tổng tiền",
+      title: "Tổng thanh toán",
       dataIndex: "t_tt",
       key: "t_tt",
+      align: "center",
       render: (value) => `${value?.toLocaleString() || 0} VND`,
     },
     {
-      title: "Yêu cầu đồng bộ",
-      dataIndex: "s3",
-      key: "s3",
+      title: "Nhân viên",
+      dataIndex: "username",
+      key: "username",
       align: "center",
-      render: (value) => (
-        <Tag color={value === true ? "green" : "red"}>
-          {value === true ? "Đồng bộ" : "Không đồng bộ"}
-        </Tag>
-      ),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div className="filter-dropdown">
-          <Select
-            placeholder="Chọn"
-            value={selectedKeys[0]}
-            onChange={(value) => setSelectedKeys(value ? [value] : [])}
-          >
-            <Select.Option value="1">Có đồng bộ</Select.Option>
-            <Select.Option value="0">Không đồng bộ</Select.Option>
-          </Select>
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => handleFilter("s3", selectedKeys[0], confirm)}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
-    },
-    {
-      title: "Đồng bộ",
-      dataIndex: "s2",
-      key: "s2",
-      align: "center",
-      render: (value) => {
-        const isSynchronized = value.trim() === "Synchronize";
-        return (
-          <Tag color={isSynchronized ? "green" : "red"}>
-            {isSynchronized ? "Thành công" : "Thất bại"}
-          </Tag>
-        );
-      },
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div className="filter-dropdown">
-          <Select
-            placeholder="Chọn"
-            value={selectedKeys[0]}
-            onChange={(value) => setSelectedKeys(value ? [value] : [])}
-          >
-            <Select.Option value="Synchronize     ">Thành công</Select.Option>
-            <Select.Option value="*">Thất bại</Select.Option>
-          </Select>
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => handleFilter("s2", selectedKeys[0], confirm)}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
+      render: (text) => (typeof text === "string" ? text.trim() : text),
     },
     {
       title: "Trạng thái",
@@ -390,10 +407,14 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           </Button>
         </div>
       ),
+      filteredValue: filters.status ? [filters.status] : null,
     },
     {
       title: "Chức năng",
       key: "action",
+      width: 120,
+      className: "action-col",
+      align: "center",
       render: (_, record) => (
         <div className="action-buttons">
           <Button
@@ -469,11 +490,15 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       // );
       // dispatch(switchTab(internalId));
 
-      // For Tapmed, just close the modal
-      notification.success({
-        message: "Đã mở đơn hàng",
-        description: `Đơn hàng ${record.so_ct} đã được mở`,
-      });
+      // Gọi callback để load dữ liệu vào POS nếu có
+      if (typeof onLoadOrder === "function") {
+        onLoadOrder({ master: mergedMasterData, detail: detailData });
+      } else {
+        notification.success({
+          message: "Đã mở đơn hàng",
+          description: `Đơn hàng ${record.so_ct} đã được mở`,
+        });
+      }
       onClose();
     } catch (err) {
       console.error("Lỗi khi gọi API chi tiết đơn hàng:", err);
@@ -526,6 +551,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const handleApprove = async (record) => {
     showConfirm({
       title: `Bạn có chắc chắn muốn thanh toán đơn hàng có số chứng từ: ${record.so_ct}?`,
+      type: "success",
       onOk: async () => {
         if (isEditingOrder) return;
         setIsEditingOrder(true);
@@ -581,11 +607,14 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
           // );
           // dispatch(switchTab(internalId));
 
-          // For Tapmed, just close the modal
-          notification.success({
-            message: "Đã mở đơn hàng",
-            description: `Đơn hàng ${record.so_ct} đã được mở`,
-          });
+          // Push data to POS and open payment modal directly
+          if (typeof onLoadOrder === "function") {
+            onLoadOrder({ master: mergedMasterData, detail: detailData });
+          }
+          try {
+            const { default: emitter } = await import("../../../utils/emitter");
+            emitter.emit("OPEN_PAYMENT_MODAL");
+          } catch (e) {}
           onClose();
         } catch (err) {
           notification.error({
@@ -617,6 +646,35 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         centered
       >
         <div className="retail__modal__Container">
+          {activeChips.length > 0 && (
+            <div className="filter-chips-container" style={{ marginBottom: 8 }}>
+              <div className="filter-chips-left">
+                <span className="filter-chips-title">
+                  Đang áp dụng {activeChips.length} bộ lọc
+                </span>
+                <div className="filter-chips-list">
+                  {activeChips.map((chip) => (
+                    <Tag
+                      key={chip.key}
+                      closable
+                      onClose={(e) => {
+                        e.preventDefault();
+                        removeChip(chip.key);
+                      }}
+                      className="filter-chip"
+                    >
+                      {chip.label}: {chip.value}
+                    </Tag>
+                  ))}
+                </div>
+              </div>
+              <div className="filter-chips-right">
+                <Button size="small" onClick={clearAllChips}>
+                  Xóa tất cả
+                </Button>
+              </div>
+            </div>
+          )}
           {isLoading ? (
             <Spin size="large" />
           ) : (
@@ -625,6 +683,8 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
               columns={columns}
               rowKey="stt_rec"
               className="retail-order-table"
+              size="small"
+              tableLayout="auto"
               pagination={{
                 current: currentPage,
                 pageSize: pageSize,

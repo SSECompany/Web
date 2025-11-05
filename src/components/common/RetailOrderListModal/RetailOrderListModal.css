@@ -46,6 +46,12 @@
   white-space: nowrap;
 }
 
+/* Center all headers and cells in this table */
+.retail-order-table .ant-table-thead > tr > th,
+.retail-order-table .ant-table-tbody > tr > td {
+  text-align: center;
+}
+
 .retail-order-table .ant-table-thead > tr > th:last-child {
   position: sticky;
   right: 0;
@@ -187,5 +193,25 @@
 /* Action column styles */
 .action-buttons {
   display: flex;
-  gap: 10px;
+  gap: 4px;
+}
+
+/* Compact icon-only buttons in action column */
+.retail-order-table .action-buttons .ant-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.retail-order-table .action-buttons .ant-btn .anticon {
+  font-size: 14px;
+}
+
+/* Reduce padding just for action column cells */
+.retail-order-table td.action-col {
+  padding: 6px 8px;
 }
