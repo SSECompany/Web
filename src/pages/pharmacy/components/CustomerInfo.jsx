@@ -32,6 +32,9 @@ const CustomerInfo = ({
   const [searchValue, setSearchValue] = useState("");
   const [options, setOptions] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
+  const [currentKeyword, setCurrentKeyword] = useState("");
   const debounceRef = useRef();
 
   const isPhoneValid = useMemo(() => {
@@ -64,9 +67,29 @@ const CustomerInfo = ({
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await searchKhachHang((value || "").trim(), 1, 10);
-        const list = res?.listObject?.[0] || [];
-        const mapped = list.map((c) => {
+        const keyword = (value || "").trim();
+        const res = await searchKhachHang(keyword, 1, 10);
+        const data = res?.listObject?.[0] || [];
+        const paginationInfo = res?.listObject?.[1]?.[0] || {};
+        const pageSize = 10;
+        const totalRecord =
+          paginationInfo.totalrecord ??
+          paginationInfo.totalRecord ??
+          paginationInfo.TotalRecord ??
+          paginationInfo.Totalrecord;
+        let metaTotalPage =
+          paginationInfo.totalpage ??
+          paginationInfo.totalPage ??
+          paginationInfo.TotalPage ??
+          paginationInfo.Totalpage;
+        if (!metaTotalPage) {
+          if (typeof totalRecord === "number") {
+            metaTotalPage = Math.max(1, Math.ceil(totalRecord / pageSize));
+          } else {
+            metaTotalPage = data.length < pageSize ? 1 : 2; // minimal fallback
+          }
+        }
+        const mapped = data.map((c) => {
           const code = c?.ma_kh || c?.value || c?.id || Math.random().toString();
           const name = c?.ten_kh || c?.label || c?.name || "";
           return {
@@ -76,12 +99,59 @@ const CustomerInfo = ({
           };
         });
         setOptions(mapped);
+        setPageIndex(1);
+        setTotalPage(metaTotalPage || 1);
+        setCurrentKeyword(keyword);
       } catch (e) {
         setOptions([]);
+        setPageIndex(1);
+        setTotalPage(1);
       } finally {
         setSearching(false);
       }
     }, 400);
+  };
+
+  const handlePopupScroll = async (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (scrollTop + clientHeight >= scrollHeight - 20 && pageIndex < totalPage && !searching) {
+      setSearching(true);
+      try {
+        const nextPage = pageIndex + 1;
+        const res = await searchKhachHang(currentKeyword, nextPage, 10);
+        const data = res?.listObject?.[0] || [];
+        const paginationInfo = res?.listObject?.[1]?.[0] || {};
+        const mapped = data.map((c) => {
+          const code = c?.ma_kh || c?.value || c?.id || Math.random().toString();
+          const name = c?.ten_kh || c?.label || c?.name || "";
+          return {
+            value: code,
+            label: `${code} - ${name}`.trim(),
+            raw: c,
+          };
+        });
+        // Append and deduplicate by value
+        setOptions((prev) => {
+          const seen = new Set(prev.map((o) => o.value));
+          const appended = mapped.filter((o) => !seen.has(o.value));
+          return [...prev, ...appended];
+        });
+        setPageIndex(nextPage);
+        const newTotalPage =
+          paginationInfo.totalpage ??
+          paginationInfo.totalPage ??
+          paginationInfo.TotalPage ??
+          paginationInfo.Totalpage ??
+          totalPage;
+        if (newTotalPage && newTotalPage !== totalPage) {
+          setTotalPage(newTotalPage);
+        }
+      } catch (e) {
+        // ignore scroll errors
+      } finally {
+        setSearching(false);
+      }
+    }
   };
 
   const handleSelect = (_value, option) => {
@@ -188,6 +258,7 @@ const CustomerInfo = ({
                   handleSearch(searchValue || "");
                 }
               }}
+              onPopupScroll={handlePopupScroll}
               options={options}
               className="customer-search-input"
               dropdownMatchSelectWidth={400}
@@ -201,6 +272,8 @@ const CustomerInfo = ({
               optionLabelProp="label"
               optionFilterProp="label"
               suffixIcon={<SearchOutlined style={{ fontSize: "11px" }} />}
+              dropdownStyle={{ maxHeight: 300, overflow: "auto" }}
+              notFoundContent={searching ? "Đang tải..." : "Không tìm thấy"}
             />
             <Button
               size="small"

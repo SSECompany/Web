@@ -266,33 +266,30 @@
   overflow: auto;
 }
 
-/* Make table layout flexible so columns auto-size to content */
+/* Use fixed table layout to prevent column misalignment */
 .cart-table .ant-table table {
-  table-layout: auto !important;
+  table-layout: fixed !important;
 }
 
-/* Prevent layout jumps: enforce comfortable min-widths for numeric columns */
-.cart-table .ant-table-thead > tr > th:nth-child(6),  /* GIÁ BÁN */
-.cart-table .ant-table-tbody > tr > td:nth-child(6),
-.cart-table .ant-table-thead > tr > th:nth-child(7),  /* TỔNG TIỀN */
-.cart-table .ant-table-tbody > tr > td:nth-child(7),
-.cart-table .ant-table-thead > tr > th:nth-child(8),  /* % CK */
-.cart-table .ant-table-tbody > tr > td:nth-child(8),
-.cart-table .ant-table-thead > tr > th:nth-child(9),  /* CK TIỀN */
-.cart-table .ant-table-tbody > tr > td:nth-child(9),
-.cart-table .ant-table-thead > tr > th:nth-child(10), /* %VAT */
-.cart-table .ant-table-tbody > tr > td:nth-child(10),
-.cart-table .ant-table-thead > tr > th:nth-child(11), /* VAT */
-.cart-table .ant-table-tbody > tr > td:nth-child(11),
-.cart-table .ant-table-thead > tr > th:nth-child(12), /* CÒN LẠI */
-.cart-table .ant-table-tbody > tr > td:nth-child(12) {
-  min-width: 110px;
+/* Ensure columns maintain their fixed width - prevent compression */
+.cart-table .ant-table-thead > tr > th,
+.cart-table .ant-table-tbody > tr > td {
+  overflow: hidden !important;
 }
 
-/* Stabilize Batch/LOT select (Số lô) to avoid width/height jumping */
-.cart-table .ant-table-thead > tr > th:nth-child(4), /* SỐ LÔ/HẠN DÙNG */
-.cart-table .ant-table-tbody > tr > td:nth-child(4) {
-  min-width: 180px;
+/* Prevent text overflow in cells */
+.cart-table .ant-table-thead > tr > th:not(:nth-child(2)),
+.cart-table .ant-table-tbody > tr > td:not(:nth-child(2)) {
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Allow text wrapping only for product name column (2nd column after delete) */
+.cart-table .ant-table-thead > tr > th:nth-child(2),
+.cart-table .ant-table-tbody > tr > td:nth-child(2) {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
 }
 .cart-table .ant-table-tbody .ant-select {
   width: 100% !important;
@@ -320,6 +317,15 @@
 
 .cart-table .ant-table {
   background: #ffffff;
+}
+
+/* Ensure table container respects fixed layout */
+.cart-table .ant-table-container {
+  min-width: 1430px !important;
+}
+
+.cart-table .ant-table-content {
+  overflow-x: auto !important;
 }
 
 .cart-table .ant-table-thead > tr > th {

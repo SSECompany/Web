@@ -92,6 +92,7 @@ const PaymentModal = ({
 
   const [multiCash, setMultiCash] = useState(0);
   const [multiTransfer, setMultiTransfer] = useState(0);
+  const [multiDriver, setMultiDriver] = useState(null); // 'cash' | 'transfer' | null
   const printContent = useRef();
   const prevPaymentMethodRef = useRef(paymentMethod);
   const prevVisibleRef = useRef(visible);
@@ -105,6 +106,7 @@ const PaymentModal = ({
       setSync(true);
       setMultiCash(0);
       setMultiTransfer(0);
+      setMultiDriver(null);
     }
   }, [visible]);
 
@@ -139,6 +141,7 @@ const PaymentModal = ({
     if (paymentMethod !== "multi") {
       setMultiCash(0);
       setMultiTransfer(0);
+      setMultiDriver(null);
     }
   }, [paymentMethod]);
 
@@ -531,9 +534,18 @@ const PaymentModal = ({
                     onChange={(value) => {
                       const cashValue = Math.round(Number(value) || 0);
                       const safeTotal = Math.round(Number(total) || 0);
-                      const transferValue = Math.max(0, safeTotal - cashValue);
+                      if (!multiDriver) {
+                        setMultiDriver("cash");
+                        const transferValue = Math.max(0, safeTotal - cashValue);
+                        setMultiCash(cashValue);
+                        setMultiTransfer(transferValue);
+                        return;
+                      }
                       setMultiCash(cashValue);
-                      setMultiTransfer(transferValue);
+                      if (multiDriver === "cash") {
+                        const transferValue = Math.max(0, safeTotal - cashValue);
+                        setMultiTransfer(transferValue);
+                      }
                     }}
                     formatter={(val) =>
                       `${Number(val || 0).toLocaleString("vi-VN")}đ`
@@ -557,9 +569,18 @@ const PaymentModal = ({
                     onChange={(value) => {
                       const transferValue = Math.round(Number(value) || 0);
                       const safeTotal = Math.round(Number(total) || 0);
-                      const cashValue = Math.max(0, safeTotal - transferValue);
-                      setMultiCash(cashValue);
+                      if (!multiDriver) {
+                        setMultiDriver("transfer");
+                        const cashValue = Math.max(0, safeTotal - transferValue);
+                        setMultiTransfer(transferValue);
+                        setMultiCash(cashValue);
+                        return;
+                      }
                       setMultiTransfer(transferValue);
+                      if (multiDriver === "transfer") {
+                        const cashValue = Math.max(0, safeTotal - transferValue);
+                        setMultiCash(cashValue);
+                      }
                     }}
                     formatter={(val) =>
                       `${Number(val || 0).toLocaleString("vi-VN")}đ`

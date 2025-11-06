@@ -1,7 +1,7 @@
 import { DeleteOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import { Button, Card, Input, InputNumber, Table, Tag, Select, Spin } from "antd";
 import React, { useState } from "react";
-import { getLoItem } from "../../../api";
+import { getLoItem, getItemPriceAndUnit } from "../../../api";
 import DiscountModal from "./DiscountModal";
 
 const CartTable = ({ cart, removeAt, updateLine }) => {
@@ -11,6 +11,8 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
   const [batchOptions, setBatchOptions] = useState({}); // options per row index
   const [batchLoading, setBatchLoading] = useState({}); // loading per row index
   const [batchOpen, setBatchOpen] = useState({}); // control dropdown open state per row
+  const [unitOptions, setUnitOptions] = useState({}); // unit options per row index
+  const [unitLoading, setUnitLoading] = useState({}); // loading per row index
 
   const loadBatchOptions = async (index, record, keyword = "") => {
     try {
@@ -38,6 +40,28 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
     }
   };
 
+  const loadUnitOptions = async (index, record) => {
+    try {
+      setUnitLoading((prev) => ({ ...prev, [index]: true }));
+      const res = await getItemPriceAndUnit((record?.sku || "").toString());
+      const data = res?.listObject?.[0] || [];
+      const options = data.map((x) => {
+        const dvt = (x?.dvt || x?.unit || x?.value || "").toString();
+        const gia = Number(x?.gia || x?.price || 0);
+        return {
+          value: dvt,
+          label: dvt ? `${dvt}` : "",
+          price: gia,
+        };
+      });
+      setUnitOptions((prev) => ({ ...prev, [index]: options }));
+    } catch (e) {
+      setUnitOptions((prev) => ({ ...prev, [index]: [] }));
+    } finally {
+      setUnitLoading((prev) => ({ ...prev, [index]: false }));
+    }
+  };
+
   const handleDiscountConfirm = (index, field, value) => {
     // Modal đã gửi các cập nhật cần thiết theo cặp; chỉ cần áp dụng cập nhật đơn lẻ này
     updateLine(index, field, value);
@@ -47,7 +71,8 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
     {
       title: "",
       key: "delete",
-      width: "50px",
+      width: 50,
+      fixed: "left",
       render: (_, record, index) => (
         <Button
           type="text"
@@ -82,7 +107,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "name",
       key: "name",
-      width: "40%",
+      width: 280,
       render: (text, record) => (
         <div className="product-info">
           <div className="product-name">{text}</div>
@@ -120,8 +145,33 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "unit",
       key: "unit",
-      width: "8%",
-      render: (text) => <Tag color="blue">{text}</Tag>,
+      width: 120,
+      render: (text, record, index) => {
+        const loading = !!unitLoading[index];
+        const options = unitOptions[index] || [];
+        return (
+          <Select
+            value={text || undefined}
+            placeholder="ĐVT"
+            size="small"
+            style={{ width: "100%" }}
+            loading={loading}
+            onDropdownVisibleChange={(visible) => {
+              if (visible && options.length === 0) {
+                loadUnitOptions(index, record);
+              }
+            }}
+            onChange={(val) => {
+              const opt = (unitOptions[index] || []).find((o) => o.value === val);
+              const newPrice = typeof opt?.price === "number" ? opt.price : record.price;
+              updateLine(index, "unit", val);
+              updateLine(index, "price", newPrice);
+            }}
+            options={options.map((o) => ({ value: o.value, label: o.label }))}
+            dropdownMatchSelectWidth={false}
+          />
+        );
+      },
     },
     {
       title: (
@@ -139,7 +189,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "batchExpiry",
       key: "batchExpiry",
-      width: "12%",
+      width: 180,
       render: (text, record, index) => {
         const isLoading = !!batchLoading[index];
         const hasOptions = (batchOptions[index] || []).length > 0;
@@ -192,7 +242,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "qty",
       key: "qty",
-      width: "8%",
+      width: 120,
       render: (qty, record, index) => (
         <div className="qty-control">
           <button
@@ -236,7 +286,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "price",
       key: "price",
-      width: "10%",
+      width: 120,
       render: (price) => (
         <span className="price-text">
           {new Intl.NumberFormat("vi-VN").format(price)}đ
@@ -258,7 +308,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
         </span>
       ),
       key: "total",
-      width: "10%",
+      width: 120,
       render: (_, record) => {
         const total = record.price * (record.qty || 1);
         return (
@@ -284,7 +334,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "discountPercent",
       key: "discountPercent",
-      width: "6%",
+      width: 90,
       render: (discountPercent, record, index) => {
         // Display the exact discountPercent value from modal, don't calculate from discountAmount
         const displayPercent = discountPercent || 0;
@@ -318,7 +368,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
         </span>
       ),
       key: "discountAmountDisplay",
-      width: "8%",
+      width: 110,
       render: (_, record, index) => {
         // Display the exact discountAmount value from modal, don't calculate from discountPercent
         const finalDiscount = record.discountAmount || 0;
@@ -353,7 +403,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "vatPercent",
       key: "vatPercent",
-      width: "6%",
+      width: 90,
       render: (vatPercent, record, index) => (
         <InputNumber
           value={vatPercent || 0}
@@ -382,7 +432,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
         </span>
       ),
       key: "vatAmount",
-      width: "8%",
+      width: 110,
       render: (_, record) => {
         const total = record.price * (record.qty || 1);
         // Phenikaa logic: Ưu tiên giảm tiền, nếu không có thì dùng giảm %
@@ -417,7 +467,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "remaining",
       key: "remaining",
-      width: "8%",
+      width: 110,
       render: (_, record) => {
         const total = record.price * (record.qty || 1);
         const discountAmount =
@@ -452,7 +502,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "instructions",
       key: "instructions",
-      width: "12%",
+      width: 180,
       render: (text, record, index) => (
         <Input
           value={text || ""}
@@ -489,7 +539,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             pagination={false}
             size="small"
             tableLayout="fixed"
-            scroll={{ x: 1200, y: 300 }}
+            scroll={{ x: 1430, y: 300 }}
           />
         </div>
       )}

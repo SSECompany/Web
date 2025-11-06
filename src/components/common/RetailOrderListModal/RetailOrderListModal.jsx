@@ -12,6 +12,7 @@ import {
   Spin,
   Table,
   Tag,
+  Pagination,
   notification,
 } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -30,7 +31,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
   const [totalRecords, setTotalRecords] = useState(0);
   const [allData, setAllData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const EMPTY_FILTERS = { so_ct: "", ngay_ct: "", status: "" };
+  const EMPTY_FILTERS = { so_ct: "", dateRange: null, status: "" };
   const [filters, setFilters] = useState(EMPTY_FILTERS);
 
   const stableFilters = useMemo(() => filters, [JSON.stringify(filters)]);
@@ -61,7 +62,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
         FILTERS_STORAGE_KEY,
         JSON.stringify({
           so_ct: f.so_ct || "",
-          ngay_ct: f.ngay_ct || "",
+          dateRange: f.dateRange || null,
           status: f.status || "",
         })
       );
@@ -75,7 +76,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       const parsed = JSON.parse(raw);
       return {
         so_ct: parsed.so_ct || "",
-        ngay_ct: parsed.ngay_ct || "",
+        dateRange: parsed.dateRange || null,
         status: parsed.status || "",
       };
     } catch {
@@ -105,7 +106,10 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
           store: "api_get_retail_order",
           param: {
             so_ct: filtersToUse.so_ct || "",
-            ngay_ct: filtersToUse.ngay_ct || "",
+            DateFrom:
+              filtersToUse?.dateRange?.from || "",
+            DateTo:
+              filtersToUse?.dateRange?.to || "",
             ma_kh: filtersToUse.ma_kh || "",
             status: filtersToUse.status || "",
             ma_ban: filtersToUse.ma_ban || "",
@@ -175,8 +179,18 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
         filterValue = "";
       }
     }
-
-    const newFilters = { ...filters, [key]: filterValue };
+    let newFilters = { ...filters, [key]: filterValue };
+    if (key === "dateRange") {
+      if (Array.isArray(value) && value.length === 2) {
+        const [from, to] = value;
+        newFilters.dateRange = {
+          from: dayjs(from, ["MM/DD/YYYY", "DD/MM/YYYY"]).format("MM/DD/YYYY"),
+          to: dayjs(to, ["MM/DD/YYYY", "DD/MM/YYYY"]).format("MM/DD/YYYY"),
+        };
+      } else {
+        newFilters.dateRange = null;
+      }
+    }
     setFilters(newFilters);
     setCurrentPage(1);
     saveFiltersToStorage(newFilters);
@@ -185,27 +199,32 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
 
   const activeChips = useMemo(() => {
     const chips = [];
-    if (filters.so_ct) chips.push({ key: "so_ct", label: "Số CT", value: filters.so_ct });
-    if (filters.ngay_ct) {
-      // convert MM/DD/YYYY to DD/MM/YYYY for display
-      const parts = String(filters.ngay_ct).split(/[\/-]/);
-      let display = filters.ngay_ct;
-      if (parts.length === 3) {
-        const [mm, dd, yyyy] = parts;
-        display = `${String(dd).padStart(2, "0")}/${String(mm).padStart(2, "0")}/${yyyy}`;
-      }
-      chips.push({ key: "ngay_ct", label: "Ngày CT", value: display });
+    if (filters.so_ct)
+      chips.push({ key: "so_ct", label: "Số CT", value: filters.so_ct });
+    if (filters.dateRange && filters.dateRange.from && filters.dateRange.to) {
+      const [mm1, dd1, y1] = String(filters.dateRange.from).split("/");
+      const [mm2, dd2, y2] = String(filters.dateRange.to).split("/");
+      const display = `${String(dd1).padStart(2, "0")}/${String(mm1).padStart(2, "0")}/${y1} - ${String(dd2).padStart(2, "0")}/${String(mm2).padStart(2, "0")}/${y2}`;
+      chips.push({ key: "dateRange", label: "Ngày CT", value: display });
     }
-    if (filters.status !== "" && filters.status !== null && filters.status !== undefined) {
+    if (
+      filters.status !== "" &&
+      filters.status !== null &&
+      filters.status !== undefined
+    ) {
       const statusMap = { "2": "Hoàn thành", "0": "Chưa hoàn thành" };
-      chips.push({ key: "status", label: "Trạng thái", value: statusMap[String(filters.status)] || String(filters.status) });
+      chips.push({
+        key: "status",
+        label: "Trạng thái",
+        value: statusMap[String(filters.status)] || String(filters.status),
+      });
     }
     return chips;
   }, [filters]);
 
   const removeChip = (key) => {
     const newFilters = { ...filters };
-    if (key === "ngay_ct") newFilters.ngay_ct = "";
+    if (key === "dateRange") newFilters.dateRange = null;
     else newFilters[key] = "";
     setFilters(newFilters);
     setCurrentPage(1);
@@ -214,10 +233,12 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
   };
 
   const clearAllChips = () => {
-    const cleared = { so_ct: "", ngay_ct: "", status: "" };
+    const cleared = { so_ct: "", dateRange: null, status: "" };
     setFilters(cleared);
     setCurrentPage(1);
-    try { sessionStorage.removeItem(FILTERS_STORAGE_KEY); } catch {}
+    try {
+      sessionStorage.removeItem(FILTERS_STORAGE_KEY);
+    } catch {}
     fetchListOrderData(1, cleared);
   };
 
@@ -343,27 +364,57 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
         return text;
       },
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div className="filter-dropdown">
-          <DatePicker
+        <div style={{ padding: 8 }}>
+          <DatePicker.RangePicker
             inputReadOnly
-            value={selectedKeys[0] ? dayjs(selectedKeys[0], "MM/DD/YYYY") : null}
-            onChange={(date) => {
-              setSelectedKeys(date ? [date.format("MM/DD/YYYY")] : []);
+            value={
+              selectedKeys.length === 2
+                ? [
+                    dayjs(selectedKeys[0], "DD/MM/YYYY"),
+                    dayjs(selectedKeys[1], "DD/MM/YYYY"),
+                  ]
+                : null
+            }
+            onChange={(dates) => {
+              if (dates && dates.length === 2) {
+                setSelectedKeys([
+                  dates[0].format("DD/MM/YYYY"),
+                  dates[1].format("DD/MM/YYYY"),
+                ]);
+              } else {
+                setSelectedKeys([]);
+              }
             }}
+            style={{ marginBottom: 8 }}
             format="DD/MM/YYYY"
-            placeholder="Chọn ngày CT"
+            placeholder={["Từ ngày", "Đến ngày"]}
           />
           <Button
             className="search_button"
             type="primary"
-            onClick={() => handleFilter("ngay_ct", selectedKeys[0], confirm)}
+            onClick={() => {
+              const filterValue =
+                selectedKeys.length === 2
+                  ? [
+                      dayjs(selectedKeys[0], "DD/MM/YYYY"),
+                      dayjs(selectedKeys[1], "DD/MM/YYYY"),
+                    ]
+                  : null;
+              handleFilter("dateRange", filterValue, confirm);
+            }}
             size="small"
           >
             Tìm kiếm
           </Button>
         </div>
       ),
-      filteredValue: filters.ngay_ct ? [filters.ngay_ct] : null,
+      filteredValue:
+        filters.dateRange && filters.dateRange.from && filters.dateRange.to
+          ? [
+              dayjs(filters.dateRange.from, "MM/DD/YYYY").format("DD/MM/YYYY"),
+              dayjs(filters.dateRange.to, "MM/DD/YYYY").format("DD/MM/YYYY"),
+            ]
+          : null,
     },
     {
       title: "Tổng thanh toán",
@@ -678,24 +729,30 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
           {isLoading ? (
             <Spin size="large" />
           ) : (
-            <Table
+            <div className="retail-order-table-wrapper">
+              <Table
               dataSource={currentData}
               columns={columns}
               rowKey="stt_rec"
               className="retail-order-table"
               size="small"
               tableLayout="auto"
-              pagination={{
-                current: currentPage,
-                pageSize: pageSize,
-                total: totalRecords,
-                showSizeChanger: false,
-                showQuickJumper: false,
-                showTotal: (total, range) =>
-                  `${range[0]}-${range[1]} của ${total} đơn hàng`,
-                onChange: handlePageChange,
-              }}
+                pagination={false}
             />
+              <div className="retail-pagination-bar">
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={totalRecords}
+                  showSizeChanger={false}
+                  showQuickJumper={false}
+                  showTotal={(total, range) =>
+                    `${range[0]}-${range[1]} của ${total} đơn hàng`
+                  }
+                  onChange={handlePageChange}
+                />
+              </div>
+            </div>
           )}
         </div>
       </Modal>

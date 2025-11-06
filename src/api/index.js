@@ -322,6 +322,47 @@ export const getLoItem = async ({
     });
 };
 
+// Get item price and unit list for a product
+export const getItemPriceAndUnit = async (ma_vt = "") => {
+  const token = localStorage.getItem("access_token");
+
+  const payload = {
+    store: "api_getItemPriceAndUnit",
+    param: {
+      ma_vt: ma_vt,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => {
+      const data = res?.data || {};
+      const responseModel = data?.responseModel || { isSucceded: true };
+      const list = data?.listObject;
+      let listObject;
+      if (Array.isArray(list)) {
+        listObject = Array.isArray(list[0]) ? list : [list];
+      } else {
+        const fallback = Array.isArray(data?.data) ? data.data : [];
+        listObject = [fallback];
+      }
+      return { responseModel, listObject };
+    })
+    .catch((error) => {
+      console.error("Error getItemPriceAndUnit:", error);
+      return {
+        responseModel: { isSucceded: false, message: "Lỗi kết nối mạng" },
+        listObject: [[]],
+      };
+    });
+};
+
 export const getKhoInfo = async (unitId = null, userId = null) => {
   const token = localStorage.getItem("access_token");
 

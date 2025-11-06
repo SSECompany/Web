@@ -339,7 +339,9 @@ const ReturnOrderModal = ({ isOpen, onClose, onApplyReturnOrder }) => {
             whiteSpace: "normal",
             wordWrap: "break-word",
             overflowWrap: "break-word",
+            maxWidth: "100%",
           }}
+          title={text}
         >
           {text}
         </div>
@@ -489,7 +491,8 @@ const ReturnOrderModal = ({ isOpen, onClose, onApplyReturnOrder }) => {
                   pagination={false}
                   size="small"
                   className="order-items-table"
-                  scroll={{ x: "max-content" }}
+                  tableLayout="fixed"
+                  scroll={{ x: 1100 }}
                   style={{ fontSize: "16px", minHeight: "100%" }}
                 />
               </div>
@@ -527,19 +530,3 @@ const ReturnOrderModal = ({ isOpen, onClose, onApplyReturnOrder }) => {
 };
 
 export default ReturnOrderModal;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

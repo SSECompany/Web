@@ -194,6 +194,25 @@
   font-size: 14px !important;
 }
 
+.order-items-table .ant-table {
+  table-layout: fixed !important;
+}
+
+/* Ensure columns maintain their width - prevent compression */
+.order-items-table .ant-table-thead > tr > th,
+.order-items-table .ant-table-tbody > tr > td {
+  overflow: hidden !important;
+}
+
+/* Prevent column width compression */
+.order-items-table .ant-table-content {
+  overflow-x: auto !important;
+}
+
+.order-items-table .ant-table-container {
+  min-width: 1100px !important;
+}
+
 .order-items-table .ant-table-thead > tr > th {
   background: #374151 !important;
   color: white !important;
