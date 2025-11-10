@@ -231,10 +231,11 @@ const POS = () => {
           x.discountAmount > 0
             ? x.discountAmount
             : Math.round((itemTotal * (x.discountPercent || 0)) / 100);
-        const itemTotalAfterDiscount = itemTotal - itemDiscount;
-        const itemVat = Math.round(
-          (itemTotalAfterDiscount * (x.vatPercent || 0)) / 100
-        );
+        // Nếu đơn đang sửa đã có thue_nt từ API, ưu tiên dùng giá trị này
+        const itemVat =
+          Number(x.thue_nt) > 0
+            ? Math.round(Number(x.thue_nt))
+            : Math.round(((itemTotal - itemDiscount) * (x.vatPercent || 0)) / 100);
         return s + itemVat;
       }, 0),
     [cart]
@@ -459,6 +460,7 @@ const POS = () => {
         vatPercent: Number(d.thue_suat) || 0,
         ma_thue: (d.ma_thue || "").trim(),
         thue_suat: Number(d.thue_suat) || 0,
+        thue_nt: Number(d.thue_nt) || 0,
         discountPercent: Number(d.tl_ck) || 0,
         discountAmount: Number(d.ck_nt) || 0,
         remaining: 0,

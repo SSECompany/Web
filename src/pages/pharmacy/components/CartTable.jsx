@@ -83,7 +83,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             ten_thue_item ? ` - ${ten_thue_item}` : ""
           }`;
           return {
-            value: ma_thue, 
+            value: ma_thue,
             label: label,
             thue_suat: thue_suat,
             raw: x,
@@ -237,6 +237,55 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
                 typeof opt?.price === "number" ? opt.price : record.price;
               updateLine(index, "unit", val);
               updateLine(index, "price", newPrice);
+              // Recalculate discount amount against new price if % discount exists
+              const qty = Number(record.qty || 1);
+              const discountPercentNum = Number(record.discountPercent || 0);
+              let finalDiscountAmount = Number(record.discountAmount || 0);
+              if (discountPercentNum > 0) {
+                const newTotal = Math.max(0, Math.round(newPrice * qty));
+                const recalculatedDiscount = Math.round(
+                  (newTotal * discountPercentNum) / 100
+                );
+                updateLine(index, "discountAmount", recalculatedDiscount);
+                finalDiscountAmount = recalculatedDiscount;
+              } else {
+                // Ensure manual discount (if any) doesn't exceed new total
+                const manualDiscount = Number(record.discountAmount || 0);
+                const cappedManualDiscount = Math.min(
+                  manualDiscount,
+                  Math.max(0, Math.round(newPrice * qty))
+                );
+                if (manualDiscount !== cappedManualDiscount) {
+                  updateLine(index, "discountAmount", cappedManualDiscount);
+                }
+                finalDiscountAmount = Math.min(
+                  Number(record.discountAmount || 0),
+                  Math.max(0, Math.round(newPrice * qty))
+                );
+              }
+              // Recompute VAT immediately based on current VAT rate
+              const totalAfterDiscount = Math.max(
+                0,
+                Math.round(newPrice * qty) - Math.round(finalDiscountAmount)
+              );
+              // Determine VAT rate from available fields or current tax options
+              let effectiveVatPercent = 0;
+              if (Number(record.vatPercent) > 0) {
+                effectiveVatPercent = Number(record.vatPercent) || 0;
+              } else if (Number(record.thue_suat) > 0) {
+                effectiveVatPercent = Number(record.thue_suat) || 0;
+              } else if ((record.ma_thue || "").trim()) {
+                const optByMaThue = (taxOptions || []).find(
+                  (o) => o?.value === (record.ma_thue || "").trim()
+                );
+                if (optByMaThue?.thue_suat !== undefined) {
+                  effectiveVatPercent = Number(optByMaThue.thue_suat) || 0;
+                }
+              }
+              const recomputedVat = Math.round(
+                (totalAfterDiscount * effectiveVatPercent) / 100
+              );
+              updateLine(index, "thue_nt", recomputedVat);
             }}
             options={options.map((o) => ({ value: o.value, label: o.label }))}
             dropdownMatchSelectWidth={false}
@@ -558,6 +607,8 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
                 updateLine(index, "vatPercent", thue_suat);
                 updateLine(index, "thue_suat", thue_suat);
                 updateLine(index, "ma_thue", ma_thue);
+                // Clear thue_nt so UI recalculates VAT/remaining using new %VAT
+                updateLine(index, "thue_nt", 0);
               } else if (
                 selectedMaThue &&
                 selectedMaThue.startsWith("custom_")
@@ -566,11 +617,13 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
                   Number(selectedMaThue.replace("custom_", "")) || 0;
                 updateLine(index, "vatPercent", customThueSuat);
                 updateLine(index, "thue_suat", customThueSuat);
+                // Clear thue_nt so UI recalculates VAT/remaining using new %VAT
+                updateLine(index, "thue_nt", 0);
               }
             }}
             loading={taxLoading}
             showSearch
-            filterOption={false} 
+            filterOption={false}
             onSearch={handleTaxSearch}
             open={taxDropdownOpen[index]}
             onDropdownVisibleChange={(open) => {
@@ -628,6 +681,8 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
                             updateLine(index, "vatPercent", numValue);
                             updateLine(index, "thue_suat", numValue);
                             updateLine(index, "ma_thue", "");
+                            // Clear thue_nt so UI recalculates VAT/remaining using new %VAT
+                            updateLine(index, "thue_nt", 0);
                           }
                         }
                       }}
@@ -638,6 +693,8 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
                             updateLine(index, "vatPercent", numValue);
                             updateLine(index, "thue_suat", numValue);
                             updateLine(index, "ma_thue", "");
+                            // Clear thue_nt so UI recalculates VAT/remaining using new %VAT
+                            updateLine(index, "thue_nt", 0);
                           }
                         }
                       }}
@@ -673,9 +730,23 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             ? record.discountAmount
             : Math.round((total * (record.discountPercent || 0)) / 100);
         const totalAfterDiscount = total - discountAmount;
-        const vatAmount = Math.round(
-          (totalAfterDiscount * (record.vatPercent || 0)) / 100
-        );
+        let effectiveVatPercent = 0;
+        if (Number(record.thue_suat) > 0) {
+          effectiveVatPercent = Number(record.thue_suat) || 0;
+        } else if (Number(record.vatPercent) > 0) {
+          effectiveVatPercent = Number(record.vatPercent) || 0;
+        } else if ((record.ma_thue || "").trim()) {
+          const opt = (taxOptions || []).find(
+            (o) => o?.value === (record.ma_thue || "").trim()
+          );
+          if (opt?.thue_suat !== undefined) {
+            effectiveVatPercent = Number(opt.thue_suat) || 0;
+          }
+        }
+        const vatAmount =
+          Number(record.thue_nt) > 0
+            ? Math.round(Number(record.thue_nt))
+            : Math.round((totalAfterDiscount * effectiveVatPercent) / 100);
         return (
           <span className="vat-text">
             {new Intl.NumberFormat("vi-VN").format(vatAmount)}đ
@@ -707,9 +778,23 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             ? record.discountAmount
             : Math.round((total * (record.discountPercent || 0)) / 100);
         const totalAfterDiscount = total - discountAmount;
-        const vatAmount = Math.round(
-          (totalAfterDiscount * (record.vatPercent || 0)) / 100
-        );
+        let effectiveVatPercent = 0;
+        if (Number(record.thue_suat) > 0) {
+          effectiveVatPercent = Number(record.thue_suat) || 0;
+        } else if (Number(record.vatPercent) > 0) {
+          effectiveVatPercent = Number(record.vatPercent) || 0;
+        } else if ((record.ma_thue || "").trim()) {
+          const opt = (taxOptions || []).find(
+            (o) => o?.value === (record.ma_thue || "").trim()
+          );
+          if (opt?.thue_suat !== undefined) {
+            effectiveVatPercent = Number(opt.thue_suat) || 0;
+          }
+        }
+        const vatAmount =
+          Number(record.thue_nt) > 0
+            ? Math.round(Number(record.thue_nt))
+            : Math.round((totalAfterDiscount * effectiveVatPercent) / 100);
         const remaining = Math.max(0, total - discountAmount + vatAmount);
         return (
           <span className="remaining-text">
