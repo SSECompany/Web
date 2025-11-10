@@ -1,3 +1,5 @@
+import axiosInstance from "../utils/axiosInstance";
+import { APP_CONFIG } from "../utils/constants";
 import https from "../utils/https";
 import jwt from "../utils/jwt";
 
@@ -209,6 +211,48 @@ export const searchVatTu = async (
     })
     .catch((error) => {
       console.error("Error searching vat tu:", error);
+      return {
+        responseModel: {
+          isSucceded: false,
+          message: "Lỗi kết nối mạng",
+        },
+        listObject: [],
+      };
+    });
+};
+
+// === Tax Info API ===
+export const api_getTaxInfo = async (ten_thue = "") => {
+  const token = localStorage.getItem("access_token");
+
+  const payload = {
+    store: "api_getTaxInfo",
+    param: {
+      ten_thue: ten_thue,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => {
+      return (
+        res?.data || {
+          responseModel: {
+            isSucceded: false,
+            message: "Không có dữ liệu",
+          },
+          listObject: [],
+        }
+      );
+    })
+    .catch((error) => {
+      console.error("Error getting tax info:", error);
       return {
         responseModel: {
           isSucceded: false,
@@ -552,19 +596,38 @@ export const createRetailOrder = async (
   };
 
   const detail =
-    orderData.items?.map((item, index) => ({
-      ten_vt: item.name || item.ten_vt,
-      ma_vt_root: item.skuRoot,
-      ma_vt: item.sku || item.ma_vt,
-      so_luong: (item.quantity || item.qty)?.toString(),
-      don_gia: item.price?.toString(),
-      thanh_tien: (
-        (item.price || 0) * (item.quantity || item.qty || 0)
-      ).toString(),
-      ghi_chu: item.note,
-      uniqueid: item.uniqueId,
-      ap_voucher: item.voucher,
-    })) || [];
+    orderData.items?.map((item, index) => {
+      // Calculate discount and VAT amounts
+      const itemTotal = (item.price || 0) * (item.quantity || item.qty || 0);
+      const itemDiscountAmount = item.discountAmount > 0
+        ? item.discountAmount
+        : Math.round((itemTotal * (item.discountPercent || 0)) / 100);
+      const itemTotalAfterDiscount = itemTotal - itemDiscountAmount;
+      const itemVatAmount = Math.round(
+        (itemTotalAfterDiscount * (item.vatPercent || 0)) / 100
+      );
+      
+      // Get tax code from customer info
+      const maThue = orderData.customer?.taxCode || orderData.customer?.idNumber || "";
+      
+      return {
+        ten_vt: item.name || item.ten_vt,
+        ma_vt_root: item.skuRoot,
+        ma_vt: item.sku || item.ma_vt,
+        so_luong: (item.quantity || item.qty)?.toString(),
+        don_gia: item.price?.toString(),
+        thanh_tien: itemTotal.toString(),
+        ghi_chu: item.note || item.ghi_chu || "",
+        uniqueid: item.uniqueId,
+        ap_voucher: item.voucher,
+        // Add new fields for detail
+        tl_ck: (item.discountPercent || 0).toString(),
+        ck_nt: itemDiscountAmount.toString(),
+        ma_thue: maThue,
+        thue_nt: itemVatAmount.toString(),
+        dvt: (item.unit || item.dvt || "").trim(),
+      };
+    }) || [];
 
   const payload = {
     store: "Api_create_retail_order",
@@ -670,6 +733,128 @@ export const searchPrescriptionByCode = async (
     });
 };
 
+// ===== FILE UPLOAD (separate path, not AddData) =====
+// Upload file to FileUpload/upload with multipart/form-data
+export const uploadPrescriptionImage = async ({
+  file,
+  controllerFields = "m81$",
+  keyFields,
+  isPublicAccess = true,
+}) => {
+  if (!file) {
+    console.warn("No file provided to uploadPrescriptionImage");
+    return { success: false, message: "Chưa chọn file" };
+  }
+
+  try {
+    const token = localStorage.getItem("access_token");
+    // generate 16-char random key if not provided
+    const randomKey =
+      keyFields ||
+      (typeof crypto !== "undefined" && crypto.getRandomValues
+        ? (() => {
+            const bytes = new Uint8Array(12);
+            crypto.getRandomValues(bytes);
+            return Array.from(bytes, (b) => b.toString(16).padStart(2, "0"))
+              .join("")
+              .slice(0, 16);
+          })()
+        : Math.random().toString(36).slice(2, 18).padEnd(16, "0"));
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("controllerFields", controllerFields);
+    formData.append("keyFields", randomKey);
+    formData.append("isPublicAccess", String(isPublicAccess));
+
+    const res = await axiosInstance.post(`FileUpload/upload`, formData, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        Accept: "text/plain",
+        "Content-Type": "multipart/form-data",
+      },
+      timeout: 60000, // 60 seconds timeout
+    });
+
+    // Normalize possible return values into a resolvable URL
+    let raw = res?.data;
+    let url = "";
+    if (typeof raw === "string") {
+      // try to extract URL-like segment
+      const match = raw.match(/https?:\/\/[^\s"']+/i);
+      if (match) {
+        url = match[0];
+      } else {
+        // treat as path
+        const base = (APP_CONFIG?.apiUrl || "").replace(/\/$/, "");
+        let path = raw.replace(/^"|"$/g, "").replace(/^\//, "");
+        // Remove duplicate /api/ if path starts with api/ and base already contains /api
+        if (path.startsWith("api/") && base.includes("/api")) {
+          path = path.replace(/^api\//, "");
+        }
+        url = `${base}/${path}`;
+      }
+    } else if (raw && typeof raw === "object") {
+      url = raw.url || raw.fileUrl || raw.path || "";
+      if (url && !/^https?:\/\//i.test(url)) {
+        const base = (APP_CONFIG?.apiUrl || "").replace(/\/$/, "");
+        let path = url.replace(/^\//, "");
+        // Remove duplicate /api/ if path starts with api/ and base already contains /api
+        if (path.startsWith("api/") && base.includes("/api")) {
+          path = path.replace(/^api\//, "");
+        }
+        url = `${base}/${path}`;
+      }
+    }
+    
+    // Fix duplicate /api/ in URL - replace all occurrences of /api/api/ with /api/
+    if (url) {
+      // Replace /api/api/ with /api/ (can happen multiple times)
+      while (url.includes("/api/api/")) {
+        url = url.replace(/\/api\/api\//g, "/api/");
+      }
+    }
+
+    return { success: true, data: { url, keyFields: randomKey, raw } };
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    console.error("Error details:", {
+      message: error?.message,
+      response: error?.response?.data,
+      status: error?.response?.status,
+      config: error?.config,
+    });
+    const errorMessage = error?.response?.data?.message || error?.message || "Tải ảnh thất bại";
+    return { success: false, message: errorMessage };
+  }
+};
+
+// Optional: execute linking procedure after upload
+export const keyFileUploadsM81 = async ({ stt_rec, keyFields }) => {
+  const token = localStorage.getItem("access_token");
+
+  const payload = {
+    store: "api_keyFileUploadsM81",
+    param: {
+      stt_rec,
+      keyFields,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => res?.data)
+    .catch((err) => {
+      console.error("Error calling api_keyFileUploadsM81:", err);
+      return { responseModel: { isSucceded: false } };
+    });
+};
+
 // ===== CUSTOMER APIs =====
 export const createCustomer = async ({
   phone,
@@ -704,6 +889,51 @@ export const createCustomer = async ({
     .then((res) => res?.data)
     .catch((error) => {
       console.error("Error creating customer:", error);
+      return {
+        responseModel: {
+          isSucceded: false,
+          message: "Lỗi kết nối mạng",
+        },
+      };
+    });
+};
+
+// Update existing customer via stored procedure api_updateKhachHang
+export const updateKhachHang = async ({
+  code,
+  name,
+  phone,
+  birthday,
+  address,
+  note,
+  userId,
+}) => {
+  const token = localStorage.getItem("access_token");
+
+  const payload = {
+    store: "api_updateKhachHang",
+    param: {
+      ma_kh: code || "",
+      ten_kh: name || "",
+      dien_thoai: phone || "",
+      ngay_sinh: birthday || "",
+      dia_chi: address || "",
+      ghi_chu: note || "",
+      userid: Number(userId) || 0,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => res?.data)
+    .catch((error) => {
+      console.error("Error updating customer:", error);
       return {
         responseModel: {
           isSucceded: false,

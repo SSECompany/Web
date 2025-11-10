@@ -1,7 +1,7 @@
 import { DeleteOutlined, ShoppingCartOutlined } from "@ant-design/icons";
-import { Button, Card, Input, InputNumber, Table, Tag, Select, Spin } from "antd";
-import React, { useState } from "react";
-import { getLoItem, getItemPriceAndUnit } from "../../../api";
+import { Button, Card, Input, InputNumber, Select, Spin, Table } from "antd";
+import React, { useEffect, useRef, useState } from "react";
+import { api_getTaxInfo, getItemPriceAndUnit, getLoItem } from "../../../api";
 import DiscountModal from "./DiscountModal";
 
 const CartTable = ({ cart, removeAt, updateLine }) => {
@@ -13,6 +13,12 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
   const [batchOpen, setBatchOpen] = useState({}); // control dropdown open state per row
   const [unitOptions, setUnitOptions] = useState({}); // unit options per row index
   const [unitLoading, setUnitLoading] = useState({}); // loading per row index
+  const [unitOpen, setUnitOpen] = useState({}); // control unit dropdown open state per row
+  const [taxOptions, setTaxOptions] = useState([]); // tax rate options from API
+  const [taxLoading, setTaxLoading] = useState(false); // loading tax options
+  const [taxSearchKeyword, setTaxSearchKeyword] = useState(""); // search keyword for tax
+  const [taxDropdownOpen, setTaxDropdownOpen] = useState({}); // control dropdown open state per row
+  const taxSearchDebounceRef = useRef(null);
 
   const loadBatchOptions = async (index, record, keyword = "") => {
     try {
@@ -62,8 +68,52 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
     }
   };
 
+  const loadTaxOptions = async (ten_thue = "") => {
+    try {
+      setTaxLoading(true);
+      const res = await api_getTaxInfo(ten_thue);
+      if (res?.responseModel?.isSucceded) {
+        const data = res?.listObject?.[0] || [];
+
+        const options = data.map((x) => {
+          const thue_suat = Number(x.thue_suat) || 0;
+          const ma_thue = (x.ma_thue || "").trim();
+          const ten_thue_item = (x.ten_thue || "").trim();
+          const label = `${thue_suat}%${
+            ten_thue_item ? ` - ${ten_thue_item}` : ""
+          }`;
+          return {
+            value: ma_thue, 
+            label: label,
+            thue_suat: thue_suat,
+            raw: x,
+          };
+        });
+        setTaxOptions(options);
+      }
+    } catch (e) {
+      console.error("Error loading tax options:", e);
+      setTaxOptions([]);
+    } finally {
+      setTaxLoading(false);
+    }
+  };
+
+  const handleTaxSearch = (value) => {
+    setTaxSearchKeyword(value);
+    if (taxSearchDebounceRef.current) {
+      clearTimeout(taxSearchDebounceRef.current);
+    }
+    taxSearchDebounceRef.current = setTimeout(() => {
+      loadTaxOptions(value);
+    }, 300);
+  };
+
+  useEffect(() => {
+    loadTaxOptions();
+  }, []);
+
   const handleDiscountConfirm = (index, field, value) => {
-    // Modal đã gửi các cập nhật cần thiết theo cặp; chỉ cần áp dụng cập nhật đơn lẻ này
     updateLine(index, field, value);
   };
 
@@ -149,26 +199,64 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       render: (text, record, index) => {
         const loading = !!unitLoading[index];
         const options = unitOptions[index] || [];
+        const isOpen = !!unitOpen[index];
+        const hasOptions = options.length > 0;
+        if (isOpen && loading && !hasOptions) {
+          return (
+            <div
+              style={{
+                width: "100%",
+                height: 28,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Spin size="small" />
+            </div>
+          );
+        }
         return (
           <Select
             value={text || undefined}
             placeholder="ĐVT"
             size="small"
             style={{ width: "100%" }}
-            loading={loading}
+            loading={loading && hasOptions}
             onDropdownVisibleChange={(visible) => {
+              setUnitOpen((prev) => ({ ...prev, [index]: visible }));
               if (visible && options.length === 0) {
                 loadUnitOptions(index, record);
               }
             }}
             onChange={(val) => {
-              const opt = (unitOptions[index] || []).find((o) => o.value === val);
-              const newPrice = typeof opt?.price === "number" ? opt.price : record.price;
+              const opt = (unitOptions[index] || []).find(
+                (o) => o.value === val
+              );
+              const newPrice =
+                typeof opt?.price === "number" ? opt.price : record.price;
               updateLine(index, "unit", val);
               updateLine(index, "price", newPrice);
             }}
             options={options.map((o) => ({ value: o.value, label: o.label }))}
             dropdownMatchSelectWidth={false}
+            notFoundContent={
+              loading ? (
+                <div
+                  style={{
+                    padding: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Spin size="small" />
+                </div>
+              ) : (
+                "Không tìm thấy"
+              )
+            }
+            open={isOpen}
           />
         );
       },
@@ -196,7 +284,15 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
         const isOpen = !!batchOpen[index];
         if (isOpen && isLoading && !hasOptions) {
           return (
-            <div style={{ width: "100%", height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div
+              style={{
+                width: "100%",
+                height: 28,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               <Spin size="small" />
             </div>
           );
@@ -207,7 +303,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             showSearch
             allowClear
             placeholder="Số lô"
-          size="small"
+            size="small"
             style={{ width: "100%" }}
             filterOption={false}
             loading={isLoading}
@@ -222,7 +318,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             options={batchOptions[index] || []}
             dropdownClassName="vat-tu-dropdown"
             popupMatchSelectWidth={false}
-        />
+          />
         );
       },
     },
@@ -403,19 +499,156 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       ),
       dataIndex: "vatPercent",
       key: "vatPercent",
-      width: 90,
-      render: (vatPercent, record, index) => (
-        <InputNumber
-          value={vatPercent || 0}
-          min={0}
-          max={100}
-          size="small"
-          className="vat-input"
-          onChange={(value) => updateLine(index, "vatPercent", value || 0)}
-          controls={false}
-          suffix="%"
-        />
-      ),
+      width: 120,
+      render: (vatPercent, record, index) => {
+        const currentThueSuat =
+          record.thue_suat !== undefined
+            ? Number(record.thue_suat)
+            : vatPercent || 0;
+        const currentMaThue = (record.ma_thue || "").trim();
+
+        let currentValue = null;
+        if (currentMaThue) {
+          const optionByMaThue = taxOptions.find(
+            (opt) => opt.value === currentMaThue
+          );
+          if (optionByMaThue) {
+            currentValue = optionByMaThue.value;
+          }
+        }
+
+        if (!currentValue && currentThueSuat !== undefined) {
+          const optionByThueSuat = taxOptions.find(
+            (opt) => opt.thue_suat === currentThueSuat
+          );
+          if (optionByThueSuat) {
+            currentValue = optionByThueSuat.value;
+          }
+        }
+
+        const displayOptions = currentValue
+          ? taxOptions
+          : currentThueSuat > 0
+          ? [
+              ...taxOptions,
+              {
+                value: `custom_${currentThueSuat}`,
+                label: `${currentThueSuat}%`,
+                thue_suat: currentThueSuat,
+              },
+            ]
+          : taxOptions;
+
+        if (!currentValue && currentThueSuat > 0) {
+          currentValue = `custom_${currentThueSuat}`;
+        }
+
+        return (
+          <Select
+            value={currentValue}
+            size="small"
+            className="vat-input"
+            onChange={(selectedMaThue) => {
+              const selectedOption = taxOptions.find(
+                (opt) => opt.value === selectedMaThue
+              );
+              if (selectedOption) {
+                const thue_suat = selectedOption.thue_suat;
+                const ma_thue = selectedOption.value;
+                updateLine(index, "vatPercent", thue_suat);
+                updateLine(index, "thue_suat", thue_suat);
+                updateLine(index, "ma_thue", ma_thue);
+              } else if (
+                selectedMaThue &&
+                selectedMaThue.startsWith("custom_")
+              ) {
+                const customThueSuat =
+                  Number(selectedMaThue.replace("custom_", "")) || 0;
+                updateLine(index, "vatPercent", customThueSuat);
+                updateLine(index, "thue_suat", customThueSuat);
+              }
+            }}
+            loading={taxLoading}
+            showSearch
+            filterOption={false} 
+            onSearch={handleTaxSearch}
+            open={taxDropdownOpen[index]}
+            onDropdownVisibleChange={(open) => {
+              setTaxDropdownOpen((prev) => ({ ...prev, [index]: open }));
+              if (open) {
+                if (taxOptions.length === 0) {
+                  loadTaxOptions("");
+                }
+              } else {
+                if (taxSearchDebounceRef.current) {
+                  clearTimeout(taxSearchDebounceRef.current);
+                }
+              }
+            }}
+            style={{ width: "100%", minWidth: "100px" }}
+            placeholder="Chọn %VAT"
+            notFoundContent={
+              taxLoading ? <Spin size="small" /> : "Không tìm thấy"
+            }
+            options={displayOptions}
+            suffixIcon={null}
+            allowClear
+            dropdownMatchSelectWidth={false}
+            dropdownStyle={{ minWidth: "300px" }}
+            onClear={() => {
+              updateLine(index, "vatPercent", 0);
+              updateLine(index, "thue_suat", 0);
+              updateLine(index, "ma_thue", "");
+            }}
+            mode={undefined}
+            dropdownRender={(menu) => {
+              let customValue = null;
+              return (
+                <>
+                  {menu}
+                  <div
+                    style={{
+                      padding: "4px 8px",
+                      borderTop: "1px solid #f0f0f0",
+                    }}
+                  >
+                    <InputNumber
+                      size="small"
+                      placeholder="Nhập %VAT tùy chỉnh"
+                      min={0}
+                      max={100}
+                      style={{ width: "100%" }}
+                      onChange={(value) => {
+                        customValue = value;
+                      }}
+                      onPressEnter={() => {
+                        if (customValue !== null && customValue !== undefined) {
+                          const numValue = Number(customValue) || 0;
+                          if (numValue >= 0 && numValue <= 100) {
+                            updateLine(index, "vatPercent", numValue);
+                            updateLine(index, "thue_suat", numValue);
+                            updateLine(index, "ma_thue", "");
+                          }
+                        }
+                      }}
+                      onBlur={() => {
+                        if (customValue !== null && customValue !== undefined) {
+                          const numValue = Number(customValue) || 0;
+                          if (numValue >= 0 && numValue <= 100) {
+                            updateLine(index, "vatPercent", numValue);
+                            updateLine(index, "thue_suat", numValue);
+                            updateLine(index, "ma_thue", "");
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                </>
+              );
+            }}
+          />
+        );
+      },
     },
     {
       title: (
@@ -435,7 +668,6 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
       width: 110,
       render: (_, record) => {
         const total = record.price * (record.qty || 1);
-        // Phenikaa logic: Ưu tiên giảm tiền, nếu không có thì dùng giảm %
         const discountAmount =
           record.discountAmount > 0
             ? record.discountAmount
@@ -539,7 +771,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             pagination={false}
             size="small"
             tableLayout="fixed"
-            scroll={{ x: 1430, y: 300 }}
+            scroll={{ x: "max-content", y: 300 }}
           />
         </div>
       )}

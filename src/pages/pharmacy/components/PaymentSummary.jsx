@@ -11,7 +11,7 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
-import { multipleTablePutApi } from "../../../api";
+import { multipleTablePutApi, keyFileUploadsM81 } from "../../../api";
 import PaymentModal from "../../../components/common/PaymentModal/PaymentModal";
 import PrintComponent from "../../../components/common/PaymentModal/PrintComponent/PrintComponent";
 import jwt from "../../../utils/jwt";
@@ -88,7 +88,10 @@ const PaymentSummary = ({
   total,
   change,
   cart,
+  uploadedKeyFields,
   onClearCart,
+  currentOrderSttRec = "",
+  onUpdateCurrentOrderSttRec,
 }) => {
   const dispatch = useDispatch();
   const { id, storeId, unitId } = useSelector(
@@ -140,6 +143,7 @@ const PaymentSummary = ({
       finalTienMat = totalAmount - finalChuyenKhoan;
     }
 
+    const existingSttRec = (currentOrderSttRec || "").trim();
     const masterData = {
       ma_ban: "POS",
       dien_giai: "",
@@ -149,7 +153,7 @@ const PaymentSummary = ({
       chuyen_khoan: finalChuyenKhoan.toString(),
       tong_tt: totalAmount.toString(),
       httt: selectedPayments.join(","),
-      stt_rec: "",
+      stt_rec: existingSttRec,
       status,
       // Add customer code into master
       ma_kh: customerInfo.ma_kh ?? customer?.code ?? "",
@@ -165,6 +169,16 @@ const PaymentSummary = ({
 
     const detailData = cart.flatMap((item) => {
       const uniqueid = item.uniqueid || generateRandomId();
+      // Calculate discount and tax amounts
+      const total = (item.qty || 0) * (item.price || 0);
+      const discountAmount = item.discountAmount > 0 
+        ? item.discountAmount 
+        : Math.round((total * (item.discountPercent || 0)) / 100);
+      const totalAfterDiscount = total - discountAmount;
+      const vatAmount = Math.round(
+        (totalAfterDiscount * (item.vatPercent || 0)) / 100
+      );
+      
       const mainItem = {
         ten_vt: item.name,
         ma_vt_root: item.ma_vt_root || "",
@@ -175,6 +189,12 @@ const PaymentSummary = ({
         ghi_chu: item.ghi_chu || "",
         uniqueid,
         ap_voucher: item.ap_voucher || "0",
+        // Add missing fields
+        dvt: item.unit || "",
+        tl_ck: (item.discountPercent || 0).toString(),
+        ck_nt: discountAmount.toString(),
+        ma_thue: item.ma_thue || "",
+        thue_nt: vatAmount.toString(),
       };
       const extras = (item.extras || []).map((extra) => {
         const quantity = parseFloat(extra.quantity || extra.so_luong || 0);
@@ -189,6 +209,12 @@ const PaymentSummary = ({
           don_gia: price.toString(),
           thanh_tien: amount.toString(),
           uniqueid,
+          // Add missing fields for extras (default values)
+          dvt: extra.unit || item.unit || "",
+          tl_ck: "0",
+          ck_nt: "0",
+          ma_thue: "",
+          thue_nt: "0",
         };
       });
       return [mainItem, ...extras];
@@ -233,6 +259,21 @@ const PaymentSummary = ({
         const sttRec = response?.listObject[0][0]?.stt_rec;
 
         if (sttRec) {
+          // Link uploaded image to order if keyFields exists
+          if (uploadedKeyFields && sttRec) {
+            try {
+              const linkResult = await keyFileUploadsM81({
+                stt_rec: sttRec,
+                keyFields: uploadedKeyFields,
+              });
+              if (!linkResult?.responseModel?.isSucceded) {
+                console.warn("Không thể liên kết ảnh với đơn hàng");
+              }
+            } catch (linkError) {
+              console.error("Lỗi khi liên kết ảnh:", linkError);
+            }
+          }
+
           if (!isSaveOnly) {
             setPrintMaster(orderData.masterData);
             setPrintDetail(orderData.detailData);
@@ -247,12 +288,24 @@ const PaymentSummary = ({
             setIsPrinted(false);
           }
 
+          const trimmedSttRec = (currentOrderSttRec || "").trim();
+          const isEditingOrder = Boolean(trimmedSttRec);
+          const successMessage = isSaveOnly
+            ? isEditingOrder
+              ? "Đã lưu cập nhật đơn hàng thành công!"
+              : "Đã lưu đơn hàng mới thành công!"
+            : isEditingOrder
+            ? "Đơn hàng đã được cập nhật thành công!"
+            : "Đơn hàng mới đã được tạo thành công!";
+
           notification.success({
-            message: isSaveOnly
-              ? "Đã lưu đơn hàng thành công!"
-              : "Đơn hàng đã được tạo thành công!",
+            message: successMessage,
             duration: 4,
           });
+
+          if (typeof onUpdateCurrentOrderSttRec === "function" && sttRec) {
+            onUpdateCurrentOrderSttRec(sttRec);
+          }
 
           if (isSaveOnly) {
             onClearCart();
@@ -383,10 +436,32 @@ const PaymentSummary = ({
         const sttRec = response?.listObject[0][0]?.stt_rec;
         const orderNumber = response?.listObject[0][0]?.so_ct;
 
-        setPrintMaster(orderData.masterData);
+        // Link uploaded image to order if keyFields exists
+        if (uploadedKeyFields && sttRec) {
+          try {
+            const linkResult = await keyFileUploadsM81({
+              stt_rec: sttRec,
+              keyFields: uploadedKeyFields,
+            });
+            if (!linkResult?.responseModel?.isSucceded) {
+              console.warn("Không thể liên kết ảnh với đơn hàng");
+            }
+          } catch (linkError) {
+            console.error("Lỗi khi liên kết ảnh:", linkError);
+          }
+        }
+
+        const trimmedSttRec = (currentOrderSttRec || "").trim();
+        const isEditingOrder = Boolean(trimmedSttRec);
+        const updatedMasterData = {
+          ...orderData.masterData,
+          stt_rec: sttRec || orderData.masterData.stt_rec,
+        };
+
+        setPrintMaster(updatedMasterData);
         setPrintDetail(orderData.detailData);
         setCurrentPrintData({
-          master: orderData.masterData,
+          master: updatedMasterData,
           detail: orderData.detailData,
           selectedPayments,
           paymentAmounts,
@@ -401,8 +476,14 @@ const PaymentSummary = ({
         setIsPrinting(true);
         setIsPrinted(false);
 
+        if (typeof onUpdateCurrentOrderSttRec === "function" && sttRec) {
+          onUpdateCurrentOrderSttRec(sttRec);
+        }
+
         notification.success({
-          message: "Thanh toán thành công!",
+          message: isEditingOrder
+            ? "Cập nhật đơn hàng thành công!"
+            : "Thanh toán đơn hàng mới thành công!",
           duration: 4,
         });
       } else {
@@ -479,14 +560,14 @@ const PaymentSummary = ({
               </Text>
             </div>
             <div className="summary-row">
-              <Text>VAT:</Text>
-              <Text>{new Intl.NumberFormat("vi-VN").format(vat)}đ</Text>
-            </div>
-            <div className="summary-row">
               <Text>Tiền chiết khấu:</Text>
               <Text style={{ color: "#f59e0b" }}>
                 -{new Intl.NumberFormat("vi-VN").format(discount || 0)}đ
               </Text>
+            </div>
+            <div className="summary-row">
+              <Text>VAT:</Text>
+              <Text>{new Intl.NumberFormat("vi-VN").format(vat)}đ</Text>
             </div>
             <div className="summary-row total-row">
               <Text strong>Tổng cộng:</Text>

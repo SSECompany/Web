@@ -1,4 +1,4 @@
-import { Button, Card, Tooltip, notification } from "antd";
+import { Button, Card, Tooltip, notification, Modal } from "antd";
 import React, {
   useCallback,
   useEffect,
@@ -7,7 +7,7 @@ import React, {
   useState,
 } from "react";
 import { useSelector } from "react-redux";
-import { searchVatTu } from "../../api";
+import { searchVatTu, uploadPrescriptionImage } from "../../api";
 import VatTuSelectFullPOS from "../../components/common/ProductSelectFull/VatTuSelectFullPOS";
 import ReportModal from "../../components/common/ReportModal/ReportModal";
 import RetailOrderListModal from "../../components/common/RetailOrderListModal/RetailOrderListModal";
@@ -31,6 +31,7 @@ const POS = () => {
     patientName: "",
   });
   const [payment, setPayment] = useState({ method: "cash", cash: 0 });
+  const [currentOrderSttRec, setCurrentOrderSttRec] = useState(""); // Store stt_rec when editing order
 
   // Search/Barcode unified state for ProductSelectFull
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
@@ -52,6 +53,94 @@ const POS = () => {
   const [isOrderListModalOpen, setIsOrderListModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
+  const fileInputRef = useRef(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState("");
+  const [isUploadPreviewOpen, setIsUploadPreviewOpen] = useState(false);
+  const [localPreviewUrl, setLocalPreviewUrl] = useState("");
+  const [uploadedKeyFields, setUploadedKeyFields] = useState("");
+
+  const handleOpenFilePicker = () => {
+    if (uploadedImageUrl) {
+      setIsUploadPreviewOpen(true);
+    } else {
+      if (fileInputRef?.current) {
+        // Reset value to allow selecting the same file again
+        fileInputRef.current.value = "";
+        fileInputRef.current.click();
+      } else {
+        console.error("File input ref is not available");
+      }
+    }
+  };
+
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleUploadImage = async (event) => {
+    const selectedFile = event?.target?.files?.[0];
+    if (!selectedFile) {
+      console.warn("No file selected");
+      return;
+    }
+
+    setIsUploading(true);
+    const loadingKey = "upload-loading";
+    
+    // Clear previous preview
+    setLocalPreviewUrl("");
+    setUploadedImageUrl("");
+    setIsUploadPreviewOpen(false);
+    
+    notification.open({
+      message: "Đang tải ảnh lên server...",
+      description: "Vui lòng đợi",
+      duration: 0,
+      key: loadingKey,
+    });
+
+    try {
+      // Upload file directly without compression
+      const fileToUpload = selectedFile;
+
+      // Ensure we have a file to upload
+      if (!fileToUpload) {
+        console.error("No file to upload after processing");
+        throw new Error("Không có file để upload");
+      }
+
+      const res = await uploadPrescriptionImage({ file: fileToUpload });
+      
+      // Close loading notification
+      notification.destroy(loadingKey);
+
+      if (res?.success) {
+        // Only show preview and success message after API succeeds
+        setUploadedImageUrl(res?.data?.url || "");
+        setUploadedKeyFields(res?.data?.keyFields || "");
+        notification.success({ 
+          message: "Tải ảnh thành công",
+          description: "Ảnh đã được tải lên thành công"
+        });
+        // Open preview modal after successful upload
+        setIsUploadPreviewOpen(true);
+      } else {
+        notification.error({ message: res?.message || "Tải ảnh thất bại" });
+      }
+    } catch (e) {
+      console.error("Upload error:", e);
+      // Close all loading notifications
+      notification.destroy(loadingKey);
+      notification.error({
+        message: "Tải ảnh thất bại",
+        description: e?.message || "Vui lòng thử lại",
+      });
+    } finally {
+      // Ensure all loading notifications are closed
+      notification.destroy(loadingKey);
+      setIsUploading(false);
+      // clear input so same file can be selected again
+      if (fileInputRef?.current) fileInputRef.current.value = "";
+    }
+  };
 
   // Load initial data when component mounts
   useEffect(() => {
@@ -174,7 +263,9 @@ const POS = () => {
           ...item,
           qty: 1,
           batchExpiry: "",
-          vatPercent: 0,
+          vatPercent: Number(item.thue_suat) || 0,
+          ma_thue: (item.ma_thue || "").trim(),
+          thue_suat: Number(item.thue_suat) || 0,
           discountPercent: 0,
           discountAmount: 0,
           remaining: 0,
@@ -221,6 +312,8 @@ const POS = () => {
               price: item.gia || 0,
               unit: item.dvt || "viên",
               stock: 0, // API không trả về stock
+              ma_thue: (item.ma_thue || "").trim(),
+              thue_suat: Number(item.thue_suat) || 0,
             },
           }));
 
@@ -292,6 +385,8 @@ const POS = () => {
                 price: foundItem.gia || 0,
                 unit: foundItem.dvt || "cái",
                 stock: 0, // API không trả về stock
+                ma_thue: (foundItem.ma_thue || "").trim(),
+                thue_suat: Number(foundItem.thue_suat) || 0,
               };
             } else {
               // Hiển thị error message từ API nếu có
@@ -350,6 +445,9 @@ const POS = () => {
   // Load an existing retail order (from RetailOrderListModal)
   const handleLoadOrderFromModal = useCallback(({ master, detail }) => {
     try {
+      // Store stt_rec for editing
+      setCurrentOrderSttRec((master?.stt_rec || "").trim());
+
       // Map detail lines to cart structure
       const mappedCart = (detail || []).map((d) => ({
         sku: d.ma_vt || "",
@@ -359,10 +457,13 @@ const POS = () => {
         qty: Number(d.so_luong) || 1,
         batchExpiry: (d.ma_lo || "").trim(),
         vatPercent: Number(d.thue_suat) || 0,
+        ma_thue: (d.ma_thue || "").trim(),
+        thue_suat: Number(d.thue_suat) || 0,
         discountPercent: Number(d.tl_ck) || 0,
         discountAmount: Number(d.ck_nt) || 0,
         remaining: 0,
-        instructions: "",
+        instructions: (d.ghi_chu || "").trim(),
+        ghi_chu: (d.ghi_chu || "").trim(),
       }));
 
       setCart(mappedCart);
@@ -441,6 +542,23 @@ const POS = () => {
               >
                 Tìm đơn thuốc
               </Button>
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleUploadImage}
+                style={{ display: "none" }}
+              />
+              <Button
+                style={{ marginLeft: 12 }}
+                icon={<i className="pi pi-upload"></i>}
+                onClick={handleOpenFilePicker}
+                size="large"
+                loading={isUploading}
+                disabled={isUploading}
+              >
+                {isUploading ? "Đang tải..." : "Upload ảnh"}
+              </Button>
             </div>
           </div>
         </Card>
@@ -474,6 +592,7 @@ const POS = () => {
             total={total}
             change={change}
             cart={cart}
+            uploadedKeyFields={uploadedKeyFields}
             onClearCart={() => {
               setCart([]);
               setPayment({ method: "cash", cash: 0 });
@@ -485,7 +604,12 @@ const POS = () => {
                 patientName: "",
               });
               setCustomerOpen(false);
+              setUploadedKeyFields("");
+              setUploadedImageUrl("");
+              setCurrentOrderSttRec(""); // Clear stt_rec when clearing cart
             }}
+            currentOrderSttRec={currentOrderSttRec}
+            onUpdateCurrentOrderSttRec={setCurrentOrderSttRec}
           />
         </div>
       </div>
@@ -528,7 +652,9 @@ const POS = () => {
               unit: item.dvt || "viên",
               qty: item.slDuocBan || 1, // Sử dụng SL được bán
               batchExpiry: "",
-              vatPercent: 0,
+              vatPercent: Number(item.thue_suat) || 0,
+              ma_thue: (item.ma_thue || "").trim(),
+              thue_suat: Number(item.thue_suat) || 0,
               remaining: 0,
               instructions: item.cachDung || "",
             });
@@ -536,6 +662,45 @@ const POS = () => {
           setIsPrescriptionModalOpen(false);
         }}
       />
+
+      <Modal
+        title="Ảnh đã upload"
+        open={isUploadPreviewOpen}
+        onCancel={() => {
+          setIsUploadPreviewOpen(false);
+          try {
+            if (localPreviewUrl && window.URL?.revokeObjectURL) {
+              window.URL.revokeObjectURL(localPreviewUrl);
+            }
+          } catch (_) {}
+        }}
+        footer={[
+          <Button key="reupload" onClick={() => {
+            setIsUploadPreviewOpen(false);
+            setTimeout(() => fileInputRef?.current?.click(), 0);
+          }}>
+            Tải lại ảnh
+          </Button>,
+          <Button key="close" type="primary" onClick={() => setIsUploadPreviewOpen(false)}>
+            Đóng
+          </Button>,
+        ]}
+      >
+        {uploadedImageUrl || localPreviewUrl ? (
+          <img
+            alt="uploaded"
+            src={uploadedImageUrl || localPreviewUrl}
+            onError={(e) => {
+              if (localPreviewUrl && e?.currentTarget?.src !== localPreviewUrl) {
+                e.currentTarget.src = localPreviewUrl;
+              }
+            }}
+            style={{ width: "100%", borderRadius: 6 }}
+          />
+        ) : (
+          <div>Chưa có ảnh.</div>
+        )}
+      </Modal>
     </div>
   );
 };

@@ -242,8 +242,6 @@ const VatTuInputSection = ({
   };
 
   const handleQRScanSuccess = (decodedText, decodedResult) => {
-    console.log("QR Code scanned in VatTuInputSection:", decodedText);
-
     // Tự động tìm kiếm sản phẩm với mã QR đã quét
     if (decodedText && decodedText.trim()) {
       setVatTuInput(decodedText.trim());

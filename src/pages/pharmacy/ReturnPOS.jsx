@@ -179,7 +179,9 @@ const ReturnPOS = () => {
           ...item,
           qty: 1,
           batchExpiry: "",
-          vatPercent: 0,
+          vatPercent: Number(item.thue_suat) || 0,
+          ma_thue: (item.ma_thue || "").trim(),
+          thue_suat: Number(item.thue_suat) || 0,
           discountPercent: 0,
           discountAmount: 0,
           remaining: 0,
@@ -226,6 +228,8 @@ const ReturnPOS = () => {
               price: item.gia || 0,
               unit: item.dvt || "viên",
               stock: 0, // API không trả về stock
+              ma_thue: (item.ma_thue || "").trim(),
+              thue_suat: Number(item.thue_suat) || 0,
             },
           }));
 
@@ -297,6 +301,8 @@ const ReturnPOS = () => {
                 price: foundItem.gia || 0,
                 unit: foundItem.dvt || "cái",
                 stock: 0, // API không trả về stock
+                ma_thue: (foundItem.ma_thue || "").trim(),
+                thue_suat: Number(foundItem.thue_suat) || 0,
               };
             } else {
               // Hiển thị error message từ API nếu có

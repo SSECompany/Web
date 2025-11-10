@@ -6,12 +6,13 @@ import {
   SearchOutlined,
   UpOutlined,
   UserOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Input, Modal, Select, notification, DatePicker } from "antd";
-import React, { useMemo, useRef, useState } from "react";
+import { Button, Card, Input, Modal, Select, notification, DatePicker, Tooltip, Spin } from "antd";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import dayjs from "dayjs";
 import { useSelector } from "react-redux";
-import { createCustomer, searchKhachHang } from "../../../api";
+import { createCustomer, searchKhachHang, updateKhachHang } from "../../../api";
 
 const CustomerInfo = ({
   customer,
@@ -20,7 +21,9 @@ const CustomerInfo = ({
   setCustomerOpen,
 }) => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isUpdateOpen, setIsUpdateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const { id: userId } = useSelector((state) => state.claims?.userInfo || {});
   const [tempCustomer, setTempCustomer] = useState({
     phone: "",
@@ -36,6 +39,8 @@ const CustomerInfo = ({
   const [totalPage, setTotalPage] = useState(1);
   const [currentKeyword, setCurrentKeyword] = useState("");
   const debounceRef = useRef();
+  const [phoneExistsError, setPhoneExistsError] = useState(false);
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
 
   const isPhoneValid = useMemo(() => {
     return /^\d{10}$/.test((tempCustomer.phone || "").trim());
@@ -45,8 +50,16 @@ const CustomerInfo = ({
     return !tempCustomer.name?.trim() || !isPhoneValid;
   }, [tempCustomer.name, isPhoneValid]);
 
+  // Clear search value when customer is selected
+  useEffect(() => {
+    if (customer?.code) {
+      setSearchValue("");
+    }
+  }, [customer?.code]);
+
   const handlePhoneChange = (e) => {
     const onlyDigits = (e.target.value || "").replace(/\D/g, "").slice(0, 10);
+    setPhoneExistsError(false);
     setTempCustomer({ ...tempCustomer, phone: onlyDigits });
   };
 
@@ -58,7 +71,19 @@ const CustomerInfo = ({
       address: "",
       note: "",
     });
+    setPhoneExistsError(false);
     setIsCreateOpen(true);
+  };
+
+  const handleOpenUpdate = () => {
+    setTempCustomer({
+      phone: customer.phone || "",
+      name: customer.name || "",
+      birthday: customer.birthday || "",
+      address: customer.address || "",
+      note: customer.note || "",
+    });
+    setIsUpdateOpen(true);
   };
 
   const handleSearch = (value) => {
@@ -164,10 +189,13 @@ const CustomerInfo = ({
       address: raw.dia_chi || raw.address || "",
       note: raw.ghi_chu || raw.note || "",
     });
+    setSearchValue(""); // Clear search input after selection
+    setCustomerDropdownOpen(false); // Close dropdown after selection
   };
 
   const handleCreate = async () => {
     setCreating(true);
+    setPhoneExistsError(false);
     try {
       // Gọi API lưu khách hàng nếu backend hỗ trợ, nếu lỗi vẫn set local state
       const res = await createCustomer({
@@ -179,39 +207,79 @@ const CustomerInfo = ({
         userId: userId,
       });
 
-      // Sau khi lưu, đồng bộ thông tin ra form bên ngoài
+      const responseMessage = res?.responseModel?.message || "";
+      const normalizedMessage = responseMessage.toLowerCase();
+      const isDuplicatePhone = normalizedMessage.includes("đã có mã khách");
       const createdRaw =
         res?.listObject?.[0]?.[0] ||
         res?.data ||
         res ||
         {};
-      setCustomer({
-        code: createdRaw.ma_kh || createdRaw.code || customer.code || "",
-        phone: tempCustomer.phone?.trim(),
-        name: tempCustomer.name?.trim(),
-        birthday: tempCustomer.birthday?.trim(),
-        address: tempCustomer.address?.trim(),
-        note: tempCustomer.note?.trim(),
-      });
 
       if (res?.responseModel?.isSucceded) {
+        setCustomer({
+          code: createdRaw.ma_kh || createdRaw.code || customer.code || "",
+          phone: tempCustomer.phone?.trim(),
+          name: tempCustomer.name?.trim(),
+          birthday: tempCustomer.birthday?.trim(),
+          address: tempCustomer.address?.trim(),
+          note: tempCustomer.note?.trim(),
+        });
         notification.success({ message: "Đã thêm khách hàng" });
+        setIsCreateOpen(false);
+        setTempCustomer({
+          phone: "",
+          name: "",
+          birthday: "",
+          address: "",
+          note: "",
+        });
       } else if (res?.success) {
+        setCustomer({
+          code: createdRaw.ma_kh || createdRaw.code || customer.code || "",
+          phone: tempCustomer.phone?.trim(),
+          name: tempCustomer.name?.trim(),
+          birthday: tempCustomer.birthday?.trim(),
+          address: tempCustomer.address?.trim(),
+          note: tempCustomer.note?.trim(),
+        });
         notification.success({ message: "Đã lưu khách hàng" });
-      } else {
+        setIsCreateOpen(false);
+        setTempCustomer({
+          phone: "",
+          name: "",
+          birthday: "",
+          address: "",
+          note: "",
+        });
+      } else if (isDuplicatePhone) {
         notification.info({
           message: "Đã cập nhật thông tin KH trên đơn",
-          description: res?.responseModel?.message,
+          description: responseMessage,
+        });
+        setPhoneExistsError(true);
+      } else {
+        setCustomer({
+          code: createdRaw.ma_kh || createdRaw.code || customer.code || "",
+          phone: tempCustomer.phone?.trim(),
+          name: tempCustomer.name?.trim(),
+          birthday: tempCustomer.birthday?.trim(),
+          address: tempCustomer.address?.trim(),
+          note: tempCustomer.note?.trim(),
+        });
+        notification.info({
+          message: "Đã cập nhật thông tin KH trên đơn",
+          description: responseMessage,
+        });
+        setIsCreateOpen(false);
+        setTempCustomer({
+          phone: "",
+          name: "",
+          birthday: "",
+          address: "",
+          note: "",
         });
       }
-      setIsCreateOpen(false);
-      setTempCustomer({
-        phone: "",
-        name: "",
-        birthday: "",
-        address: "",
-        note: "",
-      });
     } catch (e) {
       notification.warning({
         message: "Không thể lưu lên máy chủ",
@@ -220,6 +288,56 @@ const CustomerInfo = ({
       setIsCreateOpen(false);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!customer.code?.trim()) {
+      notification.warning({ message: "Vui lòng nhập Mã KH để cập nhật" });
+      return;
+    }
+    setUpdating(true);
+    try {
+      const res = await updateKhachHang({
+        code: customer.code?.trim(),
+        phone: tempCustomer.phone?.trim(),
+        name: tempCustomer.name?.trim(),
+        birthday: tempCustomer.birthday?.trim(),
+        address: tempCustomer.address?.trim(),
+        note: tempCustomer.note?.trim(),
+        userId: userId,
+      });
+
+      const updatedRaw =
+        res?.listObject?.[0]?.[0] ||
+        res?.data ||
+        res ||
+        {};
+
+      setCustomer({
+        code: updatedRaw.ma_kh || customer.code,
+        phone: updatedRaw.dien_thoai || tempCustomer.phone?.trim(),
+        name: updatedRaw.ten_kh || tempCustomer.name?.trim(),
+        birthday: updatedRaw.ngay_sinh || tempCustomer.birthday?.trim(),
+        address: updatedRaw.dia_chi || tempCustomer.address?.trim(),
+        note: updatedRaw.ghi_chu || tempCustomer.note?.trim(),
+      });
+
+      if (res?.responseModel?.isSucceded) {
+        notification.success({ message: "Đã cập nhật khách hàng" });
+      } else if (res?.success) {
+        notification.success({ message: "Đã lưu thông tin khách hàng" });
+      } else {
+        notification.info({
+          message: "Đã cập nhật thông tin KH trên đơn",
+          description: res?.responseModel?.message,
+        });
+      }
+      setIsUpdateOpen(false);
+    } catch (e) {
+      notification.error({ message: "Cập nhật thất bại", description: "Không thể kết nối máy chủ" });
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -246,16 +364,22 @@ const CustomerInfo = ({
             style={{ display: "flex", gap: 8, marginBottom: 8 }}
           >
             <Select
+              key={customer?.code || "search"} // Force re-render when customer changes
               showSearch
               value={searchValue || undefined}
               onSearch={handleSearch}
               onChange={(v) => {
-                setSearchValue(v);
+                // Clear searchValue immediately when a value is selected
+                // This prevents the selected value from showing in the input
+                setSearchValue("");
               }}
               onSelect={(v, option) => handleSelect(v, option)}
               onDropdownVisibleChange={(open) => {
+                setCustomerDropdownOpen(open);
                 if (open) {
                   handleSearch(searchValue || "");
+                } else if (debounceRef.current) {
+                  clearTimeout(debounceRef.current);
                 }
               }}
               onPopupScroll={handlePopupScroll}
@@ -273,7 +397,22 @@ const CustomerInfo = ({
               optionFilterProp="label"
               suffixIcon={<SearchOutlined style={{ fontSize: "11px" }} />}
               dropdownStyle={{ maxHeight: 300, overflow: "auto" }}
-              notFoundContent={searching ? "Đang tải..." : "Không tìm thấy"}
+              notFoundContent={
+                searching ? (
+                  <div
+                    style={{
+                      padding: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Spin size="small" />
+                  </div>
+                ) : null
+              }
+              open={customerDropdownOpen}
+              loading={searching && options.length > 0}
             />
             <Button
               size="small"
@@ -282,6 +421,15 @@ const CustomerInfo = ({
               onClick={handleOpenCreate}
               className="add-customer-btn"
             />
+            <Tooltip title="Cập nhật" placement="top">
+              <Button
+                size="small"
+                icon={<EditOutlined style={{ fontSize: 12 }} />}
+                onClick={handleOpenUpdate}
+                disabled={!customer.code}
+                className="update-customer-btn"
+              />
+            </Tooltip>
           </div>
           {/* Dòng 0.5: Mã KH */}
           <div style={{ marginBottom: "8px" }}>
@@ -292,6 +440,7 @@ const CustomerInfo = ({
               size="small"
               prefix={<IdcardOutlined style={{ fontSize: "11px" }} />}
               style={{ fontSize: "12px" }}
+              disabled={!!customer.code}
             />
           </div>
           {/* Dòng 1: Số điện thoại */}
@@ -303,6 +452,7 @@ const CustomerInfo = ({
               size="small"
               prefix={<PhoneOutlined style={{ fontSize: "11px" }} />}
               style={{ fontSize: "12px" }}
+              disabled={!!customer.code}
             />
           </div>
           {/* Dòng 2: Tên khách hàng */}
@@ -314,6 +464,7 @@ const CustomerInfo = ({
               size="small"
               prefix={<UserOutlined style={{ fontSize: "11px" }} />}
               style={{ fontSize: "12px" }}
+              disabled={!!customer.code}
             />
           </div>
           {/* Bỏ các dòng CMND/CCCD và Họ tên người bệnh theo yêu cầu */}
@@ -323,13 +474,88 @@ const CustomerInfo = ({
       <Modal
         title="Thêm mới khách hàng"
         open={isCreateOpen}
-        onCancel={() => setIsCreateOpen(false)}
+        onCancel={() => {
+          setIsCreateOpen(false);
+          setPhoneExistsError(false);
+        }}
         okText="Lưu"
         onOk={handleCreate}
         confirmLoading={creating}
         okButtonProps={{ disabled: isCreateDisabled }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Input
+            placeholder="Số điện thoại"
+            value={tempCustomer.phone}
+            onChange={handlePhoneChange}
+            size="middle"
+            prefix={<PhoneOutlined style={{ fontSize: "12px" }} />}
+            status={!isPhoneValid || phoneExistsError ? "error" : ""}
+          />
+          <Input
+            placeholder="Tên khách hàng"
+            value={tempCustomer.name}
+            onChange={(e) =>
+              setTempCustomer({ ...tempCustomer, name: e.target.value })
+            }
+            size="middle"
+            prefix={<UserOutlined style={{ fontSize: "12px" }} />}
+            status={!tempCustomer.name?.trim() ? "error" : ""}
+          />
+          <DatePicker
+            placeholder="Ngày sinh (dd/mm/yyyy)"
+            value={
+              tempCustomer.birthday
+                ? dayjs(tempCustomer.birthday, ["YYYY-MM-DD", "DD/MM/YYYY"])
+                : null
+            }
+            onChange={(d) =>
+              setTempCustomer({
+                ...tempCustomer,
+                // Lưu theo chuẩn YYYY-MM-DD, hiển thị dd/mm/yyyy
+                birthday: d ? d.format("YYYY-MM-DD") : "",
+              })
+            }
+            format="DD/MM/YYYY"
+            style={{ width: "100%" }}
+            size="middle"
+          />
+          <Input
+            placeholder="Địa chỉ"
+            value={tempCustomer.address}
+            onChange={(e) =>
+              setTempCustomer({ ...tempCustomer, address: e.target.value })
+            }
+            size="middle"
+          />
+          <Input
+            placeholder="Ghi chú"
+            value={tempCustomer.note}
+            onChange={(e) =>
+              setTempCustomer({ ...tempCustomer, note: e.target.value })
+            }
+            size="middle"
+          />
+        </div>
+      </Modal>
+
+      <Modal
+        title="Cập nhật khách hàng"
+        open={isUpdateOpen}
+        onCancel={() => setIsUpdateOpen(false)}
+        okText="Lưu"
+        onOk={handleUpdate}
+        confirmLoading={updating}
+        okButtonProps={{ disabled: !customer.code?.trim() }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Input
+            placeholder="Mã KH"
+            value={customer.code}
+            disabled
+            size="middle"
+            prefix={<IdcardOutlined style={{ fontSize: "12px" }} />}
+          />
           <Input
             placeholder="Số điện thoại"
             value={tempCustomer.phone}
@@ -358,7 +584,6 @@ const CustomerInfo = ({
             onChange={(d) =>
               setTempCustomer({
                 ...tempCustomer,
-                // Lưu theo chuẩn YYYY-MM-DD, hiển thị dd/mm/yyyy
                 birthday: d ? d.format("YYYY-MM-DD") : "",
               })
             }

@@ -95,7 +95,6 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode }) => {
 
   const onScanError = (error) => {
     // Chỉ log error, không hiển thị notification để tránh spam
-    console.log("QR scan error:", error);
   };
 
   const handleClose = () => {
@@ -145,7 +144,6 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode }) => {
   }, [scanMode]);
 
   const handleScanSuccess = (decodedText, decodedResult) => {
-    console.log("QR Code scanned:", decodedText);
 
     // Dừng scanner
     if (scanner) {

@@ -290,6 +290,70 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
     );
   };
 
+  // Helper function to format date as dd/mm/yyyy
+  const formatDateToDDMMYYYY = (dateValue) => {
+    if (!dateValue) return "";
+    
+    const dateStr = String(dateValue).trim();
+    
+    // Priority: Try DD/MM/YYYY format first (most common for Vietnamese dates)
+    let date = dayjs(dateStr, "DD/MM/YYYY", true);
+    if (date.isValid()) {
+      return date.format("DD/MM/YYYY");
+    }
+    
+    // Try other explicit formats
+    const formats = [
+      "MM/DD/YYYY", 
+      "YYYY-MM-DD",
+      "DD-MM-YYYY",
+      "MM-DD-YYYY",
+      "YYYY/MM/DD",
+      "DD.MM.YYYY",
+      "MM.DD.YYYY"
+    ];
+    
+    for (const format of formats) {
+      date = dayjs(dateStr, format, true);
+      if (date.isValid()) {
+        return date.format("DD/MM/YYYY");
+      }
+    }
+    
+    // Try dayjs parse without format (for ISO strings, etc.)
+    date = dayjs(dateStr);
+    if (date.isValid()) {
+      return date.format("DD/MM/YYYY");
+    }
+    
+    // Try native Date object
+    const nativeDate = new Date(dateStr);
+    if (!isNaN(nativeDate.getTime())) {
+      return dayjs(nativeDate).format("DD/MM/YYYY");
+    }
+    
+    // Last resort: manual parsing for date strings like "11/08/2025"
+    const parts = dateStr.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+    if (parts && parts.length === 4) {
+      const [, p1, p2, year] = parts;
+      const num1 = parseInt(p1);
+      const num2 = parseInt(p2);
+      
+      // If first part > 12, it's definitely day (DD/MM format)
+      if (num1 > 12 && num1 <= 31) {
+        return `${String(num1).padStart(2, "0")}/${String(num2).padStart(2, "0")}/${year}`;
+      }
+      // If second part > 12, it's MM/DD format, swap to DD/MM
+      if (num2 > 12 && num2 <= 31) {
+        return `${String(num2).padStart(2, "0")}/${String(num1).padStart(2, "0")}/${year}`;
+      }
+      // Ambiguous case: both <= 12, assume it's already DD/MM/YYYY
+      return `${String(num1).padStart(2, "0")}/${String(num2).padStart(2, "0")}/${year}`;
+    }
+    
+    return dateStr;
+  };
+
   const columns = [
     {
       title: "STT",
@@ -343,26 +407,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       dataIndex: "ngay_ct",
       key: "ngay_ct",
       align: "center",
-      render: (text) => {
-        if (!text) return "";
-        // Try native Date first
-        const tryDate = new Date(text);
-        if (!isNaN(tryDate.getTime())) {
-          const dd = String(tryDate.getDate()).padStart(2, "0");
-          const mm = String(tryDate.getMonth() + 1).padStart(2, "0");
-          const yyyy = tryDate.getFullYear();
-          return `${dd}/${mm}/${yyyy}`;
-        }
-        // Fallback for strings like MM/DD/YYYY or MM-DD-YYYY
-        const parts = String(text).split(/[\/-]/);
-        if (parts.length === 3) {
-          const [mm, dd, yyyy] = parts;
-          const dd2 = String(dd).padStart(2, "0");
-          const mm2 = String(mm).padStart(2, "0");
-          return `${dd2}/${mm2}/${yyyy}`;
-        }
-        return text;
-      },
+      render: (text) => formatDateToDDMMYYYY(text),
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div style={{ padding: 8 }}>
           <DatePicker.RangePicker

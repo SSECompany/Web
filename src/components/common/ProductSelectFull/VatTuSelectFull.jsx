@@ -92,10 +92,8 @@ const ProductSelectFull = ({
   };
 
   const handleDropdownVisibleChange = (open) => {
-    console.log("🔽 Dropdown visible change:", open);
     if (open) {
       // Always fetch fresh data when dropdown opens (like POS)
-      console.log("📞 Calling fetchVatTuList on dropdown open");
       fetchVatTuList("", 1, false);
       dropdownOpenedRef.current = true;
     } else {
@@ -217,17 +215,6 @@ const ProductSelectFull = ({
     const notCurrentlyScrolling = !isScrollingRef.current;
     const notSamePage = lastScrollPageRef.current !== pageIndex + 1;
 
-    console.log("🔄 Scroll debug:", {
-      isNearBottom,
-      hasMorePages,
-      notLoading,
-      notCurrentlyScrolling,
-      notSamePage,
-      pageIndex,
-      totalPage,
-      currentKeyword,
-    });
-
     if (
       isNearBottom &&
       hasMorePages &&
@@ -235,7 +222,6 @@ const ProductSelectFull = ({
       notCurrentlyScrolling &&
       notSamePage
     ) {
-      console.log("📞 Triggering scroll pagination...");
 
       // Đánh dấu đang scroll để tránh gọi trùng lặp
       isScrollingRef.current = true;
@@ -279,8 +265,6 @@ const ProductSelectFull = ({
   };
 
   const handleQRScanSuccess = (decodedText, decodedResult) => {
-    console.log("QR Code scanned in VatTuSelectFull:", decodedText);
-
     // Tự động tìm kiếm sản phẩm với mã QR đã quét
     if (decodedText && decodedText.trim()) {
       setVatTuInput(decodedText.trim());

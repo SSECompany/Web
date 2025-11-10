@@ -62,11 +62,11 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
         </span>
       </div>
 
-      {master?.ten_kh && master.ten_kh !== "Khách hàng căng tin" && (
+      {(master?.ten_kh && master.ten_kh !== "Khách hàng căng tin") || (master?.ong_ba && master.ong_ba.trim()) ? (
         <div style={{ color: "#000", marginBottom: "6px" }}>
-          <strong>Tên khách:</strong> {master.ten_kh}
+          <strong>Tên khách:</strong> {master?.ten_kh || master?.ong_ba || "Khách vãng lai"}
         </div>
-      )}
+      ) : null}
       {master?.ma_so_thue_kh && (master.ma_so_thue_kh || "").trim() && (
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Mã số thuế:</strong> {master.ma_so_thue_kh}
@@ -77,11 +77,13 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
           <strong>Tên công ty:</strong> {master.ten_dv_kh}
         </div>
       )}
-      <div style={{ paddingBottom: "6px" }}>
-        <div style={{ color: "#000" }}>
-          <strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}
+      {master?.ma_ban && (master.ma_ban || "").trim() && (
+        <div style={{ paddingBottom: "6px" }}>
+          <div style={{ color: "#000" }}>
+            <strong>Bàn:</strong> {master.ma_ban}
+          </div>
         </div>
-      </div>
+      )}
       {/* Hình thức thanh toán chỉ hiển thị khi master.httt có giá trị */}
       {master?.httt && (
         <div style={{ color: "#000", marginBottom: "6px" }}>
@@ -90,11 +92,13 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
       )}
 
       <div style={{ color: "#000", marginBottom: "6px" }}>
-        <strong>Số CT:</strong> {master?.so_ct}
+        <strong>Số CT:</strong> {master?.so_ct || "Chưa có"}
       </div>
-      <div style={{ color: "#000", marginBottom: "6px" }}>
-        <strong>Nhân viên:</strong> {master?.username || "Không xác định"}
-      </div>
+      {master?.username && (
+        <div style={{ color: "#000", marginBottom: "6px" }}>
+          <strong>Nhân viên:</strong> {master.username}
+        </div>
+      )}
 
       <table
         style={{

@@ -158,7 +158,7 @@ const PaymentModal = ({
   const multiRemaining = Math.max(0, Math.round(safeTotal - multiTotal));
   const multiChange = Math.max(0, Math.round(multiTotal - safeTotal));
 
-  // Prepare print data theo mẫu Phenika
+  // Prepare print data
   const preparePrintData = () => {
     const now = new Date();
     const orderNumber = `POS${now.getTime()}`;
@@ -207,7 +207,7 @@ const PaymentModal = ({
 
   const handlePrint = useReactToPrint({
     content: () => printContent.current,
-    documentTitle: "Hóa đơn Phenikaa",
+    documentTitle: "Hóa đơn Tapmed",
     copyStyles: false,
   });
 
