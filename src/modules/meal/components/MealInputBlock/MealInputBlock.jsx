@@ -24,16 +24,18 @@ const MealEntryRow = ({
   // Nếu meal có mealType mà không có trong foodListForSelection
   // Thì thêm vào để hiển thị trong dropdown (tránh bị mất value)
   if (meal.mealType) {
-    const isInList = availableFoods.some(food => food.ma_mon === meal.mealType);
+    const isInList = availableFoods.some(
+      (food) => food.ma_mon === meal.mealType
+    );
     if (!isInList) {
       // Thêm món hiện tại vào đầu danh sách
       // Nếu mealTypeName là mã món (chưa fetch API), dùng nó làm tên tạm thời
       availableFoods = [
         {
           ma_mon: meal.mealType,
-          ten_mon: meal.mealTypeName || meal.mealType // Fallback to ma_mon if no ten_mon
+          ten_mon: meal.mealTypeName || meal.mealType, // Fallback to ma_mon if no ten_mon
         },
-        ...availableFoods
+        ...availableFoods,
       ];
     }
   }
@@ -41,11 +43,13 @@ const MealEntryRow = ({
   // Tương tự, thêm chế độ từ history vào listDietCategory nếu chưa có
   let availableDietCategories = listDietCategory || [];
   if (meal.mode && meal.modeName) {
-    const isInList = availableDietCategories.some(cat => cat.ma_nh === meal.mode);
+    const isInList = availableDietCategories.some(
+      (cat) => cat.ma_nh === meal.mode
+    );
     if (!isInList) {
       availableDietCategories = [
         { ma_nh: meal.mode, ten_nh: meal.modeName },
-        ...availableDietCategories
+        ...availableDietCategories,
       ];
     }
   }
@@ -189,7 +193,7 @@ const MealEntryRow = ({
 
         <div className="price-input-group">
           <div>
-            <span className="price-label">Bệnh nhân</span>
+            <span className="price-label">Người bệnh</span>
             <Checkbox
               checked={meal.collectMoney || false}
               onChange={(e) => {
@@ -206,7 +210,7 @@ const MealEntryRow = ({
             />
           </div>
           <span className="price-display">
-            {(meal.totalMoney || 0).toLocaleString()} đ
+            {Number(meal.totalMoney || 0).toLocaleString()} đ
           </span>
         </div>
 

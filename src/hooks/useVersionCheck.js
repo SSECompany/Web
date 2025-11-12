@@ -230,7 +230,9 @@ const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
           <p>
             Thời gian build:{" "}
             <strong>
-              {new Date(newVersion.buildTime).toLocaleString("vi-VN")}
+              {newVersion.buildTime
+                ? new Date(newVersion.buildTime).toLocaleString("vi-VN")
+                : "N/A"}
             </strong>
           </p>
           <p>

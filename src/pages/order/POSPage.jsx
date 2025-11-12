@@ -550,7 +550,10 @@ const POSPage = () => {
                   </Button>
                 </Tooltip>
               )}
-              <Tooltip placement="topRight" title="Suất ăn người nhà bệnh nhân">
+              <Tooltip
+                placement="topRight"
+                title="Suất ăn Người nhà Người bệnh"
+              >
                 <Button
                   className="default_button"
                   onClick={handleFamilyMealList}

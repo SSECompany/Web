@@ -137,8 +137,25 @@ const StudentMealListModal = ({ isOpen, onClose }) => {
         const updatedData = Array.isArray(res?.listObject[0])
           ? res.listObject[0]
           : [];
-        const paginationInfo = res?.listObject[1]?.[0] || {};
-        const totalRecords = paginationInfo.totalRecord || updatedData.length;
+        // Robustly detect pagination info regardless of index/shape
+        const listObject = Array.isArray(res?.listObject) ? res.listObject : [];
+        let paginationInfo = {};
+        for (let i = 0; i < listObject.length; i++) {
+          const candidate = Array.isArray(listObject[i]) ? listObject[i][0] : null;
+          if (
+            candidate &&
+            (candidate.totalRecord !== undefined ||
+              candidate.totalrecord !== undefined ||
+              candidate.totalpage !== undefined ||
+              candidate.pagesize !== undefined)
+          ) {
+            paginationInfo = candidate;
+            break;
+          }
+        }
+        const totalRecords = Number(
+          paginationInfo.totalRecord ?? paginationInfo.totalrecord ?? 0
+        ) || updatedData.length;
 
         setAllData(updatedData);
         setTotalRecords(totalRecords);

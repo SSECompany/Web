@@ -1,4 +1,4 @@
-import { Button, DatePicker, Modal, Table } from "antd";
+import { Button, DatePicker, Input, Modal, Table } from "antd";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { multipleTablePutApi } from "../../../../api";
 import { formatNumber } from "../../../../app/hook/dataFormatHelper";
@@ -6,19 +6,22 @@ import "./ReportModal.css";
 
 const SUMMARY_FIELDS = [
   "ten_nhan_vien",
-  "ma_ban",
+  "ten_gd",
   "so_ct",
   "ngay_ct",
   "datetime2",
   "so_luong",
   "gia_ban",
   "thanh_tien",
+  "ck_nt",
   "tien_mat",
   "tien_ck",
   "ap_voucher",
+  "tt_pos_nt",
+  "tt_qrcode_nt",
 ];
 
-const MONEY_FIELDS = ["gia_ban", "thanh_tien", "tien_mat", "tien_ck"];
+const MONEY_FIELDS = ["gia_ban", "thanh_tien", "ck_nt", "tien_mat", "tien_ck", "tt_pos_nt", "tt_qrcode_nt"];
 
 const formatDate = (date) => {
   const d = new Date(date);
@@ -41,8 +44,8 @@ const isVoucherApplied = (ap_voucher) => {
   );
 };
 
-const CELL_STYLE = { textAlign: "center" };
-const BOLD_CELL_STYLE = { fontWeight: "bold", textAlign: "center" };
+const CELL_STYLE = { textAlign: "center", whiteSpace: "normal", wordWrap: "break-word" };
+const BOLD_CELL_STYLE = { fontWeight: "bold", textAlign: "center", whiteSpace: "normal", wordWrap: "break-word" };
 
 const ReportModal = ({ isOpen, onClose, unitId, id }) => {
   const [dataSource, setDataSource] = useState([]);
@@ -91,20 +94,64 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
 
   const columns = useMemo(
     () => [
-      { title: "STT", dataIndex: "fake_stt", key: "fake_stt", width: 70 },
+      { title: "STT", dataIndex: "fake_stt", key: "fake_stt", minWidth: 70 },
       {
         title: "Tên nhân viên",
         dataIndex: "ten_nhan_vien",
         key: "ten_nhan_vien",
-        width: 150,
+        minWidth: 140,
       },
-      { title: "Mã bàn", dataIndex: "ma_ban", key: "ma_ban", width: 100 },
-      { title: "Số CT", dataIndex: "so_ct", key: "so_ct", width: 100 },
+      { title: "Tên GD", dataIndex: "ten_gd", key: "ten_gd", minWidth: 200 },
+      {
+        title: "Số CT",
+        dataIndex: "so_ct",
+        key: "so_ct",
+        minWidth: 110,
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+          <div style={{ padding: 8 }}>
+            <Input
+              placeholder="Tìm kiếm Số CT"
+              value={selectedKeys[0]}
+              onChange={(e) => {
+                setSelectedKeys(e.target.value ? [e.target.value] : []);
+              }}
+              onPressEnter={() => {
+                confirm();
+              }}
+              style={{ marginBottom: 8, display: "block" }}
+            />
+            <Button
+              className="search_button"
+              type="primary"
+              onClick={() => {
+                confirm();
+              }}
+              size="small"
+              style={{ width: 90, marginRight: 8 }}
+            >
+              Tìm kiếm
+            </Button>
+            <Button
+              onClick={() => {
+                clearFilters();
+              }}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Đặt lại
+            </Button>
+          </div>
+        ),
+        onFilter: (value, record) => {
+          if (!value) return true;
+          return String(record.so_ct || "").toLowerCase().includes(String(value).toLowerCase());
+        },
+      },
       {
         title: "Ngày CT",
         dataIndex: "ngay_ct",
         key: "ngay_ct",
-        width: 120,
+        minWidth: 130,
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <div style={{ padding: 8 }}>
             <DatePicker
@@ -140,34 +187,52 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         title: "Thời gian",
         dataIndex: "datetime2",
         key: "datetime2",
-        width: 130,
+        minWidth: 120,
       },
-      { title: "Tên món", dataIndex: "ten_mon", key: "ten_mon", width: 150 },
+      { title: "Tên món", dataIndex: "ten_mon", key: "ten_mon", minWidth: 150 },
       {
         title: "Số lượng",
         dataIndex: "so_luong",
         key: "so_luong",
-        width: 100,
+        minWidth: 110,
       },
-      { title: "Giá bán", dataIndex: "gia_ban", key: "gia_ban", width: 100 },
+      { title: "Giá bán", dataIndex: "gia_ban", key: "gia_ban", minWidth: 110 },
       {
         title: "Thành tiền",
         dataIndex: "thanh_tien",
         key: "thanh_tien",
-        width: 120,
+        minWidth: 130,
+      },
+      {
+        title: "Chiết khấu",
+        dataIndex: "ck_nt",
+        key: "ck_nt",
+        minWidth: 130,
       },
       {
         title: "Tiền mặt",
         dataIndex: "tien_mat",
         key: "tien_mat",
-        width: 120,
+        minWidth: 130,
       },
-      { title: "Tiền CK", dataIndex: "tien_ck", key: "tien_ck", width: 100 },
+      { title: "Tiền CK", dataIndex: "tien_ck", key: "tien_ck", minWidth: 120 },
+      {
+        title: "Sinh viên trả trước",
+        dataIndex: "tt_pos_nt",
+        key: "tt_pos_nt",
+        minWidth: 180,
+      },
+      {
+        title: "Bệnh nhân trả trước",
+        dataIndex: "tt_qrcode_nt",
+        key: "tt_qrcode_nt",
+        minWidth: 180,
+      },
       {
         title: "Áp voucher",
         dataIndex: "ap_voucher",
         key: "ap_voucher",
-        width: 120,
+        minWidth: 130,
       },
       {
         title: "SysTotal",
@@ -273,12 +338,13 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
           columns={optimizedColumns}
           dataSource={dataSource}
           pagination={false}
-          width="95%"
           rowKey="key"
           rowClassName={(record) =>
             record.systotal === 0 ? "summary-row group-row" : ""
           }
-          scroll={{ y: 450 }}
+          scroll={{ y: 450, x: true }}
+          tableLayout="auto"
+          size="small"
           summary={(pageData) => {
             const totals = pageData.reduce(
               (acc, item) => {
@@ -286,16 +352,22 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                   systotal,
                   so_luong,
                   thanh_tien,
+                  ck_nt,
                   tien_mat,
                   tien_ck,
                   ap_voucher,
+                  tt_pos_nt,
+                  tt_qrcode_nt,
                 } = item;
 
                 if (systotal === 0) {
                   acc.totalSoLuong += Number(so_luong) || 0;
                   acc.totalThanhTien += Number(thanh_tien) || 0;
+                  acc.totalChietKhau += Number(ck_nt) || 0;
                   acc.totalTienMat += Number(tien_mat) || 0;
                   acc.totalTienCK += Number(tien_ck) || 0;
+                  acc.totalTtPosNt += Number(tt_pos_nt) || 0;
+                  acc.totalTtQrcodeNt += Number(tt_qrcode_nt) || 0;
                 } else {
                   if (isVoucherApplied(ap_voucher)) {
                     acc.totalApVoucher += 1;
@@ -307,9 +379,12 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
               {
                 totalSoLuong: 0,
                 totalThanhTien: 0,
+                totalChietKhau: 0,
                 totalTienMat: 0,
                 totalTienCK: 0,
                 totalApVoucher: 0,
+                totalTtPosNt: 0,
+                totalTtQrcodeNt: 0,
               }
             );
 
@@ -328,6 +403,9 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                       thanh_tien: (
                         <strong>{formatNumber(totals.totalThanhTien)}</strong>
                       ),
+                      ck_nt: (
+                        <strong>{formatNumber(totals.totalChietKhau)}</strong>
+                      ),
                       tien_mat: (
                         <strong>{formatNumber(totals.totalTienMat)}</strong>
                       ),
@@ -335,6 +413,12 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                         <strong>{formatNumber(totals.totalTienCK)}</strong>
                       ),
                       ap_voucher: <strong>{totals.totalApVoucher}</strong>,
+                      tt_pos_nt: (
+                        <strong>{formatNumber(totals.totalTtPosNt)}</strong>
+                      ),
+                      tt_qrcode_nt: (
+                        <strong>{formatNumber(totals.totalTtQrcodeNt)}</strong>
+                      ),
                     };
 
                     const cellValue = cellValueMap[dataIndex];

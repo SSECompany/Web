@@ -78,7 +78,14 @@ const RoomSelectionForm = () => {
         (m) =>
           m.ma_giuong?.trim() === bed.ma_giuong?.trim() &&
           m.status !== "3" &&
-          m.status !== 3
+          m.status !== 3 &&
+          // Chỉ in những dòng người nhà, loại bỏ các dòng có checkbox bệnh nhân được tích
+          !(
+            m.benh_nhan_yn === true ||
+            m.benh_nhan_yn === 1 ||
+            m.benh_nhan_yn === "1" ||
+            m.benh_nhan_yn === "true"
+          )
       );
 
       const detail = bedMeals.map((m) => {
@@ -136,6 +143,7 @@ const RoomSelectionForm = () => {
         benhnhan_tratruoc: 0,
         sinhvien_tratruoc: 0,
         datetime2: new Date().toISOString(),
+        noFamilyMeals: bedMeals.length === 0, // Đánh dấu không có suất người nhà
       };
 
       return { master, detail };
@@ -876,7 +884,25 @@ const RoomSelectionForm = () => {
         const hasEditedMeals = meals.some((meal) => meal.isEdit); // Có món bị sửa
         const currentMealCount = meals.filter((m) => m.mealType).length;
         const hasDeletedMeals = historyMealsInShift.length !== currentMealCount; // Số lượng món thay đổi
-        const hasPaymentToggled = hasPaidMeals && isPaymentToggledThisSession; // Thu tiền thay đổi
+        // Kiểm tra xem có món nào trong ca này có isPaid thay đổi so với history không
+        const hasPaymentToggled = meals.some((meal) => {
+          if (!meal.mealType || !meal.stt_rec) return false; // Chỉ kiểm tra món đã có trong hệ thống
+          const historyMeal = historyMealsInShift.find(
+            (m) => m.stt_rec === meal.stt_rec
+          );
+          if (!historyMeal) return false;
+          const currentIsPaid =
+            meal.isPaid === true ||
+            meal.isPaid === 1 ||
+            meal.isPaid === "1" ||
+            meal.isPaid === "true";
+          const historyIsPaid =
+            historyMeal.thu_tien_yn === true ||
+            historyMeal.thu_tien_yn === 1 ||
+            historyMeal.thu_tien_yn === "1" ||
+            historyMeal.thu_tien_yn === "true";
+          return currentIsPaid !== historyIsPaid;
+        }); // Thu tiền thay đổi trong ca này
         const hasCancelledMeals = meals.some(
           (meal) =>
             meal.mealType &&
@@ -903,10 +929,12 @@ const RoomSelectionForm = () => {
           hasAnyChanges = true;
 
           const benhNhanYn = meal.collectMoney ? 1 : 0;
+          // Sử dụng meal.isPaid trực tiếp - mỗi món đã có trạng thái thu tiền riêng theo ca
           const thuTienYn =
-            hasPaidMeals && isPaymentToggledThisSession
-              ? 1
-              : meal.isPaid
+            meal.isPaid === true ||
+            meal.isPaid === 1 ||
+            meal.isPaid === "1" ||
+            meal.isPaid === "true"
               ? 1
               : 0;
 

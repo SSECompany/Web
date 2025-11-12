@@ -1,23 +1,25 @@
 import { ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
-import { Checkbox, DatePicker, Modal, notification, Tabs } from "antd";
+import { Checkbox, DatePicker, Modal, Tabs, notification } from "antd";
 import dayjs from "dayjs";
 import cloneDeep from "lodash.clonedeep";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { multipleTablePutApi, apiProcessCombinedMealOrder, syncFastMutiApi } from "../../../../api";
+import {
+  apiProcessCombinedMealOrder,
+  multipleTablePutApi,
+  syncFastMutiApi,
+} from "../../../../api";
 import { formatNumber } from "../../../../app/hook/dataFormatHelper";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import {
-    markBedAsSubmitted,
-    removeMeal,
-    setListDietCategory,
-    setListFood,
-    setMeal,
-    setMealHistory,
-    setShowMealDetails,
-    setShowRoomSelection,
-    setBedPaymentToggled,
-    setSubmittedBeds
+  markBedAsSubmitted,
+  setBedPaymentToggled,
+  setListDietCategory,
+  setMeal,
+  setMealHistory,
+  setShowMealDetails,
+  setShowRoomSelection,
+  setSubmittedBeds,
 } from "../../store/meal";
 import MealEntryRow from "../MealInputBlock/MealInputBlock";
 import "./MealDetailsForm.css";
@@ -36,6 +38,7 @@ const MealDetailsForm = () => {
   const detailData = useSelector((state) => state.meals.meals.detailData);
   const mealHistory = useSelector((state) => state.meals.mealHistory || []);
   const [isPaid, setIsPaid] = useState(false);
+  const [isPaidByShift, setIsPaidByShift] = useState({ CA1: false, CA2: false, CA3: false });
   const [paymentMethod, setPaymentMethod] = useState("");
 
   // Track xem user có thay đổi gì trong session hiện tại không
@@ -48,9 +51,11 @@ const MealDetailsForm = () => {
   const listMealCode = useSelector((state) => state.meals.listMealCode);
   const listDietCategory = useSelector((state) => state.meals.listDietCategory);
   const masterData = useSelector((state) => state.meals.meals.masterData);
-  const { userName, unitId, id: userId } = useSelector(
-    (state) => state.claimsReducer.userInfo || {}
-  );
+  const {
+    userName,
+    unitId,
+    id: userId,
+  } = useSelector((state) => state.claimsReducer.userInfo || {});
   const [activeTab, setActiveTab] = useState(listMealCode[0]?.ma_ca || "CA1");
   const [selectedPatientInShift, setSelectedPatientInShift] = useState({});
 
@@ -73,6 +78,7 @@ const MealDetailsForm = () => {
     setFoodListByShiftAndMode({});
     setPaymentMethod("");
     setIsPaid(false);
+    setIsPaidByShift({ CA1: false, CA2: false, CA3: false });
     setSelectedPatientInShift({});
   }, [currentBedIndex, selectedDate]);
 
@@ -81,17 +87,24 @@ const MealDetailsForm = () => {
     setFoodListByShiftAndMode({});
   }, [mealHistory]);
 
+  // Kiểm tra isPaid cho từng ca riêng biệt
   useEffect(() => {
     const bedMeals = detailData[currentBedIndex];
     if (bedMeals) {
-      const allMeals = Object.values(bedMeals).flat();
-      const hasPaid =
-        allMeals.length > 0 && allMeals.every((meal) => meal.isPaid);
-      setIsPaid(hasPaid);
+      const paidByShift = { CA1: false, CA2: false, CA3: false };
+      ["CA1", "CA2", "CA3"].forEach((shift) => {
+        const shiftMeals = bedMeals[shift] || [];
+        paidByShift[shift] =
+          shiftMeals.length > 0 && shiftMeals.every((meal) => meal.isPaid);
+      });
+      setIsPaidByShift(paidByShift);
+      // Giữ isPaid cho ca hiện tại để tương thích
+      setIsPaid(paidByShift[activeTab] || false);
     } else {
+      setIsPaidByShift({ CA1: false, CA2: false, CA3: false });
       setIsPaid(false);
     }
-  }, [detailData, currentBedIndex]);
+  }, [detailData, currentBedIndex, activeTab]);
 
   // KHÔNG auto-fetch api_getListFood khi load form
   // Chỉ fetch khi user click vào dropdown chọn món (onFocus)
@@ -115,23 +128,32 @@ const MealDetailsForm = () => {
         });
 
         const dietCategoryList = response?.listObject?.[0] || [];
-        
+
         // Kiểm tra nếu API trả về data hợp lệ
-        if (Array.isArray(dietCategoryList) && dietCategoryList.length > 0 && dietCategoryList[0].ma_nh) {
+        if (
+          Array.isArray(dietCategoryList) &&
+          dietCategoryList.length > 0 &&
+          dietCategoryList[0].ma_nh
+        ) {
           // Merge với danh sách hiện có thay vì ghi đè
           const currentCategories = listDietCategory || [];
           const mergedCategories = [...currentCategories];
-          
-          dietCategoryList.forEach(newCategory => {
-            const exists = mergedCategories.some(cat => cat.ma_nh === newCategory.ma_nh);
+
+          dietCategoryList.forEach((newCategory) => {
+            const exists = mergedCategories.some(
+              (cat) => cat.ma_nh === newCategory.ma_nh
+            );
             if (!exists) {
               mergedCategories.push(newCategory);
             }
           });
-          
+
           dispatch(setListDietCategory(mergedCategories));
         } else {
-          console.warn(`⚠️ Invalid diet category data for ${timeOfDay}:`, dietCategoryList);
+          console.warn(
+            `⚠️ Invalid diet category data for ${timeOfDay}:`,
+            dietCategoryList
+          );
           // Nếu API trả về rỗng, vẫn dispatch để clear cache cũ
           dispatch(setListDietCategory([]));
         }
@@ -175,34 +197,39 @@ const MealDetailsForm = () => {
     }, 0);
   };
 
-  const updateMealEntry = useCallback((timeOfDay, index, updateFn, shouldMarkAsEdit = true) => {
-    setMealEntries((prev) => {
-      const updatedMeals = [...prev];
-      if (!updatedMeals[currentBedIndex]) {
-        updatedMeals[currentBedIndex] = { CA1: [], CA2: [], CA3: [] };
-      }
-      const bedMeals = { ...updatedMeals[currentBedIndex] };
-      const meals = [...(bedMeals[timeOfDay] || [])];
-      const meal = { ...meals[index] };
+  const updateMealEntry = useCallback(
+    (timeOfDay, index, updateFn, shouldMarkAsEdit = true) => {
+      setMealEntries((prev) => {
+        const updatedMeals = [...prev];
+        if (!updatedMeals[currentBedIndex]) {
+          updatedMeals[currentBedIndex] = { CA1: [], CA2: [], CA3: [] };
+        }
+        const bedMeals = { ...updatedMeals[currentBedIndex] };
+        const meals = [...(bedMeals[timeOfDay] || [])];
+        const meal = { ...meals[index] };
 
-      updateFn(meal);
-      // CHỈ đánh dấu isEdit nếu shouldMarkAsEdit = true VÀ meal có stt_rec
-      if (shouldMarkAsEdit && meal.stt_rec) {
-        meal.isEdit = true;
-        // Đánh dấu có thay đổi trong session này
-        hasChangedInThisSession.current = true;
-      }
+        updateFn(meal);
+        // CHỈ đánh dấu isEdit nếu shouldMarkAsEdit = true VÀ meal có stt_rec
+        if (shouldMarkAsEdit && meal.stt_rec) {
+          meal.isEdit = true;
+          // Đánh dấu có thay đổi trong session này
+          hasChangedInThisSession.current = true;
+        }
 
-      meals[index] = meal;
-      bedMeals[timeOfDay] = meals;
-      updatedMeals[currentBedIndex] = bedMeals;
+        meals[index] = meal;
+        bedMeals[timeOfDay] = meals;
+        updatedMeals[currentBedIndex] = bedMeals;
 
-      // Update Redux store NGAY LẬP TỨC
-      dispatch(setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex }));
+        // Update Redux store NGAY LẬP TỨC
+        dispatch(
+          setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex })
+        );
 
-      return updatedMeals;
-    });
-  }, [currentBedIndex, dispatch]);
+        return updatedMeals;
+      });
+    },
+    [currentBedIndex, dispatch]
+  );
 
   const handleChange = useCallback(
     (timeOfDay, index, e) => {
@@ -211,7 +238,8 @@ const MealDetailsForm = () => {
       // Lấy giá trị cũ để so sánh
       const meals = mealEntries[currentBedIndex]?.[timeOfDay] || [];
       const oldMeal = meals[index];
-      const oldValue = name === "note" ? (oldMeal?.note || "") : (oldMeal?.[name] || "");
+      const oldValue =
+        name === "note" ? oldMeal?.note || "" : oldMeal?.[name] || "";
       const newValue = value || "";
 
       // CHỈ đánh dấu isEdit nếu có thay đổi thực sự
@@ -222,39 +250,44 @@ const MealDetailsForm = () => {
         hasChangedInThisSession.current = true;
       }
 
-      updateMealEntry(timeOfDay, index, (meal) => {
-        if (name === "mealType") {
-          // Lấy food list từ local state theo ca và chế độ hiện tại
-          const key = `${timeOfDay}_${meal.mode}`;
-          const foodsForThisShiftAndMode = foodListByShiftAndMode[key] || [];
+      updateMealEntry(
+        timeOfDay,
+        index,
+        (meal) => {
+          if (name === "mealType") {
+            // Lấy food list từ local state theo ca và chế độ hiện tại
+            const key = `${timeOfDay}_${meal.mode}`;
+            const foodsForThisShiftAndMode = foodListByShiftAndMode[key] || [];
 
-          const selectedFood = foodsForThisShiftAndMode.find(
-            (food) => food.ma_mon === value
-          );
-          const price = selectedFood?.gia_ban || meal.price || 0;
+            const selectedFood = foodsForThisShiftAndMode.find(
+              (food) => food.ma_mon === value
+            );
+            const price = selectedFood?.gia_ban || meal.price || 0;
 
-          // Only reset quantity and price if this is a NEW selection (meal didn't have mealType before)
-          // If meal already has mealType and price, keep them (from history)
-          const isNewSelection = !meal.mealType;
+            // Only reset quantity and price if this is a NEW selection (meal didn't have mealType before)
+            // If meal already has mealType and price, keep them (from history)
+            const isNewSelection = !meal.mealType;
 
-          meal.mealType = value;
-          meal.mealTypeName = selectedFood?.ten_mon || "";
+            meal.mealType = value;
+            meal.mealTypeName = selectedFood?.ten_mon || "";
 
-          if (isNewSelection) {
-            // New selection - use default quantity and price from API
-            meal.quantity = 1;
-            meal.price = price;
-            meal.totalMoney = price * 1;
+            if (isNewSelection) {
+              // New selection - use default quantity and price from API
+              meal.quantity = 1;
+              meal.price = price;
+              meal.totalMoney = price * 1;
+            } else {
+              // Existing meal (from history) - keep existing quantity and price
+              meal.totalMoney = meal.price * meal.quantity;
+            }
+          } else if (name === "note") {
+            meal.note = value;
           } else {
-            // Existing meal (from history) - keep existing quantity and price
-            meal.totalMoney = meal.price * meal.quantity;
+            meal[name] = value;
           }
-        } else if (name === "note") {
-          meal.note = value;
-        } else {
-          meal[name] = value;
-        }
-      }, hasRealChange); // Chỉ đánh dấu isEdit nếu có thay đổi thực sự
+        },
+        hasRealChange
+      ); // Chỉ đánh dấu isEdit nếu có thay đổi thực sự
     },
     [foodListByShiftAndMode, mealEntries, currentBedIndex]
   );
@@ -274,19 +307,24 @@ const MealDetailsForm = () => {
         hasChangedInThisSession.current = true;
       }
 
-      updateMealEntry(timeOfDay, index, (meal) => {
-        // Lấy food list từ local state theo ca và chế độ hiện tại
-        const key = `${timeOfDay}_${meal.mode}`;
-        const foodsForThisShiftAndMode = foodListByShiftAndMode[key] || [];
+      updateMealEntry(
+        timeOfDay,
+        index,
+        (meal) => {
+          // Lấy food list từ local state theo ca và chế độ hiện tại
+          const key = `${timeOfDay}_${meal.mode}`;
+          const foodsForThisShiftAndMode = foodListByShiftAndMode[key] || [];
 
-        const selectedFood = foodsForThisShiftAndMode.find(
-          (food) => food.ma_mon === meal.mealType
-        );
-        // Ưu tiên dùng giá đã có trong meal (đã load từ lịch sử), fallback giá từ danh sách món
-        const price = (meal.price ?? 0) || selectedFood?.gia_ban || 0;
-        meal.quantity = newQuantity;
-        meal.totalMoney = meal.collectMoney ? 0 : price * newQuantity;
-      }, hasRealChange); // Chỉ đánh dấu isEdit nếu số lượng thay đổi
+          const selectedFood = foodsForThisShiftAndMode.find(
+            (food) => food.ma_mon === meal.mealType
+          );
+          // Ưu tiên dùng giá đã có trong meal (đã load từ lịch sử), fallback giá từ danh sách món
+          const price = (meal.price ?? 0) || selectedFood?.gia_ban || 0;
+          meal.quantity = newQuantity;
+          meal.totalMoney = meal.collectMoney ? 0 : price * newQuantity;
+        },
+        hasRealChange
+      ); // Chỉ đánh dấu isEdit nếu số lượng thay đổi
     },
     [foodListByShiftAndMode, mealEntries, currentBedIndex]
   );
@@ -305,11 +343,12 @@ const MealDetailsForm = () => {
           ? dayjs(selectedDate, "DD/MM/YYYY").format("DD/MM/YYYY")
           : dayjs().format("DD/MM/YYYY");
 
-      // Create new meal with current payment method and isPaid status
+      // Create new meal with current payment method and isPaid status của ca hiện tại
+      const shiftIsPaid = isPaidByShift[timeOfDay] || false;
       const newMeal = {
         ...createDefaultMeal(mealDate),
-        isPaid: isPaid,
-        httt: isPaid ? paymentMethod : "",
+        isPaid: shiftIsPaid,
+        httt: shiftIsPaid ? paymentMethod : "",
       };
 
       meals.push(newMeal);
@@ -335,18 +374,23 @@ const MealDetailsForm = () => {
       }
 
       // Tìm tên chế độ từ listDietCategory
-      const selectedMode = listDietCategory.find(cat => cat.ma_nh === value);
+      const selectedMode = listDietCategory.find((cat) => cat.ma_nh === value);
       const modeName = selectedMode?.ten_nh || "";
 
-      updateMealEntry(timeOfDay, index, (meal) => {
-        meal.mode = value;
-        meal.modeName = modeName;
-        // Reset meal type when mode changes
-        meal.mealType = "";
-        meal.mealTypeName = "";
-        meal.quantity = 0;
-        meal.totalMoney = 0;
-      }, hasRealChange);
+      updateMealEntry(
+        timeOfDay,
+        index,
+        (meal) => {
+          meal.mode = value;
+          meal.modeName = modeName;
+          // Reset meal type when mode changes
+          meal.mealType = "";
+          meal.mealTypeName = "";
+          meal.quantity = 0;
+          meal.totalMoney = 0;
+        },
+        hasRealChange
+      );
 
       // Fetch food list when mode changes - LUÔN fetch mới từ API
       const fetchListFood = async () => {
@@ -391,7 +435,13 @@ const MealDetailsForm = () => {
 
       fetchListFood();
     },
-    [selectedDate, listDietCategory, updateMealEntry, currentBedIndex, mealEntries]
+    [
+      selectedDate,
+      listDietCategory,
+      updateMealEntry,
+      currentBedIndex,
+      mealEntries,
+    ]
   );
 
   // Hàm để fetch food list khi user click vào dropdown món ăn
@@ -426,14 +476,14 @@ const MealDetailsForm = () => {
         // Lưu food list vào cache
         setFoodListByShiftAndMode((prev) => ({
           ...prev,
-          [key]: foodList
+          [key]: foodList,
         }));
       } catch (error) {
         console.error("Lỗi fetch food list:", error);
         // Trong trường hợp lỗi, vẫn lưu array rỗng để tránh fetch lại
         setFoodListByShiftAndMode((prev) => ({
           ...prev,
-          [key]: []
+          [key]: [],
         }));
       }
     },
@@ -478,10 +528,11 @@ const MealDetailsForm = () => {
           // XÓA THẬT món khỏi array (không đánh dấu status="3")
           if (meals.length === 1) {
             // Nếu chỉ còn 1 món, tạo món rỗng mới
+            const shiftIsPaid = isPaidByShift[timeOfDay] || false;
             const newDefaultMeal = {
               ...createDefaultMeal(mealDate),
-              isPaid: isPaid,
-              httt: isPaid ? paymentMethod : "",
+              isPaid: shiftIsPaid,
+              httt: shiftIsPaid ? paymentMethod : "",
             };
             bedMeals[timeOfDay] = [newDefaultMeal];
           } else {
@@ -498,8 +549,10 @@ const MealDetailsForm = () => {
           updatedMeals[currentBedIndex] = bedMeals;
 
           // Update Redux store NGAY LẬP TỨC
-          dispatch(setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex }));
-          
+          dispatch(
+            setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex })
+          );
+
           return updatedMeals;
         });
         setTimeout(() => {
@@ -527,11 +580,15 @@ const MealDetailsForm = () => {
     const currentMeal = meals[index];
     const mealMode = currentMeal?.mode;
     const key = `${timeOfDay}_${mealMode}`;
-    
+
     let freshFoodList = null; // Lưu food list vừa fetch để dùng ngay
-    
+
     // Nếu bỏ tích VÀ (chưa có food list HOẶC giá hiện tại = 0)
-    if (!checked && mealMode && (!foodListByShiftAndMode[key] || currentMeal?.price === 0)) {
+    if (
+      !checked &&
+      mealMode &&
+      (!foodListByShiftAndMode[key] || currentMeal?.price === 0)
+    ) {
       try {
         const response = await multipleTablePutApi({
           store: "[api_getListFood]",
@@ -548,11 +605,11 @@ const MealDetailsForm = () => {
         });
 
         freshFoodList = response?.listObject?.[0] || [];
-        
+
         // Cập nhật cache
         setFoodListByShiftAndMode((prev) => ({
           ...prev,
-          [key]: freshFoodList
+          [key]: freshFoodList,
         }));
       } catch (error) {
         console.error("❌ Lỗi fetch food list:", error);
@@ -567,35 +624,38 @@ const MealDetailsForm = () => {
       // Lấy food list từ local state theo ca và chế độ
       const mealMode = meals[index]?.mode;
       const key = `${timeOfDay}_${mealMode}`;
-      
+
       // Ưu tiên dùng freshFoodList (vừa fetch), nếu không có thì dùng từ cache
-      const foodsForThisShiftAndMode = freshFoodList || foodListByShiftAndMode[key] || [];
+      const foodsForThisShiftAndMode =
+        freshFoodList || foodListByShiftAndMode[key] || [];
 
       const selectedFood = foodsForThisShiftAndMode.find(
         (food) => food.ma_mon === meals[index]?.mealType
       );
       const priceFromFood = selectedFood?.gia_ban || 0;
       const currentMeal = meals[index];
-      
+
       // Khi BỎ TÍCH bệnh nhân (checked = false), ưu tiên dùng giá từ foodList
       // Vì giá cũ có thể = 0 (do món ban đầu là bệnh nhân trả)
-      const priceToUse = !checked && priceFromFood > 0 
-        ? priceFromFood  // Dùng giá mới từ API
-        : (currentMeal?.price || priceFromFood || 0); // Giữ giá cũ
+      const priceToUse =
+        !checked && priceFromFood > 0
+          ? priceFromFood // Dùng giá mới từ API
+          : currentMeal?.price || priceFromFood || 0; // Giữ giá cũ
 
       bedMeals[timeOfDay] = meals.map((meal, i) => {
         if (i === index) {
           const quantityToUse = meal.quantity || 1;
-          
+
           // Tính giá cho món này
           const mealSelectedFood = foodsForThisShiftAndMode.find(
             (food) => food.ma_mon === meal.mealType
           );
           const mealPriceFromFood = mealSelectedFood?.gia_ban || 0;
-          const finalPrice = !checked && mealPriceFromFood > 0 
-            ? mealPriceFromFood 
-            : (meal.price || mealPriceFromFood || 0);
-          
+          const finalPrice =
+            !checked && mealPriceFromFood > 0
+              ? mealPriceFromFood
+              : meal.price || mealPriceFromFood || 0;
+
           const updatedMeal = {
             ...meal,
             collectMoney: checked,
@@ -617,7 +677,8 @@ const MealDetailsForm = () => {
               (food) => food.ma_mon === meal.mealType
             );
             const mealPriceFromFood = mealSelectedFood?.gia_ban || 0;
-            const priceToUse = mealPriceFromFood > 0 ? mealPriceFromFood : (meal.price || 0);
+            const priceToUse =
+              mealPriceFromFood > 0 ? mealPriceFromFood : meal.price || 0;
             const quantityToUse = meal.quantity || 1;
 
             const updatedMeal = {
@@ -641,7 +702,9 @@ const MealDetailsForm = () => {
       updatedMeals[currentBedIndex] = bedMeals;
 
       // Update Redux store NGAY LẬP TỨC
-      dispatch(setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex }));
+      dispatch(
+        setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex })
+      );
 
       return updatedMeals;
     });
@@ -681,10 +744,9 @@ const MealDetailsForm = () => {
           invalidPriceMeals.push({
             shift: shiftName,
             mealName: mealName,
-            issue: "Có giá = 0 nhưng không được tích 'Bệnh nhân trả tiền'",
+            issue: "Có giá = 0 nhưng không được tích 'Người bệnh trả tiền'",
           });
         }
-
       });
     });
 
@@ -727,7 +789,7 @@ const MealDetailsForm = () => {
               <p style={{ marginBottom: "4px" }}>Vui lòng:</p>
               <ul style={{ margin: "0", paddingLeft: "16px" }}>
                 <li>
-                  Tích "Bệnh nhân trả tiền" cho các món có giá = 0 hoặc cập
+                  Tích "Người bệnh trả tiền" cho các món có giá = 0 hoặc cập
                   nhật giá tiền
                 </li>
               </ul>
@@ -815,24 +877,29 @@ const MealDetailsForm = () => {
     ["CA1", "CA2", "CA3"].forEach((shift) => {
       const meals = bedMeals[shift] || [];
       meals.forEach((meal, idx) => {
-        if (meal.mealType && meal.stt_rec && (meal.status === "3" || meal.status === 3)) {
+        if (
+          meal.mealType &&
+          meal.stt_rec &&
+          (meal.status === "3" || meal.status === 3)
+        ) {
           cancelledMealsList.push({
             shift,
             index: idx,
             mealType: meal.mealType,
             status: meal.status,
-            stt_rec: meal.stt_rec
+            stt_rec: meal.stt_rec,
           });
         }
       });
     });
-    
+
     const hasCancelledMeals = cancelledMealsList.length > 0;
 
     // Logic khác nhau:
     // - Đơn đã hủy (hasCancelledMeals): LUÔN mark submitted (cho phép khôi phục)
     // - Đơn đang hoạt động: CHỈ mark khi có thay đổi thực sự
-    const hasRealChanges = hasChangedInThisSession.current || hasNewMeals || hasEditedMeals;
+    const hasRealChanges =
+      hasChangedInThisSession.current || hasNewMeals || hasEditedMeals;
     const hasChanges = hasCancelledMeals || hasRealChanges;
 
     if (hasChanges) {
@@ -862,7 +929,9 @@ const MealDetailsForm = () => {
   // Check if all orders are cancelled (status = 3)
   const allOrdersCancelled = useMemo(() => {
     const bedMaGiuong = bedName?.ma_giuong;
-    const bedMeals = mealHistory.filter((m) => m.ma_giuong?.trim() === bedMaGiuong?.trim());
+    const bedMeals = mealHistory.filter(
+      (m) => m.ma_giuong?.trim() === bedMaGiuong?.trim()
+    );
     if (bedMeals.length === 0) return false;
     return bedMeals.every((m) => m.status === "3" || m.status === 3);
   }, [mealHistory, bedName]);
@@ -884,7 +953,10 @@ const MealDetailsForm = () => {
           // Chỉ lấy món chưa bị huỷ (status !== 3)
           const cancelDetail = [];
           const bedMealsHistory = mealHistory.filter(
-            (m) => m.ma_giuong?.trim() === bedName?.ma_giuong?.trim() && m.status !== "3" && m.status !== 3
+            (m) =>
+              m.ma_giuong?.trim() === bedName?.ma_giuong?.trim() &&
+              m.status !== "3" &&
+              m.status !== 3
           );
 
           bedMealsHistory.forEach((meal) => {
@@ -897,15 +969,21 @@ const MealDetailsForm = () => {
 
             if (caCode && meal.stt_rec) {
               // Convert boolean/number/string sang 0/1 - hỗ trợ nhiều format
-              const benhNhanYn = (meal.benh_nhan_yn === true ||
-                                  meal.benh_nhan_yn === 1 ||
-                                  meal.benh_nhan_yn === "1" ||
-                                  meal.benh_nhan_yn === "true") ? 1 : 0;
-              const thuTienYn = (meal.thu_tien_yn === true ||
-                                meal.thu_tien_yn === 1 ||
-                                meal.thu_tien_yn === "1" ||
-                                meal.thu_tien_yn === "true" ||
-                                meal.thu_tien === true) ? 1 : 0;
+              const benhNhanYn =
+                meal.benh_nhan_yn === true ||
+                meal.benh_nhan_yn === 1 ||
+                meal.benh_nhan_yn === "1" ||
+                meal.benh_nhan_yn === "true"
+                  ? 1
+                  : 0;
+              const thuTienYn =
+                meal.thu_tien_yn === true ||
+                meal.thu_tien_yn === 1 ||
+                meal.thu_tien_yn === "1" ||
+                meal.thu_tien_yn === "true" ||
+                meal.thu_tien === true
+                  ? 1
+                  : 0;
 
               cancelDetail.push({
                 ma_giuong: bedName.ma_giuong,
@@ -967,7 +1045,7 @@ const MealDetailsForm = () => {
               if (Array.isArray(reloadResponse?.listObject)) {
                 dispatch(setMealHistory(reloadResponse.listObject));
               }
-              
+
               // Clear detailData của giường hiện tại để force reload khi click lại
               const updatedDetailData = [...mealEntries];
               updatedDetailData[currentBedIndex] = {
@@ -975,8 +1053,13 @@ const MealDetailsForm = () => {
                 CA2: [],
                 CA3: [],
               };
-              dispatch(setMeal({ mealEntries: updatedDetailData, bedIndex: currentBedIndex }));
-              
+              dispatch(
+                setMeal({
+                  mealEntries: updatedDetailData,
+                  bedIndex: currentBedIndex,
+                })
+              );
+
               // Reload submittedBeds từ Redux để clear mark "đã sửa" nếu có
               // (sẽ được fetch lại từ RoomSelectionForm khi reload beds)
               dispatch(setSubmittedBeds([]));
@@ -988,7 +1071,9 @@ const MealDetailsForm = () => {
             dispatch(setShowMealDetails(false));
             dispatch(setShowRoomSelection(true));
           } else {
-            notification.warning({ message: response?.responseModel?.message || "Huỷ đơn thất bại!" });
+            notification.warning({
+              message: response?.responseModel?.message || "Huỷ đơn thất bại!",
+            });
           }
         } catch (error) {
           console.error("Lỗi khi huỷ đơn:", error);
@@ -1000,8 +1085,9 @@ const MealDetailsForm = () => {
 
   // Hàm hủy một ca cụ thể
   const handleCancelShift = (shift) => {
-    const shiftName = shift === "CA1" ? "Ca sáng" : shift === "CA2" ? "Ca trưa" : "Ca chiều";
-    
+    const shiftName =
+      shift === "CA1" ? "Ca sáng" : shift === "CA2" ? "Ca trưa" : "Ca chiều";
+
     showConfirm({
       title: `Bạn có chắc chắn muốn huỷ ${shiftName}?`,
       onOk: async () => {
@@ -1021,27 +1107,40 @@ const MealDetailsForm = () => {
             "Ca trưa": "CA2",
             "Ca chiều": "CA3",
           };
-          const shiftLabel = shift === "CA1" ? "Ca sáng" : shift === "CA2" ? "Ca trưa" : "Ca chiều";
-          
+          const shiftLabel =
+            shift === "CA1"
+              ? "Ca sáng"
+              : shift === "CA2"
+              ? "Ca trưa"
+              : "Ca chiều";
+
           const cancelDetail = [];
           const shiftMealsHistory = mealHistory.filter(
-            (m) => m.ma_giuong?.trim() === bedName?.ma_giuong?.trim() 
-                && m.ten_ca?.trim() === shiftLabel
-                && m.status !== "3" && m.status !== 3
+            (m) =>
+              m.ma_giuong?.trim() === bedName?.ma_giuong?.trim() &&
+              m.ten_ca?.trim() === shiftLabel &&
+              m.status !== "3" &&
+              m.status !== 3
           );
 
           shiftMealsHistory.forEach((meal) => {
             if (meal.stt_rec) {
               // Convert boolean/number/string sang 0/1
-              const benhNhanYn = (meal.benh_nhan_yn === true ||
-                                  meal.benh_nhan_yn === 1 ||
-                                  meal.benh_nhan_yn === "1" ||
-                                  meal.benh_nhan_yn === "true") ? 1 : 0;
-              const thuTienYn = (meal.thu_tien_yn === true ||
-                                meal.thu_tien_yn === 1 ||
-                                meal.thu_tien_yn === "1" ||
-                                meal.thu_tien_yn === "true" ||
-                                meal.thu_tien === true) ? 1 : 0;
+              const benhNhanYn =
+                meal.benh_nhan_yn === true ||
+                meal.benh_nhan_yn === 1 ||
+                meal.benh_nhan_yn === "1" ||
+                meal.benh_nhan_yn === "true"
+                  ? 1
+                  : 0;
+              const thuTienYn =
+                meal.thu_tien_yn === true ||
+                meal.thu_tien_yn === 1 ||
+                meal.thu_tien_yn === "1" ||
+                meal.thu_tien_yn === "true" ||
+                meal.thu_tien === true
+                  ? 1
+                  : 0;
 
               cancelDetail.push({
                 ma_giuong: bedName.ma_giuong,
@@ -1064,7 +1163,9 @@ const MealDetailsForm = () => {
           });
 
           if (cancelDetail.length === 0) {
-            notification.warning({ message: `Không tìm thấy món nào để huỷ trong ${shiftName}!` });
+            notification.warning({
+              message: `Không tìm thấy món nào để huỷ trong ${shiftName}!`,
+            });
             return;
           }
 
@@ -1101,7 +1202,7 @@ const MealDetailsForm = () => {
               if (Array.isArray(reloadResponse?.listObject)) {
                 dispatch(setMealHistory(reloadResponse.listObject));
               }
-              
+
               // Clear detailData của giường hiện tại
               const updatedDetailData = [...mealEntries];
               updatedDetailData[currentBedIndex] = {
@@ -1109,7 +1210,12 @@ const MealDetailsForm = () => {
                 CA2: [],
                 CA3: [],
               };
-              dispatch(setMeal({ mealEntries: updatedDetailData, bedIndex: currentBedIndex }));
+              dispatch(
+                setMeal({
+                  mealEntries: updatedDetailData,
+                  bedIndex: currentBedIndex,
+                })
+              );
               dispatch(setSubmittedBeds([]));
             } catch (error) {
               console.error("Lỗi reload data sau khi hủy ca:", error);
@@ -1119,7 +1225,11 @@ const MealDetailsForm = () => {
             dispatch(setShowMealDetails(false));
             dispatch(setShowRoomSelection(true));
           } else {
-            notification.warning({ message: response?.responseModel?.message || `Huỷ ${shiftName} thất bại!` });
+            notification.warning({
+              message:
+                response?.responseModel?.message ||
+                `Huỷ ${shiftName} thất bại!`,
+            });
           }
         } catch (error) {
           console.error("Lỗi khi huỷ ca:", error);
@@ -1130,34 +1240,45 @@ const MealDetailsForm = () => {
   };
 
   // Check xem ca này có món chưa bị hủy không (để hiện nút "Hủy ca")
-  const hasActiveShiftMeals = useCallback((shift) => {
-    const shiftLabel = shift === "CA1" ? "Ca sáng" : shift === "CA2" ? "Ca trưa" : "Ca chiều";
-    const bedMaGiuong = bedName?.ma_giuong;
-    
-    const shiftMeals = mealHistory.filter(
-      (m) => m.ma_giuong?.trim() === bedMaGiuong?.trim() 
-          && m.ten_ca?.trim() === shiftLabel
-          && m.status !== "3" && m.status !== 3
-    );
-    
-    return shiftMeals.length > 0;
-  }, [mealHistory, bedName]);
+  const hasActiveShiftMeals = useCallback(
+    (shift) => {
+      const shiftLabel =
+        shift === "CA1" ? "Ca sáng" : shift === "CA2" ? "Ca trưa" : "Ca chiều";
+      const bedMaGiuong = bedName?.ma_giuong;
+
+      const shiftMeals = mealHistory.filter(
+        (m) =>
+          m.ma_giuong?.trim() === bedMaGiuong?.trim() &&
+          m.ten_ca?.trim() === shiftLabel &&
+          m.status !== "3" &&
+          m.status !== 3
+      );
+
+      return shiftMeals.length > 0;
+    },
+    [mealHistory, bedName]
+  );
 
   // Check xem ca này đã bị hủy toàn bộ chưa (để hiện badge "Đã hủy")
-  const isShiftCancelled = useCallback((shift) => {
-    const shiftLabel = shift === "CA1" ? "Ca sáng" : shift === "CA2" ? "Ca trưa" : "Ca chiều";
-    const bedMaGiuong = bedName?.ma_giuong;
-    
-    const allShiftMeals = mealHistory.filter(
-      (m) => m.ma_giuong?.trim() === bedMaGiuong?.trim() 
-          && m.ten_ca?.trim() === shiftLabel
-    );
-    
-    // Ca đã hủy nếu: có món VÀ TẤT CẢ đều bị hủy
-    if (allShiftMeals.length === 0) return false;
-    
-    return allShiftMeals.every((m) => m.status === "3" || m.status === 3);
-  }, [mealHistory, bedName]);
+  const isShiftCancelled = useCallback(
+    (shift) => {
+      const shiftLabel =
+        shift === "CA1" ? "Ca sáng" : shift === "CA2" ? "Ca trưa" : "Ca chiều";
+      const bedMaGiuong = bedName?.ma_giuong;
+
+      const allShiftMeals = mealHistory.filter(
+        (m) =>
+          m.ma_giuong?.trim() === bedMaGiuong?.trim() &&
+          m.ten_ca?.trim() === shiftLabel
+      );
+
+      // Ca đã hủy nếu: có món VÀ TẤT CẢ đều bị hủy
+      if (allShiftMeals.length === 0) return false;
+
+      return allShiftMeals.every((m) => m.status === "3" || m.status === 3);
+    },
+    [mealHistory, bedName]
+  );
 
   const renderedMealEntries = useMemo(() => {
     const bedMeals = mealEntries[currentBedIndex] || {};
@@ -1170,7 +1291,7 @@ const MealDetailsForm = () => {
       // Món đã bị xóa thật khỏi array, không cần filter status="3"
       result[shift] = entries.map((meal, index) => (
         <MealEntryRow
-          key={`${shift}-${index}-${meal.mealType || 'empty'}`}
+          key={`${shift}-${index}-${meal.mealType || "empty"}`}
           meal={meal}
           index={index}
           timeOfDay={shift}
@@ -1273,8 +1394,10 @@ const MealDetailsForm = () => {
         activeKey={activeTab}
         onChange={(key) => {
           setActiveTab(key);
+          // Cập nhật isPaid cho ca mới được chọn
+          setIsPaid(isPaidByShift[key] || false);
           // Force re-render khi chuyển tab
-          setMealEntries(prev => [...prev]);
+          setMealEntries((prev) => [...prev]);
         }}
       >
         {listMealCode.map((meal) => (
@@ -1286,30 +1409,32 @@ const MealDetailsForm = () => {
           >
             <div>
               {/* Nút Hủy ca hoặc Badge Đã hủy - góc phải trên */}
-              <div style={{ 
-                display: 'flex',
-                justifyContent: 'flex-end',
-                marginBottom: '8px',
-              }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  marginBottom: "8px",
+                }}
+              >
                 {hasActiveShiftMeals(meal.ma_ca) ? (
                   <button
                     onClick={() => handleCancelShift(meal.ma_ca)}
                     style={{
-                      padding: '4px 12px',
-                      fontSize: '11px',
-                      backgroundColor: '#ff4d4f',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                      fontWeight: '500',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                      padding: "4px 12px",
+                      fontSize: "11px",
+                      backgroundColor: "#ff4d4f",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "3px",
+                      cursor: "pointer",
+                      fontWeight: "500",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#ff7875';
+                      e.currentTarget.style.backgroundColor = "#ff7875";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#ff4d4f';
+                      e.currentTarget.style.backgroundColor = "#ff4d4f";
                     }}
                   >
                     Huỷ ca
@@ -1317,22 +1442,103 @@ const MealDetailsForm = () => {
                 ) : isShiftCancelled(meal.ma_ca) ? (
                   <span
                     style={{
-                      padding: '4px 12px',
-                      fontSize: '11px',
-                      backgroundColor: '#ffa39e',
-                      color: '#820014',
-                      borderRadius: '3px',
-                      fontWeight: '500',
-                      display: 'inline-block',
+                      padding: "4px 12px",
+                      fontSize: "11px",
+                      backgroundColor: "#ffa39e",
+                      color: "#820014",
+                      borderRadius: "3px",
+                      fontWeight: "500",
+                      display: "inline-block",
                     }}
                   >
                     Đã hủy
                   </span>
                 ) : null}
               </div>
-              
+
               {renderedMealEntries[meal.ma_ca]}
-              
+
+              {/* Checkbox Thu tiền cho từng ca */}
+              <div style={{ marginTop: 16, marginBottom: 8 }}>
+                <Checkbox
+                  checked={isPaidByShift[meal.ma_ca] || false}
+                  onChange={(e) => {
+                    const newIsPaid = e.target.checked;
+                    const currentShift = meal.ma_ca;
+
+                    // Cập nhật state cho ca hiện tại
+                    setIsPaidByShift((prev) => ({
+                      ...prev,
+                      [currentShift]: newIsPaid,
+                    }));
+
+                    // Cập nhật isPaid nếu đang ở ca này
+                    if (activeTab === currentShift) {
+                      setIsPaid(newIsPaid);
+                    }
+
+                    setMealEntries((prev) => {
+                      const updatedMeals = cloneDeep(prev);
+                      if (!updatedMeals[currentBedIndex]) {
+                        updatedMeals[currentBedIndex] = { CA1: [], CA2: [], CA3: [] };
+                      }
+
+                      // CHỈ áp dụng cho ca hiện tại (currentShift)
+                      updatedMeals[currentBedIndex][currentShift] = (
+                        updatedMeals[currentBedIndex][currentShift] || []
+                      ).map((meal) => {
+                        const hasIsPaidChanged = meal.isPaid !== newIsPaid;
+                        const shouldMarkAsEdit = meal.stt_rec && hasIsPaidChanged;
+
+                        if (shouldMarkAsEdit) {
+                          hasChangedInThisSession.current = true;
+                        }
+
+                        return {
+                          ...meal,
+                          isPaid: newIsPaid,
+                          httt: newIsPaid ? "chuyen_khoan" : "",
+                          isEdit: shouldMarkAsEdit ? true : meal.isEdit,
+                        };
+                      });
+
+                      dispatch(
+                        setMeal({
+                          mealEntries: updatedMeals,
+                          bedIndex: currentBedIndex,
+                        })
+                      );
+                      // Đánh dấu giường này vừa được toggle thu tiền trong phiên hiện tại
+                      dispatch(
+                        setBedPaymentToggled({
+                          bedIndex: currentBedIndex,
+                          toggled: newIsPaid,
+                        })
+                      );
+                      return updatedMeals;
+                    });
+
+                    if (newIsPaid) {
+                      setPaymentMethod("chuyen_khoan");
+                    } else {
+                      // Chỉ clear paymentMethod nếu không còn ca nào được đánh dấu thu tiền
+                      const updatedPaidByShift = {
+                        ...isPaidByShift,
+                        [currentShift]: newIsPaid,
+                      };
+                      const hasAnyPaid = Object.values(updatedPaidByShift).some(
+                        (paid) => paid
+                      );
+                      if (!hasAnyPaid) {
+                        setPaymentMethod("");
+                      }
+                    }
+                  }}
+                >
+                  Thu tiền
+                </Checkbox>
+              </div>
+
               {/* Nút + thêm món - giữ nguyên vị trí */}
               <button
                 className="add-row-button"
@@ -1344,82 +1550,20 @@ const MealDetailsForm = () => {
           </TabPane>
         ))}
       </Tabs>
-      <div style={{ marginTop: 16 }}>
-        <Checkbox
-          checked={isPaid}
-          onChange={(e) => {
-            const newIsPaid = e.target.checked;
-            setIsPaid(newIsPaid);
-
-            setMealEntries((prev) => {
-              const updatedMeals = cloneDeep(prev);
-              if (!updatedMeals[currentBedIndex]) {
-                updatedMeals[currentBedIndex] = { CA1: [], CA2: [], CA3: [] };
-              }
-
-              const shifts = ["CA1", "CA2", "CA3"];
-              shifts.forEach((shift) => {
-                updatedMeals[currentBedIndex][shift] = (
-                  updatedMeals[currentBedIndex][shift] || []
-                ).map((meal) => {
-                  const hasIsPaidChanged = meal.isPaid !== newIsPaid;
-                  const shouldMarkAsEdit = meal.stt_rec && hasIsPaidChanged;
-
-                  if (shouldMarkAsEdit) {
-                    hasChangedInThisSession.current = true;
-                  }
-
-                  return {
-                    ...meal,
-                    isPaid: newIsPaid,
-                    httt: newIsPaid ? "chuyen_khoan" : "",
-                    isEdit: shouldMarkAsEdit ? true : meal.isEdit,
-                  };
-                });
-              });
-
-              if (newIsPaid) {
-                setPaymentMethod("chuyen_khoan");
-              } else {
-                setPaymentMethod("");
-              }
-
-              dispatch(
-                setMeal({
-                  mealEntries: updatedMeals,
-                  bedIndex: currentBedIndex,
-                })
-              );
-              // Đánh dấu giường này vừa được toggle thu tiền trong phiên hiện tại
-              dispatch(setBedPaymentToggled({ bedIndex: currentBedIndex, toggled: newIsPaid }));
-              return updatedMeals;
-            });
-          }}
-        >
-          Thu tiền
-        </Checkbox>
-      </div>
       <div className="total-money">
         Tổng tiền: {formatNumber(calculateTotalAllShift())} đ
       </div>
 
-      <div style={{ display: 'flex', gap: '12px' }}>
+      <div style={{ display: "flex", gap: "12px" }}>
         {/* Hiển thị nút Hủy đơn nếu có đơn và chưa bị hủy toàn bộ */}
         {hasExistingOrder && !allOrdersCancelled && (
-          <button
-            className="cancel-button"
-            onClick={handleCancelOrder}
-          >
+          <button className="cancel-button" onClick={handleCancelOrder}>
             Huỷ đơn
           </button>
         )}
 
-
         {/* Luôn hiển thị nút Hoàn thành */}
-        <button
-          className="submit-button"
-          onClick={handleSubmit}
-        >
+        <button className="submit-button" onClick={handleSubmit}>
           Hoàn thành
         </button>
       </div>

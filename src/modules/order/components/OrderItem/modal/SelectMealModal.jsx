@@ -143,6 +143,8 @@ export default function SelectMealModal({
           mealDescription: selectedOption.description,
           mealShift: selectedShiftInfo.code,
           mealShiftLabel: selectedShiftInfo.label,
+          tonDuTru: selectedOption.tonDuTru,
+          isCheckTonDuTru: selectedOption.isCheckTonDuTru,
         })
       );
     }

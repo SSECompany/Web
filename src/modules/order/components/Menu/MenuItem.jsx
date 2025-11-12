@@ -38,7 +38,7 @@ export default function MenuItem({ item, onAdd, isReadOnlyMode = false }) {
       />
       <div className="menu-item-overlay">
         <p>{item.name}</p>
-        <p>{item.price.toLocaleString()}đ</p>
+        <p>{Number(item.price || 0).toLocaleString()}đ</p>
       </div>
     </div>
   );

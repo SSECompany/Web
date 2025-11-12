@@ -17,7 +17,7 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
         case "tien_mat":
           return "Tiền mặt";
         case "benhnhan_tratruoc":
-          return "Bệnh nhân trả trước";
+          return "Người bệnh trả trước";
         case "sinhvien_tratruoc":
           return "Sinh viên trả trước";
         default:
@@ -98,62 +98,76 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
       />
 
       <div style={{ width: "100%", marginBottom: "6px" }}>
-        {(() => {
-          const groups = { "Ca sáng": [], "Ca trưa": [], "Ca chiều": [] };
-          detail.forEach((d) => {
-            const label = (d?.caLabel || "").trim();
-            if (label === "Ca sáng") groups["Ca sáng"].push(d);
-            else if (label === "Ca trưa") groups["Ca trưa"].push(d);
-            else if (label === "Ca chiều") groups["Ca chiều"].push(d);
-            else groups["Ca sáng"].push(d); // fallback
-          });
-          return Object.entries(groups).map(([label, items], idx) => {
-            if (!items || items.length === 0) return null;
-            const entries = (
-              <div key={label + idx} style={{ marginBottom: 8 }}>
-                <div style={{ fontWeight: 700, color: "#000" }}>{label}</div>
-                {items.map((item, index) => (
-                  <div key={index} style={{ color: "#000", marginBottom: 6 }}>
-                    <div style={{ fontSize: "12px", fontWeight: 600 }}>
-                      {item?.selected_meal?.label || item?.ten_vt}
-                    </div>
-                    <div style={{ paddingLeft: 10, fontSize: "12px" }}>
-                      <div>+ Số lượng: {item?.so_luong || 1}</div>
-                      <div>+ Giá: {formatNumber(item?.don_gia) || "0"}đ</div>
-                      <div>
-                        + Thành tiền: {formatNumber(item?.thanh_tien) || "0"}đ
+        {master?.noFamilyMeals ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "20px 0",
+              color: "#000",
+              fontSize: "12px",
+              fontStyle: "italic",
+            }}
+          >
+            Không có suất người nhà bệnh nhân
+          </div>
+        ) : (
+          (() => {
+            const groups = { "Ca sáng": [], "Ca trưa": [], "Ca chiều": [] };
+            detail.forEach((d) => {
+              const label = (d?.caLabel || "").trim();
+              if (label === "Ca sáng") groups["Ca sáng"].push(d);
+              else if (label === "Ca trưa") groups["Ca trưa"].push(d);
+              else if (label === "Ca chiều") groups["Ca chiều"].push(d);
+              else groups["Ca sáng"].push(d); // fallback
+            });
+            return Object.entries(groups).map(([label, items], idx) => {
+              if (!items || items.length === 0) return null;
+              const entries = (
+                <div key={label + idx} style={{ marginBottom: 8 }}>
+                  <div style={{ fontWeight: 700, color: "#000" }}>{label}</div>
+                  {items.map((item, index) => (
+                    <div key={index} style={{ color: "#000", marginBottom: 6 }}>
+                      <div style={{ fontSize: "12px", fontWeight: 600 }}>
+                        {item?.selected_meal?.label || item?.ten_vt}
                       </div>
-                      {item?.modeName && <div>+ Chế độ: {item.modeName}</div>}
-                      {typeof item?.isPaid === "boolean" && (
+                      <div style={{ paddingLeft: 10, fontSize: "12px" }}>
+                        <div>+ Số lượng: {item?.so_luong || 1}</div>
+                        <div>+ Giá: {formatNumber(item?.don_gia) || "0"}đ</div>
                         <div>
-                          + Thu tiền:{" "}
-                          {item.isPaid ? "Đã thu tiền" : "Chưa thu tiền"}
+                          + Thành tiền: {formatNumber(item?.thanh_tien) || "0"}đ
                         </div>
-                      )}
-                      {item?.so_ct && <div>+ Số chứng từ: {item.so_ct}</div>}
-                      {item?.ghi_chu && <div>+ Ghi chú: {item.ghi_chu}</div>}
+                        {item?.modeName && <div>+ Chế độ: {item.modeName}</div>}
+                        {typeof item?.isPaid === "boolean" && (
+                          <div>
+                            + Thu tiền:{" "}
+                            {item.isPaid ? "Đã thu tiền" : "Chưa thu tiền"}
+                          </div>
+                        )}
+                        {item?.so_ct && <div>+ Số chứng từ: {item.so_ct}</div>}
+                        {item?.ghi_chu && <div>+ Ghi chú: {item.ghi_chu}</div>}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {/* separator per group - will conditionally render below */}
-              </div>
-            );
-            return (
-              <React.Fragment key={label + idx}>
-                {entries}
-                {idx < Object.keys(groups).length - 1 && (
-                  <div
-                    style={{
-                      borderBottom: "1px solid #000",
-                      opacity: 0.2,
-                      marginTop: 6,
-                    }}
-                  />
-                )}
-              </React.Fragment>
-            );
-          });
-        })()}
+                  ))}
+                  {/* separator per group - will conditionally render below */}
+                </div>
+              );
+              return (
+                <React.Fragment key={label + idx}>
+                  {entries}
+                  {idx < Object.keys(groups).length - 1 && (
+                    <div
+                      style={{
+                        borderBottom: "1px solid #000",
+                        opacity: 0.2,
+                        marginTop: 6,
+                      }}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            });
+          })()
+        )}
       </div>
 
       <div

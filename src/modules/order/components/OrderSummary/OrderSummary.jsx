@@ -265,15 +265,20 @@ export default function OrderSummary({ total, itemCount }) {
     let finalTienMat = 0;
     let finalChuyenKhoan = 0;
     const totalAmount = Number(activeTab?.master?.tong_tien || 0);
-    const totalPrepaid = Number(activeTab?.master?.benhnhan_tratruoc || 0) + Number(activeTab?.master?.sinhvien_tratruoc || 0);
+    const totalPrepaid =
+      Number(activeTab?.master?.benhnhan_tratruoc || 0) +
+      Number(activeTab?.master?.sinhvien_tratruoc || 0);
     const remainingAmount = totalAmount - totalPrepaid;
 
     // Xây dựng httt: nếu có prepaid method, thêm vào đầu
     const initialHttt = activeTab?.master?.httt || "";
-    const isPrepaidMethod = initialHttt === "benhnhan_tratruoc" || initialHttt === "sinhvien_tratruoc";
+    const isPrepaidMethod =
+      initialHttt === "benhnhan_tratruoc" ||
+      initialHttt === "sinhvien_tratruoc";
 
     // Kiểm tra nếu là bệnh nhân/sinh viên trả trước và có thêm món (tổng tiền > tiền trả trước)
-    const hasPrepaidExtra = isPrepaidMethod && totalPrepaid > 0 && remainingAmount > 0;
+    const hasPrepaidExtra =
+      isPrepaidMethod && totalPrepaid > 0 && remainingAmount > 0;
 
     let finalHttt = "";
 
@@ -334,7 +339,6 @@ export default function OrderSummary({ total, itemCount }) {
       so_giuong: activeTab?.master?.so_giuong ?? "",
       so_phong: activeTab?.master?.so_phong ?? "",
       ca_an: activeTab?.master?.ca_an ?? "",
-      thutien_yn: activeTab?.master?.thutien_yn ?? "",
       s3: sync ? "1" : "0",
       StoreID: activeTab?.master?.StoreID || storeId || "",
       fcode1: "",
@@ -356,7 +360,9 @@ export default function OrderSummary({ total, itemCount }) {
         ma_vt: item.ma_vt,
         so_luong: (item.so_luong || 0).toString(),
         don_gia: (item.don_gia || 0).toString(),
-        thanh_tien: ((item.so_luong || 0) * (item.don_gia || 0)).toString(),
+        thanh_tien: (
+          item.thanh_tien || (item.so_luong || 0) * (item.don_gia || 0)
+        ).toString(),
         ghi_chu: item.ghi_chu || "",
         // gc_td1 giờ chứa mã vật tư ban đầu
         gc_td1: item.gc_td1 || "",
@@ -364,6 +370,11 @@ export default function OrderSummary({ total, itemCount }) {
         ap_voucher: item.ap_voucher || "0",
         // Thêm mã ca bọc nếu có
         ma_ca: item.selected_meal?.shift || "",
+        // Thêm giảm giá
+        tl_ck: (item.tl_ck || "0").toString(),
+        ck_nt: (item.ck_nt || "0").toString(),
+        // Thêm thu tiền theo từng ca
+        thutien_yn: (item.thutien_yn || item.thu_tien_yn || "0").toString(),
       };
       const extras = (item.extras || []).map((extra) => {
         const quantity = parseFloat(extra.quantity || extra.so_luong || 0);
@@ -381,6 +392,11 @@ export default function OrderSummary({ total, itemCount }) {
           uniqueid,
           // Thêm mã ca bọc cho extras (kế thừa từ item chính)
           ma_ca: item.selected_meal?.shift || "",
+          // Extras cũng có thể có giảm giá (mặc định 0)
+          tl_ck: "0",
+          ck_nt: "0",
+          // Extras kế thừa thutien_yn từ item chính
+          thutien_yn: (item.thutien_yn || item.thu_tien_yn || "0").toString(),
         };
       });
       return [mainItem, ...extras];
@@ -1028,7 +1044,7 @@ export default function OrderSummary({ total, itemCount }) {
         <span className="summary-total">
           <p>Tổng tiền</p>
           <span className="summary-count">{itemCount}</span>
-          <p className="summary-total_font">{total.toLocaleString()} đ</p>
+          <p className="summary-total_font">{Number(total || 0).toLocaleString()} đ</p>
         </span>
       </div>
 

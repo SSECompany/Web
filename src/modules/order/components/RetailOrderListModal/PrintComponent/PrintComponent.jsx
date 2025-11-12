@@ -17,7 +17,7 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
         case "tien_mat":
           return "Tiền mặt";
         case "benhnhan_tratruoc":
-          return "Bệnh nhân trả trước";
+          return "Người bệnh trả trước";
         case "sinhvien_tratruoc":
           return "Sinh viên trả trước";
         default:
@@ -92,13 +92,22 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
           <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
         </div>
       )}
-      {(Number(master?.benhnhan_tratruoc || 0) > 0 || Number(master?.sinhvien_tratruoc || 0) > 0 || Number(master?.chuyen_khoan || 0) > 0 || Number(master?.tien_mat || 0) > 0) && (
-        <div style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}>
+      {(Number(master?.benhnhan_tratruoc || 0) > 0 ||
+        Number(master?.sinhvien_tratruoc || 0) > 0 ||
+        Number(master?.chuyen_khoan || 0) > 0 ||
+        Number(master?.tien_mat || 0) > 0) && (
+        <div
+          style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}
+        >
           {Number(master?.benhnhan_tratruoc || 0) > 0 && (
-            <div>• Bệnh nhân trả trước: {formatNumber(master.benhnhan_tratruoc)}đ</div>
+            <div>
+              • Người bệnh trả trước: {formatNumber(master.benhnhan_tratruoc)}đ
+            </div>
           )}
           {Number(master?.sinhvien_tratruoc || 0) > 0 && (
-            <div>• Sinh viên trả trước: {formatNumber(master.sinhvien_tratruoc)}đ</div>
+            <div>
+              • Sinh viên trả trước: {formatNumber(master.sinhvien_tratruoc)}đ
+            </div>
           )}
           {Number(master?.chuyen_khoan || 0) > 0 && (
             <div>• Chuyển khoản: {formatNumber(master.chuyen_khoan)}đ</div>
@@ -218,7 +227,46 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
                         color: "#000",
                       }}
                     >
-                      {formatNumber(item?.thanh_tien) || "0"}đ
+                      {(() => {
+                        const originalPrice =
+                          parseFloat(item?.don_gia || 0) *
+                          parseInt(item?.so_luong || 1);
+                        const discountAmount = parseFloat(item?.ck_nt || 0);
+                        const finalPrice = originalPrice - discountAmount;
+
+                        if (discountAmount > 0) {
+                          return (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: "12px",
+                                  color: "#000",
+                                  fontWeight: "bold",
+                                }}
+                              >
+                                {formatNumber(finalPrice)}đ
+                              </div>
+                              <div
+                                style={{
+                                  textDecoration: "line-through",
+                                  fontSize: "10px",
+                                  color: "#999",
+                                }}
+                              >
+                                {formatNumber(originalPrice)}đ
+                              </div>
+                            </div>
+                          );
+                        } else {
+                          return `${formatNumber(originalPrice)}đ`;
+                        }
+                      })()}
                     </td>
                   </tr>
 
@@ -266,7 +314,46 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
                           color: "#000",
                         }}
                       >
-                        {formatNumber(sub?.thanh_tien) || "0"}đ
+                        {(() => {
+                          const originalPrice =
+                            parseFloat(sub?.don_gia || 0) *
+                            parseInt(sub?.so_luong || 1);
+                          const discountAmount = parseFloat(sub?.ck_nt || 0);
+                          const finalPrice = originalPrice - discountAmount;
+
+                          if (discountAmount > 0) {
+                            return (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontSize: "12px",
+                                    color: "#000",
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  {formatNumber(finalPrice)}đ
+                                </div>
+                                <div
+                                  style={{
+                                    textDecoration: "line-through",
+                                    fontSize: "10px",
+                                    color: "#999",
+                                  }}
+                                >
+                                  {formatNumber(originalPrice)}đ
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            return `${formatNumber(originalPrice)}đ`;
+                          }
+                        })()}
                       </td>
                     </tr>
                   ))}
@@ -298,10 +385,41 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
         </tbody>
       </table>
 
+      {/* Separator */}
       <div
         style={{
           borderTop: "1px solid black",
           paddingTop: "6px",
+          marginRight: 10,
+        }}
+      />
+
+      {(() => {
+        const totalDiscount = (detail || []).reduce((sum, d) => {
+          const val = parseFloat(d?.ck_nt || 0);
+          return sum + (isNaN(val) ? 0 : val);
+        }, 0);
+        if (totalDiscount > 0) {
+          return (
+            <div
+              style={{
+                paddingTop: "4px",
+                textAlign: "right",
+                fontSize: "11px",
+                marginRight: 10,
+                color: "#000",
+              }}
+            >
+              Chiết khấu: {formatNumber(totalDiscount)}đ
+            </div>
+          );
+        }
+        return null;
+      })()}
+
+      <div
+        style={{
+          paddingTop: "2px",
           fontWeight: "bold",
           textAlign: "right",
           fontSize: "13px",
@@ -335,16 +453,23 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
         >
           {(() => {
             const totalAmount = Number(master?.tong_tien || 0);
-            const prepaidAmount = Number(master?.benhnhan_tratruoc || 0) + Number(master?.sinhvien_tratruoc || 0);
+            const prepaidAmount =
+              Number(master?.benhnhan_tratruoc || 0) +
+              Number(master?.sinhvien_tratruoc || 0);
             const remainingAmount = totalAmount - prepaidAmount;
-            const qrAmount = master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
-              ? master.chuyen_khoan
-              : (remainingAmount > 0 ? remainingAmount : totalAmount);
+            const qrAmount =
+              master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
+                ? master.chuyen_khoan
+                : remainingAmount > 0
+                ? remainingAmount
+                : totalAmount;
 
             return (
               <VietQR
                 amount={qrAmount}
-                soChungTu={`Thanh toan Phenikaa so CT ${(master?.so_ct || "").trim()} ${qrAmount}vnd`}
+                soChungTu={`Thanh toan Phenikaa so CT ${(
+                  master?.so_ct || ""
+                ).trim()} ${qrAmount}vnd`}
                 size={80}
               />
             );

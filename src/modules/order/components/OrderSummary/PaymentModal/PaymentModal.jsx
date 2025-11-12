@@ -1,12 +1,12 @@
 import { DownOutlined, UpOutlined } from "@ant-design/icons";
 import { Button, Checkbox, Input, InputNumber, Modal, message } from "antd";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { num2words } from "../../../../../app/Options/DataFomater";
 import {
   formatCurrency,
   formatNumber,
   parserNumber,
 } from "../../../../../app/hook/dataFormatHelper";
-import { num2words } from "../../../../../app/Options/DataFomater";
 import VietQR from "../../../../../components/common/GenerateQR/VietQR";
 import "./PaymentModal.css";
 
@@ -61,15 +61,11 @@ const PaymentModal = ({
   );
 
   // Memoize account info
-  const account = useMemo(
-    () => process.env.REACT_APP_VIETQR_ACCOUNT ,
-    []
-  );
+  const account = useMemo(() => process.env.REACT_APP_VIETQR_ACCOUNT, []);
   const accountName = useMemo(
-    () => process.env.REACT_APP_VIETQR_ACCOUNT_NAME ,
+    () => process.env.REACT_APP_VIETQR_ACCOUNT_NAME,
     []
   );
-
 
   const handlePaymentSelection = (method) => {
     if (method === "ca_hai") {
@@ -199,7 +195,10 @@ const PaymentModal = ({
       let defaultPayments = ["chuyen_khoan"];
       if (initialPaymentMethod) {
         // Nếu là prepaid method (benhnhan_tratruoc hoặc sinhvien_tratruoc), không chọn payment method nào
-        if (initialPaymentMethod === "benhnhan_tratruoc" || initialPaymentMethod === "sinhvien_tratruoc") {
+        if (
+          initialPaymentMethod === "benhnhan_tratruoc" ||
+          initialPaymentMethod === "sinhvien_tratruoc"
+        ) {
           defaultPayments = [];
         } else {
           defaultPayments = initialPaymentMethod
@@ -275,7 +274,6 @@ const PaymentModal = ({
       setShowCustomerInfo(false);
       setIsSubmitting(false);
       setSync(initialSync !== undefined ? initialSync : true);
-
     }
   }, [
     visible,
@@ -318,7 +316,9 @@ const PaymentModal = ({
                       style={{ width: "100%", marginTop: 4 }}
                       value={customerInfo.ong_ba}
                       placeholder="Nhập tên khách"
-                      onChange={(e) => handleInputChange("ong_ba", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("ong_ba", e.target.value)
+                      }
                     />
                   </div>
                   <div style={{ flex: 1 }}>
@@ -327,7 +327,9 @@ const PaymentModal = ({
                       style={{ width: "100%", marginTop: 4 }}
                       value={customerInfo.cccd}
                       placeholder="Nhập số CCCD"
-                      onChange={(e) => handleInputChange("cccd", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("cccd", e.target.value)
+                      }
                       status={errors.cccd ? "error" : ""}
                       maxLength={12}
                       onKeyPress={(e) => {
@@ -386,7 +388,9 @@ const PaymentModal = ({
                       style={{ width: "100%", marginTop: 4 }}
                       value={customerInfo.dia_chi}
                       placeholder="Nhập địa chỉ"
-                      onChange={(e) => handleInputChange("dia_chi", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("dia_chi", e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -397,7 +401,9 @@ const PaymentModal = ({
                       style={{ width: "100%", marginTop: 4 }}
                       value={customerInfo.so_dt}
                       placeholder="Nhập số điện thoại"
-                      onChange={(e) => handleInputChange("so_dt", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("so_dt", e.target.value)
+                      }
                       status={errors.so_dt ? "error" : ""}
                       maxLength={12}
                       onKeyPress={(e) => {
@@ -419,14 +425,18 @@ const PaymentModal = ({
                       value={customerInfo.email}
                       placeholder="Nhập email"
                       type="email"
-                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
                     />
                   </div>
                 </div>
               </div>
             </div>
           )}
-          <div style={{ borderBottom: "1px solid #ccc", margin: "16px 0" }}></div>
+          <div
+            style={{ borderBottom: "1px solid #ccc", margin: "16px 0" }}
+          ></div>
         </>
       )}
 
@@ -438,14 +448,18 @@ const PaymentModal = ({
           </p>
           {prepaidAmounts.benhnhan_tratruoc > 0 && (
             <div className="payment-summary">
-              <span>Bệnh nhân trả trước:</span>
-              <strong style={{ color: '#1890ff' }}>{formatCurrency(prepaidAmounts.benhnhan_tratruoc)}</strong>
+              <span>Người bệnh trả trước:</span>
+              <strong style={{ color: "#1890ff" }}>
+                {formatCurrency(prepaidAmounts.benhnhan_tratruoc)}
+              </strong>
             </div>
           )}
           {prepaidAmounts.sinhvien_tratruoc > 0 && (
             <div className="payment-summary">
               <span>Sinh viên trả trước:</span>
-              <strong style={{ color: '#1890ff' }}>{formatCurrency(prepaidAmounts.sinhvien_tratruoc)}</strong>
+              <strong style={{ color: "#1890ff" }}>
+                {formatCurrency(prepaidAmounts.sinhvien_tratruoc)}
+              </strong>
             </div>
           )}
         </div>
@@ -459,7 +473,9 @@ const PaymentModal = ({
           </p>
           <div className="payment-summary">
             <span>Chuyển khoản:</span>
-            <strong style={{ color: '#ff4d4f' }}>{formatCurrency(total - totalPrepaid)}</strong>
+            <strong style={{ color: "#ff4d4f" }}>
+              {formatCurrency(total - totalPrepaid)}
+            </strong>
           </div>
         </div>
       )}
@@ -528,7 +544,11 @@ const PaymentModal = ({
                   gap: 8,
                 }}
               >
-                <VietQR amount={Math.max(0, total - totalPrepaid)} soChungTu={""} size={200} />
+                <VietQR
+                  amount={Math.max(0, total - totalPrepaid)}
+                  soChungTu={""}
+                  size={200}
+                />
                 <div className="qr-info">
                   {accountName?.split(" - ").map((line, index) => (
                     <div key={index} className="qr-info-line">
@@ -537,7 +557,8 @@ const PaymentModal = ({
                   ))}
                   <div className="qr-info-line">{account}</div>
                   <div className="qr-info-line">
-                    Số tiền: {formatCurrency(Math.max(0, total - totalPrepaid))}đ
+                    Số tiền: {formatCurrency(Math.max(0, total - totalPrepaid))}
+                    đ
                   </div>
                 </div>
               </div>
@@ -663,7 +684,8 @@ const PaymentModal = ({
                 adjustedPaymentAmounts.tien_mat = remainingAfterPrepaid;
               } else {
                 adjustedPaymentAmounts.tien_mat =
-                  remainingAfterPrepaid - (adjustedPaymentAmounts.chuyen_khoan || 0);
+                  remainingAfterPrepaid -
+                  (adjustedPaymentAmounts.chuyen_khoan || 0);
               }
             }
 
@@ -690,11 +712,15 @@ const PaymentModal = ({
                   ? Object.values(paymentAmounts).reduce(
                       (sum, val) => sum + val,
                       0
-                    ) + totalPrepaid !== total
+                    ) +
+                      totalPrepaid !==
+                    total
                   : Object.values(paymentAmounts).reduce(
                       (sum, val) => sum + val,
                       0
-                    ) + totalPrepaid < total))
+                    ) +
+                      totalPrepaid <
+                    total))
           }
           loading={isCreatingOrder || isSubmitting}
         >
