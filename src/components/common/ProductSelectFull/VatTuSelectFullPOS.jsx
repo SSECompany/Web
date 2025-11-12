@@ -1,6 +1,6 @@
 import { BarcodeOutlined } from "@ant-design/icons";
-import { Button, Col, Input, Row, Select, Space, message } from "antd";
-import { useEffect, useRef } from "react";
+import { Button, Col, Input, Row, Select, Space, message, Spin } from "antd";
+import { useEffect, useRef, useState } from "react";
 
 const VatTuSelectFullPOS = ({
   isEditMode = true,
@@ -33,12 +33,27 @@ const VatTuSelectFullPOS = ({
   // Thêm ref để tránh gọi API scroll trùng lặp
   const isScrollingRef = useRef(false);
   const lastScrollPageRef = useRef(0);
+  // State để track xem có đang search không (cho Enter key handling)
+  const [isSearching, setIsSearching] = useState(false);
+  const [isWaitingForEnter, setIsWaitingForEnter] = useState(false); // Track khi đang chờ Enter key
+  const pendingEnterValueRef = useRef(null);
+  const searchPromiseRef = useRef(null);
 
   useEffect(() => {
     if (!didInitRef.current) {
       fetchVatTuList("", 1, false);
       didInitRef.current = true;
     }
+    
+    // Cleanup on unmount
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+    };
   }, [fetchVatTuList]);
 
   // Auto focus khi chuyển sang chế độ barcode
@@ -59,31 +74,109 @@ const VatTuSelectFullPOS = ({
     };
   }, [barcodeEnabled]);
 
-  const handleSearch = (value) => {
-    // Avoid duplicate searches
-    if (lastSearchValueRef.current === value) {
-      return;
+  const handleSearch = (value, immediate = false) => {
+    const trimmedValue = value?.trim() || "";
+    
+    // Avoid duplicate searches (unless immediate is true)
+    if (!immediate && lastSearchValueRef.current === trimmedValue) {
+      return searchPromiseRef.current || Promise.resolve();
     }
-    lastSearchValueRef.current = value;
+    
+    // If immediate and there's a pending search with different value, we need to wait for it or cancel
+    if (immediate && isSearching && lastSearchValueRef.current !== trimmedValue && searchPromiseRef.current) {
+      // Wait for current search to complete first, then start new one
+      return searchPromiseRef.current.then(() => {
+        return handleSearch(trimmedValue, true);
+      });
+    }
+    
+    // If keyword changed, clear old data immediately
+    if (lastSearchValueRef.current !== trimmedValue) {
+      // Clear old data when starting new search
+      setVatTuList([]);
+    }
+    
+    lastSearchValueRef.current = trimmedValue;
 
+    // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = null;
+    }
+    
+    // Clear pending Enter value if search keyword changes
+    if (pendingEnterValueRef.current !== null && pendingEnterValueRef.current !== trimmedValue) {
+      pendingEnterValueRef.current = null;
+      setIsWaitingForEnter(false);
     }
 
-    searchTimeoutRef.current = setTimeout(() => {
-      fetchVatTuList(value);
-    }, 500);
+    // Only set searching state when actually calling API (not during debounce)
+    // For immediate searches, set searching right away
+    if (immediate) {
+      setIsSearching(true);
+    }
+    // For debounced searches, we'll set searching when the timeout fires
+
+    // Create a promise that resolves when search completes (including debounce + API call)
+    let resolvePromise;
+    const debounceTime = immediate ? 0 : 500; // No debounce if immediate
+    
+    searchPromiseRef.current = new Promise((resolve) => {
+      resolvePromise = resolve;
+      searchTimeoutRef.current = setTimeout(async () => {
+        // Set searching state when actually calling API (after debounce)
+        if (!immediate) {
+          setIsSearching(true);
+        }
+        try {
+          await fetchVatTuList(trimmedValue);
+        } catch (error) {
+          console.error("Error in handleSearch:", error);
+        } finally {
+          setIsSearching(false);
+          setIsWaitingForEnter(false);
+          // If there's a pending Enter key with matching value, process it now
+          if (pendingEnterValueRef.current !== null && pendingEnterValueRef.current === trimmedValue) {
+            const pendingValue = pendingEnterValueRef.current;
+            pendingEnterValueRef.current = null;
+            // Small delay to ensure list is updated
+            setTimeout(() => {
+              handleVatTuSelect(pendingValue);
+            }, 100);
+          }
+          resolvePromise();
+        }
+      }, debounceTime);
+    });
+    
+    return searchPromiseRef.current;
   };
 
   const handleDropdownVisibleChange = (open) => {
     if (open) {
       // Always fetch full list when dropdown opens to ensure fresh data
+      // Clear any pending search operations
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+        searchTimeoutRef.current = null;
+      }
+      setIsSearching(false);
+      setIsWaitingForEnter(false);
+      pendingEnterValueRef.current = null;
       fetchVatTuList("");
       dropdownOpenedRef.current = true;
     } else {
       // Reset state when dropdown closes
       dropdownOpenedRef.current = false;
       lastSearchValueRef.current = "";
+      setIsSearching(false);
+      setIsWaitingForEnter(false);
+      pendingEnterValueRef.current = null;
+      // Clear any pending search timeout
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+        searchTimeoutRef.current = null;
+      }
     }
   };
 
@@ -208,37 +301,146 @@ const VatTuSelectFullPOS = ({
         <Col span={24}>
           <Space.Compact style={{ width: "100%" }}>
             {!barcodeEnabled ? (
-              <Select
-                ref={vatTuSelectRef}
-                showSearch
-                placeholder="Chọn vật tư"
-                optionFilterProp="children"
-                loading={loadingVatTu}
-                value={vatTuInput}
-                onSearch={handleSearch}
-                onSelect={handleVatTuSelect}
-                onDropdownVisibleChange={handleDropdownVisibleChange}
-                onPopupScroll={handlePopupScroll}
-                filterOption={false}
-                notFoundContent={
-                  loadingVatTu ? "Đang tải..." : "Không tìm thấy"
-                }
-                style={{ width: "calc(100% - 40px)" }}
-                disabled={!isEditMode}
-                dropdownStyle={{ maxHeight: 300, overflow: "auto" }}
-                getPopupContainer={(trigger) => trigger.parentNode}
-              >
-                {vatTuList.map((item) => (
-                  <Select.Option key={item.value} value={item.value}>
-                    <div>
-                      <div style={{ fontWeight: "bold" }}>{item.value}</div>
-                      <div style={{ fontSize: "12px", color: "#666" }}>
-                        {item.label}
+              <div style={{ position: "relative", width: "calc(100% - 40px)" }}>
+                {(loadingVatTu || isSearching) && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: "8px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      zIndex: 10,
+                      pointerEvents: "none",
+                    }}
+                  >
+                    <Spin size="small" />
+                  </div>
+                )}
+                <Select
+                  ref={vatTuSelectRef}
+                  showSearch
+                  placeholder={isSearching ? "Đang tìm kiếm..." : "Chọn vật tư"}
+                  optionFilterProp="children"
+                  loading={loadingVatTu || isSearching}
+                  value={vatTuInput}
+                  onSearch={handleSearch}
+                  onSelect={(value, option) => {
+                    // Block select if currently searching (waiting for API)
+                    if (isSearching) {
+                      message.warning("Vui lòng đợi kết quả tìm kiếm...");
+                      return;
+                    }
+                    // Only allow select if we have data and it matches current search
+                    if (vatTuList.length === 0) {
+                      message.warning("Vui lòng đợi kết quả tìm kiếm...");
+                      return;
+                    }
+                    handleVatTuSelect(value, option);
+                  }}
+                  onDropdownVisibleChange={handleDropdownVisibleChange}
+                  onPopupScroll={handlePopupScroll}
+                  filterOption={false}
+                  notFoundContent={
+                    loadingVatTu || isSearching ? (
+                      <div style={{ padding: "8px", textAlign: "center" }}>
+                        <Spin size="small" /> <span style={{ marginLeft: 8 }}>Đang tìm kiếm...</span>
                       </div>
-                    </div>
-                  </Select.Option>
-                ))}
-              </Select>
+                    ) : vatTuList.length === 0 ? (
+                      <div style={{ padding: "8px", textAlign: "center" }}>
+                        <Spin size="small" /> <span style={{ marginLeft: 8 }}>Đang tìm kiếm...</span>
+                      </div>
+                    ) : (
+                      "Không tìm thấy"
+                    )
+                  }
+                onKeyDown={async (e) => {
+                  // Handle Enter key - wait for search to complete if searching
+                  if (e.key === "Enter" && vatTuInput && vatTuInput.trim()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const trimmedValue = vatTuInput.trim();
+                    
+                    // Block Enter if currently searching (waiting for API)
+                    if (isSearching && searchPromiseRef.current) {
+                      // There's a search in progress (API call)
+                      pendingEnterValueRef.current = trimmedValue;
+                      setIsWaitingForEnter(true);
+                      try {
+                        // Wait for the entire search process to complete (debounce + API)
+                        await searchPromiseRef.current;
+                        // The search completion handler will process the pending value
+                      } catch (error) {
+                        console.error("Error waiting for search:", error);
+                        // If search fails, clear pending
+                        pendingEnterValueRef.current = null;
+                        setIsWaitingForEnter(false);
+                        message.warning("Tìm kiếm thất bại, vui lòng thử lại");
+                      }
+                      return;
+                    }
+                    
+                    // Block Enter if list is empty and we haven't searched yet
+                    // This means user is trying to select before search completes
+                    if (vatTuList.length === 0 && trimmedValue !== currentKeyword) {
+                      // Trigger search immediately (no debounce) and wait for it
+                      pendingEnterValueRef.current = trimmedValue;
+                      setIsWaitingForEnter(true);
+                      try {
+                        await handleSearch(trimmedValue, true);
+                        // The search completion handler will process the pending value
+                      } catch (error) {
+                        console.error("Error in search after Enter:", error);
+                        pendingEnterValueRef.current = null;
+                        setIsWaitingForEnter(false);
+                        message.warning("Tìm kiếm thất bại, vui lòng thử lại");
+                      }
+                      return;
+                    }
+                    
+                    // If not searching and list has data, check if value exists in current list
+                    const existsInList = vatTuList.some(
+                      (item) => item.value === trimmedValue || 
+                                item.item?.sku === trimmedValue
+                    );
+                    
+                    if (existsInList) {
+                      // Value exists, select it immediately
+                      handleVatTuSelect(trimmedValue);
+                    } else {
+                      // Value doesn't exist, trigger search immediately (no debounce)
+                      pendingEnterValueRef.current = trimmedValue;
+                      setIsWaitingForEnter(true);
+                      try {
+                        // Trigger search immediately (no debounce) and wait for it
+                        await handleSearch(trimmedValue, true);
+                        // The search completion handler will process the pending value
+                      } catch (error) {
+                        console.error("Error in search after Enter:", error);
+                        pendingEnterValueRef.current = null;
+                        setIsWaitingForEnter(false);
+                        message.warning("Tìm kiếm thất bại, vui lòng thử lại");
+                      }
+                    }
+                  }
+                }}
+                  style={{ width: "100%" }}
+                  disabled={!isEditMode || (isSearching && isWaitingForEnter)}
+                  dropdownStyle={{ maxHeight: 300, overflow: "auto" }}
+                  getPopupContainer={(trigger) => trigger.parentNode}
+                >
+                  {vatTuList.map((item) => (
+                    <Select.Option key={item.value} value={item.value}>
+                      <div>
+                        <div style={{ fontWeight: "bold" }}>{item.value}</div>
+                        <div style={{ fontSize: "12px", color: "#666" }}>
+                          {item.label}
+                        </div>
+                      </div>
+                    </Select.Option>
+                  ))}
+                </Select>
+              </div>
             ) : (
               <Input
                 ref={vatTuSelectRef}

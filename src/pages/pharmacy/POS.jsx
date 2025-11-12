@@ -372,7 +372,8 @@ const POS = () => {
         selectedItem = list.find((x) => x.sku === value || x.value === value);
 
         if (!selectedItem && typeof value === "string") {
-          // Thử tìm kiếm sản phẩm theo barcode
+          // Chỉ tìm kiếm API nếu không tìm thấy trong list hiện tại
+          // Điều này xảy ra khi người dùng nhập mã trực tiếp mà không có trong kết quả search
           try {
             const response = await searchVatTu(value, 1, 1, unitId, userId);
             if (

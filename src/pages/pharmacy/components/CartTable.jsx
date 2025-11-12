@@ -85,6 +85,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
           return {
             value: ma_thue,
             label: label,
+            shortLabel: ma_thue, // Chỉ hiển thị ma_thue sau khi chọn
             thue_suat: thue_suat,
             raw: x,
           };
@@ -583,6 +584,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
               {
                 value: `custom_${currentThueSuat}`,
                 label: `${currentThueSuat}%`,
+                shortLabel: `${currentThueSuat}%`, // Custom VAT hiển thị phần trăm
                 thue_suat: currentThueSuat,
               },
             ]
@@ -644,6 +646,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
               taxLoading ? <Spin size="small" /> : "Không tìm thấy"
             }
             options={displayOptions}
+            optionLabelProp="shortLabel" // Hiển thị shortLabel (ma_thue) trong input sau khi chọn
             suffixIcon={null}
             allowClear
             dropdownMatchSelectWidth={false}

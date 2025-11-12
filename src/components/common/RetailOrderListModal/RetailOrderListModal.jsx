@@ -8,15 +8,15 @@ import {
   DatePicker,
   Input,
   Modal,
+  Pagination,
   Select,
   Spin,
   Table,
   Tag,
-  Pagination,
   notification,
 } from "antd";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../api";
@@ -106,10 +106,8 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
           store: "api_get_retail_order",
           param: {
             so_ct: filtersToUse.so_ct || "",
-            DateFrom:
-              filtersToUse?.dateRange?.from || "",
-            DateTo:
-              filtersToUse?.dateRange?.to || "",
+            DateFrom: filtersToUse?.dateRange?.from || "",
+            DateTo: filtersToUse?.dateRange?.to || "",
             ma_kh: filtersToUse.ma_kh || "",
             status: filtersToUse.status || "",
             ma_ban: filtersToUse.ma_ban || "",
@@ -204,7 +202,13 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
     if (filters.dateRange && filters.dateRange.from && filters.dateRange.to) {
       const [mm1, dd1, y1] = String(filters.dateRange.from).split("/");
       const [mm2, dd2, y2] = String(filters.dateRange.to).split("/");
-      const display = `${String(dd1).padStart(2, "0")}/${String(mm1).padStart(2, "0")}/${y1} - ${String(dd2).padStart(2, "0")}/${String(mm2).padStart(2, "0")}/${y2}`;
+      const display = `${String(dd1).padStart(2, "0")}/${String(mm1).padStart(
+        2,
+        "0"
+      )}/${y1} - ${String(dd2).padStart(2, "0")}/${String(mm2).padStart(
+        2,
+        "0"
+      )}/${y2}`;
       chips.push({ key: "dateRange", label: "Ngày CT", value: display });
     }
     if (
@@ -212,7 +216,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       filters.status !== null &&
       filters.status !== undefined
     ) {
-      const statusMap = { "2": "Hoàn thành", "0": "Chưa hoàn thành" };
+      const statusMap = { 2: "Hoàn thành", 0: "Chưa hoàn thành" };
       chips.push({
         key: "status",
         label: "Trạng thái",
@@ -293,64 +297,73 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
   // Helper function to format date as dd/mm/yyyy
   const formatDateToDDMMYYYY = (dateValue) => {
     if (!dateValue) return "";
-    
+
     const dateStr = String(dateValue).trim();
-    
+
     // Priority: Try DD/MM/YYYY format first (most common for Vietnamese dates)
     let date = dayjs(dateStr, "DD/MM/YYYY", true);
     if (date.isValid()) {
       return date.format("DD/MM/YYYY");
     }
-    
+
     // Try other explicit formats
     const formats = [
-      "MM/DD/YYYY", 
+      "MM/DD/YYYY",
       "YYYY-MM-DD",
       "DD-MM-YYYY",
       "MM-DD-YYYY",
       "YYYY/MM/DD",
       "DD.MM.YYYY",
-      "MM.DD.YYYY"
+      "MM.DD.YYYY",
     ];
-    
+
     for (const format of formats) {
       date = dayjs(dateStr, format, true);
       if (date.isValid()) {
         return date.format("DD/MM/YYYY");
       }
     }
-    
+
     // Try dayjs parse without format (for ISO strings, etc.)
     date = dayjs(dateStr);
     if (date.isValid()) {
       return date.format("DD/MM/YYYY");
     }
-    
+
     // Try native Date object
     const nativeDate = new Date(dateStr);
     if (!isNaN(nativeDate.getTime())) {
       return dayjs(nativeDate).format("DD/MM/YYYY");
     }
-    
+
     // Last resort: manual parsing for date strings like "11/08/2025"
     const parts = dateStr.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
     if (parts && parts.length === 4) {
       const [, p1, p2, year] = parts;
       const num1 = parseInt(p1);
       const num2 = parseInt(p2);
-      
+
       // If first part > 12, it's definitely day (DD/MM format)
       if (num1 > 12 && num1 <= 31) {
-        return `${String(num1).padStart(2, "0")}/${String(num2).padStart(2, "0")}/${year}`;
+        return `${String(num1).padStart(2, "0")}/${String(num2).padStart(
+          2,
+          "0"
+        )}/${year}`;
       }
       // If second part > 12, it's MM/DD format, swap to DD/MM
       if (num2 > 12 && num2 <= 31) {
-        return `${String(num2).padStart(2, "0")}/${String(num1).padStart(2, "0")}/${year}`;
+        return `${String(num2).padStart(2, "0")}/${String(num1).padStart(
+          2,
+          "0"
+        )}/${year}`;
       }
       // Ambiguous case: both <= 12, assume it's already DD/MM/YYYY
-      return `${String(num1).padStart(2, "0")}/${String(num2).padStart(2, "0")}/${year}`;
+      return `${String(num1).padStart(2, "0")}/${String(num2).padStart(
+        2,
+        "0"
+      )}/${year}`;
     }
-    
+
     return dateStr;
   };
 
@@ -365,14 +378,14 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
     },
     {
       title: "Đơn vị",
-      dataIndex: "ten_bp",
-      key: "ten_bp",
+      dataIndex: "ma_dvcs",
+      key: "ma_dvcs",
       align: "center",
       render: (text, record) =>
         (typeof text === "string" && text.trim()) ||
-        (typeof record?.dept_id === "string"
-          ? record.dept_id.trim()
-          : record?.dept_id) ||
+        (typeof record?.ma_dvcs === "string"
+          ? record.ma_dvcs.trim()
+          : record?.ma_dvcs) ||
         "",
     },
     {
@@ -776,14 +789,14 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
           ) : (
             <div className="retail-order-table-wrapper">
               <Table
-              dataSource={currentData}
-              columns={columns}
-              rowKey="stt_rec"
-              className="retail-order-table"
-              size="small"
-              tableLayout="auto"
+                dataSource={currentData}
+                columns={columns}
+                rowKey="stt_rec"
+                className="retail-order-table"
+                size="small"
+                tableLayout="auto"
                 pagination={false}
-            />
+              />
               <div className="retail-pagination-bar">
                 <Pagination
                   current={currentPage}

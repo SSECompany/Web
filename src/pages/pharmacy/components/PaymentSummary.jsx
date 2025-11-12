@@ -179,6 +179,15 @@ const PaymentSummary = ({
         (totalAfterDiscount * (item.vatPercent || 0)) / 100
       );
       
+      const rawNote =
+        item.instructions !== undefined && item.instructions !== null
+          ? item.instructions
+          : item.ghi_chu || "";
+      const note =
+        rawNote === undefined || rawNote === null
+          ? ""
+          : String(rawNote).trim();
+
       const mainItem = {
         ten_vt: item.name,
         ma_vt_root: item.ma_vt_root || "",
@@ -186,7 +195,7 @@ const PaymentSummary = ({
         so_luong: (item.qty || 0).toString(),
         don_gia: (item.price || 0).toString(),
         thanh_tien: ((item.qty || 0) * (item.price || 0)).toString(),
-        ghi_chu: item.ghi_chu || "",
+        ghi_chu: note,
         uniqueid,
         ap_voucher: item.ap_voucher || "0",
         // Add missing fields
@@ -195,6 +204,7 @@ const PaymentSummary = ({
         ck_nt: discountAmount.toString(),
         ma_thue: item.ma_thue || "",
         thue_nt: vatAmount.toString(),
+        ma_lo: (item.batchExpiry || "").trim(),
       };
       const extras = (item.extras || []).map((extra) => {
         const quantity = parseFloat(extra.quantity || extra.so_luong || 0);
