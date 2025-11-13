@@ -168,8 +168,37 @@ const DiscountModal = ({
     onCancel?.();
   };
 
-  const calculateTotalAfterDiscount = () => {
+  const calculateTotalAfterDiscount = () =>
+    calculateTotals().totalAfterDiscount;
+
+  const getEffectiveVatPercent = () => {
     if (!item) return 0;
+
+    const possibleRates = [
+      item.thue_suat,
+      item.vatPercent,
+      item.vat_percent,
+      item.thue_suat_nt,
+    ];
+
+    for (const rate of possibleRates) {
+      const numericRate = Number(rate);
+      if (!Number.isNaN(numericRate) && numericRate > 0) {
+        return numericRate;
+      }
+    }
+
+    return 0;
+  };
+
+  const calculateTotals = () => {
+    if (!item) {
+      return {
+        totalBeforeDiscount: 0,
+        discountValue: 0,
+        totalAfterDiscount: 0,
+      };
+    }
 
     const basePrice =
       parseFloat(item.price || item.don_gia || 0) *
@@ -184,17 +213,27 @@ const DiscountModal = ({
     );
 
     const totalBeforeDiscount = basePrice + extrasTotal;
-    const discountPercentValue = parseFloat(discountPercent || 0);
-    const discountAmountValue = parseFloat(discountAmount || 0);
+    const percentValue = parseFloat(discountPercent || 0) || 0;
+    const amountValue = parseFloat(discountAmount || 0) || 0;
 
-    let finalDiscount = 0;
-    if (discountPercentValue > 0) {
-      finalDiscount = (totalBeforeDiscount * discountPercentValue) / 100;
-    } else {
-      finalDiscount = discountAmountValue;
-    }
+    const computedDiscount =
+      percentValue > 0
+        ? Math.min(
+            totalBeforeDiscount,
+            Math.round((totalBeforeDiscount * percentValue) / 100)
+          )
+        : Math.min(totalBeforeDiscount, Math.round(amountValue));
 
-    return totalBeforeDiscount - finalDiscount;
+    const totalAfterDiscount = Math.max(
+      0,
+      totalBeforeDiscount - computedDiscount
+    );
+
+    return {
+      totalBeforeDiscount,
+      discountValue: computedDiscount,
+      totalAfterDiscount,
+    };
   };
 
   const handleSave = () => {
@@ -206,15 +245,22 @@ const DiscountModal = ({
     // Nếu có onConfirm từ CartTable, sử dụng nó
     if (onConfirm && index !== undefined) {
       // Update both fields in a single call by creating a new object
+      const percentValue = parseFloat(discountPercent || 0) || 0;
+      const amountValue = parseFloat(discountAmount || 0) || 0;
+      const { discountValue, totalAfterDiscount } = calculateTotals();
+      const effectiveVatPercent = getEffectiveVatPercent();
+      const recomputedVat =
+        effectiveVatPercent > 0
+          ? Math.round((totalAfterDiscount * effectiveVatPercent) / 100)
+          : 0;
+
       const updatedItem = {
-        discountPercent: parseFloat(discountPercent),
-        discountAmount: parseFloat(discountAmount),
+        discountPercent: percentValue,
+        discountAmount: percentValue > 0 ? discountValue : amountValue,
+        thue_nt: recomputedVat,
       };
 
-      // Call updateLine for each field
-      Object.entries(updatedItem).forEach(([field, value]) => {
-        onConfirm(index, field, value);
-      });
+      onConfirm(index, updatedItem);
     }
 
     // Nếu có Redux dispatch và orderIndex, sử dụng nó

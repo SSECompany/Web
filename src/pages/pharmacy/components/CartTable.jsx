@@ -114,8 +114,103 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
     loadTaxOptions();
   }, []);
 
-  const handleDiscountConfirm = (index, field, value) => {
-    updateLine(index, field, value);
+  const handleDiscountConfirm = (index, updatedFields) => {
+    if (
+      index === null ||
+      index === undefined ||
+      !updatedFields ||
+      typeof updatedFields !== "object"
+    ) {
+      return;
+    }
+
+    Object.entries(updatedFields).forEach(([field, value]) => {
+      updateLine(index, field, value);
+    });
+  };
+
+  const recomputeLineTotals = (index, record, overrides = {}) => {
+    const price = Number(
+      overrides.price !== undefined ? overrides.price : record.price || 0
+    );
+    const qtySource =
+      overrides.qty !== undefined ? overrides.qty : record.qty || 1;
+    const parsedQty = Number(qtySource);
+    const qty = Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 1;
+    const discountPercentNum = Number(
+      overrides.discountPercent !== undefined
+        ? overrides.discountPercent
+        : record.discountPercent || 0
+    );
+    let discountAmountValue = Number(
+      overrides.discountAmount !== undefined
+        ? overrides.discountAmount
+        : record.discountAmount || 0
+    );
+    const newTotal = Math.max(0, Math.round(price * qty));
+
+    if (discountPercentNum > 0) {
+      const recalculatedDiscount = Math.round(
+        (newTotal * discountPercentNum) / 100
+      );
+      if (discountAmountValue !== recalculatedDiscount) {
+        updateLine(index, "discountAmount", recalculatedDiscount);
+      }
+      discountAmountValue = recalculatedDiscount;
+    } else {
+      const cappedManualDiscount = Math.min(discountAmountValue, newTotal);
+      if (discountAmountValue !== cappedManualDiscount) {
+        updateLine(index, "discountAmount", cappedManualDiscount);
+      }
+      discountAmountValue = cappedManualDiscount;
+    }
+
+    const totalAfterDiscount = Math.max(
+      0,
+      newTotal - Math.round(discountAmountValue)
+    );
+
+    let effectiveVatPercent = Number(
+      overrides.thue_suat !== undefined
+        ? overrides.thue_suat
+        : overrides.vatPercent !== undefined
+        ? overrides.vatPercent
+        : record.thue_suat !== undefined
+        ? record.thue_suat
+        : record.vatPercent || 0
+    );
+
+    if (!effectiveVatPercent) {
+      const maThueValue = (
+        overrides.ma_thue !== undefined ? overrides.ma_thue : record.ma_thue
+      )
+        ? (overrides.ma_thue !== undefined ? overrides.ma_thue : record.ma_thue)
+            .toString()
+            .trim()
+        : "";
+      if (maThueValue) {
+        const optByMaThue = (taxOptions || []).find(
+          (o) => o?.value === maThueValue
+        );
+        if (optByMaThue?.thue_suat !== undefined) {
+          effectiveVatPercent = Number(optByMaThue.thue_suat) || 0;
+        }
+      }
+    }
+
+    const recomputedVat = Math.round(
+      (totalAfterDiscount * Math.max(0, effectiveVatPercent)) / 100
+    );
+    if (Number(record.thue_nt) !== recomputedVat) {
+      updateLine(index, "thue_nt", recomputedVat);
+    }
+  };
+
+  const handleQtyChange = (index, record, nextQtyRaw) => {
+    const parsedQty = Number(nextQtyRaw);
+    const safeQty = Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 1;
+    updateLine(index, "qty", safeQty);
+    recomputeLineTotals(index, record, { qty: safeQty });
   };
 
   const columns = [
@@ -238,55 +333,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
                 typeof opt?.price === "number" ? opt.price : record.price;
               updateLine(index, "unit", val);
               updateLine(index, "price", newPrice);
-              // Recalculate discount amount against new price if % discount exists
-              const qty = Number(record.qty || 1);
-              const discountPercentNum = Number(record.discountPercent || 0);
-              let finalDiscountAmount = Number(record.discountAmount || 0);
-              if (discountPercentNum > 0) {
-                const newTotal = Math.max(0, Math.round(newPrice * qty));
-                const recalculatedDiscount = Math.round(
-                  (newTotal * discountPercentNum) / 100
-                );
-                updateLine(index, "discountAmount", recalculatedDiscount);
-                finalDiscountAmount = recalculatedDiscount;
-              } else {
-                // Ensure manual discount (if any) doesn't exceed new total
-                const manualDiscount = Number(record.discountAmount || 0);
-                const cappedManualDiscount = Math.min(
-                  manualDiscount,
-                  Math.max(0, Math.round(newPrice * qty))
-                );
-                if (manualDiscount !== cappedManualDiscount) {
-                  updateLine(index, "discountAmount", cappedManualDiscount);
-                }
-                finalDiscountAmount = Math.min(
-                  Number(record.discountAmount || 0),
-                  Math.max(0, Math.round(newPrice * qty))
-                );
-              }
-              // Recompute VAT immediately based on current VAT rate
-              const totalAfterDiscount = Math.max(
-                0,
-                Math.round(newPrice * qty) - Math.round(finalDiscountAmount)
-              );
-              // Determine VAT rate from available fields or current tax options
-              let effectiveVatPercent = 0;
-              if (Number(record.vatPercent) > 0) {
-                effectiveVatPercent = Number(record.vatPercent) || 0;
-              } else if (Number(record.thue_suat) > 0) {
-                effectiveVatPercent = Number(record.thue_suat) || 0;
-              } else if ((record.ma_thue || "").trim()) {
-                const optByMaThue = (taxOptions || []).find(
-                  (o) => o?.value === (record.ma_thue || "").trim()
-                );
-                if (optByMaThue?.thue_suat !== undefined) {
-                  effectiveVatPercent = Number(optByMaThue.thue_suat) || 0;
-                }
-              }
-              const recomputedVat = Math.round(
-                (totalAfterDiscount * effectiveVatPercent) / 100
-              );
-              updateLine(index, "thue_nt", recomputedVat);
+              recomputeLineTotals(index, record, { price: newPrice });
             }}
             options={options.map((o) => ({ value: o.value, label: o.label }))}
             dropdownMatchSelectWidth={false}
@@ -393,9 +440,7 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
         <div className="qty-control">
           <button
             className="qty-btn"
-            onClick={() =>
-              updateLine(index, "qty", Math.max(1, (qty || 1) - 1))
-            }
+            onClick={() => handleQtyChange(index, record, (qty || 1) - 1)}
           >
             -
           </button>
@@ -404,12 +449,12 @@ const CartTable = ({ cart, removeAt, updateLine }) => {
             min={1}
             size="small"
             className="qty-input"
-            onChange={(value) => updateLine(index, "qty", value || 1)}
+            onChange={(value) => handleQtyChange(index, record, value || 1)}
             controls={false}
           />
           <button
             className="qty-btn"
-            onClick={() => updateLine(index, "qty", (qty || 1) + 1)}
+            onClick={() => handleQtyChange(index, record, (qty || 1) + 1)}
           >
             +
           </button>
