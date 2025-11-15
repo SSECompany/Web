@@ -175,19 +175,22 @@ const PaymentSummary = ({
         ? item.discountAmount 
         : Math.round((total * (item.discountPercent || 0)) / 100);
       const totalAfterDiscount = total - discountAmount;
-      const vatAmount = Math.round(
-        (totalAfterDiscount * (item.vatPercent || 0)) / 100
-      );
+      // Ưu tiên thue_nt nếu đã có, nếu không thì tính từ thue_suat hoặc vatPercent
+      let vatAmount = 0;
+      if (Number(item.thue_nt) > 0) {
+        vatAmount = Math.round(Number(item.thue_nt));
+      } else {
+        let effectiveVatPercent = 0;
+        if (Number(item.thue_suat) > 0) {
+          effectiveVatPercent = Number(item.thue_suat);
+        } else if (Number(item.vatPercent) > 0) {
+          effectiveVatPercent = Number(item.vatPercent);
+        }
+        vatAmount = Math.round(
+          (totalAfterDiscount * effectiveVatPercent) / 100
+        );
+      }
       
-      const rawNote =
-        item.instructions !== undefined && item.instructions !== null
-          ? item.instructions
-          : item.ghi_chu || "";
-      const note =
-        rawNote === undefined || rawNote === null
-          ? ""
-          : String(rawNote).trim();
-
       const mainItem = {
         ten_vt: item.name,
         ma_vt_root: item.ma_vt_root || "",
@@ -195,7 +198,7 @@ const PaymentSummary = ({
         so_luong: (item.qty || 0).toString(),
         don_gia: (item.price || 0).toString(),
         thanh_tien: ((item.qty || 0) * (item.price || 0)).toString(),
-        ghi_chu: note,
+        ghi_chu: item.ghi_chu || "",
         uniqueid,
         ap_voucher: item.ap_voucher || "0",
         // Add missing fields

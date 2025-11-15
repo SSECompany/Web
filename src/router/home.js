@@ -9,6 +9,9 @@ const Login = lazy(() => import("../pages/Login/Login"));
 const POSPage = lazy(() => import("../pages/pharmacy/POS"));
 const ReturnPOSPage = lazy(() => import("../pages/pharmacy/ReturnPOS"));
 const KhoPage = lazy(() => import("../pages/kho/Kho"));
+const BangKeHoaDonBan = lazy(() => import("../pages/reports/BangKeHoaDonBan"));
+const BaoCaoTonKho = lazy(() => import("../pages/reports/BaoCaoTonKho"));
+const TongHopNhapXuatTon = lazy(() => import("../pages/reports/TongHopNhapXuatTon"));
 
 import AddPhieuNhatHang from "../pages/kho/components/phieu-nhat-hang/AddPhieuNhatHang";
 import DetailPhieuNhatHang from "../pages/kho/components/phieu-nhat-hang/DetailPhieuNhatHang";
@@ -136,6 +139,22 @@ const protectedChildrenRoutes = [
     label: "Chi tiết phiếu xuất điều chuyển",
     path: "kho/xuat-dieu-chuyen/chi-tiet/:id",
     element: <DetailPhieuXuatDieuChuyen />,
+  },
+  // Báo cáo routes
+  {
+    label: "Bảng kê hóa đơn bán",
+    path: "bao-cao/bang-ke-hoa-don-ban",
+    element: <BangKeHoaDonBan />,
+  },
+  {
+    label: "Báo cáo tồn kho",
+    path: "bao-cao/ton-kho",
+    element: <BaoCaoTonKho />,
+  },
+  {
+    label: "Tổng hợp nhập xuất tồn",
+    path: "bao-cao/tong-hop-nhap-xuat-ton",
+    element: <TongHopNhapXuatTon />,
   },
 ];
 

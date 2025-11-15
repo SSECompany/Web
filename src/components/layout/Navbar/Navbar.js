@@ -85,6 +85,9 @@ const Navbar = () => {
       "kho/xuat-ban",
       "kho/xuat-dieu-chuyen",
       "kho/xuat-kho",
+      "bao-cao/bang-ke-hoa-don-ban", // Báo cáo
+      "bao-cao/ton-kho",
+      "bao-cao/tong-hop-nhap-xuat-ton",
     ];
 
     const currentPath = data?.pathname?.substring(1);
@@ -144,6 +147,24 @@ const Navbar = () => {
               {
                 key: "kho",
                 label: <Link to="/kho">Kho</Link>,
+              },
+              {
+                key: "bao-cao",
+                label: "Báo cáo",
+                children: [
+                  {
+                    key: "bang-ke-hoa-don-ban",
+                    label: <Link to="/bao-cao/bang-ke-hoa-don-ban">Bảng kê hóa đơn bán</Link>,
+                  },
+                  {
+                    key: "ton-kho",
+                    label: <Link to="/bao-cao/ton-kho">Báo cáo tồn kho</Link>,
+                  },
+                  {
+                    key: "tong-hop-nhap-xuat-ton",
+                    label: <Link to="/bao-cao/tong-hop-nhap-xuat-ton">Tổng hợp nhập xuất tồn</Link>,
+                  },
+                ],
               },
             ]}
             style={{

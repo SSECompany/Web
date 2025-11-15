@@ -1,0 +1,123 @@
+.tong-hop-nhap-xuat-container {
+  padding: 24px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.tong-hop-nhap-xuat-container .ant-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.bao-cao-header {
+  margin-bottom: 24px;
+}
+
+.bao-cao-filters {
+  margin-bottom: 12px;
+  padding: 12px 16px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 20px;
+  align-items: end;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.filter-item label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #5c5c5c;
+}
+
+.filter-item .ant-select,
+.filter-item .ant-picker,
+.filter-item .ant-input {
+  width: 100%;
+}
+
+.filter-item .ant-select-selector,
+.filter-item .ant-input,
+.filter-item .ant-picker-input > input {
+  font-size: 13px;
+}
+
+.filter-item .ant-select-selector,
+.filter-item .ant-picker,
+.filter-item .ant-input {
+  min-height: 34px;
+  border-radius: 6px;
+}
+
+.filter-item.button-item {
+  grid-column: span 3;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+.filter-item.button-item .ant-btn {
+  width: auto;
+  min-width: 140px;
+  height: 36px;
+  font-size: 13px;
+  border-radius: 6px;
+  padding: 0 20px;
+}
+
+.report-modal_Container .ant-table-summary {
+  background-color: #f0fbff;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+}
+
+.report-modal_Container .ant-table-summary strong {
+  font-weight: bold;
+  font-size: 15px;
+  color: #000;
+  display: flex;
+  justify-content: center;
+}
+
+.report-modal_Container .ant-table-thead > tr > th {
+  font-size: 12px;
+  text-align: center;
+  padding: 8px 10px !important;
+}
+
+.report-modal_Container .ant-table-tbody > tr > td {
+  font-size: 12px;
+  padding: 8px 10px !important;
+}
+
+@media (max-width: 1024px) {
+  .filters-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-item.button-item {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-item.button-item {
+    grid-column: span 1;
+    justify-content: stretch;
+  }
+}
+
