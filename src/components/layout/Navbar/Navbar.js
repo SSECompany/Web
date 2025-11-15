@@ -85,7 +85,7 @@ const Navbar = () => {
       "kho/xuat-ban",
       "kho/xuat-dieu-chuyen",
       "kho/xuat-kho",
-      "bao-cao/bang-ke-hoa-don-ban", // Báo cáo
+      "bao-cao/phieu-ban-le", // Báo cáo
       "bao-cao/ton-kho",
       "bao-cao/tong-hop-nhap-xuat-ton",
     ];
@@ -153,8 +153,8 @@ const Navbar = () => {
                 label: "Báo cáo",
                 children: [
                   {
-                    key: "bang-ke-hoa-don-ban",
-                    label: <Link to="/bao-cao/bang-ke-hoa-don-ban">Bảng kê hóa đơn bán</Link>,
+                    key: "phieu-ban-le",
+                    label: <Link to="/bao-cao/phieu-ban-le">Báo cáo phiếu bán lẻ</Link>,
                   },
                   {
                     key: "ton-kho",

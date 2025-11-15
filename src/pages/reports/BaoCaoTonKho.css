@@ -24,7 +24,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px 20px;
-  align-items: end;
+  align-items: start;
 }
 
 .filter-item {
@@ -39,22 +39,9 @@
   color: #5c5c5c;
 }
 
-.filter-item .ant-select,
-.filter-item .ant-picker,
-.filter-item .ant-input {
-  width: 100%;
-}
-
-.filter-item .ant-select-selector,
-.filter-item .ant-input,
-.filter-item .ant-picker-input > input {
-  font-size: 13px;
-}
-
 .filter-item .ant-select-selector,
 .filter-item .ant-picker,
 .filter-item .ant-input {
-  min-height: 34px;
   border-radius: 6px;
 }
 
@@ -63,6 +50,7 @@
   display: flex;
   justify-content: flex-end;
   align-items: flex-end;
+  margin-top: auto;
 }
 
 .filter-item.button-item .ant-btn {
@@ -81,6 +69,24 @@
 .filter-item .ant-select-selection-placeholder,
 .filter-item .ant-select-selection-item {
   font-size: 13px;
+}
+
+/* Fix for multi-select overflow */
+.filter-item .ant-select-multiple .ant-select-selector {
+  min-height: 32px;
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 2px 4px;
+}
+
+.filter-item .ant-select-multiple .ant-select-selection-overflow {
+  flex-wrap: wrap;
+  max-height: 116px;
+  overflow-y: auto;
+}
+
+.filter-item .ant-select-multiple .ant-select-selection-overflow-item {
+  margin: 2px 4px 2px 0;
 }
 
 @media (max-width: 1024px) {
@@ -130,9 +136,23 @@
 }
 
 .report-modal_Container .ant-table-thead > tr > th {
-  font-size: 13px !important;
+  font-size: 12px !important;
+  padding: 4px 6px !important;
+  height: 32px !important;
+  line-height: 24px !important;
 }
 
 .report-modal_Container .ant-table-tbody > tr > td {
-  font-size: 13px;
+  font-size: 12px;
+  padding: 4px 6px !important;
+  height: 32px !important;
+  line-height: 24px !important;
+}
+
+.report-modal_Container .ant-table-tbody > tr {
+  height: 32px !important;
+}
+
+.report-modal_Container .ant-table-thead > tr {
+  height: 32px !important;
 }

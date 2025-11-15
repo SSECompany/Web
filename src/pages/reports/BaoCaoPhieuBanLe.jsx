@@ -17,7 +17,7 @@ const formatDate = (date) => {
   return d.format("YYYY-MM-DD HH:mm:ss.SSS");
 };
 
-const BaoCaoTonKho = () => {
+const BaoCaoPhieuBanLe = () => {
   const { id: userId, unitId } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
   );
@@ -38,37 +38,40 @@ const BaoCaoTonKho = () => {
     3: [],
   });
   const [dvcsOptions, setDvcsOptions] = useState([]);
+  const [nhanVienOptions, setNhanVienOptions] = useState([]);
+  const [khachHangOptions, setKhachHangOptions] = useState([]);
   const [vatTuOptions, setVatTuOptions] = useState([]);
   
   // Loading states for selectboxes
   const [loadingKho, setLoadingKho] = useState(false);
   const [loadingNhomVatTu, setLoadingNhomVatTu] = useState(false);
   const [loadingDvcs, setLoadingDvcs] = useState(false);
+  const [loadingNhanVien, setLoadingNhanVien] = useState(false);
+  const [loadingKhachHang, setLoadingKhachHang] = useState(false);
   const [loadingVatTu, setLoadingVatTu] = useState(false);
   
   // Search refs for debounce
   const khoSearchRef = useRef(null);
-  const nhomVatTuSearchRef = useRef(null);
+  const nhomVatTuSearchRef = useRef({ 1: null, 2: null, 3: null });
   const dvcsSearchRef = useRef(null);
+  const nhanVienSearchRef = useRef(null);
+  const khachHangSearchRef = useRef(null);
   const vatTuSearchRef = useRef(null);
   
-  // Loại nhóm vật tư mặc định là 1
-  const loaiNhomVatTu = 1;
-  
   const [filters, setFilters] = useState({
-    DateTo: dayjs().format("YYYY-MM-DD HH:mm:ss.SSS"),
+    DateFrom: dayjs().startOf("day").format("YYYY-MM-DD HH:mm:ss.SSS"),
+    DateTo: dayjs().endOf("day").format("YYYY-MM-DD HH:mm:ss.SSS"),
+    InvoiceFrom: "",
+    InvoiceTo: "",
+    Salesman: "",
+    Customer: "",
     Site: "",
-    ItemGroup1: "",
-    ItemGroup2: "",
-    ItemGroup3: "",
+    Item: "",
+    Group1: "",
+    Group2: "",
+    Group3: "",
     Unit: [],
-    BalanceType: 2,
-    nh_theo: 0,
-    tt_sx1: 0,
-    tt_sx2: 0,
-    tt_sx3: 0,
-    Order: "ma_vt",
-    DataType: 2,
+    DataType: "2",
     Language: "V",
     Admin: 1,
   });
@@ -179,6 +182,60 @@ const BaoCaoTonKho = () => {
     }
   }, []);
 
+  // Fetch nhân viên bán hàng
+  const fetchNhanVienOptions = useCallback(async (searchValue = "") => {
+    setLoadingNhanVien(true);
+    try {
+      const res = await multipleTablePutApi({
+        store: "api_getNhanVienBanHang",
+        param: {
+          searchValue: searchValue || "",
+          pageIndex: 1,
+          pageSize: 100,
+        },
+        data: {},
+      });
+      const data = res?.listObject?.[0] || [];
+      const options = data.map((item) => ({
+        value: item.ma_nv || item.ma_nhan_vien || item.value || "",
+        label: item.ten_nv || item.ten_nhan_vien || item.label || item.ma_nv || "",
+      }));
+      setNhanVienOptions(options);
+    } catch (err) {
+      console.error("❌ Lỗi khi lấy danh sách nhân viên:", err);
+      setNhanVienOptions([]);
+    } finally {
+      setLoadingNhanVien(false);
+    }
+  }, []);
+
+  // Fetch khách hàng
+  const fetchKhachHangOptions = useCallback(async (searchValue = "") => {
+    setLoadingKhachHang(true);
+    try {
+      const res = await multipleTablePutApi({
+        store: "api_getKhachHang",
+        param: {
+          searchValue: searchValue || "",
+          pageIndex: 1,
+          pageSize: 100,
+        },
+        data: {},
+      });
+      const data = res?.listObject?.[0] || [];
+      const options = data.map((item) => ({
+        value: item.ma_kh || item.ma_khach_hang || item.value || "",
+        label: item.ten_kh || item.ten_khach_hang || item.label || item.ma_kh || "",
+      }));
+      setKhachHangOptions(options);
+    } catch (err) {
+      console.error("❌ Lỗi khi lấy danh sách khách hàng:", err);
+      setKhachHangOptions([]);
+    } finally {
+      setLoadingKhachHang(false);
+    }
+  }, []);
+
   // Fetch vật tư
   const fetchVatTuOptions = useCallback(async (searchValue = "") => {
     setLoadingVatTu(true);
@@ -212,25 +269,24 @@ const BaoCaoTonKho = () => {
     setLoading(true);
     try {
       const res = await multipleTablePutApi({
-        store: "api_rs_rptStockReport",
+        store: "api_scrs_rptSalesInvoiceList",
         param: {
+          DateFrom: filters.DateFrom,
           DateTo: filters.DateTo,
+          InvoiceFrom: filters.InvoiceFrom || "",
+          InvoiceTo: filters.InvoiceTo || "",
+          Salesman: filters.Salesman || "",
+          Customer: filters.Customer || "",
           Site: filters.Site || "",
-          Item: "",
-          ItemGroup1: filters.ItemGroup1 || "",
-          ItemGroup2: filters.ItemGroup2 || "",
-          ItemGroup3: filters.ItemGroup3 || "",
-          nh_theo: filters.nh_theo || 0,
-          tt_sx1: filters.tt_sx1 || 0,
-          tt_sx2: filters.tt_sx2 || 0,
-          tt_sx3: filters.tt_sx3 || 0,
+          Item: filters.Item || "",
+          Group1: filters.Group1 || "",
+          Group2: filters.Group2 || "",
+          Group3: filters.Group3 || "",
           Unit:
             Array.isArray(filters.Unit) && filters.Unit.length
               ? filters.Unit.join(",")
               : "",
-          BalanceType: filters.BalanceType || 2,
-          Order: filters.Order || "ma_vt",
-          DataType: filters.DataType || 2,
+          DataType: filters.DataType || "2",
           Language: filters.Language || "V",
           UserID: userId,
           Admin: filters.Admin || 1,
@@ -241,291 +297,229 @@ const BaoCaoTonKho = () => {
       });
 
       const fetchedData = res?.listObject?.[0] || [];
+      const paginationInfo = res?.listObject?.[1]?.[0] || {};
       
-      // Lấy total từ response nếu có
-      const total = res?.total || res?.totalRecords || fetchedData.length;
+      // Lấy total từ pagination info
+      const total = paginationInfo.totalRecord || fetchedData.length;
       setTotalRecords(total);
 
-      // Loại bỏ các dòng hoàn toàn trống (không có mã và tên)
-      const cleanedData = fetchedData.filter((item) => {
-        const ma = (item.ma_vt || "").trim();
-        const ten = (item.ten_vt || "").trim();
-        return ma || ten;
-      });
-
-      // Format data với key và tính toán giá trị
-      // API có thể trả về các field: ma_vt, ten_vt, dvt, so_luong, don_gia, gia_tri, etc.
-      const formattedData = cleanedData.map((item, index) => {
-        const ma = (item.ma_vt || "").trim();
-        const ten = (item.ten_vt || "").trim();
-        const dvt = (item.dvt || "").trim();
-        const isSummaryRow =
-          item.systotal === 0 &&
-          !ma &&
-          ten.toLowerCase().includes("tổng");
-
-        // Tính STT dựa trên trang hiện tại
-        const sttValue = isSummaryRow 
-          ? "" 
-          : item.stt || (currentPage - 1) * pageSize + index + 1;
-
+      // Format data - chỉ lấy các trường cần thiết
+      const formattedData = fetchedData.map((item, index) => {
+        const isSummaryRow = item.systotal === 0 && !item.ma_vt?.trim();
+        
         return {
-          ...item,
           key: `row-${(currentPage - 1) * pageSize + index}`,
-          stt: sttValue,
-          ma_vt: ma,
-          ten_vt: ten,
-          dvt: dvt,
+          stt: (currentPage - 1) * pageSize + index + 1,
+          ngay_ct: item.ngay_ct ? dayjs(item.ngay_ct).format("DD/MM/YYYY") : "",
+          so_ct: (item.so_ct || "").trim(),
+          dien_giai: (item.dien_giai || "").trim(),
+          ma_vt: (item.ma_vt || "").trim(),
+          ten_vt: (item.ten_vt || "").trim(),
+          dvt: (item.dvt || "").trim(),
+          ma_kho: (item.ma_kho || "").trim(),
+          so_luong_tl: item.so_luong_tl || 0,
+          dt_tra_lai: item.so_luong_tl > 0 && item.ngay_ct ? dayjs(item.ngay_ct).format("DD/MM/YYYY") : "",
+          so_luong: item.so_luong || 0,
+          gia2: item.gia2 || 0,
+          tien2: item.tien2 || 0,
+          thue: item.thue || 0,
+          ck: item.ck || 0,
+          pt: item.pt || 0,
+          tt_tien_mat: item.tt_tien_mat || 0,
+          tt_chyen_khoan: item.tt_chyen_khoan || 0,
+          tt_cn: item.tt_cn || 0,
           isSummary: isSummaryRow,
-          // Nếu API không trả về gia_tri, ưu tiên dùng cột tiền (tien)
-          gia_tri:
-            item.tien !== undefined && item.tien !== null
-              ? Number(item.tien)
-              : item.gia_tri !== undefined && item.gia_tri !== null
-              ? Number(item.gia_tri)
-              : (Number(item.so_luong) || 0) * (Number(item.don_gia) || 0),
-          so_luong: Number(item.so_luong) || 0,
         };
       });
 
       setDataSource(formattedData);
     } catch (err) {
-      console.error("❌ Lỗi khi lấy dữ liệu tồn kho:", err);
+      console.error("❌ Lỗi khi lấy dữ liệu báo cáo phiếu bán lẻ:", err);
       setDataSource([]);
     } finally {
       setLoading(false);
     }
   }, [filters, userId, unitId, currentPage, pageSize]);
 
-  const [tableFilters, setTableFilters] = useState({
-    ma_vt: "",
-    ten_vt: "",
-    dvt: "",
-  });
+  const [tableFilters, setTableFilters] = useState({});
 
-  const columns = useMemo(
-    () => [
-      {
-        title: "Stt",
-        dataIndex: "stt",
-        key: "stt",
-        width: 70,
-      },
-      {
-        title: "Mã vật tư",
-        dataIndex: "ma_vt",
-        key: "ma_vt",
-        width: 120,
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm mã vật tư"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ma_vt: selectedKeys[0] || "",
-                }));
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              type="primary"
-              onClick={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ma_vt: selectedKeys[0] || "",
-                }));
-              }}
-              size="small"
-              style={{ width: "100%" }}
-            >
-              Tìm kiếm
-            </Button>
-          </div>
-        ),
-        filteredValue: tableFilters.ma_vt ? [tableFilters.ma_vt] : null,
-        onFilter: (value, record) =>
-          record.ma_vt?.toString().toLowerCase().includes(value.toLowerCase()),
-      },
-      {
-        title: "Tên vật tư",
-        dataIndex: "ten_vt",
-        key: "ten_vt",
-        width: 300,
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm tên vật tư"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ten_vt: selectedKeys[0] || "",
-                }));
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              type="primary"
-              onClick={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ten_vt: selectedKeys[0] || "",
-                }));
-              }}
-              size="small"
-              style={{ width: "100%" }}
-            >
-              Tìm kiếm
-            </Button>
-          </div>
-        ),
-        filteredValue: tableFilters.ten_vt ? [tableFilters.ten_vt] : null,
-        onFilter: (value, record) =>
-          record.ten_vt?.toString().toLowerCase().includes(value.toLowerCase()),
-      },
-      {
-        title: "Đvt",
-        dataIndex: "dvt",
-        key: "dvt",
-        width: 100,
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm đơn vị"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  dvt: selectedKeys[0] || "",
-                }));
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              type="primary"
-              onClick={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  dvt: selectedKeys[0] || "",
-                }));
-              }}
-              size="small"
-              style={{ width: "100%" }}
-            >
-              Tìm kiếm
-            </Button>
-          </div>
-        ),
-        filteredValue: tableFilters.dvt ? [tableFilters.dvt] : null,
-        onFilter: (value, record) =>
-          record.dvt?.toString().toLowerCase().includes(value.toLowerCase()),
-      },
-      {
-        title: "Số lượng",
-        dataIndex: "so_luong",
-        key: "so_luong",
-        width: 120,
-      },
-      {
-        title: "Giá trị",
-        dataIndex: "gia_tri",
-        key: "gia_tri",
-        width: 150,
-      },
-    ],
-    [tableFilters]
-  );
-
+  // Render cell content với xử lý summary row
   const renderCellContent = useCallback((text, record, col) => {
     if (record.isSummary) {
-      if (col.dataIndex === "ten_vt") {
+      if (col.dataIndex === "dien_giai" || col.dataIndex === "so_ct") {
         return (
           <div style={{ ...BOLD_CELL_STYLE, fontStyle: "italic" }}>
-            {text || "Tổng cộng"}
+            {text || ""}
           </div>
         );
       }
-
-      if (col.dataIndex === "so_luong" || col.dataIndex === "gia_tri") {
+      if (col.align === "right") {
         return (
-          <div style={{ ...BOLD_CELL_STYLE }}>
+          <div style={BOLD_CELL_STYLE}>
             {formatNumber(Number(text) || 0)}
           </div>
         );
       }
-
       if (col.dataIndex === "stt") {
+        return <div style={CELL_STYLE}>{text}</div>;
+      }
+    }
+
+    if (col.align === "right") {
+      const value = Number(text) || 0;
+      if (value === 0) {
         return <div style={CELL_STYLE}></div>;
       }
-    }
-
-    if (col.dataIndex === "stt") {
-      return <div style={CELL_STYLE}>{text}</div>;
-    }
-
-    if (col.dataIndex === "ma_vt" || col.dataIndex === "dvt") {
-      return <div style={CELL_STYLE}>{text}</div>;
-    }
-
-    if (col.dataIndex === "ten_vt") {
-      return <div style={{ textAlign: "left", paddingLeft: "4px" }}>{text}</div>;
-    }
-
-    if (col.dataIndex === "so_luong") {
-      const value = Number(text) || 0;
-      const isNegative = value < 0;
-      return (
-        <div
-          style={{
-            ...CELL_STYLE,
-            color: isNegative ? "#ff4d4f" : "#000",
-            fontWeight: isNegative ? "bold" : "normal",
-          }}
-        >
-          {formatNumber(value)}
-        </div>
-      );
-    }
-
-    if (col.dataIndex === "gia_tri") {
-      // Chỉ hiển thị giá trị nếu số lượng > 0
-      if (Number(record.so_luong) <= 0) {
-        return <div style={CELL_STYLE}>-</div>;
-      }
-      const value = Number(text) || 0;
       return <div style={CELL_STYLE}>{formatNumber(value)}</div>;
     }
 
-    return <div style={CELL_STYLE}>{text}</div>;
+    if (col.align === "left") {
+      return <div style={{ textAlign: "left", paddingLeft: "4px" }}>{text || ""}</div>;
+    }
+
+    return <div style={CELL_STYLE}>{text || ""}</div>;
   }, []);
 
-  const optimizedColumns = useMemo(
-    () =>
-      columns.map((col) => ({
-        ...col,
-        align: "center",
-        onCell: (record) => ({ record }),
-        render: (text, record) => renderCellContent(text, record, col),
-      })),
-    [columns, renderCellContent]
-  );
+  // Định nghĩa columns cố định
+  const columns = useMemo(() => [
+    {
+      title: "Stt",
+      dataIndex: "stt",
+      key: "stt",
+      width: 70,
+      align: "center",
+    },
+    {
+      title: "Ngày ct",
+      dataIndex: "ngay_ct",
+      key: "ngay_ct",
+      width: 100,
+      align: "center",
+    },
+    {
+      title: "Số ct",
+      dataIndex: "so_ct",
+      key: "so_ct",
+      width: 150,
+      align: "center",
+    },
+    {
+      title: "Diễn giải",
+      dataIndex: "dien_giai",
+      key: "dien_giai",
+      width: 200,
+      align: "left",
+    },
+    {
+      title: "Mã hàng",
+      dataIndex: "ma_vt",
+      key: "ma_vt",
+      width: 120,
+      align: "center",
+    },
+    {
+      title: "Tên mặt hàng",
+      dataIndex: "ten_vt",
+      key: "ten_vt",
+      width: 300,
+      align: "left",
+    },
+    {
+      title: "Dvt",
+      dataIndex: "dvt",
+      key: "dvt",
+      width: 80,
+      align: "center",
+    },
+    {
+      title: "Mã kho",
+      dataIndex: "ma_kho",
+      key: "ma_kho",
+      width: 100,
+      align: "center",
+    },
+    {
+      title: "SL. trả lại",
+      dataIndex: "so_luong_tl",
+      key: "so_luong_tl",
+      width: 100,
+      align: "right",
+    },
+    {
+      title: "Dt trả lại",
+      dataIndex: "dt_tra_lai",
+      key: "dt_tra_lai",
+      width: 100,
+      align: "center",
+    },
+    {
+      title: "Số lượng",
+      dataIndex: "so_luong",
+      key: "so_luong",
+      width: 100,
+      align: "right",
+    },
+    {
+      title: "Giá bán",
+      dataIndex: "gia2",
+      key: "gia2",
+      width: 120,
+      align: "right",
+    },
+    {
+      title: "Doanh thu",
+      dataIndex: "tien2",
+      key: "tien2",
+      width: 120,
+      align: "right",
+    },
+    {
+      title: "Thuế",
+      dataIndex: "thue",
+      key: "thue",
+      width: 120,
+      align: "right",
+    },
+    {
+      title: "Chiết khấu",
+      dataIndex: "ck",
+      key: "ck",
+      width: 120,
+      align: "right",
+    },
+    {
+      title: "Phải thu",
+      dataIndex: "pt",
+      key: "pt",
+      width: 120,
+      align: "right",
+    },
+    {
+      title: "Tiền mặt",
+      dataIndex: "tt_tien_mat",
+      key: "tt_tien_mat",
+      width: 120,
+      align: "right",
+    },
+    {
+      title: "Chuyển khoản",
+      dataIndex: "tt_chyen_khoan",
+      key: "tt_chyen_khoan",
+      width: 120,
+      align: "right",
+    },
+    {
+      title: "Công nợ",
+      dataIndex: "tt_cn",
+      key: "tt_cn",
+      width: 120,
+      align: "right",
+    },
+  ].map((col) => ({
+    ...col,
+    onCell: (record) => ({ record }),
+    render: (text, record) => renderCellContent(text, record, col),
+  })), [renderCellContent]);
 
   // Load options on mount
   useEffect(() => {
@@ -534,8 +528,17 @@ const BaoCaoTonKho = () => {
     fetchNhomVatTuOptions(2);
     fetchNhomVatTuOptions(3);
     fetchDvcsOptions();
+    fetchNhanVienOptions();
+    fetchKhachHangOptions();
     fetchVatTuOptions();
-  }, [fetchKhoOptions, fetchNhomVatTuOptions, fetchDvcsOptions, fetchVatTuOptions]);
+  }, [
+    fetchKhoOptions,
+    fetchNhomVatTuOptions,
+    fetchDvcsOptions,
+    fetchNhanVienOptions,
+    fetchKhachHangOptions,
+    fetchVatTuOptions,
+  ]);
 
   useEffect(() => {
     if (userId) {
@@ -543,47 +546,22 @@ const BaoCaoTonKho = () => {
     }
   }, [fetchData, userId, currentPage, pageSize]);
 
-  // Tính tổng cộng
-  const totals = useMemo(() => {
-    return dataSource.reduce(
-      (acc, item) => {
-        if (item.isSummary) {
-          // Lưu lại giá trị tổng API trả về để hiển thị nếu cần
-          acc.apiTotalSoLuong =
-            item.so_luong !== undefined && item.so_luong !== null
-              ? Number(item.so_luong)
-              : acc.apiTotalSoLuong;
-          acc.apiTotalGiaTri =
-            item.gia_tri !== undefined && item.gia_tri !== null
-              ? Number(item.gia_tri)
-              : acc.apiTotalGiaTri;
-          return acc;
-        }
-        const soLuong = Number(item.so_luong) || 0;
-        const giaTri = Number(item.gia_tri) || 0;
-        acc.totalSoLuong += soLuong;
-        if (soLuong > 0 && giaTri > 0) {
-          acc.totalGiaTri += giaTri;
-        }
-        return acc;
-      },
-      { totalSoLuong: 0, totalGiaTri: 0, apiTotalSoLuong: 0, apiTotalGiaTri: 0 }
-    );
-  }, [dataSource]);
-
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value,
     }));
-    setCurrentPage(1); // Reset về trang 1 khi filter thay đổi
+    setCurrentPage(1);
   };
 
-  const handleDateChange = (date) => {
+  const handleDateChange = (key, date) => {
     if (date) {
-      handleFilterChange("DateTo", formatDate(date));
+      handleFilterChange(key, formatDate(date));
     } else {
-      handleFilterChange("DateTo", formatDate(dayjs()));
+      const defaultDate = key === "DateFrom" 
+        ? dayjs().startOf("day")
+        : dayjs().endOf("day");
+      handleFilterChange(key, formatDate(defaultDate));
     }
   };
 
@@ -592,18 +570,94 @@ const BaoCaoTonKho = () => {
       <Card>
         <div className="bao-cao-header">
           <Title level={2} style={{ margin: 0 }}>
-            Báo cáo tồn kho
+            Báo cáo phiếu bán lẻ
           </Title>
         </div>
 
         <div className="bao-cao-filters">
           <div className="filters-grid">
             <div className="filter-item">
-              <label>Ngày:</label>
+              <label>Từ ngày:</label>
+              <DatePicker
+                value={dayjs(filters.DateFrom)}
+                onChange={(value) => handleDateChange("DateFrom", value)}
+                format="DD/MM/YYYY"
+              />
+            </div>
+            <div className="filter-item">
+              <label>Đến ngày:</label>
               <DatePicker
                 value={dayjs(filters.DateTo)}
-                onChange={handleDateChange}
+                onChange={(value) => handleDateChange("DateTo", value)}
                 format="DD/MM/YYYY"
+              />
+            </div>
+            <div className="filter-item">
+              <label>Từ số chứng từ:</label>
+              <Input
+                value={filters.InvoiceFrom}
+                onChange={(e) => handleFilterChange("InvoiceFrom", e.target.value)}
+                placeholder="Nhập từ số chứng từ"
+                allowClear
+              />
+            </div>
+            <div className="filter-item">
+              <label>Đến số chứng từ:</label>
+              <Input
+                value={filters.InvoiceTo}
+                onChange={(e) => handleFilterChange("InvoiceTo", e.target.value)}
+                placeholder="Nhập đến số chứng từ"
+                allowClear
+              />
+            </div>
+            <div className="filter-item">
+              <label>Nhân viên:</label>
+              <Select
+                value={filters.Salesman || undefined}
+                onChange={(value) => handleFilterChange("Salesman", value)}
+                placeholder="Chọn nhân viên"
+                showSearch
+                allowClear
+                loading={loadingNhanVien}
+                filterOption={false}
+                onSearch={(value) => {
+                  if (nhanVienSearchRef.current) clearTimeout(nhanVienSearchRef.current);
+                  nhanVienSearchRef.current = setTimeout(() => {
+                    fetchNhanVienOptions(value);
+                  }, 300);
+                }}
+                onDropdownVisibleChange={(open) => {
+                  if (open) fetchNhanVienOptions();
+                }}
+                options={nhanVienOptions}
+                notFoundContent={
+                  loadingNhanVien ? <Spin size="small" /> : "Không tìm thấy"
+                }
+              />
+            </div>
+            <div className="filter-item">
+              <label>Khách hàng:</label>
+              <Select
+                value={filters.Customer || undefined}
+                onChange={(value) => handleFilterChange("Customer", value)}
+                placeholder="Chọn khách hàng"
+                showSearch
+                allowClear
+                loading={loadingKhachHang}
+                filterOption={false}
+                onSearch={(value) => {
+                  if (khachHangSearchRef.current) clearTimeout(khachHangSearchRef.current);
+                  khachHangSearchRef.current = setTimeout(() => {
+                    fetchKhachHangOptions(value);
+                  }, 300);
+                }}
+                onDropdownVisibleChange={(open) => {
+                  if (open) fetchKhachHangOptions();
+                }}
+                options={khachHangOptions}
+                notFoundContent={
+                  loadingKhachHang ? <Spin size="small" /> : "Không tìm thấy"
+                }
               />
             </div>
             <div className="filter-item">
@@ -632,10 +686,35 @@ const BaoCaoTonKho = () => {
               />
             </div>
             <div className="filter-item">
+              <label>Mã vật tư:</label>
+              <Select
+                value={filters.Item || undefined}
+                onChange={(value) => handleFilterChange("Item", value)}
+                placeholder="Chọn vật tư"
+                showSearch
+                allowClear
+                loading={loadingVatTu}
+                filterOption={false}
+                onSearch={(value) => {
+                  if (vatTuSearchRef.current) clearTimeout(vatTuSearchRef.current);
+                  vatTuSearchRef.current = setTimeout(() => {
+                    fetchVatTuOptions(value);
+                  }, 300);
+                }}
+                onDropdownVisibleChange={(open) => {
+                  if (open) fetchVatTuOptions();
+                }}
+                options={vatTuOptions}
+                notFoundContent={
+                  loadingVatTu ? <Spin size="small" /> : "Không tìm thấy"
+                }
+              />
+            </div>
+            <div className="filter-item">
               <label>Nhóm vật tư 1:</label>
               <Select
-                value={filters.ItemGroup1 || undefined}
-                onChange={(value) => handleFilterChange("ItemGroup1", value)}
+                value={filters.Group1 || undefined}
+                onChange={(value) => handleFilterChange("Group1", value)}
                 placeholder="Chọn nhóm vật tư 1"
                 showSearch
                 allowClear
@@ -660,8 +739,8 @@ const BaoCaoTonKho = () => {
             <div className="filter-item">
               <label>Nhóm vật tư 2:</label>
               <Select
-                value={filters.ItemGroup2 || undefined}
-                onChange={(value) => handleFilterChange("ItemGroup2", value)}
+                value={filters.Group2 || undefined}
+                onChange={(value) => handleFilterChange("Group2", value)}
                 placeholder="Chọn nhóm vật tư 2"
                 showSearch
                 allowClear
@@ -686,8 +765,8 @@ const BaoCaoTonKho = () => {
             <div className="filter-item">
               <label>Nhóm vật tư 3:</label>
               <Select
-                value={filters.ItemGroup3 || undefined}
-                onChange={(value) => handleFilterChange("ItemGroup3", value)}
+                value={filters.Group3 || undefined}
+                onChange={(value) => handleFilterChange("Group3", value)}
                 placeholder="Chọn nhóm vật tư 3"
                 showSearch
                 allowClear
@@ -735,28 +814,14 @@ const BaoCaoTonKho = () => {
               />
             </div>
             <div className="filter-item">
-              <label>Mã vật tư:</label>
+              <label>Loại dữ liệu:</label>
               <Select
-                value={filters.Item || undefined}
-                onChange={(value) => handleFilterChange("Item", value)}
-                placeholder="Chọn vật tư"
-                showSearch
-                allowClear
-                loading={loadingVatTu}
-                filterOption={false}
-                onSearch={(value) => {
-                  if (vatTuSearchRef.current) clearTimeout(vatTuSearchRef.current);
-                  vatTuSearchRef.current = setTimeout(() => {
-                    fetchVatTuOptions(value);
-                  }, 300);
-                }}
-                onDropdownVisibleChange={(open) => {
-                  if (open) fetchVatTuOptions();
-                }}
-                options={vatTuOptions}
-                notFoundContent={
-                  loadingVatTu ? <Spin size="small" /> : "Không tìm thấy"
-                }
+                value={filters.DataType}
+                onChange={(value) => handleFilterChange("DataType", value)}
+                options={[
+                  { value: "1", label: "Thực tế" },
+                  { value: "2", label: "Hóa đơn" },
+                ]}
               />
             </div>
             <div className="filter-item button-item">
@@ -770,7 +835,7 @@ const BaoCaoTonKho = () => {
         <div className="report-modal_Container">
           <Table
             className="report-modal-table"
-            columns={optimizedColumns}
+            columns={columns}
             dataSource={dataSource}
             loading={loading}
             pagination={{
@@ -791,38 +856,7 @@ const BaoCaoTonKho = () => {
               },
             }}
             rowKey="key"
-            scroll={{ y: 450 }}
-            summary={(pageData) => {
-              const summarySoLuong =
-                totals.apiTotalSoLuong || totals.totalSoLuong;
-              const summaryGiaTri =
-                totals.apiTotalGiaTri || totals.totalGiaTri;
-              return (
-                <Table.Summary.Row>
-                  {columns.map((col, idx) => {
-                    const { dataIndex } = col;
-
-                    const cellValueMap = {
-                      stt: <strong>Tổng cộng</strong>,
-                      so_luong: (
-                        <strong>{formatNumber(summarySoLuong)}</strong>
-                      ),
-                      gia_tri: (
-                        <strong>{formatNumber(summaryGiaTri)}</strong>
-                      ),
-                    };
-
-                    const cellValue = cellValueMap[dataIndex];
-
-                    return (
-                      <Table.Summary.Cell key={idx}>
-                        {cellValue || null}
-                      </Table.Summary.Cell>
-                    );
-                  })}
-                </Table.Summary.Row>
-              );
-            }}
+            scroll={{ y: 450, x: "max-content" }}
           />
         </div>
       </Card>
@@ -830,4 +864,4 @@ const BaoCaoTonKho = () => {
   );
 };
 
-export default BaoCaoTonKho;
+export default BaoCaoPhieuBanLe;

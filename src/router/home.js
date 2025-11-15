@@ -9,7 +9,7 @@ const Login = lazy(() => import("../pages/Login/Login"));
 const POSPage = lazy(() => import("../pages/pharmacy/POS"));
 const ReturnPOSPage = lazy(() => import("../pages/pharmacy/ReturnPOS"));
 const KhoPage = lazy(() => import("../pages/kho/Kho"));
-const BangKeHoaDonBan = lazy(() => import("../pages/reports/BangKeHoaDonBan"));
+const BaoCaoPhieuBanLe = lazy(() => import("../pages/reports/BaoCaoPhieuBanLe"));
 const BaoCaoTonKho = lazy(() => import("../pages/reports/BaoCaoTonKho"));
 const TongHopNhapXuatTon = lazy(() => import("../pages/reports/TongHopNhapXuatTon"));
 
@@ -142,9 +142,9 @@ const protectedChildrenRoutes = [
   },
   // Báo cáo routes
   {
-    label: "Bảng kê hóa đơn bán",
-    path: "bao-cao/bang-ke-hoa-don-ban",
-    element: <BangKeHoaDonBan />,
+    label: "Báo cáo phiếu bán lẻ",
+    path: "bao-cao/phieu-ban-le",
+    element: <BaoCaoPhieuBanLe />,
   },
   {
     label: "Báo cáo tồn kho",

@@ -92,12 +92,24 @@
 .report-modal_Container .ant-table-thead > tr > th {
   font-size: 12px;
   text-align: center;
-  padding: 8px 10px !important;
+  padding: 4px 6px !important;
+  height: 32px !important;
+  line-height: 24px !important;
 }
 
 .report-modal_Container .ant-table-tbody > tr > td {
   font-size: 12px;
-  padding: 8px 10px !important;
+  padding: 4px 6px !important;
+  height: 32px !important;
+  line-height: 24px !important;
+}
+
+.report-modal_Container .ant-table-tbody > tr {
+  height: 32px !important;
+}
+
+.report-modal_Container .ant-table-thead > tr {
+  height: 32px !important;
 }
 
 @media (max-width: 1024px) {

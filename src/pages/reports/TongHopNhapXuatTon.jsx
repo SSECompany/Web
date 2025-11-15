@@ -50,18 +50,21 @@ const TongHopNhapXuatTon = () => {
   const [nhomVatTuOptions, setNhomVatTuOptions] = useState([]);
   const [loaiVatTuOptions, setLoaiVatTuOptions] = useState([]);
   const [dvcsOptions, setDvcsOptions] = useState([]);
+  const [vatTuOptions, setVatTuOptions] = useState([]);
 
   // Loading states
   const [loadingKho, setLoadingKho] = useState(false);
   const [loadingNhomVatTu, setLoadingNhomVatTu] = useState(false);
   const [loadingLoaiVatTu, setLoadingLoaiVatTu] = useState(false);
   const [loadingDvcs, setLoadingDvcs] = useState(false);
+  const [loadingVatTu, setLoadingVatTu] = useState(false);
 
   // Search refs
   const khoSearchRef = useRef(null);
   const nhomVatTuSearchRef = useRef({ 1: null, 2: null, 3: null });
   const loaiVatTuSearchRef = useRef(null);
   const dvcsSearchRef = useRef(null);
+  const vatTuSearchRef = useRef(null);
 
   const [filters, setFilters] = useState({
     DateFrom: dayjs().startOf("day").format("YYYY-MM-DD HH:mm:ss.SSS"),
@@ -240,6 +243,33 @@ const TongHopNhapXuatTon = () => {
       setDvcsOptions([]);
     } finally {
       setLoadingDvcs(false);
+    }
+  }, []);
+
+  // Fetch vật tư
+  const fetchVatTuOptions = useCallback(async (searchValue = "") => {
+    setLoadingVatTu(true);
+    try {
+      const res = await multipleTablePutApi({
+        store: "api_getVatTu",
+        param: {
+          searchValue: searchValue || "",
+          pageIndex: 1,
+          pageSize: 100,
+        },
+        data: {},
+      });
+      const data = res?.listObject?.[0] || [];
+      const options = data.map((item) => ({
+        value: item.ma_vt || item.ma_vat_tu || item.value || "",
+        label: item.ten_vt || item.ten_vat_tu || item.label || item.ma_vt || "",
+      }));
+      setVatTuOptions(options);
+    } catch (err) {
+      console.error("❌ Lỗi khi lấy danh sách vật tư:", err);
+      setVatTuOptions([]);
+    } finally {
+      setLoadingVatTu(false);
     }
   }, []);
 
@@ -533,7 +563,7 @@ const TongHopNhapXuatTon = () => {
             }
             if (col.dataIndex === "ten_vt") {
               return (
-                <div style={{ textAlign: "left", paddingLeft: 8 }}>{text}</div>
+                <div style={{ textAlign: "left", paddingLeft: 4 }}>{text}</div>
               );
             }
             if (col.dataIndex === "ma_vt" || col.dataIndex === "dvt") {
@@ -812,11 +842,27 @@ const TongHopNhapXuatTon = () => {
             </div>
             <div className="filter-item">
               <label>Mã vật tư:</label>
-              <Input
-                value={filters.Item}
-                onChange={(e) => handleFilterChange("Item", e.target.value)}
-                placeholder="Nhập mã vật tư"
+              <Select
+                value={filters.Item || undefined}
+                onChange={(value) => handleFilterChange("Item", value)}
+                placeholder="Chọn vật tư"
+                showSearch
                 allowClear
+                loading={loadingVatTu}
+                filterOption={false}
+                onSearch={(value) => {
+                  if (vatTuSearchRef.current) clearTimeout(vatTuSearchRef.current);
+                  vatTuSearchRef.current = setTimeout(() => {
+                    fetchVatTuOptions(value);
+                  }, 300);
+                }}
+                onDropdownVisibleChange={(open) => {
+                  if (open) fetchVatTuOptions();
+                }}
+                options={vatTuOptions}
+                notFoundContent={
+                  loadingVatTu ? <Spin size="small" /> : "Không tìm thấy"
+                }
               />
             </div>
             <div className="filter-item button-item">
