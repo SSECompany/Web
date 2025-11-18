@@ -1,0 +1,92 @@
+.discount-modal .ant-modal-body {
+  padding: 12px;
+}
+
+.discount-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.discount-info {
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.discount-info h4 {
+  margin: 0 0 4px 0;
+  color: #212529;
+  font-size: 15px;
+}
+
+.discount-info p {
+  margin: 2px 0;
+  color: #6c757d;
+  font-size: 13px;
+}
+
+.discount-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.discount-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.discount-input-group label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 13px;
+}
+
+.discount-input-group .ant-input {
+  text-align: right;
+}
+
+/* Ẩn nút tăng/giảm cho input number */
+.discount-input-group .ant-input[type="number"]::-webkit-inner-spin-button,
+.discount-input-group .ant-input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.discount-input-group .ant-input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+}
+
+/* Ẩn nút tăng/giảm cho InputNumber */
+.discount-input-group .ant-input-number-handler-wrap {
+  display: none !important;
+}
+
+.discount-input-group .ant-input-number {
+  padding-right: 8px !important;
+}
+
+.discount-summary {
+  padding: 8px;
+  background-color: #d4edda;
+  border-radius: 4px;
+  border: 1px solid #c3e6cb;
+}
+
+.discount-summary p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.discount-summary strong {
+  color: #155724;
+}
+
+
+
+
+
+

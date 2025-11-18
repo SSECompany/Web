@@ -1,12 +1,12 @@
 import { DownOutlined, UpOutlined } from "@ant-design/icons";
-import { Button, Checkbox, Input, InputNumber, Modal, message } from "antd";
+import { Button, Input, InputNumber, Modal, message } from "antd";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { num2words } from "../../../../../app/Options/DataFomater";
 import {
   formatCurrency,
   formatNumber,
   parserNumber,
 } from "../../../../../app/hook/dataFormatHelper";
-import { num2words } from "../../../../../app/Options/DataFomater";
 import VietQR from "../../../../../components/common/GenerateQR/VietQR";
 import "./PaymentModal.css";
 
@@ -20,9 +20,6 @@ const PaymentModal = ({
   initialPaymentAmounts,
   initialCustomerInfo,
   initialSync,
-  prepaidAmounts = {},
-  isPrepaidStudent = false,
-  isFamilyMeal = false,
 }) => {
   const [selectedPayments, setSelectedPayments] = useState(["chuyen_khoan"]);
   const [paymentAmounts, setPaymentAmounts] = useState({
@@ -61,41 +58,29 @@ const PaymentModal = ({
   );
 
   // Memoize account info
-  const account = useMemo(
-    () => process.env.REACT_APP_VIETQR_ACCOUNT ,
-    []
-  );
+  const account = useMemo(() => process.env.REACT_APP_VIETQR_ACCOUNT, []);
   const accountName = useMemo(
-    () => process.env.REACT_APP_VIETQR_ACCOUNT_NAME ,
+    () => process.env.REACT_APP_VIETQR_ACCOUNT_NAME,
     []
   );
-
 
   const handlePaymentSelection = (method) => {
     if (method === "ca_hai") {
       // Chọn cả hai - để input 0 nhưng tính đúng tiền trả lại
       setSelectedPayments(["tien_mat", "chuyen_khoan"]);
       setPaymentAmounts({ tien_mat: 0, chuyen_khoan: 0 });
-      setChange(totalPrepaid - total); // Tính luôn tiền trả trước
+      setChange(-total);
     } else {
       // Chọn một phương thức duy nhất
       setSelectedPayments([method]);
-      const remainingAmount = Math.max(0, total - totalPrepaid);
       setPaymentAmounts((amounts) => {
         const updatedAmounts = { tien_mat: 0, chuyen_khoan: 0 };
-        updatedAmounts[method] = remainingAmount;
+        updatedAmounts[method] = total;
         return updatedAmounts;
       });
       setChange(0);
     }
   };
-
-  // Tính tổng tiền trả trước
-  const totalPrepaid = useMemo(() => {
-    const familyPrepaid = Number(prepaidAmounts.benhnhan_tratruoc || 0);
-    const studentPrepaid = Number(prepaidAmounts.sinhvien_tratruoc || 0);
-    return familyPrepaid + studentPrepaid;
-  }, [prepaidAmounts]);
 
   const handleAmountChange = (method, value) => {
     const newAmounts = { ...paymentAmounts, [method]: value || 0 };
@@ -105,7 +90,7 @@ const PaymentModal = ({
       (sum, val) => sum + val,
       0
     );
-    setChange(totalAmount + totalPrepaid - total);
+    setChange(totalAmount - total);
   };
 
   const validateCCCD = (value) => {
@@ -198,20 +183,14 @@ const PaymentModal = ({
       // Parse initialPaymentMethod - có thể là "chuyen_khoan" hoặc "tien_mat,chuyen_khoan"
       let defaultPayments = ["chuyen_khoan"];
       if (initialPaymentMethod) {
-        // Nếu là prepaid method (benhnhan_tratruoc hoặc sinhvien_tratruoc), không chọn payment method nào
-        if (initialPaymentMethod === "benhnhan_tratruoc" || initialPaymentMethod === "sinhvien_tratruoc") {
-          defaultPayments = [];
-        } else {
-          defaultPayments = initialPaymentMethod
-            .split(",")
-            .map((method) => method.trim());
-        }
+        defaultPayments = initialPaymentMethod
+          .split(",")
+          .map((method) => method.trim());
       }
       setSelectedPayments(defaultPayments);
 
       // Tính toán payment amounts dựa trên phương thức thanh toán
       const newPaymentAmounts = { tien_mat: 0, chuyen_khoan: 0 };
-      const remainingAmount = Math.max(0, total - totalPrepaid);
 
       // Nếu có initialPaymentAmounts từ order đã lưu, sử dụng nó
       if (
@@ -229,9 +208,9 @@ const PaymentModal = ({
         // Nếu không, tính toán dựa trên phương thức thanh toán
         if (defaultPayments.length === 1) {
           if (defaultPayments[0] === "tien_mat") {
-            newPaymentAmounts.tien_mat = remainingAmount;
+            newPaymentAmounts.tien_mat = total;
           } else {
-            newPaymentAmounts.chuyen_khoan = remainingAmount;
+            newPaymentAmounts.chuyen_khoan = total;
           }
         } else if (defaultPayments.length === 2) {
           // Nếu có 2 phương thức thanh toán, để input 0 và tính đúng tiền trả lại
@@ -253,9 +232,9 @@ const PaymentModal = ({
           (initialPaymentAmounts.tien_mat === 0 &&
             initialPaymentAmounts.chuyen_khoan === 0))
       ) {
-        setChange(totalPrepaid - total);
+        setChange(-total);
       } else {
-        setChange(totalPaid + totalPrepaid - total);
+        setChange(totalPaid - total);
       }
 
       setCustomerInfo({
@@ -275,7 +254,6 @@ const PaymentModal = ({
       setShowCustomerInfo(false);
       setIsSubmitting(false);
       setSync(initialSync !== undefined ? initialSync : true);
-
     }
   }, [
     visible,
@@ -284,7 +262,6 @@ const PaymentModal = ({
     initialPaymentAmounts,
     initialCustomerInfo,
     initialSync,
-    totalPrepaid,
   ]);
 
   return (
@@ -295,224 +272,163 @@ const PaymentModal = ({
       footer={null}
       className="payment-modal"
     >
-      {/* Ẩn thông tin khách hàng nếu là sinh viên trả trước hoặc người nhà bệnh nhân */}
-      {!isPrepaidStudent && !isFamilyMeal && (
-        <>
-          <p
-            className="payment-text"
-            onClick={handleToggleCustomerInfo}
-            style={{ cursor: "pointer", userSelect: "none" }}
-          >
-            <strong>
-              Thông tin khách hàng{" "}
-              {showCustomerInfo ? <UpOutlined /> : <DownOutlined />}
-            </strong>
-          </p>
-          {showCustomerInfo && (
-            <div className="customer-info-section" style={{ margin: "16px 0" }}>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontWeight: 500 }}>Tên khách:</label>
-                    <Input
-                      style={{ width: "100%", marginTop: 4 }}
-                      value={customerInfo.ong_ba}
-                      placeholder="Nhập tên khách"
-                      onChange={(e) => handleInputChange("ong_ba", e.target.value)}
-                    />
+      <p
+        className="payment-text"
+        onClick={handleToggleCustomerInfo}
+        style={{ cursor: "pointer", userSelect: "none" }}
+      >
+        <strong>
+          Thông tin khách hàng{" "}
+          {showCustomerInfo ? <UpOutlined /> : <DownOutlined />}
+        </strong>
+      </p>
+      {showCustomerInfo && (
+        <div className="customer-info-section" style={{ margin: "16px 0" }}>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 500 }}>Tên khách:</label>
+                <Input
+                  style={{ width: "100%", marginTop: 4 }}
+                  value={customerInfo.ong_ba}
+                  placeholder="Nhập tên khách"
+                  onChange={(e) => handleInputChange("ong_ba", e.target.value)}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 500 }}>CCCD:</label>
+                <Input
+                  style={{ width: "100%", marginTop: 4 }}
+                  value={customerInfo.cccd}
+                  placeholder="Nhập số CCCD"
+                  onChange={(e) => handleInputChange("cccd", e.target.value)}
+                  status={errors.cccd ? "error" : ""}
+                  maxLength={12}
+                  onKeyPress={(e) => {
+                    if (!/\d/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
+                {errors.cccd && (
+                  <div style={{ color: "red", fontSize: 12 }}>
+                    {errors.cccd}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontWeight: 500 }}>CCCD:</label>
-                    <Input
-                      style={{ width: "100%", marginTop: 4 }}
-                      value={customerInfo.cccd}
-                      placeholder="Nhập số CCCD"
-                      onChange={(e) => handleInputChange("cccd", e.target.value)}
-                      status={errors.cccd ? "error" : ""}
-                      maxLength={12}
-                      onKeyPress={(e) => {
-                        if (!/\d/.test(e.key)) {
-                          e.preventDefault();
-                        }
-                      }}
-                    />
-                    {errors.cccd && (
-                      <div style={{ color: "red", fontSize: 12 }}>
-                        {errors.cccd}
-                      </div>
-                    )}
+                )}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 500 }}>Mã số thuế:</label>
+                <Input
+                  style={{ width: "100%", marginTop: 4 }}
+                  value={customerInfo.ma_so_thue_kh}
+                  placeholder="Nhập mã số thuế"
+                  onChange={(e) =>
+                    handleInputChange("ma_so_thue_kh", e.target.value)
+                  }
+                  status={errors.ma_so_thue_kh ? "error" : ""}
+                  maxLength={14}
+                  onKeyPress={(e) => {
+                    if (!/[\d-]/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
+                {errors.ma_so_thue_kh && (
+                  <div style={{ color: "red", fontSize: 12 }}>
+                    {errors.ma_so_thue_kh}
                   </div>
-                </div>
-                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontWeight: 500 }}>Mã số thuế:</label>
+                )}
+                {customerInfo.ma_so_thue_kh && (
+                  <div style={{ marginTop: 8 }}>
+                    <label style={{ fontWeight: 500 }}>Tên công ty:</label>
                     <Input
                       style={{ width: "100%", marginTop: 4 }}
-                      value={customerInfo.ma_so_thue_kh}
-                      placeholder="Nhập mã số thuế"
+                      value={customerInfo.ten_dv_kh}
+                      placeholder="Nhập tên công ty"
                       onChange={(e) =>
-                        handleInputChange("ma_so_thue_kh", e.target.value)
+                        handleInputChange("ten_dv_kh", e.target.value)
                       }
-                      status={errors.ma_so_thue_kh ? "error" : ""}
-                      maxLength={14}
-                      onKeyPress={(e) => {
-                        if (!/[\d-]/.test(e.key)) {
-                          e.preventDefault();
-                        }
-                      }}
-                    />
-                    {errors.ma_so_thue_kh && (
-                      <div style={{ color: "red", fontSize: 12 }}>
-                        {errors.ma_so_thue_kh}
-                      </div>
-                    )}
-                    {customerInfo.ma_so_thue_kh && (
-                      <div style={{ marginTop: 8 }}>
-                        <label style={{ fontWeight: 500 }}>Tên công ty:</label>
-                        <Input
-                          style={{ width: "100%", marginTop: 4 }}
-                          value={customerInfo.ten_dv_kh}
-                          placeholder="Nhập tên công ty"
-                          onChange={(e) =>
-                            handleInputChange("ten_dv_kh", e.target.value)
-                          }
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontWeight: 500 }}>Địa chỉ:</label>
-                    <Input
-                      style={{ width: "100%", marginTop: 4 }}
-                      value={customerInfo.dia_chi}
-                      placeholder="Nhập địa chỉ"
-                      onChange={(e) => handleInputChange("dia_chi", e.target.value)}
                     />
                   </div>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontWeight: 500 }}>Số điện thoại:</label>
-                    <Input
-                      style={{ width: "100%", marginTop: 4 }}
-                      value={customerInfo.so_dt}
-                      placeholder="Nhập số điện thoại"
-                      onChange={(e) => handleInputChange("so_dt", e.target.value)}
-                      status={errors.so_dt ? "error" : ""}
-                      maxLength={12}
-                      onKeyPress={(e) => {
-                        if (!/[\d+]/.test(e.key)) {
-                          e.preventDefault();
-                        }
-                      }}
-                    />
-                    {errors.so_dt && (
-                      <div style={{ color: "red", fontSize: 12 }}>
-                        {errors.so_dt}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontWeight: 500 }}>Email:</label>
-                    <Input
-                      style={{ width: "100%", marginTop: 4 }}
-                      value={customerInfo.email}
-                      placeholder="Nhập email"
-                      type="email"
-                      onChange={(e) => handleInputChange("email", e.target.value)}
-                    />
-                  </div>
-                </div>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 500 }}>Địa chỉ:</label>
+                <Input
+                  style={{ width: "100%", marginTop: 4 }}
+                  value={customerInfo.dia_chi}
+                  placeholder="Nhập địa chỉ"
+                  onChange={(e) => handleInputChange("dia_chi", e.target.value)}
+                />
               </div>
             </div>
-          )}
-          <div style={{ borderBottom: "1px solid #ccc", margin: "16px 0" }}></div>
-        </>
-      )}
-
-      {/* Hiển thị tiền trả trước nếu có */}
-      {totalPrepaid > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <p className="payment-text">
-            <strong>Tiền trả trước:</strong>
-          </p>
-          {prepaidAmounts.benhnhan_tratruoc > 0 && (
-            <div className="payment-summary">
-              <span>Bệnh nhân trả trước:</span>
-              <strong style={{ color: '#1890ff' }}>{formatCurrency(prepaidAmounts.benhnhan_tratruoc)}</strong>
+            <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 500 }}>Số điện thoại:</label>
+                <Input
+                  style={{ width: "100%", marginTop: 4 }}
+                  value={customerInfo.so_dt}
+                  placeholder="Nhập số điện thoại"
+                  onChange={(e) => handleInputChange("so_dt", e.target.value)}
+                  status={errors.so_dt ? "error" : ""}
+                  maxLength={12}
+                  onKeyPress={(e) => {
+                    if (!/[\d+]/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
+                {errors.so_dt && (
+                  <div style={{ color: "red", fontSize: 12 }}>
+                    {errors.so_dt}
+                  </div>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 500 }}>Email:</label>
+                <Input
+                  style={{ width: "100%", marginTop: 4 }}
+                  value={customerInfo.email}
+                  placeholder="Nhập email"
+                  type="email"
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                />
+              </div>
             </div>
-          )}
-          {prepaidAmounts.sinhvien_tratruoc > 0 && (
-            <div className="payment-summary">
-              <span>Sinh viên trả trước:</span>
-              <strong style={{ color: '#1890ff' }}>{formatCurrency(prepaidAmounts.sinhvien_tratruoc)}</strong>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Hiển thị tiền phải thanh toán thêm cho bệnh nhân/sinh viên khi có món thêm */}
-      {(isFamilyMeal || isPrepaidStudent) && total > totalPrepaid && (
-        <div style={{ marginBottom: 16 }}>
-          <p className="payment-text">
-            <strong>Tiền phải thanh toán thêm:</strong>
-          </p>
-          <div className="payment-summary">
-            <span>Chuyển khoản:</span>
-            <strong style={{ color: '#ff4d4f' }}>{formatCurrency(total - totalPrepaid)}</strong>
           </div>
         </div>
       )}
+      <div style={{ borderBottom: "1px solid #ccc", margin: "16px 0" }}></div>
 
-      {/* Ẩn hình thức thanh toán nếu là sinh viên trả trước hoặc người nhà bệnh nhân */}
-      {!isPrepaidStudent && !isFamilyMeal && (
-        <>
-          <p className="payment-text">
-            <strong>Hình thức thanh toán:</strong>
-          </p>
-          <div className="payment-methods">
-            {["chuyen_khoan", "tien_mat", "ca_hai"].map((method) => (
-              <div
-                key={method}
-                className={`payment-option ${
-                  (method === "ca_hai" && selectedPayments.length === 2) ||
-                  (method !== "ca_hai" &&
-                    selectedPayments.includes(method) &&
-                    selectedPayments.length === 1)
-                    ? "selected"
-                    : ""
-                }`}
-                onClick={() => handlePaymentSelection(method)}
-              >
-                {method === "tien_mat"
-                  ? "Tiền mặt"
-                  : method === "chuyen_khoan"
-                  ? "Chuyển khoản"
-                  : "Đa phương thức"}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* Ẩn đồng bộ nếu là sinh viên trả trước hoặc người nhà bệnh nhân */}
-      {!isPrepaidStudent && !isFamilyMeal && (
-        <div style={{ margin: "16px 0" }}>
-          <p className="payment-text">
-            <strong>Đồng bộ:</strong>
-          </p>
-          <Checkbox
-            checked={sync}
-            onChange={(e) => setSync(e.target.checked)}
-            style={{ marginLeft: "8px" }}
+      <p className="payment-text">
+        <strong>Hình thức thanh toán:</strong>
+      </p>
+      <div className="payment-methods">
+        {["chuyen_khoan", "tien_mat", "ca_hai"].map((method) => (
+          <div
+            key={method}
+            className={`payment-option ${
+              (method === "ca_hai" && selectedPayments.length === 2) ||
+              (method !== "ca_hai" &&
+                selectedPayments.includes(method) &&
+                selectedPayments.length === 1)
+                ? "selected"
+                : ""
+            }`}
+            onClick={() => handlePaymentSelection(method)}
           >
-            Đồng bộ
-          </Checkbox>
-        </div>
-      )}
+            {method === "tien_mat"
+              ? "Tiền mặt"
+              : method === "chuyen_khoan"
+              ? "Chuyển khoản"
+              : "Đa phương thức"}
+          </div>
+        ))}
+      </div>
 
-      {/* Chỉ hiển thị phần nhập số tiền khi đã chọn hình thức thanh toán và không phải sinh viên trả trước hoặc người nhà bệnh nhân */}
-      {!isPrepaidStudent && !isFamilyMeal && selectedPayments.length > 0 && (
+      {selectedPayments.length > 0 && (
         <>
           {showQRCode && (
             <div className="qr-code-container">
@@ -528,7 +444,7 @@ const PaymentModal = ({
                   gap: 8,
                 }}
               >
-                <VietQR amount={Math.max(0, total - totalPrepaid)} soChungTu={""} size={200} />
+                <VietQR amount={Math.max(0, total)} soChungTu={""} size={200} />
                 <div className="qr-info">
                   {accountName?.split(" - ").map((line, index) => (
                     <div key={index} className="qr-info-line">
@@ -537,7 +453,7 @@ const PaymentModal = ({
                   ))}
                   <div className="qr-info-line">{account}</div>
                   <div className="qr-info-line">
-                    Số tiền: {formatCurrency(Math.max(0, total - totalPrepaid))}đ
+                    Số tiền: {formatCurrency(Math.max(0, total))}đ
                   </div>
                 </div>
               </div>
@@ -611,23 +527,18 @@ const PaymentModal = ({
         </>
       )}
 
-      {/* Ẩn phần trả lại cho sinh viên trả trước hoặc người nhà bệnh nhân */}
-      {!isPrepaidStudent && !isFamilyMeal && (
-        <>
-          <div className="payment-divider"></div>
+      <div className="payment-divider"></div>
 
-          <div className="payment-summary">
-            <span>Trả lại:</span>
-            <strong style={{ color: change < 0 ? "red" : "black" }}>
-              {formatCurrency(change)}
-            </strong>
-          </div>
+      <div className="payment-summary">
+        <span>Trả lại:</span>
+        <strong style={{ color: change < 0 ? "red" : "black" }}>
+          {formatCurrency(change)}
+        </strong>
+      </div>
 
-          <div className="w-full text-right">
-            <p>{num2words(change)}</p>
-          </div>
-        </>
-      )}
+      <div className="w-full text-right">
+        <p>{num2words(change)}</p>
+      </div>
 
       <div className="payment-footer">
         <Button
@@ -657,13 +568,12 @@ const PaymentModal = ({
             };
 
             const adjustedPaymentAmounts = { ...paymentAmounts };
-            const remainingAfterPrepaid = Math.max(0, total - totalPrepaid);
             if (selectedPayments.includes("tien_mat")) {
               if (selectedPayments.length === 1) {
-                adjustedPaymentAmounts.tien_mat = remainingAfterPrepaid;
+                adjustedPaymentAmounts.tien_mat = total;
               } else {
                 adjustedPaymentAmounts.tien_mat =
-                  remainingAfterPrepaid - (adjustedPaymentAmounts.chuyen_khoan || 0);
+                  total - (adjustedPaymentAmounts.chuyen_khoan || 0);
               }
             }
 
@@ -678,27 +588,20 @@ const PaymentModal = ({
           disabled={
             isCreatingOrder ||
             isSubmitting ||
-            // Nếu là sinh viên trả trước hoặc người nhà bệnh nhân, cho phép thanh toán luôn
-            (isPrepaidStudent || isFamilyMeal
-              ? false
-              : // Nếu đã trả đủ bằng prepaid, cho phép thanh toán luôn
-              totalPrepaid >= total
-              ? false
-              : // Nếu chưa đủ, phải chọn httt và số tiền phải đủ
-                selectedPayments.length === 0 ||
-                (selectedPayments.length === 2
-                  ? Object.values(paymentAmounts).reduce(
-                      (sum, val) => sum + val,
-                      0
-                    ) + totalPrepaid !== total
-                  : Object.values(paymentAmounts).reduce(
-                      (sum, val) => sum + val,
-                      0
-                    ) + totalPrepaid < total))
+            selectedPayments.length === 0 ||
+            (selectedPayments.length === 2
+              ? Object.values(paymentAmounts).reduce(
+                  (sum, val) => sum + val,
+                  0
+                ) !== total
+              : Object.values(paymentAmounts).reduce(
+                  (sum, val) => sum + val,
+                  0
+                ) < total)
           }
           loading={isCreatingOrder || isSubmitting}
         >
-          {isPrepaidStudent || isFamilyMeal ? "Xác nhận" : "Thanh toán"}
+          Thanh toán
         </Button>
       </div>
     </Modal>

@@ -20,17 +20,10 @@ export default function OrderList({ order, currentTab }) {
     (state) => state.claimsReducer.userInfo || {}
   );
 
-  // Kiểm tra chế độ read-only cho sinh viên trả trước và trả sau
-  const isPrepaidStudent =
-    currentTab?.master?.isPrepaidStudent ||
-    currentTab?.metadata?.isPrepaidStudent;
-  const isPostpaidStudent =
-    currentTab?.master?.isPostpaidStudent ||
-    currentTab?.metadata?.isPostpaidStudent;
   const isReadOnly =
     currentTab?.master?.isReadOnly || currentTab?.metadata?.isReadOnly;
   const isConfirmed = currentTab?.metadata?.isConfirmed;
-  const isReadOnlyMode = (isPrepaidStudent && isReadOnly) || (isPostpaidStudent && isReadOnly) || isConfirmed;
+  const isReadOnlyMode = isConfirmed;
 
   const handleAddNote = async (item) => {
     dispatch(setSelectedItem(item));

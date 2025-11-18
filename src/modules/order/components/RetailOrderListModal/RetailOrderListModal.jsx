@@ -10,6 +10,7 @@ import {
   Modal,
   notification,
   Select,
+  Space,
   Spin,
   Table,
   Tag,
@@ -231,28 +232,47 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       ),
       dataIndex: "ma_ban",
       key: "ma_ban",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div className="filter-dropdown">
-          <Input
-            placeholder="Tìm kiếm Mã bàn"
-            value={selectedKeys[0]}
-            onChange={(e) =>
-              setSelectedKeys(e.target.value ? [e.target.value] : [])
-            }
-            onPressEnter={() =>
-              handleFilter("ma_ban", selectedKeys[0], confirm)
-            }
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => handleFilter("ma_ban", selectedKeys[0], confirm)}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
+      filterDropdown: ({ setSelectedKeys, selectedKeys = [], confirm }) => {
+        const currentValue = selectedKeys?.[0] || "";
+        return (
+          <div className="retail-order_filterDropdown">
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Input
+                allowClear
+                placeholder="Tìm kiếm Mã bàn"
+                value={currentValue}
+                onChange={(e) => {
+                  const { value } = e.target;
+                  setSelectedKeys(value ? [value] : []);
+                }}
+                onPressEnter={() =>
+                  handleFilter("ma_ban", currentValue, confirm)
+                }
+              />
+              <div className="retail-order_filterActions">
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() =>
+                    handleFilter("ma_ban", currentValue, confirm)
+                  }
+                >
+                  Tìm kiếm
+                </Button>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setSelectedKeys([]);
+                    handleFilter("ma_ban", "", confirm);
+                  }}
+                >
+                  Làm mới
+                </Button>
+              </div>
+            </Space>
+          </div>
+        );
+      },
     },
     {
       title: () => (
@@ -263,123 +283,98 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       dataIndex: "so_ct",
       key: "so_ct",
       width: 200,
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div className="filter-dropdown">
-          <Input
-            placeholder="Tìm kiếm Số CT"
-            value={selectedKeys[0]}
-            onChange={(e) =>
-              setSelectedKeys(e.target.value ? [e.target.value] : [])
-            }
-            onPressEnter={() => handleFilter("so_ct", selectedKeys[0], confirm)}
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => handleFilter("so_ct", selectedKeys[0], confirm)}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
+      filterDropdown: ({ setSelectedKeys, selectedKeys = [], confirm }) => {
+        const currentValue = selectedKeys?.[0] || "";
+        return (
+          <div className="retail-order_filterDropdown">
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Input
+                allowClear
+                placeholder="Tìm kiếm Số CT"
+                value={currentValue}
+                onChange={(e) => {
+                  const { value } = e.target;
+                  setSelectedKeys(value ? [value] : []);
+                }}
+                onPressEnter={() =>
+                  handleFilter("so_ct", currentValue, confirm)
+                }
+              />
+              <div className="retail-order_filterActions">
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() =>
+                    handleFilter("so_ct", currentValue, confirm)
+                  }
+                >
+                  Tìm kiếm
+                </Button>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setSelectedKeys([]);
+                    handleFilter("so_ct", "", confirm);
+                  }}
+                >
+                  Làm mới
+                </Button>
+              </div>
+            </Space>
+          </div>
+        );
+      },
     },
     {
       title: "Ngày CT",
       dataIndex: "ngay_ct",
       key: "ngay_ct",
       width: 200,
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div className="filter-dropdown">
-          <DatePicker
-            inputReadOnly
-            onChange={(date) => {
-              setSelectedKeys(date ? [date.format("DD/MM/YYYY")] : []);
-            }}
-            format="DD/MM/YYYY"
-            placeholder="Chọn ngày CT"
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => handleFilter("ngay_ct", selectedKeys[0], confirm)}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
+      filterDropdown: ({ setSelectedKeys, selectedKeys = [], confirm }) => {
+        const currentValue = selectedKeys?.[0] || "";
+        return (
+          <div className="retail-order_filterDropdown">
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <DatePicker
+                inputReadOnly
+                format="DD/MM/YYYY"
+                placeholder="Chọn ngày CT"
+                style={{ width: "100%" }}
+                onChange={(date) => {
+                  const formatted = date ? date.format("DD/MM/YYYY") : "";
+                  setSelectedKeys(formatted ? [formatted] : []);
+                }}
+              />
+              <div className="retail-order_filterActions">
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() =>
+                    handleFilter("ngay_ct", currentValue, confirm)
+                  }
+                >
+                  Tìm kiếm
+                </Button>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setSelectedKeys([]);
+                    handleFilter("ngay_ct", "", confirm);
+                  }}
+                >
+                  Làm mới
+                </Button>
+              </div>
+            </Space>
+          </div>
+        );
+      },
     },
     {
       title: "Tổng tiền",
       dataIndex: "t_tt",
       key: "t_tt",
       render: (value) => `${value?.toLocaleString() || 0} VND`,
-    },
-    {
-      title: "Yêu cầu đồng bộ",
-      dataIndex: "s3",
-      key: "s3",
-      align: "center",
-      render: (value) => (
-        <Tag color={value === true ? "green" : "red"}>
-          {value === true ? "Đồng bộ" : "Không đồng bộ"}
-        </Tag>
-      ),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div className="filter-dropdown">
-          <Select
-            placeholder="Chọn"
-            value={selectedKeys[0]}
-            onChange={(value) => setSelectedKeys(value ? [value] : [])}
-          >
-            <Select.Option value="1">Có đồng bộ</Select.Option>
-            <Select.Option value="0">Không đồng bộ</Select.Option>
-          </Select>
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => handleFilter("s3", selectedKeys[0], confirm)}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
-    },
-    {
-      title: "Đồng bộ",
-      dataIndex: "s2",
-      key: "s2",
-      align: "center",
-      render: (value) => {
-        const isSynchronized = value.trim() === "Synchronize";
-        return (
-          <Tag color={isSynchronized ? "green" : "red"}>
-            {isSynchronized ? "Thành công" : "Thất bại"}
-          </Tag>
-        );
-      },
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div className="filter-dropdown">
-          <Select
-            placeholder="Chọn"
-            value={selectedKeys[0]}
-            onChange={(value) => setSelectedKeys(value ? [value] : [])}
-          >
-            <Select.Option value="Synchronize     ">Thành công</Select.Option>
-            <Select.Option value="*">Thất bại</Select.Option>
-          </Select>
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => handleFilter("s2", selectedKeys[0], confirm)}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
     },
     {
       title: "Trạng thái",
@@ -389,26 +384,44 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       render: (text) => (
         <Tag color={text === "Hoàn thành" ? "green" : "yellow"}>{text}</Tag>
       ),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div className="filter-dropdown">
-          <Select
-            placeholder="Chọn trạng thái"
-            value={selectedKeys[0]}
-            onChange={(value) => setSelectedKeys(value ? [value] : [])}
-          >
-            <Select.Option value="2">Hoàn thành</Select.Option>
-            <Select.Option value="0">Chưa hoàn thành</Select.Option>
-          </Select>
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => handleFilter("status", selectedKeys[0], confirm)}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
+      filterDropdown: ({ setSelectedKeys, selectedKeys = [], confirm }) => {
+        const currentValue = selectedKeys?.[0] || undefined;
+        return (
+          <div className="retail-order_filterDropdown">
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Select
+                allowClear
+                placeholder="Chọn trạng thái"
+                value={currentValue}
+                onChange={(value) => setSelectedKeys(value ? [value] : [])}
+              >
+                <Select.Option value="2">Hoàn thành</Select.Option>
+                <Select.Option value="0">Chưa hoàn thành</Select.Option>
+              </Select>
+              <div className="retail-order_filterActions">
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() =>
+                    handleFilter("status", currentValue || "", confirm)
+                  }
+                >
+                  Tìm kiếm
+                </Button>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setSelectedKeys([]);
+                    handleFilter("status", "", confirm);
+                  }}
+                >
+                  Làm mới
+                </Button>
+              </div>
+            </Space>
+          </div>
+        );
+      },
     },
     {
       title: "Chức năng",

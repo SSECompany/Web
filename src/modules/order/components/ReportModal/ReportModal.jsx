@@ -1,8 +1,22 @@
-import { Button, DatePicker, Modal, Table } from "antd";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Button, DatePicker, Input, Modal, Space, Table } from "antd";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { multipleTablePutApi } from "../../../../api";
 import { formatNumber } from "../../../../app/hook/dataFormatHelper";
+import ReportExportExcelButton from "./ReportExportExcelButton";
 import "./ReportModal.css";
+
+const DEFAULT_FILTERS = {
+  so_ct: "",
+  ma_ban: "",
+  ten_vt: "",
+  nh_vt1: "",
+};
 
 const SUMMARY_FIELDS = [
   "ten_nhan_vien",
@@ -10,6 +24,7 @@ const SUMMARY_FIELDS = [
   "so_ct",
   "ngay_ct",
   "datetime2",
+  "nh_vt1",
   "so_luong",
   "gia_ban",
   "thanh_tien",
@@ -46,16 +61,21 @@ const BOLD_CELL_STYLE = { fontWeight: "bold", textAlign: "center" };
 
 const ReportModal = ({ isOpen, onClose, unitId, id }) => {
   const [dataSource, setDataSource] = useState([]);
+  const [filters, setFilters] = useState(() => ({ ...DEFAULT_FILTERS }));
+  const [selectedDate, setSelectedDate] = useState(formatDate(new Date()));
+  const filtersRef = useRef(filters);
+  const fetchDataRef = useRef(() => {});
 
   const fetchData = useCallback(
-    async (filterNgayCT) => {
+    async (overrideNgayCT, overrideFilters) => {
       try {
-        const ngayCT = filterNgayCT || formatDate(new Date());
+        const effectiveFilters = overrideFilters || filtersRef.current;
+        const ngayCT = overrideNgayCT || selectedDate || formatDate(new Date());
 
         const res = await multipleTablePutApi({
           store: "api_get_pos_order_manv",
           param: {
-            so_ct: "",
+            so_ct: effectiveFilters.so_ct?.trim() || "",
             ma_kh: "",
             ten_kh: "",
             dien_thoai: "",
@@ -67,7 +87,9 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
             Status: "",
             Userid: id,
             username: "",
-            ma_ban: "",
+            ma_ban: effectiveFilters.ma_ban?.trim() || "",
+            ten_vt: effectiveFilters.ten_vt?.trim() || "",
+            nh_vt1: effectiveFilters.nh_vt1?.trim() || "",
           },
           data: {},
         });
@@ -86,7 +108,75 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         console.error("❌ Lỗi khi lấy dữ liệu:", err);
       }
     },
-    [unitId, id]
+    [unitId, id, selectedDate]
+  );
+
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
+  useEffect(() => {
+    fetchDataRef.current = fetchData;
+  }, [fetchData]);
+
+  const applyFilter = useCallback(
+    (key, value) => {
+      const trimmedValue = value?.trim() || "";
+      setFilters((prev) => {
+        const next = { ...prev, [key]: trimmedValue };
+        filtersRef.current = next;
+        fetchData(undefined, next);
+        return next;
+      });
+    },
+    [fetchData]
+  );
+
+  const renderTextFilterDropdown = useCallback(
+    (dataIndex, placeholder) => {
+      return ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div className="report-modal_filterDropdown">
+          <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Input
+              placeholder={placeholder}
+              value={selectedKeys?.[0] || ""}
+              onChange={(event) => {
+                const { value } = event.target;
+                setSelectedKeys(value ? [value] : []);
+              }}
+              onPressEnter={() => {
+                confirm({ closeDropdown: true });
+                applyFilter(dataIndex, selectedKeys?.[0] || "");
+              }}
+              allowClear
+            />
+            <div className="report-modal_filterActions">
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => {
+                  confirm({ closeDropdown: true });
+                  applyFilter(dataIndex, selectedKeys?.[0] || "");
+                }}
+              >
+                Tìm kiếm
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  setSelectedKeys([]);
+                  confirm({ closeDropdown: true });
+                  applyFilter(dataIndex, "");
+                }}
+              >
+                Làm mới
+              </Button>
+            </div>
+          </Space>
+        </div>
+      );
+    },
+    [applyFilter]
   );
 
   const columns = useMemo(
@@ -98,41 +188,73 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         key: "ten_nhan_vien",
         width: 150,
       },
-      { title: "Mã bàn", dataIndex: "ma_ban", key: "ma_ban", width: 100 },
-      { title: "Số CT", dataIndex: "so_ct", key: "so_ct", width: 100 },
+      {
+        title: "Mã bàn",
+        dataIndex: "ma_ban",
+        key: "ma_ban",
+        width: 100,
+        filteredValue: filters.ma_ban ? [filters.ma_ban] : null,
+        filterDropdown: renderTextFilterDropdown("ma_ban", "Nhập mã bàn"),
+      },
+      {
+        title: "Số CT",
+        dataIndex: "so_ct",
+        key: "so_ct",
+        width: 100,
+        filteredValue: filters.so_ct ? [filters.so_ct] : null,
+        filterDropdown: renderTextFilterDropdown("so_ct", "Nhập số CT"),
+      },
       {
         title: "Ngày CT",
         dataIndex: "ngay_ct",
         key: "ngay_ct",
         width: 120,
+        filteredValue: selectedDate ? [selectedDate] : null,
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <DatePicker
-              inputReadOnly
-              onChange={(date) => {
-                if (date) {
-                  setSelectedKeys([date.format("DD/MM/YYYY")]);
-                } else {
-                  setSelectedKeys([]);
-                }
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-              format="DD/MM/YYYY"
-              placeholder="Chọn ngày CT"
-            />
-            <Button
-              className="search_button"
-              type="primary"
-              onClick={() => {
-                confirm();
-                if (selectedKeys[0]) {
-                  fetchData(selectedKeys[0]);
-                }
-              }}
-              size="small"
-            >
-              Tìm kiếm
-            </Button>
+          <div className="report-modal_filterDropdown">
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <DatePicker
+                inputReadOnly
+                onChange={(date) => {
+                  if (date) {
+                    setSelectedKeys([date.format("DD/MM/YYYY")]);
+                  } else {
+                    setSelectedKeys([]);
+                  }
+                }}
+                format="DD/MM/YYYY"
+                placeholder="Chọn ngày CT"
+                style={{ width: "100%" }}
+              />
+              <div className="report-modal_filterActions">
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() => {
+                    confirm({ closeDropdown: true });
+                    const value = selectedKeys?.[0] || "";
+                    if (value) {
+                      setSelectedDate(value);
+                      fetchData(value);
+                    }
+                  }}
+                >
+                  Tìm kiếm
+                </Button>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setSelectedKeys([]);
+                    confirm({ closeDropdown: true });
+                    const today = formatDate(new Date());
+                    setSelectedDate(today);
+                    fetchData(today);
+                  }}
+                >
+                  Làm mới
+                </Button>
+              </div>
+            </Space>
           </div>
         ),
       },
@@ -142,7 +264,22 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         key: "datetime2",
         width: 130,
       },
-      { title: "Tên món", dataIndex: "ten_mon", key: "ten_mon", width: 150 },
+      {
+        title: "Tên món",
+        dataIndex: "ten_mon",
+        key: "ten_mon",
+        width: 150,
+        filteredValue: filters.ten_vt ? [filters.ten_vt] : null,
+        filterDropdown: renderTextFilterDropdown("ten_vt", "Nhập tên món"),
+      },
+      {
+        title: "Nhóm món",
+        dataIndex: "nh_vt1",
+        key: "nh_vt1",
+        width: 140,
+        filteredValue: filters.nh_vt1 ? [filters.nh_vt1] : null,
+        filterDropdown: renderTextFilterDropdown("nh_vt1", "Nhập nhóm món"),
+      },
       {
         title: "Số lượng",
         dataIndex: "so_luong",
@@ -176,7 +313,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         hidden: true,
       },
     ],
-    [fetchData]
+    [filters, renderTextFilterDropdown, selectedDate, fetchData]
   );
 
   const formatCellText = useCallback((col, text, record) => {
@@ -253,9 +390,9 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
 
   useEffect(() => {
     if (isOpen) {
-      fetchData();
+      fetchDataRef.current();
     }
-  }, [isOpen, fetchData]);
+  }, [isOpen]);
 
   return (
     <Modal
@@ -268,6 +405,12 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
       footer={null}
     >
       <div className="report-modal_Container">
+        <div className="report-modal_actions">
+          <ReportExportExcelButton
+            dataSource={dataSource}
+            selectedDate={selectedDate}
+          />
+        </div>
         <Table
           className="report-modal-table"
           columns={optimizedColumns}

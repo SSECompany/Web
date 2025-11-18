@@ -120,45 +120,30 @@ const callPrintOrderApi = async (sttRec, userId) => {
 const runParallelTasks = async (
   sttRec,
   userId,
-  sync = true,
-  isPrepaidStudent = false,
-  isPostpaidStudent = false
+  sync = true
 ) => {
   const parallelTasks = [];
 
-  // Thêm task đồng bộ (nếu có)
-  if (sync) {
-    const syncTask = callSyncFastApi(sttRec, userId)
-      .then((result) => {
-        return { type: "sync", success: result.success, result: result.result };
-      })
-      .catch((syncError) => {
-        return { type: "sync", success: false, error: syncError };
+  // Bỏ qua việc gọi InvoiceReceipt (đồng bộ) theo yêu cầu
+
+  // Thêm task in order
+  const printTask = callPrintOrderApi(sttRec, userId)
+    .then((result) => {
+      return {
+        type: "print",
+        success: result.success,
+        result: result.result,
+      };
+    })
+    .catch((printError) => {
+      notification.error({
+        message: "Có lỗi xảy ra khi in đơn hàng!",
+        description: printError.message,
       });
+      return { type: "print", success: false, error: printError };
+    });
 
-    parallelTasks.push(syncTask);
-  }
-
-  // Thêm task in order - GỌI TRỰC TIẾP API (bỏ qua nếu là sinh viên trả trước hoặc trả sau)
-  if (!isPrepaidStudent && !isPostpaidStudent) {
-    const printTask = callPrintOrderApi(sttRec, userId)
-      .then((result) => {
-        return {
-          type: "print",
-          success: result.success,
-          result: result.result,
-        };
-      })
-      .catch((printError) => {
-        notification.error({
-          message: "Có lỗi xảy ra khi in đơn hàng!",
-          description: printError.message,
-        });
-        return { type: "print", success: false, error: printError };
-      });
-
-    parallelTasks.push(printTask);
-  }
+  parallelTasks.push(printTask);
 
   // Chạy tất cả tasks SONG SONG
   return Promise.allSettled(parallelTasks)
@@ -204,23 +189,10 @@ export default function OrderSummary({ total, itemCount }) {
     (tab) => tab.internalId === internalActiveTabId
   );
 
-  // Kiểm tra chế độ read-only cho sinh viên đã xác nhận
-  const isPrepaidStudent =
-    activeTab?.master?.isPrepaidStudent ||
-    activeTab?.metadata?.isPrepaidStudent;
-  const isPostpaidStudent =
-    activeTab?.master?.isPostpaidStudent ||
-    activeTab?.metadata?.isPostpaidStudent;
   const isReadOnly =
     activeTab?.master?.isReadOnly || activeTab?.metadata?.isReadOnly;
   const isConfirmed = activeTab?.metadata?.isConfirmed;
-  const isStudentReadOnlyMode =
-    (isPrepaidStudent && isReadOnly) ||
-    (isPostpaidStudent && isReadOnly) ||
-    isConfirmed;
-
-  // Kiểm tra có phải đơn người nhà bệnh nhân không
-  const isFamilyMeal = Number(activeTab?.master?.benhnhan_tratruoc || 0) > 0;
+  const isStudentReadOnlyMode = isConfirmed;
 
   // Kiểm tra xem có phải khách hàng truy cập từ QR không
   const isCustomerQR = () => {
@@ -265,47 +237,22 @@ export default function OrderSummary({ total, itemCount }) {
     let finalTienMat = 0;
     let finalChuyenKhoan = 0;
     const totalAmount = Number(activeTab?.master?.tong_tien || 0);
-    const totalPrepaid = Number(activeTab?.master?.benhnhan_tratruoc || 0) + Number(activeTab?.master?.sinhvien_tratruoc || 0);
-    const remainingAmount = totalAmount - totalPrepaid;
-
-    // Xây dựng httt: nếu có prepaid method, thêm vào đầu
-    const initialHttt = activeTab?.master?.httt || "";
-    const isPrepaidMethod = initialHttt === "benhnhan_tratruoc" || initialHttt === "sinhvien_tratruoc";
-
-    // Kiểm tra nếu là bệnh nhân/sinh viên trả trước và có thêm món (tổng tiền > tiền trả trước)
-    const hasPrepaidExtra = isPrepaidMethod && totalPrepaid > 0 && remainingAmount > 0;
 
     let finalHttt = "";
 
-    if (hasPrepaidExtra) {
-      // Trường hợp trả trước + thêm món: tự động dùng chuyển khoản cho phần thêm
-      finalChuyenKhoan = remainingAmount;
-      finalTienMat = 0;
-      finalHttt = `${initialHttt},chuyen_khoan`;
-    } else if (selectedPayments.length === 1) {
+    if (selectedPayments.length === 1) {
       if (selectedPayments[0] === "tien_mat") {
-        finalTienMat = remainingAmount;
+        finalTienMat = totalAmount;
       } else {
-        finalChuyenKhoan = remainingAmount;
+        finalChuyenKhoan = totalAmount;
       }
       finalHttt = selectedPayments.join(",");
-      if (isPrepaidMethod && totalPrepaid > 0) {
-        finalHttt = `${initialHttt},${selectedPayments.join(",")}`;
-      }
     } else if (selectedPayments.length === 2) {
       finalChuyenKhoan = Number(paymentAmounts.chuyen_khoan || 0);
-      finalTienMat = remainingAmount - finalChuyenKhoan;
+      finalTienMat = totalAmount - finalChuyenKhoan;
       finalHttt = selectedPayments.join(",");
-      if (isPrepaidMethod && totalPrepaid > 0) {
-        finalHttt = `${initialHttt},${selectedPayments.join(",")}`;
-      }
     } else {
-      // Không có payment method nào được chọn
-      if (isPrepaidMethod && totalPrepaid > 0) {
-        finalHttt = initialHttt;
-      } else {
-        finalHttt = selectedPayments.join(",");
-      }
+      finalHttt = selectedPayments.join(",");
     }
 
     const masterData = {
@@ -316,8 +263,6 @@ export default function OrderSummary({ total, itemCount }) {
       tong_sl: Number(activeTab?.master?.tong_sl || 0).toString(),
       tien_mat: finalTienMat.toString(),
       chuyen_khoan: finalChuyenKhoan.toString(),
-      benhnhan_tratruoc: (activeTab?.master?.benhnhan_tratruoc || 0).toString(),
-      sinhvien_tratruoc: (activeTab?.master?.sinhvien_tratruoc || 0).toString(),
       tong_tt: totalAmount.toString(),
       httt: finalHttt,
       stt_rec: activeTab?.master?.stt_rec || "",
@@ -338,13 +283,19 @@ export default function OrderSummary({ total, itemCount }) {
       s3: sync ? "1" : "0",
       StoreID: activeTab?.master?.StoreID || storeId || "",
       fcode1: "",
-      // Thêm 3 trường cho sinh viên trả trước
-      ngay_ct: activeTab?.master?.ngay_ct || activeTab?.metadata?.ngay_ct || "",
-      ma_gd: activeTab?.master?.ma_gd || activeTab?.metadata?.ma_gd || "",
+      // Các trường bắt buộc bổ sung cho master
+      ngay_ct:
+        activeTab?.master?.ngay_ct ||
+        new Date().toISOString().split("T")[0],
+      ma_gd: activeTab?.master?.ma_gd || "2",
       typeStudent:
-        activeTab?.master?.typeStudent ||
         activeTab?.metadata?.typeStudent ||
+        activeTab?.master?.typeStudent ||
         "",
+      // Cờ phân loại trả trước
+      sinhvien_tratruoc:
+        activeTab?.metadata?.typeStudent === "prepaid_student" ? "1" : "0",
+      benhnhan_tratruoc: activeTab?.master?.benhnhan_tratruoc || "0",
     };
 
     const detailData = activeTab?.detail?.flatMap((item) => {
@@ -356,7 +307,7 @@ export default function OrderSummary({ total, itemCount }) {
         ma_vt: item.ma_vt,
         so_luong: (item.so_luong || 0).toString(),
         don_gia: (item.don_gia || 0).toString(),
-        thanh_tien: ((item.so_luong || 0) * (item.don_gia || 0)).toString(),
+        thanh_tien: (item.thanh_tien || ((item.so_luong || 0) * (item.don_gia || 0))).toString(),
         ghi_chu: item.ghi_chu || "",
         // gc_td1 giờ chứa mã vật tư ban đầu
         gc_td1: item.gc_td1 || "",
@@ -364,6 +315,9 @@ export default function OrderSummary({ total, itemCount }) {
         ap_voucher: item.ap_voucher || "0",
         // Thêm mã ca bọc nếu có
         ma_ca: item.selected_meal?.shift || "",
+        // Thêm thông tin giảm giá
+        tl_ck: item.tl_ck || "0",
+        ck_nt: item.ck_nt || "0",
       };
       const extras = (item.extras || []).map((extra) => {
         const quantity = parseFloat(extra.quantity || extra.so_luong || 0);
@@ -441,23 +395,10 @@ export default function OrderSummary({ total, itemCount }) {
           }
 
           if (!isSaveOnly) {
-            // Kiểm tra xem có phải sinh viên trả trước hoặc trả sau không
-            const currentTab = orders.find(
-              (tab) => tab.internalId === internalActiveTabId
-            );
-            const isPrepaidStudent =
-              currentTab?.master?.typeStudent === "prepaid_student" ||
-              currentTab?.metadata?.typeStudent === "prepaid_student";
-            const isPostpaidStudent =
-              currentTab?.master?.typeStudent === "postpaid_student" ||
-              currentTab?.metadata?.typeStudent === "postpaid_student";
-
             runParallelTasks(
               sttRec,
               id,
-              true,
-              isPrepaidStudent,
-              isPostpaidStudent
+              true
             )
               .then((results) => {
                 // Silent success - chạy background
@@ -531,24 +472,7 @@ export default function OrderSummary({ total, itemCount }) {
       if (!hasPrinted) {
         hasPrinted = true;
         setIsPrinting(false);
-
-        if (currentPrintData && !hasReprinted) {
-          Modal.confirm({
-            title: "In thêm bản khác?",
-            content: "Bạn có muốn in thêm một bản nữa không?",
-            onOk: () => {
-              setHasReprinted(true);
-              handleReprint();
-            },
-            onCancel: () => {
-              setTimeout(() => handleSaveOrder(), 100);
-            },
-            okText: "In thêm",
-            cancelText: "Đóng",
-          });
-        } else {
-          setTimeout(() => handleSaveOrder(), 100);
-        }
+        setTimeout(() => handleSaveOrder(), 100);
       }
     },
   });
@@ -684,43 +608,36 @@ export default function OrderSummary({ total, itemCount }) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
         const orderNumber = response?.listObject[0][0]?.so_ct;
 
-        // BƯỚC 2: Mở hộp thoại in NGAY LẬP TỨC
-        setPrintMaster(orderData.masterData);
-        setPrintDetail(orderData.detailData);
-        setCurrentPrintData({
-          master: orderData.masterData,
-          detail: orderData.detailData,
-          selectedPayments,
-          paymentAmounts,
-          customerInfo,
-          sttRec,
-          orderNumber,
-          syncSuccess: false,
-          printSuccess: false,
-          sync,
-        });
-        setHasReprinted(false);
-        setIsPrinting(true);
-        setIsPrinted(false);
-
-        // Kiểm tra xem có phải sinh viên trả trước hoặc trả sau không
-        const currentTab = orders.find(
-          (tab) => tab.internalId === internalActiveTabId
-        );
-        const isPrepaidStudent =
-          currentTab?.master?.typeStudent === "prepaid_student" ||
-          currentTab?.metadata?.typeStudent === "prepaid_student";
-        const isPostpaidStudent =
-          currentTab?.master?.typeStudent === "postpaid_student" ||
-          currentTab?.metadata?.typeStudent === "postpaid_student";
-
-        runParallelTasks(sttRec, id, sync, isPrepaidStudent, isPostpaidStudent)
-          .then((results) => {
-            // Silent success - chạy background
-          })
-          .catch((error) => {
-            // Silent error - already handled by simpleSyncGuard
+        if (sttRec) {
+          // BƯỚC 2: Mở hộp thoại in NGAY LẬP TỨC
+          setPrintMaster(orderData.masterData);
+          setPrintDetail(orderData.detailData);
+          setCurrentPrintData({
+            master: orderData.masterData,
+            detail: orderData.detailData,
+            selectedPayments,
+            paymentAmounts,
+            customerInfo,
+            sttRec,
+            orderNumber,
+            sync,
           });
+          setHasReprinted(false);
+          setIsPrinting(true);
+          setIsPrinted(false);
+
+          runParallelTasks(
+            sttRec,
+            id,
+            sync
+          )
+            .then(() => {
+              // Silent success - chạy background
+            })
+            .catch(() => {
+              // Silent error - already được guard
+            });
+        }
 
         // Thông báo thành công ngay lập tức
         notification.success({
@@ -728,13 +645,26 @@ export default function OrderSummary({ total, itemCount }) {
           duration: 4,
         });
 
-        // ✅ Không gọi handleClosePaymentModal() ở đây nữa vì đã đóng ở trên
+        // Reset trạng thái sau khi thanh toán thành công
+        setIsProcessingPayment(false);
+        setIsCreatingOrder(false);
+
+        if (!sttRec) {
+          // Nếu không có stt_rec để in, clear dữ liệu ngay
+          dispatch(clearTabData(internalActiveTabId));
+          dispatch(removeTab({ internalId: internalActiveTabId }));
+        }
+
+        // Đóng modal thanh toán (modal đã được đóng bởi closeModalOnConfirm, nhưng đảm bảo trạng thái)
+        setIsPaymentModalVisible(false);
+        setIsCustomerPaymentModalVisible(false);
       } else {
         notification.warning({
           message: "Thanh toán thất bại!",
           description: response?.responseModel?.message,
         });
         setIsProcessingPayment(false);
+        setIsCreatingOrder(false);
       }
     } catch (error) {
       notification.error({
@@ -742,7 +672,6 @@ export default function OrderSummary({ total, itemCount }) {
         description: error.message,
       });
       setIsProcessingPayment(false);
-    } finally {
       setIsCreatingOrder(false);
     }
   };
@@ -1057,12 +986,6 @@ export default function OrderSummary({ total, itemCount }) {
           ten_dv_kh: (activeTab?.master?.ten_dv_kh || "").trim(),
         }}
         initialSync={activeTab?.master?.s3 !== "0"}
-        prepaidAmounts={{
-          benhnhan_tratruoc: activeTab?.master?.benhnhan_tratruoc || 0,
-          sinhvien_tratruoc: activeTab?.master?.sinhvien_tratruoc || 0,
-        }}
-        isPrepaidStudent={isPrepaidStudent}
-        isFamilyMeal={isFamilyMeal}
       />
 
       <CustomerPaymentModal

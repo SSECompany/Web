@@ -8,14 +8,11 @@ import Loading from "../../components/common/Loading/Loading";
 import SelectTableModal from "../../components/common/Modal/ModalSelectTable";
 import Navbar from "../../components/layout/Navbar/Navbar";
 import Category from "../../modules/order/components/Category/Category";
-import FamilyMealListModal from "../../modules/order/components/FamilyMealListModal/FamilyMealListModal";
 import MenuGrid from "../../modules/order/components/Menu/MenuGrid";
 import OrderList from "../../modules/order/components/OrderList/OrderList";
 import OrderSummary from "../../modules/order/components/OrderSummary/OrderSummary";
-import PrepaidStudentMealListModal from "../../modules/order/components/PrepaidStudentMealListModal/PrepaidStudentMealListModal";
 import ReportModal from "../../modules/order/components/ReportModal/ReportModal";
 import RetailOrderListModal from "../../modules/order/components/RetailOrderListModal/RetailOrderListModal";
-import StudentMealListModal from "../../modules/order/components/StudentMealListModal/StudentMealListModal";
 
 import {
   addOrderFromSignal,
@@ -469,18 +466,6 @@ const POSPage = () => {
     dispatchModal({ type: "TOGGLE_SELECT_TABLE" });
   }, []);
 
-  const handleFamilyMealList = useCallback(() => {
-    dispatchModal({ type: "TOGGLE_FAMILY_MEAL_LIST" });
-  }, []);
-
-  const handlePrepaidStudentMealList = useCallback(() => {
-    dispatchModal({ type: "TOGGLE_PREPAID_STUDENT_MEAL_LIST" });
-  }, []);
-
-  const handleStudentMealList = useCallback(() => {
-    dispatchModal({ type: "TOGGLE_STUDENT_MEAL_LIST" });
-  }, []);
-
   return (
     <div className="pos-page">
       <div>{jwt.checkExistToken() && <Navbar />}</div>
@@ -550,36 +535,6 @@ const POSPage = () => {
                   </Button>
                 </Tooltip>
               )}
-              <Tooltip placement="topRight" title="Suất ăn người nhà bệnh nhân">
-                <Button
-                  className="default_button"
-                  onClick={handleFamilyMealList}
-                >
-                  <i className="pi pi-users sub_text_color"></i>
-                </Button>
-              </Tooltip>
-              <Tooltip
-                placement="topRight"
-                title="Suất ăn cho sinh viên trả trước"
-              >
-                <Button
-                  className="default_button"
-                  onClick={handlePrepaidStudentMealList}
-                >
-                  <i className="pi pi-credit-card sub_text_color"></i>
-                </Button>
-              </Tooltip>
-              <Tooltip
-                placement="topRight"
-                title="Suất ăn cho sinh viên trả sau"
-              >
-                <Button
-                  className="default_button"
-                  onClick={handleStudentMealList}
-                >
-                  <i className="pi pi-calendar sub_text_color"></i>
-                </Button>
-              </Tooltip>
             </div>
           )}
         </div>
@@ -612,18 +567,6 @@ const POSPage = () => {
       <ReportModal
         isOpen={modalState.isReportModalVisible}
         onClose={handleReportModal}
-      />
-      <FamilyMealListModal
-        isOpen={modalState.isFamilyMealListVisible}
-        onClose={handleFamilyMealList}
-      />
-      <PrepaidStudentMealListModal
-        isOpen={modalState.isPrepaidStudentMealListVisible}
-        onClose={handlePrepaidStudentMealList}
-      />
-      <StudentMealListModal
-        isOpen={modalState.isStudentMealListVisible}
-        onClose={handleStudentMealList}
       />
       <Loading />
     </div>

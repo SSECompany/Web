@@ -1,9 +1,6 @@
 import React, { forwardRef } from "react";
 import { formatNumber } from "../../../../../app/hook/dataFormatHelper";
-import VietQR from "../../../../../components/common/GenerateQR/VietQR";
 import jwt from "../../../../../utils/jwt";
-
-const account = process.env.REACT_APP_VIETQR_ACCOUNT;
 
 const PrintComponent = forwardRef(
   ({ master = {}, detail = [], orderNumber = "" }, ref) => {
@@ -20,18 +17,14 @@ const PrintComponent = forwardRef(
       // Xử lý trường hợp có nhiều hình thức thanh toán
       const methods = method.split(",").map((m) => m.trim());
       const formattedMethods = methods.map((m) => {
-        switch (m) {
-          case "chuyen_khoan":
-            return "Chuyển khoản";
-          case "tien_mat":
-            return "Tiền mặt";
-          case "benhnhan_tratruoc":
-            return "Bệnh nhân trả trước";
-          case "sinhvien_tratruoc":
-            return "Sinh viên trả trước";
-          default:
-            return "Tiền mặt";
-        }
+      switch (m) {
+        case "chuyen_khoan":
+          return "Chuyển khoản";
+        case "tien_mat":
+          return "Tiền mặt";
+        default:
+          return "Tiền mặt";
+      }
       });
 
       return formattedMethods.join(" + ");
@@ -50,14 +43,26 @@ const PrintComponent = forwardRef(
         }}
         ref={ref}
       >
-        <div style={{ textAlign: "center" }}>
-          <img
-            src="/logo.jpeg"
-            alt="Phenikaa MEC Logo"
-            style={{ width: "120px", height: "auto", marginBottom: "8px" }}
-          />
-        </div>
         <div style={{ textAlign: "center", marginBottom: "8px" }}>
+          <div
+            style={{
+              fontWeight: "bold",
+              fontSize: "13px",
+              color: "#000",
+              marginBottom: "4px",
+            }}
+          >
+            Trường Đại học Phenikaa
+          </div>
+          <div
+            style={{
+              fontSize: "11px",
+              color: "#000",
+              marginBottom: "6px",
+            }}
+          >
+            Địa chỉ: Yên Nghĩa, Hà Đông, Hà Nội
+          </div>
           <label
             style={{ fontWeight: "bold", fontSize: "14px", color: "#000" }}
           >
@@ -105,14 +110,11 @@ const PrintComponent = forwardRef(
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
         </div>
-        {(Number(master?.benhnhan_tratruoc || 0) > 0 || Number(master?.sinhvien_tratruoc || 0) > 0 || Number(master?.chuyen_khoan || 0) > 0 || Number(master?.tien_mat || 0) > 0) && (
-          <div style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}>
-            {Number(master?.benhnhan_tratruoc || 0) > 0 && (
-              <div>• Bệnh nhân trả trước: {formatNumber(master.benhnhan_tratruoc)}đ</div>
-            )}
-            {Number(master?.sinhvien_tratruoc || 0) > 0 && (
-              <div>• Sinh viên trả trước: {formatNumber(master.sinhvien_tratruoc)}đ</div>
-            )}
+        {(Number(master?.chuyen_khoan || 0) > 0 ||
+          Number(master?.tien_mat || 0) > 0) && (
+          <div
+            style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}
+          >
             {Number(master?.chuyen_khoan || 0) > 0 && (
               <div>• Chuyển khoản: {formatNumber(master.chuyen_khoan)}đ</div>
             )}
@@ -230,7 +232,46 @@ const PrintComponent = forwardRef(
                           color: "#000",
                         }}
                       >
-                        {formatNumber(item?.thanh_tien) || "0"}đ
+                        {(() => {
+                          const originalPrice =
+                            parseFloat(item?.don_gia || 0) *
+                            parseInt(item?.so_luong || 1);
+                          const discountAmount = parseFloat(item?.ck_nt || 0);
+                          const finalPrice = originalPrice - discountAmount;
+
+                          if (discountAmount > 0) {
+                            return (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontSize: "12px",
+                                    color: "#000",
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  {formatNumber(finalPrice)}đ
+                                </div>
+                                <div
+                                  style={{
+                                    textDecoration: "line-through",
+                                    fontSize: "10px",
+                                    color: "#999",
+                                  }}
+                                >
+                                  {formatNumber(originalPrice)}đ
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            return `${formatNumber(originalPrice)}đ`;
+                          }
+                        })()}
                       </td>
                     </tr>
 
@@ -278,7 +319,46 @@ const PrintComponent = forwardRef(
                             color: "#000",
                           }}
                         >
-                          {formatNumber(sub?.thanh_tien) || "0"}đ
+                          {(() => {
+                            const originalPrice =
+                              parseFloat(sub?.don_gia || 0) *
+                              parseInt(sub?.so_luong || 1);
+                            const discountAmount = parseFloat(sub?.ck_nt || 0);
+                            const finalPrice = originalPrice - discountAmount;
+
+                            if (discountAmount > 0) {
+                              return (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      fontSize: "12px",
+                                      color: "#000",
+                                      fontWeight: "bold",
+                                    }}
+                                  >
+                                    {formatNumber(finalPrice)}đ
+                                  </div>
+                                  <div
+                                    style={{
+                                      textDecoration: "line-through",
+                                      fontSize: "10px",
+                                      color: "#999",
+                                    }}
+                                  >
+                                    {formatNumber(originalPrice)}đ
+                                  </div>
+                                </div>
+                              );
+                            } else {
+                              return `${formatNumber(originalPrice)}đ`;
+                            }
+                          })()}
                         </td>
                       </tr>
                     ))}
@@ -310,10 +390,42 @@ const PrintComponent = forwardRef(
           </tbody>
         </table>
 
+        {/* Separator line between items and summary */}
         <div
           style={{
             borderTop: "1px solid black",
             paddingTop: "6px",
+            marginRight: 10,
+          }}
+        />
+
+        {(() => {
+          // Tính tổng chiết khấu từ chi tiết đơn hàng (field ck_nt)
+          const totalDiscount = (detail || []).reduce((sum, d) => {
+            const val = parseFloat(d?.ck_nt || 0);
+            return sum + (isNaN(val) ? 0 : val);
+          }, 0);
+          if (totalDiscount > 0) {
+            return (
+              <div
+                style={{
+                  paddingTop: "4px",
+                  textAlign: "right",
+                  fontSize: "11px",
+                  marginRight: 10,
+                  color: "#000",
+                }}
+              >
+                Chiết khấu: {formatNumber(totalDiscount)}đ
+              </div>
+            );
+          }
+          return null;
+        })()}
+
+        <div
+          style={{
+            paddingTop: "2px",
             fontWeight: "bold",
             textAlign: "right",
             fontSize: "13px",
@@ -323,48 +435,6 @@ const PrintComponent = forwardRef(
         >
           Tổng tiền: {formatNumber(master?.tong_tien) || "0"}đ
         </div>
-
-        <div
-          style={{
-            textAlign: "center",
-            marginTop: "10px",
-            fontStyle: "italic",
-            fontSize: "12px",
-            color: "#000",
-          }}
-        >
-          CẢM ƠN QUÝ KHÁCH, HẸN GẶP LẠI!
-        </div>
-
-        <div style={{ textAlign: "center", marginTop: "10px" }}>
-          <div
-            style={{
-              display: "inline-block",
-              border: "1px solid #ccc",
-              borderRadius: 8,
-              padding: 6,
-              background: "#fff",
-            }}
-          >
-            {(() => {
-              const totalAmount = Number(master?.tong_tien || 0);
-              const prepaidAmount = Number(master?.benhnhan_tratruoc || 0) + Number(master?.sinhvien_tratruoc || 0);
-              const remainingAmount = totalAmount - prepaidAmount;
-              const qrAmount = master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
-                ? master.chuyen_khoan
-                : (remainingAmount > 0 ? remainingAmount : totalAmount);
-
-              return (
-                <VietQR
-                  amount={qrAmount}
-                  soChungTu={`Thanh toan Phenikaa so CT ${orderNumber} ${qrAmount}vnd`}
-                  size={80}
-                />
-              );
-            })()}
-          </div>
-        </div>
-
         <div
           style={{
             marginTop: "20px",
@@ -375,28 +445,13 @@ const PrintComponent = forwardRef(
           <div
             style={{
               textAlign: "center",
+              marginTop: "10px",
               fontStyle: "italic",
               fontSize: "12px",
               color: "#000",
             }}
           >
-            Tra cứu hóa đơn điện tử tại Website:{" "}
-            <a
-              href="https://einvoice.phenikaamec.com/"
-              style={{ color: "#0066cc" }}
-            >
-              https://einvoice.phenikaamec.com/
-            </a>
-          </div>
-          <div
-            style={{
-              textAlign: "center",
-              marginTop: "5px",
-              fontSize: "10px",
-              color: "#000",
-            }}
-          >
-            Mã số tra cứu: {orderNumber || ""}
+            CẢM ƠN QUÝ KHÁCH, HẸN GẶP LẠI!
           </div>
         </div>
       </div>

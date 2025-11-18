@@ -5,6 +5,7 @@ import { useDispatch } from "react-redux";
 import { formatNumber } from "../../../../app/hook/dataFormatHelper";
 import { applyVoucherToProduct, updateProductPrice } from "../../store/order";
 import AddNoteAndExtrasModal from "./modal/AddNoteAndExtrasModal";
+import DiscountModal from "./modal/DiscountModal";
 import SelectMealModal from "./modal/SelectMealModal";
 import "./OrderItem.css";
 
@@ -19,13 +20,17 @@ export default function OrderItem({
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSelectMealModalVisible, setIsSelectMealModalVisible] =
     useState(false);
+  const [isDiscountModalVisible, setIsDiscountModalVisible] = useState(false);
   const [priceInput, setPriceInput] = useState("");
   const dispatch = useDispatch();
   const token = localStorage.getItem("access_token");
 
   useEffect(() => {
-    setPriceInput(item.don_gia?.toString() || "");
-  }, [item.don_gia, item.selected_meal]);
+    // Hiển thị giá sau giảm giá (thanh_tien) thay vì giá gốc (don_gia)
+    setPriceInput(
+      item.thanh_tien?.toString() || item.don_gia?.toString() || ""
+    );
+  }, [item.don_gia, item.thanh_tien, item.selected_meal]);
 
   const handleAddNote = () => {
     onAddNote();
@@ -42,6 +47,10 @@ export default function OrderItem({
     setIsSelectMealModalVisible(true);
   };
 
+  const handleOpenDiscountModal = () => {
+    setIsDiscountModalVisible(true);
+  };
+
   // Kiểm tra xem item có phải là "Cơm Suất tối" hoặc "Cơm Suất trưa" không
   const isMealSetItem = item.ma_vt === "COM02" || item.ma_vt === "COM01";
 
@@ -55,6 +64,9 @@ export default function OrderItem({
           Chọn món suất
         </Menu.Item>
       )}
+      <Menu.Item key="apply-discount" onClick={handleOpenDiscountModal}>
+        Giảm giá
+      </Menu.Item>
       {token && (
         <Menu.Item key="apply-voucher" onClick={handleApplyVoucher}>
           Áp dụng voucher
@@ -105,6 +117,20 @@ export default function OrderItem({
             }}
           >
             {formatNumber(priceInput)}
+            {/* Hiển thị giá gốc bị gạch ngang khi có giảm giá */}
+            {parseFloat(item.tl_ck || 0) > 0 ||
+            parseFloat(item.ck_nt || 0) > 0 ? (
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "#999",
+                  textDecoration: "line-through",
+                  marginTop: "2px",
+                }}
+              >
+                {formatNumber(item.don_gia || 0)}
+              </div>
+            ) : null}
           </span>
           <Dropdown
             overlay={menu}
@@ -163,6 +189,12 @@ export default function OrderItem({
       <SelectMealModal
         isVisible={isSelectMealModalVisible}
         onClose={() => setIsSelectMealModalVisible(false)}
+        orderIndex={index}
+        item={item}
+      />
+      <DiscountModal
+        isVisible={isDiscountModalVisible}
+        onClose={() => setIsDiscountModalVisible(false)}
         orderIndex={index}
         item={item}
       />

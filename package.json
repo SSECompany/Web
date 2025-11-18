@@ -1,6 +1,6 @@
 {
   "name": "phenika",
-  "version": "2.0.7",
+  "version": "2.0.15",
   "private": true,
   "dependencies": {
     "@ant-design/charts": "^2.1.1",

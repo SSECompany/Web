@@ -68,7 +68,20 @@ const orders = createSlice({
               so_luong,
           0
         );
-        const thanh_tien = don_gia * so_luong + extrasTotal;
+        
+        // Tính giảm giá
+        const totalBeforeDiscount = don_gia * so_luong + extrasTotal;
+        const tl_ck = parseFloat(item.tl_ck || 0);
+        const ck_nt = parseFloat(item.ck_nt || 0);
+
+        let finalDiscount = 0;
+        if (tl_ck > 0) {
+          finalDiscount = (totalBeforeDiscount * tl_ck) / 100;
+        } else {
+          finalDiscount = ck_nt;
+        }
+
+        const thanh_tien = totalBeforeDiscount - finalDiscount;
 
         tong_tien += thanh_tien;
         tong_sl += so_luong;
@@ -76,6 +89,8 @@ const orders = createSlice({
         return {
           ...item,
           thanh_tien: thanh_tien.toFixed(0),
+          tl_ck: item.tl_ck || "0",
+          ck_nt: item.ck_nt || "0",
         };
       });
 
@@ -150,6 +165,8 @@ const orders = createSlice({
           ghi_chu: "",
           extras: [],
           ap_voucher: "0",
+          tl_ck: "0",
+          ck_nt: "0",
         });
 
         tab.master.tong_tien = tab.detail
@@ -196,7 +213,21 @@ const orders = createSlice({
               0
             ) * parseInt(mainProduct.so_luong || 0);
 
-          mainProduct.thanh_tien = (mainTotal + extrasTotal).toFixed(0);
+          // Tính giảm giá
+          const totalBeforeDiscount = mainTotal + extrasTotal;
+          const tl_ck = parseFloat(mainProduct.tl_ck || 0);
+          const ck_nt = parseFloat(mainProduct.ck_nt || 0);
+
+          let finalDiscount = 0;
+          if (tl_ck > 0) {
+            finalDiscount = (totalBeforeDiscount * tl_ck) / 100;
+          } else {
+            finalDiscount = ck_nt;
+          }
+
+          mainProduct.thanh_tien = (
+            totalBeforeDiscount - finalDiscount
+          ).toFixed(0);
 
           tab.master.tong_tien = tab.detail
             .reduce((sum, item) => sum + parseFloat(item.thanh_tien), 0)
@@ -230,7 +261,19 @@ const orders = createSlice({
             0
           ) || 0;
 
-        product.thanh_tien = (mainTotal + extrasTotal).toFixed(0);
+        // Tính giảm giá
+        const totalBeforeDiscount = mainTotal + extrasTotal;
+        const tl_ck = parseFloat(product.tl_ck || 0);
+        const ck_nt = parseFloat(product.ck_nt || 0);
+
+        let finalDiscount = 0;
+        if (tl_ck > 0) {
+          finalDiscount = (totalBeforeDiscount * tl_ck) / 100;
+        } else {
+          finalDiscount = ck_nt;
+        }
+
+        product.thanh_tien = (totalBeforeDiscount - finalDiscount).toFixed(0);
 
         tab.master.tong_tien = tab.detail
           .reduce((sum, item) => sum + parseFloat(item.thanh_tien), 0)
@@ -358,7 +401,19 @@ const orders = createSlice({
             0
           );
 
-          const thanh_tien = don_gia * so_luong + extrasTotal;
+          // Tính giảm giá
+          const totalBeforeDiscount = don_gia * so_luong + extrasTotal;
+          const tl_ck = parseFloat(item.tl_ck || 0);
+          const ck_nt = parseFloat(item.ck_nt || 0);
+
+          let finalDiscount = 0;
+          if (tl_ck > 0) {
+            finalDiscount = (totalBeforeDiscount * tl_ck) / 100;
+          } else {
+            finalDiscount = ck_nt;
+          }
+
+          const thanh_tien = totalBeforeDiscount - finalDiscount;
           item.thanh_tien = thanh_tien.toFixed(0);
 
           newTongTien += thanh_tien;
@@ -388,7 +443,19 @@ const orders = createSlice({
           0
         );
 
-        item.thanh_tien = (mainTotal + extrasTotal).toFixed(0);
+        // Tính giảm giá
+        const totalBeforeDiscount = mainTotal + extrasTotal;
+        const tl_ck = parseFloat(item.tl_ck || 0);
+        const ck_nt = parseFloat(item.ck_nt || 0);
+
+        let finalDiscount = 0;
+        if (tl_ck > 0) {
+          finalDiscount = (totalBeforeDiscount * tl_ck) / 100;
+        } else {
+          finalDiscount = ck_nt;
+        }
+
+        item.thanh_tien = (totalBeforeDiscount - finalDiscount).toFixed(0);
 
         let tongTien = 0;
         let tongSl = 0;
@@ -471,6 +538,51 @@ const orders = createSlice({
         tab.master.tong_sl = tongSl.toString();
       }
     },
+    updateProductDiscount: (state, action) => {
+      const { index, tl_ck, ck_nt } = action.payload;
+      const tab = state.orders.find(
+        (tab) => tab.internalId === state.internalActiveTabId
+      );
+      if (tab && tab.detail[index]) {
+        const item = tab.detail[index];
+
+        // Cập nhật giá trị giảm giá
+        item.tl_ck = tl_ck.toString();
+        item.ck_nt = ck_nt.toString();
+
+        // Tính lại thanh_tien với giảm giá
+        const mainTotal =
+          parseFloat(item.don_gia || 0) * parseInt(item.so_luong || 0);
+        const extrasTotal = (item.extras || []).reduce(
+          (sum, extra) =>
+            sum +
+            parseFloat(extra.don_gia || extra.gia || 0) *
+              parseInt(extra.so_luong || extra.quantity || 0) *
+              parseInt(item.so_luong || 0),
+          0
+        );
+
+        const totalBeforeDiscount = mainTotal + extrasTotal;
+        const tl_ckValue = parseFloat(tl_ck || 0);
+        const ck_ntValue = parseFloat(ck_nt || 0);
+
+        let finalDiscount = 0;
+        if (tl_ckValue > 0) {
+          finalDiscount = (totalBeforeDiscount * tl_ckValue) / 100;
+          // Tự động cập nhật ck_nt khi tl_ck > 0
+          item.ck_nt = finalDiscount.toFixed(0);
+        } else {
+          finalDiscount = ck_ntValue;
+        }
+
+        item.thanh_tien = (totalBeforeDiscount - finalDiscount).toFixed(0);
+
+        // Cập nhật tổng tiền của tab
+        tab.master.tong_tien = tab.detail
+          .reduce((sum, item) => sum + parseFloat(item.thanh_tien), 0)
+          .toFixed(0);
+      }
+    },
     resetOrders: (state) => {
       Object.assign(state, {
         ...initialState,
@@ -532,6 +644,7 @@ export const {
   resetOrders,
   setCustomerInfo,
   updateTabExtraProps,
+  updateProductDiscount,
 } = orders.actions;
 
 export default orders.reducer;

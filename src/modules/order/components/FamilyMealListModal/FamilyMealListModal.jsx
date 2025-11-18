@@ -8,11 +8,11 @@ import {
   DatePicker,
   Input,
   Modal,
-  notification,
   Select,
   Spin,
   Table,
   Tag,
+  notification,
 } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -603,41 +603,6 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       ),
     },
     {
-      title: "Đồng bộ",
-      dataIndex: "s2",
-      key: "s2",
-      align: "center",
-      width: 120,
-      render: (value) => {
-        const isSynchronized = value.trim() === "Synchronize";
-        return (
-          <Tag color={isSynchronized ? "green" : "red"}>
-            {isSynchronized ? "Thành công" : "Thất bại"}
-          </Tag>
-        );
-      },
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div className="filter-dropdown">
-          <Select
-            placeholder="Chọn"
-            value={selectedKeys[0]}
-            onChange={(value) => setSelectedKeys(value ? [value] : [])}
-          >
-            <Select.Option value="Synchronize     ">Thành công</Select.Option>
-            <Select.Option value="*">Thất bại</Select.Option>
-          </Select>
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => handleFilter("s2", selectedKeys[0], confirm)}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
-    },
-    {
       title: "Trạng thái",
       dataIndex: "statusName",
       key: "statusName",
@@ -675,8 +640,11 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       fixed: "right",
       render: (_, record) => {
         // Kiểm tra trạng thái "Hủy" (status khác 0 và 2, tức là status = 3)
-        const isCancelled = record.status !== "0" && record.status !== "2" &&
-                            record.status !== 0 && record.status !== 2;
+        const isCancelled =
+          record.status !== "0" &&
+          record.status !== "2" &&
+          record.status !== 0 &&
+          record.status !== 2;
 
         return (
           <div className="action-buttons">
