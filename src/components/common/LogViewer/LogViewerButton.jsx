@@ -1,11 +1,13 @@
 import * as signalR from "@microsoft/signalr";
 import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { api_countPrintStatus_ByDate } from "../../../api";
 import jwt from "../../../utils/jwt";
 import SyncFastLogViewer from "./SyncFastLogViewer";
 
 const LogViewerButton = ({ isInNavbar = false }) => {
+  const location = useLocation();
   const [isLogViewerOpen, setIsLogViewerOpen] = useState(false);
   // State để nhận số lượng lỗi từ LogViewer
   const [totalFailed, setTotalFailed] = useState(0);
@@ -94,6 +96,13 @@ const LogViewerButton = ({ isInNavbar = false }) => {
 
   // Ẩn monitor in nếu là pos-mini
   if (roleWeb === "isPosMini") {
+    return null;
+  }
+
+  // Chỉ hiển thị nút in ở màn hình POS (route "/" hoặc "/order/:orderId")
+  const isPOSPage =
+    location.pathname === "/" || /^\/order\/[\w-]+/.test(location.pathname);
+  if (!isPOSPage) {
     return null;
   }
 

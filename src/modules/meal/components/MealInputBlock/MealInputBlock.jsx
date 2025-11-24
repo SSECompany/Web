@@ -1,5 +1,5 @@
 import { CloseOutlined, MinusOutlined, PlusOutlined } from "@ant-design/icons";
-import { Checkbox, Input, Select } from "antd";
+import { Input, Select } from "antd";
 import React from "react";
 
 const MealEntryRow = ({
@@ -54,32 +54,8 @@ const MealEntryRow = ({
     }
   }
 
-  // Determine shift name for display
-  const shiftName =
-    timeOfDay === "CA1"
-      ? "Ca Sáng"
-      : timeOfDay === "CA2"
-      ? "Ca Trưa"
-      : "Ca Chiều";
-
   return (
     <div className="meal-entry-wrapper" key={index}>
-      {index === 0 && (
-        <div
-          style={{
-            backgroundColor: "#f6ffed",
-            padding: "8px",
-            marginBottom: "12px",
-            borderRadius: "4px",
-            border: "1px solid #b7eb8f",
-          }}
-        >
-          <p style={{ margin: 0, color: "#52c41a", fontWeight: "bold" }}>
-            Lưu ý: Bạn cần nhập đủ món ăn cho cả 3 ca (Sáng, Trưa, Chiều) để
-            hoàn thành
-          </p>
-        </div>
-      )}
       <div className="meal-entry">
         <div className="mode-selection-group">
           <div className="mode-controls">
@@ -87,8 +63,7 @@ const MealEntryRow = ({
               htmlFor={`mode-${timeOfDay}-${index}`}
               className="mode-label"
             >
-              <span style={{ color: "#ff4d4f", marginRight: "4px" }}>*</span>
-              Chế độ - {shiftName}
+              Chế độ
             </label>
             <button
               className="mode-delete-button"
@@ -191,7 +166,7 @@ const MealEntryRow = ({
           </div>
         </div>
 
-        <div className="price-input-group">
+        {/* <div className="price-input-group">
           <div>
             <span className="price-label">Người bệnh</span>
             <Checkbox
@@ -212,7 +187,7 @@ const MealEntryRow = ({
           <span className="price-display">
             {Number(meal.totalMoney || 0).toLocaleString()} đ
           </span>
-        </div>
+        </div> */}
 
         {/* Notes */}
         <div className="notes-input-group">
