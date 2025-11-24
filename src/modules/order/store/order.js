@@ -221,6 +221,8 @@ const orders = createSlice({
           let finalDiscount = 0;
           if (tl_ck > 0) {
             finalDiscount = (totalBeforeDiscount * tl_ck) / 100;
+            // Cập nhật ck_nt khi tl_ck > 0 để đảm bảo payload gửi đi đúng
+            mainProduct.ck_nt = finalDiscount.toFixed(0);
           } else {
             finalDiscount = ck_nt;
           }
@@ -248,7 +250,8 @@ const orders = createSlice({
 
       if (tab && tab.detail[productIndex]) {
         const product = tab.detail[productIndex];
-        const newQuantity = Math.max(1, parseInt(product.so_luong) + increment);
+        const oldQuantity = parseInt(product.so_luong) || 1;
+        const newQuantity = Math.max(1, oldQuantity + increment);
 
         product.so_luong = newQuantity.toString();
 
@@ -269,8 +272,19 @@ const orders = createSlice({
         let finalDiscount = 0;
         if (tl_ck > 0) {
           finalDiscount = (totalBeforeDiscount * tl_ck) / 100;
+          // Cập nhật ck_nt khi tl_ck > 0 để đảm bảo payload gửi đi đúng
+          product.ck_nt = finalDiscount.toFixed(0);
         } else {
-          finalDiscount = ck_nt;
+          // Khi không có tl_ck, ck_nt là số tiền chiết khấu tổng
+          // Cần tính lại ck_nt theo tỷ lệ số lượng mới/ số lượng cũ
+          if (oldQuantity > 0 && ck_nt > 0) {
+            // Tính ck_nt cho 1 đơn vị từ giá trị cũ, rồi nhân với số lượng mới
+            const ck_ntPerUnit = ck_nt / oldQuantity;
+            finalDiscount = ck_ntPerUnit * newQuantity;
+            product.ck_nt = finalDiscount.toFixed(0);
+          } else {
+            finalDiscount = ck_nt;
+          }
         }
 
         product.thanh_tien = (totalBeforeDiscount - finalDiscount).toFixed(0);
@@ -451,6 +465,8 @@ const orders = createSlice({
         let finalDiscount = 0;
         if (tl_ck > 0) {
           finalDiscount = (totalBeforeDiscount * tl_ck) / 100;
+          // Cập nhật ck_nt khi tl_ck > 0 để đảm bảo payload gửi đi đúng
+          item.ck_nt = finalDiscount.toFixed(0);
         } else {
           finalDiscount = ck_nt;
         }
