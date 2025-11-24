@@ -375,7 +375,6 @@ export const usePhieuNhatHangData = () => {
       //   page === 1 &&
       //   !append
       // ) {
-      //   console.log("📦 usePhieuNhatHangData - Using cached data");
       //   setVatTuList(masterDataCache.vatTu);
       //   // KHÔNG set totalPage = 1 cố định, để API tự tính
       //   if (callback) callback({ totalPage: 1 });

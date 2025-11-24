@@ -9,13 +9,7 @@ import {
   Typography,
 } from "antd";
 import dayjs from "dayjs";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../api";
 import { formatNumber } from "../../pharmacy-utils/hook/dataFormatHelper";
@@ -32,6 +26,26 @@ const formatDate = (date) => {
   return d.format("YYYY-MM-DD HH:mm:ss.SSS");
 };
 
+const getDefaultFilters = () => ({
+  DateFrom: dayjs().startOf("day").format("YYYY-MM-DD HH:mm:ss.SSS"),
+  DateTo: dayjs().endOf("day").format("YYYY-MM-DD HH:mm:ss.SSS"),
+  Site: "",
+  Unit: [],
+  ItemType: "",
+  ItemGroup: "",
+  Item: "",
+  CalculateTransfer: "1",
+  nh_theo: "",
+  tt_sx1: 0,
+  tt_sx2: 0,
+  tt_sx3: 0,
+  Order: "ma_vt",
+  ShowItem: "3",
+  DataType: "2",
+  Language: "V",
+  Admin: 1,
+});
+
 const TongHopNhapXuatTon = () => {
   const { id: userId, unitId } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
@@ -39,7 +53,7 @@ const TongHopNhapXuatTon = () => {
 
   const [dataSource, setDataSource] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -66,25 +80,7 @@ const TongHopNhapXuatTon = () => {
   const dvcsSearchRef = useRef(null);
   const vatTuSearchRef = useRef(null);
 
-  const [filters, setFilters] = useState({
-    DateFrom: dayjs().startOf("day").format("YYYY-MM-DD HH:mm:ss.SSS"),
-    DateTo: dayjs().endOf("day").format("YYYY-MM-DD HH:mm:ss.SSS"),
-    Site: "",
-    Unit: [],
-    ItemType: "",
-    ItemGroup: "",
-    Item: "",
-    CalculateTransfer: "1",
-    nh_theo: "",
-    tt_sx1: 0,
-    tt_sx2: 0,
-    tt_sx3: 0,
-    Order: "ma_vt",
-    ShowItem: "3",
-    DataType: "2",
-    Language: "V",
-    Admin: 1,
-  });
+  const [filters, setFilters] = useState(getDefaultFilters);
 
   const [tableFilters, setTableFilters] = useState({
     ma_vt: "",
@@ -260,10 +256,28 @@ const TongHopNhapXuatTon = () => {
         data: {},
       });
       const data = res?.listObject?.[0] || [];
-      const options = data.map((item) => ({
-        value: item.ma_vt || item.ma_vat_tu || item.value || "",
-        label: item.ten_vt || item.ten_vat_tu || item.label || item.ma_vt || "",
-      }));
+      const options = data
+        .map((item) => {
+          const value = (
+            item.ma_vt ||
+            item.ma_vat_tu ||
+            item.value ||
+            ""
+          ).trim();
+          const label =
+            (
+              item.ten_vt ||
+              item.ten_vat_tu ||
+              item.label ||
+              item.ma_vt ||
+              ""
+            ).trim() || value;
+          return {
+            value: value,
+            label: label,
+          };
+        })
+        .filter((opt) => opt.value);
       setVatTuOptions(options);
     } catch (err) {
       console.error("❌ Lỗi khi lấy danh sách vật tư:", err);
@@ -310,7 +324,7 @@ const TongHopNhapXuatTon = () => {
       });
 
       const fetchedData = res?.listObject?.[0] || [];
-      
+
       // Lấy total từ response nếu có
       const total = res?.total || res?.totalRecords || fetchedData.length;
       setTotalRecords(total);
@@ -321,13 +335,11 @@ const TongHopNhapXuatTon = () => {
           const ten = (item.ten_vt || "").trim();
           const dvt = (item.dvt || "").trim();
           const isSummaryRow =
-            item.systotal === 0 &&
-            !ma &&
-            ten.toLowerCase().includes("tổng");
+            item.systotal === 0 && !ma && ten.toLowerCase().includes("tổng");
 
           // Tính STT dựa trên trang hiện tại
-          const sttValue = isSummaryRow 
-            ? "" 
+          const sttValue = isSummaryRow
+            ? ""
             : item.stt || (currentPage - 1) * pageSize + index + 1;
 
           return {
@@ -633,6 +645,11 @@ const TongHopNhapXuatTon = () => {
     setCurrentPage(1); // Reset về trang 1 khi filter thay đổi
   };
 
+  const handleClearFilters = useCallback(() => {
+    setFilters(getDefaultFilters());
+    setCurrentPage(1);
+  }, [setCurrentPage]);
+
   // Load danh sách filter ban đầu
   useEffect(() => {
     fetchKhoOptions();
@@ -826,7 +843,8 @@ const TongHopNhapXuatTon = () => {
                 loading={loadingDvcs}
                 filterOption={false}
                 onSearch={(value) => {
-                  if (dvcsSearchRef.current) clearTimeout(dvcsSearchRef.current);
+                  if (dvcsSearchRef.current)
+                    clearTimeout(dvcsSearchRef.current);
                   dvcsSearchRef.current = setTimeout(() => {
                     fetchDvcsOptions(value);
                   }, 300);
@@ -841,17 +859,20 @@ const TongHopNhapXuatTon = () => {
               />
             </div>
             <div className="filter-item">
-              <label>Mã vật tư:</label>
+              <label>Tên vật tư:</label>
               <Select
                 value={filters.Item || undefined}
-                onChange={(value) => handleFilterChange("Item", value)}
+                onChange={(value) => {
+                  handleFilterChange("Item", value);
+                }}
                 placeholder="Chọn vật tư"
                 showSearch
                 allowClear
                 loading={loadingVatTu}
                 filterOption={false}
                 onSearch={(value) => {
-                  if (vatTuSearchRef.current) clearTimeout(vatTuSearchRef.current);
+                  if (vatTuSearchRef.current)
+                    clearTimeout(vatTuSearchRef.current);
                   vatTuSearchRef.current = setTimeout(() => {
                     fetchVatTuOptions(value);
                   }, 300);
@@ -866,8 +887,8 @@ const TongHopNhapXuatTon = () => {
               />
             </div>
             <div className="filter-item button-item">
-              <Button type="primary" onClick={fetchData} loading={loading}>
-                Tải dữ liệu
+              <Button type="primary" onClick={handleClearFilters} loading={loading}>
+                Xoá bộ lọc
               </Button>
             </div>
           </div>
@@ -915,13 +936,17 @@ const TongHopNhapXuatTon = () => {
                       <strong>{formatNumber(getTotalValue("sl_nhap"))}</strong>
                     ),
                     tien_nhap: (
-                      <strong>{formatNumber(getTotalValue("tien_nhap"))}</strong>
+                      <strong>
+                        {formatNumber(getTotalValue("tien_nhap"))}
+                      </strong>
                     ),
                     sl_xuat: (
                       <strong>{formatNumber(getTotalValue("sl_xuat"))}</strong>
                     ),
                     tien_xuat: (
-                      <strong>{formatNumber(getTotalValue("tien_xuat"))}</strong>
+                      <strong>
+                        {formatNumber(getTotalValue("tien_xuat"))}
+                      </strong>
                     ),
                     ton_cuoi: (
                       <strong>{formatNumber(getTotalValue("ton_cuoi"))}</strong>
@@ -946,4 +971,3 @@ const TongHopNhapXuatTon = () => {
 };
 
 export default TongHopNhapXuatTon;
-

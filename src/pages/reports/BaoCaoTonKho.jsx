@@ -1,6 +1,15 @@
-import { Button, Card, DatePicker, Input, Select, Spin, Table, Typography } from "antd";
+import {
+  Button,
+  Card,
+  DatePicker,
+  Input,
+  Select,
+  Spin,
+  Table,
+  Typography,
+} from "antd";
 import dayjs from "dayjs";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../api";
 import { formatNumber } from "../../pharmacy-utils/hook/dataFormatHelper";
@@ -17,6 +26,24 @@ const formatDate = (date) => {
   return d.format("YYYY-MM-DD HH:mm:ss.SSS");
 };
 
+const getDefaultFilters = () => ({
+  DateTo: dayjs().format("YYYY-MM-DD HH:mm:ss.SSS"),
+  Site: "",
+  ItemGroup1: "",
+  ItemGroup2: "",
+  ItemGroup3: "",
+  Unit: [],
+  BalanceType: 2,
+  nh_theo: 0,
+  tt_sx1: 0,
+  tt_sx2: 0,
+  tt_sx3: 0,
+  Order: "ma_vt",
+  DataType: 2,
+  Language: "V",
+  Admin: 1,
+});
+
 const BaoCaoTonKho = () => {
   const { id: userId, unitId } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
@@ -24,12 +51,12 @@ const BaoCaoTonKho = () => {
 
   const [dataSource, setDataSource] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [totalRecords, setTotalRecords] = useState(0);
-  
+
   // Options for selectboxes
   const [khoOptions, setKhoOptions] = useState([]);
   const [nhomVatTuOptions, setNhomVatTuOptions] = useState({
@@ -39,68 +66,55 @@ const BaoCaoTonKho = () => {
   });
   const [dvcsOptions, setDvcsOptions] = useState([]);
   const [vatTuOptions, setVatTuOptions] = useState([]);
-  
+
   // Loading states for selectboxes
   const [loadingKho, setLoadingKho] = useState(false);
   const [loadingNhomVatTu, setLoadingNhomVatTu] = useState(false);
   const [loadingDvcs, setLoadingDvcs] = useState(false);
   const [loadingVatTu, setLoadingVatTu] = useState(false);
-  
+
   // Search refs for debounce
   const khoSearchRef = useRef(null);
   const nhomVatTuSearchRef = useRef(null);
   const dvcsSearchRef = useRef(null);
   const vatTuSearchRef = useRef(null);
-  
+
   // Loại nhóm vật tư mặc định là 1
   const loaiNhomVatTu = 1;
-  
-  const [filters, setFilters] = useState({
-    DateTo: dayjs().format("YYYY-MM-DD HH:mm:ss.SSS"),
-    Site: "",
-    ItemGroup1: "",
-    ItemGroup2: "",
-    ItemGroup3: "",
-    Unit: [],
-    BalanceType: 2,
-    nh_theo: 0,
-    tt_sx1: 0,
-    tt_sx2: 0,
-    tt_sx3: 0,
-    Order: "ma_vt",
-    DataType: 2,
-    Language: "V",
-    Admin: 1,
-  });
+
+  const [filters, setFilters] = useState(getDefaultFilters);
 
   // Fetch danh sách kho
-  const fetchKhoOptions = useCallback(async (searchValue = "") => {
-    if (!unitId) return;
-    setLoadingKho(true);
-    try {
-      const res = await multipleTablePutApi({
-        store: "api_getKho",
-        param: {
-          unitId: unitId,
-          searchValue: searchValue || "",
-          pageIndex: 1,
-          pageSize: 100,
-        },
-        data: {},
-      });
-      const data = res?.listObject?.[0] || [];
-      const options = data.map((item) => ({
-        value: item.ma_kho || item.value || "",
-        label: item.ten_kho || item.label || item.ma_kho || "",
-      }));
-      setKhoOptions(options);
-    } catch (err) {
-      console.error("❌ Lỗi khi lấy danh sách kho:", err);
-      setKhoOptions([]);
-    } finally {
-      setLoadingKho(false);
-    }
-  }, [unitId]);
+  const fetchKhoOptions = useCallback(
+    async (searchValue = "") => {
+      if (!unitId) return;
+      setLoadingKho(true);
+      try {
+        const res = await multipleTablePutApi({
+          store: "api_getKho",
+          param: {
+            unitId: unitId,
+            searchValue: searchValue || "",
+            pageIndex: 1,
+            pageSize: 100,
+          },
+          data: {},
+        });
+        const data = res?.listObject?.[0] || [];
+        const options = data.map((item) => ({
+          value: item.ma_kho || item.value || "",
+          label: item.ten_kho || item.label || item.ma_kho || "",
+        }));
+        setKhoOptions(options);
+      } catch (err) {
+        console.error("❌ Lỗi khi lấy danh sách kho:", err);
+        setKhoOptions([]);
+      } finally {
+        setLoadingKho(false);
+      }
+    },
+    [unitId]
+  );
 
   // Fetch nhóm vật tư
   const fetchNhomVatTuOptions = useCallback(
@@ -193,10 +207,28 @@ const BaoCaoTonKho = () => {
         data: {},
       });
       const data = res?.listObject?.[0] || [];
-      const options = data.map((item) => ({
-        value: item.ma_vt || item.ma_vat_tu || item.value || "",
-        label: item.ten_vt || item.ten_vat_tu || item.label || item.ma_vt || "",
-      }));
+      const options = data
+        .map((item) => {
+          const value = (
+            item.ma_vt ||
+            item.ma_vat_tu ||
+            item.value ||
+            ""
+          ).trim();
+          const label =
+            (
+              item.ten_vt ||
+              item.ten_vat_tu ||
+              item.label ||
+              item.ma_vt ||
+              ""
+            ).trim() || value;
+          return {
+            value: value,
+            label: label,
+          };
+        })
+        .filter((opt) => opt.value);
       setVatTuOptions(options);
     } catch (err) {
       console.error("❌ Lỗi khi lấy danh sách vật tư:", err);
@@ -216,7 +248,7 @@ const BaoCaoTonKho = () => {
         param: {
           DateTo: filters.DateTo,
           Site: filters.Site || "",
-          Item: "",
+          Item: filters.Item || "",
           ItemGroup1: filters.ItemGroup1 || "",
           ItemGroup2: filters.ItemGroup2 || "",
           ItemGroup3: filters.ItemGroup3 || "",
@@ -241,7 +273,7 @@ const BaoCaoTonKho = () => {
       });
 
       const fetchedData = res?.listObject?.[0] || [];
-      
+
       // Lấy total từ response nếu có
       const total = res?.total || res?.totalRecords || fetchedData.length;
       setTotalRecords(total);
@@ -260,13 +292,11 @@ const BaoCaoTonKho = () => {
         const ten = (item.ten_vt || "").trim();
         const dvt = (item.dvt || "").trim();
         const isSummaryRow =
-          item.systotal === 0 &&
-          !ma &&
-          ten.toLowerCase().includes("tổng");
+          item.systotal === 0 && !ma && ten.toLowerCase().includes("tổng");
 
         // Tính STT dựa trên trang hiện tại
-        const sttValue = isSummaryRow 
-          ? "" 
+        const sttValue = isSummaryRow
+          ? ""
           : item.stt || (currentPage - 1) * pageSize + index + 1;
 
         return {
@@ -485,7 +515,9 @@ const BaoCaoTonKho = () => {
     }
 
     if (col.dataIndex === "ten_vt") {
-      return <div style={{ textAlign: "left", paddingLeft: "4px" }}>{text}</div>;
+      return (
+        <div style={{ textAlign: "left", paddingLeft: "4px" }}>{text}</div>
+      );
     }
 
     if (col.dataIndex === "so_luong") {
@@ -535,7 +567,12 @@ const BaoCaoTonKho = () => {
     fetchNhomVatTuOptions(3);
     fetchDvcsOptions();
     fetchVatTuOptions();
-  }, [fetchKhoOptions, fetchNhomVatTuOptions, fetchDvcsOptions, fetchVatTuOptions]);
+  }, [
+    fetchKhoOptions,
+    fetchNhomVatTuOptions,
+    fetchDvcsOptions,
+    fetchVatTuOptions,
+  ]);
 
   useEffect(() => {
     if (userId) {
@@ -578,6 +615,11 @@ const BaoCaoTonKho = () => {
     }));
     setCurrentPage(1); // Reset về trang 1 khi filter thay đổi
   };
+
+  const handleClearFilters = useCallback(() => {
+    setFilters(getDefaultFilters());
+    setCurrentPage(1);
+  }, [setCurrentPage]);
 
   const handleDateChange = (date) => {
     if (date) {
@@ -720,7 +762,8 @@ const BaoCaoTonKho = () => {
                 loading={loadingDvcs}
                 filterOption={false}
                 onSearch={(value) => {
-                  if (dvcsSearchRef.current) clearTimeout(dvcsSearchRef.current);
+                  if (dvcsSearchRef.current)
+                    clearTimeout(dvcsSearchRef.current);
                   dvcsSearchRef.current = setTimeout(() => {
                     fetchDvcsOptions(value);
                   }, 300);
@@ -735,17 +778,20 @@ const BaoCaoTonKho = () => {
               />
             </div>
             <div className="filter-item">
-              <label>Mã vật tư:</label>
+              <label>Tên vật tư:</label>
               <Select
                 value={filters.Item || undefined}
-                onChange={(value) => handleFilterChange("Item", value)}
+                onChange={(value) => {
+                  handleFilterChange("Item", value);
+                }}
                 placeholder="Chọn vật tư"
                 showSearch
                 allowClear
                 loading={loadingVatTu}
                 filterOption={false}
                 onSearch={(value) => {
-                  if (vatTuSearchRef.current) clearTimeout(vatTuSearchRef.current);
+                  if (vatTuSearchRef.current)
+                    clearTimeout(vatTuSearchRef.current);
                   vatTuSearchRef.current = setTimeout(() => {
                     fetchVatTuOptions(value);
                   }, 300);
@@ -760,8 +806,8 @@ const BaoCaoTonKho = () => {
               />
             </div>
             <div className="filter-item button-item">
-              <Button type="primary" onClick={fetchData} loading={loading}>
-                Tải dữ liệu
+              <Button type="primary" onClick={handleClearFilters} loading={loading}>
+                Xoá bộ lọc
               </Button>
             </div>
           </div>
@@ -795,8 +841,7 @@ const BaoCaoTonKho = () => {
             summary={(pageData) => {
               const summarySoLuong =
                 totals.apiTotalSoLuong || totals.totalSoLuong;
-              const summaryGiaTri =
-                totals.apiTotalGiaTri || totals.totalGiaTri;
+              const summaryGiaTri = totals.apiTotalGiaTri || totals.totalGiaTri;
               return (
                 <Table.Summary.Row>
                   {columns.map((col, idx) => {
@@ -804,12 +849,8 @@ const BaoCaoTonKho = () => {
 
                     const cellValueMap = {
                       stt: <strong>Tổng cộng</strong>,
-                      so_luong: (
-                        <strong>{formatNumber(summarySoLuong)}</strong>
-                      ),
-                      gia_tri: (
-                        <strong>{formatNumber(summaryGiaTri)}</strong>
-                      ),
+                      so_luong: <strong>{formatNumber(summarySoLuong)}</strong>,
+                      gia_tri: <strong>{formatNumber(summaryGiaTri)}</strong>,
                     };
 
                     const cellValue = cellValueMap[dataIndex];

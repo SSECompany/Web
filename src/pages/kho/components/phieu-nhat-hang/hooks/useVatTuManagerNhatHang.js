@@ -54,6 +54,7 @@ export const useVatTuManagerNhatHang = () => {
         // Thông tin liên kết
         stt_rec_px: item.stt_rec_px ? item.stt_rec_px.trim() : "",
         stt_rec0px: item.stt_rec0px ? item.stt_rec0px.trim() : "",
+        stt_rec_pn: item.stt_rec_pn ? item.stt_rec_pn.trim() : "",
         line_nbr: parseInt(item.line_nbr) || 0,
 
         // Thông tin kho và tài khoản
@@ -377,7 +378,6 @@ export const useVatTuManagerNhatHang = () => {
 
             // Thông tin liên kết phiếu nhập (từ payload thực tế)
             stt_rec_pn: "",
-            stt_rec0pn: "",
 
             // Các trường số lượng API
             sl_td1: 0,

@@ -1,6 +1,15 @@
 import { DeleteOutlined, ShoppingCartOutlined } from "@ant-design/icons";
-import { Button, Card, Input, InputNumber, Select, Spin, Table, Tag } from "antd";
-import React, { useEffect, useRef, useState } from "react";
+import {
+  Button,
+  Card,
+  Input,
+  InputNumber,
+  Select,
+  Spin,
+  Table,
+  Tag,
+} from "antd";
+import { useEffect, useRef, useState } from "react";
 import { api_getTaxInfo, getItemPriceAndUnit, getLoItem } from "../../../api";
 import DiscountModal from "./DiscountModal";
 
@@ -886,18 +895,21 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
     <Card
       size="small"
       title={
-        <div className="cart-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div
+          className="cart-title"
+          style={{ display: "flex", alignItems: "center", gap: "8px" }}
+        >
           <span>Giỏ hàng ({cart.length} sản phẩm)</span>
           {isEditingOrder ? (
-            <Tag 
-              color="orange" 
+            <Tag
+              color="orange"
               style={{ margin: 0, fontSize: "12px", fontWeight: 500 }}
             >
               Đang sửa đơn
             </Tag>
           ) : (
-            <Tag 
-              color="blue" 
+            <Tag
+              color="blue"
               style={{ margin: 0, fontSize: "12px", fontWeight: 500 }}
             >
               Đơn mới

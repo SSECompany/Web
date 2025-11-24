@@ -1,4 +1,4 @@
-import { Button, Card, Tooltip, notification, Modal } from "antd";
+import { Button, Card, Modal, Tooltip, notification } from "antd";
 import React, {
   useCallback,
   useEffect,
@@ -84,12 +84,12 @@ const POS = () => {
 
     setIsUploading(true);
     const loadingKey = "upload-loading";
-    
+
     // Clear previous preview
     setLocalPreviewUrl("");
     setUploadedImageUrl("");
     setIsUploadPreviewOpen(false);
-    
+
     notification.open({
       message: "Đang tải ảnh lên server...",
       description: "Vui lòng đợi",
@@ -108,7 +108,7 @@ const POS = () => {
       }
 
       const res = await uploadPrescriptionImage({ file: fileToUpload });
-      
+
       // Close loading notification
       notification.destroy(loadingKey);
 
@@ -116,9 +116,9 @@ const POS = () => {
         // Only show preview and success message after API succeeds
         setUploadedImageUrl(res?.data?.url || "");
         setUploadedKeyFields(res?.data?.keyFields || "");
-        notification.success({ 
+        notification.success({
           message: "Tải ảnh thành công",
-          description: "Ảnh đã được tải lên thành công"
+          description: "Ảnh đã được tải lên thành công",
         });
         // Open preview modal after successful upload
         setIsUploadPreviewOpen(true);
@@ -243,7 +243,9 @@ const POS = () => {
           } else if (Number(x.vatPercent) > 0) {
             effectiveVatPercent = Number(x.vatPercent);
           }
-          itemVat = Math.round((totalAfterDiscount * effectiveVatPercent) / 100);
+          itemVat = Math.round(
+            (totalAfterDiscount * effectiveVatPercent) / 100
+          );
         }
         return s + itemVat;
       }, 0),
@@ -635,11 +637,11 @@ const POS = () => {
               <i className="pi pi-list sub_text_color"></i>
             </Button>
           </Tooltip>
-          <Tooltip placement="top" title="Báo cáo kết ca">
+          {/* <Tooltip placement="top" title="Báo cáo kết ca">
             <Button className="default_button" onClick={handleReportModal}>
               <i className="pi pi-chart-line sub_text_color"></i>
             </Button>
-          </Tooltip>
+          </Tooltip> */}
         </div>
         <div className="company-label">Designed by SSE</div>
       </div>
@@ -688,13 +690,20 @@ const POS = () => {
           } catch (_) {}
         }}
         footer={[
-          <Button key="reupload" onClick={() => {
-            setIsUploadPreviewOpen(false);
-            setTimeout(() => fileInputRef?.current?.click(), 0);
-          }}>
+          <Button
+            key="reupload"
+            onClick={() => {
+              setIsUploadPreviewOpen(false);
+              setTimeout(() => fileInputRef?.current?.click(), 0);
+            }}
+          >
             Tải lại ảnh
           </Button>,
-          <Button key="close" type="primary" onClick={() => setIsUploadPreviewOpen(false)}>
+          <Button
+            key="close"
+            type="primary"
+            onClick={() => setIsUploadPreviewOpen(false)}
+          >
             Đóng
           </Button>,
         ]}
@@ -704,7 +713,10 @@ const POS = () => {
             alt="uploaded"
             src={uploadedImageUrl || localPreviewUrl}
             onError={(e) => {
-              if (localPreviewUrl && e?.currentTarget?.src !== localPreviewUrl) {
+              if (
+                localPreviewUrl &&
+                e?.currentTarget?.src !== localPreviewUrl
+              ) {
                 e.currentTarget.src = localPreviewUrl;
               }
             }}

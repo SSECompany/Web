@@ -198,7 +198,7 @@ const PaymentSummary = ({
         so_luong: (item.qty || 0).toString(),
         don_gia: (item.price || 0).toString(),
         thanh_tien: ((item.qty || 0) * (item.price || 0)).toString(),
-        ghi_chu: item.ghi_chu || "",
+        ghi_chu: item.instructions || item.ghi_chu || "",  // Thêm dòng này: lấy từ instructions
         uniqueid,
         ap_voucher: item.ap_voucher || "0",
         // Add missing fields

@@ -97,7 +97,10 @@ export const validateCompletionRules = (dataSource = []) => {
     if (picked > 0 && !lot) {
       const maHang = row.maHang || row.ma_vt || "";
       const ten = row.ten_mat_hang || row.ten_vt || "";
-      const itemInfo = maHang && ten ? `${maHang} - ${ten}` : maHang || ten || `Dòng ${idx + 1}`;
+      const itemInfo =
+        maHang && ten
+          ? `${maHang} - ${ten}`
+          : maHang || ten || `Dòng ${idx + 1}`;
       missingLotRows.push({ index: idx + 1, itemInfo });
     }
   });
@@ -112,12 +115,16 @@ export const validateCompletionRules = (dataSource = []) => {
   for (const [, g] of groups) {
     // Chỉ kiểm tra nhóm có parent (dòng cha)
     if (g && g.parentItem) {
-      const equal = (parseFloat(g.pickedSum) || 0) === (parseFloat(g.orderQty) || 0);
+      const equal =
+        (parseFloat(g.pickedSum) || 0) === (parseFloat(g.orderQty) || 0);
       if (!equal) {
         const parent = g.parentItem;
         const maHang = parent.maHang || parent.ma_vt || "";
         const ten = parent.ten_mat_hang || parent.ten_vt || "";
-        const itemInfo = maHang && ten ? `${maHang} - ${ten}` : maHang || ten || `Dòng ${g.parentIndex}`;
+        const itemInfo =
+          maHang && ten
+            ? `${maHang} - ${ten}`
+            : maHang || ten || `Dòng ${g.parentIndex}`;
         notEqualGroups.push({
           parentIndex: g.parentIndex || 0,
           itemInfo,
@@ -157,7 +164,9 @@ export const computeGroupState = (dataSource = []) => {
       state.parentIndex = index + 1; // 1-based for display
       // Ưu tiên so_luong_don, fallback so_luong/soLuongDeNghi
       const orderQty =
-        parseFloat(row.so_luong_don ?? row.so_luong ?? row.soLuongDeNghi ?? 0) || 0;
+        parseFloat(
+          row.so_luong_don ?? row.so_luong ?? row.soLuongDeNghi ?? 0
+        ) || 0;
       state.orderQty = orderQty;
       state.parentItem = row;
     }
@@ -181,7 +190,10 @@ export const validateTongNhatByGroup = (dataSource = []) => {
       const parent = g.parentItem || {};
       const maHang = parent.maHang || parent.ma_vt || "";
       const ten = parent.ten_mat_hang || parent.ten_vt || "";
-      const itemInfo = maHang && ten ? `${maHang} - ${ten}` : maHang || ten || `Dòng ${g.parentIndex}`;
+      const itemInfo =
+        maHang && ten
+          ? `${maHang} - ${ten}`
+          : maHang || ten || `Dòng ${g.parentIndex}`;
       errors.push({
         parentIndex: g.parentIndex || 0,
         itemInfo,
@@ -238,11 +250,10 @@ export const buildPhieuNhatHangPayload = (
     t_tien_nt: totalAmountNt,
     t_tien: totalAmount,
     // Khi update, giữ nguyên datetime2 từ API; khi tạo mới mới dùng orderDate
-    datetime2: isUpdate && phieuData?.datetime2 ? phieuData.datetime2 : orderDate,
+    datetime2:
+      isUpdate && phieuData?.datetime2 ? phieuData.datetime2 : orderDate,
     user_id2:
-      finalUserInfo?.userId?.toString() ||
-      finalUserInfo?.id?.toString() ||
-      "",
+      finalUserInfo?.userId?.toString() || finalUserInfo?.id?.toString() || "",
   };
 
   // Đảm bảo các trường bắt buộc có mặt khi thêm mới
@@ -271,7 +282,8 @@ export const buildPhieuNhatHangPayload = (
     }
     if (!masterData.ngay_lct) {
       // Khi update, giữ nguyên ngay_lct từ API; khi tạo mới mới dùng orderDate
-      masterData.ngay_lct = isUpdate && phieuData?.ngay_lct ? phieuData.ngay_lct : orderDate;
+      masterData.ngay_lct =
+        isUpdate && phieuData?.ngay_lct ? phieuData.ngay_lct : orderDate;
     }
     if (!masterData.ma_nt) {
       masterData.ma_nt = "VND";
@@ -287,7 +299,8 @@ export const buildPhieuNhatHangPayload = (
     }
     if (!masterData.datetime0) {
       // Khi update, giữ nguyên datetime0 từ API; khi tạo mới mới dùng orderDate
-      masterData.datetime0 = isUpdate && phieuData?.datetime0 ? phieuData.datetime0 : orderDate;
+      masterData.datetime0 =
+        isUpdate && phieuData?.datetime0 ? phieuData.datetime0 : orderDate;
     }
     if (!masterData.user_id0) {
       masterData.user_id0 = finalUserInfo?.userId || finalUserInfo?.id || "";
@@ -378,7 +391,7 @@ export const buildPhieuNhatHangPayload = (
     }
     // Với dòng con (isChild): ma_vt đã được copy từ parent qua {...parent}
     // Chỉ đảm bảo ma_vt có giá trị từ parent
-    
+
     // Mapping số lượng
     // Với dòng cha: set so_luong từ soLuongDeNghi
     // Với dòng con: so_luong đã được copy từ parent qua {...parent}, giữ nguyên
@@ -471,7 +484,7 @@ export const buildPhieuNhatHangPayload = (
     // Các trường đã được parse ở trên (so_luong_ton) không parse lại
     // so_luong_don sẽ bị xóa khỏi payload, không cần parse
     const alreadyParsedFields = ["so_luong_ton"];
-    
+
     Object.keys(dynamicItem).forEach((key) => {
       const value = dynamicItem[key];
 
@@ -520,6 +533,7 @@ export const buildPhieuNhatHangPayload = (
             "tk_cpbh",
             "stt_rec_px",
             "stt_rec0px",
+            "stt_rec_pn",
             "ma_kh2",
             "ma_td1",
             "dh_so",
