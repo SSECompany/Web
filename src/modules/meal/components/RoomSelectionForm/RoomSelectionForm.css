@@ -33,11 +33,38 @@
   background-color: #fff;
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .list-item:hover {
   background-color: #e0f7fa;
   border-color: #4caf50;
+  transform: translateX(4px);
+}
+
+/* Styling đặc biệt cho giường đã đặt */
+.list-item.bed-already-ordered {
+  border-left: 4px solid #ff9800;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.15);
+}
+
+.list-item.bed-already-ordered:hover {
+  background-color: #ffe0b2;
+  border-color: #ff9800;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
+}
+
+/* Badge hiển thị trạng thái đã đặt */
+.bed-status-badge {
+  display: inline-flex;
+  align-items: center;
+  background-color: #ff9800;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .list-item span {
@@ -65,19 +92,22 @@
 
 /* Styling for the form submit button */
 .submit-button {
-  padding: 12px;
   width: 100%;
-  background-color: #007bff;
-  color: white;
-  font-size: 16px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  margin-top: 20px;
+  padding: 12px !important;
+  background-color: #007bff !important;
+  color: white !important;
+  font-size: 16px !important;
+  border-radius: 6px !important;
+  border: none !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 500 !important;
 }
 
-.submit-button:hover {
-  background-color: #0056b3;
+.submit-button:hover:not(:disabled) {
+  background-color: #0056b3 !important;
 }
 
 .input-group select {
@@ -173,7 +203,6 @@
 
 /* Disabled submit button */
 .submit-button:disabled {
-  background-color: #cccccc;
-  color: #666666;
-  cursor: not-allowed;
+  background-color: #cccccc !important;
+  cursor: not-allowed !important;
 }

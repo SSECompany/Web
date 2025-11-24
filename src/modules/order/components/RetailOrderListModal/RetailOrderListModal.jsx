@@ -98,8 +98,25 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         const updatedData = Array.isArray(res?.listObject[0])
           ? res.listObject[0]
           : [];
-        const paginationInfo = res?.listObject[2]?.[0] || {};
-        const totalRecords = paginationInfo.totalRecord || updatedData.length;
+        // Robustly detect pagination info regardless of index/shape
+        const listObject = Array.isArray(res?.listObject) ? res.listObject : [];
+        let paginationInfo = {};
+        for (let i = 0; i < listObject.length; i++) {
+          const candidate = Array.isArray(listObject[i]) ? listObject[i][0] : null;
+          if (
+            candidate &&
+            (candidate.totalRecord !== undefined ||
+              candidate.totalrecord !== undefined ||
+              candidate.totalpage !== undefined ||
+              candidate.pagesize !== undefined)
+          ) {
+            paginationInfo = candidate;
+            break;
+          }
+        }
+        const totalRecords = Number(
+          paginationInfo.totalRecord ?? paginationInfo.totalrecord ?? 0
+        ) || updatedData.length;
 
         setAllData(updatedData);
         setTotalRecords(totalRecords);
@@ -314,7 +331,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       title: "Tổng tiền",
       dataIndex: "t_tt",
       key: "t_tt",
-      render: (value) => `${value?.toLocaleString() || 0} VND`,
+      render: (value) => `${Number(value || 0).toLocaleString()} VND`,
     },
     {
       title: "Yêu cầu đồng bộ",

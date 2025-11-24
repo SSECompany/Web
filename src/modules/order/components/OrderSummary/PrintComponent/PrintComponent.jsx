@@ -25,6 +25,10 @@ const PrintComponent = forwardRef(
             return "Chuyển khoản";
           case "tien_mat":
             return "Tiền mặt";
+          case "benhnhan_tratruoc":
+            return "Người bệnh trả trước";
+          case "sinhvien_tratruoc":
+            return "Sinh viên trả trước";
           default:
             return "Tiền mặt";
         }
@@ -101,6 +105,32 @@ const PrintComponent = forwardRef(
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
         </div>
+        {(Number(master?.benhnhan_tratruoc || 0) > 0 ||
+          Number(master?.sinhvien_tratruoc || 0) > 0 ||
+          Number(master?.chuyen_khoan || 0) > 0 ||
+          Number(master?.tien_mat || 0) > 0) && (
+          <div
+            style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}
+          >
+            {Number(master?.benhnhan_tratruoc || 0) > 0 && (
+              <div>
+                • Người bệnh trả trước: {formatNumber(master.benhnhan_tratruoc)}
+                đ
+              </div>
+            )}
+            {Number(master?.sinhvien_tratruoc || 0) > 0 && (
+              <div>
+                • Sinh viên trả trước: {formatNumber(master.sinhvien_tratruoc)}đ
+              </div>
+            )}
+            {Number(master?.chuyen_khoan || 0) > 0 && (
+              <div>• Chuyển khoản: {formatNumber(master.chuyen_khoan)}đ</div>
+            )}
+            {Number(master?.tien_mat || 0) > 0 && (
+              <div>• Tiền mặt: {formatNumber(master.tien_mat)}đ</div>
+            )}
+          </div>
+        )}
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Số CT:</strong> {orderNumber || "Chưa có"}
         </div>
@@ -210,7 +240,46 @@ const PrintComponent = forwardRef(
                           color: "#000",
                         }}
                       >
-                        {formatNumber(item?.thanh_tien) || "0"}đ
+                        {(() => {
+                          const originalPrice =
+                            parseFloat(item?.don_gia || 0) *
+                            parseInt(item?.so_luong || 1);
+                          const discountAmount = parseFloat(item?.ck_nt || 0);
+                          const finalPrice = originalPrice - discountAmount;
+
+                          if (discountAmount > 0) {
+                            return (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontSize: "12px",
+                                    color: "#000",
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  {formatNumber(finalPrice)}đ
+                                </div>
+                                <div
+                                  style={{
+                                    textDecoration: "line-through",
+                                    fontSize: "10px",
+                                    color: "#999",
+                                  }}
+                                >
+                                  {formatNumber(originalPrice)}đ
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            return `${formatNumber(originalPrice)}đ`;
+                          }
+                        })()}
                       </td>
                     </tr>
 
@@ -258,7 +327,46 @@ const PrintComponent = forwardRef(
                             color: "#000",
                           }}
                         >
-                          {formatNumber(sub?.thanh_tien) || "0"}đ
+                          {(() => {
+                            const originalPrice =
+                              parseFloat(sub?.don_gia || 0) *
+                              parseInt(sub?.so_luong || 1);
+                            const discountAmount = parseFloat(sub?.ck_nt || 0);
+                            const finalPrice = originalPrice - discountAmount;
+
+                            if (discountAmount > 0) {
+                              return (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      fontSize: "12px",
+                                      color: "#000",
+                                      fontWeight: "bold",
+                                    }}
+                                  >
+                                    {formatNumber(finalPrice)}đ
+                                  </div>
+                                  <div
+                                    style={{
+                                      textDecoration: "line-through",
+                                      fontSize: "10px",
+                                      color: "#999",
+                                    }}
+                                  >
+                                    {formatNumber(originalPrice)}đ
+                                  </div>
+                                </div>
+                              );
+                            } else {
+                              return `${formatNumber(originalPrice)}đ`;
+                            }
+                          })()}
                         </td>
                       </tr>
                     ))}
@@ -290,10 +398,42 @@ const PrintComponent = forwardRef(
           </tbody>
         </table>
 
+        {/* Separator line between items and summary */}
         <div
           style={{
             borderTop: "1px solid black",
             paddingTop: "6px",
+            marginRight: 10,
+          }}
+        />
+
+        {(() => {
+          // Tính tổng chiết khấu từ chi tiết đơn hàng (field ck_nt)
+          const totalDiscount = (detail || []).reduce((sum, d) => {
+            const val = parseFloat(d?.ck_nt || 0);
+            return sum + (isNaN(val) ? 0 : val);
+          }, 0);
+          if (totalDiscount > 0) {
+            return (
+              <div
+                style={{
+                  paddingTop: "4px",
+                  textAlign: "right",
+                  fontSize: "11px",
+                  marginRight: 10,
+                  color: "#000",
+                }}
+              >
+                Chiết khấu: {formatNumber(totalDiscount)}đ
+              </div>
+            );
+          }
+          return null;
+        })()}
+
+        <div
+          style={{
+            paddingTop: "2px",
             fontWeight: "bold",
             textAlign: "right",
             fontSize: "13px",
@@ -326,19 +466,27 @@ const PrintComponent = forwardRef(
               background: "#fff",
             }}
           >
-            <VietQR
-              amount={
+            {(() => {
+              const totalAmount = Number(master?.tong_tien || 0);
+              const prepaidAmount =
+                Number(master?.benhnhan_tratruoc || 0) +
+                Number(master?.sinhvien_tratruoc || 0);
+              const remainingAmount = totalAmount - prepaidAmount;
+              const qrAmount =
                 master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
                   ? master.chuyen_khoan
-                  : master?.tong_tien
-              }
-              soChungTu={`Thanh toan Phenikaa so CT ${orderNumber} ${
-                master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
-                  ? master.chuyen_khoan
-                  : master?.tong_tien
-              }vnd`}
-              size={80}
-            />
+                  : remainingAmount > 0
+                  ? remainingAmount
+                  : totalAmount;
+
+              return (
+                <VietQR
+                  amount={qrAmount}
+                  soChungTu={`Thanh toan Phenikaa so CT ${orderNumber} ${qrAmount}vnd`}
+                  size={80}
+                />
+              );
+            })()}
           </div>
         </div>
 

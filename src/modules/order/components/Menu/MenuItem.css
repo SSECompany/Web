@@ -51,3 +51,23 @@
   text-align: center;
   font-weight: bold;
 }
+
+/* Badge hiển thị số lượng tồn */
+.stock-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(76, 175, 80, 0.9);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: bold;
+  z-index: 2;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Badge cảnh báo khi tồn kho thấp (≤ 5) */
+.stock-badge-warning {
+  background: rgba(255, 152, 0, 0.9);
+}

@@ -23,6 +23,9 @@ const initialState = {
             isPaid: false,
             date: "",
             httt: "",
+            stt_rec: "",
+            stt_rec0: "",
+            so_ct: "",
           },
         ],
         CA2: [
@@ -37,6 +40,9 @@ const initialState = {
             isPaid: false,
             date: "",
             httt: "",
+            stt_rec: "",
+            stt_rec0: "",
+            so_ct: "",
           },
         ],
         CA3: [
@@ -51,6 +57,9 @@ const initialState = {
             isPaid: false,
             date: "",
             httt: "",
+            stt_rec: "",
+            stt_rec0: "",
+            so_ct: "",
           },
         ],
       },
@@ -66,6 +75,7 @@ const initialState = {
   showMealDetails: false,
   currentBedIndex: 0,
   submittedBeds: [],
+  bedsPaymentToggled: {},
   listDietCategory: [],
   listMealCode: [],
   listFood: [],
@@ -280,6 +290,12 @@ const mealSlice = createSlice({
     setSubmittedBeds: (state, action) => {
       state.submittedBeds = action.payload;
     },
+    setBedPaymentToggled: (state, action) => {
+      const { bedIndex, toggled } = action.payload || {};
+      if (typeof bedIndex === "number") {
+        state.bedsPaymentToggled[bedIndex] = !!toggled;
+      }
+    },
     setListDietCategory: (state, action) => {
       state.listDietCategory = action.payload;
     },
@@ -288,6 +304,20 @@ const mealSlice = createSlice({
     },
     setListFood: (state, action) => {
       state.listFood = action.payload;
+    },
+    appendListFood: (state, action) => {
+      const newFoods = action.payload;
+      const existingFoods = state.listFood || [];
+      const uniqueNewFoods = newFoods.filter(
+        (newFood) =>
+          !existingFoods.some(
+            (existingFood) =>
+              existingFood.ma_mon === newFood.ma_mon &&
+              existingFood.ma_ca === newFood.ma_ca &&
+              existingFood.ma_nh === newFood.ma_nh
+          )
+      );
+      state.listFood = [...existingFoods, ...uniqueNewFoods];
     },
     setListDepartment: (state, action) => {
       state.listDepartment = action.payload;
@@ -390,9 +420,11 @@ export const {
   setCurrentBedIndex,
   markBedAsSubmitted,
   setSubmittedBeds,
+  setBedPaymentToggled,
   setListDietCategory,
   setListMealCode,
   setListFood,
+  appendListFood,
   setListDepartment,
   setListRoom,
   resetAllMeals,

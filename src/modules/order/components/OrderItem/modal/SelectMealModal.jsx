@@ -104,6 +104,8 @@ export default function SelectMealModal({
             label: food.ten_mon,
             price: food.gia_ban,
             description: food.ma_mon_phu || "",
+            tonDuTru: food.tonDuTru || 0,
+            isCheckTonDuTru: food.IsCheckTonDuTru !== false, // Default true nếu không có giá trị
           }));
         setMealOptions(options);
       } else {
@@ -123,6 +125,13 @@ export default function SelectMealModal({
       const selectedOption = mealOptions.find(
         (option) => option.value === selectedMeal
       );
+
+      // Kiểm tra xem món đã chọn có bị disable không
+      if (!selectedOption.isCheckTonDuTru) {
+        console.warn("Cannot select disabled meal:", selectedOption.label);
+        return;
+      }
+
       const selectedShiftInfo = mealShifts.find(
         (shift) => shift.key === selectedShift
       );
@@ -134,6 +143,8 @@ export default function SelectMealModal({
           mealDescription: selectedOption.description,
           mealShift: selectedShiftInfo.code,
           mealShiftLabel: selectedShiftInfo.label,
+          tonDuTru: selectedOption.tonDuTru,
+          isCheckTonDuTru: selectedOption.isCheckTonDuTru,
         })
       );
     }
@@ -178,16 +189,30 @@ export default function SelectMealModal({
                 <Radio
                   key={option.value}
                   value={option.value}
-                  className="meal-option"
+                  disabled={!option.isCheckTonDuTru}
+                  className={`meal-option ${
+                    !option.isCheckTonDuTru ? "meal-option-disabled" : ""
+                  }`}
                 >
                   <div className="meal-option-content">
-                    <div className="meal-info">
-                      <span className="meal-label">{option.label}</span>
+                    <div className="meal-left">
+                      <div className="meal-label">{option.label}</div>
                       {option.description && (
-                        <span className="meal-description">
+                        <div className="meal-description">
                           {option.description}
-                        </span>
+                        </div>
                       )}
+                    </div>
+                    <div className="meal-right">
+                      <span
+                        className={`meal-inventory ${
+                          !option.isCheckTonDuTru
+                            ? "meal-inventory-disabled"
+                            : ""
+                        }`}
+                      >
+                        Tồn: {option.tonDuTru}
+                      </span>
                     </div>
                   </div>
                 </Radio>

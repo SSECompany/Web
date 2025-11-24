@@ -7,7 +7,6 @@ import RoomSelectionForm from '../../modules/meal/components/RoomSelectionForm/R
 import {
     setListBeds,
     setListDepartment,
-    setListDietCategory,
     setListFood,
     setListMealCode,
     setListRoom,
@@ -39,12 +38,7 @@ const MealTicketForm = () => {
 
         const fetchData = async () => {
             try {
-                const [dietRes, mealCodeRes, foodRes, departmentRes] = await Promise.all([
-                    multipleTablePutApi({
-                        store: "[api_getListDietCategory]",
-                        param: { searchValue: "", pageindex: 1, pagesize: 100 },
-                        data: {},
-                    }),
+                const [mealCodeRes, foodRes, departmentRes] = await Promise.all([
                     multipleTablePutApi({
                         store: "[api_getListMealCode]",
                         param: { ma_ca: "", pageindex: 1, pagesize: 10 },
@@ -76,7 +70,6 @@ const MealTicketForm = () => {
                     }),
                 ]);
 
-                dispatch(setListDietCategory(dietRes?.listObject?.[0] || []));
                 dispatch(setListMealCode(mealCodeRes?.listObject?.[0] || []));
                 dispatch(setListFood(foodRes?.listObject?.[0] || []));
                 const roomList = departmentRes?.listObject?.dataLists?.giuong || [];

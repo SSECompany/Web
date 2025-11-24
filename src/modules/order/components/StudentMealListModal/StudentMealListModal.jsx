@@ -79,6 +79,16 @@ const StudentMealListModal = ({ isOpen, onClose }) => {
   const printContent = useRef();
   const lastApiCall = useRef({ pageIndex: 0, filters: {} });
 
+  // Tính chiều cao scroll động - tối đa 10 dòng
+  const getScrollY = useMemo(() => {
+    const rowCount = allData.length;
+    if (rowCount === 0) return 100;
+    // Tối đa 10 dòng, mỗi dòng 55px
+    const maxRows = 10;
+    const actualRows = Math.min(rowCount, maxRows);
+    return actualRows * 55;
+  }, [allData.length]);
+
   const rawToken = localStorage.getItem("access_token");
   const claims =
     rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
@@ -127,8 +137,25 @@ const StudentMealListModal = ({ isOpen, onClose }) => {
         const updatedData = Array.isArray(res?.listObject[0])
           ? res.listObject[0]
           : [];
-        const paginationInfo = res?.listObject[1]?.[0] || {};
-        const totalRecords = paginationInfo.totalRecord || updatedData.length;
+        // Robustly detect pagination info regardless of index/shape
+        const listObject = Array.isArray(res?.listObject) ? res.listObject : [];
+        let paginationInfo = {};
+        for (let i = 0; i < listObject.length; i++) {
+          const candidate = Array.isArray(listObject[i]) ? listObject[i][0] : null;
+          if (
+            candidate &&
+            (candidate.totalRecord !== undefined ||
+              candidate.totalrecord !== undefined ||
+              candidate.totalpage !== undefined ||
+              candidate.pagesize !== undefined)
+          ) {
+            paginationInfo = candidate;
+            break;
+          }
+        }
+        const totalRecords = Number(
+          paginationInfo.totalRecord ?? paginationInfo.totalrecord ?? 0
+        ) || updatedData.length;
 
         setAllData(updatedData);
         setTotalRecords(totalRecords);
@@ -896,7 +923,7 @@ const StudentMealListModal = ({ isOpen, onClose }) => {
                 return `${record.ma_kh}_${record.ma_ca}_${record.ma_vt}_${record.ngay_ct}_${record.ma_bp}`;
               }}
               className="prepaid-student-meal-table"
-              scroll={{ x: "max-content", y: 400 }}
+              scroll={{ x: "max-content", y: getScrollY }}
               size="middle"
               pagination={{
                 current: currentPage,

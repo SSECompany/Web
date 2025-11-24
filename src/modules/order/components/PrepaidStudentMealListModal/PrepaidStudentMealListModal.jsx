@@ -1,4 +1,4 @@
-import { CheckOutlined } from "@ant-design/icons";
+import { CheckOutlined, PrinterOutlined } from "@ant-design/icons";
 import {
   Button,
   Input,
@@ -16,7 +16,6 @@ import { useReactToPrint } from "react-to-print";
 import {
   apiConfirmStudentOrder,
   apiGetRetailOrderStudentOrders,
-  multipleTablePutApi,
 } from "../../../../api";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import jwt from "../../../../utils/jwt";
@@ -79,6 +78,16 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
   );
   const [printMaster, setPrintMaster] = useState({});
   const [printDetail, setPrintDetail] = useState([]);
+
+  // Tính chiều cao scroll động - tối đa 10 dòng
+  const getScrollY = useMemo(() => {
+    const rowCount = allData.length;
+    if (rowCount === 0) return 100;
+    // Tối đa 10 dòng, mỗi dòng 55px
+    const maxRows = 10;
+    const actualRows = Math.min(rowCount, maxRows);
+    return actualRows * 55;
+  }, [allData.length]);
   const printContent = useRef();
   const lastApiCall = useRef({ pageIndex: 0, filters: {} });
 
@@ -130,8 +139,25 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
         const updatedData = Array.isArray(res?.listObject[0])
           ? res.listObject[0]
           : [];
-        const paginationInfo = res?.listObject[1]?.[0] || {};
-        const totalRecords = paginationInfo.totalRecord || updatedData.length;
+        // Robustly detect pagination info regardless of index/shape
+        const listObject = Array.isArray(res?.listObject) ? res.listObject : [];
+        let paginationInfo = {};
+        for (let i = 0; i < listObject.length; i++) {
+          const candidate = Array.isArray(listObject[i]) ? listObject[i][0] : null;
+          if (
+            candidate &&
+            (candidate.totalRecord !== undefined ||
+              candidate.totalrecord !== undefined ||
+              candidate.totalpage !== undefined ||
+              candidate.pagesize !== undefined)
+          ) {
+            paginationInfo = candidate;
+            break;
+          }
+        }
+        const totalRecords = Number(
+          paginationInfo.totalRecord ?? paginationInfo.totalrecord ?? 0
+        ) || updatedData.length;
 
         setAllData(updatedData);
         setTotalRecords(totalRecords);
@@ -201,23 +227,6 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
     return groupedDetailData;
   };
 
-  // Helper function để fetch order detail
-  const fetchOrderDetail = async (stt_rec) => {
-    const res = await multipleTablePutApi({
-      store: "api_get_data_detail_retail_order",
-      param: { stt_rec },
-      data: {},
-    });
-
-    if (res?.responseModel?.isSucceded) {
-      const masterData = res?.listObject[0]?.[0] || {};
-      const flatDetailData = res?.listObject[1] || [];
-      return { masterData, flatDetailData };
-    }
-    throw new Error(
-      res?.responseModel?.message || "Lỗi khi tải chi tiết đơn hàng"
-    );
-  };
 
   // Helper function để xử lý filter
   const handleFilter = (key, value, confirm) => {
@@ -618,19 +627,30 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
     {
       title: "Chức năng",
       key: "action",
-      width: 80,
+      width: 120,
       fixed: "right",
       align: "center",
       render: (_, record) => (
-        <Button
-          icon={<CheckOutlined />}
-          onClick={() => handleApprove(record)}
-          type="primary"
-          size="small"
-          className="approve_button"
-          disabled={isEditingOrder || record.so_luong_da_nhan > 0}
-          title="Xác nhận"
-        />
+        <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
+          <Button
+            icon={<PrinterOutlined />}
+            onClick={() => handleReprint(record)}
+            type="primary"
+            size="small"
+            className="print_button"
+            title="In lại"
+            disabled={record.so_luong_da_nhan <= 0}
+          />
+          <Button
+            icon={<CheckOutlined />}
+            onClick={() => handleApprove(record)}
+            type="primary"
+            size="small"
+            className="approve_button"
+            disabled={isEditingOrder || record.so_luong_da_nhan > 0}
+            title="Xác nhận"
+          />
+        </div>
       ),
     },
   ];
@@ -718,6 +738,56 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
     documentTitle: "Print Prepaid Student Meal",
     copyStyles: false,
   });
+
+  const handleReprint = async (record) => {
+    if (record.so_luong_da_nhan <= 0) {
+      notification.warning({
+        message: "Chỉ có thể in lại đơn hàng đã xác nhận",
+        duration: 3,
+      });
+      return;
+    }
+
+    try {
+      // Gọi API để lấy data in (sử dụng api_get_data_retail_order_student_orders)
+      const response = await apiConfirmStudentOrder({
+        ngay_ct: record.ngay_ct,
+        ma_kh: record.ma_kh,
+        storeId: record.ma_bp,
+        ca_an: record.ma_ca,
+        ma_vt: record.ma_vt,
+        so_luong: record.so_luong_da_nhan,
+        ts_yn: 0, // 0 = trả trước
+        unitId: unitId || "PHENIKAA",
+        userId: id,
+      });
+
+      if (response?.responseModel?.isSucceded) {
+        const masterData = response?.listObject[0]?.[0] || {};
+        const flatDetailData = response?.listObject[1] || [];
+        const groupedDetail = groupDetailData(flatDetailData, false);
+
+        setPrintMaster(masterData);
+        setPrintDetail(groupedDetail);
+
+        // Delay để đảm bảo state đã được update trước khi in
+        setTimeout(() => {
+          handlePrint();
+        }, 100);
+      } else {
+        notification.error({
+          message: response?.responseModel?.message || "Lỗi khi tải thông tin để in",
+          duration: 4,
+        });
+      }
+    } catch (err) {
+      console.error("Lỗi khi lấy thông tin để in:", err);
+      notification.error({
+        message: "Lỗi khi tải thông tin để in",
+        duration: 4,
+      });
+    }
+  };
 
   const handleApprove = async (record) => {
     showConfirm({
@@ -893,7 +963,7 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
                 return `${record.ma_kh}_${record.ma_ca}_${record.ma_vt}_${record.ngay_ct}`;
               }}
               className="prepaid-student-meal-table"
-              scroll={{ x: "max-content", y: 400 }}
+              scroll={{ x: "max-content", y: getScrollY }}
               size="middle"
               pagination={{
                 current: currentPage,

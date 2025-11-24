@@ -5,14 +5,13 @@ import {
 } from "@ant-design/icons";
 import {
   Button,
-  DatePicker,
   Input,
   Modal,
-  notification,
   Select,
   Spin,
   Table,
   Tag,
+  notification,
 } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -49,6 +48,16 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
   const [printMaster, setPrintMaster] = useState({});
   const [printDetail, setPrintDetail] = useState([]);
   const printContent = useRef();
+
+  // Tính chiều cao scroll động - tối đa 10 dòng
+  const getScrollY = useMemo(() => {
+    const rowCount = allData.length;
+    if (rowCount === 0) return 100;
+    // Tối đa 10 dòng, mỗi dòng 55px
+    const maxRows = 10;
+    const actualRows = Math.min(rowCount, maxRows);
+    return actualRows * 55;
+  }, [allData.length]);
   const lastApiCall = useRef({ pageIndex: 0, filters: {} });
 
   const rawToken = localStorage.getItem("access_token");
@@ -80,7 +89,6 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       try {
         const res = await apiGetRetailOrderPatientIsFamily({
           so_ct: filtersToUse.so_ct || "",
-          ngay_ct: filtersToUse.ngay_ct || "",
           ma_kh: filtersToUse.ma_kh || "",
           status: filtersToUse.status || "",
           ma_ban: filtersToUse.ma_ban || "",
@@ -96,22 +104,39 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
           userId: id,
           unitId: unitId,
           storeId: storeId,
-          ma_gd: "3", // 3 = đơn người nhà bệnh nhân
+          ma_gd: "3", // 3 = đơn Người nhà Người bệnh
         });
 
         const updatedData = Array.isArray(res?.listObject[0])
           ? res.listObject[0]
           : [];
-        const paginationInfo = res?.listObject[2]?.[0] || {};
-        const totalRecords = paginationInfo.totalRecord || updatedData.length;
+        // Robustly detect pagination info regardless of index/shape
+        const listObject = Array.isArray(res?.listObject) ? res.listObject : [];
+        let paginationInfo = {};
+        for (let i = 0; i < listObject.length; i++) {
+          const candidate = Array.isArray(listObject[i]) ? listObject[i][0] : null;
+          if (
+            candidate &&
+            (candidate.totalRecord !== undefined ||
+              candidate.totalrecord !== undefined ||
+              candidate.totalpage !== undefined ||
+              candidate.pagesize !== undefined)
+          ) {
+            paginationInfo = candidate;
+            break;
+          }
+        }
+        const totalRecords = Number(
+          paginationInfo.totalRecord ?? paginationInfo.totalrecord ?? 0
+        ) || updatedData.length;
 
         setAllData(updatedData);
         setTotalRecords(totalRecords);
         dispatch(setListOrderInfo(updatedData));
       } catch (err) {
-        console.error("Lỗi khi lấy danh sách suất ăn người nhà:", err);
+        console.error("Lỗi khi lấy danh sách suất ăn Người nhà:", err);
         notification.error({
-          message: "Lỗi khi tải danh sách suất ăn người nhà",
+          message: "Lỗi khi tải danh sách suất ăn Người nhà Người bệnh",
           duration: 4,
         });
       } finally {
@@ -195,10 +220,6 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
             case "so_ct":
               displayText = `Số CT: ${value}`;
               tagColor = "blue";
-              break;
-            case "ngay_ct":
-              displayText = `Ngày CT: ${value}`;
-              tagColor = "geekblue";
               break;
             case "ten_bp":
               displayText = `Bộ phận: ${value}`;
@@ -338,12 +359,14 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       dataIndex: "username",
       key: "username",
       width: 150,
+      align: "center",
     },
     {
       title: "Số chứng từ",
       dataIndex: "so_ct",
       key: "so_ct",
       width: 180,
+      align: "center",
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div className="filter-dropdown">
           <Input
@@ -370,32 +393,14 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       dataIndex: "ngay_ct",
       key: "ngay_ct",
       width: 120,
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div className="filter-dropdown">
-          <DatePicker
-            inputReadOnly
-            onChange={(date) => {
-              setSelectedKeys(date ? [date.format("DD/MM/YYYY")] : []);
-            }}
-            format="DD/MM/YYYY"
-            placeholder="Chọn ngày CT"
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => handleFilter("ngay_ct", selectedKeys[0], confirm)}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
+      align: "center",
     },
     {
       title: "Tên bộ phận",
       dataIndex: "ten_bp",
       key: "ten_bp",
       width: 200,
+      align: "center",
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div className="filter-dropdown">
           <Input
@@ -581,6 +586,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       dataIndex: "t_tt",
       key: "t_tt",
       width: 150,
+      align: "center",
       render: (value) => (
         <span style={{ color: "#1890ff", fontWeight: "600" }}>
           {Number(value || 0).toLocaleString()} VNĐ
@@ -658,35 +664,47 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       width: 180,
       align: "center",
       fixed: "right",
-      render: (_, record) => (
-        <div className="action-buttons">
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            type="danger"
-            size="small"
-            className="edit_button"
-            disabled={
-              isEditingOrder || (record.status === "2" && record.s3 === true)
-            }
-          />
-          <Button
-            icon={<PrinterOutlined />}
-            onClick={() => handleReprint(record)}
-            size="small"
-            type="primary"
-            className="print_button"
-          />
-          <Button
-            icon={<CheckOutlined />}
-            onClick={() => handleApprove(record)}
-            size="small"
-            type="primary"
-            className="approve_button"
-            disabled={record.status !== "0"}
-          />
-        </div>
-      ),
+      render: (_, record) => {
+        // Kiểm tra trạng thái "Hủy" (status khác 0 và 2, tức là status = 3)
+        const isCancelled =
+          record.status !== "0" &&
+          record.status !== "2" &&
+          record.status !== 0 &&
+          record.status !== 2;
+
+        return (
+          <div className="action-buttons">
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+              type="danger"
+              size="small"
+              className="edit_button"
+              disabled={
+                isCancelled ||
+                isEditingOrder ||
+                (record.status === "2" && record.s3 === true)
+              }
+            />
+            <Button
+              icon={<PrinterOutlined />}
+              onClick={() => handleReprint(record)}
+              size="small"
+              type="primary"
+              className="print_button"
+              disabled={isCancelled}
+            />
+            <Button
+              icon={<CheckOutlined />}
+              onClick={() => handleApprove(record)}
+              size="small"
+              type="primary"
+              className="approve_button"
+              disabled={isCancelled || record.status !== "0"}
+            />
+          </div>
+        );
+      },
     },
   ];
 
@@ -727,7 +745,6 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
         so_giuong: masterData.so_giuong || record.so_giuong || "",
         so_phong: masterData.so_phong || record.so_phong || "",
         ca_an: masterData.ca_an || record.ca_an || "",
-        thutien_yn: masterData.thutien_yn || record.thutien_yn || "",
         StoreID: masterData.StoreID || record.StoreID || "",
         ten_bp: masterData.ten_bp || record.ten_bp || "",
       };
@@ -752,7 +769,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       dispatch(switchTab(internalId));
       onClose();
       notification.success({
-        message: "Đã tải đơn hàng người nhà bệnh nhân thành công!",
+        message: "Đã tải đơn hàng Người nhà Người bệnh thành công!",
         duration: 3,
       });
     } catch (err) {
@@ -840,7 +857,6 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
             so_giuong: masterData.so_giuong || record.so_giuong || "",
             so_phong: masterData.so_phong || record.so_phong || "",
             ca_an: masterData.ca_an || record.ca_an || "",
-            thutien_yn: masterData.thutien_yn || record.thutien_yn || "",
             StoreID: masterData.StoreID || record.StoreID || "",
           };
 
@@ -879,7 +895,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       <Modal
         open={isOpen}
         width="95%"
-        title="Danh sách suất ăn người nhà bệnh nhân"
+        title="Danh sách suất ăn Người nhà Người bệnh"
         destroyOnClose
         onCancel={onClose}
         footer={null}
@@ -925,7 +941,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
                 record.stt_rec || record.so_ct || Math.random()
               }
               className="family-meal-table"
-              scroll={{ x: "max-content", y: 400 }}
+              scroll={{ x: "max-content", y: getScrollY }}
               size="middle"
               pagination={{
                 current: currentPage,
@@ -934,7 +950,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
                 showSizeChanger: false,
                 showQuickJumper: false,
                 showTotal: (total, range) =>
-                  `${range[0]}-${range[1]} của ${total} suất ăn người nhà bệnh nhân`,
+                  `${range[0]}-${range[1]} của ${total} suất ăn Người nhà Người bệnh`,
                 onChange: handlePageChange,
               }}
             />

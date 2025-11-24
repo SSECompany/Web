@@ -219,6 +219,9 @@ export default function OrderSummary({ total, itemCount }) {
     (isPostpaidStudent && isReadOnly) ||
     isConfirmed;
 
+  // Kiểm tra có phải đơn người nhà bệnh nhân không
+  const isFamilyMeal = Number(activeTab?.master?.benhnhan_tratruoc || 0) > 0;
+
   // Kiểm tra xem có phải khách hàng truy cập từ QR không
   const isCustomerQR = () => {
     const path = window.location.pathname;
@@ -259,19 +262,81 @@ export default function OrderSummary({ total, itemCount }) {
       return null;
     }
 
+    const normalizeThuTienFlag = (value) => {
+      if (value === true) return true;
+      if (value === false) return false;
+      if (typeof value === "number") return value === 1;
+      if (typeof value === "string") {
+        const normalized = value.trim().toUpperCase();
+        return ["1", "Y", "YES", "TRUE"].includes(normalized);
+      }
+      return false;
+    };
+
+    const detailHasCollectedMoney = activeTab?.detail?.some((item) =>
+      normalizeThuTienFlag(
+        item?.thutien_yn ?? item?.thu_tien_yn ?? item?.isPaid ?? false
+      )
+    );
+
+    const masterThuTienYn = detailHasCollectedMoney ? "1" : "0";
+    const existingMasterThuTien = activeTab?.master?.thutien_yn;
+    const resolvedMasterThuTien =
+      existingMasterThuTien !== undefined &&
+      existingMasterThuTien !== null &&
+      String(existingMasterThuTien).trim() !== ""
+        ? existingMasterThuTien
+        : masterThuTienYn;
+
     let finalTienMat = 0;
     let finalChuyenKhoan = 0;
     const totalAmount = Number(activeTab?.master?.tong_tien || 0);
+    const totalPrepaid =
+      Number(activeTab?.master?.benhnhan_tratruoc || 0) +
+      Number(activeTab?.master?.sinhvien_tratruoc || 0);
+    const remainingAmount = totalAmount - totalPrepaid;
 
-    if (selectedPayments.length === 1) {
+    // Xây dựng httt: nếu có prepaid method, thêm vào đầu
+    const initialHttt = activeTab?.master?.httt || "";
+    const isPrepaidMethod =
+      initialHttt === "benhnhan_tratruoc" ||
+      initialHttt === "sinhvien_tratruoc";
+
+    // Kiểm tra nếu là bệnh nhân/sinh viên trả trước và có thêm món (tổng tiền > tiền trả trước)
+    const hasPrepaidExtra =
+      isPrepaidMethod && totalPrepaid > 0 && remainingAmount > 0;
+
+    let finalHttt = "";
+
+    if (hasPrepaidExtra) {
+      // Trường hợp trả trước + thêm món: tự động dùng chuyển khoản cho phần thêm
+      finalChuyenKhoan = remainingAmount;
+      finalTienMat = 0;
+      finalHttt = `${initialHttt},chuyen_khoan`;
+    } else if (selectedPayments.length === 1) {
       if (selectedPayments[0] === "tien_mat") {
-        finalTienMat = totalAmount;
+        finalTienMat = remainingAmount;
       } else {
-        finalChuyenKhoan = totalAmount;
+        finalChuyenKhoan = remainingAmount;
+      }
+      finalHttt = selectedPayments.join(",");
+      if (isPrepaidMethod && totalPrepaid > 0) {
+        finalHttt = `${initialHttt},${selectedPayments.join(",")}`;
+      }
+    } else if (selectedPayments.length === 2) {
+      finalChuyenKhoan = Number(paymentAmounts.chuyen_khoan || 0);
+      finalTienMat = remainingAmount - finalChuyenKhoan;
+      finalHttt = selectedPayments.join(",");
+      if (isPrepaidMethod && totalPrepaid > 0) {
+        finalHttt = `${initialHttt},${selectedPayments.join(",")}`;
       }
     } else {
-      finalChuyenKhoan = Number(paymentAmounts.chuyen_khoan || 0);
-      finalTienMat = totalAmount - finalChuyenKhoan;
+      // Không có payment method nào được chọn
+      if (isPrepaidMethod && totalPrepaid > 0) {
+        finalHttt = initialHttt;
+      } else {
+        finalHttt = selectedPayments.join(",");
+      }
     }
 
     const masterData = {
@@ -282,8 +347,10 @@ export default function OrderSummary({ total, itemCount }) {
       tong_sl: Number(activeTab?.master?.tong_sl || 0).toString(),
       tien_mat: finalTienMat.toString(),
       chuyen_khoan: finalChuyenKhoan.toString(),
+      benhnhan_tratruoc: (activeTab?.master?.benhnhan_tratruoc || 0).toString(),
+      sinhvien_tratruoc: (activeTab?.master?.sinhvien_tratruoc || 0).toString(),
       tong_tt: totalAmount.toString(),
-      httt: selectedPayments.join(","),
+      httt: finalHttt,
       stt_rec: activeTab?.master?.stt_rec || "",
       status,
       cccd: customerInfo.cccd ?? activeTab?.master?.cccd ?? "",
@@ -298,9 +365,10 @@ export default function OrderSummary({ total, itemCount }) {
       so_giuong: activeTab?.master?.so_giuong ?? "",
       so_phong: activeTab?.master?.so_phong ?? "",
       ca_an: activeTab?.master?.ca_an ?? "",
-      thutien_yn: activeTab?.master?.thutien_yn ?? "",
+      thutien_yn: resolvedMasterThuTien,
       s3: sync ? "1" : "0",
       StoreID: activeTab?.master?.StoreID || storeId || "",
+      fcode1: "",
       // Thêm 3 trường cho sinh viên trả trước
       ngay_ct: activeTab?.master?.ngay_ct || activeTab?.metadata?.ngay_ct || "",
       ma_gd: activeTab?.master?.ma_gd || activeTab?.metadata?.ma_gd || "",
@@ -319,7 +387,9 @@ export default function OrderSummary({ total, itemCount }) {
         ma_vt: item.ma_vt,
         so_luong: (item.so_luong || 0).toString(),
         don_gia: (item.don_gia || 0).toString(),
-        thanh_tien: ((item.so_luong || 0) * (item.don_gia || 0)).toString(),
+        thanh_tien: (
+          item.thanh_tien || (item.so_luong || 0) * (item.don_gia || 0)
+        ).toString(),
         ghi_chu: item.ghi_chu || "",
         // gc_td1 giờ chứa mã vật tư ban đầu
         gc_td1: item.gc_td1 || "",
@@ -327,6 +397,9 @@ export default function OrderSummary({ total, itemCount }) {
         ap_voucher: item.ap_voucher || "0",
         // Thêm mã ca bọc nếu có
         ma_ca: item.selected_meal?.shift || "",
+      // Thêm giảm giá
+        tl_ck: (item.tl_ck || "0").toString(),
+        ck_nt: (item.ck_nt || "0").toString(),
       };
       const extras = (item.extras || []).map((extra) => {
         const quantity = parseFloat(extra.quantity || extra.so_luong || 0);
@@ -344,6 +417,9 @@ export default function OrderSummary({ total, itemCount }) {
           uniqueid,
           // Thêm mã ca bọc cho extras (kế thừa từ item chính)
           ma_ca: item.selected_meal?.shift || "",
+          // Extras cũng có thể có giảm giá (mặc định 0)
+          tl_ck: "0",
+          ck_nt: "0",
         };
       });
       return [mainItem, ...extras];
@@ -991,7 +1067,7 @@ export default function OrderSummary({ total, itemCount }) {
         <span className="summary-total">
           <p>Tổng tiền</p>
           <span className="summary-count">{itemCount}</span>
-          <p className="summary-total_font">{total.toLocaleString()} đ</p>
+          <p className="summary-total_font">{Number(total || 0).toLocaleString()} đ</p>
         </span>
       </div>
 
@@ -1020,6 +1096,12 @@ export default function OrderSummary({ total, itemCount }) {
           ten_dv_kh: (activeTab?.master?.ten_dv_kh || "").trim(),
         }}
         initialSync={activeTab?.master?.s3 !== "0"}
+        prepaidAmounts={{
+          benhnhan_tratruoc: activeTab?.master?.benhnhan_tratruoc || 0,
+          sinhvien_tratruoc: activeTab?.master?.sinhvien_tratruoc || 0,
+        }}
+        isPrepaidStudent={isPrepaidStudent}
+        isFamilyMeal={isFamilyMeal}
       />
 
       <CustomerPaymentModal

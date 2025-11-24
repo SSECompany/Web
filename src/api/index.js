@@ -602,7 +602,7 @@ export const apiProcessCombinedMealOrder = async ({
   }
 };
 
-// API lấy danh sách suất ăn người nhà bệnh nhân
+// API lấy danh sách suất ăn người nhà người bệnh
 export const apiGetRetailOrderPatientIsFamily = async ({
   so_ct = "",
   ngay_ct = "",
@@ -623,12 +623,20 @@ export const apiGetRetailOrderPatientIsFamily = async ({
   storeId,
   ma_gd = "3",
 }) => {
+  // Sử dụng ngày hiện tại nếu không truyền ngay_ct
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, "0");
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const year = today.getFullYear();
+  const todayString = `${day}/${month}/${year}`; // Format: DD/MM/YYYY
+  const finalNgayCt = ngay_ct || todayString;
+
   try {
     const response = await multipleTablePutApi({
       store: "api_get_retail_order_patientIs_family",
       param: {
         so_ct,
-        ngay_ct,
+        ngay_ct: finalNgayCt,
         ma_kh,
         status,
         ma_ban,
