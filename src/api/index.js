@@ -602,7 +602,7 @@ export const apiProcessCombinedMealOrder = async ({
   }
 };
 
-// API lấy danh sách suất ăn người nhà bệnh nhân
+// API lấy danh sách suất ăn người nhà người bệnh
 export const apiGetRetailOrderPatientIsFamily = async ({
   so_ct = "",
   ngay_ct = "",

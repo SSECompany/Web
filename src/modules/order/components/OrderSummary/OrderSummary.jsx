@@ -262,6 +262,32 @@ export default function OrderSummary({ total, itemCount }) {
       return null;
     }
 
+    const normalizeThuTienFlag = (value) => {
+      if (value === true) return true;
+      if (value === false) return false;
+      if (typeof value === "number") return value === 1;
+      if (typeof value === "string") {
+        const normalized = value.trim().toUpperCase();
+        return ["1", "Y", "YES", "TRUE"].includes(normalized);
+      }
+      return false;
+    };
+
+    const detailHasCollectedMoney = activeTab?.detail?.some((item) =>
+      normalizeThuTienFlag(
+        item?.thutien_yn ?? item?.thu_tien_yn ?? item?.isPaid ?? false
+      )
+    );
+
+    const masterThuTienYn = detailHasCollectedMoney ? "1" : "0";
+    const existingMasterThuTien = activeTab?.master?.thutien_yn;
+    const resolvedMasterThuTien =
+      existingMasterThuTien !== undefined &&
+      existingMasterThuTien !== null &&
+      String(existingMasterThuTien).trim() !== ""
+        ? existingMasterThuTien
+        : masterThuTienYn;
+
     let finalTienMat = 0;
     let finalChuyenKhoan = 0;
     const totalAmount = Number(activeTab?.master?.tong_tien || 0);
@@ -339,6 +365,7 @@ export default function OrderSummary({ total, itemCount }) {
       so_giuong: activeTab?.master?.so_giuong ?? "",
       so_phong: activeTab?.master?.so_phong ?? "",
       ca_an: activeTab?.master?.ca_an ?? "",
+      thutien_yn: resolvedMasterThuTien,
       s3: sync ? "1" : "0",
       StoreID: activeTab?.master?.StoreID || storeId || "",
       fcode1: "",
@@ -370,11 +397,9 @@ export default function OrderSummary({ total, itemCount }) {
         ap_voucher: item.ap_voucher || "0",
         // Thêm mã ca bọc nếu có
         ma_ca: item.selected_meal?.shift || "",
-        // Thêm giảm giá
+      // Thêm giảm giá
         tl_ck: (item.tl_ck || "0").toString(),
         ck_nt: (item.ck_nt || "0").toString(),
-        // Thêm thu tiền theo từng ca
-        thutien_yn: (item.thutien_yn || item.thu_tien_yn || "0").toString(),
       };
       const extras = (item.extras || []).map((extra) => {
         const quantity = parseFloat(extra.quantity || extra.so_luong || 0);
@@ -395,8 +420,6 @@ export default function OrderSummary({ total, itemCount }) {
           // Extras cũng có thể có giảm giá (mặc định 0)
           tl_ck: "0",
           ck_nt: "0",
-          // Extras kế thừa thutien_yn từ item chính
-          thutien_yn: (item.thutien_yn || item.thu_tien_yn || "0").toString(),
         };
       });
       return [mainItem, ...extras];

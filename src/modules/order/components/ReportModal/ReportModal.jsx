@@ -21,7 +21,15 @@ const SUMMARY_FIELDS = [
   "tt_qrcode_nt",
 ];
 
-const MONEY_FIELDS = ["gia_ban", "thanh_tien", "ck_nt", "tien_mat", "tien_ck", "tt_pos_nt", "tt_qrcode_nt"];
+const MONEY_FIELDS = [
+  "gia_ban",
+  "thanh_tien",
+  "ck_nt",
+  "tien_mat",
+  "tien_ck",
+  "tt_pos_nt",
+  "tt_qrcode_nt",
+];
 
 const formatDate = (date) => {
   const d = new Date(date);
@@ -44,8 +52,17 @@ const isVoucherApplied = (ap_voucher) => {
   );
 };
 
-const CELL_STYLE = { textAlign: "center", whiteSpace: "normal", wordWrap: "break-word" };
-const BOLD_CELL_STYLE = { fontWeight: "bold", textAlign: "center", whiteSpace: "normal", wordWrap: "break-word" };
+const CELL_STYLE = {
+  textAlign: "center",
+  whiteSpace: "normal",
+  wordWrap: "break-word",
+};
+const BOLD_CELL_STYLE = {
+  fontWeight: "bold",
+  textAlign: "center",
+  whiteSpace: "normal",
+  wordWrap: "break-word",
+};
 
 const ReportModal = ({ isOpen, onClose, unitId, id }) => {
   const [dataSource, setDataSource] = useState([]);
@@ -107,7 +124,12 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         dataIndex: "so_ct",
         key: "so_ct",
         minWidth: 110,
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+        filterDropdown: ({
+          setSelectedKeys,
+          selectedKeys,
+          confirm,
+          clearFilters,
+        }) => (
           <div style={{ padding: 8 }}>
             <Input
               placeholder="Tìm kiếm Số CT"
@@ -144,7 +166,9 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         ),
         onFilter: (value, record) => {
           if (!value) return true;
-          return String(record.so_ct || "").toLowerCase().includes(String(value).toLowerCase());
+          return String(record.so_ct || "")
+            .toLowerCase()
+            .includes(String(value).toLowerCase());
         },
       },
       {

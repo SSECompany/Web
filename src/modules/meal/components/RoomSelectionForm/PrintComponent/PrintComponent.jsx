@@ -108,7 +108,7 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
               fontStyle: "italic",
             }}
           >
-            Không có suất người nhà bệnh nhân
+            Không có suất người nhà người bệnh
           </div>
         ) : (
           (() => {
