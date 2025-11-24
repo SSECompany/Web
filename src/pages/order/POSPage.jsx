@@ -12,6 +12,7 @@ import MenuGrid from "../../modules/order/components/Menu/MenuGrid";
 import OrderList from "../../modules/order/components/OrderList/OrderList";
 import OrderSummary from "../../modules/order/components/OrderSummary/OrderSummary";
 import ReportModal from "../../modules/order/components/ReportModal/ReportModal";
+import ShiftReportModal from "../../modules/order/components/ShiftReportModal/ShiftReportModal";
 import RetailOrderListModal from "../../modules/order/components/RetailOrderListModal/RetailOrderListModal";
 
 import {
@@ -122,6 +123,8 @@ const modalReducer = (state, action) => {
       return { ...state, isModalVisible: !state.isModalVisible };
     case "TOGGLE_REPORT":
       return { ...state, isReportModalVisible: !state.isReportModalVisible };
+    case "TOGGLE_SHIFT_REPORT":
+      return { ...state, isShiftReportVisible: !state.isShiftReportVisible };
     case "TOGGLE_FAMILY_MEAL_LIST":
       return {
         ...state,
@@ -151,6 +154,7 @@ const POSPage = () => {
     isModalVisible: false,
     isOpenOrderList: false,
     isReportModalVisible: false,
+    isShiftReportVisible: false,
     isFamilyMealListVisible: false,
     isPrepaidStudentMealListVisible: false,
     isStudentMealListVisible: false,
@@ -462,6 +466,10 @@ const POSPage = () => {
     dispatchModal({ type: "TOGGLE_REPORT" });
   }, []);
 
+  const handleShiftReportModal = useCallback(() => {
+    dispatchModal({ type: "TOGGLE_SHIFT_REPORT" });
+  }, []);
+
   const handleSelectTableModal = useCallback(() => {
     dispatchModal({ type: "TOGGLE_SELECT_TABLE" });
   }, []);
@@ -526,7 +534,7 @@ const POSPage = () => {
                 </Button>
               </Tooltip>
               {claims?.RoleWeb !== "isPosMini" && (
-                <Tooltip placement="topRight" title="Báo cáo kết ca">
+                <Tooltip placement="topRight" title="Bảng kê hóa đơn">
                   <Button
                     className="default_button"
                     onClick={handleReportModal}
@@ -535,6 +543,14 @@ const POSPage = () => {
                   </Button>
                 </Tooltip>
               )}
+              <Tooltip placement="topRight" title="Báo cáo chốt ca">
+                <Button
+                  className="default_button"
+                  onClick={handleShiftReportModal}
+                >
+                  <i className="pi pi-print sub_text_color"></i>
+                </Button>
+              </Tooltip>
             </div>
           )}
         </div>
@@ -567,6 +583,15 @@ const POSPage = () => {
       <ReportModal
         isOpen={modalState.isReportModalVisible}
         onClose={handleReportModal}
+        unitId={unitId}
+        id={id}
+      />
+      <ShiftReportModal
+        isOpen={modalState.isShiftReportVisible}
+        onClose={handleShiftReportModal}
+        unitId={unitId}
+        userId={id}
+        cashierName={claims?.FullName}
       />
       <Loading />
     </div>

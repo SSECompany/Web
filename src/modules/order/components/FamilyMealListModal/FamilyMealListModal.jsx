@@ -657,7 +657,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
               disabled={
                 isCancelled ||
                 isEditingOrder ||
-                (record.status === "2" && record.s3 === true)
+                record.status === "2"
               }
             />
             <Button

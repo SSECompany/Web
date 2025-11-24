@@ -37,6 +37,7 @@ const ReportExportExcelButton = ({ dataSource = [], selectedDate }) => {
           systotal,
           so_luong,
           thanh_tien,
+          ck_nt,
           tien_mat,
           tien_ck,
           ap_voucher,
@@ -45,6 +46,7 @@ const ReportExportExcelButton = ({ dataSource = [], selectedDate }) => {
         if (systotal === 0) {
           acc.totalSoLuong += Number(so_luong) || 0;
           acc.totalThanhTien += Number(thanh_tien) || 0;
+          acc.totalTienChietKhau += Number(ck_nt) || 0;
           acc.totalTienMat += Number(tien_mat) || 0;
           acc.totalTienCK += Number(tien_ck) || 0;
         } else if (isVoucherApplied(ap_voucher)) {
@@ -56,6 +58,7 @@ const ReportExportExcelButton = ({ dataSource = [], selectedDate }) => {
       {
         totalSoLuong: 0,
         totalThanhTien: 0,
+        totalTienChietKhau: 0,
         totalTienMat: 0,
         totalTienCK: 0,
         totalApVoucher: 0,
@@ -82,6 +85,7 @@ const ReportExportExcelButton = ({ dataSource = [], selectedDate }) => {
         "Số lượng": parseNumber(row.so_luong),
         "Giá bán": parseNumber(row.gia_ban),
         "Thành tiền": parseNumber(row.thanh_tien),
+        "Tiền chiết khấu": parseNumber(row.ck_nt),
         "Tiền mặt": parseNumber(row.tien_mat),
         "Tiền CK": parseNumber(row.tien_ck),
         "Áp voucher": isVoucherApplied(row.ap_voucher) ? "x" : "",
@@ -100,6 +104,7 @@ const ReportExportExcelButton = ({ dataSource = [], selectedDate }) => {
       "Số lượng": totals.totalSoLuong,
       "Giá bán": null,
       "Thành tiền": totals.totalThanhTien,
+      "Tiền chiết khấu": totals.totalTienChietKhau,
       "Tiền mặt": totals.totalTienMat,
       "Tiền CK": totals.totalTienCK,
       "Áp voucher": totals.totalApVoucher,
@@ -122,7 +127,13 @@ const ReportExportExcelButton = ({ dataSource = [], selectedDate }) => {
     });
     worksheet["!cols"] = columnWidths;
 
-    const moneyColumns = ["Giá bán", "Thành tiền", "Tiền mặt", "Tiền CK"];
+    const moneyColumns = [
+      "Giá bán",
+      "Thành tiền",
+      "Tiền chiết khấu",
+      "Tiền mặt",
+      "Tiền CK",
+    ];
     moneyColumns.forEach((header) => {
       const colIndex = columnKeys.indexOf(header);
       if (colIndex === -1) return;

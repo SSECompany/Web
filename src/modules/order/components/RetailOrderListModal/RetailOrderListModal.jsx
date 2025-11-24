@@ -434,9 +434,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
             type="danger"
             size="small"
             className="edit_button"
-            disabled={
-              isEditingOrder || (record.status === "2" && record.s3 === true)
-            }
+            disabled={isEditingOrder || record.status === "2"}
           />
           <Button
             icon={<PrinterOutlined />}

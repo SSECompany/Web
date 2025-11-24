@@ -8,7 +8,6 @@ import React, {
 } from "react";
 import { multipleTablePutApi } from "../../../../api";
 import { formatNumber } from "../../../../app/hook/dataFormatHelper";
-import ReportExportExcelButton from "./ReportExportExcelButton";
 import "./ReportModal.css";
 
 const DEFAULT_FILTERS = {
@@ -28,12 +27,13 @@ const SUMMARY_FIELDS = [
   "so_luong",
   "gia_ban",
   "thanh_tien",
+  "ck_nt",
   "tien_mat",
   "tien_ck",
   "ap_voucher",
 ];
 
-const MONEY_FIELDS = ["gia_ban", "thanh_tien", "tien_mat", "tien_ck"];
+const MONEY_FIELDS = ["gia_ban", "thanh_tien", "ck_nt", "tien_mat", "tien_ck"];
 
 const formatDate = (date) => {
   const d = new Date(date);
@@ -294,6 +294,12 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         width: 120,
       },
       {
+        title: "Tiền chiết khấu",
+        dataIndex: "ck_nt",
+        key: "ck_nt",
+        width: 140,
+      },
+      {
         title: "Tiền mặt",
         dataIndex: "tien_mat",
         key: "tien_mat",
@@ -398,19 +404,13 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
     <Modal
       open={isOpen}
       width={"95%"}
-      title="Báo cáo kết ca"
+      title="Bảng kê hóa đơn"
       destroyOnClose
       onCancel={onClose}
       centered
       footer={null}
     >
       <div className="report-modal_Container">
-        <div className="report-modal_actions">
-          <ReportExportExcelButton
-            dataSource={dataSource}
-            selectedDate={selectedDate}
-          />
-        </div>
         <Table
           className="report-modal-table"
           columns={optimizedColumns}
@@ -429,6 +429,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                   systotal,
                   so_luong,
                   thanh_tien,
+                  ck_nt,
                   tien_mat,
                   tien_ck,
                   ap_voucher,
@@ -437,6 +438,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                 if (systotal === 0) {
                   acc.totalSoLuong += Number(so_luong) || 0;
                   acc.totalThanhTien += Number(thanh_tien) || 0;
+                  acc.totalTienChietKhau += Number(ck_nt) || 0;
                   acc.totalTienMat += Number(tien_mat) || 0;
                   acc.totalTienCK += Number(tien_ck) || 0;
                 } else {
@@ -450,6 +452,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
               {
                 totalSoLuong: 0,
                 totalThanhTien: 0,
+                totalTienChietKhau: 0,
                 totalTienMat: 0,
                 totalTienCK: 0,
                 totalApVoucher: 0,
@@ -470,6 +473,11 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                       ),
                       thanh_tien: (
                         <strong>{formatNumber(totals.totalThanhTien)}</strong>
+                      ),
+                      ck_nt: (
+                        <strong>
+                          {formatNumber(totals.totalTienChietKhau)}
+                        </strong>
                       ),
                       tien_mat: (
                         <strong>{formatNumber(totals.totalTienMat)}</strong>
