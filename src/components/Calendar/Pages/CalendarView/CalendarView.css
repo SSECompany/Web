@@ -1,0 +1,19 @@
+.calendar-view {
+  padding: 0;
+}
+
+.calendar-view .ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-view .ant-picker-calendar {
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+}
+
+.calendar-view .ant-picker-calendar-date-content {
+  min-height: 60px;
+}
+

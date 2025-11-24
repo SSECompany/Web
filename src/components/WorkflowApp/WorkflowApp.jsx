@@ -5,6 +5,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 // import { getIsHideNav } from "../../store/selectors/Selectors";
 import Footer from "../Footer/Footer";
 import Navbar from "../Navbar/Navbar";
+import WorkflowSidebar from "./WorkflowSidebar/WorkflowSidebar";
 import "./WorkflowApp.css";
 
 const { Header, Content } = Layout;
@@ -32,11 +33,14 @@ const WorkflowApp = () => {
       <Header className="workflow-header">
         <Navbar />
       </Header>
+      <Layout style={{ height: "calc(100vh - 64px)" }}>
+        <WorkflowSidebar />
       <Content className="workflow-content">
         <div className="workflow-content-wrapper">
           <Outlet />
         </div>
       </Content>
+      </Layout>
       <Footer />
     </Layout>
   );

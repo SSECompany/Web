@@ -12,10 +12,13 @@ import { apiGetProjects, apiDeleteProject } from "../../API";
 import { setProjectsList, setLoading, setError, setPagination, setFilters } from "../../Store/Slices/ProjectSlice";
 import ModalAddProject from "../../Modals/ModalAddProject/ModalAddProject";
 import "./ProjectList.css";
+import { getSampleProjects } from "../../../WorkflowApp/utils/workflowSampleData";
 
 const { Search } = Input;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
+
+const SAMPLE_PROJECTS = getSampleProjects();
 
 const ProjectList = () => {
   const dispatch = useDispatch();
@@ -200,6 +203,15 @@ const ProjectList = () => {
     fetchProjects(newPagination, filters);
   };
 
+  const applySampleProjects = (paginationData = pagination) => {
+    dispatch(setProjectsList(SAMPLE_PROJECTS));
+    setTotalResults(SAMPLE_PROJECTS.length);
+    dispatch(setPagination({
+      ...paginationData,
+      total: SAMPLE_PROJECTS.length
+    }));
+  };
+
   const fetchProjects = async (paginationData = pagination, filterData = filters) => {
     try {
       dispatch(setLoading(true));
@@ -214,18 +226,24 @@ const ProjectList = () => {
       });
 
       if (response.status === 200) {
-        dispatch(setProjectsList(response.data.items || []));
-        setTotalResults(response.data.totalCount || 0);
+        const items = response.data.items || [];
+        if (items.length > 0) {
+          dispatch(setProjectsList(items));
+          setTotalResults(response.data.totalCount || items.length);
         dispatch(setPagination({ 
           ...paginationData, 
-          total: response.data.totalCount || 0 
+            total: response.data.totalCount || items.length 
         }));
+        } else {
+          applySampleProjects(paginationData);
+        }
       } else {
         dispatch(setError("Có lỗi xảy ra khi tải dữ liệu"));
         notification.error({
           message: "Lỗi",
           description: "Có lỗi xảy ra khi tải dữ liệu dự án",
         });
+        applySampleProjects(paginationData);
       }
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -234,6 +252,7 @@ const ProjectList = () => {
         message: "Lỗi",
         description: "Có lỗi xảy ra khi tải dữ liệu dự án",
       });
+      applySampleProjects(paginationData);
     } finally {
       dispatch(setLoading(false));
     }
@@ -337,6 +356,10 @@ const ProjectList = () => {
     fetchProjects();
   }, []);
 
+  const hasRemoteProjects = Array.isArray(projectsList) && projectsList.length > 0;
+  const displayProjects = hasRemoteProjects ? projectsList : SAMPLE_PROJECTS;
+  const totalDisplay = hasRemoteProjects ? totalResults : SAMPLE_PROJECTS.length;
+
   return (
     <div className="project-list-container">
       {/* Header */}
@@ -385,13 +408,13 @@ const ProjectList = () => {
       {/* Table */}
       <Table
         columns={tableColumns}
-        dataSource={projectsList}
+          dataSource={displayProjects}
         rowKey="id"
-        loading={loading}
+          loading={loading && hasRemoteProjects}
         pagination={{
           current: pagination.pageindex,
           pageSize: pagination.pageSize,
-          total: totalResults,
+            total: totalDisplay,
           showSizeChanger: true,
           showQuickJumper: true,
           showTotal: (total, range) =>

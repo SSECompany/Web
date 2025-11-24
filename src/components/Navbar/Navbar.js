@@ -19,6 +19,7 @@ import { getClaims, getUserInfo } from "../../store/selectors/Selectors";
 import jwt from "../../utils/jwt";
 import { multipleTablePutApi } from "../SaleOrder/API";
 import Notify from "./Notify/Notify.jsx";
+import { getWorkflowSearchModules, searchWorkflowModules } from "./WorkflowSearchConfig";
 
 const Navbar = () => {
   const [resultsSearchModal, setResultsSearchModal] = useState([]);
@@ -190,39 +191,14 @@ const Navbar = () => {
 
     // Filter theo system hiện tại
     if (systemType === "WORKFLOW") {
-      // CHỈ 5 MODULES CỐT LÕI - Đã được user confirm
-      filteredSearchFunctions = [
-        {
-          label: "Dashboard",
-          path: "workflow/dashboard",
-          icon: "📊",
-          description: "Tổng quan dự án & công việc",
-        },
-        {
-          label: "Danh sách dự án",
-          path: "workflow/projects",
-          icon: "📁",
-          description: "Quản lý tất cả dự án",
-        },
-        {
-          label: "Danh sách công việc",
-          path: "workflow/tasks",
-          icon: "✅",
-          description: "Quản lý tasks như Redmine",
-        },
-        {
-          label: "Giao việc",
-          path: "workflow/assignment",
-          icon: "👥",
-          description: "Phân công công việc",
-        },
-        {
-          label: "Báo cáo tổng hợp",
-          path: "workflow/reports",
-          icon: "📈",
-          description: "Reports & Analytics",
-        },
-      ];
+      // Sử dụng WorkflowSearchConfig để lấy tất cả modules
+      const workflowModules = getWorkflowSearchModules(userClaims || []);
+      filteredSearchFunctions = workflowModules.map((module) => ({
+        label: module.title,
+        path: module.route,
+        icon: module.icon,
+        description: module.description,
+      }));
     } else if (systemType === "HRM") {
       // LUÔN sử dụng modules tùy chỉnh cho HRM để đảm bảo hoàn toàn riêng biệt
       filteredSearchFunctions = [
@@ -310,9 +286,24 @@ const Navbar = () => {
     },
   ];
   const searchResult = (query) => {
-    const results = searchFunctions.filter((item) =>
+    let results = [];
+    
+    // Nếu đang ở WORKFLOW system, sử dụng searchWorkflowModules
+    if (currentSystem === "WORKFLOW") {
+      const workflowResults = searchWorkflowModules(query, userClaims || []);
+      results = workflowResults.map((module) => ({
+        label: module.title,
+        path: module.route,
+        icon: module.icon,
+        description: module.description,
+      }));
+    } else {
+      // Các system khác dùng filter thông thường
+      results = searchFunctions.filter((item) =>
       item.label.toLocaleLowerCase().includes(query.toLocaleLowerCase())
     );
+    }
+    
     return results.map((result, idx) => {
       // Highlight matching text
       const label = result.label;
@@ -587,13 +578,16 @@ const Navbar = () => {
                 <div className="search_suggestions">
                   <h4>📌 Tất cả các modules có thể truy cập:</h4>
                   <div className="popular_functions">
-                    {searchFunctions.map((func, index) => (
+                    {(currentSystem === "WORKFLOW"
+                      ? getWorkflowSearchModules(userClaims || [])
+                      : searchFunctions
+                    ).map((func, index) => (
                       <div
                         key={index}
                         className="popular_function_item"
-                        onClick={() => handleSelectFuntion(func.path)}
+                        onClick={() => handleSelectFuntion(func.path || func.route)}
                       >
-                        <span>{func.label}</span>
+                        {func.label || func.title}
                       </div>
                     ))}
                   </div>
@@ -612,13 +606,16 @@ const Navbar = () => {
                   Thử tìm với từ khóa khác hoặc chọn từ danh sách bên dưới
                 </small>
                 <div className="alternative_suggestions">
-                  {searchFunctions.slice(0, 4).map((func, index) => (
+                  {(currentSystem === "WORKFLOW" 
+                    ? getWorkflowSearchModules(userClaims || []).slice(0, 4)
+                    : searchFunctions.slice(0, 4)
+                  ).map((func, index) => (
                     <div
                       key={index}
                       className="alternative_item"
-                      onClick={() => handleSelectFuntion(func.path)}
+                      onClick={() => handleSelectFuntion(func.path || func.route)}
                     >
-                      {func.label}
+                      {func.label || func.title}
                     </div>
                   ))}
                 </div>

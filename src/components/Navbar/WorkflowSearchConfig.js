@@ -1,6 +1,6 @@
 /**
- * Workflow Search Configuration - ONLY 5 Core Modules
- * Cấu hình search chỉ hiển thị 5 modules cốt lõi
+ * Workflow Search Configuration
+ * Cấu hình search cho tất cả các modules trong Workflow System
  */
 
 export const WORKFLOW_CORE_MODULES = [
@@ -19,7 +19,7 @@ export const WORKFLOW_CORE_MODULES = [
     title: "Danh sách dự án",
     description: "Quản lý tất cả dự án trong hệ thống",
     icon: "📁",
-    route: "/workflow/projects",
+    route: "/workflow/project-management/projects",
     keywords: ["dự án", "project", "quản lý", "list", "danh sách"],
     priority: "HIGH",
     category: "core",
@@ -27,32 +27,52 @@ export const WORKFLOW_CORE_MODULES = [
   {
     id: "danh-sach-cong-viec",
     title: "Danh sách công việc",
-    description: "Quản lý tasks và issues như Redmine",
+    description: "Quản lý tasks và công việc",
     icon: "✅",
-    route: "/workflow/tasks",
-    keywords: ["công việc", "task", "issue", "redmine", "bug", "feature"],
+    route: "/workflow/task-management/tasks",
+    keywords: ["công việc", "task", "nhiệm vụ"],
     priority: "HIGH",
     category: "core",
   },
   {
-    id: "giao-viec",
-    title: "Giao việc",
-    description: "Phân công công việc cho thành viên",
-    icon: "👥",
-    route: "/workflow/assignment",
-    keywords: ["giao việc", "assign", "phân công", "assignment"],
-    priority: "MEDIUM",
+    id: "lich",
+    title: "Lịch",
+    description: "Xem tasks/issues theo lịch",
+    icon: "📅",
+    route: "/workflow/calendar",
+    keywords: ["calendar", "lịch", "schedule"],
+    priority: "LOW",
     category: "core",
   },
   {
-    id: "bao-cao-tong-hop",
-    title: "Báo cáo tổng hợp",
-    description: "Reports và analytics",
-    icon: "📈",
-    route: "/workflow/reports",
-    keywords: ["báo cáo", "report", "analytics", "thống kê"],
+    id: "roadmap",
+    title: "Roadmap",
+    description: "Roadmap và timeline của projects",
+    icon: "🗺️",
+    route: "/workflow/roadmap",
+    keywords: ["roadmap", "kế hoạch", "timeline"],
     priority: "LOW",
     category: "core",
+  },
+  {
+    id: "trung-tam-de-xuat",
+    title: "Trung tâm đề xuất",
+    description: "Quản lý đề xuất, phê duyệt và ERP liên thông",
+    icon: "📝",
+    route: "/workflow/finance/proposals",
+    keywords: ["đề xuất", "phê duyệt", "proposal", "approval"],
+    priority: "HIGH",
+    category: "finance",
+  },
+  {
+    id: "so-thu-chi",
+    title: "Sổ thu chi",
+    description: "Theo dõi phiếu thu/chi và dòng tiền dự án",
+    icon: "💰",
+    route: "/workflow/finance/ledger",
+    keywords: ["thu chi", "finance", "cash flow", "thu", "chi"],
+    priority: "HIGH",
+    category: "finance",
   },
 ];
 
@@ -75,18 +95,21 @@ export const REMOVED_MODULES = [
 
 /**
  * Get filtered workflow modules for search
- * Chỉ trả về 5 modules cốt lõi
+ * Trả về tất cả modules có sẵn (có thể filter theo permissions nếu cần)
  */
 export const getWorkflowSearchModules = (userPermissions = []) => {
-  return WORKFLOW_CORE_MODULES.filter((module) => {
-    // Basic permission check
-    if (module.priority === "HIGH") return true;
-    if (module.priority === "MEDIUM")
-      return userPermissions.includes("WORKFLOW_ASSIGN_TASKS");
-    if (module.priority === "LOW")
-      return userPermissions.includes("WORKFLOW_VIEW_REPORTS");
-    return true;
-  });
+  // Trả về tất cả modules - có thể thêm permission check sau nếu cần
+  return WORKFLOW_CORE_MODULES;
+  
+  // Uncomment để enable permission-based filtering:
+  // return WORKFLOW_CORE_MODULES.filter((module) => {
+  //   if (module.priority === "HIGH") return true;
+  //   if (module.priority === "MEDIUM")
+  //     return userPermissions.includes("WORKFLOW_ASSIGN_TASKS");
+  //   if (module.priority === "LOW")
+  //     return userPermissions.includes("WORKFLOW_VIEW_REPORTS");
+  //   return true;
+  // });
 };
 
 /**

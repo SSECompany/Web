@@ -1,0 +1,36 @@
+.proposal-center {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.proposal-center-card .proposal-center-filters {
+  margin-bottom: 16px;
+}
+
+.proposal-selected-row {
+  background-color: #e6f4ff !important;
+}
+
+.proposal-selected-row td {
+  border-top: 2px solid #91caff !important;
+  border-bottom: 2px solid #91caff !important;
+}
+
+.proposal-center-timeline {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .proposal-center {
+    padding: 12px;
+  }
+}
+
+
+
+
+
+

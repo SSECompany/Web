@@ -1,7 +1,11 @@
 .workflow-layout {
   min-height: 100vh;
+  height: 100vh;
   background: url('../../assets/images/work-flow.jpg') center center / cover no-repeat;
   background-attachment: fixed;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .workflow-header {
@@ -24,15 +28,18 @@
   background: transparent;
   padding: 0;
   margin: 0;
-  overflow: auto;
-  height: calc(100vh - 60px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+  position: relative;
 }
 
 .workflow-content-wrapper {
   background: transparent;
-  min-height: calc(100vh - 60px);
-  overflow: auto;
+  min-height: calc(100% - 40px);
+  padding-bottom: 80px;
   margin: 20px;
+  box-sizing: border-box;
 }
 
 /* Workflow specific styles */`
@@ -40,10 +47,17 @@
 /* Override any conflicting styles */
 .workflow-app .ant-layout {
   background: transparent;
+  height: 100%;
 }
 
 .workflow-app .ant-layout-content {
   background: transparent;
+  height: 100%;
+}
+
+.workflow-app {
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* Responsive */

@@ -14,6 +14,7 @@ import {
   Space,
   Statistic,
   Table,
+  Tabs,
   Tag,
   Typography,
 } from "antd";
@@ -46,6 +47,47 @@ const WorkflowDashboard = () => {
       completed: 28,
       inProgress: 12,
       overdue: 5,
+    },
+  });
+
+  // Reports data
+  const [reportsData, setReportsData] = useState({
+    projectProgress: {
+      totalProjects: 12,
+      completedProjects: 4,
+      inProgressProjects: 8,
+      averageProgress: 65.5,
+    },
+    projectVolume: {
+      totalTasks: 145,
+      completedTasks: 95,
+      inProgressTasks: 35,
+      pendingTasks: 15,
+    },
+    projectCost: {
+      totalBudget: 500000000,
+      spentBudget: 320000000,
+      remainingBudget: 180000000,
+      budgetUtilization: 64,
+    },
+    projectKPI: {
+      onTimeDelivery: 85,
+      qualityScore: 92,
+      customerSatisfaction: 88,
+      teamProductivity: 78,
+    },
+    taskProgress: {
+      totalTasks: 45,
+      completedTasks: 28,
+      inProgressTasks: 12,
+      pendingTasks: 5,
+      averageCompletionTime: 3.5,
+    },
+    taskKPI: {
+      completionRate: 62.2,
+      onTimeCompletion: 75.5,
+      averageTaskDuration: 2.8,
+      taskQuality: 89,
     },
   });
 
@@ -347,13 +389,308 @@ const WorkflowDashboard = () => {
       </Row>
 
       {/* Recent Activities */}
-      <Card title="🔄 Hoạt động gần đây" className="activities-card">
+      <Card title="🔄 Hoạt động gần đây" className="activities-card" style={{ marginBottom: 24 }}>
         <Table
           columns={columns}
           dataSource={recentActivities}
           pagination={false}
           size="small"
           scroll={{ x: 800 }}
+        />
+      </Card>
+
+      {/* Reports Section */}
+      <Card title="📊 Báo cáo chi tiết" className="reports-card">
+        <Tabs
+          defaultActiveKey="project-progress"
+          items={[
+            {
+              key: "project-progress",
+              label: "Tiến độ dự án",
+              children: (
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Tổng dự án"
+                        value={reportsData.projectProgress.totalProjects}
+                        valueStyle={{ fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Hoàn thành"
+                        value={reportsData.projectProgress.completedProjects}
+                        valueStyle={{ color: "#52c41a", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Đang thực hiện"
+                        value={reportsData.projectProgress.inProgressProjects}
+                        valueStyle={{ color: "#1890ff", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Tiến độ trung bình"
+                        value={reportsData.projectProgress.averageProgress}
+                        suffix="%"
+                        valueStyle={{ color: "#722ed1", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+              ),
+            },
+            {
+              key: "project-volume",
+              label: "Khối lượng dự án",
+              children: (
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Tổng công việc"
+                        value={reportsData.projectVolume.totalTasks}
+                        valueStyle={{ fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Hoàn thành"
+                        value={reportsData.projectVolume.completedTasks}
+                        valueStyle={{ color: "#52c41a", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Đang thực hiện"
+                        value={reportsData.projectVolume.inProgressTasks}
+                        valueStyle={{ color: "#1890ff", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Chờ xử lý"
+                        value={reportsData.projectVolume.pendingTasks}
+                        valueStyle={{ color: "#fa8c16", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+              ),
+            },
+            {
+              key: "project-cost",
+              label: "Chi phí dự án",
+              children: (
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} sm={8}>
+                    <Card size="small">
+                      <Statistic
+                        title="Tổng ngân sách"
+                        value={reportsData.projectCost.totalBudget}
+                        formatter={(value) =>
+                          `${(value / 1000000).toFixed(0)}M VNĐ`
+                        }
+                        valueStyle={{ fontSize: 18 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Card size="small">
+                      <Statistic
+                        title="Đã chi tiêu"
+                        value={reportsData.projectCost.spentBudget}
+                        formatter={(value) =>
+                          `${(value / 1000000).toFixed(0)}M VNĐ`
+                        }
+                        valueStyle={{ color: "#ff4d4f", fontSize: 18 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Card size="small">
+                      <Statistic
+                        title="Còn lại"
+                        value={reportsData.projectCost.remainingBudget}
+                        formatter={(value) =>
+                          `${(value / 1000000).toFixed(0)}M VNĐ`
+                        }
+                        valueStyle={{ color: "#52c41a", fontSize: 18 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24}>
+                    <Card size="small" title="Tỷ lệ sử dụng ngân sách">
+                      <Progress
+                        percent={reportsData.projectCost.budgetUtilization}
+                        status={
+                          reportsData.projectCost.budgetUtilization > 80
+                            ? "exception"
+                            : "active"
+                        }
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+              ),
+            },
+            {
+              key: "project-kpi",
+              label: "KPI dự án",
+              children: (
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Giao hàng đúng hạn"
+                        value={reportsData.projectKPI.onTimeDelivery}
+                        suffix="%"
+                        valueStyle={{ color: "#52c41a", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Chất lượng"
+                        value={reportsData.projectKPI.qualityScore}
+                        suffix="%"
+                        valueStyle={{ color: "#1890ff", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Hài lòng khách hàng"
+                        value={reportsData.projectKPI.customerSatisfaction}
+                        suffix="%"
+                        valueStyle={{ color: "#722ed1", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Năng suất team"
+                        value={reportsData.projectKPI.teamProductivity}
+                        suffix="%"
+                        valueStyle={{ color: "#fa8c16", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+              ),
+            },
+            {
+              key: "task-progress",
+              label: "Tiến độ công việc",
+              children: (
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Tổng công việc"
+                        value={reportsData.taskProgress.totalTasks}
+                        valueStyle={{ fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Hoàn thành"
+                        value={reportsData.taskProgress.completedTasks}
+                        valueStyle={{ color: "#52c41a", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Đang thực hiện"
+                        value={reportsData.taskProgress.inProgressTasks}
+                        valueStyle={{ color: "#1890ff", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Thời gian hoàn thành TB"
+                        value={reportsData.taskProgress.averageCompletionTime}
+                        suffix="ngày"
+                        valueStyle={{ color: "#722ed1", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+              ),
+            },
+            {
+              key: "task-kpi",
+              label: "KPI công việc",
+              children: (
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Tỷ lệ hoàn thành"
+                        value={reportsData.taskKPI.completionRate}
+                        suffix="%"
+                        valueStyle={{ color: "#52c41a", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Hoàn thành đúng hạn"
+                        value={reportsData.taskKPI.onTimeCompletion}
+                        suffix="%"
+                        valueStyle={{ color: "#1890ff", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Thời gian TB/công việc"
+                        value={reportsData.taskKPI.averageTaskDuration}
+                        suffix="ngày"
+                        valueStyle={{ color: "#722ed1", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card size="small">
+                      <Statistic
+                        title="Chất lượng công việc"
+                        value={reportsData.taskKPI.taskQuality}
+                        suffix="%"
+                        valueStyle={{ color: "#fa8c16", fontSize: 20 }}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+              ),
+            },
+          ]}
         />
       </Card>
     </div>

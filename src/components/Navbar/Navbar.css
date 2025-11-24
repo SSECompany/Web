@@ -236,7 +236,7 @@
 
 .modal_search_results .popular_functions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   margin-bottom: 20px;
   width: 100%;
@@ -333,30 +333,35 @@
 
 .popular_functions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   margin-bottom: 20px;
+  width: 100%;
 }
 
 .popular_function_item {
-  background: linear-gradient(135deg, #1677ff, #40a9ff);
+  background: #1677ff;
   color: white;
-  padding: 12px 16px;
+  padding: 14px 16px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  text-align: left;
-  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.2);
+  transition: all 0.2s ease;
+  text-align: center;
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .popular_function_item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.3);
+  background: #0958d9;
+  transform: translateY(-1px);
 }
 
 .popular_function_item span {
   display: block;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* No Results */

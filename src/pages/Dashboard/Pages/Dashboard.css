@@ -1,6 +1,7 @@
 .dashboard {
-    height: max-content !important;
-    padding-bottom: 30px;
+    min-height: calc(100vh - 50px);
+    padding-bottom: 60px;
+    width: 100%;
 }
 
 .dashboard__general__statistic__container {

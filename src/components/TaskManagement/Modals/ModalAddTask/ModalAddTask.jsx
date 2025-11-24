@@ -33,14 +33,55 @@ const ModalAddTask = (props) => {
   const [usersList, setUsersList] = useState([]);
   const dispatch = useDispatch();
 
-  // Task status options
-  const statusOptions = [
-    { value: "PENDING", label: "Chờ thực hiện" },
-    { value: "IN_PROGRESS", label: "Đang thực hiện" },
-    { value: "REVIEW", label: "Đang xem xét" },
-    { value: "COMPLETED", label: "Hoàn thành" },
-    { value: "CANCELLED", label: "Đã hủy" },
-  ];
+  // Task status options - dynamic based on type
+  const getStatusOptions = (taskType = "TASK") => {
+    const baseStatuses = [
+      { value: "PENDING", label: "Chờ thực hiện" },
+      { value: "IN_PROGRESS", label: "Đang thực hiện" },
+      { value: "REVIEW", label: "Đang xem xét" },
+      { value: "COMPLETED", label: "Hoàn thành" },
+      { value: "CANCELLED", label: "Đã hủy" },
+    ];
+
+    // BUG workflow: PENDING -> IN_PROGRESS -> TESTING -> RESOLVED -> CLOSED
+    if (taskType === "BUG") {
+      return [
+        { value: "PENDING", label: "Chờ thực hiện" },
+        { value: "IN_PROGRESS", label: "Đang thực hiện" },
+        { value: "TESTING", label: "Đang test" },
+        { value: "RESOLVED", label: "Đã giải quyết" },
+        { value: "CLOSED", label: "Đã đóng" },
+        { value: "CANCELLED", label: "Đã hủy" },
+      ];
+    }
+
+    // FEATURE workflow: PENDING -> IN_PROGRESS -> REVIEW -> DONE
+    if (taskType === "FEATURE") {
+      return [
+        { value: "PENDING", label: "Chờ thực hiện" },
+        { value: "IN_PROGRESS", label: "Đang thực hiện" },
+        { value: "REVIEW", label: "Đang xem xét" },
+        { value: "DONE", label: "Hoàn thành" },
+        { value: "CANCELLED", label: "Đã hủy" },
+      ];
+    }
+
+    // SUPPORT workflow: PENDING -> IN_PROGRESS -> WAITING_FEEDBACK -> RESOLVED
+    if (taskType === "SUPPORT") {
+      return [
+        { value: "PENDING", label: "Chờ thực hiện" },
+        { value: "IN_PROGRESS", label: "Đang thực hiện" },
+        { value: "WAITING_FEEDBACK", label: "Chờ phản hồi" },
+        { value: "RESOLVED", label: "Đã giải quyết" },
+        { value: "CANCELLED", label: "Đã hủy" },
+      ];
+    }
+
+    // Default TASK workflow
+    return baseStatuses;
+  };
+
+  const [statusOptions, setStatusOptions] = useState(getStatusOptions());
 
   // Priority options
   const priorityOptions = [
@@ -48,6 +89,14 @@ const ModalAddTask = (props) => {
     { value: "MEDIUM", label: "Trung bình" },
     { value: "HIGH", label: "Cao" },
     { value: "URGENT", label: "Khẩn cấp" },
+  ];
+
+  // Task type options
+  const typeOptions = [
+    { value: "TASK", label: "Công việc" },
+    { value: "BUG", label: "Lỗi" },
+    { value: "FEATURE", label: "Tính năng" },
+    { value: "SUPPORT", label: "Hỗ trợ" },
   ];
 
   const handleCancelModal = () => {
@@ -70,6 +119,7 @@ const ModalAddTask = (props) => {
         taskCode: formData.taskCode,
         taskName: formData.taskName,
         description: formData.description,
+        type: formData.type || "TASK",
         status: formData.status,
         priority: formData.priority,
         projectId: formData.projectId,
@@ -270,6 +320,33 @@ const ModalAddTask = (props) => {
           </Form.Item>
 
           <Row gutter={[16, 0]}>
+            <Col xs={24} sm={8}>
+              <Form.Item
+                label="Loại"
+                name="type"
+                rules={[
+                  { required: true, message: "Vui lòng chọn loại" },
+                ]}
+                initialValue="TASK"
+              >
+                <Select 
+                  placeholder="Chọn loại" 
+                  disabled={disableFields}
+                  onChange={(value) => {
+                    const newStatusOptions = getStatusOptions(value);
+                    setStatusOptions(newStatusOptions);
+                    // Reset status to first option of new workflow
+                    inputForm.setFieldsValue({ status: newStatusOptions[0].value });
+                  }}
+                >
+                  {typeOptions.map((option) => (
+                    <Option key={option.value} value={option.value}>
+                      {option.label}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
             <Col xs={24} sm={8}>
               <Form.Item
                 label="Trạng thái"

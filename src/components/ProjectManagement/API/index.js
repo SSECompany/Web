@@ -23,6 +23,13 @@ export const apiGetProjects = (data) => {
   });
 };
 
+export const apiGetProject = (data) => {
+  return ProjectManagementGetApi({
+    store: "Api_Get_Project",
+    data: data,
+  });
+};
+
 export const apiCreateProject = (data) => {
   return ProjectManagementApi({
     store: "Api_Create_Project",
@@ -117,8 +124,3 @@ export const apiGetProjectKPIReport = (data) => {
     data: data,
   });
 };
-
-
-
-
-

@@ -51,7 +51,8 @@ input {
 }
 
 body {
-  overflow-y: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 body > iframe {
@@ -454,10 +455,11 @@ body > iframe {
 }
 
 .page_default {
-  height: calc(100vh - 50px);
+  min-height: calc(100vh - 50px);
   padding: 0 30px;
   padding-top: 10px;
-  padding-bottom: 20px;
+  padding-bottom: 60px;
+  overflow-y: visible;
 }
 
 .default_list_layout {

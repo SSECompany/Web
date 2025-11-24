@@ -63,6 +63,50 @@ const ModalAddProject = (props) => {
     setInitialValues({});
   };
 
+  const handleUseTemplate = async (templateId) => {
+    try {
+      setLoading(true);
+      const response = await ProjectManagementGetApi({
+        store: "Api_Get_Project_Template",
+        data: { templateId: templateId },
+      });
+
+      if (response.status === 200 && response.data) {
+        const templateData = response.data;
+        setInitialValues(templateData);
+
+        inputForm.setFieldsValue({
+          projectCode: templateData.projectCode || "",
+          projectName: templateData.projectName || "",
+          description: templateData.description || "",
+          status: templateData.status || "PLANNING",
+          priority: templateData.priority || "MEDIUM",
+          projectManagerId: templateData.projectManagerId || null,
+          customerId: templateData.customerId || null,
+          dateRange: null, // Reset date range for new project
+          budget: templateData.budget || 0,
+          estimatedHours: templateData.estimatedHours || 0,
+          actualHours: 0, // Reset for new project
+          progress: 0, // Reset for new project
+          notes: templateData.notes || "",
+        });
+
+        notification.success({
+          message: "Thành công",
+          description: "Đã tải dữ liệu từ template",
+        });
+      }
+    } catch (error) {
+      console.error("Error loading template:", error);
+      notification.error({
+        message: "Lỗi",
+        description: "Có lỗi xảy ra khi tải template",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const onSubmitForm = async () => {
     try {
       setLoading(true);

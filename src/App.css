@@ -3,14 +3,14 @@
   scroll-behavior: smooth;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
 }
 
 .App {
-  height: 100%;
   min-height: 100vh;
-  overflow: auto;
+  overflow: visible;
   scroll-behavior: smooth;
+  padding-bottom: 40px;
 }
 .title_component {
   background-color: white;
