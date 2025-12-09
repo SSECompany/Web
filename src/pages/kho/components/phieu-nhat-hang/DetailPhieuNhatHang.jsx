@@ -13,6 +13,7 @@ import { getLoItem, getViTriByKho } from "../../../../api";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import VatTuSelectFullPOS from "../../../../components/common/ProductSelectFull/VatTuSelectFullPOS";
 import QRScanner from "../../../../components/common/QRScanner/QRScanner";
+import notificationManager from "../../../../utils/notificationManager";
 import "../common-phieu.css";
 import PhieuNhatHangFormInputs from "./components/PhieuNhatHangFormInputs";
 import VatTuNhatHangTable from "./components/VatTuNhatHangTable";
@@ -55,6 +56,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
+  const qrProcessingRef = useRef(false);
   const sctRec = location.state?.sctRec || id;
   const returnUrl = location.state?.returnUrl || "/kho/nhat-hang";
   const token = localStorage.getItem("access_token");
@@ -353,7 +355,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
     };
   }, []);
 
-  const handleVatTuSelect = async (value) => {
+  const handleVatTuSelect = async (value, maLo = "") => {
     await vatTuSelectHandler(
       value,
       isEditMode,
@@ -362,7 +364,8 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       setVatTuInput,
       setVatTuList,
       fetchVatTuList,
-      vatTuSelectRef
+      vatTuSelectRef,
+      maLo
     );
     
     // Sau khi thêm vật tư, tự động lấy danh sách mã lô để hiển thị lựa chọn
@@ -371,9 +374,9 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       setTimeout(async () => {
         // Lấy dataSource mới nhất
         setDataSource((prevDataSource) => {
-          // Tìm record vừa được thêm vào (chưa có mã lô)
+          // Tìm record vừa được thêm vào
           const newRecord = prevDataSource.find(
-            (item) => item.maHang && item.maHang.trim() === value.trim() && !item.ma_lo
+            (item) => item.maHang && item.maHang.trim() === value.trim()
           );
           if (newRecord) {
             // Tự động query mã lô để lấy options, không tự động điền giá trị
@@ -404,78 +407,69 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   };
 
   const handleQRScanSuccess = async (scannedCode) => {
+    // Chống spam: Kiểm tra nếu đang xử lý
+    if (qrProcessingRef.current) {
+      return;
+    }
+
+    const trimmedCode = scannedCode.trim();
+    
+    // QR code có thể chứa mã vt + mã lô
+    // Thử các định dạng: "mã_vt|mã_lô", "mã_vt,mã_lô", "mã_vt+mã_lô", "mã_vt#mã_lô", hoặc chỉ có mã_vt
+    let maVt = trimmedCode;
+    let maLo = "";
+    
+    // Thử tách bằng |
+    if (trimmedCode.includes("|")) {
+      const parts = trimmedCode.split("|");
+      maVt = parts[0]?.trim() || "";
+      maLo = parts[1]?.trim() || "";
+    }
+    // Thử tách bằng ,
+    else if (trimmedCode.includes(",")) {
+      const parts = trimmedCode.split(",");
+      maVt = parts[0]?.trim() || "";
+      maLo = parts[1]?.trim() || "";
+    }
+    // Thử tách bằng +
+    else if (trimmedCode.includes("+")) {
+      const parts = trimmedCode.split("+");
+      maVt = parts[0]?.trim() || "";
+      maLo = parts[1]?.trim() || "";
+    }
+    // Thử tách bằng # (dấu hash) - định dạng chính
+    else if (trimmedCode.includes("#")) {
+      const parts = trimmedCode.split("#");
+      maVt = parts[0]?.trim() || "";
+      maLo = parts[1]?.trim() || "";
+    }
+    
+    if (!maVt) {
+      message.error("Không thể đọc mã vật tư từ QR code");
+      return;
+    }
+
+    // Đánh dấu đang xử lý
+    qrProcessingRef.current = true;
+
     try {
-      const trimmedCode = scannedCode.trim();
-      
-      // QR code có thể chứa mã vt + mã lô, nhưng xử lý giống POS: chỉ lấy mã vt
-      // Thử các định dạng: "mã_vt|mã_lô", "mã_vt,mã_lô", "mã_vt+mã_lô", "mã_vt#mã_lô", hoặc chỉ có mã_vt
-      let maVt = trimmedCode;
-      
-      // Thử tách bằng |
-      if (trimmedCode.includes("|")) {
-        const parts = trimmedCode.split("|");
-        maVt = parts[0]?.trim() || "";
-      }
-      // Thử tách bằng ,
-      else if (trimmedCode.includes(",")) {
-        const parts = trimmedCode.split(",");
-        maVt = parts[0]?.trim() || "";
-      }
-      // Thử tách bằng +
-      else if (trimmedCode.includes("+")) {
-        const parts = trimmedCode.split("+");
-        maVt = parts[0]?.trim() || "";
-      }
-      // Thử tách bằng # (dấu hash)
-      else if (trimmedCode.includes("#")) {
-        const parts = trimmedCode.split("#");
-        maVt = parts[0]?.trim() || "";
-      }
-      
-      if (!maVt) {
-        message.error("Không thể đọc mã vật tư từ QR code");
-        return;
-      }
-      
-      // Tìm vật tư trong danh sách
-      const foundVatTu = vatTuList.find(
-        (item) => item.item.sku === maVt || item.value === maVt
-      );
-      
-      if (!foundVatTu) {
-        // Nếu không tìm thấy trong danh sách hiện tại, thử tìm kiếm
-        // Hoặc sử dụng handleVatTuSelect để thêm vật tư
-        if (isEditMode) {
-          // Sử dụng handleVatTuSelect để thêm vật tư (nó sẽ tự động fetch thông tin)
-          await handleVatTuSelect(maVt);
-          message.success(`Đã thêm vật tư: ${maVt}`);
-        } else {
-          message.error(`Không tìm thấy vật tư với mã: ${maVt}`);
-        }
-        return;
-      }
-      
-      // Nếu tìm thấy vật tư trong danh sách
-      // Kiểm tra xem vật tư đã có trong bảng chưa
-      const existingItemIndex = dataSource.findIndex(
-        (item) => item.maHang === maVt
-      );
-      
-      if (existingItemIndex !== -1) {
-        // Vật tư đã tồn tại, không tự động cập nhật mã lô
-        message.success(`Đã tìm thấy vật tư: ${foundVatTu.item.name || maVt}`);
+      // Luôn sử dụng handleVatTuSelect để thêm/tăng số lượng vật tư
+      // Nó sẽ tự động kiểm tra và xử lý (thêm mới hoặc tăng số lượng)
+      // notificationManager trong handleVatTuSelect sẽ đảm bảo message chỉ hiển thị 1 lần
+      if (isEditMode) {
+        // Chỉ gọi handleVatTuSelect 1 lần duy nhất, truyền thêm mã lô nếu có
+        await handleVatTuSelect(maVt, maLo);
       } else {
-        // Vật tư chưa có trong bảng, thêm mới
-        if (isEditMode) {
-          await handleVatTuSelect(maVt);
-          message.success(`Đã thêm vật tư: ${maVt}`);
-        } else {
-          message.warning("Bạn cần bật chế độ chỉnh sửa để thêm vật tư");
-        }
+        message.warning("Bạn cần bật chế độ chỉnh sửa để thêm vật tư");
       }
     } catch (error) {
       console.error("Lỗi khi xử lý mã quét:", error);
       message.error("Có lỗi xảy ra khi xử lý mã quét");
+    } finally {
+      // Reset processing flag sau 3 giây để cho phép quét mã mới
+      setTimeout(() => {
+        qrProcessingRef.current = false;
+      }, 3000);
     }
   };
 

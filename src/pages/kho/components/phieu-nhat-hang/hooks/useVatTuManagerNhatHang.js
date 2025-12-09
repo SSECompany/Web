@@ -1,6 +1,7 @@
 import { message } from "antd";
 import { computeGroupState } from "../utils/phieuNhatHangUtils";
 import { useRef, useState } from "react";
+import notificationManager from "../../../../../utils/notificationManager";
 
 export const useVatTuManagerNhatHang = () => {
   const [dataSource, setDataSource] = useState([]);
@@ -125,7 +126,8 @@ export const useVatTuManagerNhatHang = () => {
     setVatTuInput,
     setVatTuList,
     fetchVatTuList,
-    vatTuSelectRef
+    vatTuSelectRef,
+    maLo = ""
   ) => {
     if (!isEditMode) {
       message.warning("Bạn cần bật chế độ chỉnh sửa");
@@ -142,12 +144,12 @@ export const useVatTuManagerNhatHang = () => {
       return;
     }
 
-    // Allow reprocessing the same value after a delay
+    // Allow reprocessing the same value after a delay (tăng lên 3 giây để khớp với QR scan)
     const timeSinceLastProcess =
       Date.now() - (lastProcessedValueRef.current?.timestamp || 0);
     if (
       lastProcessedValueRef.current?.value === value.trim() &&
-      timeSinceLastProcess < 2000
+      timeSinceLastProcess < 3000
     ) {
       return;
     }
@@ -182,9 +184,49 @@ export const useVatTuManagerNhatHang = () => {
         : [];
 
       setDataSource((prev) => {
-        const existingIndex = prev.findIndex(
-          (item) => item.maHang && item.maHang.trim() === value.trim()
-        );
+        // Đảm bảo maLo là string hợp lệ (không phải object)
+        let maLoStr = "";
+        if (maLo) {
+          if (typeof maLo === "string") {
+            maLoStr = maLo.trim();
+          } else if (typeof maLo === "number") {
+            maLoStr = String(maLo).trim();
+          } else {
+            // Nếu là object hoặc kiểu khác, bỏ qua
+            maLoStr = "";
+          }
+        }
+        
+        // Tìm dòng có cùng mã hàng VÀ cùng mã lô (nếu có mã lô)
+        // Nếu không có mã lô, chỉ tìm theo mã hàng
+        const existingIndex = prev.findIndex((item) => {
+          const maHangMatch = item.maHang && item.maHang.trim() === value.trim();
+          if (!maHangMatch) return false;
+          
+          // Nếu có mã lô từ QR, phải khớp cả mã lô
+          if (maLoStr) {
+            const itemMaLo = (item.ma_lo || "").trim();
+            return itemMaLo === maLoStr;
+          }
+          
+          // Nếu không có mã lô từ QR, chỉ tìm dòng không có mã lô
+          const itemMaLo = (item.ma_lo || "").trim();
+          return !itemMaLo;
+        });
+
+        console.log("🔍 Tìm dòng đã tồn tại:", {
+          value,
+          maLoStr,
+          existingIndex,
+          totalItems: prev.length,
+          existingItem: existingIndex !== -1 ? prev[existingIndex] : null,
+          allItems: prev.map(item => ({
+            maHang: item.maHang,
+            ma_lo: item.ma_lo,
+            soLuong: item.soLuong,
+            tong_nhat: item.tong_nhat
+          }))
+        });
 
         if (existingIndex !== -1) {
           const updatedData = prev.map((item, index) => {
@@ -193,11 +235,11 @@ export const useVatTuManagerNhatHang = () => {
               const dvtGoc = (item.dvt_goc || "").trim();
 
               // Luôn lấy hệ số gốc từ API tìm kiếm vật tư (fetchVatTuDetail)
-              const heSoGocFromAPI = parseFloat(vatTuInfo.he_so);
-              const heSoHienTai = item.he_so;
+              const heSoGocFromAPI = parseFloat(vatTuInfo.he_so) || 1;
+              const heSoHienTai = item.he_so || 1;
               const heSoAPI = heSoGocFromAPI;
               const dvtAPI = vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái";
-              let soLuongThemVao;
+              let soLuongThemVao = 1; // Default value
 
               if (dvtHienTai.trim() === dvtGoc.trim()) {
                 if (dvtAPI.trim() === dvtGoc.trim()) {
@@ -206,19 +248,28 @@ export const useVatTuManagerNhatHang = () => {
                   const dvtAPIInfo = donViTinhList.find(
                     (dvt) => dvt.dvt.trim() === dvtAPI.trim()
                   );
-                  const heSoDVTAPI = isNaN(parseFloat(dvtAPIInfo.he_so))
-                    ? 1
-                    : parseFloat(dvtAPIInfo.he_so);
-
-                  soLuongThemVao = heSoDVTAPI;
+                  if (dvtAPIInfo) {
+                    const heSoDVTAPI = isNaN(parseFloat(dvtAPIInfo.he_so))
+                      ? 1
+                      : parseFloat(dvtAPIInfo.he_so);
+                    soLuongThemVao = heSoDVTAPI;
+                  } else {
+                    // Nếu không tìm thấy trong donViTinhList, dùng heSoAPI
+                    soLuongThemVao = heSoAPI;
+                  }
                 }
               } else {
                 if (dvtAPI.trim() === dvtHienTai.trim()) {
                   soLuongThemVao = heSoAPI;
                 } else {
                   const soLuongGoc = heSoGocFromAPI / heSoHienTai;
-                  soLuongThemVao = soLuongGoc;
+                  soLuongThemVao = isNaN(soLuongGoc) ? 1 : soLuongGoc;
                 }
+              }
+
+              // Đảm bảo soLuongThemVao luôn là số hợp lệ
+              if (isNaN(soLuongThemVao) || soLuongThemVao <= 0) {
+                soLuongThemVao = 1;
               }
 
               const soLuongHienTai =
@@ -226,6 +277,17 @@ export const useVatTuManagerNhatHang = () => {
 
               const soLuongMoi = soLuongHienTai + soLuongThemVao;
               const soLuongLamTron = Math.round(soLuongMoi * 1000) / 1000;
+
+              console.log("📊 Cập nhật số lượng:", {
+                soLuongHienTai,
+                soLuongThemVao,
+                soLuongMoi,
+                soLuongLamTron,
+                heSoAPI,
+                dvtAPI,
+                dvtHienTai,
+                dvtGoc
+              });
 
               // Số lượng đề nghị giữ nguyên giá trị hiện tại
               const soLuongDeNghiHienTai = item.soLuongDeNghi || 0;
@@ -235,11 +297,16 @@ export const useVatTuManagerNhatHang = () => {
 
               const soLuongGocMoi = soLuongGocHienTai + 1; // Tăng thêm 1 cho soLuong_goc
 
+              // Cập nhật tổng nhặt bằng số lượng mới
+              const tongNhatMoi = soLuongLamTron;
+
               const updatedItem = {
                 ...item,
                 soLuong: soLuongLamTron, // Cập nhật số lượng thực tế (sl_td3) - tăng thêm
                 soLuongDeNghi: soLuongDeNghiHienTai, // Giữ nguyên số lượng đề nghị (so_luong)
                 soLuong_goc: soLuongGocMoi, // Tăng thêm 1
+                tong_nhat: tongNhatMoi, // Cập nhật tổng nhặt bằng số lượng mới
+                nhat: tongNhatMoi, // Cập nhật nhặt bằng tổng nhặt
 
                 he_so: heSoHienTai,
                 he_so_goc: heSoGocFromAPI,
@@ -250,6 +317,9 @@ export const useVatTuManagerNhatHang = () => {
 
                 // Giữ nguyên ma_kho từ item hiện tại (đã lấy từ dòng cha khi thêm)
                 ma_kho: item.ma_kho || (vatTuInfo.ma_kho || "").trim(),
+
+                // Giữ nguyên mã lô hiện tại (không cập nhật khi tăng số lượng)
+                ma_lo: (item.ma_lo || "").trim(),
 
                 donViTinhList: donViTinhList,
                 isNewlyAdded: item.isNewlyAdded,
@@ -268,12 +338,9 @@ export const useVatTuManagerNhatHang = () => {
             return item;
           });
 
-          const filteredData = updatedData.filter(
-            (item, index) =>
-              index === existingIndex || item.maHang.trim() !== value.trim()
-          );
-
-          const result = filteredData.map((item, index) => ({
+          // Không cần filter nữa vì đã tìm đúng dòng cần cập nhật dựa trên cả mã hàng và mã lô
+          // Chỉ cần re-index keys
+          const result = updatedData.map((item, index) => ({
             ...item,
             key: index + 1,
           }));
@@ -316,7 +383,7 @@ export const useVatTuManagerNhatHang = () => {
             soLuongDeNghiHienThi = soLuongDeNghiGoc * heSoHienTai;
           }
 
-          // Lấy ma_vi_tri và ma_kho từ dòng cha (item đầu tiên) nếu có
+            // Lấy ma_vi_tri và ma_kho từ dòng cha (item đầu tiên) nếu có
           const parentRow = prev.length > 0 ? prev[0] : null;
           const parentMaViTri = parentRow?.ma_vi_tri || "";
           const parentMaKho = parentRow?.ma_kho || (vatTuInfo.ma_kho || "").trim();
@@ -356,7 +423,8 @@ export const useVatTuManagerNhatHang = () => {
             so_lsx: "",
             // Lấy ma_vi_tri từ dòng cha
             ma_vi_tri: parentMaViTri,
-            ma_lo: "",
+            // Tự động set mã lô từ QR scan nếu có
+            ma_lo: maLoStr,
             ma_vv: "",
             ma_nx: "",
             tk_du: "",
@@ -454,7 +522,8 @@ export const useVatTuManagerNhatHang = () => {
         }
       });
 
-      message.success(`Đã thêm vật tư: ${value}`);
+      // Sử dụng notificationManager để hiển thị message chỉ 1 lần
+      notificationManager.showMessageOnce(value, `Đã thêm vật tư: ${value}`);
 
       // Clear input và focus lại để tiếp tục scan
       if (setVatTuInput) setVatTuInput("");
@@ -487,10 +556,10 @@ export const useVatTuManagerNhatHang = () => {
       console.error("Error adding vat tu:", error);
       message.error("Có lỗi xảy ra khi thêm vật tư");
     } finally {
-      // Reset processing flag after a delay
+      // Reset processing flag after a delay (tăng lên 3 giây để khớp với QR scan)
       setTimeout(() => {
         isProcessingRef.current = false;
-      }, 1000);
+      }, 3000);
     }
   };
 
@@ -596,11 +665,17 @@ export const useVatTuManagerNhatHang = () => {
 
   const handleSelectChange = (value, record, field) => {
     setDataSource((prev) => {
+      // Đảm bảo value là string cho các trường ma_lo và ma_vi_tri
+      let processedValue = value;
+      if (field === "ma_lo" || field === "ma_vi_tri") {
+        processedValue = value ? String(value).trim() : "";
+      }
+      
       const next = prev.map((item) =>
         item.key === record.key
           ? {
               ...item,
-              [field]: value,
+              [field]: processedValue,
               // Preserve loOptions and viTriOptions when updating other fields
               loOptions: item.loOptions || record.loOptions,
               viTriOptions: item.viTriOptions || record.viTriOptions,

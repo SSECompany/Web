@@ -5,9 +5,10 @@ import {
   KeyOutlined,
   QrcodeOutlined,
 } from "@ant-design/icons";
-import { Alert, Button, Card, Modal, Space, notification } from "antd";
+import { Alert, Button, Card, Modal, Space } from "antd";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import React, { useEffect, useRef, useState } from "react";
+import notificationManager from "../../../utils/notificationManager";
 import "./QRScanner.css";
 
 const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWithCamera = false }) => {
@@ -18,6 +19,9 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
   const [showManualInput, setShowManualInput] = useState(false);
   const [scanMode, setScanMode] = useState(null); // 'camera' hoặc 'barcode'
   const scannerRef = useRef(null);
+  const lastScannedCodeRef = useRef({ code: "", timestamp: 0 });
+  const isProcessingRef = useRef(false);
+  const hasProcessedRef = useRef(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -27,6 +31,10 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
       setCameraError(false);
       setManualInput("");
       setShowManualInput(false);
+      // Reset refs khi mở modal
+      lastScannedCodeRef.current = { code: "", timestamp: 0 };
+      isProcessingRef.current = false;
+      hasProcessedRef.current = false;
       if (scanner) {
         scanner.clear();
         setScanner(null);
@@ -38,6 +46,10 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
         scanner.clear();
         setScanner(null);
       }
+      // Reset refs khi đóng modal
+      lastScannedCodeRef.current = { code: "", timestamp: 0 };
+      isProcessingRef.current = false;
+      hasProcessedRef.current = false;
     };
   }, [isOpen, openWithCamera]);
 
@@ -57,7 +69,7 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
           const html5QrcodeScanner = new Html5QrcodeScanner(
             "qr-reader",
             {
-              fps: 10,
+              fps: 5, // Giảm fps để giảm số lần quét và tránh spam
               qrbox: { width: 250, height: 250 },
               aspectRatio: 1.0,
               rememberLastUsedCamera: true,
@@ -65,8 +77,62 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
             false
           );
 
+          // Wrapper để đảm bảo chỉ gọi handleScanSuccess một lần
+          hasProcessedRef.current = false;
           html5QrcodeScanner.render((decodedText, decodedResult) => {
-            handleScanSuccess(decodedText, decodedResult);
+            // Kiểm tra nếu đang xử lý - chặn ngay lập tức
+            if (isProcessingRef.current || hasProcessedRef.current) {
+              return;
+            }
+
+            const now = Date.now();
+            const trimmedCode = decodedText.trim();
+            
+            // Kiểm tra nếu mã này vừa được quét trong vòng 3 giây
+            if (
+              lastScannedCodeRef.current.code === trimmedCode &&
+              now - lastScannedCodeRef.current.timestamp < 3000
+            ) {
+              return; // Bỏ qua nếu là mã trùng lặp
+            }
+
+            // Đánh dấu NGAY LẬP TỨC để chặn các callback tiếp theo
+            isProcessingRef.current = true;
+            hasProcessedRef.current = true;
+            
+            // Hiển thị notification chỉ 1 lần
+            notificationManager.showNotificationOnce(
+              trimmedCode,
+              "Quét QR thành công",
+              `Đã quét được mã: ${trimmedCode}`
+            );
+
+            // Dừng scanner NGAY LẬP TỨC để tránh callback tiếp theo
+            try {
+              html5QrcodeScanner.clear();
+            } catch (error) {
+              console.error("Error clearing scanner in render:", error);
+            }
+            setScanner(null);
+            setIsScanning(false);
+
+            // Đánh dấu đã xử lý mã này
+            lastScannedCodeRef.current = {
+              code: trimmedCode,
+              timestamp: now,
+            };
+
+            // Đóng modal
+            onClose();
+
+            // Gọi callback với kết quả quét được
+            handleScanSuccess(trimmedCode, decodedResult);
+
+            // Reset processing flag sau 3 giây để cho phép quét mã mới
+            setTimeout(() => {
+              isProcessingRef.current = false;
+              hasProcessedRef.current = false;
+            }, 3000);
           }, onScanError);
           setScanner(html5QrcodeScanner);
           setIsScanning(true);
@@ -113,6 +179,10 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
 
   const handleManualInput = () => {
     if (manualInput.trim()) {
+      // Chống spam cho manual input
+      if (isProcessingRef.current) {
+        return;
+      }
       handleScanSuccess(manualInput.trim());
     } else {
       notification.warning({
@@ -145,24 +215,9 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
   }, [scanMode]);
 
   const handleScanSuccess = (decodedText, decodedResult) => {
-
-    // Dừng scanner
-    if (scanner) {
-      scanner.clear();
-      setScanner(null);
-    }
-    setIsScanning(false);
-
-    // Gọi callback với kết quả quét được
+    // Chỉ gọi callback onScanSuccess - tất cả logic đã được xử lý trong render callback
+    // Notification đã được hiển thị trong render callback
     onScanSuccess(decodedText, decodedResult);
-
-    // Đóng modal
-    onClose();
-
-    notification.success({
-      message: "Quét QR thành công",
-      description: `Đã quét được mã: ${decodedText}`,
-    });
   };
 
   return (

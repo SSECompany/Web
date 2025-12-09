@@ -633,40 +633,6 @@ const ListPhieuNhatHang = () => {
         filteredValue: filters.so_don_hang ? [filters.so_don_hang] : null,
       },
       {
-        title: "Mã khách hàng",
-        dataIndex: "ma_kh",
-        key: "ma_kh",
-        width: 140,
-        align: "center",
-        render: (text) => (text ? text.trim() : ""),
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm Mã khách"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                handleFilter("ma_kh", selectedKeys[0] || "", confirm);
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              className="search_button"
-              type="primary"
-              onClick={() => {
-                handleFilter("ma_kh", selectedKeys[0] || "", confirm);
-              }}
-              size="small"
-            >
-              Tìm kiếm
-            </Button>
-          </div>
-        ),
-        filteredValue: filters.ma_kh ? [filters.ma_kh] : null,
-      },
-      {
         title: "Vùng",
         dataIndex: "ma_nhomvitri",
         key: "ma_nhomvitri",
