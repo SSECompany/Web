@@ -291,7 +291,7 @@ const ProductSelectFull = ({
                 onSearch={handleSearch}
                 filterOption={false}
                 onSelect={handleVatTuSelect}
-                onDropdownVisibleChange={handleDropdownVisibleChange}
+                onOpenChange={handleDropdownVisibleChange}
                 disabled={!isEditMode}
                 popupClassName="vat-tu-dropdown"
                 popupMatchSelectWidth={true}
@@ -301,7 +301,11 @@ const ProductSelectFull = ({
                 }
                 onPopupScroll={handlePopupScroll}
                 getPopupContainer={(trigger) => trigger.parentNode}
-                dropdownStyle={{ maxHeight: 300, overflow: "auto" }}
+                styles={{
+                  popup: {
+                    root: { maxHeight: 300, overflow: "auto" },
+                  },
+                }}
               />
             ) : (
               <Input

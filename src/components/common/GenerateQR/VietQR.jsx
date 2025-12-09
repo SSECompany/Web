@@ -67,19 +67,6 @@ function buildMerchantAccountInfo({ bankId, account }) {
 
   const accInfoValue = `${guidField}${templateField}${serviceField}`;
 
-  if (process.env.NODE_ENV !== "production") {
-    console.log("[VietQR] Merchant Account Info Debug:", {
-      bank: bankValue,
-      account: accountValue,
-      bankFieldInsideTemplate,
-      accountFieldInsideTemplate,
-      templateValue,
-      templateLength: templateValue.length,
-      serviceField,
-      accInfoValue,
-    });
-  }
-
   return accInfoValue;
 }
 
@@ -127,16 +114,6 @@ export default function VietQR({ amount, soChungTu, size = 100 }) {
     amount,
     content: soChungTu || "",
   });
-
-  if (process.env.NODE_ENV !== "production") {
-    console.log("[VietQR] ===== DEBUG INFO =====");
-    console.log("[VietQR] Account:", account);
-    console.log("[VietQR] Bank ID:", bankId);
-    console.log("[VietQR] Content:", soChungTu || "(empty)");
-    console.log("[VietQR] QR Payload:", qrData);
-    console.log("[VietQR] QR Length:", qrData.length);
-    console.log("[VietQR] ======================");
-  }
 
   return (
     <div>

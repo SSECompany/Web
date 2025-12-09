@@ -254,6 +254,8 @@ export const buildPhieuNhatHangPayload = (
       isUpdate && phieuData?.datetime2 ? phieuData.datetime2 : orderDate,
     user_id2:
       finalUserInfo?.userId?.toString() || finalUserInfo?.id?.toString() || "",
+    // Trim khoảng trắng đầu cuối cho số đơn hàng
+    so_don_hang: phieuData?.so_don_hang ? phieuData.so_don_hang.toString().trim() : "",
   };
 
   // Đảm bảo các trường bắt buộc có mặt khi thêm mới

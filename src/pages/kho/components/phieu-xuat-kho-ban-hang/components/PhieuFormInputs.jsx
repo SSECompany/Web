@@ -47,7 +47,7 @@ const PhieuFormInputs = ({
               loading={loadingMaKhach}
               filterOption={false}
               onSearch={fetchMaKhachListDebounced}
-              onDropdownVisibleChange={(open) => {
+              onOpenChange={(open) => {
                 if (open && fetchMaKhachList) {
                   fetchMaKhachList("");
                 }
@@ -97,7 +97,7 @@ const PhieuFormInputs = ({
               showSearch
               optionFilterProp="label"
               allowClear
-              onDropdownVisibleChange={(open) => {
+              onOpenChange={(open) => {
                 if (open && fetchMaGiaoDichList) {
                   fetchMaGiaoDichList();
                 }

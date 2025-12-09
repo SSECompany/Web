@@ -10,7 +10,7 @@ import { Html5QrcodeScanner } from "html5-qrcode";
 import React, { useEffect, useRef, useState } from "react";
 import "./QRScanner.css";
 
-const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode }) => {
+const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWithCamera = false }) => {
   const [scanner, setScanner] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [cameraError, setCameraError] = useState(false);
@@ -22,7 +22,8 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode }) => {
   useEffect(() => {
     if (isOpen) {
       // Reset state khi mở modal
-      setScanMode(null);
+      // Nếu openWithCamera = true, trực tiếp set scanMode = "camera"
+      setScanMode(openWithCamera ? "camera" : null);
       setCameraError(false);
       setManualInput("");
       setShowManualInput(false);
@@ -38,7 +39,7 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode }) => {
         setScanner(null);
       }
     };
-  }, [isOpen]);
+  }, [isOpen, openWithCamera]);
 
   const initializeScanner = () => {
     try {
@@ -305,15 +306,10 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode }) => {
         )}
 
         <div className="qr-scanner-actions">
-          <Button type="default" onClick={handleClose} icon={<CloseOutlined />}>
-            Tắt
-          </Button>
-
           {scanMode && (
             <Button
               type="default"
-              onClick={() => setScanMode(null)}
-              style={{ marginLeft: 8 }}
+              onClick={openWithCamera ? handleClose : () => setScanMode(null)}
             >
               Quay lại
             </Button>

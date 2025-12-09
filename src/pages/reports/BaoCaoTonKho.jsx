@@ -664,7 +664,7 @@ const BaoCaoTonKho = () => {
                     fetchKhoOptions(value);
                   }, 300);
                 }}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open) fetchKhoOptions();
                 }}
                 options={khoOptions}
@@ -690,7 +690,7 @@ const BaoCaoTonKho = () => {
                     fetchNhomVatTuOptions(1, value);
                   }, 300);
                 }}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open) fetchNhomVatTuOptions(1);
                 }}
                 options={nhomVatTuOptions[1] || []}
@@ -716,7 +716,7 @@ const BaoCaoTonKho = () => {
                     fetchNhomVatTuOptions(2, value);
                   }, 300);
                 }}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open) fetchNhomVatTuOptions(2);
                 }}
                 options={nhomVatTuOptions[2] || []}
@@ -742,7 +742,7 @@ const BaoCaoTonKho = () => {
                     fetchNhomVatTuOptions(3, value);
                   }, 300);
                 }}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open) fetchNhomVatTuOptions(3);
                 }}
                 options={nhomVatTuOptions[3] || []}
@@ -768,7 +768,7 @@ const BaoCaoTonKho = () => {
                     fetchDvcsOptions(value);
                   }, 300);
                 }}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open) fetchDvcsOptions();
                 }}
                 options={dvcsOptions}
@@ -796,7 +796,7 @@ const BaoCaoTonKho = () => {
                     fetchVatTuOptions(value);
                   }, 300);
                 }}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open) fetchVatTuOptions();
                 }}
                 options={vatTuOptions}

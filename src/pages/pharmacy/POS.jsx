@@ -58,6 +58,22 @@ const POS = () => {
   const [isUploadPreviewOpen, setIsUploadPreviewOpen] = useState(false);
   const [localPreviewUrl, setLocalPreviewUrl] = useState("");
   const [uploadedKeyFields, setUploadedKeyFields] = useState("");
+  // Lưu mã đơn thuốc quốc gia đã áp dụng (nếu có)
+  const [activePrescriptionCode, setActivePrescriptionCode] = useState("");
+  const revokeObjectUrl = useCallback((url) => {
+    try {
+      if (url && window.URL?.revokeObjectURL) {
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.warn("Failed to revoke object URL", error);
+    }
+  }, []);
+  useEffect(() => {
+    return () => {
+      revokeObjectUrl(localPreviewUrl);
+    };
+  }, [localPreviewUrl, revokeObjectUrl]);
 
   const handleOpenFilePicker = () => {
     if (uploadedImageUrl) {
@@ -86,7 +102,10 @@ const POS = () => {
     const loadingKey = "upload-loading";
 
     // Clear previous preview
-    setLocalPreviewUrl("");
+    setLocalPreviewUrl((prev) => {
+      revokeObjectUrl(prev);
+      return "";
+    });
     setUploadedImageUrl("");
     setIsUploadPreviewOpen(false);
 
@@ -107,7 +126,20 @@ const POS = () => {
         throw new Error("Không có file để upload");
       }
 
-      const res = await uploadPrescriptionImage({ file: fileToUpload });
+      const previewUrl =
+        window.URL?.createObjectURL?.(fileToUpload) ||
+        window.webkitURL?.createObjectURL?.(fileToUpload);
+      if (previewUrl) {
+        setLocalPreviewUrl((prev) => {
+          revokeObjectUrl(prev);
+          return previewUrl;
+        });
+      }
+
+      const res = await uploadPrescriptionImage({
+        file: fileToUpload,
+        slug: (customer?.code || "").trim() || "KVL",
+      });
 
       // Close loading notification
       notification.destroy(loadingKey);
@@ -260,7 +292,7 @@ const POS = () => {
     [payment.cash, total]
   );
 
-  const addToCart = (item) => {
+  const addToCart = (item, ma_gd = null) => {
     const existingIndex = cart.findIndex((x) => x.sku === item.sku);
     if (existingIndex >= 0) {
       setCart((prev) =>
@@ -281,7 +313,9 @@ const POS = () => {
           discountPercent: 0,
           discountAmount: 0,
           remaining: 0,
-          instructions: "",
+          instructions: (item.instructions || item.ghi_chu || "").trim(),
+          ghi_chu: (item.ghi_chu || item.instructions || "").trim(),
+          ma_gd: ma_gd !== null ? ma_gd : (item.ma_gd || null),
         },
       ]);
     }
@@ -326,7 +360,11 @@ const POS = () => {
               stock: 0, // API không trả về stock
               ma_thue: (item.ma_thue || "").trim(),
               thue_suat: Number(item.thue_suat) || 0,
+              image: item.image || "",
             },
+            // Giữ thêm trường image ở root để tiện dùng
+            image: item.image || "",
+            ...item,
           }));
 
           if (append) {
@@ -424,7 +462,7 @@ const POS = () => {
       }
 
       if (selectedItem) {
-        addToCart(selectedItem);
+        addToCart(selectedItem, 1); // ma_gd = 1 cho vật tư từ thanh tìm kiếm
         setVatTuInput("");
         return true;
       }
@@ -478,6 +516,7 @@ const POS = () => {
         remaining: 0,
         instructions: (d.ghi_chu || "").trim(),
         ghi_chu: (d.ghi_chu || "").trim(),
+        ma_gd: d.ma_gd !== undefined ? Number(d.ma_gd) : null,
       }));
 
       setCart(mappedCart);
@@ -608,6 +647,7 @@ const POS = () => {
             change={change}
             cart={cart}
             uploadedKeyFields={uploadedKeyFields}
+            prescriptionCode={activePrescriptionCode}
             onClearCart={() => {
               setCart([]);
               setPayment({ method: "cash", cash: 0 });
@@ -621,6 +661,7 @@ const POS = () => {
               setCustomerOpen(false);
               setUploadedKeyFields("");
               setUploadedImageUrl("");
+              setActivePrescriptionCode("");
               setCurrentOrderSttRec(""); // Clear stt_rec when clearing cart
             }}
             currentOrderSttRec={currentOrderSttRec}
@@ -657,22 +698,62 @@ const POS = () => {
       <PrescriptionModal
         isOpen={isPrescriptionModalOpen}
         onClose={handlePrescriptionModal}
-        onApplyPrescription={(prescriptionItems) => {
+        onApplyPrescription={(prescriptionItems, info) => {
           // Logic để áp dụng đơn thuốc vào giỏ hàng
+          setActivePrescriptionCode(info?.maDonThuoc || "");
+          
+          // Cập nhật thông tin khách hàng từ đơn thuốc quốc gia
+          if (info) {
+            setCustomer((prevCustomer) => ({
+              ...prevCustomer,
+              // Cập nhật thông tin khách hàng từ đơn thuốc
+              name: info.hoTenBenhNhan || info.tenKhachHang || prevCustomer.name || "",
+              phone: info.soDienThoaiNguoiKhamBenh || prevCustomer.phone || "",
+              idNumber: info.maDinhDanhYTe || prevCustomer.idNumber || "",
+              patientName: info.hoTenBenhNhan || prevCustomer.patientName || "",
+            }));
+          }
+          
           prescriptionItems.forEach((item) => {
+            const note = (
+              item.ghi_chu ||
+              item.ghiChu ||
+              item.chi_dan ||
+              item.chiDan ||
+              item.note ||
+              item.cachDung ||
+              ""
+            ).trim();
+            
+            // ma_vt: mã vật tư từ danh mục đã chọn (nếu có), nếu không có thì dùng từ đơn thuốc quốc gia
+            // ma_vt_dtqg: mã thuốc từ đơn thuốc quốc gia (luôn lấy từ maThuoc)
+            const ma_vt = item.selectedMedicineCode || item.maThuoc; // Mã vật tư từ danh mục
+            const ma_vt_dtqg = item.maThuoc || ""; // Mã thuốc từ đơn thuốc quốc gia
+            const name = item.selectedMedicineName || item.tenThuoc;
+            const unit = item.selectedMedicineUnit || item.dvt || "viên";
+            const price = item.selectedMedicinePrice > 0 ? item.selectedMedicinePrice : (item.gia || 0);
+            
             addToCart({
-              sku: item.maThuoc,
-              name: item.tenThuoc,
-              price: item.gia || 0,
-              unit: item.dvt || "viên",
+              sku: ma_vt, // ma_vt: mã từ danh mục đã chọn
+              name: name,
+              price: price,
+              unit: unit,
               qty: item.slDuocBan || 1, // Sử dụng SL được bán
               batchExpiry: "",
               vatPercent: Number(item.thue_suat) || 0,
               ma_thue: (item.ma_thue || "").trim(),
               thue_suat: Number(item.thue_suat) || 0,
               remaining: 0,
-              instructions: item.cachDung || "",
-            });
+              instructions: note,
+              ghi_chu: note,
+              // Đánh dấu và giữ lại các field từ Đơn thuốc QG để map sang payload
+              isFromDonThuocQG: true,
+              ma_vt_dtqg: ma_vt_dtqg, // Mã thuốc từ đơn thuốc quốc gia
+              ten_vt_dtqg: item.ten_vt_dtqg || "",
+              so_luong_dtqg: item.so_luong_dtqg || "",
+              lieu_dung: item.lieu_dung || note,
+              biet_duoc: item.biet_duoc || "",
+            }, 2); // ma_gd = 2 cho vật tư từ đơn thuốc quốc gia
           });
           setIsPrescriptionModalOpen(false);
         }}

@@ -347,12 +347,10 @@
   white-space: nowrap; /* keep titles on one line */
 }
 
-/* Keep 'Chỉ dẫn' column on a single line */
-.cart-table .ant-table-thead > tr > th:last-child {
-  white-space: nowrap;
-}
+/* Allow 'Chỉ dẫn' column to wrap for long content */
+.cart-table .ant-table-thead > tr > th:last-child,
 .cart-table .ant-table-tbody > tr > td:last-child {
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .cart-table .ant-table-thead > tr > th:first-child {
@@ -635,8 +633,9 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   font-size: 11px;
   padding: 4px 6px;
-  height: 28px;
-  min-width: 160px;
+  min-width: 240px;
+  resize: none;
+  line-height: 1.4;
 }
 
 .instructions-input:hover {

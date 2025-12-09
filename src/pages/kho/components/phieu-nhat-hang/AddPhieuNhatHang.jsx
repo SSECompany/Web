@@ -193,7 +193,14 @@ const AddPhieuNhatHang = () => {
         const data = response?.listObject?.[0] || [];
         const options = data.map((x) => {
           const value = (x?.ma_lo || x?.value || x?.ten_lo || "").toString();
-          const label = x?.ma_lo || x?.ten_lo || x?.label || value;
+          // Format label: ma_lo-ngay_hhsd nếu có ngay_hhsd
+          let label = value;
+          if (x?.ngay_hhsd) {
+            const ngayHHSD = dayjs(x.ngay_hhsd).format("DD/MM/YYYY");
+            label = `${value}-${ngayHHSD}`;
+          } else {
+            label = x?.ma_lo || x?.ten_lo || x?.label || value;
+          }
           return { value, label };
         });
         return options;

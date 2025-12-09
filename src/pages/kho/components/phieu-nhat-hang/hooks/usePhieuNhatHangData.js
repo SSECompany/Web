@@ -406,10 +406,20 @@ export const usePhieuNhatHangData = () => {
           // listObject[1] chứa array thông tin pagination
           const paginationInfo = listObject?.[1]?.[0] || {};
 
-          // Transform API data to match expected format
+          // Transform API data to match ProductSelectFull format (same as POS)
           const transformedData = data.map((item) => ({
             value: item.value || `ITEM${page}${Math.random()}`,
             label: item.label || `Sản phẩm - ${item.value || "N/A"}`,
+            item: {
+              sku: item.value || `ITEM${page}${Math.random()}`,
+              name: item.label || `Sản phẩm`,
+              price: item.gia || 0,
+              unit: item.dvt || "viên",
+              stock: 0, // API không trả về stock
+              ma_thue: (item.ma_thue || "").trim(),
+              thue_suat: Number(item.thue_suat) || 0,
+            },
+            // Keep additional fields for backward compatibility
             ma_vt: item.value,
             ten_vt: item.label,
             gia: item.gia || 0,

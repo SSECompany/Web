@@ -11,7 +11,11 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
-import { multipleTablePutApi, keyFileUploadsM81 } from "../../../api";
+import {
+  multipleTablePutApi,
+  keyFileUploadsM81,
+  updateDonThuocQGSoldQuantity,
+} from "../../../api";
 import PaymentModal from "../../../components/common/PaymentModal/PaymentModal";
 import PrintComponent from "../../../components/common/PaymentModal/PrintComponent/PrintComponent";
 import jwt from "../../../utils/jwt";
@@ -19,6 +23,22 @@ import CustomerInfo from "./CustomerInfo";
 import emitter from "../../../utils/emitter";
 
 const { Text } = Typography;
+
+// Tạo mã hóa đơn fnote1 theo format: ddMMyy + mã ngẫu nhiên 6 chữ số
+const buildFnote1 = () => {
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, "0");
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const yy = String(now.getFullYear()).slice(-2);
+  const datePart = `${dd}${mm}${yy}`;
+
+  // Tạo chuỗi ngẫu nhiên 6 chữ số (uuid 6 số)
+  const randomPart = Math.floor(100000 + Math.random() * 900000)
+    .toString()
+    .padStart(6, "0");
+
+  return `${datePart}${randomPart}`;
+};
 
 // Network check cache
 let _networkCheckCache = null;
@@ -92,6 +112,8 @@ const PaymentSummary = ({
   onClearCart,
   currentOrderSttRec = "",
   onUpdateCurrentOrderSttRec,
+  // Mã đơn thuốc quốc gia (nếu có) để map vào master.s3
+  prescriptionCode,
 }) => {
   const dispatch = useDispatch();
   const { id, storeId, unitId } = useSelector(
@@ -115,6 +137,30 @@ const PaymentSummary = ({
   const [currentPrintData, setCurrentPrintData] = useState(null);
   const [hasReprinted, setHasReprinted] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  const updateNationalPrescriptionSale = async (sttRecValue) => {
+    if (!prescriptionCode || !sttRecValue) {
+      return;
+    }
+    try {
+      const result = await updateDonThuocQGSoldQuantity([sttRecValue]);
+      if (!result?.success) {
+        notification.warning({
+          message: "Không thể cập nhật Đơn thuốc Quốc gia",
+          description:
+            result?.message || "Hệ thống sẽ tự động thử lại sau.",
+          duration: 6,
+        });
+      }
+    } catch (error) {
+      console.error("Lỗi cập nhật số lượng bán ĐTQG:", error);
+      notification.warning({
+        message: "Không thể cập nhật Đơn thuốc Quốc gia",
+        description: "Giao dịch đã được lưu, vui lòng thử lại sau.",
+        duration: 6,
+      });
+    }
+  };
 
   const generateOrderData = (
     status = "0",
@@ -143,7 +189,9 @@ const PaymentSummary = ({
       finalTienMat = totalAmount - finalChuyenKhoan;
     }
 
-    const existingSttRec = (currentOrderSttRec || "").trim();
+    const hasPrescription = Boolean(prescriptionCode);
+    const fnote1 = buildFnote1();
+
     const masterData = {
       ma_ban: "POS",
       dien_giai: "",
@@ -153,7 +201,7 @@ const PaymentSummary = ({
       chuyen_khoan: finalChuyenKhoan.toString(),
       tong_tt: totalAmount.toString(),
       httt: selectedPayments.join(","),
-      stt_rec: existingSttRec,
+      stt_rec: (currentOrderSttRec || "").trim(),
       status,
       // Add customer code into master
       ma_kh: customerInfo.ma_kh ?? customer?.code ?? "",
@@ -164,7 +212,10 @@ const PaymentSummary = ({
       email: customerInfo.email ?? "",
       ma_so_thue_kh: customerInfo.ma_so_thue_kh ?? customer?.idNumber ?? "",
       ten_dv_kh: customerInfo.ten_dv_kh ?? "",
-      s3: sync ? "1" : "0",
+      // s3: map với mã đơn thuốc quốc gia (nếu có), nếu không giữ logic cũ
+      s3: hasPrescription ? prescriptionCode : sync ? "1" : "0",
+      // fnote1: mã hóa đơn = ngày (ddMMyy) + số chứng từ (từ stt_rec nếu có)
+      fnote1,
     };
 
     const detailData = cart.flatMap((item) => {
@@ -208,7 +259,23 @@ const PaymentSummary = ({
         ma_thue: item.ma_thue || "",
         thue_nt: vatAmount.toString(),
         ma_lo: (item.batchExpiry || "").trim(),
+        // Các field Đơn thuốc QG cần có; nếu không áp dụng thì để rỗng / 0
+        ma_vt_dtqg: "",
+        ten_vt_dtqg: "",
+        so_luong_dtqg: "0",
+        lieu_dung: "",
+        biet_duoc: "",
       };
+      // Nếu dòng này xuất phát từ Đơn thuốc Quốc gia, map thêm các field yêu cầu
+      if (item.isFromDonThuocQG) {
+        mainItem.ma_vt_dtqg = item.ma_vt_dtqg || "";
+        mainItem.ten_vt_dtqg = item.ten_vt_dtqg || "";
+        mainItem.so_luong_dtqg =
+          (item.so_luong_dtqg || item.qty || "").toString();
+        mainItem.lieu_dung = item.lieu_dung || item.instructions || "";
+        // Gửi field biệt dược
+        mainItem.biet_duoc = item.biet_duoc || "";
+      }
       const extras = (item.extras || []).map((extra) => {
         const quantity = parseFloat(extra.quantity || extra.so_luong || 0);
         const price = parseFloat(extra.gia || extra.don_gia || 0);
@@ -499,6 +566,8 @@ const PaymentSummary = ({
             : "Thanh toán đơn hàng mới thành công!",
           duration: 4,
         });
+
+        await updateNationalPrescriptionSale(sttRec);
       } else {
         notification.warning({
           message: "Thanh toán thất bại!",

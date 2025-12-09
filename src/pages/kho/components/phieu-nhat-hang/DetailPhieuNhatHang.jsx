@@ -6,7 +6,7 @@ import {
 } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { getLoItem, getViTriByKho } from "../../../../api";
@@ -99,19 +99,18 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   } = useVatTuManagerNhatHang();
 
   // Phân trang vật tư - sử dụng API giống POS
-  const fetchVatTuListPaging = async (
-    keyword = "",
-    page = 1,
-    append = false
-  ) => {
-    setCurrentKeyword(keyword);
+  const fetchVatTuListPaging = useCallback(
+    async (keyword = "", page = 1, append = false) => {
+      setCurrentKeyword(keyword);
 
-    // Gọi hàm trong hook để quản lý loading + transform thống nhất
-    await fetchVatTuList(keyword, page, append, (pagination) => {
-      setPageIndex(page);
-      setTotalPage(pagination?.totalPage || 1);
-    });
-  };
+      // Gọi hàm trong hook để quản lý loading + transform thống nhất
+      await fetchVatTuList(keyword, page, append, (pagination) => {
+        setPageIndex(page);
+        setTotalPage(pagination?.totalPage || 1);
+      });
+    },
+    [fetchVatTuList]
+  );
 
   // Set edit mode based on URL (or prop)
   useEffect(() => {
@@ -159,7 +158,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               tenKhach: phieuInfo.ten_kh || "",
               dienGiai: phieuInfo.ghi_chu || "",
               maGiaoDich: phieuInfo.ma_gd || "",
-              soDonHang: phieuInfo.so_don_hang || "",
+              soDonHang: (phieuInfo.so_don_hang || "").trim(),
               vung: phieuInfo.ma_nhomvitri || "",
               nhanVien: phieuInfo.ma_nvbh || "",
               banDongGoi: phieuInfo.ban_dong_goi || "",
@@ -207,6 +206,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 ma_vi_tri: item.ma_vi_tri || "",
                 nhat: item.nhat || false,
                 so_luong_ton: item.so_luong_ton || 0,
+                ton13: item.ton13 || 0,
                 tong_nhat: item.tong_nhat || 0,
                 ghi_chu: item.ghi_chu || "",
               };
@@ -235,14 +235,13 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
     fetchPhieuDetail();
   }, [sctRec, apiCalled, token, id, phieuDetailLoaded]);
 
-  // Wrapper function to match VatTuSelectFullPOS expected signature
-  const fetchVatTuListWrapper = async (
-    keyword = "",
-    page = 1,
-    append = false
-  ) => {
-    return fetchVatTuListPaging(keyword, page, append);
-  };
+  // Wrapper function to match VatTuSelectFullPOS expected signature (same as POS)
+  const fetchVatTuListWrapper = useCallback(
+    async (keyword = "", page = 1, append = false) => {
+      return fetchVatTuListPaging(keyword, page, append);
+    },
+    [fetchVatTuListPaging]
+  );
 
   // Load initial search data when component mounts
   useEffect(() => {
@@ -267,7 +266,14 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       const data = response?.listObject?.[0] || [];
       const options = data.map((x) => {
         const value = (x?.ma_lo || x?.value || x?.ten_lo || "").toString();
-        const label = x?.ma_lo || x?.ten_lo || x?.label || value;
+        // Format label: ma_lo-ngay_hhsd nếu có ngay_hhsd
+        let label = value;
+        if (x?.ngay_hhsd) {
+          const ngayHHSD = dayjs(x.ngay_hhsd).format("DD/MM/YYYY");
+          label = `${value}-${ngayHHSD}`;
+        } else {
+          label = x?.ma_lo || x?.ten_lo || x?.label || value;
+        }
         return { value, label };
       });
       return options;
@@ -358,34 +364,114 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       fetchVatTuList,
       vatTuSelectRef
     );
+    
+    // Sau khi thêm vật tư, tự động lấy danh sách mã lô để hiển thị lựa chọn
+    if (isEditMode && value) {
+      // Sử dụng setTimeout để đảm bảo dataSource đã được cập nhật từ vatTuSelectHandler
+      setTimeout(async () => {
+        // Lấy dataSource mới nhất
+        setDataSource((prevDataSource) => {
+          // Tìm record vừa được thêm vào (chưa có mã lô)
+          const newRecord = prevDataSource.find(
+            (item) => item.maHang && item.maHang.trim() === value.trim() && !item.ma_lo
+          );
+          if (newRecord) {
+            // Tự động query mã lô để lấy options, không tự động điền giá trị
+            fetchLoList("", newRecord, 1)
+              .then((loOptions) => {
+                if (!loOptions || loOptions.length === 0) {
+                  return;
+                }
+
+                // Luôn chỉ lưu options để hiển thị trong dropdown
+                setDataSource((currentDataSource) =>
+                  currentDataSource.map((item) =>
+                    item.key === newRecord.key
+                      ? { ...item, loOptions: loOptions }
+                      : item
+                  )
+                );
+              })
+              .catch((error) => {
+                console.error("Error loading lot options:", error);
+              });
+          }
+
+          return prevDataSource;
+        });
+      }, 200); // Tăng delay để đảm bảo state đã cập nhật
+    }
   };
 
   const handleQRScanSuccess = async (scannedCode) => {
     try {
-      // Tìm vật tư theo mã đã quét
+      const trimmedCode = scannedCode.trim();
+      
+      // QR code có thể chứa mã vt + mã lô, nhưng xử lý giống POS: chỉ lấy mã vt
+      // Thử các định dạng: "mã_vt|mã_lô", "mã_vt,mã_lô", "mã_vt+mã_lô", "mã_vt#mã_lô", hoặc chỉ có mã_vt
+      let maVt = trimmedCode;
+      
+      // Thử tách bằng |
+      if (trimmedCode.includes("|")) {
+        const parts = trimmedCode.split("|");
+        maVt = parts[0]?.trim() || "";
+      }
+      // Thử tách bằng ,
+      else if (trimmedCode.includes(",")) {
+        const parts = trimmedCode.split(",");
+        maVt = parts[0]?.trim() || "";
+      }
+      // Thử tách bằng +
+      else if (trimmedCode.includes("+")) {
+        const parts = trimmedCode.split("+");
+        maVt = parts[0]?.trim() || "";
+      }
+      // Thử tách bằng # (dấu hash)
+      else if (trimmedCode.includes("#")) {
+        const parts = trimmedCode.split("#");
+        maVt = parts[0]?.trim() || "";
+      }
+      
+      if (!maVt) {
+        message.error("Không thể đọc mã vật tư từ QR code");
+        return;
+      }
+      
+      // Tìm vật tư trong danh sách
       const foundVatTu = vatTuList.find(
-        (item) => item.item.sku === scannedCode.trim()
+        (item) => item.item.sku === maVt || item.value === maVt
       );
-
-      if (foundVatTu) {
-        // Tạo item mới cho bảng
-        const newItem = {
-          key: Date.now(),
-          maHang: foundVatTu.item.sku,
-          ten_mat_hang: foundVatTu.item.name,
-          dvt: foundVatTu.item.unit,
-          soLuong: 0,
-          soLuongDeNghi: 0,
-          ma_kho: "ST", // Default kho
-          tk_vt: "",
-          line_nbr: dataSource.length + 1,
-        };
-
-        // Thêm vào dataSource
-        setDataSource((prev) => [...prev, newItem]);
-        message.success(`Đã thêm vật tư: ${foundVatTu.item.name}`);
+      
+      if (!foundVatTu) {
+        // Nếu không tìm thấy trong danh sách hiện tại, thử tìm kiếm
+        // Hoặc sử dụng handleVatTuSelect để thêm vật tư
+        if (isEditMode) {
+          // Sử dụng handleVatTuSelect để thêm vật tư (nó sẽ tự động fetch thông tin)
+          await handleVatTuSelect(maVt);
+          message.success(`Đã thêm vật tư: ${maVt}`);
+        } else {
+          message.error(`Không tìm thấy vật tư với mã: ${maVt}`);
+        }
+        return;
+      }
+      
+      // Nếu tìm thấy vật tư trong danh sách
+      // Kiểm tra xem vật tư đã có trong bảng chưa
+      const existingItemIndex = dataSource.findIndex(
+        (item) => item.maHang === maVt
+      );
+      
+      if (existingItemIndex !== -1) {
+        // Vật tư đã tồn tại, không tự động cập nhật mã lô
+        message.success(`Đã tìm thấy vật tư: ${foundVatTu.item.name || maVt}`);
       } else {
-        message.error(`Không tìm thấy vật tư với mã: ${scannedCode}`);
+        // Vật tư chưa có trong bảng, thêm mới
+        if (isEditMode) {
+          await handleVatTuSelect(maVt);
+          message.success(`Đã thêm vật tư: ${maVt}`);
+        } else {
+          message.warning("Bạn cần bật chế độ chỉnh sửa để thêm vật tư");
+        }
       }
     } catch (error) {
       console.error("Lỗi khi xử lý mã quét:", error);
@@ -451,7 +537,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             maKhach: result.master.ma_kh || "",
             dienGiai: result.master.ghi_chu || "",
             maGiaoDich: result.master.ma_gd || "",
-            soDonHang: result.master.so_don_hang || "",
+            soDonHang: (result.master.so_don_hang || "").trim(),
             vung: result.master.ma_nhomvitri || "",
             nhanVien: result.master.ma_nvbh || "",
             banDongGoi: result.master.ban_dong_goi || "",
@@ -536,6 +622,8 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       const updatedValues = {
         ...values,
         trangThai: "1",
+        // Trim khoảng trắng đầu cuối cho số đơn hàng
+        soDonHang: values.soDonHang ? values.soDonHang.trim() : "",
       };
 
       // Build payload với status = 1
@@ -637,6 +725,8 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       const updatedValues = {
         ...values,
         trangThai: "2",
+        // Trim khoảng trắng đầu cuối cho số đơn hàng
+        soDonHang: values.soDonHang ? values.soDonHang.trim() : "",
       };
 
       // Build payload với status = 2
@@ -719,56 +809,6 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           className="phieu-form"
           disabled={!isEditMode}
         >
-          {/* Toggle hiển/ẩn thông tin phiếu */}
-          <div style={{ marginBottom: 8 }}>
-            <Button
-              size="small"
-              type="text"
-              icon={showFormFields ? <UpOutlined /> : <DownOutlined />}
-              onClick={() => setShowFormFields(!showFormFields)}
-              disabled={!isEditMode}
-              style={{
-                color: "#1890ff",
-                fontWeight: "bold",
-                fontSize: "12px",
-                padding: "4px 8px",
-                height: "auto",
-              }}
-            >
-              {showFormFields ? "Ẩn thông tin đơn" : "Hiện thông tin đơn"}
-            </Button>
-          </div>
-
-          {showFormFields && (
-            <PhieuNhatHangFormInputs
-              isEditMode={false}
-              barcodeEnabled={barcodeEnabled}
-              setBarcodeEnabled={setBarcodeEnabled}
-              setBarcodeJustEnabled={setBarcodeJustEnabled}
-              vatTuInput={vatTuInput}
-              setVatTuInput={setVatTuInput}
-              vatTuSelectRef={vatTuSelectRef}
-              loadingVatTu={loadingVatTu}
-              vatTuList={vatTuList}
-              searchTimeoutRef={searchTimeoutRef}
-              fetchVatTuList={fetchVatTuListPaging}
-              totalPage={totalPage}
-              pageIndex={pageIndex}
-              setPageIndex={setPageIndex}
-              setVatTuList={setVatTuList}
-              currentKeyword={currentKeyword}
-              handleVatTuSelect={handleVatTuSelect}
-            />
-          )}
-
-          {/* Divider to separate form and table area */}
-          <div
-            style={{
-              borderTop: "1px solid rgba(255,255,255,0.12)",
-              margin: "8px 0 12px 0",
-            }}
-          />
-
           {/* Thanh tìm kiếm/ chọn vật tư đặt ngay trên bảng */}
           <div style={{ marginTop: 8, marginBottom: 8 }}>
             <div
@@ -845,6 +885,62 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             </div>
           )}
         </Form>
+
+        {/* Divider to separate table and form area */}
+        <div
+          style={{
+            borderTop: "1px solid rgba(255,255,255,0.12)",
+            margin: "8px 0 12px 0",
+          }}
+        />
+
+        {/* Toggle hiển/ẩn thông tin phiếu - 移到Form外面，不受disabled影响 */}
+        <div style={{ marginBottom: 8 }}>
+          <Button
+            size="small"
+            type="text"
+            icon={showFormFields ? <UpOutlined /> : <DownOutlined />}
+            onClick={() => setShowFormFields(!showFormFields)}
+            style={{
+              color: "#1890ff",
+              fontWeight: "bold",
+              fontSize: "12px",
+              padding: "4px 8px",
+              height: "auto",
+            }}
+          >
+            {showFormFields ? "Ẩn thông tin đơn" : "Hiện thông tin đơn"}
+          </Button>
+        </div>
+
+        {showFormFields && (
+          <Form
+            form={form}
+            layout="vertical"
+            className="phieu-form"
+            disabled={!isEditMode}
+          >
+            <PhieuNhatHangFormInputs
+              isEditMode={false}
+              barcodeEnabled={barcodeEnabled}
+              setBarcodeEnabled={setBarcodeEnabled}
+              setBarcodeJustEnabled={setBarcodeJustEnabled}
+              vatTuInput={vatTuInput}
+              setVatTuInput={setVatTuInput}
+              vatTuSelectRef={vatTuSelectRef}
+              loadingVatTu={loadingVatTu}
+              vatTuList={vatTuList}
+              searchTimeoutRef={searchTimeoutRef}
+              fetchVatTuList={fetchVatTuListPaging}
+              totalPage={totalPage}
+              pageIndex={pageIndex}
+              setPageIndex={setPageIndex}
+              setVatTuList={setVatTuList}
+              currentKeyword={currentKeyword}
+              handleVatTuSelect={handleVatTuSelect}
+            />
+          </Form>
+        )}
       </div>
 
       {/* QR Scanner Modal */}
@@ -853,6 +949,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         onClose={() => setShowQRScanner(false)}
         onScanSuccess={handleQRScanSuccess}
         onSwitchToBarcode={handleSwitchToBarcodeMode}
+        openWithCamera={true}
       />
     </div>
   );

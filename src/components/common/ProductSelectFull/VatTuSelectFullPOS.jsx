@@ -77,8 +77,14 @@ const VatTuSelectFullPOS = ({
   const handleSearch = (value, immediate = false) => {
     const trimmedValue = value?.trim() || "";
     
-    // Avoid duplicate searches (unless immediate is true)
-    if (!immediate && lastSearchValueRef.current === trimmedValue) {
+    // Avoid duplicate searches only if:
+    // 1. Not immediate mode
+    // 2. The value is exactly the same as last search
+    // 3. There's a valid search promise AND we're currently searching
+    // This allows re-searching the same value if dropdown was closed and reopened
+    // or if the previous search has completed
+    if (!immediate && lastSearchValueRef.current === trimmedValue && isSearching && searchPromiseRef.current) {
+      // Only skip if search is currently in progress
       return searchPromiseRef.current || Promise.resolve();
     }
     
@@ -129,7 +135,12 @@ const VatTuSelectFullPOS = ({
           setIsSearching(true);
         }
         try {
-          await fetchVatTuList(trimmedValue);
+          // Reset page to 1 when starting new search
+          if (setPageIndex) {
+            setPageIndex(1);
+          }
+          // Call API with proper parameters: keyword, page, append
+          await fetchVatTuList(trimmedValue, 1, false);
         } catch (error) {
           console.error("Error in handleSearch:", error);
         } finally {
@@ -163,7 +174,19 @@ const VatTuSelectFullPOS = ({
       setIsSearching(false);
       setIsWaitingForEnter(false);
       pendingEnterValueRef.current = null;
-      fetchVatTuList("");
+      // Reset lastSearchValueRef to ensure fresh search state when dropdown opens
+      lastSearchValueRef.current = "";
+      // Reset searchPromiseRef to allow new searches
+      searchPromiseRef.current = null;
+      // Clear input value when dropdown opens to ensure onSearch is triggered on new input
+      // This fixes the issue where onSearch doesn't fire on second open if input has value
+      // Use setTimeout to ensure the clear happens after dropdown is fully opened
+      setTimeout(() => {
+        if (vatTuInput) {
+          setVatTuInput("");
+        }
+      }, 0);
+      fetchVatTuList("", 1, false);
       dropdownOpenedRef.current = true;
     } else {
       // Reset state when dropdown closes
@@ -172,6 +195,8 @@ const VatTuSelectFullPOS = ({
       setIsSearching(false);
       setIsWaitingForEnter(false);
       pendingEnterValueRef.current = null;
+      // Reset searchPromiseRef when closing
+      searchPromiseRef.current = null;
       // Clear any pending search timeout
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
@@ -337,7 +362,7 @@ const VatTuSelectFullPOS = ({
                     }
                     handleVatTuSelect(value, option);
                   }}
-                  onDropdownVisibleChange={handleDropdownVisibleChange}
+                  onOpenChange={handleDropdownVisibleChange}
                   onPopupScroll={handlePopupScroll}
                   filterOption={false}
                   notFoundContent={
@@ -426,7 +451,11 @@ const VatTuSelectFullPOS = ({
                 }}
                   style={{ width: "100%" }}
                   disabled={!isEditMode || (isSearching && isWaitingForEnter)}
-                  dropdownStyle={{ maxHeight: 300, overflow: "auto" }}
+                  styles={{
+                    popup: {
+                      root: { maxHeight: 300, overflow: "auto" },
+                    },
+                  }}
                   getPopupContainer={(trigger) => trigger.parentNode}
                 >
                   {vatTuList.map((item) => (

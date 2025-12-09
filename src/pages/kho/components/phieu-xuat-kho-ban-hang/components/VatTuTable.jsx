@@ -58,7 +58,7 @@ const VatTuTable = ({
             dropdownClassName="vat-tu-dropdown"
             popupMatchSelectWidth={false}
             loading={loadingDvt[record.key]}
-            onDropdownVisibleChange={async (visible) => {
+            onOpenChange={async (visible) => {
               if (visible && record.maHang) {
                 // Kiểm tra xem đã có cache trong record chưa
                 if (

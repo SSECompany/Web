@@ -109,7 +109,7 @@ const PhieuFormInputs = memo(({
                 loading={loadingMaKho}
                 filterOption={false}
                 onSearch={fetchMaKhoListDebounced}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open && fetchMaKhoList) {
                     fetchMaKhoList("");
                   }
@@ -134,7 +134,7 @@ const PhieuFormInputs = memo(({
                 loading={loadingMaKho}
                 filterOption={false}
                 onSearch={fetchMaKhoListDebounced}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open && fetchMaKhoList) {
                     fetchMaKhoList("");
                   }
@@ -165,7 +165,7 @@ const PhieuFormInputs = memo(({
             loading={loadingMaKhach}
             filterOption={false}
             onSearch={fetchMaKhachListDebounced}
-            onDropdownVisibleChange={(open) => {
+            onOpenChange={(open) => {
               if (open && fetchMaKhachList) {
                 fetchMaKhachList("");
               }
@@ -256,7 +256,7 @@ const PhieuFormInputs = memo(({
                 showSearch
                 optionFilterProp="label"
                 allowClear
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open && fetchMaGiaoDichList) {
                     fetchMaGiaoDichList();
                   }
@@ -277,7 +277,7 @@ const PhieuFormInputs = memo(({
                 showSearch
                 optionFilterProp="label"
                 allowClear
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open && fetchMaGiaoDichList) {
                     fetchMaGiaoDichList();
                   }

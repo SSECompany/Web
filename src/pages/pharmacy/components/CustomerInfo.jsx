@@ -354,8 +354,10 @@ const CustomerInfo = ({
           </div>
         }
         className="customer-info-card"
-        headStyle={{ padding: "8px 12px", minHeight: "auto" }}
-        bodyStyle={{ padding: "8px 12px" }}
+        styles={{
+          header: { padding: "8px 12px", minHeight: "auto" },
+          body: { padding: "8px 12px" },
+        }}
       >
         <div style={{ fontSize: "12px" }}>
           {/* Dòng 0: Tìm KH + Thêm mới */}
@@ -374,7 +376,7 @@ const CustomerInfo = ({
                 setSearchValue("");
               }}
               onSelect={(v, option) => handleSelect(v, option)}
-              onDropdownVisibleChange={(open) => {
+              onOpenChange={(open) => {
                 setCustomerDropdownOpen(open);
                 if (open) {
                   handleSearch(searchValue || "");
@@ -385,7 +387,7 @@ const CustomerInfo = ({
               onPopupScroll={handlePopupScroll}
               options={options}
               className="customer-search-input"
-              dropdownMatchSelectWidth={400}
+              popupMatchSelectWidth={400}
               allowClear
               placeholder={
                 searching ? "Đang tìm..." : "Tìm KH theo SĐT/Tên"
@@ -396,7 +398,11 @@ const CustomerInfo = ({
               optionLabelProp="label"
               optionFilterProp="label"
               suffixIcon={<SearchOutlined style={{ fontSize: "11px" }} />}
-              dropdownStyle={{ maxHeight: 300, overflow: "auto" }}
+              styles={{
+                popup: {
+                  root: { maxHeight: 300, overflow: "auto" },
+                },
+              }}
               notFoundContent={
                 searching ? (
                   <div

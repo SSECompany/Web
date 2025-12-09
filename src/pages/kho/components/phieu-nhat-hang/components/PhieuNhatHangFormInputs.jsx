@@ -26,38 +26,6 @@ const PhieuNhatHangFormInputs = ({
       {/* Header fields customized per ERP screenshots */}
       <Row gutter={16}>
         <Col span={12}>
-          {/* Khách hàng: mã khách - tên khách - Input chỉ hiển thị */}
-          <Form.Item
-            label="Khách hàng"
-            shouldUpdate={(prevValues, curValues) =>
-              prevValues.maKhach !== curValues.maKhach ||
-              prevValues.tenKhach !== curValues.tenKhach
-            }
-          >
-            {({ getFieldValue }) => {
-              const maKhach = getFieldValue("maKhach") || "";
-              const tenKhach = getFieldValue("tenKhach") || "";
-              const displayValue =
-                maKhach && tenKhach
-                  ? `${maKhach} - ${tenKhach}`
-                  : maKhach || tenKhach || "";
-              return (
-                <Input
-                  value={displayValue}
-                  placeholder="Khách hàng"
-                  disabled={true}
-                />
-              );
-            }}
-          </Form.Item>
-          <Form.Item name="maKhach" hidden>
-            <Input />
-          </Form.Item>
-          <Form.Item name="tenKhach" hidden>
-            <Input />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
           <Form.Item
             label="Phiếu nhặt hàng"
             shouldUpdate={(prevValues, curValues) =>
@@ -86,40 +54,6 @@ const PhieuNhatHangFormInputs = ({
             <Input />
           </Form.Item>
           <Form.Item name="ngay" hidden>
-            <Input />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item
-            label="Phương tiện vận chuyển"
-            shouldUpdate={(prevValues, curValues) =>
-              prevValues.loaiVanChuyen !== curValues.loaiVanChuyen ||
-              prevValues.tenVc !== curValues.tenVc
-            }
-          >
-            {({ getFieldValue }) => {
-              const loaiVanChuyen = getFieldValue("loaiVanChuyen") || "";
-              const tenVc = getFieldValue("tenVc") || "";
-              const displayValue =
-                loaiVanChuyen && tenVc
-                  ? `${loaiVanChuyen} - ${tenVc}`
-                  : tenVc || loaiVanChuyen || "";
-              return (
-                <Input
-                  value={displayValue}
-                  placeholder="Phương tiện vận chuyển"
-                  disabled={true}
-                />
-              );
-            }}
-          </Form.Item>
-          <Form.Item name="loaiVanChuyen" hidden>
-            <Input />
-          </Form.Item>
-          <Form.Item name="tenVc" hidden>
             <Input />
           </Form.Item>
         </Col>

@@ -689,7 +689,7 @@ const BaoCaoPhieuBanLe = () => {
                     fetchNhanVienOptions(value);
                   }, 300);
                 }}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open && !nhanVienLoaded) {
                     fetchNhanVienOptions();
                     setNhanVienLoaded(true);
@@ -718,7 +718,7 @@ const BaoCaoPhieuBanLe = () => {
                     fetchKhachHangOptions(value);
                   }, 300);
                 }}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open) fetchKhachHangOptions();
                 }}
                 options={khachHangOptions}
@@ -743,7 +743,7 @@ const BaoCaoPhieuBanLe = () => {
                     fetchKhoOptions(value);
                   }, 300);
                 }}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open) fetchKhoOptions();
                 }}
                 options={khoOptions}
@@ -769,7 +769,7 @@ const BaoCaoPhieuBanLe = () => {
                     fetchVatTuOptions(value);
                   }, 300);
                 }}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open) fetchVatTuOptions();
                 }}
                 options={vatTuOptions}
@@ -795,7 +795,7 @@ const BaoCaoPhieuBanLe = () => {
                     fetchDvcsOptions(value);
                   }, 300);
                 }}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open) fetchDvcsOptions();
                 }}
                 options={dvcsOptions}
@@ -821,7 +821,7 @@ const BaoCaoPhieuBanLe = () => {
                     fetchNhomVatTuOptions(1, value);
                   }, 300);
                 }}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open) fetchNhomVatTuOptions(1);
                 }}
                 options={nhomVatTuOptions[1] || []}
@@ -847,7 +847,7 @@ const BaoCaoPhieuBanLe = () => {
                     fetchNhomVatTuOptions(2, value);
                   }, 300);
                 }}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open) fetchNhomVatTuOptions(2);
                 }}
                 options={nhomVatTuOptions[2] || []}
@@ -873,7 +873,7 @@ const BaoCaoPhieuBanLe = () => {
                     fetchNhomVatTuOptions(3, value);
                   }, 300);
                 }}
-                onDropdownVisibleChange={(open) => {
+                onOpenChange={(open) => {
                   if (open) fetchNhomVatTuOptions(3);
                 }}
                 options={nhomVatTuOptions[3] || []}

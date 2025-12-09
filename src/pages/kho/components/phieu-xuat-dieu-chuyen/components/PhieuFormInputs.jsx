@@ -47,7 +47,7 @@ const PhieuFormInputs = ({
               loading={loadingMaKho}
               filterOption={false}
               onSearch={fetchMaKhoListDebounced}
-              onDropdownVisibleChange={(open) => {
+              onOpenChange={(open) => {
                 if (open && fetchMaKhoList) {
                   fetchMaKhoList("");
                 }
@@ -78,7 +78,7 @@ const PhieuFormInputs = ({
               loading={loadingMaKho}
               filterOption={false}
               onSearch={fetchMaKhoListDebounced}
-              onDropdownVisibleChange={(open) => {
+              onOpenChange={(open) => {
                 if (open && fetchMaKhoList) {
                   fetchMaKhoList("");
                 }
@@ -124,7 +124,7 @@ const PhieuFormInputs = ({
               showSearch
               optionFilterProp="label"
               allowClear
-              onDropdownVisibleChange={(open) => {
+              onOpenChange={(open) => {
                 if (open && fetchMaGiaoDichList) {
                   fetchMaGiaoDichList();
                 }

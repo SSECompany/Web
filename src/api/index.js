@@ -680,6 +680,107 @@ export const createRetailOrder = async (
 
 // ===== PRESCRIPTION APIs =====
 
+export const fetchPrescriptionFromDonThuocQG = async ({
+  ma_dvcs = "TAPMED",
+  ma_don_thuoc = "",
+} = {}) => {
+  if (!ma_don_thuoc) {
+    return {
+      success: false,
+      data: null,
+      message: "Vui lòng cung cấp mã đơn thuốc",
+    };
+  }
+
+  try {
+    const res = await https.post(
+      `DonThuocQG/dtqg/get`,
+      {
+        ma_dvcs,
+        ma_don_thuoc,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      }
+    );
+
+    const data = res?.data;
+    if (!data) {
+      return {
+        success: false,
+        data: null,
+        message: "Không có dữ liệu đơn thuốc",
+      };
+    }
+
+    return {
+      success: true,
+      data,
+      message: null,
+    };
+  } catch (error) {
+    console.error("❌ Error fetching Đơn thuốc QG:", error);
+    return {
+      success: false,
+      data: null,
+      message: error?.message || "Không thể lấy dữ liệu đơn thuốc",
+    };
+  }
+};
+
+export const updateDonThuocQGSoldQuantity = async (sttRecs = []) => {
+  if (!Array.isArray(sttRecs) || sttRecs.length === 0) {
+    return {
+      success: false,
+      data: null,
+      message: "Thiếu danh sách chứng từ cần cập nhật",
+    };
+  }
+
+  try {
+    const res = await https.post(
+      `DonThuocQG/dtqg/cap-nhat-so-luong-ban`,
+      {
+        stt_recs: sttRecs,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/plain",
+        },
+      }
+    );
+
+    const data = res?.data;
+    const success =
+      data?.responseModel?.isSucceded ??
+      data?.isSucceded ??
+      data?.success ??
+      res?.status === 200;
+
+    return {
+      success: Boolean(success),
+      data,
+      message:
+        success || success === undefined
+          ? null
+          : data?.responseModel?.message ||
+            data?.message ||
+            "Không thể cập nhật số lượng bán",
+    };
+  } catch (error) {
+    console.error("❌ Error updating Đơn thuốc QG quantity:", error);
+    return {
+      success: false,
+      data: null,
+      message: error?.message || "Không thể cập nhật số lượng bán",
+    };
+  }
+};
+
 export const searchPrescriptionByCode = async (
   prescriptionCode,
   unitId = null,
@@ -739,7 +840,8 @@ export const uploadPrescriptionImage = async ({
   file,
   controllerFields = "m81$",
   keyFields,
-  isPublicAccess = true,
+  isPublicAccess = false,
+  slug = "KVL",
 }) => {
   if (!file) {
     console.warn("No file provided to uploadPrescriptionImage");
@@ -765,6 +867,7 @@ export const uploadPrescriptionImage = async ({
     formData.append("controllerFields", controllerFields);
     formData.append("keyFields", randomKey);
     formData.append("isPublicAccess", String(isPublicAccess));
+    formData.append("slug", slug || "KVL");
 
     const res = await axiosInstance.post(`FileUpload/upload`, formData, {
       headers: {

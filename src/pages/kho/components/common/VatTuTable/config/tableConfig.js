@@ -36,6 +36,9 @@ export const phieuNhatHangConfig = {
   ghiChuField: "ghi_chu",
   showSoLuongTon: true,
   soLuongTonField: "so_luong_ton",
+  // Hiển thị Tồn kho khả dụng (ton13)
+  showTon13: true,
+  ton13Field: "ton13",
   showTongNhat: true,
   tongNhatField: "tong_nhat",
   tongNhatEditable: true,

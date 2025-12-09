@@ -262,27 +262,69 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       ),
       dataIndex: "name",
       key: "name",
-      width: 280,
-      render: (text, record) => (
-        <div className="product-info">
-          <div className="product-name">{text}</div>
+      width: 320,
+      render: (text, record) => {
+        const imageUrl = record.image || record.item?.image || "";
+        return (
           <div
-            className="product-code"
+            className="product-info"
             style={{
               display: "flex",
-              justifyContent: "flex-start",
-              alignItems: "center",
-              marginTop: "4px",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              gap: 8,
             }}
           >
-            <span
-              style={{ color: "#1890ff", fontWeight: "bold", fontSize: "13px" }}
-            >
-              {record.sku}
-            </span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div className="product-name">{text}</div>
+              <div
+                className="product-code"
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-start",
+                  alignItems: "center",
+                  marginTop: "4px",
+                }}
+              >
+                <span
+                  style={{
+                    color: "#1890ff",
+                    fontWeight: "bold",
+                    fontSize: "13px",
+                  }}
+                >
+                  {record.sku}
+                </span>
+              </div>
+            </div>
+            {imageUrl ? (
+              <div
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <img
+                  src={imageUrl}
+                  alt={text || record.sku}
+                  style={{
+                    width: "90px",
+                    height: "90px",
+                    objectFit: "cover",
+                    borderRadius: 6,
+                    border: "1px solid #e8e8e8",
+                  }}
+                  onError={(e) => {
+                    e.target.style.display = "none";
+                  }}
+                />
+              </div>
+            ) : null}
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       title: (
@@ -328,7 +370,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
             size="small"
             style={{ width: "100%" }}
             loading={loading && hasOptions}
-            onDropdownVisibleChange={(visible) => {
+            onOpenChange={(visible) => {
               setUnitOpen((prev) => ({ ...prev, [index]: visible }));
               if (visible && options.length === 0) {
                 loadUnitOptions(index, record);
@@ -345,7 +387,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
               recomputeLineTotals(index, record, { price: newPrice });
             }}
             options={options.map((o) => ({ value: o.value, label: o.label }))}
-            dropdownMatchSelectWidth={false}
+            popupMatchSelectWidth={false}
             notFoundContent={
               loading ? (
                 <div
@@ -415,7 +457,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
             loading={isLoading}
             notFoundContent={isLoading ? <Spin size="small" /> : null}
             open={isOpen}
-            onDropdownVisibleChange={(visible) => {
+            onOpenChange={(visible) => {
               setBatchOpen((prev) => ({ ...prev, [index]: visible }));
               if (visible) loadBatchOptions(index, record, "");
             }}
@@ -682,7 +724,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
             filterOption={false}
             onSearch={handleTaxSearch}
             open={taxDropdownOpen[index]}
-            onDropdownVisibleChange={(open) => {
+            onOpenChange={(open) => {
               setTaxDropdownOpen((prev) => ({ ...prev, [index]: open }));
               if (open) {
                 if (taxOptions.length === 0) {
@@ -703,8 +745,12 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
             optionLabelProp="shortLabel" // Hiển thị shortLabel (ma_thue) trong input sau khi chọn
             suffixIcon={null}
             allowClear
-            dropdownMatchSelectWidth={false}
-            dropdownStyle={{ minWidth: "300px" }}
+            popupMatchSelectWidth={false}
+            styles={{
+              popup: {
+                root: { minWidth: "300px" },
+              },
+            }}
             onClear={() => {
               updateLine(index, "vatPercent", 0);
               updateLine(index, "thue_suat", 0);
@@ -876,13 +922,13 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       ),
       dataIndex: "instructions",
       key: "instructions",
-      width: 180,
+      width: 300,
       render: (text, record, index) => (
-        <Input
+        <Input.TextArea
           value={text || ""}
-          size="small"
           className="instructions-input"
           placeholder="Chỉ dẫn"
+          autoSize={{ minRows: 1, maxRows: 4 }}
           onChange={(e) => updateLine(index, "instructions", e.target.value)}
         />
       ),
@@ -890,6 +936,22 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
   ];
 
   const isEditingOrder = Boolean((currentOrderSttRec || "").trim());
+  
+  // Kiểm tra xem có vật tư nào được add từ đơn thuốc quốc gia (ma_gd = 2) không
+  const hasPrescriptionItems = cart.some((item) => Number(item.ma_gd) === 2);
+
+  // Xác định title hiển thị
+  const getOrderTitle = () => {
+    if (isEditingOrder) {
+      return { text: "Đang sửa đơn", color: "orange" };
+    }
+    if (hasPrescriptionItems) {
+      return { text: "Đơn thuốc quốc gia", color: "green" };
+    }
+    return { text: "Đơn mới", color: "blue" };
+  };
+
+  const orderTitle = getOrderTitle();
 
   return (
     <Card
@@ -900,21 +962,12 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
           style={{ display: "flex", alignItems: "center", gap: "8px" }}
         >
           <span>Giỏ hàng ({cart.length} sản phẩm)</span>
-          {isEditingOrder ? (
-            <Tag
-              color="orange"
-              style={{ margin: 0, fontSize: "12px", fontWeight: 500 }}
-            >
-              Đang sửa đơn
-            </Tag>
-          ) : (
-            <Tag
-              color="blue"
-              style={{ margin: 0, fontSize: "12px", fontWeight: 500 }}
-            >
-              Đơn mới
-            </Tag>
-          )}
+          <Tag
+            color={orderTitle.color}
+            style={{ margin: 0, fontSize: "12px", fontWeight: 500 }}
+          >
+            {orderTitle.text}
+          </Tag>
         </div>
       }
       className="cart-table-card"

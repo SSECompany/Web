@@ -1,13 +1,16 @@
 /* Prescription Modal Styling */
 .prescription-modal .ant-modal {
-  top: 5vh !important;
-  padding-bottom: 5vh !important;
+  top: 1vh !important;
+  padding-bottom: 1vh !important;
+  height: 98vh !important;
 }
 
 .prescription-modal .ant-modal-content {
   background: #1f2937 !important;
   border-radius: 12px !important;
   border: 1px solid #374151 !important;
+  min-height: 96vh !important;
+  height: 96vh !important;
 }
 
 .prescription-modal .ant-modal-header {
@@ -35,15 +38,24 @@
 .prescription-modal .ant-modal-body {
   background: #1f2937 !important;
   padding: 0 !important;
+  height: calc(96vh - 56px) !important;
 }
 
 /* Modal Content */
 .prescription-modal-content {
   background: #1f2937;
   color: white;
-  min-height: 500px;
-  max-height: 90vh;
+  min-height: 420px;
+  max-height: 96vh;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.prescription-scrollable-content {
+  flex: 1;
   overflow-y: auto;
+  padding-bottom: 12px;
 }
 
 /* Header */
@@ -124,38 +136,62 @@
 
 /* Information Display */
 .prescription-info {
-  padding: 6px 12px;
+  padding: 2px 6px;
   border-bottom: 1px solid #374151;
   background: #1f2937;
-}
-
-.info-section {
   display: flex;
-  margin-bottom: 2px;
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.info-section:last-child {
-  margin-bottom: 0;
+.info-card {
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: #111827;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-card-title {
+  color: #f3f4f6 !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 2px 8px;
+}
+
+.info-row {
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
 }
 
 .info-label {
   color: #d1d5db !important;
   font-weight: 600 !important;
-  margin-right: 12px !important;
-  min-width: 150px !important;
-  font-size: 14px !important;
+  min-width: 100px !important;
+  font-size: 12px !important;
 }
 
 .info-value {
   color: white !important;
   font-weight: 500 !important;
-  font-size: 14px !important;
+  font-size: 12px !important;
+  flex: 1;
+  white-space: pre-wrap;
 }
 
 /* Medicine Table Section */
 .medicine-table-section {
-  padding: 8px 8px 20px 8px;
+  padding: 6px 6px 12px 6px;
   border-bottom: 1px solid #374151;
 }
 
@@ -189,8 +225,8 @@
 /* Table Styling */
 .medicine-table {
   background: #374151 !important;
-  height: 300px !important;
-  overflow: auto;
+  max-height: 420px;
+  overflow: hidden;
   font-size: 14px !important;
 }
 
@@ -231,7 +267,7 @@
 .medicine-table::-webkit-scrollbar-track {
   background: #4b5563;
   border-radius: 5px;
-  margin: 4px 0;
+  margin: 0;
 }
 
 .medicine-table::-webkit-scrollbar-thumb {
@@ -252,7 +288,7 @@
 .medicine-table .ant-table-body::-webkit-scrollbar-track {
   background: #4b5563;
   border-radius: 5px;
-  margin: 4px 0;
+  margin: 0;
 }
 
 .medicine-table .ant-table-body::-webkit-scrollbar-thumb {
@@ -272,27 +308,20 @@
 
 /* Ant Design Table structure fix */
 .medicine-table .ant-table-container {
-  height: 100% !important;
+  height: auto !important;
 }
 
 .medicine-table .ant-table-body {
-  height: calc(100% - 36px) !important;
-  overflow: auto !important;
-  padding-right: 8px !important;
-}
-
-.medicine-table .ant-table-content {
-  height: 100% !important;
-}
-
-.medicine-table .ant-table-scroll {
-  height: 100% !important;
-}
-
-/* Scroll behavior - chỉ hiển thị scroll dọc khi cần */
-.medicine-table .ant-table-body {
+  max-height: 320px;
   overflow-y: auto !important;
   overflow-x: auto !important;
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}
+
+.medicine-table .ant-table-content,
+.medicine-table .ant-table-scroll {
+  height: auto !important;
 }
 
 /* Checkbox in table */

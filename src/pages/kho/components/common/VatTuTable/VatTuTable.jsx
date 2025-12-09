@@ -46,6 +46,47 @@ const VatTuTable = ({
     dataSourceRef.current = dataSource;
   }, [dataSource]);
 
+  // Prefetch danh sách mã lô cho một dòng cụ thể, luôn dùng dataSource mới nhất
+  const loadLoOptions = useCallback(
+    async (keyword = "", record, openAfter = false) => {
+      if (!apiHandlers.fetchLoList || !record?.key) return;
+
+      setLoadingLo((prev) => ({ ...prev, [record.key]: true }));
+      try {
+        const currentDataSource = dataSourceRef.current;
+        const currentRecord =
+          currentDataSource.find((item) => item.key === record.key) || record;
+
+        const options = await apiHandlers.fetchLoList(
+          keyword,
+          currentRecord,
+          1
+        );
+
+        const latestDataSource = dataSourceRef.current;
+        const latestRecord =
+          latestDataSource.find((item) => item.key === record.key) ||
+          currentRecord;
+
+        const updatedRecord = { ...latestRecord, loOptions: options };
+        const updatedDataSource = latestDataSource.map((item) =>
+          item.key === record.key ? updatedRecord : item
+        );
+
+        if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
+      // Mở dropdown sau khi tải xong options (phù hợp yêu cầu auto show)
+      if (openAfter) {
+        setOpenLo((prev) => ({ ...prev, [record.key]: true }));
+      }
+      } catch (error) {
+        console.error("Error loading lot options:", error);
+      } finally {
+        setLoadingLo((prev) => ({ ...prev, [record.key]: false }));
+      }
+    },
+    [apiHandlers.fetchLoList, onDataSourceUpdate]
+  );
+
   // Xử lý thay đổi số lượng với validation
   const handleQuantityChange = useCallback(
     (value, record, field) => {
@@ -128,7 +169,7 @@ const VatTuTable = ({
           size="small"
           className="vat-tu-table-select"
           loading={loadingDvt[record.key]}
-          onDropdownVisibleChange={async (visible) => {
+          onOpenChange={async (visible) => {
             if (visible && record.maHang && apiHandlers.fetchDonViTinh) {
               if (
                 record.donViTinhList &&
@@ -205,7 +246,7 @@ const VatTuTable = ({
           className="vat-tu-table-select"
           dropdownClassName="vat-tu-dropdown"
           popupMatchSelectWidth={false}
-          onDropdownVisibleChange={(visible) => {
+          onOpenChange={(visible) => {
             if (visible && apiHandlers.fetchMaKhoList) {
               apiHandlers.fetchMaKhoList();
             }
@@ -247,14 +288,59 @@ const VatTuTable = ({
       {
         title: "Mặt hàng",
         key: "mat_hang",
-        width: 250,
+        width: 300, // Tăng width để có chỗ hiển thị ảnh
         align: "left",
-        ellipsis: true,
+        ellipsis: false, // Tắt ellipsis để hiển thị đầy đủ
         render: (_, record) => {
           if (record.isChild) return "";
           const maHang = record.maHang || "";
           const tenMatHang = record[columnConfig.tenMatHangField || "ten_mat_hang"] || "";
-          return `${maHang}${maHang && tenMatHang ? " - " : ""}${tenMatHang}`;
+          const imageUrl = record.image || record.item?.image || "";
+          
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "4px 0", alignItems: "center" }}>
+              {/* Dòng trên: Thông tin mặt hàng */}
+              <div style={{ 
+                fontSize: "13px", 
+                lineHeight: "1.4",
+                fontWeight: 500,
+                color: "#333",
+                textAlign: "center",
+                width: "100%"
+              }}>
+                {`${maHang}${maHang && tenMatHang ? " - " : ""}${tenMatHang}`}
+              </div>
+              {/* Dòng dưới: Ảnh vật tư */}
+              {imageUrl && (
+                <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+                  <img
+                    src={imageUrl}
+                    alt={tenMatHang || maHang}
+                    style={{
+                      width: 120,
+                      height: 120,
+                      objectFit: "cover",
+                      borderRadius: 6,
+                      border: "1px solid #e8e8e8",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                      cursor: "pointer",
+                    }}
+                    onError={(e) => {
+                      // Ẩn ảnh nếu lỗi load
+                      e.target.style.display = "none";
+                    }}
+                    onClick={() => {
+                      // Mở ảnh lớn khi click (optional)
+                      if (imageUrl) {
+                        window.open(imageUrl, "_blank");
+                      }
+                    }}
+                    title="Click để xem ảnh lớn"
+                  />
+                </div>
+              )}
+            </div>
+          );
         },
       },
       {
@@ -282,7 +368,15 @@ const VatTuTable = ({
           const maLo = currentRecord[columnConfig.maLoField || "ma_lo"]; 
           const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"]; 
           if (!isEditMode) {
-            const display = `${maLo || ""}${maLo || maViTri ? " / " : ""}${
+            // Tìm label từ loOptions nếu có (để hiển thị ma_lo-ngay_hhsd)
+            let maLoDisplay = maLo || "";
+            if (maLo && currentRecord.loOptions && currentRecord.loOptions.length > 0) {
+              const matchedOption = currentRecord.loOptions.find(opt => opt.value === maLo);
+              if (matchedOption && matchedOption.label) {
+                maLoDisplay = matchedOption.label;
+              }
+            }
+            const display = `${maLoDisplay || ""}${maLoDisplay || maViTri ? " / " : ""}${
               maViTri || ""
             }`;
             return display;
@@ -295,11 +389,6 @@ const VatTuTable = ({
 
           return (
             <div style={{ display: "flex", gap: 8 }}>
-              {isLoLoading && (!loOpts || loOpts.length === 0) ? (
-                <div style={{ width: 120, display: "flex", alignItems: "center", justifyContent: "center", height: 28 }}>
-                  <Spin size="small" />
-                </div>
-              ) : (
               <Select
                 key={`ma-lo-${record.key}`}
                 value={maLo || undefined}
@@ -310,85 +399,39 @@ const VatTuTable = ({
                 style={{ width: 120 }}
                 loading={isLoLoading}
                 filterOption={false}
-                open={!!openLo[record.key]}
-                onFocus={async () => {
-                  if (!apiHandlers.fetchLoList) return;
-                  setLoadingLo((prev) => ({ ...prev, [record.key]: true }));
-                  try {
-                    // Get current record from latest dataSource using ref to avoid stale closure
-                    const currentDataSource = dataSourceRef.current;
-                    const currentRecord = currentDataSource.find((item) => item.key === record.key) || record;
-                    const options = await apiHandlers.fetchLoList("", currentRecord, 1);
-                    // Get latest dataSource from ref again after async operation
-                    const latestDataSource = dataSourceRef.current;
-                    const latestRecord = latestDataSource.find((item) => item.key === record.key) || currentRecord;
-                    const updatedRecord = { ...latestRecord, loOptions: options };
-                    const updatedDataSource = latestDataSource.map((item) =>
-                      item.key === record.key ? updatedRecord : item
-                    );
-                    if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
-                  } finally {
-                    setLoadingLo((prev) => ({ ...prev, [record.key]: false }));
+                onFocus={() => {
+                  const currentDataSource = dataSourceRef.current;
+                  const currentRecord =
+                    currentDataSource.find((item) => item.key === record.key) ||
+                    record;
+                  const hasOptions =
+                    currentRecord?.loOptions && currentRecord.loOptions.length > 0;
+                  if (!hasOptions) {
+                    loadLoOptions("", currentRecord, true);
                   }
                 }}
-                onSearch={async (keyword) => {
-                  if (!apiHandlers.fetchLoList) return;
-                  setLoadingLo((prev) => ({ ...prev, [record.key]: true }));
-                  try {
-                    // Get current record from latest dataSource using ref to avoid stale closure
-                    const currentDataSource = dataSourceRef.current;
-                    const currentRecord = currentDataSource.find((item) => item.key === record.key) || record;
-                    const options = await apiHandlers.fetchLoList(keyword, currentRecord, 1);
-                    // Get latest dataSource from ref again after async operation
-                    const latestDataSource = dataSourceRef.current;
-                    const latestRecord = latestDataSource.find((item) => item.key === record.key) || currentRecord;
-                    const updatedRecord = { ...latestRecord, loOptions: options };
-                    const updatedDataSource = latestDataSource.map((item) =>
-                      item.key === record.key ? updatedRecord : item
-                    );
-                    if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
-                  } finally {
-                    setLoadingLo((prev) => ({ ...prev, [record.key]: false }));
-                  }
-                }}
-                onDropdownVisibleChange={(visible) => {
-                  setOpenLo((prev) => ({ ...prev, [record.key]: visible }));
-                  // Only load options when opening dropdown, not when closing
-                  // Also check if options already exist to avoid unnecessary API calls
-                  if (visible && apiHandlers.fetchLoList) {
-                    // Always get current record from latest dataSource using ref to avoid stale closure
-                    const currentDataSource = dataSourceRef.current;
-                    const currentRecord = currentDataSource.find((item) => item.key === record.key) || record;
-                    const hasOptions = currentRecord?.loOptions && currentRecord.loOptions.length > 0;
-                    
-                    // Only fetch if options don't exist
-                    if (!hasOptions) {
-                      (async () => {
-                        setLoadingLo((prev) => ({ ...prev, [record.key]: true }));
-                        try {
-                          const options = await apiHandlers.fetchLoList("", currentRecord, 1);
-                          // Get latest dataSource from ref to avoid stale closure
-                          const latestDataSource = dataSourceRef.current;
-                          const latestRecord = latestDataSource.find((item) => item.key === record.key) || currentRecord;
-                          const updatedRecord = { 
-                            ...latestRecord, 
-                            loOptions: options 
-                          };
-                          const updatedDataSource = latestDataSource.map((item) =>
-                            item.key === record.key ? updatedRecord : item
-                          );
-                          if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
-                        } finally {
-                          setLoadingLo((prev) => ({ ...prev, [record.key]: false }));
-                        }
-                      })();
+                onSearch={(keyword) => loadLoOptions(keyword, record, false)}
+                onDropdownOpenChange={(visible) => {
+                  setOpenLo((prev) => {
+                    if (visible) {
+                      return { ...prev, [record.key]: true };
                     }
+                    const next = { ...prev };
+                    delete next[record.key];
+                    return next;
+                  });
+                  if (!visible) return;
+                  const currentDataSource = dataSourceRef.current;
+                  const currentRecord =
+                    currentDataSource.find((item) => item.key === record.key) ||
+                    record;
+                  const hasOptions =
+                    currentRecord?.loOptions && currentRecord.loOptions.length > 0;
+                  if (!hasOptions) {
+                    loadLoOptions("", currentRecord, true);
                   }
                 }}
                 onChange={(val) => {
-                  // Close dropdown when selection is made
-                  setOpenLo((prev) => ({ ...prev, [record.key]: false }));
-                  
                   // Find the latest record from dataSource using ref to avoid stale reference
                   // Match POS behavior: ensure value is string (val || "")
                   const currentDataSource = dataSourceRef.current;
@@ -404,7 +447,15 @@ const VatTuTable = ({
                     // Fallback to original record if not found
                     onSelectChange(val || "", record, "ma_lo");
                   }
+                  // Đóng dropdown sau khi chọn (trả về uncontrolled)
+                  setOpenLo((prev) => {
+                    const next = { ...prev };
+                    delete next[record.key];
+                    return next;
+                  });
                 }}
+                // Cho phép antd tự điều khiển nếu chưa set state; nếu đã có state thì control
+                open={openLo[record.key]}
                 options={loOpts}
                 dropdownClassName="vat-tu-dropdown"
                 popupMatchSelectWidth={false}
@@ -414,7 +465,6 @@ const VatTuTable = ({
                   </div>
                 ) : null}
               />
-              )}
               {isViTriLoading && (!viTriOpts || viTriOpts.length === 0) ? (
                 <div style={{ width: 120, display: "flex", alignItems: "center", justifyContent: "center", height: 28 }}>
                   <Spin size="small" />
@@ -430,7 +480,7 @@ const VatTuTable = ({
                 style={{ width: 120 }}
                 loading={isViTriLoading}
                 filterOption={false}
-                open={!!openViTri[record.key]}
+                open={openViTri[record.key]}
                 onFocus={async () => {
                   if (!apiHandlers.fetchViTriList) return;
                   setLoadingViTri((prev) => ({ ...prev, [record.key]: true }));
@@ -475,8 +525,15 @@ const VatTuTable = ({
                     setLoadingViTri((prev) => ({ ...prev, [record.key]: false }));
                   }
                 }}
-                onDropdownVisibleChange={(visible) => {
-                  setOpenViTri((prev) => ({ ...prev, [record.key]: visible }));
+                onOpenChange={(visible) => {
+                  setOpenViTri((prev) => {
+                    if (visible) {
+                      return { ...prev, [record.key]: true };
+                    }
+                    const next = { ...prev };
+                    delete next[record.key];
+                    return next;
+                  });
                   if (visible && apiHandlers.fetchViTriList) {
                     // Always get current record from latest dataSource using ref to avoid stale closure
                     const currentDataSource = dataSourceRef.current;
@@ -506,7 +563,11 @@ const VatTuTable = ({
                 }}
                 onChange={(val) => {
                   // Close dropdown when selection is made
-                  setOpenViTri((prev) => ({ ...prev, [record.key]: false }));
+                  setOpenViTri((prev) => {
+                    const next = { ...prev };
+                    delete next[record.key];
+                    return next;
+                  });
                   
                   // Find the latest record from dataSource using ref to avoid stale reference
                   const currentDataSource = dataSourceRef.current;
@@ -726,6 +787,33 @@ const VatTuTable = ({
       });
     }
 
+    // Thêm cột tồn kho khả dụng (ton13)
+    if (columnConfig.showTon13) {
+      baseColumns.push({
+        title: "Tồn kho khả dụng",
+        dataIndex: columnConfig.ton13Field || "ton13",
+        key: "ton13",
+        width: 130,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) =>
+          record.isChild ? (
+            ""
+          ) : (
+            <span
+              style={{
+                fontWeight: "bold",
+                display: "block",
+                textAlign: "center",
+                color: value && value > 0 ? "#52c41a" : "#999",
+              }}
+            >
+              {formatQuantityDisplay(value || 0)}
+            </span>
+          ),
+      });
+    }
+
     // Thêm cột mã kho nếu cần
     if (columnConfig.showMaKho) {
       baseColumns.push({
@@ -752,26 +840,38 @@ const VatTuTable = ({
     baseColumns.push({
       title: "Thao tác",
       key: "action",
-      width: 80,
+      width: columnConfig.useAddButtonInsteadOfDelete ? 120 : 80, // Tăng width nếu có cả nút xóa và nút thêm
       align: "center",
       fixed: "right",
       render: (_, record, index) => {
         if (columnConfig.useAddButtonInsteadOfDelete) {
-          // Dòng cha: nút thêm dòng con
+          // Dòng cha: hiển thị cả nút xóa và nút thêm dòng con
           if (!record.isChild) {
             return (
-              <Button
-                type="text"
-                size="small"
-                icon={<PlusOutlined />}
-                onClick={() =>
-                  otherProps.onAddItem ? otherProps.onAddItem(index, record) : null
-                }
-                title="Thêm dòng con"
-                disabled={!isEditMode}
-                className="vat-tu-add-btn"
-                style={{ color: "#52c41a" }}
-              />
+              <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+                <Button
+                  type="text"
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  onClick={() => onDeleteItem(index, isEditMode)}
+                  title="Xóa dòng"
+                  disabled={!isEditMode}
+                  className="vat-tu-delete-btn"
+                />
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={() =>
+                    otherProps.onAddItem ? otherProps.onAddItem(index, record) : null
+                  }
+                  title="Thêm dòng con"
+                  disabled={!isEditMode}
+                  className="vat-tu-add-btn"
+                  style={{ color: "#52c41a" }}
+                />
+              </div>
             );
           }
           // Dòng con: nút xóa dòng con
@@ -824,7 +924,8 @@ const VatTuTable = ({
     );
     const minWidth = Math.max(columnWidths, window.innerWidth - 100);
 
-    const rowHeight = 40;
+    // Tăng rowHeight để hiển thị ảnh tốt hơn (ảnh 120px + padding + text)
+    const rowHeight = 160;
     const headerHeight = 50;
     const maxRows = 10;
     const y = headerHeight + rowHeight * maxRows;
@@ -847,6 +948,14 @@ const VatTuTable = ({
       scroll={getScrollConfig()}
       size="small"
       tableLayout="auto"
+      components={{
+        body: {
+          row: (props) => {
+            // Tăng chiều cao hàng để hiển thị ảnh tốt hơn
+            return <tr {...props} style={{ height: 'auto', minHeight: 160 }} />;
+          },
+        },
+      }}
       {...otherProps}
     />
   );

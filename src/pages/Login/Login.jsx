@@ -251,7 +251,7 @@ const Login = () => {
                 className="default_select"
                 value={unitSelected}
                 options={units}
-                dropdownMatchSelectWidth={false}
+                popupMatchSelectWidth={false}
                 onSelect={handleChangeUnit}
               />
             </Space>
