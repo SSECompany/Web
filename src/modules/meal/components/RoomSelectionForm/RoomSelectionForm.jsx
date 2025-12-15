@@ -3,7 +3,7 @@ import { Button, DatePicker, Select, notification } from "antd";
 import dayjs from "dayjs";
 import _ from "lodash";
 import debounce from "lodash/debounce";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import {
@@ -12,6 +12,7 @@ import {
   multipleTablePutApi,
   syncFastMutiApi,
 } from "../../../../api";
+import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import {
   markBedAsSubmitted,
   setBedPaymentToggled,
@@ -29,11 +30,27 @@ import {
   setShowMealDetails,
   setShowRoomSelection,
   setSubmittedBeds,
+  resetRoomContext,
 } from "../../store/meal";
 import PrintComponent from "./PrintComponent/PrintComponent";
 import "./RoomSelectionForm.css";
 
 const { Option } = Select;
+
+// Helper function to generate cookie_voucher timestamp
+// Format: 'YYYY-MM-DD HH:mm:ss.SSS'
+const generateCookieVoucher = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  const milliseconds = String(now.getMilliseconds()).padStart(3, "0");
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+};
 
 const RoomSelectionForm = () => {
   const dispatch = useDispatch();
@@ -65,6 +82,44 @@ const RoomSelectionForm = () => {
   const lastLoadedDateRef = useRef(null);
   const lastRoomCodeRef = useRef(null);
   const fetchedModesRef = useRef(new Set());
+
+  const hasCompletedDrafts = submittedBeds.length > 0;
+
+  const hasPendingDrafts = useMemo(() => {
+    if (!Array.isArray(detailData)) return false;
+
+    const hasMeaningfulInput = (meal = {}) => {
+      const quantityValid =
+        typeof meal.quantity === "number" ? meal.quantity > 0 : false;
+      const hasTextNote =
+        typeof meal.note === "string" ? meal.note.trim().length > 0 : false;
+
+      return (
+        (typeof meal.mode === "string" && meal.mode.trim().length > 0) ||
+        (typeof meal.mealType === "string" && meal.mealType.trim().length > 0) ||
+        quantityValid ||
+        hasTextNote
+      );
+    };
+
+    const hasDrafts = detailData.some((bedMeals) => {
+      if (!bedMeals) return false;
+      return ["CA1", "CA2", "CA3"].some((shift) => {
+        const meals = bedMeals[shift] || [];
+        return meals.some(
+          (meal) =>
+            hasMeaningfulInput(meal) &&
+            (!meal?.stt_rec ||
+              meal?.isEdit ||
+              meal?.status === "3" ||
+              meal?.status === 3)
+        );
+      });
+    });
+    return hasDrafts;
+  }, [detailData]);
+
+  const shouldConfirmBeforeSwitch = hasCompletedDrafts || hasPendingDrafts;
 
   const handlePrint = useReactToPrint({
     content: () => printContent.current,
@@ -258,36 +313,29 @@ const RoomSelectionForm = () => {
     }
   }, [roomSelectedDate, masterData.roomCode]);
 
-  const handleBedClick = useCallback(
+  const openBedDetails = useCallback(
     async (bed, index) => {
       dispatch(setMasterData({ beds: [bed] }));
       dispatch(setCurrentBedIndex(index));
 
-      // Kiểm tra xem giường này đã được sửa chưa (có trong submittedBeds)
       const isAlreadyEdited = submittedBeds.includes(index);
-
-      // Kiểm tra xem đã có dữ liệu trong detailData chưa
       const hasLocalData =
         detailData[index] &&
         (detailData[index].CA1?.some((m) => m.mode || m.mealType) ||
           detailData[index].CA2?.some((m) => m.mode || m.mealType) ||
           detailData[index].CA3?.some((m) => m.mode || m.mealType));
 
-      // Nếu đã sửa HOẶC đã có dữ liệu local → Dùng dữ liệu từ detailData, KHÔNG fetch API
       if (isAlreadyEdited || hasLocalData) {
-        // Dùng dữ liệu đã có, không làm gì cả
         dispatch(setShowMealDetails(true));
         dispatch(setShowRoomSelection(false));
         return;
       }
 
-      // Kiểm tra xem giường này có trong mealHistory không (đã đặt hoặc đã hủy)
       const hasHistory = mealHistory.some(
         (m) => m.ma_giuong?.trim() === bed.ma_giuong?.trim()
       );
 
       if (hasHistory) {
-        // Giường có đơn (đã đặt hoặc đã hủy) VÀ chưa có dữ liệu local → Call API để lấy chi tiết đầy đủ
         try {
           const response = await multipleTablePutApi({
             store: "api_getMealDetailsByDepartmentRoomBed",
@@ -300,7 +348,6 @@ const RoomSelectionForm = () => {
             data: {},
           });
 
-          // Lấy data từ response và filter theo ma_giuong
           const allMeals = Array.isArray(response?.listObject?.[0])
             ? response.listObject[0]
             : [];
@@ -310,14 +357,12 @@ const RoomSelectionForm = () => {
           );
 
           if (bedMealsHistory.length > 0) {
-            // Convert history data to detail data format
             const convertedMeals = {
               CA1: [],
               CA2: [],
               CA3: [],
             };
 
-            // Map ca labels to CA codes
             const caMapping = {
               "Ca sáng": "CA1",
               "Ca trưa": "CA2",
@@ -327,17 +372,14 @@ const RoomSelectionForm = () => {
             bedMealsHistory.forEach((meal) => {
               const caCode = caMapping[meal.ten_ca?.trim()];
               if (caCode) {
-                // Trim các field có thể có khoảng trắng thừa
                 const maCheDoTrimmed = meal.ma_che_do?.trim() || "";
                 const maMonTrimmed = meal.ma_mon?.trim() || "";
                 const soCtTrimmed = meal.so_ct?.trim() || "";
 
-                // Parse các giá trị số
                 const quantity = parseFloat(meal.so_luong) || 1;
                 const price = parseFloat(meal.don_gia) || 0;
                 const totalMoney = parseFloat(meal.thanh_tien) || 0;
 
-                // Parse boolean - hỗ trợ nhiều format (true, 1, "1", "true")
                 const collectMoney =
                   meal.benh_nhan_yn === true ||
                   meal.benh_nhan_yn === 1 ||
@@ -349,8 +391,6 @@ const RoomSelectionForm = () => {
                   meal.thu_tien_yn === "1" ||
                   meal.thu_tien_yn === "true";
 
-                // Kiểm tra trạng thái
-                const wasCancelled = meal.status === "3" || meal.status === 3;
                 const finalStatus = meal.status?.toString() || "0";
 
                 convertedMeals[caCode].push({
@@ -366,18 +406,16 @@ const RoomSelectionForm = () => {
                   isPaid: isPaid,
                   httt: meal.httt || "",
                   date: roomSelectedDate,
-                  // Giữ nguyên stt_rec để UPDATE đơn cũ (không tạo mới)
                   stt_rec: meal.stt_rec || "",
                   stt_rec0: meal.stt_rec0 || "",
                   status: finalStatus,
                   so_ct: soCtTrimmed,
-                  // KHÔNG tự động đánh dấu isEdit, chỉ khi user thay đổi thực sự
+                  cookie_voucher: meal.cookie_voucher || "", // Lưu cookie_voucher từ API response
                   isEdit: false,
                 });
               }
             });
 
-            // Ensure each shift has at least one meal entry
             ["CA1", "CA2", "CA3"].forEach((shift) => {
               if (convertedMeals[shift].length === 0) {
                 convertedMeals[shift].push({
@@ -393,23 +431,21 @@ const RoomSelectionForm = () => {
                   isPaid: false,
                   httt: "",
                   date: roomSelectedDate,
-                  // Empty cho meal mới
                   stt_rec: "",
                   stt_rec0: "",
                   status: "0",
                   so_ct: "",
+                  cookie_voucher: "",
                 });
               }
             });
 
-            // Update the meal data in Redux
             const updatedDetailData = [...detailData];
             updatedDetailData[index] = convertedMeals;
             dispatch(
               setMeal({ mealEntries: updatedDetailData, bedIndex: index })
             );
           } else {
-            // API trả về rỗng cho giường này
             const emptyMeals = {
               CA1: [
                 {
@@ -429,6 +465,7 @@ const RoomSelectionForm = () => {
                   stt_rec0: "",
                   status: "0",
                   so_ct: "",
+                  cookie_voucher: "",
                 },
               ],
               CA2: [
@@ -449,6 +486,7 @@ const RoomSelectionForm = () => {
                   stt_rec0: "",
                   status: "0",
                   so_ct: "",
+                  cookie_voucher: "",
                 },
               ],
               CA3: [
@@ -469,6 +507,7 @@ const RoomSelectionForm = () => {
                   stt_rec0: "",
                   status: "0",
                   so_ct: "",
+                  cookie_voucher: "",
                 },
               ],
             };
@@ -482,7 +521,6 @@ const RoomSelectionForm = () => {
           console.error("❌ Lỗi khi load chi tiết món ăn:", error);
           notification.error({ message: "Có lỗi khi tải dữ liệu món ăn!" });
 
-          // Nếu lỗi, tạo data rỗng
           const emptyMeals = {
             CA1: [
               {
@@ -502,6 +540,7 @@ const RoomSelectionForm = () => {
                 stt_rec0: "",
                 status: "0",
                 so_ct: "",
+                cookie_voucher: "",
               },
             ],
             CA2: [
@@ -522,6 +561,7 @@ const RoomSelectionForm = () => {
                 stt_rec0: "",
                 status: "0",
                 so_ct: "",
+                cookie_voucher: "",
               },
             ],
             CA3: [
@@ -542,6 +582,7 @@ const RoomSelectionForm = () => {
                 stt_rec0: "",
                 status: "0",
                 so_ct: "",
+                cookie_voucher: "",
               },
             ],
           };
@@ -552,7 +593,6 @@ const RoomSelectionForm = () => {
           );
         }
       } else {
-        // Giường mới (chưa có đơn) - KHÔNG call API, tạo data rỗng trực tiếp
         const emptyMeals = {
           CA1: [
             {
@@ -572,6 +612,7 @@ const RoomSelectionForm = () => {
               stt_rec0: "",
               status: "0",
               so_ct: "",
+              cookie_voucher: "",
             },
           ],
           CA2: [
@@ -592,6 +633,7 @@ const RoomSelectionForm = () => {
               stt_rec0: "",
               status: "0",
               so_ct: "",
+              cookie_voucher: "",
             },
           ],
           CA3: [
@@ -612,6 +654,7 @@ const RoomSelectionForm = () => {
               stt_rec0: "",
               status: "0",
               so_ct: "",
+              cookie_voucher: "",
             },
           ],
         };
@@ -633,6 +676,13 @@ const RoomSelectionForm = () => {
       mealHistory,
       submittedBeds,
     ]
+  );
+
+  const handleBedClick = useCallback(
+    (bed, index) => {
+      openBedDetails(bed, index);
+    },
+    [openBedDetails]
   );
 
   const loadBedsWithMeals = async (roomCode, date) => {
@@ -704,8 +754,9 @@ const RoomSelectionForm = () => {
     }
   };
 
-  const handleRoomChange = useCallback(
+  const executeRoomChange = useCallback(
     (value) => {
+      dispatch(resetRoomContext());
       dispatch(setListBeds([]));
 
       const updatedMasterData = { ...masterData, roomCode: value };
@@ -717,7 +768,24 @@ const RoomSelectionForm = () => {
         loadBedsWithMeals(value, date);
       }
     },
-    [masterData, roomSelectedDate]
+    [dispatch, masterData, roomSelectedDate]
+  );
+
+  const handleRoomChange = useCallback(
+    (value) => {
+      if (shouldConfirmBeforeSwitch) {
+        const confirmTitle = hasCompletedDrafts
+          ? "Đã có dữ liệu hoàn thành. Đổi phòng sẽ xoá dữ liệu này. Tiếp tục?"
+          : "Dữ liệu đang nhập sẽ bị xoá khi đổi phòng. Tiếp tục?";
+        showConfirm({
+          title: confirmTitle,
+          onOk: () => executeRoomChange(value),
+        });
+        return;
+      }
+      executeRoomChange(value);
+    },
+    [shouldConfirmBeforeSwitch, hasCompletedDrafts, executeRoomChange]
   );
 
   const handleDepartmentChange = useCallback(
@@ -727,6 +795,7 @@ const RoomSelectionForm = () => {
         return;
       }
 
+      dispatch(resetRoomContext());
       dispatch(setMasterData({ name: value, roomCode: "", beds: [] }));
       dispatch(setListBeds([]));
       dispatch(setListRoom([]));
@@ -941,6 +1010,12 @@ const RoomSelectionForm = () => {
           // Nếu thu_tien_yn = 1 thì httt phải là "chuyen_khoan"
           const httt = thuTienYn === 1 ? meal.httt || "chuyen_khoan" : "";
 
+          // Sử dụng cookie_voucher từ data đã load (khi sửa đơn)
+          // Chỉ tạo timestamp mới khi là món mới (không có cookie_voucher)
+          const cookieVoucher = meal.cookie_voucher && meal.cookie_voucher.trim() !== ""
+            ? meal.cookie_voucher  // Dùng cookie_voucher đã có từ API khi load data
+            : generateCookieVoucher(); // Tạo mới chỉ khi là món mới
+
           filteredDetail.push({
             ma_giuong: bed.ma_giuong,
             ma_ca: shift,
@@ -957,6 +1032,7 @@ const RoomSelectionForm = () => {
             stt_rec0: meal.stt_rec0 || "",
             status: "0", // LUÔN dùng status = "0"
             so_ct: meal.so_ct || "",
+            cookie_voucher: cookieVoucher, // Dùng cookie_voucher từ data đã load khi sửa, tạo mới khi thêm món
           });
         });
       });

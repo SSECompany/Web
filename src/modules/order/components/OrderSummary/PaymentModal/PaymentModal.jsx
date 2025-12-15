@@ -28,6 +28,7 @@ const PaymentModal = ({
   const [paymentAmounts, setPaymentAmounts] = useState({
     tien_mat: 0,
     chuyen_khoan: 0,
+    tra_sau: 0,
   });
   const [change, setChange] = useState(0);
   const [customerInfo, setCustomerInfo] = useState({
@@ -71,14 +72,14 @@ const PaymentModal = ({
     if (method === "ca_hai") {
       // Chọn cả hai - để input 0 nhưng tính đúng tiền trả lại
       setSelectedPayments(["tien_mat", "chuyen_khoan"]);
-      setPaymentAmounts({ tien_mat: 0, chuyen_khoan: 0 });
+      setPaymentAmounts({ tien_mat: 0, chuyen_khoan: 0, tra_sau: 0 });
       setChange(totalPrepaid - total); // Tính luôn tiền trả trước
     } else {
       // Chọn một phương thức duy nhất
       setSelectedPayments([method]);
       const remainingAmount = Math.max(0, total - totalPrepaid);
       setPaymentAmounts((amounts) => {
-        const updatedAmounts = { tien_mat: 0, chuyen_khoan: 0 };
+        const updatedAmounts = { tien_mat: 0, chuyen_khoan: 0, tra_sau: 0 };
         updatedAmounts[method] = remainingAmount;
         return updatedAmounts;
       });
@@ -167,7 +168,7 @@ const PaymentModal = ({
 
   const handleClose = () => {
     setSelectedPayments(["chuyen_khoan"]);
-    setPaymentAmounts({ tien_mat: 0, chuyen_khoan: 0 });
+    setPaymentAmounts({ tien_mat: 0, chuyen_khoan: 0, tra_sau: 0 });
     setChange(0);
     setCustomerInfo({
       ong_ba: "",
@@ -209,14 +210,15 @@ const PaymentModal = ({
       setSelectedPayments(defaultPayments);
 
       // Tính toán payment amounts dựa trên phương thức thanh toán
-      const newPaymentAmounts = { tien_mat: 0, chuyen_khoan: 0 };
+      const newPaymentAmounts = { tien_mat: 0, chuyen_khoan: 0, tra_sau: 0 };
       const remainingAmount = Math.max(0, total - totalPrepaid);
 
       // Nếu có initialPaymentAmounts từ order đã lưu, sử dụng nó
       if (
         initialPaymentAmounts &&
         (initialPaymentAmounts.tien_mat > 0 ||
-          initialPaymentAmounts.chuyen_khoan > 0)
+          initialPaymentAmounts.chuyen_khoan > 0 ||
+          initialPaymentAmounts.tra_sau > 0)
       ) {
         newPaymentAmounts.tien_mat = Number(
           initialPaymentAmounts.tien_mat || 0
@@ -224,11 +226,16 @@ const PaymentModal = ({
         newPaymentAmounts.chuyen_khoan = Number(
           initialPaymentAmounts.chuyen_khoan || 0
         );
+        newPaymentAmounts.tra_sau = Number(
+          initialPaymentAmounts.tra_sau || 0
+        );
       } else {
         // Nếu không, tính toán dựa trên phương thức thanh toán
         if (defaultPayments.length === 1) {
           if (defaultPayments[0] === "tien_mat") {
             newPaymentAmounts.tien_mat = remainingAmount;
+          } else if (defaultPayments[0] === "tra_sau") {
+            newPaymentAmounts.tra_sau = remainingAmount;
           } else {
             newPaymentAmounts.chuyen_khoan = remainingAmount;
           }
@@ -236,6 +243,7 @@ const PaymentModal = ({
           // Nếu có 2 phương thức thanh toán, để input 0 và tính đúng tiền trả lại
           newPaymentAmounts.tien_mat = 0;
           newPaymentAmounts.chuyen_khoan = 0;
+          newPaymentAmounts.tra_sau = 0;
         }
       }
 
@@ -292,6 +300,7 @@ const PaymentModal = ({
       onCancel={handleClose}
       footer={null}
       className="payment-modal"
+      width={650}
     >
       {/* Ẩn thông tin khách hàng nếu là sinh viên trả trước hoặc người nhà bệnh nhân */}
       {!isPrepaidStudent && !isFamilyMeal && (
@@ -487,7 +496,7 @@ const PaymentModal = ({
             <strong>Hình thức thanh toán:</strong>
           </p>
           <div className="payment-methods">
-            {["chuyen_khoan", "tien_mat", "ca_hai"].map((method) => (
+            {["chuyen_khoan", "tien_mat", "tra_sau", "ca_hai"].map((method) => (
               <div
                 key={method}
                 className={`payment-option ${
@@ -504,6 +513,8 @@ const PaymentModal = ({
                   ? "Tiền mặt"
                   : method === "chuyen_khoan"
                   ? "Chuyển khoản"
+                  : method === "tra_sau"
+                  ? "Trả sau"
                   : "Đa phương thức"}
               </div>
             ))}
@@ -576,6 +587,8 @@ const PaymentModal = ({
                   <span>
                     {selectedPayments[0] === "tien_mat"
                       ? "Tiền mặt"
+                      : selectedPayments[0] === "tra_sau"
+                      ? "Trả sau"
                       : "Chuyển khoản"}
                   </span>
                   <InputNumber
@@ -604,7 +617,11 @@ const PaymentModal = ({
                 selectedPayments.map((method) => (
                   <div key={method} className="payment-amount-container">
                     <span>
-                      {method === "tien_mat" ? "Tiền mặt" : "Chuyển khoản"}
+                      {method === "tien_mat"
+                        ? "Tiền mặt"
+                        : method === "tra_sau"
+                        ? "Trả sau"
+                        : "Chuyển khoản"}
                     </span>
                     <InputNumber
                       value={paymentAmounts[method] || 0}
@@ -685,8 +702,12 @@ const PaymentModal = ({
               } else {
                 adjustedPaymentAmounts.tien_mat =
                   remainingAfterPrepaid -
-                  (adjustedPaymentAmounts.chuyen_khoan || 0);
+                  (adjustedPaymentAmounts.chuyen_khoan || 0) -
+                  (adjustedPaymentAmounts.tra_sau || 0);
               }
+            }
+            if (selectedPayments.includes("tra_sau") && selectedPayments.length === 1) {
+              adjustedPaymentAmounts.tra_sau = remainingAfterPrepaid;
             }
 
             onConfirm(

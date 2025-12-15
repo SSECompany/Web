@@ -85,6 +85,21 @@ const initialState = {
   mealHistory: [],
 };
 
+const clearBedEditingState = (state) => {
+  state.meals.detailData = [];
+  state.submittedBeds = [];
+  state.bedsPaymentToggled = {};
+  state.listFood = [];
+  state.listDietCategory = [];
+  state.currentBedIndex = 0;
+  state.meals.masterData = {
+    ...state.meals.masterData,
+    beds: [],
+    quantity: 0,
+    price: 0,
+  };
+};
+
 const mealSlice = createSlice({
   name: "meals",
   initialState,
@@ -328,6 +343,13 @@ const mealSlice = createSlice({
     setSelectedDate: (state, action) => {
       state.selectedDate = action.payload;
     },
+    resetBedEditingState: (state) => {
+      clearBedEditingState(state);
+    },
+    resetRoomContext: (state) => {
+      clearBedEditingState(state);
+      state.mealHistory = [];
+    },
     resetAllMeals: (state) => {
       state.meals.masterData = {
         name: "",
@@ -430,6 +452,8 @@ export const {
   resetAllMeals,
   setRoomSelectedDate,
   setMealHistory,
+  resetBedEditingState,
+  resetRoomContext,
 } = mealSlice.actions;
 
 export default mealSlice.reducer;

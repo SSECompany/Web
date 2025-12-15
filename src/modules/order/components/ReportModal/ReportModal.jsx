@@ -19,6 +19,7 @@ const SUMMARY_FIELDS = [
   "ap_voucher",
   "tt_pos_nt",
   "tt_qrcode_nt",
+  "tt_cn_nt",
 ];
 
 const MONEY_FIELDS = [
@@ -29,6 +30,7 @@ const MONEY_FIELDS = [
   "tien_ck",
   "tt_pos_nt",
   "tt_qrcode_nt",
+  "tt_cn_nt",
 ];
 
 const formatDate = (date) => {
@@ -253,6 +255,12 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         minWidth: 180,
       },
       {
+        title: "GC",
+        dataIndex: "tt_cn_nt",
+        key: "tt_cn_nt",
+        minWidth: 180,
+      },
+      {
         title: "Áp voucher",
         dataIndex: "ap_voucher",
         key: "ap_voucher",
@@ -382,6 +390,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                   ap_voucher,
                   tt_pos_nt,
                   tt_qrcode_nt,
+                  tt_cn_nt,
                 } = item;
 
                 if (systotal === 0) {
@@ -392,6 +401,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                   acc.totalTienCK += Number(tien_ck) || 0;
                   acc.totalTtPosNt += Number(tt_pos_nt) || 0;
                   acc.totalTtQrcodeNt += Number(tt_qrcode_nt) || 0;
+                  acc.totalTtCnNt += Number(tt_cn_nt) || 0;
                 } else {
                   if (isVoucherApplied(ap_voucher)) {
                     acc.totalApVoucher += 1;
@@ -409,6 +419,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                 totalApVoucher: 0,
                 totalTtPosNt: 0,
                 totalTtQrcodeNt: 0,
+                totalTtCnNt: 0,
               }
             );
 
@@ -442,6 +453,9 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                       ),
                       tt_qrcode_nt: (
                         <strong>{formatNumber(totals.totalTtQrcodeNt)}</strong>
+                      ),
+                      tt_cn_nt: (
+                        <strong>{formatNumber(totals.totalTtCnNt)}</strong>
                       ),
                     };
 
