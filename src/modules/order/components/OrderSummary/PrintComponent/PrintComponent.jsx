@@ -232,46 +232,7 @@ const PrintComponent = forwardRef(
                           color: "#000",
                         }}
                       >
-                        {(() => {
-                          const originalPrice =
-                            parseFloat(item?.don_gia || 0) *
-                            parseInt(item?.so_luong || 1);
-                          const discountAmount = parseFloat(item?.ck_nt || 0);
-                          const finalPrice = originalPrice - discountAmount;
-
-                          if (discountAmount > 0) {
-                            return (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  alignItems: "center",
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    fontSize: "12px",
-                                    color: "#000",
-                                    fontWeight: "bold",
-                                  }}
-                                >
-                                  {formatNumber(finalPrice)}đ
-                                </div>
-                                <div
-                                  style={{
-                                    textDecoration: "line-through",
-                                    fontSize: "10px",
-                                    color: "#999",
-                                  }}
-                                >
-                                  {formatNumber(originalPrice)}đ
-                                </div>
-                              </div>
-                            );
-                          } else {
-                            return `${formatNumber(originalPrice)}đ`;
-                          }
-                        })()}
+                        {formatNumber(item?.thanh_tien_print || 0)}đ
                       </td>
                     </tr>
 
@@ -319,46 +280,7 @@ const PrintComponent = forwardRef(
                             color: "#000",
                           }}
                         >
-                          {(() => {
-                            const originalPrice =
-                              parseFloat(sub?.don_gia || 0) *
-                              parseInt(sub?.so_luong || 1);
-                            const discountAmount = parseFloat(sub?.ck_nt || 0);
-                            const finalPrice = originalPrice - discountAmount;
-
-                            if (discountAmount > 0) {
-                              return (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      fontSize: "12px",
-                                      color: "#000",
-                                      fontWeight: "bold",
-                                    }}
-                                  >
-                                    {formatNumber(finalPrice)}đ
-                                  </div>
-                                  <div
-                                    style={{
-                                      textDecoration: "line-through",
-                                      fontSize: "10px",
-                                      color: "#999",
-                                    }}
-                                  >
-                                    {formatNumber(originalPrice)}đ
-                                  </div>
-                                </div>
-                              );
-                            } else {
-                              return `${formatNumber(originalPrice)}đ`;
-                            }
-                          })()}
+                          {formatNumber(sub?.thanh_tien_print || 0)}đ
                         </td>
                       </tr>
                     ))}
@@ -400,9 +322,9 @@ const PrintComponent = forwardRef(
         />
 
         {(() => {
-          // Tính tổng chiết khấu từ chi tiết đơn hàng (field ck_nt)
+          // Tính tổng chiết khấu từ chi tiết đơn hàng (field chiet_khau_print)
           const totalDiscount = (detail || []).reduce((sum, d) => {
-            const val = parseFloat(d?.ck_nt || 0);
+            const val = parseFloat(d?.chiet_khau_print || 0);
             return sum + (isNaN(val) ? 0 : val);
           }, 0);
           if (totalDiscount > 0) {

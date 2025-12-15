@@ -128,7 +128,10 @@ export default function OrderItem({
                   marginTop: "2px",
                 }}
               >
-                {formatNumber(item.don_gia || 0)}
+                {formatNumber(
+                  (parseFloat(item.don_gia || 0) || 0) *
+                    (parseFloat(item.so_luong || 1) || 1)
+                )}
               </div>
             ) : null}
           </span>
