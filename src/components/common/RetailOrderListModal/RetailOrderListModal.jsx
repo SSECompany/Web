@@ -31,7 +31,13 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
   const [totalRecords, setTotalRecords] = useState(0);
   const [allData, setAllData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const EMPTY_FILTERS = { so_ct: "", dateRange: null, status: "" };
+  const EMPTY_FILTERS = {
+    so_ct: "",
+    dateRange: null,
+    status: "",
+    s2: "",
+    s3: "",
+  };
   const [filters, setFilters] = useState(EMPTY_FILTERS);
 
   const stableFilters = useMemo(() => filters, [JSON.stringify(filters)]);
@@ -64,6 +70,8 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
           so_ct: f.so_ct || "",
           dateRange: f.dateRange || null,
           status: f.status || "",
+          s2: f.s2 || "",
+          s3: f.s3 || "",
         })
       );
     } catch {}
@@ -78,6 +86,8 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
         so_ct: parsed.so_ct || "",
         dateRange: parsed.dateRange || null,
         status: parsed.status || "",
+        s2: parsed.s2 || "",
+        s3: parsed.s3 || "",
       };
     } catch {
       return null;
@@ -168,6 +178,10 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
     confirm();
     let filterValue = value;
 
+    if (filterValue === undefined || filterValue === null) {
+      filterValue = "";
+    }
+
     if (key === "s2") {
       if (value === "Synchronize     ") {
         filterValue = "Synchronize     ";
@@ -176,6 +190,10 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       } else {
         filterValue = "";
       }
+    }
+    if (key === "s3") {
+      filterValue =
+        filterValue === "" || filterValue === null ? "" : String(filterValue);
     }
     let newFilters = { ...filters, [key]: filterValue };
     if (key === "dateRange") {
@@ -223,6 +241,20 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
         value: statusMap[String(filters.status)] || String(filters.status),
       });
     }
+    if (filters.s2) {
+      chips.push({
+        key: "s2",
+        label: "Yêu cầu đồng bộ",
+        value: getSyncRequestLabel(filters.s2),
+      });
+    }
+    if (filters.s3 !== "" && filters.s3 !== null && filters.s3 !== undefined) {
+      chips.push({
+        key: "s3",
+        label: "Đồng bộ",
+        value: getSyncResultLabel(filters.s3),
+      });
+    }
     return chips;
   }, [filters]);
 
@@ -237,7 +269,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
   };
 
   const clearAllChips = () => {
-    const cleared = { so_ct: "", dateRange: null, status: "" };
+    const cleared = { so_ct: "", dateRange: null, status: "", s2: "", s3: "" };
     setFilters(cleared);
     setCurrentPage(1);
     try {
@@ -367,6 +399,71 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
     return dateStr;
   };
 
+  const isSyncRequested = (value) => {
+    if (value === null || value === undefined) return false;
+    const normalized =
+      typeof value === "string" ? value.trim().toLowerCase() : value;
+    if (normalized === "*" || normalized === "0") return false;
+    if (normalized === true || normalized === 1) return true;
+    if (typeof normalized === "string") {
+      return ["synchronize", "sync", "đồng bộ", "dong bo"].includes(
+        normalized
+      );
+    }
+    return Boolean(normalized);
+  };
+
+  const getSyncRequestLabel = (value) =>
+    isSyncRequested(value) ? "Đồng bộ" : "Không đồng bộ";
+
+  const renderSyncRequestTag = (value) => {
+    const requested = isSyncRequested(value);
+    return (
+      <Tag color={requested ? "green" : "red"}>
+        {requested ? "Đồng bộ" : "Không đồng bộ"}
+      </Tag>
+    );
+  };
+
+  const getSyncResultStatus = (value) => {
+    if (value === null || value === undefined || value === "") return "pending";
+    if (value === true || value === 1) return "success";
+    if (value === false || value === 0) return "failed";
+    const normalized =
+      typeof value === "string" ? value.trim().toLowerCase() : value;
+    if (["1", "true", "success", "thành công", "synchronized"].includes(
+      normalized
+    )) {
+      return "success";
+    }
+    if (
+      ["0", "false", "failed", "thất bại", "error", "fail"].includes(
+        normalized
+      )
+    ) {
+      return "failed";
+    }
+    return "pending";
+  };
+
+  const getSyncResultLabel = (value) => {
+    const status = getSyncResultStatus(value);
+    if (status === "success") return "Thành công";
+    if (status === "failed") return "Thất bại";
+    return "Chưa đồng bộ";
+  };
+
+  const renderSyncResultTag = (value) => {
+    const status = getSyncResultStatus(value);
+    if (status === "success") {
+      return <Tag color="green">Thành công</Tag>;
+    }
+    if (status === "failed") {
+      return <Tag color="red">Thất bại</Tag>;
+    }
+    return <Tag>Chưa đồng bộ</Tag>;
+  };
+
   const columns = [
     {
       title: "STT",
@@ -487,6 +584,67 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       key: "username",
       align: "center",
       render: (text) => (typeof text === "string" ? text.trim() : text),
+    },
+    {
+      title: "Yêu cầu đồng bộ",
+      dataIndex: "s2",
+      key: "syncRequest",
+      align: "center",
+      render: (value) => renderSyncRequestTag(value),
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div className="filter-dropdown">
+          <Select
+            placeholder="Chọn trạng thái"
+            value={selectedKeys[0]}
+            onChange={(val) => setSelectedKeys(val !== undefined ? [val] : [])}
+            allowClear
+          >
+            <Select.Option value="Synchronize     ">Đồng bộ</Select.Option>
+            <Select.Option value="*">Không đồng bộ</Select.Option>
+          </Select>
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => handleFilter("s2", selectedKeys[0], confirm)}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
+      filteredValue: filters.s2 ? [filters.s2] : null,
+    },
+    {
+      title: "Đồng bộ",
+      dataIndex: "s3",
+      key: "syncStatus",
+      align: "center",
+      render: (value) => renderSyncResultTag(value),
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div className="filter-dropdown">
+          <Select
+            placeholder="Chọn kết quả"
+            value={selectedKeys[0]}
+            onChange={(val) => setSelectedKeys(val !== undefined ? [val] : [])}
+            allowClear
+          >
+            <Select.Option value="1">Thành công</Select.Option>
+            <Select.Option value="0">Thất bại</Select.Option>
+          </Select>
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => handleFilter("s3", selectedKeys[0], confirm)}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
+      filteredValue:
+        filters.s3 !== "" && filters.s3 !== null && filters.s3 !== undefined
+          ? [filters.s3]
+          : null,
     },
     {
       title: "Trạng thái",

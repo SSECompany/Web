@@ -9,10 +9,6 @@ const TRANG_THAI_OPTIONS = [
   { value: "5", label: "Đề nghị nhập kho" },
 ];
 
-/**
- * Component form inputs chung cho các loại phiếu
- * Giữ nguyên logic và luồng hoạt động, chỉ tối ưu code
- */
 const PhieuFormInputs = memo(({
   // Basic props
   isEditMode = true,
@@ -115,7 +111,7 @@ const PhieuFormInputs = memo(({
                   }
                 }}
                 options={maKhoList}
-                dropdownClassName="phieu-form-dropdown"
+                classNames={{ popup: { root: "phieu-form-dropdown" } }}
                 disabled={!isEditMode}
                 popupMatchSelectWidth={false}
               />
@@ -140,7 +136,7 @@ const PhieuFormInputs = memo(({
                   }
                 }}
                 options={maKhoList}
-                dropdownClassName="phieu-form-dropdown"
+                classNames={{ popup: { root: "phieu-form-dropdown" } }}
                 disabled={!isEditMode}
                 popupMatchSelectWidth={false}
               />
@@ -171,7 +167,7 @@ const PhieuFormInputs = memo(({
               }
             }}
             options={maKhachList}
-            dropdownClassName="phieu-form-dropdown"
+            classNames={{ popup: { root: "phieu-form-dropdown" } }}
             optionLabelProp="value"
             disabled={!isEditMode}
             popupMatchSelectWidth={false}
@@ -261,7 +257,7 @@ const PhieuFormInputs = memo(({
                     fetchMaGiaoDichList();
                   }
                 }}
-                dropdownClassName="phieu-form-dropdown"
+                classNames={{ popup: { root: "phieu-form-dropdown" } }}
                 disabled={!isEditMode}
                 popupMatchSelectWidth={false}
               />
@@ -282,7 +278,7 @@ const PhieuFormInputs = memo(({
                     fetchMaGiaoDichList();
                   }
                 }}
-                dropdownClassName="phieu-form-dropdown"
+                classNames={{ popup: { root: "phieu-form-dropdown" } }}
                 disabled={!isEditMode}
                 popupMatchSelectWidth={false}
               />
@@ -292,7 +288,7 @@ const PhieuFormInputs = memo(({
               <Select
                 placeholder="Chọn trạng thái"
                 disabled={!isEditMode}
-                dropdownClassName="phieu-form-dropdown"
+                classNames={{ popup: { root: "phieu-form-dropdown" } }}
                 popupMatchSelectWidth={false}
                 options={TRANG_THAI_OPTIONS}
               />
@@ -309,7 +305,7 @@ const PhieuFormInputs = memo(({
               <Select
                 placeholder="Chọn trạng thái"
                 disabled={!isEditMode}
-                dropdownClassName="phieu-form-dropdown"
+                classNames={{ popup: { root: "phieu-form-dropdown" } }}
                 popupMatchSelectWidth={false}
                 options={TRANG_THAI_OPTIONS}
               />

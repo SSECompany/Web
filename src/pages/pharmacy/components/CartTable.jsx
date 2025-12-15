@@ -257,14 +257,89 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
             letterSpacing: "0.5px",
           }}
         >
+          STT
+        </span>
+      ),
+      key: "stt",
+      width: 60,
+      align: "center",
+      render: (_text, _record, index) => index + 1,
+    },
+    {
+      title: (
+        <span
+          style={{
+            fontWeight: "600",
+            fontSize: "12px",
+            color: "#475569",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          ẢNH
+        </span>
+      ),
+      dataIndex: "image",
+      key: "image",
+      width: 140,
+      align: "center",
+      render: (_text, record) => {
+        const imageUrl = record.image || record.item?.image || "";
+        if (!imageUrl) return null;
+        const alt = record.name || record.sku || "";
+        return (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: "4px 0",
+            }}
+          >
+            <img
+              src={imageUrl}
+              alt={alt}
+              style={{
+                width: 90,
+                height: 90,
+                objectFit: "cover",
+                borderRadius: 6,
+                border: "1px solid #e8e8e8",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                cursor: "pointer",
+              }}
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+              onClick={() => {
+                if (imageUrl) {
+                  window.open(imageUrl, "_blank");
+                }
+              }}
+              title="Click để xem ảnh lớn"
+            />
+          </div>
+        );
+      },
+    },
+    {
+      title: (
+        <span
+          style={{
+            fontWeight: "600",
+            fontSize: "12px",
+            color: "#475569",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
           TÊN SẢN PHẨM
         </span>
       ),
       dataIndex: "name",
       key: "name",
-      width: 320,
+      width: 260,
       render: (text, record) => {
-        const imageUrl = record.image || record.item?.image || "";
         return (
           <div
             className="product-info"
@@ -297,31 +372,6 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
                 </span>
               </div>
             </div>
-            {imageUrl ? (
-              <div
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <img
-                  src={imageUrl}
-                  alt={text || record.sku}
-                  style={{
-                    width: "90px",
-                    height: "90px",
-                    objectFit: "cover",
-                    borderRadius: 6,
-                    border: "1px solid #e8e8e8",
-                  }}
-                  onError={(e) => {
-                    e.target.style.display = "none";
-                  }}
-                />
-              </div>
-            ) : null}
           </div>
         );
       },
@@ -464,7 +514,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
             onSearch={(keyword) => loadBatchOptions(index, record, keyword)}
             onChange={(val) => updateLine(index, "batchExpiry", val || "")}
             options={batchOptions[index] || []}
-            dropdownClassName="vat-tu-dropdown"
+            classNames={{ popup: { root: "vat-tu-dropdown" } }}
             popupMatchSelectWidth={false}
           />
         );

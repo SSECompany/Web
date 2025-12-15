@@ -23,6 +23,60 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
   const isProcessingRef = useRef(false);
   const hasProcessedRef = useRef(false);
 
+  // Hàm cleanup camera streams
+  const cleanupCameraStreams = () => {
+    try {
+      // Cleanup tất cả media tracks từ các video elements
+      const videoElements = document.querySelectorAll('video');
+      videoElements.forEach((video) => {
+        if (video.srcObject) {
+          const stream = video.srcObject;
+          stream.getTracks().forEach((track) => {
+            track.stop();
+          });
+          video.srcObject = null;
+        }
+      });
+      
+      // Cleanup các tracks từ qr-reader element
+      const qrReaderElement = document.getElementById('qr-reader');
+      if (qrReaderElement) {
+        const videoInQrReader = qrReaderElement.querySelector('video');
+        if (videoInQrReader && videoInQrReader.srcObject) {
+          const stream = videoInQrReader.srcObject;
+          stream.getTracks().forEach((track) => {
+            track.stop();
+          });
+          videoInQrReader.srcObject = null;
+        }
+      }
+    } catch (error) {
+      console.error("Error cleaning up camera streams:", error);
+    }
+  };
+
+  // Hàm cleanup scanner và camera (sync version cho useEffect cleanup)
+  const cleanupScannerSync = () => {
+    if (scanner) {
+      try {
+        scanner.clear();
+      } catch (error) {
+        console.error("Error clearing scanner:", error);
+      }
+      setScanner(null);
+    }
+    setIsScanning(false);
+    // Cleanup camera streams
+    cleanupCameraStreams();
+  };
+
+  // Hàm cleanup scanner và camera (async version cho các trường hợp khác)
+  const cleanupScanner = async () => {
+    cleanupScannerSync();
+    // Đợi một chút để đảm bảo camera stream được giải phóng
+    await new Promise(resolve => setTimeout(resolve, 200));
+  };
+
   useEffect(() => {
     if (isOpen) {
       // Reset state khi mở modal
@@ -35,17 +89,13 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
       lastScannedCodeRef.current = { code: "", timestamp: 0 };
       isProcessingRef.current = false;
       hasProcessedRef.current = false;
-      if (scanner) {
-        scanner.clear();
-        setScanner(null);
-      }
+      // Cleanup scanner và camera trước khi mở lại (sync để không block)
+      cleanupScannerSync();
     }
 
     return () => {
-      if (scanner) {
-        scanner.clear();
-        setScanner(null);
-      }
+      // Cleanup khi đóng modal (sync vì return function không thể async)
+      cleanupScannerSync();
       // Reset refs khi đóng modal
       lastScannedCodeRef.current = { code: "", timestamp: 0 };
       isProcessingRef.current = false;
@@ -115,6 +165,8 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
             }
             setScanner(null);
             setIsScanning(false);
+            // Cleanup camera streams
+            cleanupCameraStreams();
 
             // Đánh dấu đã xử lý mã này
             lastScannedCodeRef.current = {
@@ -164,12 +216,8 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
     // Chỉ log error, không hiển thị notification để tránh spam
   };
 
-  const handleClose = () => {
-    if (scanner) {
-      scanner.clear();
-      setScanner(null);
-    }
-    setIsScanning(false);
+  const handleClose = async () => {
+    await cleanupScanner();
     setScanMode(null);
     setCameraError(false);
     setManualInput("");
@@ -192,27 +240,30 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
     }
   };
 
-  const handleRetryCamera = () => {
+  const handleRetryCamera = async () => {
     setCameraError(false);
     setShowManualInput(false);
     setManualInput("");
-    if (scanner) {
-      scanner.clear();
-      setScanner(null);
-    }
+    await cleanupScanner();
+    // Đợi lâu hơn để đảm bảo camera stream được giải phóng hoàn toàn
     setTimeout(() => {
       initializeScanner();
-    }, 100);
+    }, 300);
   };
 
   // Khởi tạo camera khi chọn mode camera
   useEffect(() => {
-    if (scanMode === "camera" && !scanner && !cameraError) {
-      setTimeout(() => {
+    if (scanMode === "camera" && !scanner && !cameraError && isOpen) {
+      // Đợi một chút để đảm bảo DOM đã sẵn sàng và camera stream cũ đã được giải phóng
+      const timer = setTimeout(() => {
         initializeScanner();
-      }, 100);
+      }, 300);
+      
+      return () => {
+        clearTimeout(timer);
+      };
     }
-  }, [scanMode]);
+  }, [scanMode, isOpen]);
 
   const handleScanSuccess = (decodedText, decodedResult) => {
     // Chỉ gọi callback onScanSuccess - tất cả logic đã được xử lý trong render callback
@@ -233,7 +284,7 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
       footer={null}
       width={600}
       centered
-      destroyOnClose
+      destroyOnHidden
       className="qr-scanner-modal"
     >
       <div className="qr-scanner-content">

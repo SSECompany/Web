@@ -39,6 +39,7 @@ const VatTuTable = ({
   const [loadingViTri, setLoadingViTri] = useState({});
   const [openLo, setOpenLo] = useState({});
   const [openViTri, setOpenViTri] = useState({});
+  const [viTriOptions, setViTriOptions] = useState({});
   
   // Use ref to track latest dataSource to avoid stale closure in async callbacks
   const dataSourceRef = useRef(dataSource);
@@ -85,6 +86,48 @@ const VatTuTable = ({
       }
     },
     [apiHandlers.fetchLoList, onDataSourceUpdate]
+  );
+
+  // Prefetch danh sách vị trí cho một dòng cụ thể, quản lý state riêng như POS số lô
+  const loadViTriOptions = useCallback(
+    async (keyword = "", record, openAfter = false) => {
+      if (!apiHandlers.fetchViTriList || !record?.key) return;
+
+      setLoadingViTri((prev) => ({ ...prev, [record.key]: true }));
+      try {
+        const currentDataSource = dataSourceRef.current;
+        const currentRecord =
+          currentDataSource.find((item) => item.key === record.key) || record;
+
+        const options = await apiHandlers.fetchViTriList(
+          keyword,
+          currentRecord,
+          1
+        );
+
+        setViTriOptions((prev) => ({ ...prev, [record.key]: options }));
+
+        // Giữ nguyên dataSource nhưng vẫn cập nhật viTriOptions nếu đã lưu trên record (để các nơi khác dùng)
+        const latestDataSource = dataSourceRef.current;
+        const latestRecord =
+          latestDataSource.find((item) => item.key === record.key) ||
+          currentRecord;
+        const updatedRecord = { ...latestRecord, viTriOptions: options };
+        const updatedDataSource = latestDataSource.map((item) =>
+          item.key === record.key ? updatedRecord : item
+        );
+        if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
+
+        if (openAfter) {
+          setOpenViTri((prev) => ({ ...prev, [record.key]: true }));
+        }
+      } catch (error) {
+        console.error("Error loading vi tri options:", error);
+      } finally {
+        setLoadingViTri((prev) => ({ ...prev, [record.key]: false }));
+      }
+    },
+    [apiHandlers.fetchViTriList, onDataSourceUpdate]
   );
 
   // Xử lý thay đổi số lượng với validation
@@ -244,7 +287,7 @@ const VatTuTable = ({
           style={{ width: "100%" }}
           size="small"
           className="vat-tu-table-select"
-          dropdownClassName="vat-tu-dropdown"
+          classNames={{ popup: { root: "vat-tu-dropdown" } }}
           popupMatchSelectWidth={false}
           onOpenChange={(visible) => {
             if (visible && apiHandlers.fetchMaKhoList) {
@@ -286,59 +329,68 @@ const VatTuTable = ({
         },
       },
       {
+        title: "Ảnh",
+        dataIndex: "image",
+        key: "image",
+        width: 150,
+        align: "center",
+        ellipsis: false,
+        render: (_, record) => {
+          if (record.isChild) return "";
+          const imageUrl = record.image || record.item?.image || "";
+          if (!imageUrl) return null;
+          const tenMatHang = record[columnConfig.tenMatHangField || "ten_mat_hang"] || record.maHang || "";
+          return (
+            <div style={{ display: "flex", justifyContent: "center", padding: "4px 0" }}>
+              <img
+                src={imageUrl}
+                alt={tenMatHang}
+                style={{
+                  width: 120,
+                  height: 120,
+                  objectFit: "cover",
+                  borderRadius: 6,
+                  border: "1px solid #e8e8e8",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                  cursor: "pointer",
+                }}
+                onError={(e) => {
+                  // Ẩn ảnh nếu lỗi load
+                  e.target.style.display = "none";
+                }}
+                onClick={() => {
+                  if (imageUrl) {
+                    window.open(imageUrl, "_blank");
+                  }
+                }}
+                title="Click để xem ảnh lớn"
+              />
+            </div>
+          );
+        },
+      },
+      {
         title: "Mặt hàng",
         key: "mat_hang",
-        width: 300, // Tăng width để có chỗ hiển thị ảnh
+        width: 220,
         align: "left",
-        ellipsis: false, // Tắt ellipsis để hiển thị đầy đủ
+        ellipsis: false,
         render: (_, record) => {
           if (record.isChild) return "";
           const maHang = record.maHang || "";
           const tenMatHang = record[columnConfig.tenMatHangField || "ten_mat_hang"] || "";
-          const imageUrl = record.image || record.item?.image || "";
-          
           return (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "4px 0", alignItems: "center" }}>
-              {/* Dòng trên: Thông tin mặt hàng */}
-              <div style={{ 
-                fontSize: "13px", 
+            <div
+              style={{
+                fontSize: "13px",
                 lineHeight: "1.4",
                 fontWeight: 500,
                 color: "#333",
+                padding: "4px 0",
                 textAlign: "center",
-                width: "100%"
-              }}>
-                {`${maHang}${maHang && tenMatHang ? " - " : ""}${tenMatHang}`}
-              </div>
-              {/* Dòng dưới: Ảnh vật tư */}
-              {imageUrl && (
-                <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
-                  <img
-                    src={imageUrl}
-                    alt={tenMatHang || maHang}
-                    style={{
-                      width: 120,
-                      height: 120,
-                      objectFit: "cover",
-                      borderRadius: 6,
-                      border: "1px solid #e8e8e8",
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                      cursor: "pointer",
-                    }}
-                    onError={(e) => {
-                      // Ẩn ảnh nếu lỗi load
-                      e.target.style.display = "none";
-                    }}
-                    onClick={() => {
-                      // Mở ảnh lớn khi click (optional)
-                      if (imageUrl) {
-                        window.open(imageUrl, "_blank");
-                      }
-                    }}
-                    title="Click để xem ảnh lớn"
-                  />
-                </div>
-              )}
+              }}
+            >
+              {`${maHang}${maHang && tenMatHang ? " - " : ""}${tenMatHang}`}
             </div>
           );
         },
@@ -382,7 +434,8 @@ const VatTuTable = ({
             return display;
           }
           const loOpts = currentRecord.loOptions || [];
-          const viTriOpts = currentRecord.viTriOptions || [];
+          const viTriOpts =
+            viTriOptions[currentRecord.key] || currentRecord.viTriOptions || [];
 
           const isLoLoading = !!loadingLo[record.key];
           const isViTriLoading = !!loadingViTri[record.key];
@@ -411,7 +464,7 @@ const VatTuTable = ({
                   }
                 }}
                 onSearch={(keyword) => loadLoOptions(keyword, record, false)}
-                onDropdownOpenChange={(visible) => {
+                onOpenChange={(visible) => {
                   setOpenLo((prev) => {
                     if (visible) {
                       return { ...prev, [record.key]: true };
@@ -457,7 +510,7 @@ const VatTuTable = ({
                 // Cho phép antd tự điều khiển nếu chưa set state; nếu đã có state thì control
                 open={openLo[record.key]}
                 options={loOpts}
-                dropdownClassName="vat-tu-dropdown"
+                classNames={{ popup: { root: "vat-tu-dropdown" } }}
                 popupMatchSelectWidth={false}
                 notFoundContent={isLoLoading ? (
                   <div style={{ display: "flex", justifyContent: "center" }}>
@@ -483,48 +536,22 @@ const VatTuTable = ({
                 open={openViTri[record.key]}
                 onFocus={async () => {
                   if (!apiHandlers.fetchViTriList) return;
-                  setLoadingViTri((prev) => ({ ...prev, [record.key]: true }));
-                  try {
-                    // Get current record from latest dataSource using ref to avoid stale closure
-                    const currentDataSource = dataSourceRef.current;
-                    const currentRecord = currentDataSource.find((item) => item.key === record.key) || record;
-                    const options = await apiHandlers.fetchViTriList("", currentRecord, 1);
-                    // Get latest dataSource from ref again after async operation
-                    const latestDataSource = dataSourceRef.current;
-                    const latestRecord = latestDataSource.find((item) => item.key === record.key) || currentRecord;
-                    const updatedRecord = { ...latestRecord, viTriOptions: options };
-                    const updatedDataSource = latestDataSource.map((item) =>
-                      item.key === record.key ? updatedRecord : item
-                    );
-                    if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
-                  } finally {
-                    setLoadingViTri((prev) => ({ ...prev, [record.key]: false }));
+                  const currentDataSource = dataSourceRef.current;
+                  const currentRecord =
+                    currentDataSource.find((item) => item.key === record.key) ||
+                    record;
+                  const hasOptions =
+                    (viTriOptions[currentRecord.key] &&
+                      viTriOptions[currentRecord.key].length > 0) ||
+                    (currentRecord.viTriOptions &&
+                      currentRecord.viTriOptions.length > 0);
+                  if (!hasOptions) {
+                    loadViTriOptions("", currentRecord, true);
+                  } else {
+                    setOpenViTri((prev) => ({ ...prev, [record.key]: true }));
                   }
                 }}
-                onSearch={async (keyword) => {
-                  if (!apiHandlers.fetchViTriList) return;
-                  setLoadingViTri((prev) => ({ ...prev, [record.key]: true }));
-                  try {
-                    // Get current record from latest dataSource using ref to avoid stale closure
-                    const currentDataSource = dataSourceRef.current;
-                    const currentRecord = currentDataSource.find((item) => item.key === record.key) || record;
-                    const options = await apiHandlers.fetchViTriList(
-                      keyword,
-                      currentRecord,
-                      1
-                    );
-                    // Get latest dataSource from ref again after async operation
-                    const latestDataSource = dataSourceRef.current;
-                    const latestRecord = latestDataSource.find((item) => item.key === record.key) || currentRecord;
-                    const updatedRecord = { ...latestRecord, viTriOptions: options };
-                    const updatedDataSource = latestDataSource.map((item) =>
-                      item.key === record.key ? updatedRecord : item
-                    );
-                    if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
-                  } finally {
-                    setLoadingViTri((prev) => ({ ...prev, [record.key]: false }));
-                  }
-                }}
+                onSearch={(keyword) => loadViTriOptions(keyword, record, false)}
                 onOpenChange={(visible) => {
                   setOpenViTri((prev) => {
                     if (visible) {
@@ -535,29 +562,17 @@ const VatTuTable = ({
                     return next;
                   });
                   if (visible && apiHandlers.fetchViTriList) {
-                    // Always get current record from latest dataSource using ref to avoid stale closure
                     const currentDataSource = dataSourceRef.current;
-                    const currentRecord = currentDataSource.find((item) => item.key === record.key) || record;
-                    const hasOptions = currentRecord?.viTriOptions && currentRecord.viTriOptions.length > 0;
-                    
-                    // Only fetch if options don't exist
+                    const currentRecord =
+                      currentDataSource.find((item) => item.key === record.key) ||
+                      record;
+                    const hasOptions =
+                      (viTriOptions[currentRecord.key] &&
+                        viTriOptions[currentRecord.key].length > 0) ||
+                      (currentRecord?.viTriOptions &&
+                        currentRecord.viTriOptions.length > 0);
                     if (!hasOptions) {
-                      (async () => {
-                        setLoadingViTri((prev) => ({ ...prev, [record.key]: true }));
-                        try {
-                          const options = await apiHandlers.fetchViTriList("", currentRecord, 1);
-                          // Get latest dataSource from ref to avoid stale closure
-                          const latestDataSource = dataSourceRef.current;
-                          const latestRecord = latestDataSource.find((item) => item.key === record.key) || currentRecord;
-                          const updatedRecord = { ...latestRecord, viTriOptions: options };
-                          const updatedDataSource = latestDataSource.map((item) =>
-                            item.key === record.key ? updatedRecord : item
-                          );
-                          if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
-                        } finally {
-                          setLoadingViTri((prev) => ({ ...prev, [record.key]: false }));
-                        }
-                      })();
+                      loadViTriOptions("", currentRecord, false);
                     }
                   }
                 }}
@@ -569,23 +584,21 @@ const VatTuTable = ({
                     return next;
                   });
                   
-                  // Find the latest record from dataSource using ref to avoid stale reference
                   const currentDataSource = dataSourceRef.current;
-                  const currentRecord = currentDataSource.find((item) => item.key === record.key);
-                  if (currentRecord) {
-                    // Preserve viTriOptions when updating ma_vi_tri - important to keep options after selection
-                    const recordWithOptions = {
-                      ...currentRecord,
-                      viTriOptions: currentRecord.viTriOptions || record.viTriOptions,
-                    };
-                    onSelectChange(val || "", recordWithOptions, "ma_vi_tri");
-                  } else {
-                    // Fallback to original record if not found
-                    onSelectChange(val || "", record, "ma_vi_tri");
-                  }
+                  const currentRecord =
+                    currentDataSource.find((item) => item.key === record.key) ||
+                    record;
+                  const recordWithOptions = {
+                    ...currentRecord,
+                    viTriOptions:
+                      viTriOptions[currentRecord.key] ||
+                      currentRecord.viTriOptions ||
+                      record.viTriOptions,
+                  };
+                  onSelectChange(val || "", recordWithOptions, "ma_vi_tri");
                 }}
                 options={viTriOpts}
-                dropdownClassName="vat-tu-dropdown"
+                classNames={{ popup: { root: "vat-tu-dropdown" } }}
                 popupMatchSelectWidth={false}
                 notFoundContent={isViTriLoading ? (
                   <div style={{ display: "flex", justifyContent: "center" }}>
@@ -787,32 +800,6 @@ const VatTuTable = ({
       });
     }
 
-    // Thêm cột tồn kho khả dụng (ton13)
-    if (columnConfig.showTon13) {
-      baseColumns.push({
-        title: "Tồn kho khả dụng",
-        dataIndex: columnConfig.ton13Field || "ton13",
-        key: "ton13",
-        width: 130,
-        align: "center",
-        ellipsis: true,
-        render: (value, record) =>
-          record.isChild ? (
-            ""
-          ) : (
-            <span
-              style={{
-                fontWeight: "bold",
-                display: "block",
-                textAlign: "center",
-                color: value && value > 0 ? "#52c41a" : "#999",
-              }}
-            >
-              {formatQuantityDisplay(value || 0)}
-            </span>
-          ),
-      });
-    }
 
     // Thêm cột mã kho nếu cần
     if (columnConfig.showMaKho) {
@@ -914,6 +901,7 @@ const VatTuTable = ({
     isEditMode,
     otherProps,
     dataSource, // Thêm dataSource để STT được tính lại khi có thay đổi
+    viTriOptions,
   ]);
 
   // Cấu hình scroll
@@ -948,14 +936,7 @@ const VatTuTable = ({
       scroll={getScrollConfig()}
       size="small"
       tableLayout="auto"
-      components={{
-        body: {
-          row: (props) => {
-            // Tăng chiều cao hàng để hiển thị ảnh tốt hơn
-            return <tr {...props} style={{ height: 'auto', minHeight: 160 }} />;
-          },
-        },
-      }}
+      
       {...otherProps}
     />
   );

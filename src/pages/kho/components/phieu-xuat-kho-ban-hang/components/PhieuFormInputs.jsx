@@ -53,7 +53,7 @@ const PhieuFormInputs = ({
                 }
               }}
               options={maKhachList}
-              dropdownClassName="custom-dropdown"
+              classNames={{ popup: { root: "custom-dropdown" } }}
               optionLabelProp="value"
               disabled={!isEditMode}
             />

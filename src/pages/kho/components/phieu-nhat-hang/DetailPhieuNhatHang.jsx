@@ -208,7 +208,6 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 ma_vi_tri: item.ma_vi_tri || "",
                 nhat: item.nhat || false,
                 so_luong_ton: item.so_luong_ton || 0,
-                ton13: item.ton13 || 0,
                 tong_nhat: item.tong_nhat || 0,
                 ghi_chu: item.ghi_chu || "",
               };
@@ -915,7 +914,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             disabled={!isEditMode}
           >
             <PhieuNhatHangFormInputs
-              isEditMode={false}
+              isEditMode={isEditMode}
               barcodeEnabled={barcodeEnabled}
               setBarcodeEnabled={setBarcodeEnabled}
               setBarcodeJustEnabled={setBarcodeJustEnabled}

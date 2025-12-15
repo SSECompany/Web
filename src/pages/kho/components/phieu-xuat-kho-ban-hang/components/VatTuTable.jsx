@@ -55,7 +55,7 @@ const VatTuTable = ({
             className="vat-tu-table-select"
             style={{ width: "100%" }}
             size="small"
-            dropdownClassName="vat-tu-dropdown"
+            classNames={{ popup: { root: "vat-tu-dropdown" } }}
             popupMatchSelectWidth={false}
             loading={loadingDvt[record.key]}
             onOpenChange={async (visible) => {

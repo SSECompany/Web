@@ -53,7 +53,7 @@ const PhieuFormInputs = ({
                 }
               }}
               options={maKhoList || []}
-              dropdownClassName="phieu-form-dropdown"
+              classNames={{ popup: { root: "phieu-form-dropdown" } }}
               optionLabelProp="value"
               disabled={!isEditMode}
               popupMatchSelectWidth={false}
@@ -84,7 +84,7 @@ const PhieuFormInputs = ({
                 }
               }}
               options={maKhoList || []}
-              dropdownClassName="phieu-form-dropdown"
+              classNames={{ popup: { root: "phieu-form-dropdown" } }}
               optionLabelProp="value"
               disabled={!isEditMode}
               popupMatchSelectWidth={false}

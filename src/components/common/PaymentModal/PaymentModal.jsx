@@ -1,5 +1,6 @@
 import {
   Button,
+  Checkbox,
   Divider,
   InputNumber,
   Modal,
@@ -272,6 +273,15 @@ const PaymentModal = ({
         centered
         destroyOnHidden
       >
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 8, fontWeight: 600, color: "#262626" }}>
+            Đồng bộ:
+          </div>
+          <Checkbox checked={sync} onChange={(e) => setSync(e.target.checked)}>
+            Đồng bộ
+          </Checkbox>
+        </div>
+
         <div style={{ marginBottom: 16 }}>
           <div style={{ marginBottom: 8, fontWeight: 600, color: "#262626" }}>
             Hình thức thanh toán:

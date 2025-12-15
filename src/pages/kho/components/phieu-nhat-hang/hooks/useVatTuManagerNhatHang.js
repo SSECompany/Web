@@ -67,8 +67,6 @@ export const useVatTuManagerNhatHang = () => {
         nhat: parseFloat(item.nhat) || parseFloat(item.soLuong) || 0,
         ghi_chu: item.ghi_chu ? item.ghi_chu.trim() : "",
         so_luong_ton: parseFloat(item.so_luong_ton) || 0,
-        ton13: parseFloat(item.ton13) || 0,
-        ton13: parseFloat(item.ton13) || 0,
         tong_nhat: parseFloat(item.tong_nhat) || parseFloat(item.soLuong) || 0,
 
         // Đánh dấu không phải là item mới thêm
@@ -326,11 +324,6 @@ export const useVatTuManagerNhatHang = () => {
                 _lastUpdated: Date.now(),
                 // Cập nhật ảnh vật tư nếu có
                 image: vatTuInfo.image || item.image || "",
-                // Cập nhật tồn kho khả dụng nếu có
-                ton13:
-                  item.ton13 !== undefined
-                    ? parseFloat(item.ton13) || 0
-                    : parseFloat(vatTuInfo.ton13) || 0,
               };
 
               return updatedItem;
@@ -434,7 +427,6 @@ export const useVatTuManagerNhatHang = () => {
             nhat: Math.round(soLuongHienThi * 1000) / 1000, // Nhặt
             ghi_chu: "", // Ghi chú
             so_luong_ton: 0, // Số lượng tồn
-            ton13: parseFloat(vatTuInfo.ton13) || 0, // Tồn kho khả dụng
             tong_nhat: Math.round(soLuongHienThi * 1000) / 1000, // Tổng nhặt
 
             // Additional fields từ payload thực tế

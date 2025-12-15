@@ -13,7 +13,6 @@ const BaoCaoPhieuBanLe = lazy(() => import("../pages/reports/BaoCaoPhieuBanLe"))
 const BaoCaoTonKho = lazy(() => import("../pages/reports/BaoCaoTonKho"));
 const TongHopNhapXuatTon = lazy(() => import("../pages/reports/TongHopNhapXuatTon"));
 
-import AddPhieuNhatHang from "../pages/kho/components/phieu-nhat-hang/AddPhieuNhatHang";
 import DetailPhieuNhatHang from "../pages/kho/components/phieu-nhat-hang/DetailPhieuNhatHang";
 import ListPhieuNhatHang from "../pages/kho/components/phieu-nhat-hang/ListPhieuNhatHang";
 
@@ -75,11 +74,7 @@ const protectedChildrenRoutes = [
 
   // Default route - chỉ redirect khi path là "/"
   { path: "", element: <Navigate to="ban-hang" replace /> },
-  {
-    label: "Thêm phiếu nhặt hàng",
-    path: "kho/nhat-hang/them-moi",
-    element: <AddPhieuNhatHang />,
-  },
+
   {
     label: "Chi tiết phiếu nhặt hàng",
     path: "kho/nhat-hang/chi-tiet/:id",

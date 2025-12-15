@@ -779,3 +779,24 @@ body {
 .filter-chips-right .ant-btn:hover {
   background: #f8fafc;
 }
+
+/* Đảm bảo Select trong cột Mã lô / Vị trí hiển thị đầy đủ text */
+.vat-tu-table .ant-table-tbody .ant-select-selector {
+  overflow: visible !important;
+}
+
+.vat-tu-table .ant-table-tbody .ant-select-selection-item {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+  max-width: none !important;
+}
+
+.vat-tu-table .ant-table-tbody .ant-select-selection-placeholder {
+  overflow: visible !important;
+}
+
+/* Highlight invalid rows for POS-style vật tư table */
+.row-invalid td {
+  background-color: #fff1f0 !important;
+}
