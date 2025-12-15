@@ -1054,7 +1054,6 @@ const RoomSelectionForm = () => {
         masterData: master,
         detailData: filteredDetail,
       });
-
       if (response?.responseModel?.isSucceded) {
         const sttRecList = JSON.parse(
           response?.listObject?.[0]?.[0]?.list_stt_rec || "[]"

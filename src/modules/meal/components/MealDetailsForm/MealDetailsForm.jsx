@@ -38,7 +38,11 @@ const MealDetailsForm = () => {
   const detailData = useSelector((state) => state.meals.meals.detailData);
   const mealHistory = useSelector((state) => state.meals.mealHistory || []);
   const [isPaid, setIsPaid] = useState(false);
-  const [isPaidByShift, setIsPaidByShift] = useState({ CA1: false, CA2: false, CA3: false });
+  const [isPaidByShift, setIsPaidByShift] = useState({
+    CA1: false,
+    CA2: false,
+    CA3: false,
+  });
   const [paymentMethod, setPaymentMethod] = useState("");
 
   // Track xem user có thay đổi gì trong session hiện tại không
@@ -1420,9 +1424,13 @@ const MealDetailsForm = () => {
       >
         {listMealCode.map((meal) => (
           <TabPane
-            tab={`${meal.ten_ca}
-            - ${formatNumber(calculateTotalByShift(meal.ma_ca))} đ
-            `}
+            //   tab={`${meal.ten_ca}
+            //   - ${formatNumber(
+            //     calculateTotalByShift(meal.ma_ca)
+            //   )} đ
+            //   `
+            // }
+            tab={`${meal.ten_ca}`}
             key={meal.ma_ca}
           >
             <div>
@@ -1499,7 +1507,11 @@ const MealDetailsForm = () => {
                     setMealEntries((prev) => {
                       const updatedMeals = cloneDeep(prev);
                       if (!updatedMeals[currentBedIndex]) {
-                        updatedMeals[currentBedIndex] = { CA1: [], CA2: [], CA3: [] };
+                        updatedMeals[currentBedIndex] = {
+                          CA1: [],
+                          CA2: [],
+                          CA3: [],
+                        };
                       }
 
                       // CHỈ áp dụng cho ca hiện tại (currentShift)
@@ -1507,7 +1519,8 @@ const MealDetailsForm = () => {
                         updatedMeals[currentBedIndex][currentShift] || []
                       ).map((meal) => {
                         const hasIsPaidChanged = meal.isPaid !== newIsPaid;
-                        const shouldMarkAsEdit = meal.stt_rec && hasIsPaidChanged;
+                        const shouldMarkAsEdit =
+                          meal.stt_rec && hasIsPaidChanged;
 
                         if (shouldMarkAsEdit) {
                           hasChangedInThisSession.current = true;

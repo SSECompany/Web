@@ -561,28 +561,6 @@ const POSPage = () => {
                   <i className="pi pi-users sub_text_color"></i>
                 </Button>
               </Tooltip>
-              <Tooltip
-                placement="topRight"
-                title="Suất ăn cho sinh viên trả trước"
-              >
-                <Button
-                  className="default_button"
-                  onClick={handlePrepaidStudentMealList}
-                >
-                  <i className="pi pi-credit-card sub_text_color"></i>
-                </Button>
-              </Tooltip>
-              <Tooltip
-                placement="topRight"
-                title="Suất ăn cho sinh viên trả sau"
-              >
-                <Button
-                  className="default_button"
-                  onClick={handleStudentMealList}
-                >
-                  <i className="pi pi-calendar sub_text_color"></i>
-                </Button>
-              </Tooltip>
             </div>
           )}
         </div>
