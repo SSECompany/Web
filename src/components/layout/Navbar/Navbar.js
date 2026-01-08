@@ -70,21 +70,14 @@ const Navbar = () => {
   };
 
   const handleRouteChange = (data) => {
-    // Simplified route handling for pharmacy app
+    // Simplified route handling for pharmacy app - KHO MODULE DISABLED IN THIS BRANCH
     const validRoutes = [
       "",
       "/",
       "login",
       "ban-hang", // Bán hàng
       "tra-hang", // Trả hàng
-      "kho",
-      "kho/nhat-hang", // Phiếu nhặt hàng
-      "kho/nhat-hang/them-moi",
-      "kho/nhap-kho", // Legacy - có thể xóa sau
-      "kho/nhap-kho/them-moi", // Legacy - có thể xóa sau
-      "kho/xuat-ban",
-      "kho/xuat-dieu-chuyen",
-      "kho/xuat-kho",
+      // Kho routes removed - not allowed in this branch
       "bao-cao/phieu-ban-le", // Báo cáo
       "bao-cao/ton-kho",
       "bao-cao/tong-hop-nhap-xuat-ton",
@@ -92,12 +85,14 @@ const Navbar = () => {
 
     const currentPath = data?.pathname?.substring(1);
 
-    // Check if current path matches any valid route or pattern
-    const isValidRoute =
-      validRoutes.includes(currentPath) ||
-      currentPath.match(/^kho\/nhat-hang\/chi-tiet\/[^/]+$/) || // Detail route pattern (allow alphanumeric IDs)
-      currentPath.match(/^kho\/nhat-hang\/edit\/[^/]+$/) || // Edit route pattern
-      currentPath.match(/^kho\/nhap-kho\/chi-tiet\/[^/]+$/); // Legacy detail route
+    // Block any kho routes
+    if (currentPath && currentPath.startsWith("kho")) {
+      router.navigate("/ban-hang");
+      return;
+    }
+
+    // Check if current path matches any valid route
+    const isValidRoute = validRoutes.includes(currentPath);
 
     if (!isValidRoute) {
       // Redirect to Bán hàng if invalid route
@@ -144,10 +139,7 @@ const Navbar = () => {
                 key: "tra-hang",
                 label: <Link to="/tra-hang">Trả hàng</Link>,
               },
-              {
-                key: "kho",
-                label: <Link to="/kho">Kho</Link>,
-              },
+              // Kho module removed - not available in this branch
               {
                 key: "bao-cao",
                 label: "Báo cáo",
