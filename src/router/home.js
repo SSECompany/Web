@@ -6,8 +6,9 @@ import ProtectedRoute from "./ProtectedRoute";
 
 // Pages
 const Login = lazy(() => import("../pages/Login/Login"));
-const POSPage = lazy(() => import("../pages/pharmacy/POS"));
-const ReturnPOSPage = lazy(() => import("../pages/pharmacy/ReturnPOS"));
+// ===== BÁN HÀNG & TRẢ HÀNG IMPORTS DISABLED IN BRANCH 08012026_kho =====
+// const POSPage = lazy(() => import("../pages/pharmacy/POS"));
+// const ReturnPOSPage = lazy(() => import("../pages/pharmacy/ReturnPOS"));
 const KhoPage = lazy(() => import("../pages/kho/Kho"));
 const BaoCaoPhieuBanLe = lazy(() => import("../pages/reports/BaoCaoPhieuBanLe"));
 const BaoCaoTonKho = lazy(() => import("../pages/reports/BaoCaoTonKho"));
@@ -59,8 +60,9 @@ const DetailPhieuXuatDieuChuyen = lazy(() =>
 );
 
 const protectedChildrenRoutes = [
-  { label: "Bán hàng", path: "ban-hang", element: <POSPage /> },
-  { label: "Trả hàng", path: "tra-hang", element: <ReturnPOSPage /> },
+  // ===== BÁN HÀNG & TRẢ HÀNG ROUTES DISABLED IN BRANCH 08012026_kho =====
+  // { label: "Bán hàng", path: "ban-hang", element: <POSPage /> },
+  // { label: "Trả hàng", path: "tra-hang", element: <ReturnPOSPage /> },
 
   // Kho routes - ĐẶT TRƯỚC route kho chính để tránh conflict
   {
@@ -72,8 +74,8 @@ const protectedChildrenRoutes = [
   // Route kho chính - đặt SAU các route con
   { label: "Kho", path: "kho", element: <KhoPage /> },
 
-  // Default route - chỉ redirect khi path là "/"
-  { path: "", element: <Navigate to="ban-hang" replace /> },
+  // Default route - chỉ redirect khi path là "/" (redirect to Kho instead of ban-hang)
+  { path: "", element: <Navigate to="kho" replace /> },
 
   {
     label: "Chi tiết phiếu nhặt hàng",

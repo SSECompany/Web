@@ -70,13 +70,12 @@ const Navbar = () => {
   };
 
   const handleRouteChange = (data) => {
-    // Simplified route handling for pharmacy app
+    // Simplified route handling for pharmacy app - BÁN HÀNG & TRẢ HÀNG DISABLED IN THIS BRANCH
     const validRoutes = [
       "",
       "/",
       "login",
-      "ban-hang", // Bán hàng
-      "tra-hang", // Trả hàng
+      // Bán hàng và Trả hàng routes removed - not allowed in this branch
       "kho",
       "kho/nhat-hang", // Phiếu nhặt hàng
       "kho/nhat-hang/them-moi",
@@ -92,6 +91,12 @@ const Navbar = () => {
 
     const currentPath = data?.pathname?.substring(1);
 
+    // Block any ban-hang and tra-hang routes
+    if (currentPath && (currentPath.startsWith("ban-hang") || currentPath.startsWith("tra-hang"))) {
+      router.navigate("/kho");
+      return;
+    }
+
     // Check if current path matches any valid route or pattern
     const isValidRoute =
       validRoutes.includes(currentPath) ||
@@ -100,8 +105,8 @@ const Navbar = () => {
       currentPath.match(/^kho\/nhap-kho\/chi-tiet\/[^/]+$/); // Legacy detail route
 
     if (!isValidRoute) {
-      // Redirect to Bán hàng if invalid route
-      router.navigate("/ban-hang");
+      // Redirect to Kho if invalid route
+      router.navigate("/kho");
     }
   };
 
@@ -136,14 +141,7 @@ const Navbar = () => {
             mode="horizontal"
             className="navbar_routes"
             items={[
-              {
-                key: "ban-hang",
-                label: <Link to="/ban-hang">Bán hàng</Link>,
-              },
-              {
-                key: "tra-hang",
-                label: <Link to="/tra-hang">Trả hàng</Link>,
-              },
+              // Bán hàng và Trả hàng modules removed - not available in this branch
               {
                 key: "kho",
                 label: <Link to="/kho">Kho</Link>,
