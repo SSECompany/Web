@@ -21,6 +21,7 @@ const VatTuSelectFullPOS = ({
   setVatTuList,
   currentKeyword = "",
   onOpenQRScanner,
+  disableSearch = false,
 }) => {
   // Refs to prevent unnecessary API calls
   const dropdownOpenedRef = useRef(false);
@@ -343,13 +344,17 @@ const VatTuSelectFullPOS = ({
                 )}
                 <Select
                   ref={vatTuSelectRef}
-                  showSearch
-                  placeholder={isSearching ? "Đang tìm kiếm..." : "Chọn vật tư"}
+                  showSearch={!disableSearch}
+                  placeholder={disableSearch ? "Chỉ quét camera" : (isSearching ? "Đang tìm kiếm..." : "Chọn vật tư")}
                   optionFilterProp="children"
                   loading={loadingVatTu || isSearching}
                   value={vatTuInput}
-                  onSearch={handleSearch}
+                  onSearch={disableSearch ? undefined : handleSearch}
                   onSelect={(value, option) => {
+                    if (disableSearch) {
+                      message.warning("Chỉ cho phép quét camera. Vui lòng sử dụng nút camera để quét mã.");
+                      return;
+                    }
                     // Block select if currently searching (waiting for API)
                     if (isSearching) {
                       message.warning("Vui lòng đợi kết quả tìm kiếm...");
@@ -362,11 +367,15 @@ const VatTuSelectFullPOS = ({
                     }
                     handleVatTuSelect(value, option);
                   }}
-                  onOpenChange={handleDropdownVisibleChange}
+                  onOpenChange={disableSearch ? undefined : handleDropdownVisibleChange}
                   onPopupScroll={handlePopupScroll}
                   filterOption={false}
                   notFoundContent={
-                    loadingVatTu || isSearching ? (
+                    disableSearch ? (
+                      <div style={{ padding: "8px", textAlign: "center" }}>
+                        Vui lòng sử dụng camera để quét mã
+                      </div>
+                    ) : loadingVatTu || isSearching ? (
                       <div style={{ padding: "8px", textAlign: "center" }}>
                         <Spin size="small" /> <span style={{ marginLeft: 8 }}>Đang tìm kiếm...</span>
                       </div>
@@ -379,6 +388,11 @@ const VatTuSelectFullPOS = ({
                     )
                   }
                 onKeyDown={async (e) => {
+                  if (disableSearch) {
+                    e.preventDefault();
+                    message.warning("Chỉ cho phép quét camera. Vui lòng sử dụng nút camera để quét mã.");
+                    return;
+                  }
                   // Handle Enter key - wait for search to complete if searching
                   if (e.key === "Enter" && vatTuInput && vatTuInput.trim()) {
                     e.preventDefault();
@@ -450,7 +464,7 @@ const VatTuSelectFullPOS = ({
                   }
                 }}
                   style={{ width: "100%" }}
-                  disabled={!isEditMode || (isSearching && isWaitingForEnter)}
+                  disabled={!isEditMode || disableSearch || (isSearching && isWaitingForEnter)}
                   styles={{
                     popup: {
                       root: { maxHeight: 300, overflow: "auto" },

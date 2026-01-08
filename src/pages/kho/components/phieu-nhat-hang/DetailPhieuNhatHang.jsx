@@ -185,8 +185,12 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             // Process vật tư list - DYNAMIC: Giữ nguyên TẤT CẢ trường từ API
             const processedVatTu = vatTuList.map((item, index) => {
               const soLuongNhat = item.nhat ?? 0; // số lượng nhặt thực tế
-              const soLuongDon = item.so_luong ?? 0; // số lượng theo đơn
+              const soLuongDon = parseFloat(item.so_luong) || 0; // số lượng theo đơn
               const dvtHienTai = item.dvt ? item.dvt.trim() : "cái";
+              
+              // Nếu tong_nhat chưa có hoặc bằng 0, tự động điền bằng số lượng đơn
+              const tongNhatHienTai = parseFloat(item.tong_nhat) || 0;
+              const tongNhat = tongNhatHienTai > 0 ? tongNhatHienTai : soLuongDon;
 
               return {
                 // Giữ nguyên TẤT CẢ trường từ API response
@@ -197,7 +201,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 maHang: item.ma_vt || "",
                 soLuong:
                   Math.round((parseFloat(soLuongNhat) || 0) * 1000) / 1000, // nhặt
-                soLuongDeNghi: parseFloat(item.so_luong) || 0, // số lượng đơn
+                soLuongDeNghi: soLuongDon, // số lượng đơn
                 ten_mat_hang: item.ten_vt || item.ma_vt || "",
                 dvt: dvtHienTai,
                 ma_kho: item.ma_kho || "",
@@ -208,7 +212,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 ma_vi_tri: item.ma_vi_tri || "",
                 nhat: item.nhat || false,
                 so_luong_ton: item.so_luong_ton || 0,
-                tong_nhat: item.tong_nhat || 0,
+                tong_nhat: Math.round(tongNhat * 1000) / 1000, // Tự động điền bằng số lượng đơn nếu chưa có
                 ghi_chu: item.ghi_chu || "",
               };
             });
@@ -448,6 +452,16 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       return;
     }
 
+    // Kiểm tra xem vật tư có trong bảng chưa
+    const existingItem = dataSource.find(
+      (item) => item.maHang && item.maHang.trim() === maVt.trim()
+    );
+
+    if (!existingItem) {
+      message.warning(`Vật tư ${maVt} chưa có trong bảng.`);
+      return;
+    }
+
     // Đánh dấu đang xử lý
     qrProcessingRef.current = true;
 
@@ -486,80 +500,82 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       return;
     }
     try {
-      // Check if employee field is empty
-      const isEmployeeEmpty =
-        !phieuData?.ma_nvbh || phieuData.ma_nvbh.trim() === "";
-
-      if (isEmployeeEmpty) {
-        // Kiểm tra lại status trước khi gọi API để tránh gọi API khi đã hoàn thành
-        const statusCheck = form.getFieldValue("trangThai") || phieuData?.status;
-        if (statusCheck === "2" || statusCheck === 2) {
-          message.warning("Phiếu nhặt hàng đã hoàn thành");
-          return;
-        }
-
-        setLoading(true);
-
-        // Call start picking API
-        const startResult = await startPhieuNhatHang(sctRec, userInfo.id);
-
-        if (!startResult.success) {
-          // Kiểm tra lại status sau khi API trả về để tránh hiển thị message nếu đã hoàn thành
-          const statusAfter = form.getFieldValue("trangThai") || phieuData?.status;
-          if (statusAfter !== "2" && statusAfter !== 2) {
-            message.error("Không thể bắt đầu nhặt hàng");
-          }
-          setLoading(false);
-          return;
-        }
-
-        // Reload phieu details to get updated employee info
-        const result = await fetchPhieuNhatHangData(sctRec);
-
-        if (result.success && result.master) {
-          setPhieuData(result.master);
-
-          // Update form with new data
-          const updatedFormattedData = {
-            stt_rec: id,
-            sttRec: result.master.stt_rec,
-            ngay: result.master.ngay_ct
-              ? dayjs(result.master.ngay_ct)
-              : dayjs(),
-            soPhieu: result.master.so_ct || "",
-            maKhach: result.master.ma_kh || "",
-            dienGiai: result.master.ghi_chu || "",
-            maGiaoDich: result.master.ma_gd || "",
-            soDonHang: (result.master.so_don_hang || "").trim(),
-            vung: result.master.ma_nhomvitri || "",
-            nhanVien: result.master.ma_nvbh || "",
-            banDongGoi: result.master.ban_dong_goi || "",
-            trangThai: result.master.status || "0",
-            statusname: result.master.statusname || "",
-            donViTienTe: "VND",
-            tyGia: 1,
-            loaiVanChuyen: result.master.fcode3 || "",
-            tenVc: result.master.ten_vc || "",
-            tenKhach: result.master.ten_kh || "",
-            soPhieuXuatBan:
-              result.master.so_phieu_xuat1 ||
-              result.master.so_phieu_xuat2 ||
-              "",
-            // Map bat_dau_nhat_hang and nhat_hang_xong
-            batDauNhatHang: result.master.bat_dau_nhat_hang
-              ? dayjs(result.master.bat_dau_nhat_hang).format("DD/MM/YYYY HH:mm")
-              : "",
-            ketThucNhatHang: result.master.nhat_hang_xong
-              ? dayjs(result.master.nhat_hang_xong).format("DD/MM/YYYY HH:mm")
-              : "",
-          };
-
-          form.setFieldsValue(updatedFormattedData);
-          message.success("Đã bắt đầu nhặt hàng thành công");
-        }
-
-        setLoading(false);
+      // Kiểm tra lại status trước khi gọi API để tránh gọi API khi đã hoàn thành
+      const statusCheck = form.getFieldValue("trangThai") || phieuData?.status;
+      if (statusCheck === "2" || statusCheck === 2) {
+        message.warning("Phiếu nhặt hàng đã hoàn thành");
+        return;
       }
+
+      // Kiểm tra nếu ma_nvbh = Name từ token thì không gọi API nữa
+      const maNvbh = phieuData?.ma_nvbh || "";
+      const userNameFromToken = userInfo?.userName || "";
+      
+      if (maNvbh && userNameFromToken && maNvbh.trim() === userNameFromToken.trim()) {
+        // Nhân viên đã được gán và là chính người dùng hiện tại, không cần gọi API
+        // Chuyển thẳng sang edit mode
+        navigate(`/kho/nhat-hang/chi-tiet/${id}`);
+        setIsEditMode(true);
+        return;
+      }
+
+      setLoading(true);
+
+      // Gọi API bắt đầu nhặt hàng khi ấn chỉnh sửa
+      const startResult = await startPhieuNhatHang(sctRec, userInfo.id);
+
+      if (!startResult.success) {
+        // API đã tự hiển thị message từ response, không cần hiển thị thêm
+        setLoading(false);
+        return;
+      }
+
+      // Reload phieu details to get updated employee info
+      const result = await fetchPhieuNhatHangData(sctRec);
+
+      if (result.success && result.master) {
+        setPhieuData(result.master);
+
+        // Update form with new data
+        const updatedFormattedData = {
+          stt_rec: id,
+          sttRec: result.master.stt_rec,
+          ngay: result.master.ngay_ct
+            ? dayjs(result.master.ngay_ct)
+            : dayjs(),
+          soPhieu: result.master.so_ct || "",
+          maKhach: result.master.ma_kh || "",
+          dienGiai: result.master.ghi_chu || "",
+          maGiaoDich: result.master.ma_gd || "",
+          soDonHang: (result.master.so_don_hang || "").trim(),
+          vung: result.master.ma_nhomvitri || "",
+          nhanVien: result.master.ma_nvbh || "",
+          banDongGoi: result.master.ban_dong_goi || "",
+          trangThai: result.master.status || "0",
+          statusname: result.master.statusname || "",
+          donViTienTe: "VND",
+          tyGia: 1,
+          loaiVanChuyen: result.master.fcode3 || "",
+          tenVc: result.master.ten_vc || "",
+          tenKhach: result.master.ten_kh || "",
+          soPhieuXuatBan:
+            result.master.so_phieu_xuat1 ||
+            result.master.so_phieu_xuat2 ||
+            "",
+          // Map bat_dau_nhat_hang and nhat_hang_xong
+          batDauNhatHang: result.master.bat_dau_nhat_hang
+            ? dayjs(result.master.bat_dau_nhat_hang).format("DD/MM/YYYY HH:mm")
+            : "",
+          ketThucNhatHang: result.master.nhat_hang_xong
+            ? dayjs(result.master.nhat_hang_xong).format("DD/MM/YYYY HH:mm")
+            : "",
+        };
+
+        form.setFieldsValue(updatedFormattedData);
+        message.success("Đã bắt đầu nhặt hàng thành công");
+      }
+
+      setLoading(false);
 
       // Switch to edit mode
       navigate(`/kho/nhat-hang/chi-tiet/${id}`);
@@ -656,112 +672,120 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   };
 
   const handleComplete = async () => {
-    try {
-      setLoading(true);
-      const values = await form.validateFields();
+    // Hiển thị pop-up xác nhận trước khi thực hiện hoàn thành
+    showConfirm({
+      title: "Xác nhận hoàn thành",
+      content: "Bạn có chắc chắn muốn hoàn thành phiếu nhặt hàng này không?",
+      type: "info",
+      onOk: async () => {
+        try {
+          setLoading(true);
+          const values = await form.validateFields();
 
-      // Validate data source
-      const validation = validateDataSource(dataSource);
-      if (!validation.isValid) {
-        setLoading(false);
-        return;
-      }
-
-      // Validate tổng nhặt không được vượt quá số lượng đơn
-      const tongNhatValidation = validateTongNhat(dataSource);
-      if (!tongNhatValidation.isValid) {
-        setLoading(false);
-        return;
-      }
-
-      // Validate điều kiện hoàn thành: có mã lô cho dòng đã nhập tổng nhặt và tổng nhặt = tổng đơn
-      // Reset previous invalid flags
-      setDataSource((prev) => prev.map((r) => ({ ...r, _invalid_missing_lot: false, _invalid_sum_mismatch: false })));
-
-      const completionCheck = validateCompletionRules(dataSource);
-      if (!completionCheck.isValid) {
-        // Highlight invalid rows in table instead of long message
-        setDataSource((prev) => {
-          let updated = prev.map((r) => ({ ...r, _invalid_missing_lot: false, _invalid_sum_mismatch: false }));
-
-          if (completionCheck.type === "missingLot") {
-            updated = updated.map((row) => {
-              const picked = parseFloat(row.tong_nhat || 0) || 0;
-              const lot = (row.ma_lo || "").toString().trim();
-              return picked > 0 && !lot ? { ...row, _invalid_missing_lot: true } : row;
-            });
+          // Validate data source
+          const validation = validateDataSource(dataSource);
+          if (!validation.isValid) {
+            setLoading(false);
+            return;
           }
 
-          if (completionCheck.type === "sumNotEqual") {
-            const groups = computeGroupState(prev);
-            const mismatchKeys = new Set();
-            for (const [, g] of groups) {
-              const isMismatch = (parseFloat(g.pickedSum) || 0) !== (parseFloat(g.orderQty) || 0);
-              if (isMismatch) {
-                g.members.forEach((m) => mismatchKeys.add(m.key));
+          // Validate tổng nhặt không được vượt quá số lượng đơn
+          const tongNhatValidation = validateTongNhat(dataSource);
+          if (!tongNhatValidation.isValid) {
+            setLoading(false);
+            return;
+          }
+
+          // Validate điều kiện hoàn thành: có mã lô cho dòng đã nhập tổng nhặt và tổng nhặt = tổng đơn
+          // Reset previous invalid flags
+          setDataSource((prev) => prev.map((r) => ({ ...r, _invalid_missing_lot: false, _invalid_sum_mismatch: false })));
+
+          const completionCheck = validateCompletionRules(dataSource);
+          if (!completionCheck.isValid) {
+            // Highlight invalid rows in table instead of long message
+            setDataSource((prev) => {
+              let updated = prev.map((r) => ({ ...r, _invalid_missing_lot: false, _invalid_sum_mismatch: false }));
+
+              if (completionCheck.type === "missingLot") {
+                updated = updated.map((row) => {
+                  const picked = parseFloat(row.tong_nhat || 0) || 0;
+                  const lot = (row.ma_lo || "").toString().trim();
+                  return picked > 0 && !lot ? { ...row, _invalid_missing_lot: true } : row;
+                });
               }
-            }
-            updated = updated.map((row) =>
-              mismatchKeys.has(row.key) ? { ...row, _invalid_sum_mismatch: true } : row
-            );
+
+              if (completionCheck.type === "sumNotEqual") {
+                const groups = computeGroupState(prev);
+                const mismatchKeys = new Set();
+                for (const [, g] of groups) {
+                  const isMismatch = (parseFloat(g.pickedSum) || 0) !== (parseFloat(g.orderQty) || 0);
+                  if (isMismatch) {
+                    g.members.forEach((m) => mismatchKeys.add(m.key));
+                  }
+                }
+                updated = updated.map((row) =>
+                  mismatchKeys.has(row.key) ? { ...row, _invalid_sum_mismatch: true } : row
+                );
+              }
+
+              return updated;
+            });
+
+            message.error("Có dòng chưa hợp lệ. Vui lòng kiểm tra các dòng màu đỏ.");
+            setLoading(false);
+            return;
           }
 
-          return updated;
-        });
+          // Set status = 2 cho nút Hoàn thành
+          const updatedValues = {
+            ...values,
+            trangThai: "2",
+            // Trim khoảng trắng đầu cuối cho số đơn hàng
+            soDonHang: values.soDonHang ? values.soDonHang.trim() : "",
+          };
 
-        message.error("Có dòng chưa hợp lệ. Vui lòng kiểm tra các dòng màu đỏ.");
-        setLoading(false);
-        return;
-      }
+          // Build payload với status = 2
+          const payload = buildPhieuNhatHangPayload(
+            updatedValues,
+            dataSource,
+            phieuData,
+            true,
+            userInfo
+          );
 
-      // Set status = 2 cho nút Hoàn thành
-      const updatedValues = {
-        ...values,
-        trangThai: "2",
-        // Trim khoảng trắng đầu cuối cho số đơn hàng
-        soDonHang: values.soDonHang ? values.soDonHang.trim() : "",
-      };
+          if (!payload) {
+            message.error("Không thể tạo payload");
+            setLoading(false);
+            return;
+          }
 
-      // Build payload với status = 2
-      const payload = buildPhieuNhatHangPayload(
-        updatedValues,
-        dataSource,
-        phieuData,
-        true,
-        userInfo
-      );
+          // Gọi API cập nhật với stored procedure
+          // Wrap payload in Data structure như API cũ mong đợi
+          const wrappedPayload = {
+            Data: payload,
+          };
 
-      if (!payload) {
-        message.error("Không thể tạo payload");
-        setLoading(false);
-        return;
-      }
+          const result = await updatePhieuNhatHang(wrappedPayload, userInfo, { showSuccess: false });
 
-      // Gọi API cập nhật với stored procedure
-      // Wrap payload in Data structure như API cũ mong đợi
-      const wrappedPayload = {
-        Data: payload,
-      };
+          if (result.success) {
+            message.success(
+              "Đã hoàn thành phiếu nhặt hàng, đang chuyển về trang chính..."
+            );
 
-      const result = await updatePhieuNhatHang(wrappedPayload, userInfo, { showSuccess: false });
-
-      if (result.success) {
-        message.success(
-          "Đã hoàn thành phiếu nhặt hàng, đang chuyển về trang chính..."
-        );
-
-        // Delay một chút để user thấy message trước khi navigate
-        setTimeout(() => {
-          navigate(returnUrl);
-        }, 1000);
-      } else {
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error("Complete failed:", error);
-      message.error("Có lỗi xảy ra khi hoàn thành phiếu");
-      setLoading(false);
-    }
+            // Delay một chút để user thấy message trước khi navigate
+            setTimeout(() => {
+              navigate(returnUrl);
+            }, 1000);
+          } else {
+            setLoading(false);
+          }
+        } catch (error) {
+          console.error("Complete failed:", error);
+          message.error("Có lỗi xảy ra khi hoàn thành phiếu");
+          setLoading(false);
+        }
+      },
+    });
   };
 
   return (
@@ -833,6 +857,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               setVatTuList={setVatTuList}
               currentKeyword={currentKeyword}
               onOpenQRScanner={() => setShowQRScanner(true)}
+              disableSearch={true}
             />
           </div>
 

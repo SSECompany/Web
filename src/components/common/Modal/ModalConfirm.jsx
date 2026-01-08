@@ -95,8 +95,8 @@ const showConfirm = ({
     cancelText: "Huỷ",
     okButtonProps: {
       style: {
-        background: "linear-gradient(145deg, #667eea 0%, #764ba2 100%)",
-        borderColor: "transparent",
+        background: "#1890ff",
+        borderColor: "#1890ff",
         width: 90,
         height: 38,
         borderRadius: 10,

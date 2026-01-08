@@ -372,25 +372,41 @@ const VatTuTable = ({
       {
         title: "Mặt hàng",
         key: "mat_hang",
-        width: 220,
+        width: 260,
         align: "left",
         ellipsis: false,
         render: (_, record) => {
           if (record.isChild) return "";
           const maHang = record.maHang || "";
           const tenMatHang = record[columnConfig.tenMatHangField || "ten_mat_hang"] || "";
+          // Lấy mã vị trí từ record
+          const currentRecord = dataSource.find((item) => item.key === record.key) || record;
+          const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"] || "";
           return (
             <div
               style={{
                 fontSize: "13px",
                 lineHeight: "1.4",
-                fontWeight: 500,
+                fontWeight: 400,
                 color: "#333",
                 padding: "4px 0",
                 textAlign: "center",
               }}
             >
-              {`${maHang}${maHang && tenMatHang ? " - " : ""}${tenMatHang}`}
+              <div style={{ fontWeight: 400 }}>{`${maHang}${maHang && tenMatHang ? " - " : ""}${tenMatHang}`}</div>
+              {maViTri && (
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "#1890ff",
+                    marginTop: "6px",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  {maViTri}
+                </div>
+              )}
             </div>
           );
         },
@@ -399,7 +415,7 @@ const VatTuTable = ({
         title: "Đvt",
         dataIndex: "dvt",
         key: "dvt",
-        width: 80,
+        width: 70,
         align: "center",
         ellipsis: true,
         render: renderDvtSelect,
@@ -409,9 +425,9 @@ const VatTuTable = ({
     // Cột gộp Mã lô / Mã vị trí hoặc hai cột riêng
     if (columnConfig.combineMaLoViTri) {
       baseColumns.push({
-        title: "Mã lô / Vị trí",
+        title: "Mã lô",
         key: "ma_lo_ma_vi_tri",
-        width: 200,
+        width: 160,
         align: "center",
         ellipsis: true,
         render: (_, record) => {
@@ -420,18 +436,15 @@ const VatTuTable = ({
           const maLo = currentRecord[columnConfig.maLoField || "ma_lo"]; 
           const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"]; 
           if (!isEditMode) {
-            // Tìm label từ loOptions nếu có (để hiển thị ma_lo-ngay_hhsd)
+            // Chỉ hiển thị mã lô; mã vị trí đã hiển thị ở cột Mặt hàng
             let maLoDisplay = maLo || "";
             if (maLo && currentRecord.loOptions && currentRecord.loOptions.length > 0) {
-              const matchedOption = currentRecord.loOptions.find(opt => opt.value === maLo);
-              if (matchedOption && matchedOption.label) {
+              const matchedOption = currentRecord.loOptions.find((opt) => opt.value === maLo);
+              if (matchedOption?.label) {
                 maLoDisplay = matchedOption.label;
               }
             }
-            const display = `${maLoDisplay || ""}${maLoDisplay || maViTri ? " / " : ""}${
-              maViTri || ""
-            }`;
-            return display;
+            return maLoDisplay || "";
           }
           const loOpts = currentRecord.loOptions || [];
           const viTriOpts =
@@ -441,7 +454,14 @@ const VatTuTable = ({
           const isViTriLoading = !!loadingViTri[record.key];
 
           return (
-            <div style={{ display: "flex", gap: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                width: "100%",
+                justifyContent: "center",
+              }}
+            >
               <Select
                 key={`ma-lo-${record.key}`}
                 value={maLo || undefined}
@@ -449,7 +469,7 @@ const VatTuTable = ({
                 allowClear
                 placeholder="Mã lô"
                 size="small"
-                style={{ width: 120 }}
+                style={{ width: 140 }}
                 loading={isLoLoading}
                 filterOption={false}
                 onFocus={() => {
@@ -512,101 +532,14 @@ const VatTuTable = ({
                 options={loOpts}
                 classNames={{ popup: { root: "vat-tu-dropdown" } }}
                 popupMatchSelectWidth={false}
-                notFoundContent={isLoLoading ? (
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    <Spin size="small" />
-                  </div>
-                ) : null}
+                notFoundContent={
+                  isLoLoading ? (
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      <Spin size="small" />
+                    </div>
+                  ) : null
+                }
               />
-              {isViTriLoading && (!viTriOpts || viTriOpts.length === 0) ? (
-                <div style={{ width: 120, display: "flex", alignItems: "center", justifyContent: "center", height: 28 }}>
-                  <Spin size="small" />
-                </div>
-              ) : (
-              <Select
-                key={`ma-vi-tri-${record.key}`}
-                value={maViTri || undefined}
-                showSearch
-                allowClear
-                placeholder="Vị trí"
-                size="small"
-                style={{ width: 120 }}
-                loading={isViTriLoading}
-                filterOption={false}
-                open={openViTri[record.key]}
-                onFocus={async () => {
-                  if (!apiHandlers.fetchViTriList) return;
-                  const currentDataSource = dataSourceRef.current;
-                  const currentRecord =
-                    currentDataSource.find((item) => item.key === record.key) ||
-                    record;
-                  const hasOptions =
-                    (viTriOptions[currentRecord.key] &&
-                      viTriOptions[currentRecord.key].length > 0) ||
-                    (currentRecord.viTriOptions &&
-                      currentRecord.viTriOptions.length > 0);
-                  if (!hasOptions) {
-                    loadViTriOptions("", currentRecord, true);
-                  } else {
-                    setOpenViTri((prev) => ({ ...prev, [record.key]: true }));
-                  }
-                }}
-                onSearch={(keyword) => loadViTriOptions(keyword, record, false)}
-                onOpenChange={(visible) => {
-                  setOpenViTri((prev) => {
-                    if (visible) {
-                      return { ...prev, [record.key]: true };
-                    }
-                    const next = { ...prev };
-                    delete next[record.key];
-                    return next;
-                  });
-                  if (visible && apiHandlers.fetchViTriList) {
-                    const currentDataSource = dataSourceRef.current;
-                    const currentRecord =
-                      currentDataSource.find((item) => item.key === record.key) ||
-                      record;
-                    const hasOptions =
-                      (viTriOptions[currentRecord.key] &&
-                        viTriOptions[currentRecord.key].length > 0) ||
-                      (currentRecord?.viTriOptions &&
-                        currentRecord.viTriOptions.length > 0);
-                    if (!hasOptions) {
-                      loadViTriOptions("", currentRecord, false);
-                    }
-                  }
-                }}
-                onChange={(val) => {
-                  // Close dropdown when selection is made
-                  setOpenViTri((prev) => {
-                    const next = { ...prev };
-                    delete next[record.key];
-                    return next;
-                  });
-                  
-                  const currentDataSource = dataSourceRef.current;
-                  const currentRecord =
-                    currentDataSource.find((item) => item.key === record.key) ||
-                    record;
-                  const recordWithOptions = {
-                    ...currentRecord,
-                    viTriOptions:
-                      viTriOptions[currentRecord.key] ||
-                      currentRecord.viTriOptions ||
-                      record.viTriOptions,
-                  };
-                  onSelectChange(val || "", recordWithOptions, "ma_vi_tri");
-                }}
-                options={viTriOpts}
-                classNames={{ popup: { root: "vat-tu-dropdown" } }}
-                popupMatchSelectWidth={false}
-                notFoundContent={isViTriLoading ? (
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    <Spin size="small" />
-                  </div>
-                ) : null}
-              />
-              )}
             </div>
           );
         },
@@ -843,8 +776,9 @@ const VatTuTable = ({
                   icon={<DeleteOutlined />}
                   onClick={() => onDeleteItem(index, isEditMode)}
                   title="Xóa dòng"
-                  disabled={!isEditMode}
+                  disabled={true}
                   className="vat-tu-delete-btn"
+                  style={{ opacity: 0.3, cursor: "not-allowed" }}
                 />
                 <Button
                   type="text"
@@ -876,6 +810,7 @@ const VatTuTable = ({
           );
         }
         // Trường hợp không dùng useAddButtonInsteadOfDelete: cả dòng cha và dòng con đều có nút xóa
+        // Disable nút xóa cho dòng chính (không phải dòng con)
         return (
           <Button
             type="text"
@@ -883,9 +818,10 @@ const VatTuTable = ({
             size="small"
             icon={<DeleteOutlined />}
             onClick={() => onDeleteItem(index, isEditMode)}
-            title="Xóa dòng"
-            disabled={!isEditMode}
+            title={record.isChild ? "Xóa dòng" : "Không thể xóa dòng chính"}
+            disabled={!isEditMode || !record.isChild}
             className="vat-tu-delete-btn"
+            style={!record.isChild ? { opacity: 0.3, cursor: "not-allowed" } : {}}
           />
         );
       },

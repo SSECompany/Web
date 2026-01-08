@@ -67,7 +67,12 @@ export const useVatTuManagerNhatHang = () => {
         nhat: parseFloat(item.nhat) || parseFloat(item.soLuong) || 0,
         ghi_chu: item.ghi_chu ? item.ghi_chu.trim() : "",
         so_luong_ton: parseFloat(item.so_luong_ton) || 0,
-        tong_nhat: parseFloat(item.tong_nhat) || parseFloat(item.soLuong) || 0,
+        // Nếu tong_nhat chưa có hoặc bằng 0, tự động điền bằng số lượng đơn
+        tong_nhat: (() => {
+          const tongNhatHienTai = parseFloat(item.tong_nhat) || 0;
+          const soLuongDon = parseFloat(item.so_luong) || parseFloat(item.so_luong_don) || 0;
+          return tongNhatHienTai > 0 ? tongNhatHienTai : soLuongDon;
+        })(),
 
         // Đánh dấu không phải là item mới thêm
         isNewlyAdded: false,
@@ -195,27 +200,46 @@ export const useVatTuManagerNhatHang = () => {
           }
         }
         
-        // Tìm dòng có cùng mã hàng VÀ cùng mã lô (nếu có mã lô)
-        // Nếu không có mã lô, chỉ tìm theo mã hàng
-        const existingIndex = prev.findIndex((item) => {
-          const maHangMatch = item.maHang && item.maHang.trim() === value.trim();
-          if (!maHangMatch) return false;
-          
-          // Nếu có mã lô từ QR, phải khớp cả mã lô
-          if (maLoStr) {
+        // Logic tìm dòng: ưu tiên dòng chưa có mã lô để cập nhật mã lô
+        let existingIndex = -1;
+        let shouldUpdateLot = false; // Flag để biết có cần cập nhật mã lô không
+        
+        if (maLoStr) {
+          // Nếu có mã lô từ QR scan:
+          // 1. Ưu tiên tìm dòng có cùng mã hàng nhưng chưa có mã lô (để cập nhật mã lô)
+          existingIndex = prev.findIndex((item) => {
+            const maHangMatch = item.maHang && item.maHang.trim() === value.trim();
+            if (!maHangMatch) return false;
             const itemMaLo = (item.ma_lo || "").trim();
-            return itemMaLo === maLoStr;
-          }
+            return !itemMaLo; // Tìm dòng chưa có mã lô
+          });
           
-          // Nếu không có mã lô từ QR, chỉ tìm dòng không có mã lô
-          const itemMaLo = (item.ma_lo || "").trim();
-          return !itemMaLo;
-        });
+          if (existingIndex !== -1) {
+            shouldUpdateLot = true; // Đánh dấu cần cập nhật mã lô
+          } else {
+            // 2. Nếu không tìm thấy dòng chưa có mã lô, tìm dòng có cùng mã hàng VÀ cùng mã lô
+            existingIndex = prev.findIndex((item) => {
+              const maHangMatch = item.maHang && item.maHang.trim() === value.trim();
+              if (!maHangMatch) return false;
+              const itemMaLo = (item.ma_lo || "").trim();
+              return itemMaLo === maLoStr; // Tìm dòng có cùng mã lô
+            });
+          }
+        } else {
+          // Nếu không có mã lô từ QR, chỉ tìm dòng có cùng mã hàng và không có mã lô
+          existingIndex = prev.findIndex((item) => {
+            const maHangMatch = item.maHang && item.maHang.trim() === value.trim();
+            if (!maHangMatch) return false;
+            const itemMaLo = (item.ma_lo || "").trim();
+            return !itemMaLo;
+          });
+        }
 
         console.log("🔍 Tìm dòng đã tồn tại:", {
           value,
           maLoStr,
           existingIndex,
+          shouldUpdateLot,
           totalItems: prev.length,
           existingItem: existingIndex !== -1 ? prev[existingIndex] : null,
           allItems: prev.map(item => ({
@@ -284,7 +308,9 @@ export const useVatTuManagerNhatHang = () => {
                 heSoAPI,
                 dvtAPI,
                 dvtHienTai,
-                dvtGoc
+                dvtGoc,
+                shouldUpdateLot,
+                maLoStr
               });
 
               // Số lượng đề nghị giữ nguyên giá trị hiện tại
@@ -316,8 +342,9 @@ export const useVatTuManagerNhatHang = () => {
                 // Giữ nguyên ma_kho từ item hiện tại (đã lấy từ dòng cha khi thêm)
                 ma_kho: item.ma_kho || (vatTuInfo.ma_kho || "").trim(),
 
-                // Giữ nguyên mã lô hiện tại (không cập nhật khi tăng số lượng)
-                ma_lo: (item.ma_lo || "").trim(),
+                // Cập nhật mã lô nếu cần (khi tìm thấy dòng chưa có mã lô)
+                // Nếu không cần cập nhật, giữ nguyên mã lô hiện tại
+                ma_lo: shouldUpdateLot ? maLoStr : (item.ma_lo || "").trim(),
 
                 donViTinhList: donViTinhList,
                 isNewlyAdded: item.isNewlyAdded,
@@ -691,6 +718,12 @@ export const useVatTuManagerNhatHang = () => {
 
     const itemToDelete = dataSource[index];
     if (!itemToDelete) {
+      return;
+    }
+
+    // Không cho phép xóa dòng chính (dòng cha)
+    if (!itemToDelete.isChild) {
+      message.warning("Không thể xóa dòng chính");
       return;
     }
 

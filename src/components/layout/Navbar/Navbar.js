@@ -180,7 +180,7 @@ const Navbar = () => {
         <div className="first_navbar_row_right flex gap-1">
           <div className="px-1 text-center flex full-name">
             <div className="primary_bold_text">
-              {userInfo?.userName || userInfo?.fullName}
+              {userInfo?.fullName || userInfo?.userName}
             </div>
           </div>
 

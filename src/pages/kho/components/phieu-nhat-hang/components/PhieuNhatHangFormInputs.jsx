@@ -59,7 +59,7 @@ const PhieuNhatHangFormInputs = ({
         </Col>
         <Col span={12}>
           <Form.Item name="vung" label="Vùng">
-            <Input placeholder="Vùng" disabled={!isEditMode} />
+            <Input placeholder="Vùng" disabled={true} />
           </Form.Item>
         </Col>
       </Row>
@@ -67,7 +67,7 @@ const PhieuNhatHangFormInputs = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item name="soDonHang" label="Số đơn hàng">
-            <Input placeholder="Số đơn hàng" disabled={!isEditMode} />
+            <Input placeholder="Số đơn hàng" disabled={true} />
           </Form.Item>
         </Col>
         <Col span={12}>
@@ -94,7 +94,7 @@ const PhieuNhatHangFormInputs = ({
         <Col span={12}>
           {/* Bàn đóng gói - Input chỉ hiển thị */}
           <Form.Item name="banDongGoi" label="Bàn đóng gói">
-            <Input placeholder="Bàn đóng gói" disabled={!isEditMode} />
+            <Input placeholder="Bàn đóng gói" disabled={true} />
           </Form.Item>
         </Col>
         <Col span={12}>
@@ -130,7 +130,7 @@ const PhieuNhatHangFormInputs = ({
         <Col span={24}>
           {/* Ghi chú - Input chỉ hiển thị */}
           <Form.Item name="dienGiai" label="Ghi chú">
-            <Input placeholder="Ghi chú" disabled={!isEditMode} />
+            <Input placeholder="Ghi chú" disabled={true} />
           </Form.Item>
         </Col>
       </Row>
