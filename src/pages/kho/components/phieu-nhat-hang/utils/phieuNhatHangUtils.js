@@ -241,7 +241,8 @@ export const buildPhieuNhatHangPayload = (
     ma_gd: values.maGiaoDich || "",
     // Khi update, giữ nguyên ngay_ct từ API; khi tạo mới mới dùng orderDate
     ngay_ct: isUpdate && phieuData?.ngay_ct ? phieuData.ngay_ct : orderDate,
-    so_ct: values.soPhieu || "",
+    // Khi update, ưu tiên giữ nguyên so_ct từ API để tránh bị reset thành rỗng
+    so_ct: isUpdate && phieuData?.so_ct ? phieuData.so_ct : (values.soPhieu || ""),
     ong_ba: values.maKhach || "",
     ma_kh: values.maKhach || "",
     dien_giai: values.dienGiai || "",
@@ -384,7 +385,11 @@ export const buildPhieuNhatHangPayload = (
     // Chỉ override các trường cần thiết từ form
     // Khi update, giữ nguyên ngay_ct từ item (API); khi tạo mới mới dùng orderDate
     dynamicItem.ngay_ct = isUpdate && item.ngay_ct ? item.ngay_ct : orderDate;
-    dynamicItem.so_ct = values.soPhieu || "";
+    // Khi update, ưu tiên giữ nguyên so_ct từ item (API) hoặc phieuData để tránh bị reset thành rỗng
+    // Fallback order: item.so_ct -> phieuData.so_ct -> values.soPhieu -> ""
+    dynamicItem.so_ct = isUpdate 
+      ? (item.so_ct || phieuData?.so_ct || values.soPhieu || "")
+      : (values.soPhieu || "");
 
     // Mapping từ UI fields sang API fields
     // Với dòng cha: set ma_vt từ maHang
@@ -464,7 +469,8 @@ export const buildPhieuNhatHangPayload = (
         dynamicItem.ngay_ct = orderDate;
       }
       if (!dynamicItem.so_ct) {
-        dynamicItem.so_ct = values.soPhieu || "";
+        // Ưu tiên lấy so_ct từ phieuData nếu có, tránh bị reset thành rỗng
+        dynamicItem.so_ct = phieuData?.so_ct || values.soPhieu || "";
       }
       if (!dynamicItem.ma_dvcs) {
         dynamicItem.ma_dvcs =

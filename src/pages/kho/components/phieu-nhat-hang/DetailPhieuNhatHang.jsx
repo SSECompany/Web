@@ -188,9 +188,9 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               const soLuongDon = parseFloat(item.so_luong) || 0; // số lượng theo đơn
               const dvtHienTai = item.dvt ? item.dvt.trim() : "cái";
               
-              // Nếu tong_nhat chưa có hoặc bằng 0, tự động điền bằng số lượng đơn
+              // Ban đầu tong_nhat = 0 (không tự động điền bằng số lượng đơn nữa)
               const tongNhatHienTai = parseFloat(item.tong_nhat) || 0;
-              const tongNhat = tongNhatHienTai > 0 ? tongNhatHienTai : soLuongDon;
+              const tongNhat = tongNhatHienTai; // Giữ nguyên giá trị từ API, không tự động điền
 
               return {
                 // Giữ nguyên TẤT CẢ trường từ API response
@@ -212,7 +212,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 ma_vi_tri: item.ma_vi_tri || "",
                 nhat: item.nhat || false,
                 so_luong_ton: item.so_luong_ton || 0,
-                tong_nhat: Math.round(tongNhat * 1000) / 1000, // Tự động điền bằng số lượng đơn nếu chưa có
+                tong_nhat: Math.round(tongNhat * 1000) / 1000, // Giữ nguyên giá trị từ API
                 ghi_chu: item.ghi_chu || "",
               };
             });

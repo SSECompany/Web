@@ -67,12 +67,8 @@ export const useVatTuManagerNhatHang = () => {
         nhat: parseFloat(item.nhat) || parseFloat(item.soLuong) || 0,
         ghi_chu: item.ghi_chu ? item.ghi_chu.trim() : "",
         so_luong_ton: parseFloat(item.so_luong_ton) || 0,
-        // Nếu tong_nhat chưa có hoặc bằng 0, tự động điền bằng số lượng đơn
-        tong_nhat: (() => {
-          const tongNhatHienTai = parseFloat(item.tong_nhat) || 0;
-          const soLuongDon = parseFloat(item.so_luong) || parseFloat(item.so_luong_don) || 0;
-          return tongNhatHienTai > 0 ? tongNhatHienTai : soLuongDon;
-        })(),
+        // Ban đầu tong_nhat = 0 (không tự động điền bằng số lượng đơn nữa)
+        tong_nhat: parseFloat(item.tong_nhat) || 0,
 
         // Đánh dấu không phải là item mới thêm
         isNewlyAdded: false,
@@ -454,7 +450,7 @@ export const useVatTuManagerNhatHang = () => {
             nhat: Math.round(soLuongHienThi * 1000) / 1000, // Nhặt
             ghi_chu: "", // Ghi chú
             so_luong_ton: 0, // Số lượng tồn
-            tong_nhat: Math.round(soLuongHienThi * 1000) / 1000, // Tổng nhặt
+            tong_nhat: 0, // Tổng nhặt - ban đầu = 0, chỉ cập nhật khi tích checkbox Nhặt
 
             // Additional fields từ payload thực tế
             ma_hd: "",
@@ -586,13 +582,17 @@ export const useVatTuManagerNhatHang = () => {
     // Xử lý giá trị đầu vào để hỗ trợ số thập phân
     let newValue;
 
+    // Nếu value đã là số (từ checkbox), sử dụng trực tiếp
+    if (typeof value === "number") {
+      newValue = value;
+    }
     // Nếu value là chuỗi rỗng, đặt thành 0
-    if (value === "") {
+    else if (value === "") {
       newValue = 0;
     } else if (value === ".") {
       // Nếu chỉ có dấu chấm, giữ nguyên để người dùng tiếp tục nhập
       newValue = value;
-    } else if (value.endsWith(".")) {
+    } else if (typeof value === "string" && value.endsWith(".")) {
       // Nếu kết thúc bằng dấu chấm, giữ nguyên chuỗi
       newValue = value;
     } else {
@@ -678,6 +678,7 @@ export const useVatTuManagerNhatHang = () => {
           groupExceeded: !!g?.exceeded,
         };
       });
+      
       return nextWithFlags;
     });
   };

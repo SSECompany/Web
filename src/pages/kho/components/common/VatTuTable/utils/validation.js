@@ -1,10 +1,15 @@
 /**
  * Validate và format input số lượng
- * @param {string} value - Giá trị input
- * @returns {string} - Giá trị đã được validate
+ * @param {string|number} value - Giá trị input
+ * @returns {string|number} - Giá trị đã được validate
  */
 export const validateQuantityInput = (value) => {
-  let val = value;
+  // Nếu value là số (number), trả về trực tiếp (từ checkbox)
+  if (typeof value === 'number') {
+    return value;
+  }
+  
+  let val = String(value); // Convert to string safely
 
   // Chỉ cho phép số, dấu chấm và dấu phẩy
   val = val.replace(/[^0-9.,]/g, "");

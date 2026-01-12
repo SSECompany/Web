@@ -39,6 +39,9 @@ export const phieuNhatHangConfig = {
   showTongNhat: true,
   tongNhatField: "tong_nhat",
   tongNhatEditable: true,
+  // Thêm checkbox Nhặt
+  showNhatCheckbox: true,
+  nhatCheckboxField: "nhat_checkbox",
   combineMaLoViTri: true,
   // Sắp xếp lại thứ tự: tồn -> đơn -> tổng nhặt -> ghi chú
   tonDeNghiTongNhatGhiChuOrder: true,

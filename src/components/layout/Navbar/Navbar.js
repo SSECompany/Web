@@ -57,12 +57,17 @@ const Navbar = () => {
   }, [dispatch]);
 
   const handleLogout = async () => {
+    // Clear state trước
+    dispatch(setClaims([]));
+    
+    // Clear tokens và localStorage
     await jwt.resetAccessToken();
     localStorage.removeItem("ban_hang_activeTabId");
     localStorage.removeItem("ban_hang_orders");
     localStorage.clear();
-    router.navigate("/login");
-    dispatch(setClaims([]));
+    
+    // Force reload và redirect về trang login
+    window.location.href = "/login";
   };
 
   const handleSetBackground = () => {

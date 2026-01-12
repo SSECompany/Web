@@ -1,5 +1,5 @@
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Empty, Input, Select, Table, Spin } from "antd";
+import { Button, Empty, Input, Select, Table, Spin, Checkbox } from "antd";
 import { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
 import { validateQuantityInput } from "./utils/validation";
@@ -315,6 +315,7 @@ const VatTuTable = ({
         key: "key",
         width: 60,
         align: "center",
+        fixed: "left",
         ellipsis: true,
         render: (value, record, index) => {
           if (record.isChild) return "";
@@ -334,6 +335,7 @@ const VatTuTable = ({
         key: "image",
         width: 150,
         align: "center",
+        fixed: "left",
         ellipsis: false,
         render: (_, record) => {
           if (record.isChild) return "";
@@ -373,15 +375,17 @@ const VatTuTable = ({
         title: "Mặt hàng",
         key: "mat_hang",
         width: 260,
-        align: "left",
+        align: "center",
+        fixed: "left",
         ellipsis: false,
         render: (_, record) => {
           if (record.isChild) return "";
           const maHang = record.maHang || "";
           const tenMatHang = record[columnConfig.tenMatHangField || "ten_mat_hang"] || "";
-          // Lấy mã vị trí từ record
+          // Lấy mã vị trí và ĐVT từ record
           const currentRecord = dataSource.find((item) => item.key === record.key) || record;
           const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"] || "";
+          const dvt = currentRecord.dvt || "";
           return (
             <div
               style={{
@@ -394,6 +398,18 @@ const VatTuTable = ({
               }}
             >
               <div style={{ fontWeight: 400 }}>{`${maHang}${maHang && tenMatHang ? " - " : ""}${tenMatHang}`}</div>
+              {dvt && (
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#666",
+                    marginTop: "2px",
+                    fontWeight: 400,
+                  }}
+                >
+                  {dvt}
+                </div>
+              )}
               {maViTri && (
                 <div
                   style={{
@@ -410,15 +426,6 @@ const VatTuTable = ({
             </div>
           );
         },
-      },
-      {
-        title: "Đvt",
-        dataIndex: "dvt",
-        key: "dvt",
-        width: 70,
-        align: "center",
-        ellipsis: true,
-        render: renderDvtSelect,
       },
     ];
 
@@ -623,6 +630,70 @@ const VatTuTable = ({
       });
     }
 
+    // Thêm cột checkbox Nhặt (cho phiếu nhặt hàng)
+    if (columnConfig.showNhatCheckbox) {
+      baseColumns.push({
+        title: "Nhặt",
+        dataIndex: columnConfig.nhatCheckboxField || "nhat_checkbox",
+        key: "nhat_checkbox",
+        width: 80,
+        align: "center",
+        ellipsis: true,
+        onCell: (record) => ({
+          onClick: (e) => {
+            // Stop propagation to prevent row click handlers from interfering
+            e.stopPropagation();
+          },
+        }),
+        render: (value, record, index) => {
+          if (record.isChild) return "";
+          
+          // Lấy giá trị mới nhất từ dataSource thay vì từ record closure
+          const currentRecord = dataSource.find(item => item.key === record.key) || record;
+          
+          // Kiểm tra xem checkbox có được tích không (dựa vào tong_nhat)
+          const tongNhatField = columnConfig.tongNhatField || "tong_nhat";
+          const soLuongDeNghiField = columnConfig.soLuongDeNghiField || "soLuongDeNghi";
+          
+          const tongNhat = parseFloat(currentRecord[tongNhatField] || 0);
+          const soLuongDon = parseFloat(currentRecord[soLuongDeNghiField] || 0);
+          const isChecked = tongNhat > 0 && Math.abs(tongNhat - soLuongDon) < 0.001; // So sánh với sai số nhỏ
+          
+          if (!isEditMode) {
+            return isChecked ? "✓" : "";
+          }
+          
+          return (
+            <div 
+              onClick={(e) => e.stopPropagation()} 
+              style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}
+            >
+              <Checkbox
+                key={`checkbox-${currentRecord.key}-${tongNhat}`}
+                checked={isChecked}
+                onChange={(e) => {
+                  e.stopPropagation(); // Prevent event bubbling
+                  const checked = e.target.checked;
+                  // Lấy giá trị mới nhất
+                  const latestRecord = dataSource.find(item => item.key === currentRecord.key) || currentRecord;
+                  const latestSoLuongDon = parseFloat(latestRecord[soLuongDeNghiField] || 0);
+                  const newTongNhat = checked ? latestSoLuongDon : 0;
+                  
+                  // Sử dụng onQuantityChange để cập nhật tong_nhat
+                  if (onQuantityChange) {
+                    onQuantityChange(newTongNhat, latestRecord, tongNhatField);
+                  }
+                }}
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent event bubbling
+                }}
+              />
+            </div>
+          );
+        },
+      });
+    }
+
     // Thêm cột số lượng cheat/xuất
     if (columnConfig.showSoLuongCheat !== false) {
       baseColumns.push({
@@ -762,7 +833,6 @@ const VatTuTable = ({
       key: "action",
       width: columnConfig.useAddButtonInsteadOfDelete ? 120 : 80, // Tăng width nếu có cả nút xóa và nút thêm
       align: "center",
-      fixed: "right",
       render: (_, record, index) => {
         if (columnConfig.useAddButtonInsteadOfDelete) {
           // Dòng cha: hiển thị cả nút xóa và nút thêm dòng con
@@ -838,6 +908,9 @@ const VatTuTable = ({
     otherProps,
     dataSource, // Thêm dataSource để STT được tính lại khi có thay đổi
     viTriOptions,
+    onQuantityChange, // Thêm để re-render khi handler thay đổi
+    loadingLo,
+    loadingViTri,
   ]);
 
   // Cấu hình scroll

@@ -465,12 +465,38 @@ const ListPhieuNhatHang = () => {
         align: "center",
       },
       {
-        title: "Đơn vị",
-        key: "don_vi",
-        dataIndex: "ma_dvcs",
+        title: "Số",
+        dataIndex: "so_ct",
+        key: "so_ct",
         width: 120,
         align: "center",
-        render: (text) => (text || "").toString(),
+        render: (text) => (text ? text.trim() : ""),
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+          <div style={{ padding: 8 }}>
+            <Input
+              placeholder="Tìm Số"
+              value={selectedKeys[0]}
+              onChange={(e) =>
+                setSelectedKeys(e.target.value ? [e.target.value] : [])
+              }
+              onPressEnter={() => {
+                handleFilter("so_ct", selectedKeys[0] || "", confirm);
+              }}
+              style={{ marginBottom: 8, display: "block" }}
+            />
+            <Button
+              className="search_button"
+              type="primary"
+              onClick={() => {
+                handleFilter("so_ct", selectedKeys[0] || "", confirm);
+              }}
+              size="small"
+            >
+              Tìm kiếm
+            </Button>
+          </div>
+        ),
+        filteredValue: filters.so_ct ? [filters.so_ct] : null,
       },
       {
         title: "Ngày",
@@ -563,40 +589,6 @@ const ListPhieuNhatHang = () => {
             return "";
           }
         },
-      },
-      {
-        title: "Số",
-        dataIndex: "so_ct",
-        key: "so_ct",
-        width: 120,
-        align: "center",
-        render: (text) => (text ? text.trim() : ""),
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm Số"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                handleFilter("so_ct", selectedKeys[0] || "", confirm);
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              className="search_button"
-              type="primary"
-              onClick={() => {
-                handleFilter("so_ct", selectedKeys[0] || "", confirm);
-              }}
-              size="small"
-            >
-              Tìm kiếm
-            </Button>
-          </div>
-        ),
-        filteredValue: filters.so_ct ? [filters.so_ct] : null,
       },
       {
         title: "Số đơn hàng",
@@ -695,11 +687,14 @@ const ListPhieuNhatHang = () => {
       },
       {
         title: "Nhân viên",
-        dataIndex: "ma_nvbh",
+        dataIndex: "ten_nvbh",
         key: "ma_nvbh",
         width: 140,
         align: "center",
-        render: (text) => (text || "").toString(),
+        render: (text, record) => {
+          // Ưu tiên hiển thị tên nhân viên (ten_nvbh), nếu không có thì hiển thị mã (ma_nvbh)
+          return (text || record?.ma_nvbh || "").toString();
+        },
       },
       {
         title: "Trạng thái",
