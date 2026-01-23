@@ -3,7 +3,11 @@ import { Navigate } from "react-router-dom";
 import App from "../App";
 import ErrorPage from "../components/common/ErrorPage/ErrorPage";
 import ProtectedRoute from "./ProtectedRoute";
-
+import DetailPhieuNhatHang from "../pages/kho/components/phieu-nhat-hang/DetailPhieuNhatHang";
+import ListPhieuNhatHang from "../pages/kho/components/phieu-nhat-hang/ListPhieuNhatHang";
+import DetailPhieuGiaoHang from "../pages/kho/components/phieu-giao-hang/DetailPhieuGiaoHang";
+import ListPhieuGiaoHang from "../pages/kho/components/phieu-giao-hang/ListPhieuGiaoHang";
+import ProcessPhieuGiaoHang from "../pages/kho/components/phieu-giao-hang/ProcessPhieuGiaoHang";
 // Pages
 const Login = lazy(() => import("../pages/Login/Login"));
 // ===== BÁN HÀNG & TRẢ HÀNG IMPORTS DISABLED IN BRANCH 08012026_kho =====
@@ -14,8 +18,7 @@ const BaoCaoPhieuBanLe = lazy(() => import("../pages/reports/BaoCaoPhieuBanLe"))
 const BaoCaoTonKho = lazy(() => import("../pages/reports/BaoCaoTonKho"));
 const TongHopNhapXuatTon = lazy(() => import("../pages/reports/TongHopNhapXuatTon"));
 
-import DetailPhieuNhatHang from "../pages/kho/components/phieu-nhat-hang/DetailPhieuNhatHang";
-import ListPhieuNhatHang from "../pages/kho/components/phieu-nhat-hang/ListPhieuNhatHang";
+
 
 const ListPhieuXuatKho = lazy(() =>
   import("../pages/kho/components/phieu-xuat-kho/ListPhieuXuatKho")
@@ -70,6 +73,11 @@ const protectedChildrenRoutes = [
     path: "kho/nhat-hang",
     element: <ListPhieuNhatHang />,
   },
+  {
+    label: "Danh sách phiếu giao hàng",
+    path: "kho/giao-hang",
+    element: <ListPhieuGiaoHang />,
+  },
 
   // Route kho chính - đặt SAU các route con
   { label: "Kho", path: "kho", element: <KhoPage /> },
@@ -91,6 +99,26 @@ const protectedChildrenRoutes = [
     label: "Chỉnh sửa phiếu nhặt hàng",
     path: "kho/nhat-hang/chi-tiet/edit/:id",
     element: <DetailPhieuNhatHang isEditMode={true} />,
+  },
+  {
+    label: "Chi tiết phiếu giao hàng",
+    path: "kho/giao-hang/chi-tiet/:id",
+    element: <DetailPhieuGiaoHang />,
+  },
+  {
+    label: "Xử lý phiếu giao hàng",
+    path: "kho/giao-hang/xu-ly/:id",
+    element: <ProcessPhieuGiaoHang />,
+  },
+  {
+    label: "Thêm phiếu giao hàng",
+    path: "kho/giao-hang/them-moi",
+    element: <DetailPhieuGiaoHang />,
+  },
+  {
+    label: "Chỉnh sửa phiếu giao hàng",
+    path: "kho/giao-hang/edit/:id",
+    element: <DetailPhieuGiaoHang isEditMode={true} />,
   },
   {
     label: "Danh sách phiếu xuất kho",

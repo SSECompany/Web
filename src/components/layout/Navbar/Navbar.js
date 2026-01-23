@@ -84,6 +84,8 @@ const Navbar = () => {
       "kho",
       "kho/nhat-hang", // Phiếu nhặt hàng
       "kho/nhat-hang/them-moi",
+      "kho/giao-hang", // Phiếu giao hàng
+      "kho/giao-hang/them-moi",
       "kho/nhap-kho", // Legacy - có thể xóa sau
       "kho/nhap-kho/them-moi", // Legacy - có thể xóa sau
       "kho/xuat-ban",
@@ -107,6 +109,9 @@ const Navbar = () => {
       validRoutes.includes(currentPath) ||
       currentPath.match(/^kho\/nhat-hang\/chi-tiet\/[^/]+$/) || // Detail route pattern (allow alphanumeric IDs)
       currentPath.match(/^kho\/nhat-hang\/edit\/[^/]+$/) || // Edit route pattern
+      currentPath.match(/^kho\/giao-hang\/chi-tiet\/[^/]+$/) || // Phiếu giao hàng detail route
+      currentPath.match(/^kho\/giao-hang\/xu-ly\/[^/]+$/) || // Phiếu giao hàng xử lý route
+      currentPath.match(/^kho\/giao-hang\/edit\/[^/]+$/) || // Phiếu giao hàng edit route
       currentPath.match(/^kho\/nhap-kho\/chi-tiet\/[^/]+$/); // Legacy detail route
 
     if (!isValidRoute) {

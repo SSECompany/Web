@@ -14,6 +14,7 @@ const CommonPhieuList = ({
   loading = false,
   pagination,
   extraHeader,
+  extraButtons,
   tableClassName = "phieu-data-table hidden_scroll_bar",
   tableProps = {},
 }) => {
@@ -35,16 +36,20 @@ const CommonPhieuList = ({
             {title}
           </Title>
         </Col>
-        {onAdd && (
+        {(onAdd || extraButtons) && (
           <Col>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={onAdd}
-              className="phieu-add-button"
-            >
-              {addLabel}
-            </Button>
+            {extraButtons ? (
+              extraButtons
+            ) : (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={onAdd}
+                className="phieu-add-button"
+              >
+                {addLabel}
+              </Button>
+            )}
           </Col>
         )}
       </Row>

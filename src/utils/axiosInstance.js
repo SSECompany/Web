@@ -135,8 +135,7 @@ instance.interceptors.response.use(
         message: `Bạn không có quyền truy cập.`,
         description: "Vui lòng liên hệ người quản lý !",
       });
-      controller.abort();
-      router.navigate(-1);
+      // Không tự động redirect - để component tự xử lý
     }
     return Promise.reject(error);
   }

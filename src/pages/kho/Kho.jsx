@@ -1,18 +1,28 @@
-import { InboxOutlined } from "@ant-design/icons";
+import { InboxOutlined, CarOutlined } from "@ant-design/icons";
 import { Card, Col, Row, Typography } from "antd";
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import "./Kho.css";
 
 const { Title, Text } = Typography;
 
 const Kho = () => {
+  const navigate = useNavigate();
+  
   const menuItems = [
     {
       title: "Phiếu nhặt hàng",
       subtitle: "Quản lý nhặt hàng",
-      icon: <InboxOutlined style={{ fontSize: "32px" }} />,
+      icon: <InboxOutlined style={{ fontSize: "28px" }} />,
       color: "linear-gradient(135deg, #52c41a 0%, #73d13d 100%)",
       path: "/kho/nhat-hang",
+    },
+    {
+      title: "Phiếu giao hàng",
+      subtitle: "Quản lý giao hàng",
+      icon: <CarOutlined style={{ fontSize: "28px" }} />,
+      color: "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
+      path: "/kho/giao-hang",
     },
     // {
     //   title: "Phiếu xuất kho bán hàng",
@@ -38,7 +48,7 @@ const Kho = () => {
   ];
 
   const handleMenuClick = (path) => {
-    window.location.href = path;
+    navigate(path);
   };
 
   return (

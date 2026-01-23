@@ -246,13 +246,20 @@ const Login = () => {
               <Select
                 style={{
                   width: "100%",
+                  minWidth: 0,
                 }}
                 size="large"
                 className="default_select"
                 value={unitSelected}
                 options={units}
                 popupMatchSelectWidth={false}
+                popupStyle={{
+                  minWidth: "200px",
+                  maxWidth: "500px",
+                }}
                 onSelect={handleChangeUnit}
+                optionLabelProp="label"
+                maxTagCount="responsive"
               />
             </Space>
 

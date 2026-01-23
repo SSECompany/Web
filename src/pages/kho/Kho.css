@@ -26,8 +26,22 @@
   margin: 0 auto;
 }
 
+.kho-content .ant-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+}
+
+.kho-content .ant-col {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 .kho-menu-card {
-  height: 200px;
+  height: 180px;
+  min-width: 260px;
+  margin-bottom: 24px;
   transition: all 0.3s ease;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
@@ -44,12 +58,13 @@
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 20px;
+  padding: 16px;
 }
 
 .kho-menu-icon {
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   color: white;
+  font-size: 28px !important;
 }
 
 .kho-menu-text {
@@ -58,9 +73,10 @@
 
 .kho-menu-title {
   color: white !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 6px !important;
   font-weight: 600;
   font-size: 18px;
+  white-space: nowrap;
 }
 
 .kho-menu-subtitle {
@@ -70,6 +86,16 @@
 }
 
 /* Responsive design */
+@media (max-width: 992px) {
+  .kho-content .ant-row {
+    gap: 20px !important;
+  }
+
+  .kho-menu-card {
+    margin-bottom: 20px;
+  }
+}
+
 @media (max-width: 768px) {
   .kho-container {
     padding: 20px 16px;
@@ -87,8 +113,14 @@
     font-size: 16px;
   }
 
+  .kho-content .ant-row {
+    gap: 16px !important;
+  }
+
   .kho-menu-card {
     height: 160px;
+    min-width: 240px;
+    margin-bottom: 16px;
   }
 
   .kho-menu-title {
@@ -100,12 +132,49 @@
   }
 }
 
+@media (max-width: 576px) {
+  .kho-content .ant-row {
+    gap: 12px !important;
+  }
+
+  .kho-menu-card {
+    margin-bottom: 12px;
+  }
+}
+
 @media (max-width: 480px) {
+  .kho-container {
+    padding: 16px 12px;
+  }
+
+  .kho-content .ant-row {
+    gap: 12px !important;
+    justify-content: center !important;
+  }
+
+  .kho-content .ant-col {
+    max-width: 280px !important;
+    width: 100% !important;
+    flex: 0 0 auto !important;
+  }
+
   .kho-menu-card {
     height: 140px;
+    min-width: 200px;
+    max-width: 280px;
+    width: 100%;
+    margin: 0 auto 12px auto;
   }
 
   .kho-menu-item {
-    padding: 16px;
+    padding: 12px;
+  }
+
+  .kho-menu-title {
+    font-size: 15px !important;
+  }
+
+  .kho-menu-subtitle {
+    font-size: 11px;
   }
 }

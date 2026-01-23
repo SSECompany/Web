@@ -376,7 +376,6 @@ const VatTuTable = ({
         key: "mat_hang",
         width: 260,
         align: "center",
-        fixed: "left",
         ellipsis: false,
         render: (_, record) => {
           if (record.isChild) return "";
@@ -609,10 +608,10 @@ const VatTuTable = ({
       }
     }
 
-    // Thêm cột số lượng đề nghị
+    // Thêm cột số lượng đề nghị (SL đơn)
     if (columnConfig.showSoLuongDeNghi !== false) {
       baseColumns.push({
-        title: columnConfig.soLuongDeNghiTitle || "Số lượng đề nghị",
+        title: columnConfig.soLuongDeNghiTitle === "Số lượng đơn" ? "SL đơn" : (columnConfig.soLuongDeNghiTitle || "Số lượng đề nghị"),
         dataIndex: columnConfig.soLuongDeNghiField || "so_luong",
         key: "so_luong_de_nghi",
         width: 130,
@@ -627,6 +626,60 @@ const VatTuTable = ({
                 columnConfig.soLuongDeNghiField || "so_luong",
                 columnConfig.soLuongDeNghiEditable !== false
               ),
+      });
+    }
+
+    // Thêm cột số lượng tồn (SL tồn) - đặt trước cột Nhặt
+    if (columnConfig.showSoLuongTon) {
+      baseColumns.push({
+        title: "SL tồn",
+        dataIndex: columnConfig.soLuongTonField || "so_luong_ton",
+        key: "so_luong_ton",
+        width: 120,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) =>
+          record.isChild ? (
+            ""
+          ) : (
+            <span
+              style={{
+                fontWeight: "bold",
+                display: "block",
+                textAlign: "center",
+                color: value && value > 0 ? "#52c41a" : "#999",
+              }}
+            >
+              {formatQuantityDisplay(value || 0)}
+            </span>
+          ),
+      });
+    }
+
+    // Thêm cột tồn kho (Tồn KH)
+    if (columnConfig.showTonKh) {
+      baseColumns.push({
+        title: "Tồn khả dụng",
+        dataIndex: columnConfig.tonKhField || "ton_kh",
+        key: "ton_kh",
+        width: 120,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) =>
+          record.isChild ? (
+            ""
+          ) : (
+            <span
+              style={{
+                fontWeight: "bold",
+                display: "block",
+                textAlign: "center",
+                color: value && value > 0 ? "#1890ff" : "#999",
+              }}
+            >
+              {value !== null && value !== undefined ? formatQuantityDisplay(value) : "-"}
+            </span>
+          ),
       });
     }
 
@@ -694,6 +747,39 @@ const VatTuTable = ({
       });
     }
 
+    // Thêm cột tổng nhặt (SL nhặt) - đặt sau cột Nhặt
+    if (columnConfig.showTongNhat) {
+      baseColumns.push({
+        title: "SL nhặt",
+        dataIndex: columnConfig.tongNhatField || "tong_nhat",
+        key: "tong_nhat",
+        width: 120,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) => {
+          if (columnConfig.tongNhatEditable) {
+            return renderQuantityInput(
+              value,
+              record,
+              columnConfig.tongNhatField || "tong_nhat"
+            );
+          }
+          return (
+            <span
+              style={{
+                fontWeight: "bold",
+                display: "block",
+                textAlign: "center",
+                color: value && value > 0 ? "#1890ff" : "#999",
+              }}
+            >
+              {formatQuantityDisplay(value || 0)}
+            </span>
+          );
+        },
+      });
+    }
+
     // Thêm cột số lượng cheat/xuất
     if (columnConfig.showSoLuongCheat !== false) {
       baseColumns.push({
@@ -742,66 +828,6 @@ const VatTuTable = ({
         baseColumns.push(ghiChuColumn);
         ghiChuColumn = null;
       }
-    }
-
-    // Thêm cột số lượng tồn
-    if (columnConfig.showSoLuongTon) {
-      baseColumns.push({
-        title: "Số lượng tồn",
-        dataIndex: columnConfig.soLuongTonField || "so_luong_ton",
-        key: "so_luong_ton",
-        width: 120,
-        align: "center",
-        ellipsis: true,
-        render: (value, record) =>
-          record.isChild ? (
-            ""
-          ) : (
-            <span
-              style={{
-                fontWeight: "bold",
-                display: "block",
-                textAlign: "center",
-                color: value && value > 0 ? "#52c41a" : "#999",
-              }}
-            >
-              {formatQuantityDisplay(value || 0)}
-            </span>
-          ),
-      });
-    }
-
-    // Thêm cột tổng nhặt
-    if (columnConfig.showTongNhat) {
-      baseColumns.push({
-        title: "Tổng nhặt",
-        dataIndex: columnConfig.tongNhatField || "tong_nhat",
-        key: "tong_nhat",
-        width: 120,
-        align: "center",
-        ellipsis: true,
-        render: (value, record) => {
-          if (columnConfig.tongNhatEditable) {
-            return renderQuantityInput(
-              value,
-              record,
-              columnConfig.tongNhatField || "tong_nhat"
-            );
-          }
-          return (
-            <span
-              style={{
-                fontWeight: "bold",
-                display: "block",
-                textAlign: "center",
-                color: value && value > 0 ? "#1890ff" : "#999",
-              }}
-            >
-              {formatQuantityDisplay(value || 0)}
-            </span>
-          );
-        },
-      });
     }
 
 
