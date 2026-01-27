@@ -1,11 +1,12 @@
 import { CloseOutlined, MinusOutlined, PlusOutlined } from "@ant-design/icons";
-import { Input, Select } from "antd";
+import { Checkbox, Input, Select } from "antd";
 import React from "react";
 
 const MealEntryRow = ({
   meal,
   index,
   timeOfDay,
+  shiftName,
   listDietCategory,
   foodListForSelection,
   handleDeleteMeal,
@@ -63,7 +64,8 @@ const MealEntryRow = ({
               htmlFor={`mode-${timeOfDay}-${index}`}
               className="mode-label"
             >
-              Chế độ
+              <span style={{ color: "#ff4d4f", marginRight: "4px" }}>*</span>
+              Chế độ - {shiftName || timeOfDay}
             </label>
             <button
               className="mode-delete-button"
@@ -166,7 +168,7 @@ const MealEntryRow = ({
           </div>
         </div>
 
-        {/* <div className="price-input-group">
+        <div className="price-input-group">
           <div>
             <span className="price-label">Người bệnh</span>
             <Checkbox
@@ -187,7 +189,7 @@ const MealEntryRow = ({
           <span className="price-display">
             {Number(meal.totalMoney || 0).toLocaleString()} đ
           </span>
-        </div> */}
+        </div>
 
         {/* Notes */}
         <div className="notes-input-group">

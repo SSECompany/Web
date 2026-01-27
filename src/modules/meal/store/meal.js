@@ -83,6 +83,7 @@ const initialState = {
   listRoom: [],
   roomSelectedDate: "",
   mealHistory: [],
+  listShifts: [], // Danh sách ca (shift) động từ API
 };
 
 const clearBedEditingState = (state) => {
@@ -421,6 +422,9 @@ const mealSlice = createSlice({
         state.mealHistory = [];
       }
     },
+    setListShifts: (state, action) => {
+      state.listShifts = action.payload || [];
+    },
   },
 });
 
@@ -454,6 +458,7 @@ export const {
   setMealHistory,
   resetBedEditingState,
   resetRoomContext,
+  setListShifts,
 } = mealSlice.actions;
 
 export default mealSlice.reducer;
