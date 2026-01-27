@@ -10,20 +10,22 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
 
     // Xử lý trường hợp có nhiều hình thức thanh toán
     const methods = method.split(",").map((m) => m.trim());
-    const formattedMethods = methods.map((m) => {
-      switch (m) {
-        case "chuyen_khoan":
-          return "Chuyển khoản";
-        case "tien_mat":
-          return "Tiền mặt";
-        case "benhnhan_tratruoc":
-          return "Người bệnh trả trước";
-        case "sinhvien_tratruoc":
-          return "Sinh viên trả trước";
-        default:
-          return "Tiền mặt";
-      }
-    });
+      const formattedMethods = methods.map((m) => {
+        switch (m) {
+          case "chuyen_khoan":
+            return "Chuyển khoản";
+          case "tien_mat":
+            return "Tiền mặt";
+          case "tra_sau":
+            return "Trả sau";
+          case "benhnhan_tratruoc":
+            return "Người bệnh trả trước";
+          case "sinhvien_tratruoc":
+            return "Sinh viên trả trước";
+          default:
+            return "Tiền mặt";
+        }
+      });
 
     return formattedMethods.join(" + ");
   };
@@ -95,7 +97,8 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
       {(Number(master?.benhnhan_tratruoc || 0) > 0 ||
         Number(master?.sinhvien_tratruoc || 0) > 0 ||
         Number(master?.chuyen_khoan || 0) > 0 ||
-        Number(master?.tien_mat || 0) > 0) && (
+        Number(master?.tien_mat || 0) > 0 ||
+        Number(master?.tra_sau || 0) > 0) && (
         <div
           style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}
         >
@@ -114,6 +117,9 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
           )}
           {Number(master?.tien_mat || 0) > 0 && (
             <div>• Tiền mặt: {formatNumber(master.tien_mat)}đ</div>
+          )}
+          {Number(master?.tra_sau || 0) > 0 && (
+            <div>• Trả sau: {formatNumber(master.tra_sau)}đ</div>
           )}
         </div>
       )}

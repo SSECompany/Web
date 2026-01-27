@@ -84,11 +84,18 @@ export default function SelectMealModal({
           mealTime = dayjs().format("YYYY-MM-DD HH:mm:ss");
       }
 
+      // Lấy mã ca từ selectedShift
+      const selectedShiftInfo = mealShifts.find(
+        (shift) => shift.key === selectedShift
+      );
+      const maCa = selectedShiftInfo?.code || "CA1";
+
       const res = await multipleTablePutApi({
         store: "api_getListFoodMealByPost",
         param: {
           searchValue: "",
           ngay_an: mealTime,
+          ma_ca: maCa,
           pageIndex: 1,
           pageSize: 100,
         },

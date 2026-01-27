@@ -55,6 +55,9 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
 
   const [isEditingOrder, setIsEditingOrder] = useState(false);
 
+  // Transaction codes to request from backend (POS + POS bàn)
+  const TRANSACTION_CODES = "2,6";
+
   const fetchListOrderData = useCallback(
     async (pageIndex = currentPage, customFilters = null) => {
       if (!isOpen || isLoading) return; // Chỉ gọi API khi modal đang mở và không đang loading
@@ -90,7 +93,8 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
             userId: id,
             unitId: unitId,
             storeId: storeId,
-            ma_gd: "2", // 2 = đơn POS
+            // 2 = đơn POS, 6 = POS bàn
+            ma_gd: TRANSACTION_CODES,
           },
           data: {},
         });
@@ -370,7 +374,9 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       key: "s2",
       align: "center",
       render: (value) => {
-        const isSynchronized = value.trim() === "Synchronize";
+        // Một số bản ghi không có s2 => cần chuẩn hóa để tránh lỗi undefined.trim
+        const normalizedS2 = (value ?? "").toString().trim();
+        const isSynchronized = normalizedS2 === "Synchronize";
         return (
           <Tag color={isSynchronized ? "green" : "red"}>
             {isSynchronized ? "Thành công" : "Thất bại"}

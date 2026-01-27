@@ -37,6 +37,7 @@ const MealDetailsForm = () => {
   const listFood = useSelector((state) => state.meals.listFood);
   const detailData = useSelector((state) => state.meals.meals.detailData);
   const mealHistory = useSelector((state) => state.meals.mealHistory || []);
+  const listShifts = useSelector((state) => state.meals.listShifts || []);
   const [isPaid, setIsPaid] = useState(false);
   const [isPaidByShift, setIsPaidByShift] = useState({
     CA1: false,
@@ -50,20 +51,37 @@ const MealDetailsForm = () => {
 
   // Local state để lưu food list riêng cho từng ca + chế độ
   const [foodListByShiftAndMode, setFoodListByShiftAndMode] = useState({});
+  // Local state để lưu chế độ ăn riêng theo từng ca, tránh dùng chung giữa các ca
+  const [dietCategoryByShift, setDietCategoryByShift] = useState({});
 
   const selectedDate = useSelector((state) => state.meals.roomSelectedDate);
-  const listMealCode = useSelector((state) => state.meals.listMealCode);
-  const listDietCategory = useSelector((state) => state.meals.listDietCategory);
   const masterData = useSelector((state) => state.meals.meals.masterData);
   const {
     userName,
     unitId,
     id: userId,
   } = useSelector((state) => state.claimsReducer.userInfo || {});
-  const [activeTab, setActiveTab] = useState(listMealCode[0]?.ma_ca || "CA1");
+  const claims = useSelector((state) => state.claimsReducer.claims || {});
+  
+  // Check CanCollectMoney from claims
+  const canCollectMoney = 
+    claims?.CanCollectMoney === "True" || 
+    claims?.CanCollectMoney === true || 
+    claims?.CanCollectMoney === "true";
+  const [activeTab, setActiveTab] = useState(
+    (listShifts.length > 0 ? listShifts[0]?.ma_ca : null) || "CA1"
+  );
   const [selectedPatientInShift, setSelectedPatientInShift] = useState({});
 
   const [mealEntries, setMealEntries] = useState(detailData);
+
+  // Helper function: lấy danh sách mã ca động từ listShifts
+  const getShiftCodes = useCallback(() => {
+    if (Array.isArray(listShifts) && listShifts.length > 0) {
+      return listShifts.map((shift) => shift.ma_ca);
+    }
+    return ["CA1", "CA2", "CA3"]; // Fallback
+  }, [listShifts]);
 
   // Sync detailData to local state khi detailData thay doi
   useEffect(() => {
@@ -80,23 +98,33 @@ const MealDetailsForm = () => {
 
     // Clear TOÀN BỘ cache khi chuyển giường hoặc load data mới
     setFoodListByShiftAndMode({});
+    setDietCategoryByShift({});
     setPaymentMethod("");
     setIsPaid(false);
-    setIsPaidByShift({ CA1: false, CA2: false, CA3: false });
+    
+    const shiftCodes = getShiftCodes();
+    const initialPaidByShift = {};
+    shiftCodes.forEach((shift) => {
+      initialPaidByShift[shift] = false;
+    });
+    setIsPaidByShift(initialPaidByShift);
     setSelectedPatientInShift({});
-  }, [currentBedIndex, selectedDate]);
+  }, [currentBedIndex, selectedDate, getShiftCodes]);
 
   // Clear cache khi mealHistory thay đổi (sau khi gửi đơn thành công)
   useEffect(() => {
     setFoodListByShiftAndMode({});
+    setDietCategoryByShift({});
   }, [mealHistory]);
 
   // Kiểm tra isPaid cho từng ca riêng biệt
   useEffect(() => {
     const bedMeals = detailData[currentBedIndex];
+    const shiftCodes = getShiftCodes();
+    
     if (bedMeals) {
-      const paidByShift = { CA1: false, CA2: false, CA3: false };
-      ["CA1", "CA2", "CA3"].forEach((shift) => {
+      const paidByShift = {};
+      shiftCodes.forEach((shift) => {
         const shiftMeals = bedMeals[shift] || [];
         paidByShift[shift] =
           shiftMeals.length > 0 && shiftMeals.every((meal) => meal.isPaid);
@@ -105,10 +133,14 @@ const MealDetailsForm = () => {
       // Giữ isPaid cho ca hiện tại để tương thích
       setIsPaid(paidByShift[activeTab] || false);
     } else {
-      setIsPaidByShift({ CA1: false, CA2: false, CA3: false });
+      const initialPaidByShift = {};
+      shiftCodes.forEach((shift) => {
+        initialPaidByShift[shift] = false;
+      });
+      setIsPaidByShift(initialPaidByShift);
       setIsPaid(false);
     }
-  }, [detailData, currentBedIndex, activeTab]);
+  }, [detailData, currentBedIndex, activeTab, getShiftCodes]);
 
   // KHÔNG auto-fetch api_getListFood khi load form
   // Chỉ fetch khi user click vào dropdown chọn món (onFocus)
@@ -133,40 +165,22 @@ const MealDetailsForm = () => {
 
         const dietCategoryList = response?.listObject?.[0] || [];
 
-        // Kiểm tra nếu API trả về data hợp lệ
-        if (
-          Array.isArray(dietCategoryList) &&
-          dietCategoryList.length > 0 &&
-          dietCategoryList[0].ma_nh
-        ) {
-          // Merge với danh sách hiện có thay vì ghi đè
-          const currentCategories = listDietCategory || [];
-          const mergedCategories = [...currentCategories];
+        // Lưu cache theo từng ca, ghi đè data của ca đó thay vì merge chung
+        setDietCategoryByShift((prev) => ({
+          ...prev,
+          [timeOfDay]: Array.isArray(dietCategoryList) ? dietCategoryList : [],
+        }));
 
-          dietCategoryList.forEach((newCategory) => {
-            const exists = mergedCategories.some(
-              (cat) => cat.ma_nh === newCategory.ma_nh
-            );
-            if (!exists) {
-              mergedCategories.push(newCategory);
-            }
-          });
-
-          dispatch(setListDietCategory(mergedCategories));
-        } else {
-          console.warn(
-            `⚠️ Invalid diet category data for ${timeOfDay}:`,
-            dietCategoryList
-          );
-          // Nếu API trả về rỗng, vẫn dispatch để clear cache cũ
-          dispatch(setListDietCategory([]));
-        }
+        // Vẫn set vào Redux để giữ tương thích, nhưng ghi đè theo ca hiện tại
+        dispatch(
+          setListDietCategory(Array.isArray(dietCategoryList) ? dietCategoryList : [])
+        );
       } catch (error) {
         console.error(`❌ Lỗi fetch diet category cho ${timeOfDay}:`, error);
         // Trong trường hợp lỗi, không thay đổi listDietCategory
       }
     },
-    [selectedDate, dispatch, listDietCategory]
+    [selectedDate, dispatch]
   );
 
   const updateMealEntriesInRedux = (updatedMeals) => {
@@ -266,24 +280,20 @@ const MealDetailsForm = () => {
             const selectedFood = foodsForThisShiftAndMode.find(
               (food) => food.ma_mon === value
             );
-            const price = selectedFood?.gia_ban || meal.price || 0;
-
-            // Only reset quantity and price if this is a NEW selection (meal didn't have mealType before)
-            // If meal already has mealType and price, keep them (from history)
-            const isNewSelection = !meal.mealType;
+            const price =
+              typeof selectedFood?.gia_ban === "number"
+                ? selectedFood.gia_ban
+                : meal.price || 0;
+            const quantity =
+              typeof meal.quantity === "number" && meal.quantity > 0
+                ? meal.quantity
+                : 1;
 
             meal.mealType = value;
             meal.mealTypeName = selectedFood?.ten_mon || "";
-
-            if (isNewSelection) {
-              // New selection - use default quantity and price from API
-              meal.quantity = 1;
-              meal.price = price;
-              meal.totalMoney = price * 1;
-            } else {
-              // Existing meal (from history) - keep existing quantity and price
-              meal.totalMoney = meal.price * meal.quantity;
-            }
+            meal.quantity = quantity;
+            meal.price = price;
+            meal.totalMoney = meal.collectMoney ? 0 : price * quantity;
           } else if (name === "note") {
             meal.note = value;
           } else {
@@ -377,8 +387,9 @@ const MealDetailsForm = () => {
         hasChangedInThisSession.current = true;
       }
 
-      // Tìm tên chế độ từ listDietCategory
-      const selectedMode = listDietCategory.find((cat) => cat.ma_nh === value);
+      // Tìm tên chế độ từ list chế độ theo ca
+      const currentDietList = dietCategoryByShift[timeOfDay] || [];
+      const selectedMode = currentDietList.find((cat) => cat.ma_nh === value);
       const modeName = selectedMode?.ten_nh || "";
 
       updateMealEntry(
@@ -441,7 +452,7 @@ const MealDetailsForm = () => {
     },
     [
       selectedDate,
-      listDietCategory,
+      dietCategoryByShift,
       updateMealEntry,
       currentBedIndex,
       mealEntries,
@@ -506,6 +517,12 @@ const MealDetailsForm = () => {
       return foodsFromApi;
     },
     [foodListByShiftAndMode]
+  );
+
+  // Helper để lấy danh sách chế độ theo từng ca (cache riêng cho mỗi ca)
+  const getDietCategoryByShift = useCallback(
+    (timeOfDay) => dietCategoryByShift[timeOfDay] || [],
+    [dietCategoryByShift]
   );
 
   const handleDeleteMeal = (timeOfDay, index) => {
@@ -716,11 +733,12 @@ const MealDetailsForm = () => {
 
   const handleSubmit = async () => {
     const bedMeals = mealEntries[currentBedIndex] || {};
+    const shiftCodes = getShiftCodes();
 
     // Validate meals: check for price = 0 and benh_nhan_yn = 0, and missing payment method
     const invalidPriceMeals = [];
 
-    ["CA1", "CA2", "CA3"].forEach((shift) => {
+    shiftCodes.forEach((shift) => {
       const meals = bedMeals[shift] || [];
       meals.forEach((meal) => {
         // Bỏ qua món rỗng (món đã xóa được xóa thật khỏi array)
@@ -731,12 +749,8 @@ const MealDetailsForm = () => {
         const isPaid = meal.isPaid;
         const httt = meal.httt;
 
-        const shiftName =
-          shift === "CA1"
-            ? "Ca sáng"
-            : shift === "CA2"
-            ? "Ca trưa"
-            : "Ca chiều";
+        const shiftInfo = listShifts.find((s) => s.ma_ca === shift);
+        const shiftName = shiftInfo?.ten_ca || shift;
 
         // Find meal name from listFood
         const mealName =
@@ -809,7 +823,7 @@ const MealDetailsForm = () => {
     const updatedMeals = cloneDeep(mealEntries);
 
     // Check if all shifts have meals
-    const allShiftsHaveMeals = ["CA1", "CA2", "CA3"].every((shift) => {
+    const allShiftsHaveMeals = shiftCodes.every((shift) => {
       const meals = bedMeals[shift] || [];
       return meals.some((meal) => meal.mealType);
     });
@@ -817,9 +831,10 @@ const MealDetailsForm = () => {
     if (!allShiftsHaveMeals) {
       // This should not happen because the submit button is disabled
       // But we add this check as a safeguard
+      const shiftNames = listShifts.map((s) => s.ten_ca).join(", ");
       notification.error({
         message: "Lỗi",
-        description: "Vui lòng nhập đủ món ăn cho cả 3 ca (Sáng, Trưa, Chiều)",
+        description: `Vui lòng nhập đủ món ăn cho tất cả các ca (${shiftNames})`,
       });
       return;
     }
@@ -865,12 +880,12 @@ const MealDetailsForm = () => {
     // 3. Có món bị xóa (hasChangedInThisSession = true khi xóa món có stt_rec)
     // 4. Có món đã bị hủy (status = "3") - cần khôi phục
     // 5. Có món từ history (stt_rec) - luôn mark để user có thể gửi lại nếu cần
-    const hasNewMeals = ["CA1", "CA2", "CA3"].some((shift) => {
+    const hasNewMeals = shiftCodes.some((shift) => {
       const meals = bedMeals[shift] || [];
       return meals.some((meal) => meal.mealType && !meal.stt_rec);
     });
 
-    const hasEditedMeals = ["CA1", "CA2", "CA3"].some((shift) => {
+    const hasEditedMeals = shiftCodes.some((shift) => {
       const meals = bedMeals[shift] || [];
       return meals.some((meal) => meal.isEdit);
     });
@@ -878,7 +893,7 @@ const MealDetailsForm = () => {
     // Kiểm tra có món nào đã bị hủy (status = "3") không
     // Nếu có → LUÔN mark submitted để cho phép khôi phục đơn
     const cancelledMealsList = [];
-    ["CA1", "CA2", "CA3"].forEach((shift) => {
+    shiftCodes.forEach((shift) => {
       const meals = bedMeals[shift] || [];
       meals.forEach((meal, idx) => {
         if (
@@ -989,6 +1004,9 @@ const MealDetailsForm = () => {
                   ? 1
                   : 0;
 
+              // Generate cookie_voucher timestamp for tracking edit time
+              const cookieVoucher = generateCookieVoucher();
+
               cancelDetail.push({
                 ma_giuong: bedName.ma_giuong,
                 ma_ca: caCode,
@@ -1006,6 +1024,7 @@ const MealDetailsForm = () => {
                 stt_rec0: meal.stt_rec0 || "",
                 status: "3", // Status 3 để huỷ đơn
                 so_ct: meal.so_ct || "",
+                cookie_voucher: cookieVoucher, // Thêm cookie_voucher để biết thời gian sửa gần nhất
               });
             }
           });
@@ -1146,6 +1165,9 @@ const MealDetailsForm = () => {
                   ? 1
                   : 0;
 
+              // Generate cookie_voucher timestamp for tracking edit time
+              const cookieVoucher = generateCookieVoucher();
+
               cancelDetail.push({
                 ma_giuong: bedName.ma_giuong,
                 ma_ca: shift,
@@ -1162,6 +1184,7 @@ const MealDetailsForm = () => {
                 stt_rec0: meal.stt_rec0 || "",
                 status: "3", // Status 3 để huỷ ca
                 so_ct: meal.so_ct || "",
+                cookie_voucher: cookieVoucher, // Thêm cookie_voucher để biết thời gian sửa gần nhất
               });
             }
           });
@@ -1266,8 +1289,8 @@ const MealDetailsForm = () => {
   // Check xem ca này đã bị hủy toàn bộ chưa (để hiện badge "Đã hủy")
   const isShiftCancelled = useCallback(
     (shift) => {
-      const shiftLabel =
-        shift === "CA1" ? "Ca sáng" : shift === "CA2" ? "Ca trưa" : "Ca chiều";
+      const shiftInfo = listShifts.find((s) => s.ma_ca === shift);
+      const shiftLabel = shiftInfo?.ten_ca || shift;
       const bedMaGiuong = bedName?.ma_giuong;
 
       const allShiftMeals = mealHistory.filter(
@@ -1281,25 +1304,30 @@ const MealDetailsForm = () => {
 
       return allShiftMeals.every((m) => m.status === "3" || m.status === 3);
     },
-    [mealHistory, bedName]
+    [mealHistory, bedName, listShifts]
   );
 
   const renderedMealEntries = useMemo(() => {
     const bedMeals = mealEntries[currentBedIndex] || {};
     const result = {};
+    const shiftCodes = getShiftCodes();
 
-    ["CA1", "CA2", "CA3"].forEach((shift) => {
+    shiftCodes.forEach((shift) => {
       const entries = bedMeals[shift] || [];
       const selectedIndex = selectedPatientInShift[shift]; // Lấy index của suất ăn được chọn trong ca
 
       // Món đã bị xóa thật khỏi array, không cần filter status="3"
+      const shiftInfo = listShifts.find((s) => s.ma_ca === shift);
+      const shiftName = shiftInfo?.ten_ca || shift;
+      
       result[shift] = entries.map((meal, index) => (
         <MealEntryRow
           key={`${shift}-${index}-${meal.mealType || "empty"}`}
           meal={meal}
           index={index}
           timeOfDay={shift}
-          listDietCategory={listDietCategory}
+          shiftName={shiftName}
+          listDietCategory={getDietCategoryByShift(shift)}
           foodListForSelection={getFoodListByShiftAndMode(shift, meal.mode)}
           handleDeleteMeal={handleDeleteMeal}
           handleModeChange={handleModeChange}
@@ -1322,8 +1350,8 @@ const MealDetailsForm = () => {
   }, [
     mealEntries,
     currentBedIndex,
-    listDietCategory,
     selectedPatientInShift,
+    getDietCategoryByShift,
     getFoodListByShiftAndMode,
     handleDeleteMeal,
     handleModeChange,
@@ -1332,13 +1360,17 @@ const MealDetailsForm = () => {
     handlePatientCheckboxChange,
     refetchDietCategory,
     refetchFoodList,
+    getShiftCodes,
+    listShifts,
   ]);
 
   useEffect(() => {
     const bedMeals = detailData[currentBedIndex];
+    const shiftCodes = getShiftCodes();
+    
     if (bedMeals) {
       let foundHttt = "";
-      ["CA1", "CA2", "CA3"].some((shift) => {
+      shiftCodes.some((shift) => {
         const meals = bedMeals[shift] || [];
         for (let meal of meals) {
           if (meal.httt) {
@@ -1352,7 +1384,21 @@ const MealDetailsForm = () => {
     } else {
       setPaymentMethod("");
     }
-  }, [detailData, currentBedIndex]);
+  }, [detailData, currentBedIndex, getShiftCodes]);
+
+  // Helper function to generate cookie_voucher timestamp
+  const generateCookieVoucher = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const seconds = String(now.getSeconds()).padStart(2, "0");
+    const milliseconds = String(now.getMilliseconds()).padStart(3, "0");
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+  };
 
   const createDefaultMeal = (date) => ({
     date: date || dayjs().format("DD/MM/YYYY"),
@@ -1369,6 +1415,7 @@ const MealDetailsForm = () => {
     stt_rec: "",
     stt_rec0: "",
     so_ct: "",
+    cookie_voucher: "",
   });
 
   return (
@@ -1392,9 +1439,10 @@ const MealDetailsForm = () => {
           style={{ cursor: "default" }}
         />
       </div>
+      
       <Tabs
         ref={tabsRef}
-        defaultActiveKey={listMealCode[0]?.ma_ca || "CA1"}
+        defaultActiveKey={(listShifts.length > 0 ? listShifts[0]?.ma_ca : null) || "CA1"}
         activeKey={activeTab}
         onChange={(key) => {
           setActiveTab(key);
@@ -1404,15 +1452,9 @@ const MealDetailsForm = () => {
           setMealEntries((prev) => [...prev]);
         }}
       >
-        {listMealCode.map((meal) => (
+        {listShifts.map((meal) => (
           <TabPane
-            //   tab={`${meal.ten_ca}
-            //   - ${formatNumber(
-            //     calculateTotalByShift(meal.ma_ca)
-            //   )} đ
-            //   `
-            // }
-            tab={`${meal.ten_ca}`}
+            tab={`${meal.ten_ca} - ${formatNumber(calculateTotalByShift(meal.ma_ca))} ₫`}
             key={meal.ma_ca}
           >
             <div>
@@ -1464,13 +1506,36 @@ const MealDetailsForm = () => {
                 ) : null}
               </div>
 
+              {/* Thông báo lưu ý */}
+              {listShifts.length > 0 && (
+                <div
+                  style={{
+                    backgroundColor: "#f6ffed",
+                    border: "1px solid #b7eb8f",
+                    borderRadius: "4px",
+                    padding: "12px 16px",
+                    color: "#52c41a",
+                    fontSize: "14px",
+                  }}
+                >
+                  <strong>Lưu ý:</strong> Bạn cần nhập đủ món ăn cho cả {listShifts.length} ca (
+                  {listShifts.map((shift, index) => (
+                    <span key={shift.ma_ca}>
+                      {shift.ten_ca}
+                      {index < listShifts.length - 1 ? ", " : ""}
+                    </span>
+                  ))}) để hoàn thành
+                </div>
+              )}
+
               {renderedMealEntries[meal.ma_ca]}
 
-              {/* Checkbox Thu tiền cho từng ca */}
-              <div style={{ marginTop: 16, marginBottom: 8 }}>
-                <Checkbox
-                  checked={isPaidByShift[meal.ma_ca] || false}
-                  onChange={(e) => {
+              {/* Checkbox Thu tiền cho từng ca - chỉ hiển thị khi CanCollectMoney = true */}
+              {canCollectMoney && (
+                <div style={{ marginTop: 16, marginBottom: 8 }}>
+                  <Checkbox
+                    checked={isPaidByShift[meal.ma_ca] || false}
+                    onChange={(e) => {
                     const newIsPaid = e.target.checked;
                     const currentShift = meal.ma_ca;
 
@@ -1487,12 +1552,13 @@ const MealDetailsForm = () => {
 
                     setMealEntries((prev) => {
                       const updatedMeals = cloneDeep(prev);
+                      const shiftCodes = getShiftCodes();
                       if (!updatedMeals[currentBedIndex]) {
-                        updatedMeals[currentBedIndex] = {
-                          CA1: [],
-                          CA2: [],
-                          CA3: [],
-                        };
+                        const emptyShifts = {};
+                        shiftCodes.forEach((shift) => {
+                          emptyShifts[shift] = [];
+                        });
+                        updatedMeals[currentBedIndex] = emptyShifts;
                       }
 
                       // CHỈ áp dụng cho ca hiện tại (currentShift)
@@ -1551,6 +1617,7 @@ const MealDetailsForm = () => {
                   Thu tiền
                 </Checkbox>
               </div>
+              )}
 
               {/* Nút + thêm món - giữ nguyên vị trí */}
               <button

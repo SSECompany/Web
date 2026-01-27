@@ -600,7 +600,9 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       align: "center",
       width: 120,
       render: (value) => {
-        const isSynchronized = value.trim() === "Synchronize";
+        // Một số bản ghi không có s2 => cần chuẩn hóa để tránh lỗi undefined.trim
+        const normalizedS2 = String(value || "").trim();
+        const isSynchronized = normalizedS2 === "Synchronize";
         return (
           <Tag color={isSynchronized ? "green" : "red"}>
             {isSynchronized ? "Thành công" : "Thất bại"}

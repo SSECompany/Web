@@ -83,6 +83,22 @@ const initialState = {
   listRoom: [],
   roomSelectedDate: "",
   mealHistory: [],
+  listShifts: [], // Danh sách ca (shift) động từ API
+};
+
+const clearBedEditingState = (state) => {
+  state.meals.detailData = [];
+  state.submittedBeds = [];
+  state.bedsPaymentToggled = {};
+  state.listFood = [];
+  state.listDietCategory = [];
+  state.currentBedIndex = 0;
+  state.meals.masterData = {
+    ...state.meals.masterData,
+    beds: [],
+    quantity: 0,
+    price: 0,
+  };
 };
 
 const mealSlice = createSlice({
@@ -328,6 +344,13 @@ const mealSlice = createSlice({
     setSelectedDate: (state, action) => {
       state.selectedDate = action.payload;
     },
+    resetBedEditingState: (state) => {
+      clearBedEditingState(state);
+    },
+    resetRoomContext: (state) => {
+      clearBedEditingState(state);
+      state.mealHistory = [];
+    },
     resetAllMeals: (state) => {
       state.meals.masterData = {
         name: "",
@@ -399,6 +422,9 @@ const mealSlice = createSlice({
         state.mealHistory = [];
       }
     },
+    setListShifts: (state, action) => {
+      state.listShifts = action.payload || [];
+    },
   },
 });
 
@@ -430,6 +456,9 @@ export const {
   resetAllMeals,
   setRoomSelectedDate,
   setMealHistory,
+  resetBedEditingState,
+  resetRoomContext,
+  setListShifts,
 } = mealSlice.actions;
 
 export default mealSlice.reducer;

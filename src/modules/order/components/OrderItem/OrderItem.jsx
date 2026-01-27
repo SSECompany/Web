@@ -1,6 +1,6 @@
 import { EllipsisOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import { Button, Dropdown, Menu, message } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 import { formatNumber } from "../../../../app/hook/dataFormatHelper";
 import {
@@ -28,6 +28,11 @@ export default function OrderItem({
   const [priceInput, setPriceInput] = useState("");
   const dispatch = useDispatch();
   const token = localStorage.getItem("access_token");
+  const totalOriginalPrice = useMemo(() => {
+    const unitPrice = parseFloat(item.don_gia || 0);
+    const quantity = parseFloat(item.so_luong || 1);
+    return isNaN(unitPrice * quantity) ? 0 : unitPrice * quantity;
+  }, [item.don_gia, item.so_luong]);
 
   // Kiểm tra tồn kho
   const checkInventory = (newQuantity) => {
@@ -178,7 +183,7 @@ export default function OrderItem({
                   marginTop: "2px",
                 }}
               >
-                {formatNumber(item.don_gia || 0)}
+                {formatNumber(totalOriginalPrice)}
               </div>
             ) : null}
           </span>
