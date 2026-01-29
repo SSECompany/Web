@@ -456,6 +456,104 @@
 .detail-giao-hang-upload .ant-upload-list-item {
   width: 80px !important;
   height: 80px !important;
+  cursor: pointer !important;
+  position: relative !important;
+}
+
+.detail-giao-hang-upload .ant-upload-list-item-thumbnail {
+  cursor: pointer !important;
+}
+
+.detail-giao-hang-upload .ant-upload-list-item-thumbnail img {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+/* Bỏ hover effect và overlay khi hover vào ảnh */
+.detail-giao-hang-upload .ant-upload-list-item:hover .ant-upload-list-item-actions {
+  opacity: 1 !important;
+  background: transparent !important;
+}
+
+.detail-giao-hang-upload .ant-upload-list-item:hover {
+  border-color: #d9d9d9 !important;
+}
+
+.detail-giao-hang-upload .ant-upload-list-item:hover .ant-upload-list-item-thumbnail {
+  opacity: 1 !important;
+}
+
+/* Bỏ overlay mask che ảnh */
+.detail-giao-hang-upload .ant-upload-list-item::before {
+  display: none !important;
+  content: none !important;
+}
+
+.detail-giao-hang-upload .ant-upload-list-item::after {
+  display: none !important;
+  content: none !important;
+}
+
+.detail-giao-hang-upload .ant-upload-list-item-mask {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.detail-giao-hang-upload .ant-upload-list-item:hover .ant-upload-list-item-mask {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  background: transparent !important;
+}
+
+/* Di chuyển nút delete ra góc trên bên phải của thẻ div bọc ngoài */
+.detail-giao-hang-upload .ant-upload-list-item-actions {
+  position: absolute !important;
+  top: -8px !important;
+  right: -8px !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: auto !important;
+  height: auto !important;
+  background: transparent !important;
+  opacity: 1 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: flex-end !important;
+  padding: 0 !important;
+  z-index: 100 !important;
+}
+
+.detail-giao-hang-upload .ant-upload-list-item-actions .ant-upload-list-item-action {
+  opacity: 1 !important;
+  position: static !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  z-index: 101 !important;
+  width: 20px !important;
+  height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.detail-giao-hang-upload .ant-upload-list-item-actions .anticon {
+  display: none !important;
+}
+
+/* Thay icon xóa thành nút X màu đỏ */
+.detail-giao-hang-upload .ant-upload-list-item-actions .ant-upload-list-item-action::after {
+  content: "×" !important;
+  color: #ff4d4f !important;
+  font-size: 20px !important;
+  font-weight: bold !important;
+  line-height: 1 !important;
+  display: block !important;
+  z-index: 102 !important;
+  position: relative !important;
 }
 
 /* Status Buttons */

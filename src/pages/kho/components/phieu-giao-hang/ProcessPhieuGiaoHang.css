@@ -70,8 +70,6 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #f0f0f0;
 }
 
 .process-card-icon {
@@ -100,6 +98,29 @@
   font-weight: 600;
   font-size: 15px;
   color: #262626;
+}
+
+.process-card-title-inline {
+  flex: none;
+}
+
+.process-card-header-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.process-card-header-meta {
+  font-size: 14px;
+  color: #595959;
+  font-weight: 500;
+}
+
+.process-card-header-date {
+  color: #8c8c8c;
+  font-weight: 400;
+  margin-left: auto;
 }
 
 /* Info grid */
@@ -157,11 +178,6 @@
   width: 90px;
 }
 
-.process-info-row .process-info-value {
-  flex: 1;
-  text-align: right;
-}
-
 /* Package count */
 .process-card-highlight {
   background: linear-gradient(135deg, #fff0f6 0%, #fff 100%);
@@ -172,7 +188,6 @@
   font-weight: 700;
   color: #eb2f96;
   text-align: center;
-  padding: 12px 0;
 }
 
 .process-package-count span {
@@ -192,6 +207,41 @@
   border: 1px dashed #d9d9d9;
   border-radius: 12px;
   padding: 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Đảm bảo container upload có width cố định */
+.process-upload-list-wrapper .ant-upload {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+.process-upload-list-wrapper .ant-upload-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+.process-upload-list-wrapper .ant-upload-list {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  box-sizing: border-box;
+}
+
+.process-upload-milestone .ant-upload-list {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  box-sizing: border-box;
 }
 
 .process-upload-label {
@@ -202,22 +252,272 @@
   font-size: 14px;
   color: #1890ff;
   margin-bottom: 12px;
+  flex-shrink: 0;
+  width: 100%;
 }
 
-.process-upload-milestone .ant-upload-list-picture-card {
+/* Wrapper cho button chụp ảnh */
+.process-upload-button-wrapper {
+  margin-top: 12px;
+  margin-bottom: 0;
+  width: 100%;
   display: flex;
-  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.process-upload-button-wrapper .ant-upload {
+  width: auto;
+}
+
+.process-upload-button-wrapper .ant-upload-list {
+  display: none !important;
+}
+
+.process-upload-button-wrapper .ant-upload-select {
+  width: 80px !important;
+  height: 80px !important;
+  margin: 0 !important;
+}
+
+/* Wrapper cho upload list để kiểm soát overflow */
+.process-upload-list-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+
+.process-upload-list-wrapper .ant-upload {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+.process-upload-list-wrapper .ant-upload-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+.process-upload-list-wrapper .ant-upload-list {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  display: block !important;
+  box-sizing: border-box;
+}
+
+/* Ẩn button upload trong list ảnh */
+.process-upload-list-wrapper .ant-upload-select {
+  display: none !important;
+}
+
+/* Đảm bảo list picture card trong wrapper hiển thị đầy đủ và có thể scroll */
+.process-upload-list-wrapper .ant-upload-list-picture-card {
+  display: flex !important;
+  flex-wrap: nowrap !important;
   gap: 8px;
+  padding-bottom: 4px;
+  margin: 0 !important;
+  width: max-content !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+
+/* CSS chung cho picture card */
+.process-upload-milestone .ant-upload-list-picture-card {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 8px;
+  padding-bottom: 4px;
+  margin: 0 !important;
+  width: max-content !important;
+  max-width: none !important;
+}
+
+/* Đảm bảo tất cả ảnh hiển thị */
+.process-upload-list-wrapper .ant-upload-list-picture-card .ant-upload-list-item {
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  flex-shrink: 0 !important;
+  width: 80px !important;
+  height: 80px !important;
+  margin: 0 !important;
+  position: relative !important;
+}
+
+/* Đảm bảo tất cả item trong list wrapper được hiển thị */
+.process-upload-list-wrapper .ant-upload-list-item {
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  flex-shrink: 0 !important;
+  width: 80px !important;
+  height: 80px !important;
+  margin: 0 !important;
+}
+
+/* Đảm bảo container picture-card có thể mở rộng */
+.process-upload-list-wrapper .ant-upload-list-picture-card-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  display: block !important;
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar cho upload list wrapper */
+.process-upload-list-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.process-upload-list-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.process-upload-list-wrapper::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.process-upload-list-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Custom scrollbar cho upload list (fallback) */
+.process-upload-milestone .ant-upload-list::-webkit-scrollbar {
+  height: 6px;
+}
+
+.process-upload-milestone .ant-upload-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.process-upload-milestone .ant-upload-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.process-upload-milestone .ant-upload-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .process-upload-milestone .ant-upload-select {
   width: 80px !important;
   height: 80px !important;
+  flex-shrink: 0 !important;
 }
 
 .process-upload-milestone .ant-upload-list-item {
   width: 80px !important;
   height: 80px !important;
+  cursor: pointer !important;
+  position: relative !important;
+  flex-shrink: 0 !important;
+}
+
+.process-upload-milestone .ant-upload-list-item-thumbnail {
+  cursor: pointer !important;
+}
+
+.process-upload-milestone .ant-upload-list-item-thumbnail img {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+/* Bỏ hover effect và overlay khi hover vào ảnh */
+.process-upload-milestone .ant-upload-list-item:hover .ant-upload-list-item-actions {
+  opacity: 1 !important;
+  background: transparent !important;
+}
+
+.process-upload-milestone .ant-upload-list-item:hover {
+  border-color: #d9d9d9 !important;
+}
+
+.process-upload-milestone .ant-upload-list-item:hover .ant-upload-list-item-thumbnail {
+  opacity: 1 !important;
+}
+
+/* Bỏ overlay mask che ảnh */
+.process-upload-milestone .ant-upload-list-item::before {
+  display: none !important;
+  content: none !important;
+}
+
+.process-upload-milestone .ant-upload-list-item::after {
+  display: none !important;
+  content: none !important;
+}
+
+.process-upload-milestone .ant-upload-list-item-mask {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.process-upload-milestone .ant-upload-list-item:hover .ant-upload-list-item-mask {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  background: transparent !important;
+}
+
+.process-upload-milestone .ant-upload-list-item-actions {
+  position: absolute !important;
+  top: -5px !important;
+  right: -0px !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: auto !important;
+  height: auto !important;
+  background: transparent !important;
+  opacity: 1 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: flex-end !important;
+  padding: 0 !important;
+  z-index: 100 !important;
+}
+
+.process-upload-milestone .ant-upload-list-item-actions .ant-upload-list-item-action {
+  opacity: 1 !important;
+  position: static !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  z-index: 101 !important;
+  width: 20px !important;
+  height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.process-upload-milestone .ant-upload-list-item-actions .anticon {
+  display: none !important;
+}
+
+/* Thay icon xóa thành nút X màu đỏ */
+.process-upload-milestone .ant-upload-list-item-actions .ant-upload-list-item-action::after {
+  content: "×" !important;
+  color: #ff4d4f !important;
+  font-size: 20px !important;
+  font-weight: bold !important;
+  line-height: 1 !important;
+  display: block !important;
+  z-index: 102 !important;
+  position: relative !important;
 }
 
 /* Timeline */

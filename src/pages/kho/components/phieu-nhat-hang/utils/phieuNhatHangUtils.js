@@ -243,8 +243,9 @@ export const buildPhieuNhatHangPayload = (
     ngay_ct: isUpdate && phieuData?.ngay_ct ? phieuData.ngay_ct : orderDate,
     // Khi update, ưu tiên giữ nguyên so_ct từ API để tránh bị reset thành rỗng
     so_ct: isUpdate && phieuData?.so_ct ? phieuData.so_ct : (values.soPhieu || ""),
-    ong_ba: values.maKhach || "",
-    ma_kh: values.maKhach || "",
+    ong_ba: values.maKhach || (isUpdate && phieuData?.ong_ba ? phieuData.ong_ba : ""),
+    // Khi update, nếu values.maKhach rỗng thì giữ nguyên ma_kh từ phieuData
+    ma_kh: values.maKhach || (isUpdate && phieuData?.ma_kh ? phieuData.ma_kh : ""),
     dien_giai: values.dienGiai || "",
     status: values.trangThai || "0",
     t_so_luong: totalQuantity,

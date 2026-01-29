@@ -7,7 +7,7 @@ import router from "./router/routes";
 import store from "./store";
 
 //primereact
-import { ConfigProvider } from "antd";
+import { ConfigProvider, message } from "antd";
 import locale from "antd/locale/vi_VN";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
@@ -24,6 +24,13 @@ import themeComponents from "./utils/theme";
 
 dayjs.extend(updateLocale);
 dayjs.updateLocale("vi", {});
+
+// Cấu hình message: chỉ hiển thị 1 message tại một thời điểm
+message.config({
+  maxCount: 1,
+  duration: 3,
+  top: 24,
+});
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(

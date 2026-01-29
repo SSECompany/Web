@@ -13,6 +13,7 @@ export const fetchPhieuNhatHangList = async (params) => {
       DateTo: params.DateTo || "",
       ngay_ct: params.ngay_ct || "",
       ma_kh: params.ma_kh || "",
+      ten_kh: params.ten_kh || "",
       status: params.Status || "",
       ma_ban: params.ma_ban || "",
       s2: params.s2 || "",

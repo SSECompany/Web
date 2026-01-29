@@ -24,6 +24,7 @@ import {
   fetchPhieuGiaoHangDataByQR,
   fetchPhieuGiaoHangDataByView,
   updateDeliveryStatus,
+  uploadDeliveryImage,
 } from "./utils/phieuGiaoHangApi";
 import {
   buildPhieuGiaoHangPayload,
@@ -46,6 +47,11 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
   const [activeTab, setActiveTab] = useState("master");
   const [imageList, setImageList] = useState([]);
   const [logStatus, setLogStatus] = useState([]);
+  const [previewImage, setPreviewImage] = useState({
+    visible: false,
+    url: "",
+    title: "",
+  });
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [statusAction, setStatusAction] = useState("");
   const [statusNote, setStatusNote] = useState("");
@@ -100,6 +106,17 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sctRec]);
 
+  // Cleanup: revoke blob URLs khi component unmount
+  useEffect(() => {
+    return () => {
+      imageList.forEach((file) => {
+        if (file.url && file.url.startsWith("blob:")) {
+          URL.revokeObjectURL(file.url);
+        }
+      });
+    };
+  }, [imageList]);
+
   const loadPhieuData = async () => {
     setLoading(true);
     try {
@@ -142,8 +159,51 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
           status: result.master.status,
         });
 
-        // Load images if available
-        if (result.master.images) {
+        // Load images from imageUrls (ưu tiên) hoặc từ images cũ
+        if (result.imageUrls && result.imageUrls.length > 0) {
+          const token = localStorage.getItem("access_token");
+          
+          // Helper function để fetch ảnh với Bearer token
+          const fetchImageWithToken = async (imageUrl) => {
+            if (!token) return imageUrl;
+            
+            try {
+              const response = await fetch(imageUrl, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+              
+              if (!response.ok) {
+                console.warn("Failed to fetch image with token, using original URL");
+                return imageUrl;
+              }
+              
+              const blob = await response.blob();
+              return URL.createObjectURL(blob);
+            } catch (error) {
+              console.error("Error fetching image with token:", error);
+              return imageUrl;
+            }
+          };
+          
+          // Fetch tất cả ảnh với token
+          const imagePromises = result.imageUrls.map(async (img, index) => {
+            const blobUrl = await fetchImageWithToken(img.url);
+            return {
+              uid: `existing-${index}-${Date.now()}`,
+              name: img.originalName || `image-${index + 1}`,
+              status: "done",
+              url: blobUrl,
+              response: { url: img.url },
+              originalUrl: img.url, // Lưu URL gốc để dùng sau
+            };
+          });
+          
+          const imageFileList = await Promise.all(imagePromises);
+          setImageList(imageFileList);
+        } else if (result.master.images) {
+          // Fallback: load từ images cũ nếu có
           setImageList(JSON.parse(result.master.images || "[]"));
         }
 
@@ -255,8 +315,131 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
     navigate(returnUrl);
   };
 
+  // Handle image upload - chỉ lưu vào state, không upload ngay
   const handleImageUpload = ({ fileList }) => {
     setImageList(fileList);
+  };
+
+  // Handle preview ảnh
+  const handlePreview = async (file) => {
+    // Nếu file có blob URL (đã fetch với token), dùng luôn
+    if (file.url && file.url.startsWith("blob:")) {
+      setPreviewImage({
+        visible: true,
+        url: file.url,
+        title: file.name || "Preview",
+      });
+      return;
+    }
+    
+    // Nếu có originalUrl, fetch lại với token
+    if (file.originalUrl) {
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        try {
+          const response = await fetch(file.originalUrl, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            setPreviewImage({
+              visible: true,
+              url: blobUrl,
+              title: file.name || "Preview",
+            });
+            return;
+          }
+        } catch (error) {
+          console.error("Error fetching image for preview:", error);
+        }
+      }
+    }
+    
+    // Fallback: dùng URL gốc
+    setPreviewImage({
+      visible: true,
+      url: file.url || file.thumbUrl || "",
+      title: file.name || "Preview",
+    });
+  };
+
+  // Upload tất cả ảnh chưa được upload
+  const uploadPendingImages = async () => {
+    const sttRec = phieuData?.stt_rec || form.getFieldValue("stt_rec");
+    if (!sttRec) {
+      return { success: true }; // Không có stt_rec thì bỏ qua
+    }
+
+    const pendingImages = imageList.filter(
+      (file) => !file.url && !file.response && file.originFileObj
+    );
+
+    if (pendingImages.length === 0) {
+      return { success: true };
+    }
+
+    const uploadPromises = pendingImages.map(async (file) => {
+      try {
+        const result = await uploadDeliveryImage({
+          file: file.originFileObj || file,
+          stt_rec: sttRec,
+          isPublicAccess: false,
+          slug: "",
+        });
+
+        if (result.success) {
+          return {
+            uid: file.uid,
+            url: result.data?.url,
+            response: result.data,
+            success: true,
+          };
+        } else {
+          return {
+            uid: file.uid,
+            success: false,
+            error: result.message,
+          };
+        }
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        return {
+          uid: file.uid,
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    const results = await Promise.all(uploadPromises);
+    const failedUploads = results.filter((r) => !r.success);
+
+    // Update file list with uploaded URLs
+    const updatedFileList = imageList.map((file) => {
+      const result = results.find((r) => r.uid === file.uid);
+      if (result && result.success) {
+        return {
+          ...file,
+          status: "done",
+          url: result.url,
+          response: result.response,
+        };
+      }
+      return file;
+    });
+
+    setImageList(updatedFileList);
+
+    if (failedUploads.length > 0) {
+      message.warning(`Có ${failedUploads.length} ảnh upload thất bại`);
+      return { success: false, failedCount: failedUploads.length };
+    }
+
+    return { success: true };
   };
 
 
@@ -276,7 +459,6 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
       // Map action sang status code theo đúng workflow tuần tự (mapping mới: 1-7)
       // 1: Lập chứng từ, 2: Lưu kho, 3: Xuất hàng, 4: Đã tiếp nhận, 5: Bàn giao ĐVVC, 6: Hoàn thành, 7: Thất bại
       const statusMap = {
-        luu_kho: "2",      // Lưu kho
         xuat_hang: "3",    // Xuất hàng
         tiep_nhan: "4",    // Đã tiếp nhận
         ban_giao: "5",     // Bàn giao ĐVVC
@@ -295,7 +477,7 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
       let unitCode = phieuData?.ma_dvs?.trim() || unitsResponse.unitCode?.trim() || userInfo?.ma_dvcs?.trim() || "TAPMED";
       unitCode = unitCode.trim();
 
-      // Gọi API update status
+      // Gọi API update status TRƯỚC để đảm bảo có stt_rec
       const result = await updateDeliveryStatus({
         unitCode: unitCode,
         voucherId: phieuData?.stt_rec || form.getFieldValue("stt_rec"),
@@ -317,6 +499,12 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
           setPhieuData({ ...phieuData, status: newStatus });
         }
 
+        // Upload ảnh SAU KHI đã cập nhật trạng thái thành công (đảm bảo có stt_rec)
+        const uploadResult = await uploadPendingImages();
+        if (!uploadResult.success && uploadResult.failedCount > 0) {
+          message.warning(`Có ${uploadResult.failedCount} ảnh upload thất bại`);
+        }
+
         // Add to log
         const newLog = {
           action: getStatusActionText(statusAction),
@@ -329,10 +517,15 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
         setStatusModalVisible(false);
         setStatusNote("");
         
+        message.success("Cập nhật trạng thái thành công!");
+        
         // Reload data để lấy log mới nhất
         if (sctRec && sctRec !== "0") {
           await loadPhieuData();
         }
+      } else {
+        // Hiển thị lỗi từ API
+        message.error(result.message || "Có lỗi xảy ra khi cập nhật trạng thái");
       }
     } catch (error) {
       console.error("Error updating status:", error);
@@ -342,7 +535,6 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
 
   const getStatusActionText = (action) => {
     const map = {
-      luu_kho: "Lưu kho",
       xuat_hang: "Xuất hàng",
       tiep_nhan: "Đã tiếp nhận",
       ban_giao: "Bàn giao ĐVVC",
@@ -490,7 +682,27 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
                 listType="picture-card"
                 fileList={imageList}
                 onChange={handleImageUpload}
+                onPreview={handlePreview}
                 beforeUpload={() => false}
+                showUploadList={{
+                  showPreviewIcon: false,
+                  showRemoveIcon: true,
+                }}
+                itemRender={(originNode, file, fileList, actions) => {
+                  return (
+                    <div
+                      onClick={(e) => {
+                        // Chỉ trigger preview nếu không click vào nút remove
+                        if (!e.target.closest('.ant-upload-list-item-actions')) {
+                          handlePreview(file);
+                        }
+                      }}
+                      style={{ cursor: "pointer", width: "100%", height: "100%" }}
+                    >
+                      {originNode}
+                    </div>
+                  );
+                }}
               >
                 {imageList.length >= 8 ? null : (
                   <div>
@@ -500,13 +712,6 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
                 )}
               </Upload>
             </div>
-
-            {renderStatusButtons() && (
-              <div className="detail-giao-hang-status-buttons">
-                <div className="detail-giao-hang-status-title">Trạng thái xử lý</div>
-                {renderStatusButtons()}
-              </div>
-            )}
           </div>
         </div>
       ),
@@ -613,6 +818,44 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
             />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Image Preview Modal */}
+      <Modal
+        open={previewImage.visible}
+        title={previewImage.title}
+        footer={null}
+        onCancel={() => {
+          setPreviewImage({ visible: false, url: "", title: "" });
+          // Revoke blob URL nếu là blob
+          if (previewImage.url && previewImage.url.startsWith("blob:")) {
+            URL.revokeObjectURL(previewImage.url);
+          }
+        }}
+        width="80%"
+        style={{ maxWidth: "900px" }}
+        centered
+        bodyStyle={{ 
+          padding: "20px",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          maxHeight: "80vh",
+          overflow: "auto"
+        }}
+      >
+        <Image
+          src={previewImage.url}
+          alt={previewImage.title}
+          style={{ 
+            maxWidth: "100%",
+            maxHeight: "70vh",
+            objectFit: "contain",
+            display: "block",
+            margin: "0 auto"
+          }}
+          preview={false}
+        />
       </Modal>
     </div>
   );

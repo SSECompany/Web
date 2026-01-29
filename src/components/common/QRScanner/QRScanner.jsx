@@ -5,8 +5,8 @@ import {
   KeyOutlined,
   QrcodeOutlined,
 } from "@ant-design/icons";
-import { Alert, Button, Card, Modal, Space } from "antd";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Alert, Button, Card, Input, Modal, Space, notification } from "antd";
+import { Html5Qrcode } from "html5-qrcode";
 import React, { useEffect, useRef, useState } from "react";
 import notificationManager from "../../../utils/notificationManager";
 import "./QRScanner.css";
@@ -59,6 +59,12 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
   const cleanupScannerSync = () => {
     if (scanner) {
       try {
+        // Try to stop the scanner first if it's running
+        if (scanner.getState && scanner.getState() === 2) { // State 2 = SCANNING
+          scanner.stop().catch((error) => {
+            console.error("Error stopping scanner:", error);
+          });
+        }
         scanner.clear();
       } catch (error) {
         console.error("Error clearing scanner:", error);
@@ -103,111 +109,72 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
     };
   }, [isOpen, openWithCamera]);
 
-  const initializeScanner = () => {
+  const initializeScanner = async () => {
     try {
-      // Kiểm tra quyền truy cập camera trước
-      navigator.mediaDevices
-        .getUserMedia({
-          video: {
-            facingMode: "environment", // Ưu tiên camera sau trên mobile
-          },
-        })
-        .then((stream) => {
-          // Có quyền truy cập camera, tiếp tục khởi tạo scanner
-          stream.getTracks().forEach((track) => track.stop()); // Dừng stream test
+      // Ưu tiên camera sau (environment) – sau khi cấp quyền sẽ mở thẳng cam sau trên mobile
+      const videoConstraints = { facingMode: "environment" };
+      const scanConfig = {
+        fps: 5,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+      };
 
-          const html5QrcodeScanner = new Html5QrcodeScanner(
-            "qr-reader",
-            {
-              fps: 5, // Giảm fps để giảm số lần quét và tránh spam
-              qrbox: { width: 250, height: 250 },
-              aspectRatio: 1.0,
-              rememberLastUsedCamera: true,
-            },
-            false
-          );
+      const html5Qrcode = new Html5Qrcode("qr-reader", { verbose: false });
+      hasProcessedRef.current = false;
 
-          // Wrapper để đảm bảo chỉ gọi handleScanSuccess một lần
-          hasProcessedRef.current = false;
-          html5QrcodeScanner.render((decodedText, decodedResult) => {
-            // Kiểm tra nếu đang xử lý - chặn ngay lập tức
-            if (isProcessingRef.current || hasProcessedRef.current) {
-              return;
-            }
+      await html5Qrcode.start(
+        videoConstraints,
+        scanConfig,
+        (decodedText, decodedResult) => {
+          if (isProcessingRef.current || hasProcessedRef.current) return;
 
-            const now = Date.now();
-            const trimmedCode = decodedText.trim();
-            
-            // Kiểm tra nếu mã này vừa được quét trong vòng 3 giây
-            if (
-              lastScannedCodeRef.current.code === trimmedCode &&
-              now - lastScannedCodeRef.current.timestamp < 3000
-            ) {
-              return; // Bỏ qua nếu là mã trùng lặp
-            }
+          const now = Date.now();
+          const trimmedCode = decodedText.trim();
+          if (
+            lastScannedCodeRef.current.code === trimmedCode &&
+            now - lastScannedCodeRef.current.timestamp < 3000
+          ) {
+            return;
+          }
 
-            // Đánh dấu NGAY LẬP TỨC để chặn các callback tiếp theo
-            isProcessingRef.current = true;
-            hasProcessedRef.current = true;
-            
-            // Hiển thị notification chỉ 1 lần
-            notificationManager.showNotificationOnce(
-              trimmedCode,
-              "Quét QR thành công",
-              `Đã quét được mã: ${trimmedCode}`
-            );
+          isProcessingRef.current = true;
+          hasProcessedRef.current = true;
 
-            // Dừng scanner NGAY LẬP TỨC để tránh callback tiếp theo
+          const stopAndNotify = async () => {
             try {
-              html5QrcodeScanner.clear();
-            } catch (error) {
-              console.error("Error clearing scanner in render:", error);
+              await html5Qrcode.stop();
+            } catch (e) {
+              console.error("Error stopping scanner:", e);
             }
+            html5Qrcode.clear();
             setScanner(null);
             setIsScanning(false);
-            // Cleanup camera streams
             cleanupCameraStreams();
-
-            // Đánh dấu đã xử lý mã này
-            lastScannedCodeRef.current = {
-              code: trimmedCode,
-              timestamp: now,
-            };
-
-            // Đóng modal
+            lastScannedCodeRef.current = { code: trimmedCode, timestamp: now };
             onClose();
-
-            // Gọi callback với kết quả quét được
-            handleScanSuccess(trimmedCode, decodedResult);
-
-            // Reset processing flag sau 3 giây để cho phép quét mã mới
+            onScanSuccess(trimmedCode, decodedResult);
             setTimeout(() => {
               isProcessingRef.current = false;
               hasProcessedRef.current = false;
             }, 3000);
-          }, onScanError);
-          setScanner(html5QrcodeScanner);
-          setIsScanning(true);
-          setCameraError(false);
-        })
-        .catch((error) => {
-          console.error("Camera permission denied:", error);
-          setCameraError(true);
-          setIsScanning(false);
-          notification.warning({
-            message: "Không thể truy cập camera",
-            description:
-              "Vui lòng cho phép truy cập camera hoặc sử dụng nhập mã thủ công.",
-          });
-        });
+          };
+
+          stopAndNotify();
+        },
+        onScanError
+      );
+
+      setScanner(html5Qrcode);
+      setIsScanning(true);
+      setCameraError(false);
     } catch (error) {
       console.error("Error initializing QR scanner:", error);
       setCameraError(true);
       setIsScanning(false);
-      notification.error({
-        message: "Lỗi khởi tạo camera",
+      notification.warning({
+        message: "Không thể truy cập camera",
         description:
-          "Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập camera.",
+          "Vui lòng cho phép truy cập camera hoặc sử dụng nhập mã thủ công.",
       });
     }
   };
@@ -231,7 +198,22 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
       if (isProcessingRef.current) {
         return;
       }
-      handleScanSuccess(manualInput.trim());
+      
+      const trimmedCode = manualInput.trim();
+      
+      // Đánh dấu đang xử lý
+      isProcessingRef.current = true;
+      
+      // Đóng modal
+      onClose();
+      
+      // Gọi callback với kết quả
+      handleScanSuccess(trimmedCode);
+      
+      // Reset processing flag sau 3 giây
+      setTimeout(() => {
+        isProcessingRef.current = false;
+      }, 3000);
     } else {
       notification.warning({
         message: "Vui lòng nhập mã",
@@ -334,82 +316,113 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
               </Card>
             </Space>
           </div>
-        ) : (
-          scanMode === "camera" && (
-            // Màn hình quét camera
-            <div>
-              <div className="qr-scanner-instructions">
-                <p>Đặt mã QR/Bar code vào khung hình để quét</p>
-                <p className="qr-hint">Đảm bảo mã rõ ràng và đủ ánh sáng</p>
-              </div>
+        ) : scanMode === "camera" ? (
+          // Màn hình quét camera
+          <div>
+            <div className="qr-scanner-instructions">
+              <p>Đặt mã QR/Bar code vào khung hình để quét</p>
+              <p className="qr-hint">Đảm bảo mã rõ ràng và đủ ánh sáng</p>
+            </div>
 
-              {cameraError ? (
-                <div className="qr-scanner-error">
-                  <Alert
-                    message="Không thể truy cập camera"
-                    description="Vui lòng kiểm tra quyền truy cập camera hoặc sử dụng nhập mã thủ công."
-                    type="warning"
-                    showIcon
-                    style={{ marginBottom: 16 }}
-                  />
+            {cameraError ? (
+              <div className="qr-scanner-error">
+                <Alert
+                  message="Không thể truy cập camera"
+                  description="Vui lòng kiểm tra quyền truy cập camera hoặc sử dụng nhập mã thủ công."
+                  type="warning"
+                  showIcon
+                  style={{ marginBottom: 16 }}
+                />
 
-                  <div className="camera-permission-help">
-                    <h4>Hướng dẫn cấp quyền camera:</h4>
-                    <ul>
-                      <li>
-                        <strong>Chrome:</strong> Click vào biểu tượng camera bị
-                        chặn trên thanh địa chỉ → Chọn "Cho phép"
-                      </li>
-                      <li>
-                        <strong>Safari:</strong> Safari → Preferences → Websites
-                        → Camera → Chọn "Allow"
-                      </li>
-                      <li>
-                        <strong>Firefox:</strong> Click vào biểu tượng camera →
-                        Chọn "Cho phép"
-                      </li>
-                      <li>
-                        <strong>Mobile:</strong> Vào Settings → Privacy → Camera
-                        → Bật cho ứng dụng web
-                      </li>
-                    </ul>
-                  </div>
+                <div className="camera-permission-help">
+                  <h4>Hướng dẫn cấp quyền camera:</h4>
+                  <ul>
+                    <li>
+                      <strong>Chrome:</strong> Click vào biểu tượng camera bị
+                      chặn trên thanh địa chỉ → Chọn "Cho phép"
+                    </li>
+                    <li>
+                      <strong>Safari:</strong> Safari → Preferences → Websites
+                      → Camera → Chọn "Allow"
+                    </li>
+                    <li>
+                      <strong>Firefox:</strong> Click vào biểu tượng camera →
+                      Chọn "Cho phép"
+                    </li>
+                    <li>
+                      <strong>Mobile:</strong> Vào Settings → Privacy → Camera
+                      → Bật cho ứng dụng web
+                    </li>
+                  </ul>
+                </div>
 
-                  <Space direction="vertical" style={{ width: "100%" }}>
-                    <Button
-                      type="primary"
-                      icon={<CameraOutlined />}
-                      onClick={handleRetryCamera}
-                      style={{ width: "100%" }}
-                    >
-                      Thử lại camera
-                    </Button>
+                <Space direction="vertical" style={{ width: "100%" }}>
+                  <Button
+                    type="primary"
+                    icon={<CameraOutlined />}
+                    onClick={handleRetryCamera}
+                    style={{ width: "100%" }}
+                  >
+                    Thử lại camera
+                  </Button>
 
                     <Button
                       type="default"
                       icon={<KeyOutlined />}
-                      onClick={() => setScanMode("barcode")}
+                      onClick={async () => {
+                        await cleanupScanner();
+                        setScanMode("barcode");
+                      }}
                       style={{ width: "100%" }}
                     >
                       Chuyển sang nhập mã thủ công
                     </Button>
-                  </Space>
-                </div>
-              ) : (
-                <div className="qr-scanner-container">
-                  <div id="qr-reader" ref={scannerRef}></div>
+                </Space>
+              </div>
+            ) : (
+              <div className="qr-scanner-container">
+                <div id="qr-reader" ref={scannerRef}></div>
 
-                  {!isScanning && (
-                    <div className="qr-scanner-placeholder">
-                      <QrcodeOutlined className="qr-placeholder-icon" />
-                      <p>Đang khởi tạo camera...</p>
-                    </div>
-                  )}
-                </div>
-              )}
+                {!isScanning && (
+                  <div className="qr-scanner-placeholder">
+                    <QrcodeOutlined className="qr-placeholder-icon" />
+                    <p>Đang khởi tạo camera...</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : scanMode === "barcode" ? (
+          // Màn hình nhập mã thủ công
+          <div className="manual-input-section">
+            <div className="qr-scanner-instructions">
+              <p>Nhập mã sản phẩm thủ công</p>
+              <p className="qr-hint">Nhập mã QR/Bar code vào ô bên dưới</p>
             </div>
-          )
-        )}
+
+            <Space direction="vertical" style={{ width: "100%" }} size="large">
+              <Input
+                placeholder="Nhập mã sản phẩm..."
+                value={manualInput}
+                onChange={(e) => setManualInput(e.target.value)}
+                onPressEnter={handleManualInput}
+                size="large"
+                autoFocus
+                allowClear
+              />
+
+              <Button
+                type="primary"
+                icon={<KeyOutlined />}
+                onClick={handleManualInput}
+                style={{ width: "100%" }}
+                size="large"
+              >
+                Xác nhận
+              </Button>
+            </Space>
+          </div>
+        ) : null}
 
         <div className="qr-scanner-actions">
           {scanMode && (

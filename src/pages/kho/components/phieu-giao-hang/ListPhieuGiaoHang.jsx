@@ -14,7 +14,6 @@ import {
   PhoneOutlined,
   CalendarOutlined,
   FileTextOutlined,
-  GiftOutlined
 } from "@ant-design/icons";
 import { Input, Spin, message, Tag, Badge } from "antd";
 import dayjs from "dayjs";
@@ -35,10 +34,21 @@ const ListPhieuGiaoHang = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [activeFilter, setActiveFilter] = useState("exported");
   const [searchText, setSearchText] = useState("");
+  const [expandedCards, setExpandedCards] = useState(() => new Set());
+  const [showSearch, setShowSearch] = useState(false);
 
   const pageSize = 20;
+
+  const toggleCardExpand = (key) => {
+    setExpandedCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
   const hasInitialLoad = useRef(false);
   const userInfoRef = useRef(userInfo);
 
@@ -47,34 +57,23 @@ const ListPhieuGiaoHang = () => {
   }, [userInfo]);
 
   const fetchPhieuGiaoHang = useCallback(
-    async (pageIndex = currentPage, statusFilter = "") => {
+    async (pageIndex = 1, statusFilter = "") => {
       if (isLoading) return;
 
-      const currentUserInfo = userInfoRef.current;
-      if (!currentUserInfo || (!currentUserInfo.id && !currentUserInfo.userId)) {
-        return;
-      }
+      const token = localStorage.getItem("access_token");
+      if (!token) return;
 
       const unitsResponse = JSON.parse(localStorage.getItem("unitsResponse") || "{}");
-      const userId = currentUserInfo?.id || currentUserInfo?.userId || "";
-      const unitId = currentUserInfo?.unitId || unitsResponse?.unitId || "";
-      const storeId = currentUserInfo?.storeId || "";
+      const currentUserInfo = userInfoRef.current;
+      const unitId = currentUserInfo?.unitId || unitsResponse?.unitId || unitsResponse?.unitCode || "";
 
       setIsLoading(true);
       try {
-        // Map params sang format API mới
         const params = {
           MaDvcs: unitId || "",
           Status: statusFilter || undefined,
           PageIndex: pageIndex,
           PageSize: pageSize,
-          // Có thể thêm các filter khác sau
-          // FromDate: "",
-          // ToDate: "",
-          // CustomerCode: "",
-          // VoucherNo: "",
-          // OrderNumber: "",
-          // VehicleCode: "",
         };
 
         const result = await fetchPhieuGiaoHangList(params);
@@ -87,30 +86,34 @@ const ListPhieuGiaoHang = () => {
         }
       } catch (err) {
         console.error("Lỗi gọi API danh sách phiếu giao hàng:", err);
+        message.error("Không thể tải danh sách phiếu giao hàng. Vui lòng thử lại.");
       } finally {
         setIsLoading(false);
       }
     },
-    [currentPage, pageSize, isLoading]
+    [pageSize, isLoading]
   );
 
   useEffect(() => {
-    const currentUserInfo = userInfoRef.current;
-    if (!currentUserInfo || (!currentUserInfo.id && !currentUserInfo.userId)) {
-      return;
-    }
-    if (!hasInitialLoad.current) {
-      hasInitialLoad.current = true;
-      fetchPhieuGiaoHang(1, "");
-    }
-  }, [userInfo?.id, userInfo?.userId]);
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    if (hasInitialLoad.current) return;
+    hasInitialLoad.current = true;
+    fetchPhieuGiaoHang(1, "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleQRScan = (decodedText) => {
     message.success(`Quét thành công: ${decodedText}`);
     setShowQRScanner(false);
-    // Navigate to detail với mã QR - dùng API /Delivery/:voucherId
-    navigate(`/kho/giao-hang/chi-tiet/${decodedText}`, {
-      state: { sctRec: decodedText, returnUrl: location.pathname, fromQR: true }
+    // Navigate to xử lý giao hàng với mã QR - dùng API /Delivery/:voucherId
+    navigate(`/kho/giao-hang/xu-ly/${decodedText}`, {
+      state: { 
+        sctRec: decodedText, 
+        returnUrl: location.pathname, 
+        fromQR: true,
+        mode: "process"
+      }
     });
   };
 
@@ -123,21 +126,17 @@ const ListPhieuGiaoHang = () => {
   const filteredData = useMemo(() => {
     let data = allData;
     
-    // Lọc theo status - 7 trạng thái riêng biệt (mapping mới: 1-7)
-    if (activeFilter !== "all") {
-      const statusMap = {
-        "created": "1",      // Lập chứng từ
-        "stored": "2",        // Lưu kho
-        "exported": "3",      // Xuất hàng
-        "received": "4",      // Đã tiếp nhận
-        "handover": "5",      // Bàn giao ĐVVC
-        "completed": "6",    // Hoàn thành
-        "failed": "7",       // Thất bại
-      };
-      const targetStatus = statusMap[activeFilter];
-      if (targetStatus) {
-        data = data.filter(item => String(item.status) === targetStatus);
-      }
+    // Lọc theo status - 6 trạng thái riêng biệt (mapping mới: 2-7, bỏ 1)
+    const statusMap = {
+      "exported": "3",      // Xuất hàng
+      "received": "4",      // Đã tiếp nhận
+      "handover": "5",      // Bàn giao ĐVVC
+      "completed": "6",    // Hoàn thành
+      "failed": "7",       // Thất bại
+    };
+    const targetStatus = statusMap[activeFilter];
+    if (targetStatus) {
+      data = data.filter(item => String(item.status) === targetStatus);
     }
     
     // Lọc theo search text
@@ -172,7 +171,6 @@ const ListPhieuGiaoHang = () => {
   const getStatusClass = (status) => {
     switch (String(status)) {
       case "1": return "created";     // Lập chứng từ
-      case "2": return "stored";       // Lưu kho
       case "3": return "exported";     // Xuất hàng
       case "4": return "received";     // Đã tiếp nhận
       case "5": return "handover";     // Bàn giao ĐVVC
@@ -185,7 +183,6 @@ const ListPhieuGiaoHang = () => {
   const getStatusText = (status) => {
     switch (String(status)) {
       case "1": return "Lập chứng từ";
-      case "2": return "Lưu kho";
       case "3": return "Xuất hàng";
       case "4": return "Đã tiếp nhận";
       case "5": return "Bàn giao ĐVVC";
@@ -270,75 +267,33 @@ const ListPhieuGiaoHang = () => {
           <button className="giao-hang-back-btn" onClick={() => navigate("/kho")}>
             <LeftOutlined />
           </button>
-          <h1 className="giao-hang-title">GIAO HÀNG</h1>
-          <div style={{ width: 40 }} />
+          <div className="giao-hang-header-center">
+            <h1 className={`giao-hang-title ${showSearch ? "giao-hang-title-hidden" : ""}`}>
+              GIAO HÀNG
+            </h1>
+            <div className={`giao-hang-search-in-header ${showSearch ? "giao-hang-search-open" : ""}`}>
+              <Input
+                className="giao-hang-search-input"
+                placeholder="Tìm phiếu, khách hàng, đơn hàng..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                allowClear
+                autoFocus={showSearch}
+              />
+            </div>
+          </div>
+          <button 
+            className="giao-hang-search-btn" 
+            onClick={() => setShowSearch(!showSearch)}
+          >
+            <SearchOutlined />
+          </button>
         </div>
       </div>
 
-      {/* Stats - Hiển thị đầy đủ 7 trạng thái */}
-      <div className="giao-hang-stats">
-        <div className="giao-hang-stat-item created">
-          <div className="giao-hang-stat-value">{stats.created}</div>
-          <div className="giao-hang-stat-label">Lập chứng từ</div>
-        </div>
-        <div className="giao-hang-stat-item stored">
-          <div className="giao-hang-stat-value">{stats.stored}</div>
-          <div className="giao-hang-stat-label">Lưu kho</div>
-        </div>
-        <div className="giao-hang-stat-item exported">
-          <div className="giao-hang-stat-value">{stats.exported}</div>
-          <div className="giao-hang-stat-label">Xuất hàng</div>
-        </div>
-        <div className="giao-hang-stat-item received">
-          <div className="giao-hang-stat-value">{stats.received}</div>
-          <div className="giao-hang-stat-label">Đã tiếp nhận</div>
-        </div>
-        <div className="giao-hang-stat-item handover">
-          <div className="giao-hang-stat-value">{stats.handover}</div>
-          <div className="giao-hang-stat-label">Bàn giao ĐVVC</div>
-        </div>
-        <div className="giao-hang-stat-item completed">
-          <div className="giao-hang-stat-value">{stats.completed}</div>
-          <div className="giao-hang-stat-label">Hoàn thành</div>
-        </div>
-        <div className="giao-hang-stat-item failed">
-          <div className="giao-hang-stat-value">{stats.failed}</div>
-          <div className="giao-hang-stat-label">Thất bại</div>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="giao-hang-search">
-        <Input
-          className="giao-hang-search-input"
-          placeholder="Tìm phiếu, khách hàng, đơn hàng..."
-          prefix={<SearchOutlined />}
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          allowClear
-        />
-      </div>
-
-      {/* Filter tabs - 7 trạng thái */}
+      {/* Filter tabs - 5 trạng thái (bỏ Tất cả, Lập chứng từ và Lưu kho, bắt đầu từ Xuất hàng) */}
       <div className="giao-hang-filter-tabs">
-        <button 
-          className={`giao-hang-filter-tab ${activeFilter === "all" ? "active" : ""}`}
-          onClick={() => handleFilterChange("all")}
-        >
-          Tất cả ({stats.total})
-        </button>
-        <button 
-          className={`giao-hang-filter-tab ${activeFilter === "created" ? "active" : ""}`}
-          onClick={() => handleFilterChange("created")}
-        >
-          Lập chứng từ ({stats.created})
-        </button>
-        <button 
-          className={`giao-hang-filter-tab ${activeFilter === "stored" ? "active" : ""}`}
-          onClick={() => handleFilterChange("stored")}
-        >
-          Lưu kho ({stats.stored})
-        </button>
         <button 
           className={`giao-hang-filter-tab ${activeFilter === "exported" ? "active" : ""}`}
           onClick={() => handleFilterChange("exported")}
@@ -386,38 +341,33 @@ const ListPhieuGiaoHang = () => {
             <div className="giao-hang-empty-hint">Quét mã QR để nhận phiếu mới</div>
           </div>
         ) : (
-          filteredData.map((item, index) => (
-            <div key={item.stt_rec || index} className="giao-hang-card">
-              {/* Header: Số phiếu + Trạng thái */}
-              <div className="giao-hang-card-header">
+          filteredData.map((item, index) => {
+            const cardKey = item.stt_rec || `idx-${index}`;
+            const isExpanded = expandedCards.has(cardKey);
+            return (
+            <div key={cardKey} className="giao-hang-card">
+              {/* Header: Đơn hàng + Trạng thái */}
+              <div
+                className="giao-hang-card-header giao-hang-card-header-toggle"
+                onClick={() => toggleCardExpand(cardKey)}
+              >
                 <div className="giao-hang-card-header-left">
-                  <span className="giao-hang-card-code">{item.so_ct || "---"}</span>
+                  <span className="giao-hang-card-van-don">
+                    Mã vận đơn: <span className="giao-hang-card-code">{item.ma_van_don || item.so_don_hang || "---"}</span>
+                  </span>
                   <span className="giao-hang-card-date">
-                    <CalendarOutlined /> {item.ngay_ct ? dayjs(item.ngay_ct).format("DD/MM/YYYY") : "---"}
+                    <CalendarOutlined /> {item.ngay_don_hang ? dayjs(item.ngay_don_hang).format("DD/MM/YYYY") : "---"}
                   </span>
                 </div>
-                <Tag color={getStatusColor(item.status)} className="giao-hang-card-status-tag">
-                  {getStatusText(item.status)}
-                </Tag>
+                <div className="giao-hang-card-header-right">
+                  <Tag color={getStatusColor(item.status)} className="giao-hang-card-status-tag">
+                    {getStatusText(item.status)}
+                  </Tag>
+                </div>
               </div>
               
+              {isExpanded && (
               <div className="giao-hang-card-body">
-                {/* Đơn hàng */}
-                <div className="giao-hang-card-row">
-                  <div className="giao-hang-card-icon order">
-                    <FileTextOutlined />
-                  </div>
-                  <div className="giao-hang-card-info">
-                    <div className="giao-hang-card-label">Đơn hàng</div>
-                    <div className="giao-hang-card-value">
-                      {item.so_don_hang || "---"}
-                      {item.ngay_don_hang && (
-                        <span className="giao-hang-card-subtext"> - {dayjs(item.ngay_don_hang).format("DD/MM/YYYY")}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
                 {/* Khách hàng */}
                 <div className="giao-hang-card-row">
                   <div className="giao-hang-card-icon customer">
@@ -462,40 +412,52 @@ const ListPhieuGiaoHang = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+              )}
 
-                {/* Tổng số kiện */}
-                {item.tong_so_kien && (
+              {/* Khi ẩn: hiển thị thông tin khách hàng */}
+              {!isExpanded && (
+                <div className="giao-hang-card-collapsed-info">
                   <div className="giao-hang-card-row">
-                    <div className="giao-hang-card-icon package">
-                      <GiftOutlined />
+                    <div className="giao-hang-card-icon customer">
+                      <UserOutlined />
                     </div>
                     <div className="giao-hang-card-info">
-                      <div className="giao-hang-card-label">Tổng số kiện</div>
-                      <div className="giao-hang-card-value giao-hang-card-value-highlight">
-                        {item.tong_so_kien} kiện
+                      <div className="giao-hang-card-label">Khách hàng</div>
+                      <div className="giao-hang-card-value">
+                        {item.ma_kh && <span className="giao-hang-card-code-small">[{item.ma_kh}]</span>}
+                        {item.ten_kh || "Chưa có"}
                       </div>
+                      {item.sdt_kh && (
+                        <div className="giao-hang-card-phone">
+                          <PhoneOutlined /> {item.sdt_kh}
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* Footer: Các nút hành động */}
-              <div className="giao-hang-card-footer">
-                <button 
-                  className="giao-hang-action-btn view"
-                  onClick={() => handleViewDetail(item)}
-                >
-                  <EyeOutlined /> Xem
-                </button>
-                <button 
-                  className="giao-hang-action-btn process"
-                  onClick={() => handleProcess(item)}
-                >
-                  <SettingOutlined /> Xử lý
-                </button>
-              </div>
+              {/* Footer: Các nút hành động - chỉ hiển thị khi expanded */}
+              {isExpanded && (
+                <div className="giao-hang-card-footer">
+                  <button 
+                    className="giao-hang-action-btn view"
+                    onClick={(e) => { e.stopPropagation(); handleViewDetail(item); }}
+                  >
+                    <EyeOutlined /> Xem
+                  </button>
+                  <button 
+                    className="giao-hang-action-btn process"
+                    onClick={(e) => { e.stopPropagation(); handleProcess(item); }}
+                  >
+                    <SettingOutlined /> Xử lý
+                  </button>
+                </div>
+              )}
             </div>
-          ))
+          );
+          })
         )}
       </div>
 

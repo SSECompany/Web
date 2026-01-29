@@ -69,6 +69,7 @@ const ListPhieuNhatHang = () => {
       f.so_ct ||
       f.so_don_hang ||
       f.ma_kh ||
+      f.ten_kh ||
       f.ma_nhomvitri ||
       f.status ||
       (f.dateRange &&
@@ -259,6 +260,7 @@ const ListPhieuNhatHang = () => {
               : "",
           ngay_ct: "",
           ma_kh: filtersToUse.ma_kh || "",
+          ten_kh: filtersToUse.ten_kh || "",
           Status: normalizeStatus(filtersToUse.status),
           ma_ban: "",
           s2: "",
@@ -362,6 +364,12 @@ const ListPhieuNhatHang = () => {
         key: "ma_kh",
         label: "Mã khách hàng",
         value: filters.ma_kh,
+      });
+    if (filters.ten_kh)
+      chips.push({
+        key: "ten_kh",
+        label: "Tên khách hàng",
+        value: filters.ten_kh,
       });
     if (filters.ma_nhomvitri)
       chips.push({
@@ -559,36 +567,38 @@ const ListPhieuNhatHang = () => {
           dayjs(text).format(screenSize === "mobile" ? "DD/MM" : "DD/MM/YYYY"),
       },
       {
-        title: "Bắt đầu nhặt hàng",
-        dataIndex: "bat_dau_nhat_hang",
-        key: "bat_dau_nhat_hang",
-        width: 160,
+        title: "Tên KH",
+        dataIndex: "ten_kh",
+        key: "ten_kh",
+        width: 180,
         align: "center",
-        render: (text, record) => {
-          if (!text || text === null || text === "null" || text === "*")
-            return "";
-          try {
-            return dayjs(text).format("DD/MM/YYYY HH:mm");
-          } catch {
-            return "";
-          }
-        },
-      },
-      {
-        title: "Kết thúc nhặt hàng",
-        dataIndex: "nhat_hang_xong",
-        key: "nhat_hang_xong",
-        width: 160,
-        align: "center",
-        render: (text, record) => {
-          if (!text || text === null || text === "null" || text === "*")
-            return "";
-          try {
-            return dayjs(text).format("DD/MM/YYYY HH:mm");
-          } catch {
-            return "";
-          }
-        },
+        render: (text) => (text || "").toString(),
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+          <div style={{ padding: 8 }}>
+            <Input
+              placeholder="Tìm Tên KH"
+              value={selectedKeys[0]}
+              onChange={(e) =>
+                setSelectedKeys(e.target.value ? [e.target.value] : [])
+              }
+              onPressEnter={() => {
+                handleFilter("ten_kh", selectedKeys[0] || "", confirm);
+              }}
+              style={{ marginBottom: 8, display: "block" }}
+            />
+            <Button
+              className="search_button"
+              type="primary"
+              onClick={() => {
+                handleFilter("ten_kh", selectedKeys[0] || "", confirm);
+              }}
+              size="small"
+            >
+              Tìm kiếm
+            </Button>
+          </div>
+        ),
+        filteredValue: filters.ten_kh ? [filters.ten_kh] : null,
       },
       {
         title: "Số đơn hàng",
@@ -663,14 +673,6 @@ const ListPhieuNhatHang = () => {
         dataIndex: "ban_dong_goi",
         key: "ban_dong_goi",
         width: 120,
-        align: "center",
-        render: (text) => (text || "").toString(),
-      },
-      {
-        title: "Ghi chú",
-        dataIndex: "ghi_chu",
-        key: "ghi_chu",
-        width: 220,
         align: "center",
         render: (text) => (text || "").toString(),
       },
@@ -752,6 +754,84 @@ const ListPhieuNhatHang = () => {
         },
       },
       {
+        title: "Thời gian xử lý",
+        key: "thoi_gian_xu_ly",
+        width: 200,
+        align: "center",
+        render: (_, record) => {
+          const formatTime = (text) => {
+            if (!text || text === null || text === "null" || text === "*")
+              return null;
+            try {
+              return dayjs(text).format("DD/MM/YYYY HH:mm");
+            } catch {
+              return null;
+            }
+          };
+
+          const batDau = formatTime(record.bat_dau_nhat_hang);
+          const ketThuc = formatTime(record.nhat_hang_xong);
+
+          if (!batDau && !ketThuc) {
+            return "";
+          }
+
+          // Tạo dot lớn bằng CSS với khoảng trắng ở giữa
+          const dotStyle = {
+            display: "inline-block",
+            width: "10px",
+            height: "10px",
+            borderRadius: "50%",
+            border: "2px solid #000",
+            backgroundColor: "transparent",
+            marginRight: "8px",
+            verticalAlign: "middle",
+          };
+
+          // Nếu có cả bắt đầu và kết thúc: hiển thị với dot
+          if (batDau && ketThuc) {
+            return (
+              <div style={{ lineHeight: "1.5" }}>
+                <div>
+                  <span style={dotStyle}></span> {batDau}
+                </div>
+                <div>
+                  <span style={dotStyle}></span> {ketThuc}
+                </div>
+              </div>
+            );
+          }
+
+          // Chỉ có bắt đầu
+          if (batDau) {
+            return (
+              <div>
+                <span style={dotStyle}></span> {batDau}
+              </div>
+            );
+          }
+
+          // Chỉ có kết thúc
+          if (ketThuc) {
+            return (
+              <div>
+                <span style={dotStyle}></span> {ketThuc}
+              </div>
+            );
+          }
+
+          return "";
+        },
+      },
+      {
+        title: "Ghi chú",
+        dataIndex: "ghi_chu",
+        key: "ghi_chu",
+        width: 220,
+        align: "center",
+        render: (text) => (text || "").toString(),
+      },
+      {
         title: "Hành động",
         key: "action",
         width: 80,
@@ -796,7 +876,7 @@ const ListPhieuNhatHang = () => {
       bordered: true,
       rowKey: "stt_rec",
       className: "phieu-data-table hidden_scroll_bar",
-      scroll: { x: 1480 },
+      scroll: { x: 1660 },
     };
 
     if (screenSize === "mobile") {
@@ -808,7 +888,7 @@ const ListPhieuNhatHang = () => {
     } else if (screenSize === "tablet") {
       baseProps.scroll = { x: 1200, y: 500 };
     } else {
-      baseProps.scroll = { x: 1480, y: 600 };
+      baseProps.scroll = { x: 1660, y: 600 };
     }
 
     return baseProps;

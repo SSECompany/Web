@@ -34,10 +34,17 @@ export const phieuNhatHangConfig = {
   maViTriField: "ma_vi_tri",
   showGhiChu: true,
   ghiChuField: "ghi_chu",
-  showSoLuongTon: true,
+  ghiChuTitle: "Ghi chú nhặt", // Đổi tên cột ghi chú
+  // Thêm cột Ghi chú KD mới
+  showGhiChuKD: true,
+  ghiChuKDField: "ghi_chu_kd",
+  // Ẩn cột SL tồn và Tồn khả dụng (sẽ tích hợp vào Mặt hàng)
+  showSoLuongTon: false,
   soLuongTonField: "so_luong_ton",
-  showTonKh: true,
+  showTonKh: false,
   tonKhField: "ton_kh",
+  // Tích hợp thông tin tồn vào cột Mặt hàng
+  integrateStockInfoInMatHang: true,
   showTongNhat: true,
   tongNhatField: "tong_nhat",
   tongNhatEditable: true,

@@ -68,36 +68,40 @@ class HttpService {
   }
 
   handleErorr(error, statusCode = null) {
-    if (error)
-      return notification.error({
-        message: `Không kết nối được đến server`,
-      });
+    // Đã bỏ thông báo "Không kết nối được đến server" theo yêu cầu
+    // if (error)
+    //   return notification.error({
+    //     message: `Không kết nối được đến server`,
+    //   });
 
     switch (statusCode) {
       case 500:
-        notification.error({
-          message: `Không kết nối được đến server`,
-          // description: `Quá thời gian thực hiện`,
-        });
+        // Đã bỏ thông báo "Không kết nối được đến server" theo yêu cầu
+        // notification.error({
+        //   message: `Không kết nối được đến server`,
+        //   // description: `Quá thời gian thực hiện`,
+        // });
         break;
 
       case 404:
-        notification.error({
-          message: `Không tìm thấy API`,
-          // description: `Quá thời gian thực hiện`,
-        });
+        // Đã bỏ thông báo "Không tìm thấy API" theo yêu cầu
+        // notification.error({
+        //   message: `Không tìm thấy API`,
+        //   // description: `Quá thời gian thực hiện`,
+        // });
         break;
 
       case 401:
         break;
 
       default:
-        notification.error({
-          message: `Có lỗi phát sinh`,
-          description: `Lỗi: ${
-            error?.statusText ? error?.statusText : "Không xác định"
-          }`,
-        });
+        // Đã bỏ notification "Có lỗi phát sinh" theo yêu cầu
+        // notification.error({
+        //   message: `Có lỗi phát sinh`,
+        //   description: `Lỗi: ${
+        //     error?.statusText ? error?.statusText : "Không xác định"
+        //   }`,
+        // });
         break;
     }
   }

@@ -131,10 +131,12 @@ instance.interceptors.response.use(
     }
 
     if (error?.response?.status === 403) {
-      notification.warning({
-        message: `Bạn không có quyền truy cập.`,
-        description: "Vui lòng liên hệ người quản lý !",
-      });
+      // Đã bỏ notification 403, để component tự xử lý message
+      // const errorMessage = error?.response?.data?.message || "Bạn không có quyền truy cập. Vui lòng liên hệ người quản lý !";
+      // notification.warning({
+      //   message: errorMessage,
+      //   description: "",
+      // });
       // Không tự động redirect - để component tự xử lý
     }
     return Promise.reject(error);

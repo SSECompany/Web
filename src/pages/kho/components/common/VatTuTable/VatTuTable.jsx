@@ -385,6 +385,17 @@ const VatTuTable = ({
           const currentRecord = dataSource.find((item) => item.key === record.key) || record;
           const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"] || "";
           const dvt = currentRecord.dvt || "";
+          
+          // Tích hợp thông tin tồn vào cột Mặt hàng nếu config yêu cầu
+          let stockInfo = null;
+          if (columnConfig.integrateStockInfoInMatHang) {
+            const soLuongTon = parseFloat(currentRecord[columnConfig.soLuongTonField || "so_luong_ton"] || 0);
+            const tonKh = parseFloat(currentRecord[columnConfig.tonKhField || "ton_kh"] || 0);
+            if (soLuongTon > 0 || tonKh > 0) {
+              stockInfo = `Tồn: ${formatQuantityDisplay(soLuongTon)} / Tồn khả dụng: ${formatQuantityDisplay(tonKh)}`;
+            }
+          }
+          
           return (
             <div
               style={{
@@ -420,6 +431,18 @@ const VatTuTable = ({
                   }}
                 >
                   {maViTri}
+                </div>
+              )}
+              {stockInfo && (
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#52c41a",
+                    marginTop: "4px",
+                    fontWeight: 500,
+                  }}
+                >
+                  {stockInfo}
                 </div>
               )}
             </div>
@@ -798,11 +821,39 @@ const VatTuTable = ({
       });
     }
 
+    // Thêm cột Ghi chú KD (nếu có)
+    let ghiChuKDColumn = null;
+    if (columnConfig.showGhiChuKD) {
+      ghiChuKDColumn = {
+        title: "Ghi chú KD",
+        dataIndex: columnConfig.ghiChuKDField || "ghi_chu_kd",
+        key: "ghi_chu_kd",
+        width: 150,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) => {
+          if (!isEditMode) {
+            return value || "";
+          }
+          return (
+            <Input
+              value={value || ""}
+              onChange={(e) => onSelectChange(e.target.value, record, columnConfig.ghiChuKDField || "ghi_chu_kd")}
+              style={{ width: "100%" }}
+              className="vat-tu-table-input"
+              placeholder="Nhập ghi chú KD"
+              size="small"
+            />
+          );
+        },
+      };
+    }
+
     // Thêm cột ghi chú: mặc định, hoặc hoãn tới cuối nếu cấu hình yêu cầu
     let ghiChuColumn = null;
     if (columnConfig.showGhiChu) {
       ghiChuColumn = {
-        title: "Ghi chú",
+        title: columnConfig.ghiChuTitle || "Ghi chú",
         dataIndex: columnConfig.ghiChuField || "ghi_chu",
         key: "ghi_chu",
         width: 150,
@@ -810,12 +861,12 @@ const VatTuTable = ({
         ellipsis: true,
         render: (value, record) => {
           if (!isEditMode) {
-            return value;
+            return value || "";
           }
           return (
             <Input
-              value={value}
-              onChange={(e) => onSelectChange(e.target.value, record, "ghi_chu")}
+              value={value || ""}
+              onChange={(e) => onSelectChange(e.target.value, record, columnConfig.ghiChuField || "ghi_chu")}
               style={{ width: "100%" }}
               className="vat-tu-table-input"
               placeholder="Nhập ghi chú"
@@ -848,7 +899,10 @@ const VatTuTable = ({
       });
     }
 
-    // Nếu cần, thêm cột ghi chú ở cuối trước khi thêm thao tác
+    // Nếu cần, thêm cột ghi chú KD và ghi chú ở cuối trước khi thêm thao tác
+    if (ghiChuKDColumn) {
+      baseColumns.push(ghiChuKDColumn);
+    }
     if (ghiChuColumn) {
       baseColumns.push(ghiChuColumn);
     }

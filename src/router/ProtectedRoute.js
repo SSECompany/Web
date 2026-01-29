@@ -49,9 +49,11 @@ const ProtectedRoute = () => {
     }
   }
 
+  const isGiaoHangRoute = location.pathname.startsWith("/kho/giao-hang");
+
   return (
     <>
-      <Navbar />
+      {!isGiaoHangRoute && <Navbar />}
       <Outlet />
     </>
   );

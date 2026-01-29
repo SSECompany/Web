@@ -10,6 +10,7 @@ import {
   CameraOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  CloseOutlined,
   ExportOutlined,
   SendOutlined,
   TruckOutlined,
@@ -40,7 +41,9 @@ import {
   fetchPhieuGiaoHangData, 
   fetchPhieuGiaoHangDataByQR,
   fetchPhieuGiaoHangDataByView,
-  updateDeliveryStatus 
+  updateDeliveryStatus,
+  uploadDeliveryImage,
+  deleteDeliveryImage 
 } from "./utils/phieuGiaoHangApi";
 
 const { TextArea } = Input;
@@ -59,13 +62,22 @@ const ProcessPhieuGiaoHang = () => {
   const [phieuData, setPhieuData] = useState(null);
   const [detailData, setDetailData] = useState([]);
   const [statusLog, setStatusLog] = useState([]);
+  const [selectedStatus, setSelectedStatus] = useState(null);
   
-  // Upload images cho 4 mốc
+  // Upload images cho 2 mốc
   const [images, setImages] = useState({
-    xuatHang: [],
-    tiepNhan: [],
     banGiao: [],
     hoanThanh: [],
+  });
+  
+  // Danh sách ảnh đã xóa (chưa gọi API) - lưu fileId hoặc URL
+  const [deletedImages, setDeletedImages] = useState([]);
+  
+  // Preview ảnh
+  const [previewImage, setPreviewImage] = useState({
+    visible: false,
+    url: "",
+    title: "",
   });
 
   // Modal states
@@ -105,6 +117,10 @@ const ProcessPhieuGiaoHang = () => {
       if (result.success) {
         setPhieuData(result.master);
         setDetailData(result.detail || []);
+        // Set selected status từ current status
+        if (result.master?.status) {
+          setSelectedStatus(String(result.master.status));
+        }
         // Set transport info
         if (result.master) {
           setTransportInfo({
@@ -119,17 +135,108 @@ const ProcessPhieuGiaoHang = () => {
         } else if (result.statusLog && result.statusLog.length > 0) {
           setStatusLog(result.statusLog);
         }
+        // Load ảnh từ imageUrls và fetch với Bearer token
+        if (result.imageUrls && result.imageUrls.length > 0) {
+          const token = localStorage.getItem("access_token");
+          
+          // Helper function để fetch ảnh với Bearer token
+          const fetchImageWithToken = async (imageUrl) => {
+            if (!token) return imageUrl;
+            
+            try {
+              const response = await fetch(imageUrl, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+              
+              if (!response.ok) {
+                console.warn("Failed to fetch image with token, using original URL");
+                return imageUrl;
+              }
+              
+              const blob = await response.blob();
+              return URL.createObjectURL(blob);
+            } catch (error) {
+              console.error("Error fetching image with token:", error);
+              return imageUrl;
+            }
+          };
+          
+          // Fetch tất cả ảnh với token
+          const imagePromises = result.imageUrls.map(async (img, index) => {
+            const blobUrl = await fetchImageWithToken(img.url);
+            return {
+              uid: `existing-${index}-${Date.now()}`,
+              name: img.originalName || `image-${index + 1}`,
+              status: "done",
+              url: blobUrl,
+              response: { url: img.url },
+              originalUrl: img.url, // Lưu URL gốc để dùng sau
+            };
+          });
+          
+          const imageFileList = await Promise.all(imagePromises);
+          setImages(prev => ({
+            ...prev,
+            banGiao: imageFileList, // Load vào banGiao (ảnh đính kèm)
+          }));
+        }
+      } else {
+        // Kiểm tra nếu là lỗi 404 - không tìm thấy phiếu giao hàng
+        const errorMessage = result.error || "";
+        const isNotFound = 
+          errorMessage.includes("Không tìm thấy phiếu giao hàng với mã này") ||
+          errorMessage.includes("không tìm thấy phiếu giao hàng") ||
+          errorMessage.toLowerCase().includes("not found") ||
+          (result.statusCode === 404);
+        
+        if (isNotFound) {
+          message.error("Không tìm thấy phiếu giao hàng với mã này");
+          // Navigate về trang danh sách giao hàng
+          setTimeout(() => {
+            navigate("/kho/giao-hang");
+          }, 1500);
+          return;
+        }
+        // Chỉ hiển thị message nếu không phải lỗi 404
+        message.error(result.error || "Không thể tải dữ liệu phiếu");
       }
     } catch (error) {
       console.error("Error fetching data:", error);
+      // Kiểm tra nếu là lỗi 404
+      const errorMessage = error?.response?.data?.message || error?.message || "";
+      const isNotFound = 
+        error?.response?.status === 404 ||
+        errorMessage.includes("Không tìm thấy phiếu giao hàng với mã này") ||
+        errorMessage.includes("không tìm thấy phiếu giao hàng");
+      
+      if (isNotFound) {
+        message.error("Không tìm thấy phiếu giao hàng với mã này");
+        // Navigate về trang danh sách giao hàng
+        setTimeout(() => {
+          navigate("/kho/giao-hang");
+        }, 1500);
+        return;
+      }
+      // Chỉ hiển thị message nếu không phải lỗi 404
       message.error("Không thể tải dữ liệu phiếu");
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, fromQR, voucherDateStr, navigate]);
 
   useEffect(() => {
     fetchData();
+    
+    // Cleanup: revoke blob URLs khi component unmount
+    return () => {
+      Object.values(images).flat().forEach((file) => {
+        if (file.url && file.url.startsWith("blob:")) {
+          URL.revokeObjectURL(file.url);
+        }
+      });
+    };
   }, [fetchData]);
 
   // Status helpers - 7 trạng thái theo yêu cầu mới
@@ -160,21 +267,42 @@ const ProcessPhieuGiaoHang = () => {
     }
   };
 
-  // Check which buttons should be visible based on status - Workflow tuần tự
-  // 1 (Lập chứng từ) -> 2 (Lưu kho)
-  // 2 (Lưu kho) -> 3 (Xuất hàng)
-  // 3 (Xuất hàng) -> 4 (Đã tiếp nhận)
-  // 4 (Đã tiếp nhận) -> 5 (Bàn giao ĐVVC)
-  // 5 (Bàn giao ĐVVC) -> 6 (Hoàn thành) hoặc 7 (Thất bại)
+  // Logic tuần tự: 1 -> 2 -> 3 -> 4 -> 5 -> 6 hoặc 7
   const currentStatus = String(phieuData?.status || "1");
-  const canStore = currentStatus === "1";      // 1 -> 2
+  const canStore = currentStatus === "1";       // 1 -> 2
   const canExport = currentStatus === "2";     // 2 -> 3
   const canReceive = currentStatus === "3";    // 3 -> 4
   const canHandover = currentStatus === "4";   // 4 -> 5
   const canComplete = currentStatus === "5";   // 5 -> 6
   const canFail = currentStatus === "5";       // 5 -> 7
 
-  // Handle action button click
+  const isManualSelection = selectedStatus != null && selectedStatus !== currentStatus;
+
+  // Map status to action for manual selection
+  const getActionFromStatus = (status) => {
+    switch (String(status)) {
+      case "2": return "store";
+      case "3": return "export";
+      case "4": return "receive";
+      case "5": return "handover";
+      case "6": return "complete";
+      case "7": return "fail";
+      default: return null;
+    }
+  };
+
+  const getButtonConfigFromStatus = (status) => {
+    switch (String(status)) {
+      case "2": return { icon: <CheckCircleOutlined />, label: "Lưu kho", className: "store" };
+      case "3": return { icon: <ExportOutlined />, label: "Xuất hàng", className: "export" };
+      case "4": return { icon: <CheckCircleOutlined />, label: "Đã tiếp nhận", className: "receive" };
+      case "5": return { icon: <TruckOutlined />, label: "Bàn giao ĐVVC", className: "handover" };
+      case "6": return { icon: <CheckCircleOutlined />, label: "Hoàn thành", className: "complete" };
+      case "7": return { icon: <CloseCircleOutlined />, label: "Thất bại", className: "fail", danger: true };
+      default: return null;
+    }
+  };
+
   const handleAction = (action) => {
     setConfirmAction(action);
     setConfirmNote("");
@@ -182,23 +310,42 @@ const ProcessPhieuGiaoHang = () => {
     setShowConfirmModal(true);
   };
 
+  const handleSaveStatus = () => {
+    if (!selectedStatus || !phieuData) {
+      message.warning("Vui lòng chọn trạng thái");
+      return;
+    }
+    const action = getActionFromStatus(selectedStatus);
+    if (action) {
+      handleAction(action);
+    } else {
+      message.error("Trạng thái không hợp lệ");
+    }
+  };
+
   // Confirm action
   const handleConfirmAction = async () => {
-    if (!confirmAction || !phieuData) return;
+    if (!phieuData) return;
 
     try {
-      // Map action sang status code theo mapping mới
-      // 1: Lập chứng từ, 2: Lưu kho, 3: Xuất hàng, 4: Đã tiếp nhận, 5: Bàn giao ĐVVC, 6: Hoàn thành, 7: Thất bại
-      const statusMap = {
-        store: "2",      // Lưu kho
-        export: "3",    // Xuất hàng
-        receive: "4",   // Đã tiếp nhận
-        handover: "5",  // Bàn giao ĐVVC
-        complete: "6",  // Hoàn thành
-        fail: "7",      // Thất bại
-      };
+      let newStatus;
+      
+      if (confirmAction === "save") {
+        // Lưu trạng thái đã chọn
+        newStatus = selectedStatus;
+      } else {
+        // Map action sang status code (giữ lại cho tương thích nếu cần)
+        const statusMap = {
+          store: "2",      // Lưu kho
+          export: "3",    // Xuất hàng
+          receive: "4",   // Đã tiếp nhận
+          handover: "5",  // Bàn giao ĐVVC
+          complete: "6",  // Hoàn thành
+          fail: "7",      // Thất bại
+        };
+        newStatus = statusMap[confirmAction];
+      }
 
-      const newStatus = statusMap[confirmAction];
       if (!newStatus) {
         message.error("Trạng thái không hợp lệ");
         return;
@@ -211,7 +358,7 @@ const ProcessPhieuGiaoHang = () => {
       // Đảm bảo unitCode không có khoảng trắng thừa
       unitCode = unitCode.trim();
 
-      // Gọi API update status
+      // Gọi API update status TRƯỚC để đảm bảo có stt_rec
       const result = await updateDeliveryStatus({
         unitCode: unitCode,
         voucherId: phieuData.stt_rec,
@@ -223,20 +370,40 @@ const ProcessPhieuGiaoHang = () => {
       if (result.success) {
         // Update local status
         setPhieuData(prev => ({ ...prev, status: newStatus }));
+        setSelectedStatus(newStatus);
+        
+        // Upload ảnh SAU KHI đã cập nhật trạng thái thành công (đảm bảo có stt_rec)
+        const uploadResult = await uploadPendingImages();
+        if (!uploadResult.success && uploadResult.failedCount > 0) {
+          message.warning(`Có ${uploadResult.failedCount} ảnh upload thất bại`);
+        }
+        
+        // Xóa ảnh SAU KHI đã upload thành công
+        const deleteResult = await deletePendingImages();
+        if (!deleteResult.success && deleteResult.failedCount > 0) {
+          message.warning(`Có ${deleteResult.failedCount} ảnh xóa thất bại`);
+        }
         
         // Add to status log
+        const actionText = confirmAction === "save" 
+          ? getStatusText(newStatus) 
+          : getActionText(confirmAction);
         setStatusLog(prev => [...prev, {
           time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
-          action: getActionText(confirmAction),
+          action: actionText,
           user: userInfo?.userName || userInfo?.Name || "User",
           note: confirmNote,
-          cost: confirmAction === "handover" ? confirmCost : undefined,
+          cost: (confirmAction === "handover" || newStatus === "5") && confirmCost > 0 ? confirmCost : undefined,
         }]);
 
         // Refresh data để lấy log mới nhất
         await fetchData();
         
         setShowConfirmModal(false);
+        message.success("Cập nhật trạng thái thành công!");
+      } else {
+        // Hiển thị lỗi từ API
+        message.error(result.message || "Có lỗi xảy ra khi cập nhật trạng thái");
       }
     } catch (error) {
       console.error("Error updating status:", error);
@@ -268,9 +435,248 @@ const ProcessPhieuGiaoHang = () => {
     }
   };
 
-  // Handle image upload
+  // Handle image upload - chỉ lưu vào state, không upload ngay
   const handleImageUpload = (milestone, { fileList }) => {
-    setImages(prev => ({ ...prev, [milestone]: fileList }));
+    setImages(prev => {
+      const currentFiles = prev[milestone] || [];
+      
+      // Tìm các file bị xóa (có trong currentFiles nhưng không có trong fileList)
+      const currentUids = new Set(currentFiles.map(f => f.uid));
+      const fileListUids = new Set(fileList.map(f => f.uid));
+      const deletedFiles = currentFiles.filter(f => !fileListUids.has(f.uid));
+      
+      // Lưu fileId của các ảnh đã xóa vào deletedImages (chỉ những ảnh đã upload - có url)
+      if (deletedFiles.length > 0) {
+        const deletedFileIds = deletedFiles
+          .filter(f => f.url || f.response?.url)
+          .map(f => {
+            // Extract fileId từ URL hoặc response
+            const url = f.url || f.response?.url || "";
+            if (url) {
+              // Extract ID từ URL (phần cuối cùng sau dấu /)
+              const parts = url.split("/");
+              return parts[parts.length - 1];
+            }
+            return null;
+          })
+          .filter(id => id !== null);
+        
+        if (deletedFileIds.length > 0) {
+          setDeletedImages(prevDeleted => {
+            const newDeleted = [...prevDeleted, ...deletedFileIds];
+            // Loại bỏ duplicate
+            return [...new Set(newDeleted)];
+          });
+        }
+      }
+      
+      // Nếu fileList rỗng (xóa hết), dùng fileList
+      if (fileList.length === 0) {
+        return { ...prev, [milestone]: fileList };
+      }
+      
+      // Kiểm tra xem tất cả file cũ có trong fileList không
+      const allCurrentFilesIncluded = currentFiles.every(f => fileListUids.has(f.uid));
+      
+      if (allCurrentFilesIncluded) {
+        // Tất cả file cũ đều có trong fileList (có thể có thêm file mới hoặc reorder)
+        // Kiểm tra xem có file mới không, nếu có thì đẩy lên đầu
+        const existingUids = new Set(currentFiles.map(f => f.uid));
+        const newFiles = fileList.filter(f => !existingUids.has(f.uid));
+        
+        if (newFiles.length > 0) {
+          // Có file mới, đẩy lên đầu
+          const updatedFileList = [...newFiles, ...currentFiles];
+          return { ...prev, [milestone]: updatedFileList };
+        } else {
+          // Không có file mới, có thể là reorder, dùng fileList
+          return { ...prev, [milestone]: fileList };
+        }
+      } else {
+        // Có file cũ không có trong fileList -> có file bị xóa, dùng fileList
+        // Hoặc fileList chỉ có file mới (từ button upload riêng) -> merge
+        const existingUids = new Set(currentFiles.map(f => f.uid));
+        const newFiles = fileList.filter(f => !existingUids.has(f.uid));
+        
+        if (newFiles.length > 0 && fileList.length <= newFiles.length) {
+          // fileList chỉ có file mới (từ button upload), thêm vào đầu danh sách
+          const mergedFileList = [...newFiles, ...currentFiles];
+          return { ...prev, [milestone]: mergedFileList };
+        } else {
+          // Có file bị xóa, dùng fileList
+          return { ...prev, [milestone]: fileList };
+        }
+      }
+    });
+  };
+
+  // Handle preview ảnh
+  const handlePreview = async (file) => {
+    // Nếu file có blob URL (đã fetch với token), dùng luôn
+    if (file.url && file.url.startsWith("blob:")) {
+      setPreviewImage({
+        visible: true,
+        url: file.url,
+        title: file.name || "Preview",
+      });
+      return;
+    }
+    
+    // Nếu có originalUrl, fetch lại với token
+    if (file.originalUrl) {
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        try {
+          const response = await fetch(file.originalUrl, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            setPreviewImage({
+              visible: true,
+              url: blobUrl,
+              title: file.name || "Preview",
+            });
+            return;
+          }
+        } catch (error) {
+          console.error("Error fetching image for preview:", error);
+        }
+      }
+    }
+    
+    // Fallback: dùng URL gốc
+    setPreviewImage({
+      visible: true,
+      url: file.url || file.thumbUrl || "",
+      title: file.name || "Preview",
+    });
+  };
+
+  // Upload tất cả ảnh chưa được upload
+  const uploadPendingImages = async () => {
+    if (!phieuData?.stt_rec) {
+      return { success: true }; // Không có stt_rec thì bỏ qua
+    }
+
+    const allImages = [...images.banGiao, ...images.hoanThanh];
+    const pendingImages = allImages.filter(
+      (file) => !file.url && !file.response && file.originFileObj
+    );
+
+    if (pendingImages.length === 0) {
+      return { success: true };
+    }
+
+    const uploadPromises = pendingImages.map(async (file) => {
+      try {
+        const result = await uploadDeliveryImage({
+          file: file.originFileObj || file,
+          stt_rec: phieuData.stt_rec,
+          isPublicAccess: false,
+          slug: "",
+        });
+
+        if (result.success) {
+          return {
+            uid: file.uid,
+            url: result.data?.url,
+            response: result.data,
+            success: true,
+          };
+        } else {
+          return {
+            uid: file.uid,
+            success: false,
+            error: result.message,
+          };
+        }
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        return {
+          uid: file.uid,
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    const results = await Promise.all(uploadPromises);
+    const failedUploads = results.filter((r) => !r.success);
+
+    // Update file list with uploaded URLs
+    const updateFileList = (fileList) => {
+      return fileList.map((file) => {
+        const result = results.find((r) => r.uid === file.uid);
+        if (result && result.success) {
+          return {
+            ...file,
+            status: "done",
+            url: result.url,
+            response: result.response,
+          };
+        }
+        return file;
+      });
+    };
+
+    setImages((prev) => ({
+      banGiao: updateFileList(prev.banGiao),
+      hoanThanh: updateFileList(prev.hoanThanh),
+    }));
+
+    if (failedUploads.length > 0) {
+      message.warning(`Có ${failedUploads.length} ảnh upload thất bại`);
+      return { success: false, failedCount: failedUploads.length };
+    }
+
+    return { success: true };
+  };
+
+  // Xóa tất cả ảnh đã được đánh dấu xóa
+  const deletePendingImages = async () => {
+    if (deletedImages.length === 0) {
+      return { success: true };
+    }
+
+    const deletePromises = deletedImages.map(async (fileId) => {
+      try {
+        const result = await deleteDeliveryImage(fileId);
+        return {
+          fileId,
+          success: result.success,
+          error: result.success ? null : result.message,
+        };
+      } catch (error) {
+        console.error("Error deleting image:", error);
+        return {
+          fileId,
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+
+    const results = await Promise.all(deletePromises);
+    const failedDeletes = results.filter((r) => !r.success);
+
+    // Xóa các fileId đã xóa thành công khỏi deletedImages
+    const successfulFileIds = results
+      .filter((r) => r.success)
+      .map((r) => r.fileId);
+    
+    setDeletedImages((prev) => prev.filter((id) => !successfulFileIds.includes(id)));
+
+    if (failedDeletes.length > 0) {
+      message.warning(`Có ${failedDeletes.length} ảnh xóa thất bại`);
+      return { success: false, failedCount: failedDeletes.length };
+    }
+
+    return { success: true };
   };
 
   // Handle transport edit
@@ -304,41 +710,42 @@ const ProcessPhieuGiaoHang = () => {
         <div className="process-card-header">
           <FileTextOutlined className="process-card-icon" />
           <span className="process-card-title">Phiếu giao hàng</span>
-          <Tag color={getStatusColor(phieuData?.status)}>
-            {getStatusText(phieuData?.status)}
-          </Tag>
+          <Select
+            value={selectedStatus}
+            onChange={setSelectedStatus}
+            style={{ width: 150 }}
+            size="small"
+            placeholder="Chọn trạng thái"
+            getPopupContainer={(trigger) => trigger.parentElement}
+            disabled={currentStatus === "6" || currentStatus === "7"}
+          >
+            <Select.Option value="2">Lưu kho</Select.Option>
+            <Select.Option value="3">Xuất hàng</Select.Option>
+            <Select.Option value="4">Đã tiếp nhận</Select.Option>
+            <Select.Option value="5">Bàn giao ĐVVC</Select.Option>
+            <Select.Option value="6">Hoàn thành</Select.Option>
+            <Select.Option value="7">Thất bại</Select.Option>
+          </Select>
         </div>
-        <div className="process-info-grid">
-          <div className="process-info-item">
-            <span className="process-info-label">Số CT</span>
-            <span className="process-info-value highlight">{phieuData?.so_ct || "---"}</span>
-          </div>
-          <div className="process-info-item">
-            <span className="process-info-label">Ngày CT</span>
-            <span className="process-info-value">
-              {phieuData?.ngay_ct ? dayjs(phieuData.ngay_ct).format("DD/MM/YYYY") : "---"}
-            </span>
-          </div>
-        </div>
+
       </Card>
 
       {/* Đơn hàng info */}
       <Card className="process-card" size="small">
         <div className="process-card-header">
           <FileTextOutlined className="process-card-icon order" />
-          <span className="process-card-title">Đơn hàng</span>
-        </div>
-        <div className="process-info-grid">
-          <div className="process-info-item">
-            <span className="process-info-label">Số đơn hàng</span>
-            <span className="process-info-value">{phieuData?.so_don_hang || "---"}</span>
-          </div>
-          <div className="process-info-item">
-            <span className="process-info-label">Ngày đơn hàng</span>
-            <span className="process-info-value">
-              {phieuData?.ngay_don_hang ? dayjs(phieuData.ngay_don_hang).format("DD/MM/YYYY") : "---"}
+          <div className="process-card-header-inline">
+            <span className="process-card-title process-card-title-inline">Đơn hàng</span>
+            <span className="process-card-header-meta">
+              {phieuData?.so_don_hang || "---"}
             </span>
           </div>
+          <span className="process-card-header-date">
+            {phieuData?.ngay_don_hang ? dayjs(phieuData.ngay_don_hang).format("DD/MM/YYYY") : "---"}
+          </span>
+        </div>
+        <div className="process-package-count">
+          {phieuData?.tong_so_kien || detailData.length || 0} <span>kiện</span>
         </div>
       </Card>
 
@@ -371,14 +778,16 @@ const ProcessPhieuGiaoHang = () => {
         <div className="process-card-header">
           <CarOutlined className="process-card-icon transport" />
           <span className="process-card-title">TT Vận chuyển</span>
-          <Button 
-            type="text" 
-            icon={<EditOutlined />} 
-            size="small"
-            onClick={() => setShowEditTransport(true)}
-          >
-            Sửa
-          </Button>
+          {!(currentStatus === "6" || currentStatus === "7") && (
+            <Button 
+              type="text" 
+              icon={<EditOutlined />} 
+              size="small"
+              onClick={() => setShowEditTransport(true)}
+            >
+              Sửa
+            </Button>
+          )}
         </div>
         <div className="process-info-list">
           <div className="process-info-row">
@@ -396,107 +805,74 @@ const ProcessPhieuGiaoHang = () => {
         </div>
       </Card>
 
-      {/* Tổng số kiện */}
-      <Card className="process-card process-card-highlight" size="small">
-        <div className="process-card-header">
-          <GiftOutlined className="process-card-icon package" />
-          <span className="process-card-title">Tổng số kiện hàng theo đơn</span>
-        </div>
-        <div className="process-package-count">
-          {phieuData?.tong_so_kien || detailData.length || 0} <span>kiện</span>
-        </div>
-      </Card>
-
-      {/* Upload ảnh - 4 mốc xử lý */}
+      {/* Upload ảnh */}
       <Card className="process-card" size="small">
         <div className="process-card-header">
           <PictureOutlined className="process-card-icon" />
-          <span className="process-card-title">Upload ảnh (4 mốc xử lý)</span>
+          <span className="process-card-title">Upload ảnh</span>
         </div>
         
         <div className="process-upload-section">
-          {/* Xuất hàng */}
+          {/* Ảnh đính kèm */}
           <div className="process-upload-milestone">
             <div className="process-upload-label">
-              <ExportOutlined /> Xuất hàng
+              Ảnh đính kèm
             </div>
-            <Upload
-              listType="picture-card"
-              fileList={images.xuatHang}
-              onChange={(info) => handleImageUpload("xuatHang", info)}
-              beforeUpload={() => false}
-              maxCount={4}
-            >
-              {images.xuatHang.length < 4 && (
-                <div>
-                  <CameraOutlined />
-                  <div style={{ marginTop: 8 }}>Chụp ảnh</div>
-                </div>
-              )}
-            </Upload>
-          </div>
-
-          {/* Tiếp nhận */}
-          <div className="process-upload-milestone">
-            <div className="process-upload-label">
-              <CheckCircleOutlined /> Tiếp nhận
-            </div>
-            <Upload
-              listType="picture-card"
-              fileList={images.tiepNhan}
-              onChange={(info) => handleImageUpload("tiepNhan", info)}
-              beforeUpload={() => false}
-              maxCount={4}
-            >
-              {images.tiepNhan.length < 4 && (
-                <div>
-                  <CameraOutlined />
-                  <div style={{ marginTop: 8 }}>Chụp ảnh</div>
-                </div>
-              )}
-            </Upload>
-          </div>
-
-          {/* Bàn giao DVVC */}
-          <div className="process-upload-milestone">
-            <div className="process-upload-label">
-              <TruckOutlined /> Bàn giao DVVC
-            </div>
-            <Upload
-              listType="picture-card"
-              fileList={images.banGiao}
-              onChange={(info) => handleImageUpload("banGiao", info)}
-              beforeUpload={() => false}
-              maxCount={4}
-            >
-              {images.banGiao.length < 4 && (
-                <div>
-                  <CameraOutlined />
-                  <div style={{ marginTop: 8 }}>Chụp ảnh</div>
-                </div>
-              )}
-            </Upload>
-          </div>
-
-          {/* Hoàn thành */}
-          <div className="process-upload-milestone">
-            <div className="process-upload-label">
-              <CheckCircleOutlined style={{ color: "#52c41a" }} /> Hoàn thành
-            </div>
-            <Upload
-              listType="picture-card"
-              fileList={images.hoanThanh}
-              onChange={(info) => handleImageUpload("hoanThanh", info)}
-              beforeUpload={() => false}
-              maxCount={4}
-            >
-              {images.hoanThanh.length < 4 && (
-                <div>
-                  <CameraOutlined />
-                  <div style={{ marginTop: 8 }}>Chụp ảnh</div>
-                </div>
-              )}
-            </Upload>
+            
+            {/* List ảnh riêng */}
+            {images.banGiao.length > 0 && (
+              <div className="process-upload-list-wrapper">
+                <Upload
+                  listType="picture-card"
+                  fileList={images.banGiao}
+                  onChange={(info) => handleImageUpload("banGiao", info)}
+                  onPreview={handlePreview}
+                  beforeUpload={() => false}
+                  disabled={currentStatus === "6" || currentStatus === "7"}
+                  showUploadList={{
+                    showPreviewIcon: false,
+                    showRemoveIcon: !(currentStatus === "6" || currentStatus === "7"),
+                  }}
+                  itemRender={(originNode, file, fileList, actions) => {
+                    return (
+                      <div
+                        onClick={(e) => {
+                          // Chỉ trigger preview nếu không click vào nút remove
+                          if (!e.target.closest('.ant-upload-list-item-actions')) {
+                            handlePreview(file);
+                          }
+                        }}
+                        style={{ cursor: "pointer", width: "100%", height: "100%" }}
+                      >
+                        {originNode}
+                      </div>
+                    );
+                  }}
+                >
+                  {/* Không có button upload ở đây */}
+                </Upload>
+              </div>
+            )}
+            
+            {/* Button chụp ảnh riêng - đặt ở dưới list ảnh */}
+            {images.banGiao.length <= 4 && !(currentStatus === "6" || currentStatus === "7") && (
+              <div className="process-upload-button-wrapper">
+                <Upload
+                  listType="picture-card"
+                  fileList={[]}
+                  onChange={(info) => handleImageUpload("banGiao", info)}
+                  beforeUpload={() => false}
+                  showUploadList={false}
+                  accept="image/*"
+                  capture="environment"
+                >
+                  <div>
+                    <CameraOutlined />
+                    <div style={{ marginTop: 8 }}>Chụp ảnh</div>
+                  </div>
+                </Upload>
+              </div>
+            )}
           </div>
         </div>
       </Card>
@@ -531,106 +907,127 @@ const ProcessPhieuGiaoHang = () => {
         </Timeline>
       </Card>
 
-      {/* Action buttons */}
+      {/* Action buttons: tuần tự hoặc button theo trạng thái đã chọn */}
       <div className="process-actions">
-        {canStore && (
-          <Button
-            type="primary"
-            size="large"
-            icon={<CheckCircleOutlined />}
-            className="process-action-btn store"
-            onClick={() => handleAction("store")}
-          >
-            Lưu kho
-          </Button>
-        )}
-
-        {canExport && (
-          <Button
-            type="primary"
-            size="large"
-            icon={<ExportOutlined />}
-            className="process-action-btn export"
-            onClick={() => handleAction("export")}
-          >
-            Xuất hàng
-          </Button>
-        )}
-        
-        {canReceive && (
-          <Button
-            type="primary"
-            size="large"
-            icon={<CheckCircleOutlined />}
-            className="process-action-btn receive"
-            onClick={() => handleAction("receive")}
-          >
-            Đã tiếp nhận
-          </Button>
-        )}
-
-        {canHandover && (
-          <Button
-            type="primary"
-            size="large"
-            icon={<TruckOutlined />}
-            className="process-action-btn handover"
-            onClick={() => handleAction("handover")}
-          >
-            Bàn giao ĐVVC
-          </Button>
-        )}
-
-        {canComplete && (
-          <Button
-            type="primary"
-            size="large"
-            icon={<CheckCircleOutlined />}
-            className="process-action-btn complete"
-            onClick={() => handleAction("complete")}
-          >
-            Hoàn thành
-          </Button>
-        )}
-
-        {canFail && (
-          <Button
-            danger
-            size="large"
-            icon={<CloseCircleOutlined />}
-            className="process-action-btn fail"
-            onClick={() => handleAction("fail")}
-          >
-            Thất bại
-          </Button>
+        {isManualSelection ? (() => {
+          const buttonConfig = getButtonConfigFromStatus(selectedStatus);
+          if (!buttonConfig) return null;
+          return (
+            <Button
+              type={buttonConfig.danger ? "default" : "primary"}
+              danger={buttonConfig.danger}
+              size="large"
+              icon={buttonConfig.icon}
+              className={`process-action-btn ${buttonConfig.className}`}
+              onClick={handleSaveStatus}
+              style={{ width: "100%" }}
+            >
+              {buttonConfig.label}
+            </Button>
+          );
+        })() : (
+          <>
+            {canStore && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<CheckCircleOutlined />}
+                className="process-action-btn store"
+                onClick={() => handleAction("store")}
+              >
+                Lưu kho
+              </Button>
+            )}
+            {canExport && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<ExportOutlined />}
+                className="process-action-btn export"
+                onClick={() => handleAction("export")}
+              >
+                Xuất hàng
+              </Button>
+            )}
+            {canReceive && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<CheckCircleOutlined />}
+                className="process-action-btn receive"
+                onClick={() => handleAction("receive")}
+              >
+                Đã tiếp nhận
+              </Button>
+            )}
+            {canHandover && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<TruckOutlined />}
+                className="process-action-btn handover"
+                onClick={() => handleAction("handover")}
+              >
+                Bàn giao ĐVVC
+              </Button>
+            )}
+            {canComplete && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<CheckCircleOutlined />}
+                className="process-action-btn complete"
+                onClick={() => handleAction("complete")}
+              >
+                Hoàn thành
+              </Button>
+            )}
+            {canFail && (
+              <Button
+                danger
+                size="large"
+                icon={<CloseCircleOutlined />}
+                className="process-action-btn fail"
+                onClick={() => handleAction("fail")}
+              >
+                Thất bại
+              </Button>
+            )}
+          </>
         )}
       </div>
 
       {/* Confirm Modal */}
       <Modal
-        title={`Xác nhận ${getActionText(confirmAction)}`}
+        title={confirmAction === "save" ? "Xác nhận cập nhật trạng thái" : `Xác nhận ${getActionText(confirmAction)}`}
         open={showConfirmModal}
         onCancel={() => setShowConfirmModal(false)}
         footer={[
           <Button key="cancel" onClick={() => setShowConfirmModal(false)}>
-            Không
+            {confirmAction === "save" ? "Hủy" : "Không"}
           </Button>,
           <Button 
             key="confirm" 
             type="primary" 
-            style={{ background: getActionColor(confirmAction) }}
+            style={{ background: confirmAction === "save" ? getStatusColor(selectedStatus) : getActionColor(confirmAction) }}
             onClick={handleConfirmAction}
           >
-            Có
+            {confirmAction === "save" ? "Lưu" : "Có"}
           </Button>,
         ]}
       >
         <div className="process-confirm-content">
-          <p style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px" }}>
-            Có chắc chắn <strong style={{ color: getActionColor(confirmAction) }}>"{getActionText(confirmAction)}"</strong>?
-          </p>
+          {confirmAction === "save" ? (
+            <p style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px" }}>
+              Cập nhật trạng thái thành: <strong style={{ color: getStatusColor(selectedStatus) }}>"{getStatusText(selectedStatus)}"</strong>?
+            </p>
+          ) : (
+            <p style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px" }}>
+              Có chắc chắn <strong style={{ color: getActionColor(confirmAction) }}>"{getActionText(confirmAction)}"</strong>?
+            </p>
+          )}
           
-          {confirmAction === "handover" && (
+          {(confirmAction === "handover" || (confirmAction === "save" && selectedStatus === "5")) && (
             <div className="process-confirm-field">
               <label style={{ fontWeight: 600, marginBottom: "8px", display: "block" }}>Nhập Chi phí:</label>
               <InputNumber
@@ -694,6 +1091,44 @@ const ProcessPhieuGiaoHang = () => {
             />
           </div>
         </div>
+      </Modal>
+
+      {/* Image Preview Modal */}
+      <Modal
+        open={previewImage.visible}
+        title={previewImage.title}
+        footer={null}
+        onCancel={() => {
+          setPreviewImage({ visible: false, url: "", title: "" });
+          // Revoke blob URL nếu là blob
+          if (previewImage.url && previewImage.url.startsWith("blob:")) {
+            URL.revokeObjectURL(previewImage.url);
+          }
+        }}
+        width="80%"
+        style={{ maxWidth: "900px" }}
+        centered
+        bodyStyle={{ 
+          padding: "20px",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          maxHeight: "80vh",
+          overflow: "auto"
+        }}
+      >
+        <Image
+          src={previewImage.url}
+          alt={previewImage.title}
+          style={{ 
+            maxWidth: "100%",
+            maxHeight: "70vh",
+            objectFit: "contain",
+            display: "block",
+            margin: "0 auto"
+          }}
+          preview={false}
+        />
       </Modal>
     </div>
   );
