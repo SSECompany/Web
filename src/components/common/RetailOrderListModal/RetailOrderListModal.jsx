@@ -519,7 +519,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       align: "center",
       render: (text) => formatDateToDDMMYYYY(text),
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
+        <div style={{ padding: 8, display: "flex", flexDirection: "column"}}>
           <DatePicker.RangePicker
             inputReadOnly
             value={
