@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
 
 import router from "../../../router/routes";
+import VersionIndicator from "../../common/VersionIndicator/VersionIndicator";
 import {
   setClaims,
   setIsBackgrouds,
@@ -170,6 +171,9 @@ const Navbar = () => {
         </div>
 
         <div className="first_navbar_row_right flex gap-1">
+          <div className="px-1 text-center flex items-center gap-2">
+            <VersionIndicator showDetails={true} size="small" />
+          </div>
           <div className="px-1 text-center flex full-name">
             <div className="primary_bold_text">
               {userInfo?.fullName || userInfo?.userName}
