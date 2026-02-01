@@ -52,7 +52,6 @@ if (skipBump) {
 } else {
   console.log(`📈 Auto-bumping ${bumpType} version and building...`);
 
-  // ✅ FIX: Chạy tuần tự thay vì dùng &&
   const bumpCommand = `node scripts/bump-version.js ${bumpType}`;
 
   exec(

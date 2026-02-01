@@ -25,14 +25,12 @@ let fullCommand;
 switch (command) {
   case "build":
     if (skipBump) {
-      // Skip auto-bump, chỉ update version.json
       if (packageManager === "yarn") {
         fullCommand = "yarn update-version && react-scripts build";
       } else {
         fullCommand = "npm run update-version && react-scripts build";
       }
     } else {
-      // ✅ AUTO BUMP VERSION PATCH + BUILD
       console.log("🚀 Auto-bumping patch version before build...");
       fullCommand = `node scripts/bump-version.js patch && react-scripts build`;
     }

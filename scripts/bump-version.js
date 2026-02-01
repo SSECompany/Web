@@ -1,87 +1,48 @@
-#!/usr/bin/env node
-
-/**
- * Script để bump version tự động
- * Usage:
- *   node scripts/bump-version.js patch  -> 0.1.0 -> 0.1.1
- *   node scripts/bump-version.js minor  -> 0.1.0 -> 0.2.0
- *   node scripts/bump-version.js major  -> 0.1.0 -> 1.0.0
- */
-
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
 
-// Colors for console
-const colors = {
-  reset: "\x1b[0m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  red: "\x1b[31m",
-  cyan: "\x1b[36m",
-};
+// Đọc package.json
+const packagePath = path.join(__dirname, "..", "package.json");
+const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
 
-const log = {
-  success: (msg) => console.log(`${colors.green}✅ ${msg}${colors.reset}`),
-  info: (msg) => console.log(`${colors.cyan}ℹ️  ${msg}${colors.reset}`),
-  warning: (msg) => console.log(`${colors.yellow}⚠️  ${msg}${colors.reset}`),
-  error: (msg) => console.log(`${colors.red}❌ ${msg}${colors.reset}`),
-};
+// Parse version hiện tại
+const currentVersion = packageJson.version;
+const versionParts = currentVersion.split(".");
+const major = parseInt(versionParts[0]);
+const minor = parseInt(versionParts[1]);
+const patch = parseInt(versionParts[2]);
 
-// Đọc arguments
-const bumpType = process.argv[2] || "patch";
-const releaseNote = process.argv[3] || "";
+// Lấy type bump từ command line arguments
+const args = process.argv.slice(2);
+const bumpType = args[0] || "patch"; // patch, minor, major
 
-if (!["patch", "minor", "major"].includes(bumpType)) {
-  log.error(
-    `Invalid bump type: ${bumpType}. Use: patch, minor, or major`
-  );
-  process.exit(1);
+let newVersion;
+switch (bumpType) {
+  case "major":
+    newVersion = `${major + 1}.0.0`;
+    break;
+  case "minor":
+    newVersion = `${major}.${minor + 1}.0`;
+    break;
+  case "patch":
+  default:
+    newVersion = `${major}.${minor}.${patch + 1}`;
+    break;
 }
 
+// Cập nhật package.json
+packageJson.version = newVersion;
+fs.writeFileSync(packagePath, JSON.stringify(packageJson, null, 2));
+
+console.log(
+  `🚀 Version bumped: ${currentVersion} → ${newVersion} (${bumpType})`
+);
+
+// ✅ GỘP LOGIC UPDATE VERSION.JSON VÀO ĐÂY LUÔN
+const crypto = require("crypto");
+
 try {
-  log.info("Starting version bump...");
-
-  // Đọc package.json hiện tại
-  const packageJsonPath = path.join(__dirname, "../package.json");
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-  const currentVersion = packageJson.version;
-
-  log.info(`Current version: ${currentVersion}`);
-
-  // Tính version mới
-  const versionParts = currentVersion.split(".").map(Number);
-  let [major, minor, patch] = versionParts;
-
-  switch (bumpType) {
-    case "major":
-      major += 1;
-      minor = 0;
-      patch = 0;
-      break;
-    case "minor":
-      minor += 1;
-      patch = 0;
-      break;
-    case "patch":
-      patch += 1;
-      break;
-  }
-
-  const newVersion = `${major}.${minor}.${patch}`;
-  log.info(`New version: ${newVersion}`);
-
-  // Update package.json
-  packageJson.version = newVersion;
-  fs.writeFileSync(
-    packageJsonPath,
-    JSON.stringify(packageJson, null, 2) + "\n",
-    "utf8"
-  );
-  log.success(`Updated package.json to v${newVersion}`);
-
-  // Generate version.json với buildHash
-  const crypto = require("crypto");
+  // Tạo buildTime và buildHash mới
   const buildTime = new Date().toISOString();
   const buildHash = crypto
     .createHash("md5")
@@ -89,69 +50,23 @@ try {
     .digest("hex")
     .substring(0, 8);
 
-  const versionInfo = {
+  const versionData = {
     version: newVersion,
     buildTime: buildTime,
     buildHash: buildHash,
-    releaseNotes: releaseNote || `Version ${newVersion}`,
-    previousVersion: currentVersion,
   };
 
-  fs.writeFileSync(
-    path.join(__dirname, "../public/version.json"),
-    JSON.stringify(versionInfo, null, 2) + "\n",
-    "utf8"
-  );
-  log.success(`Generated version.json with buildHash: ${buildHash}`);
+  // Ghi vào version.json
+  const versionPath = path.join(__dirname, "..", "public", "version.json");
+  fs.writeFileSync(versionPath, JSON.stringify(versionData, null, 2));
 
-  // Update CHANGELOG.md nếu có (bỏ qua nếu không tồn tại)
-  const changelogPath = path.join(__dirname, "../CHANGELOG.md");
-  if (fs.existsSync(changelogPath)) {
-    const changelog = fs.readFileSync(changelogPath, "utf8");
-    const today = new Date().toISOString().split("T")[0];
-    const newEntry = `\n## [${newVersion}] - ${today}\n\n${
-      releaseNote || "- Version bump"
-    }\n`;
-    fs.writeFileSync(changelogPath, newEntry + changelog, "utf8");
-    log.success("Updated CHANGELOG.md");
-  }
-
-  // Git commit (nếu có git)
-  try {
-    execSync("git rev-parse --git-dir", { stdio: "ignore" });
-    execSync(`git add package.json public/version.json`);
-    
-    if (fs.existsSync(changelogPath)) {
-      execSync(`git add CHANGELOG.md`);
-    }
-    
-    execSync(`git commit -m "chore: bump version to ${newVersion}"`, {
-      stdio: "inherit",
-    });
-    log.success(`Git commit created`);
-
-    // Tạo git tag
-    execSync(`git tag -a v${newVersion} -m "Release version ${newVersion}"`, {
-      stdio: "inherit",
-    });
-    log.success(`Git tag v${newVersion} created`);
-
-    log.warning("Don't forget to push: git push && git push --tags");
-  } catch (e) {
-    log.info("Skipping git commit (not a git repository or no changes)");
-  }
-
-  console.log("\n");
-  log.success(`Version bumped from ${currentVersion} to ${newVersion}`);
-  console.log("\n");
-  log.info("Next steps:");
-  console.log("  1. Review the changes");
-  console.log("  2. Run: yarn build");
-  console.log("  3. Deploy to production");
-  console.log("  4. Push git: git push && git push --tags");
-  console.log("\n");
+  console.log("✅ Version.json updated successfully!");
+  console.log(`📦 Version: ${newVersion}`);
+  console.log(`🕒 Build time: ${buildTime}`);
+  console.log(`🔨 Build hash: ${buildHash}`);
+  console.log("");
+  console.log(`✅ Ready! All done in one step. 🎉`);
 } catch (error) {
-  log.error(`Failed to bump version: ${error.message}`);
+  console.error("❌ Error updating version.json:", error);
   process.exit(1);
 }
-

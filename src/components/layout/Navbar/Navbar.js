@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
 
 import { getRoutesAccess } from "../../../app/Functions/getRouteAccess";
-import useVersionChecker from "../../../hooks/useVersionChecker";
+import useVersionCheck from "../../../hooks/useVersionCheck";
 import router, { routes } from "../../../router/routes";
 import {
     setClaims,
@@ -22,7 +22,7 @@ const Navbar = () => {
   const userInfo = useSelector(getUserInfo);
   const [userFromStorage, setUserFromStorage] = useState(null);
   const routeLocation = useLocation();
-  const { currentVersion, hasNewVersion, forceReload } = useVersionChecker();
+  const { currentVersion, hasNewVersion, forceReload } = useVersionCheck();
 
   useEffect(() => {
     dispatch(setClaims(jwt.getClaims() || {}));
@@ -100,12 +100,11 @@ const Navbar = () => {
         </div>
 
         <div className="first_navbar_row_right flex gap-1">
-          {/* Version Badge - Phenikaa Style */}
           <Tooltip
             title={
               hasNewVersion
                 ? "Có phiên bản mới! Click để cập nhật"
-                : `Phiên bản hiện tại: v${currentVersion}`
+                : `Phiên bản hiện tại: v${currentVersion?.version || ""}`
             }
           >
             <div
@@ -120,7 +119,6 @@ const Navbar = () => {
                 transition: "all 0.3s",
               }}
             >
-              {/* Dot indicator */}
               <span
                 style={{
                   width: "8px",
@@ -130,8 +128,6 @@ const Navbar = () => {
                   transition: "background 0.3s",
                 }}
               />
-              
-              {/* Version text */}
               <span
                 style={{
                   color: hasNewVersion ? "#1890ff" : "#8c8c8c",
@@ -139,10 +135,8 @@ const Navbar = () => {
                   transition: "color 0.3s",
                 }}
               >
-                v{currentVersion}
+                v{currentVersion?.version || "—"}
               </span>
-
-              {/* "Có cập nhật mới" text */}
               {hasNewVersion && (
                 <span
                   style={{
@@ -154,8 +148,6 @@ const Navbar = () => {
                   (Có cập nhật mới)
                 </span>
               )}
-
-              {/* Reload icon */}
               {hasNewVersion && (
                 <ReloadOutlined
                   spin
