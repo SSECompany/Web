@@ -27,6 +27,20 @@ try {
   // Ghi vào version.json
   fs.writeFileSync(versionPath, JSON.stringify(versionData, null, 2));
 
+  // Inject version vào index.html để client biết version đang chạy (phân biệt bản cũ chưa có)
+  const indexPath = path.join(__dirname, "..", "public", "index.html");
+  let indexContent = fs.readFileSync(indexPath, "utf8");
+  indexContent = indexContent
+    .replace(
+      /window\.__BUILD_VERSION__\s*=\s*"[^"]*"/,
+      `window.__BUILD_VERSION__ = "${currentVersion}"`
+    )
+    .replace(
+      /window\.__BUILD_HASH__\s*=\s*"[^"]*"/,
+      `window.__BUILD_HASH__ = "${buildHash}"`
+    );
+  fs.writeFileSync(indexPath, indexContent);
+
   console.log("✅ Version updated successfully!");
   console.log(`📦 Version: ${currentVersion}`);
   console.log(`🕒 Build time: ${buildTime}`);

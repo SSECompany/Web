@@ -100,12 +100,30 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
     try {
       const newVersion = await getCurrentVersion();
       if (!newVersion) return;
-      if (!currentVersionRef.current) {
-        currentVersionRef.current = newVersion;
-        setCurrentVersion(newVersion);
-        localStorage.setItem("app_version", JSON.stringify(newVersion));
-        return;
+
+      const hasNoSavedVersion = !currentVersionRef.current;
+
+      if (hasNoSavedVersion) {
+        // Chưa có app_version: phân biệt "bản mới lần đầu" vs "bản cũ chưa có version"
+        const buildVersion = window.__BUILD_VERSION__;
+        const buildHash = window.__BUILD_HASH__;
+        const hasInjectedVersion =
+          buildVersion &&
+          buildHash &&
+          buildVersion !== "__BUILD_VERSION_PLACEHOLDER__" &&
+          buildHash !== "__BUILD_HASH_PLACEHOLDER__";
+
+        if (hasInjectedVersion && buildVersion === newVersion.version) {
+          // Bản mới load lần đầu: __BUILD_VERSION__ khớp server => chỉ cần lưu
+          currentVersionRef.current = newVersion;
+          setCurrentVersion(newVersion);
+          localStorage.setItem("app_version", JSON.stringify(newVersion));
+          return;
+        }
+        // Bản cũ (không có hoặc placeholder) hoặc lệch version => coi là cần update
+        currentVersionRef.current = { version: null, buildHash: null };
       }
+
       const isDifferent =
         currentVersionRef.current.version !== newVersion.version ||
         (currentVersionRef.current.buildHash &&
