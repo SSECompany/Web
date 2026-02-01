@@ -1,14 +1,12 @@
 import { notification } from "antd";
 import { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
 import { setClaims } from "../store/reducers/claimsSlice";
 import jwt from "../utils/jwt";
 import { clearAllTokenData, getTimeLeft } from "../utils/tokenUtils";
 
 const useTokenExpiryChecker = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   
   // Lấy authentication state từ claimsReducer
   const isAuthenticated = useSelector((state) => {
@@ -39,7 +37,10 @@ const useTokenExpiryChecker = () => {
       duration: 3,
     });
 
-    navigate("/login", { replace: true });
+    // Force reload và redirect về trang login
+    setTimeout(() => {
+      window.location.href = "/login";
+    }, 500); // Delay nhỏ để notification hiển thị
   };
 
   const checkTokenExpiry = () => {
