@@ -19,6 +19,7 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router-dom"; // Import useLocation
 import { useDebouncedCallback } from "use-debounce";
 import { apiGetStoreByUser } from "../../api";
+import useVersionCheck from "../../hooks/useVersionCheck";
 import router from "../../router/routes";
 import { setClaims } from "../../store/reducers/claimsSlice";
 import https from "../../utils/https";
@@ -26,6 +27,8 @@ import jwt from "../../utils/jwt";
 import "./Login.css";
 
 const Login = () => {
+  // Check version ngay từ màn login để tránh đăng nhập xong bị logout do lệch version
+  useVersionCheck();
   const [loginLoading, setLoginLoading] = useState(false);
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");

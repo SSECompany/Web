@@ -3,6 +3,10 @@ import { useEffect, useRef, useState } from "react";
 
 // Mặc định 60 giây - kiểm tra định kỳ khi user giữ nguyên trang
 const COUNTDOWN_SECONDS = 30;
+const NOTIF_KEY = "version-update-countdown";
+
+// Dùng chung giữa các instance (login → sau đăng nhập) để tránh 2 thông báo đếm ngược
+let globalCountdownActive = false;
 
 const useVersionCheck = (checkInterval = 60 * 1000) => {
   const [hasNewVersion, setHasNewVersion] = useState(false);
@@ -110,17 +114,20 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
           currentVersionRef.current.buildHash !== newVersion.buildHash);
 
       if (isDifferent) {
-        // Lệch version → thông báo đếm ngược 30s → xoá cache → redirect login
+        // Đã có countdown đang chạy (từ instance khác, vd: login → sau đăng nhập) → không tạo thêm
+        if (globalCountdownActive) return;
+
+        globalCountdownActive = true;
         setHasNewVersion(true);
         setNewVersionInfo(newVersion);
 
-        const notifKey = "version-update-countdown";
         let secondsLeft = COUNTDOWN_SECONDS;
         let countdownInterval = null;
 
         const doUpdate = async () => {
+          globalCountdownActive = false;
           if (countdownInterval) clearInterval(countdownInterval);
-          notification.destroy(notifKey);
+          notification.destroy(NOTIF_KEY);
           await clearAllBrowserData();
           localStorage.setItem("app_version", JSON.stringify(newVersion));
           const base =
@@ -134,7 +141,7 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
 
         const updateNotif = () => {
           notification.info({
-            key: notifKey,
+            key: NOTIF_KEY,
             message: "Có phiên bản mới!",
             description: `Phiên bản ${newVersion.version} đã có sẵn. Trang sẽ tự động cập nhật sau ${secondsLeft} giây...`,
             duration: 0,
