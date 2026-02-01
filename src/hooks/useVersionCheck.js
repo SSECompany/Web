@@ -49,7 +49,7 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
           })
         );
       }
-      const paths = ["/", "/login", "/kho", "/ban-hang", "/tra-hang", "/bao-cao", "/pharmacy"];
+      const paths = ["/", "/login", "/kho", "/bao-cao", "/pharmacy"];
       const domains = [
         window.location.hostname,
         "." + window.location.hostname,
@@ -76,12 +76,9 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
   const getCurrentVersion = async () => {
     try {
       const url = getVersionUrl();
-      const response = await fetch(url, {
-        cache: "no-store",
-        headers: { Pragma: "no-cache", "Cache-Control": "no-cache" },
-      });
-      if (!response.ok) return null;
-      return await response.json();
+      const response = await fetch(url, { cache: "no-cache" });
+      const versionData = await response.json();
+      return versionData;
     } catch (error) {
       console.warn("Không thể lấy thông tin version:", error);
       return null;
@@ -101,26 +98,8 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
       const newVersion = await getCurrentVersion();
       if (!newVersion) return;
 
-      const hasNoSavedVersion = !currentVersionRef.current;
-
-      if (hasNoSavedVersion) {
-        // Chưa có app_version: phân biệt "bản mới lần đầu" vs "bản cũ chưa có version"
-        const buildVersion = window.__BUILD_VERSION__;
-        const buildHash = window.__BUILD_HASH__;
-        const hasInjectedVersion =
-          buildVersion &&
-          buildHash &&
-          buildVersion !== "__BUILD_VERSION_PLACEHOLDER__" &&
-          buildHash !== "__BUILD_HASH_PLACEHOLDER__";
-
-        if (hasInjectedVersion && buildVersion === newVersion.version) {
-          // Bản mới load lần đầu: __BUILD_VERSION__ khớp server => chỉ cần lưu
-          currentVersionRef.current = newVersion;
-          setCurrentVersion(newVersion);
-          localStorage.setItem("app_version", JSON.stringify(newVersion));
-          return;
-        }
-        // Bản cũ (không có hoặc placeholder) hoặc lệch version => coi là cần update
+      // Máy khách không có version nhưng server có => coi là lệch version, thông báo như bình thường
+      if (!currentVersionRef.current) {
         currentVersionRef.current = { version: null, buildHash: null };
       }
 
@@ -244,20 +223,8 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
         checkForNewVersion();
       }
     };
-    const handleVisibilityChange = () => {
-      if (
-        document.visibilityState === "visible" &&
-        Date.now() - lastCheckTimeRef.current > 60000
-      ) {
-        checkForNewVersion();
-      }
-    };
     window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
+    return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
   return {
