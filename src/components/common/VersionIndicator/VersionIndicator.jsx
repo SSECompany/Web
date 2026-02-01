@@ -12,10 +12,14 @@ const VersionIndicator = ({ showDetails = false, size = "small" }) => {
     isChecking,
   } = useVersionCheck();
 
-  if (!showDetails && !hasNewVersion) return null;
+  if (!showDetails && !hasNewVersion) {
+    return null;
+  }
 
-  const handleCheck = () => {
-    if (!isChecking) checkVersionNow();
+  const handleCheckVersion = () => {
+    if (!isChecking) {
+      checkVersionNow();
+    }
   };
 
   if (showDetails) {
@@ -37,7 +41,7 @@ const VersionIndicator = ({ showDetails = false, size = "small" }) => {
         <Tooltip title={isChecking ? "Đang kiểm tra..." : "Kiểm tra cập nhật"}>
           <ReloadOutlined
             className="refresh-icon"
-            onClick={handleCheck}
+            onClick={handleCheckVersion}
             spin={isChecking}
             style={{
               opacity: isChecking ? 0.6 : 1,

@@ -13,6 +13,16 @@
   padding: 2px 6px;
 }
 
+.version-indicator.medium {
+  font-size: 14px;
+  padding: 4px 8px;
+}
+
+.version-indicator.large {
+  font-size: 16px;
+  padding: 6px 12px;
+}
+
 .version-info {
   flex: 1;
 }
@@ -54,6 +64,24 @@
 }
 
 @keyframes version-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .version-update-badge {
+    top: 10px;
+    right: 10px;
+  }
+
+  .version-icon {
+    font-size: 16px;
+  }
 }

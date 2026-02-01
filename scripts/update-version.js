@@ -2,12 +2,15 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
+// Đọc package.json để lấy version
 const packagePath = path.join(__dirname, "..", "package.json");
 const versionPath = path.join(__dirname, "..", "public", "version.json");
 
 try {
   const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
   const currentVersion = packageJson.version;
+
+  // Tạo hash dựa trên thời gian build
   const buildTime = new Date().toISOString();
   const buildHash = crypto
     .createHash("md5")
@@ -21,7 +24,9 @@ try {
     buildHash: buildHash,
   };
 
+  // Ghi vào version.json
   fs.writeFileSync(versionPath, JSON.stringify(versionData, null, 2));
+
   console.log("✅ Version updated successfully!");
   console.log(`📦 Version: ${currentVersion}`);
   console.log(`🕒 Build time: ${buildTime}`);

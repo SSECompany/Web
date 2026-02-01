@@ -49,7 +49,7 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
           })
         );
       }
-      const paths = ["/", "/login", "/kho", "/bao-cao", "/pharmacy"];
+      const paths = ["/", "/login", "/kho", "/ban-hang", "/tra-hang", "/bao-cao", "/pharmacy"];
       const domains = [
         window.location.hostname,
         "." + window.location.hostname,
@@ -76,9 +76,12 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
   const getCurrentVersion = async () => {
     try {
       const url = getVersionUrl();
-      const response = await fetch(url, { cache: "no-cache" });
-      const versionData = await response.json();
-      return versionData;
+      const response = await fetch(url, {
+        cache: "no-store",
+        headers: { Pragma: "no-cache", "Cache-Control": "no-cache" },
+      });
+      if (!response.ok) return null;
+      return await response.json();
     } catch (error) {
       console.warn("Không thể lấy thông tin version:", error);
       return null;
@@ -223,8 +226,20 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
         checkForNewVersion();
       }
     };
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState === "visible" &&
+        Date.now() - lastCheckTimeRef.current > 60000
+      ) {
+        checkForNewVersion();
+      }
+    };
     window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   return {
