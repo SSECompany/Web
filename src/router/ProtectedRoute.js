@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import Navbar from "../components/layout/Navbar/Navbar";
+import VersionIndicator from "../components/common/VersionIndicator/VersionIndicator";
 import useTokenExpiryChecker from "../hooks/useTokenExpiryChecker";
 import jwt from "../utils/jwt";
 import { clearAllTokenData, isTokenExpired } from "../utils/tokenUtils";
@@ -54,6 +55,8 @@ const ProtectedRoute = () => {
   return (
     <>
       {!isGiaoHangRoute && <Navbar />}
+      {/* Khi ẩn Navbar (giao-hang): vẫn cần VersionIndicator để check + hiện badge có bản mới */}
+      {isGiaoHangRoute && <VersionIndicator showDetails={false} />}
       <Outlet />
     </>
   );
