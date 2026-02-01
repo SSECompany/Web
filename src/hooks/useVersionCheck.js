@@ -1,6 +1,7 @@
 import { notification } from "antd";
 import { useEffect, useRef, useState } from "react";
 
+// Mặc định 60 giây - kiểm tra định kỳ khi user giữ nguyên trang
 const COUNTDOWN_SECONDS = 30;
 
 const useVersionCheck = (checkInterval = 60 * 1000) => {
@@ -31,27 +32,32 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
       if ("serviceWorker" in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
         await Promise.all(
-          registrations.map((reg) => reg.unregister())
+          registrations.map((registration) => registration.unregister())
         );
       }
       localStorage.clear();
       sessionStorage.clear();
       if ("indexedDB" in window && indexedDB.databases) {
-        const dbs = await indexedDB.databases();
+        const databases = await indexedDB.databases();
         await Promise.all(
-          dbs.map((db) => {
+          databases.map((db) => {
+            const deleteReq = indexedDB.deleteDatabase(db.name);
             return new Promise((resolve) => {
-              const req = indexedDB.deleteDatabase(db.name);
-              req.onsuccess = req.onerror = () => resolve();
+              deleteReq.onsuccess = () => resolve();
+              deleteReq.onerror = () => resolve();
             });
           })
         );
       }
-      const paths = ["/", "/login", "/ban-hang", "/tra-hang", "/kho", "/bao-cao", "/pharmacy"];
-      const domains = [window.location.hostname, "." + window.location.hostname];
+      const paths = ["/", "/login", "/kho", "/bao-cao", "/pharmacy"];
+      const domains = [
+        window.location.hostname,
+        "." + window.location.hostname,
+      ];
       document.cookie.split(";").forEach((cookie) => {
-        const eq = cookie.indexOf("=");
-        const name = eq > -1 ? cookie.substr(0, eq).trim() : cookie.trim();
+        const eqPos = cookie.indexOf("=");
+        const name =
+          eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
         paths.forEach((path) => {
           domains.forEach((domain) => {
             document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path};domain=${domain}`;
@@ -62,44 +68,41 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
           }
         });
       });
-    } catch (e) {
-      console.warn("Một số cache không thể xóa:", e);
+    } catch (error) {
+      console.warn("Một số cache không thể xóa:", error);
     }
   };
 
   const getCurrentVersion = async () => {
     try {
-      const res = await fetch(getVersionUrl(), {
-        cache: "no-store",
-        headers: { Pragma: "no-cache", "Cache-Control": "no-cache" },
-      });
-      if (!res.ok) return null;
-      return await res.json();
-    } catch (e) {
-      console.warn("Không thể lấy version:", e);
+      const url = getVersionUrl();
+      const response = await fetch(url, { cache: "no-cache" });
+      const versionData = await response.json();
+      return versionData;
+    } catch (error) {
+      console.warn("Không thể lấy thông tin version:", error);
       return null;
     }
   };
 
   const checkForNewVersion = async (forceShow = false) => {
     if (isCheckingRef.current) return;
-    if (!forceShow && Date.now() - lastCheckTimeRef.current < 30000) return;
-
+    if (!forceShow) {
+      const now = Date.now();
+      if (now - lastCheckTimeRef.current < 30000) return;
+    }
     isCheckingRef.current = true;
     if (forceShow) setIsChecking(true);
     if (!forceShow) lastCheckTimeRef.current = Date.now();
-
     try {
       const newVersion = await getCurrentVersion();
       if (!newVersion) return;
-
       if (!currentVersionRef.current) {
         currentVersionRef.current = newVersion;
         setCurrentVersion(newVersion);
         localStorage.setItem("app_version", JSON.stringify(newVersion));
         return;
       }
-
       const isDifferent =
         currentVersionRef.current.version !== newVersion.version ||
         (currentVersionRef.current.buildHash &&
@@ -107,6 +110,7 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
           currentVersionRef.current.buildHash !== newVersion.buildHash);
 
       if (isDifferent) {
+        // Lệch version → thông báo đếm ngược 30s → xoá cache → redirect login
         setHasNewVersion(true);
         setNewVersionInfo(newVersion);
 
@@ -119,9 +123,13 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
           notification.destroy(notifKey);
           await clearAllBrowserData();
           localStorage.setItem("app_version", JSON.stringify(newVersion));
-          const base = window.location.origin + (process.env.PUBLIC_URL || "");
-          const loginPath = base.endsWith("/") ? `${base}login` : `${base}/login`;
-          window.location.replace(`${loginPath}?v=${Date.now()}`);
+          const base =
+            window.location.origin + (process.env.PUBLIC_URL || "");
+          const loginPath = base.endsWith("/")
+            ? `${base}login`
+            : `${base}/login`;
+          const url = `${loginPath}?v=${Date.now()}`;
+          window.location.replace(url);
         };
 
         const updateNotif = () => {
@@ -150,11 +158,15 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
         };
 
         updateNotif();
+
         countdownInterval = setInterval(() => {
           secondsLeft -= 1;
           updateNotif();
-          if (secondsLeft <= 0) doUpdate();
+          if (secondsLeft <= 0) {
+            doUpdate();
+          }
         }, 1000);
+
         return;
       }
 
@@ -165,7 +177,8 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
           duration: 3,
         });
       }
-    } catch (e) {
+    } catch (error) {
+      console.warn("Lỗi khi kiểm tra version:", error);
       if (forceShow) {
         notification.error({
           message: "Lỗi kiểm tra cập nhật",
@@ -179,44 +192,45 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
     }
   };
 
+  const checkVersionNow = () => {
+    checkForNewVersion(true);
+  };
+
   useEffect(() => {
-    const saved = localStorage.getItem("app_version");
-    if (saved) {
+    const savedVersion = localStorage.getItem("app_version");
+    if (savedVersion) {
       try {
-        const v = JSON.parse(saved);
-        currentVersionRef.current = v;
-        setCurrentVersion(v);
-      } catch (_) {}
+        const parsedVersion = JSON.parse(savedVersion);
+        currentVersionRef.current = parsedVersion;
+        setCurrentVersion(parsedVersion);
+      } catch (error) {
+        console.warn("Không thể parse version từ localStorage:", error);
+      }
     }
-    const t = setTimeout(checkForNewVersion, 3000);
+    const initialCheck = setTimeout(() => {
+      checkForNewVersion();
+    }, 3000);
     intervalRef.current = setInterval(checkForNewVersion, checkInterval);
     return () => {
-      clearInterval(intervalRef.current);
-      clearTimeout(t);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      clearTimeout(initialCheck);
     };
   }, [checkInterval]);
 
   useEffect(() => {
-    const onFocus = () => {
-      if (Date.now() - lastCheckTimeRef.current > 60000) checkForNewVersion();
-    };
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible" && Date.now() - lastCheckTimeRef.current > 60000) {
+    const handleFocus = () => {
+      if (Date.now() - lastCheckTimeRef.current > 60000) {
         checkForNewVersion();
       }
     };
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    return () => {
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
   return {
     hasNewVersion,
     newVersionInfo,
-    checkVersionNow: () => checkForNewVersion(true),
+    checkVersionNow,
     currentVersion,
     isChecking,
   };
