@@ -97,12 +97,12 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
     try {
       const newVersion = await getCurrentVersion();
       if (!newVersion) return;
+
+      // Máy khách không có version nhưng server có => coi là lệch version, thông báo như bình thường
       if (!currentVersionRef.current) {
-        currentVersionRef.current = newVersion;
-        setCurrentVersion(newVersion);
-        localStorage.setItem("app_version", JSON.stringify(newVersion));
-        return;
+        currentVersionRef.current = { version: null, buildHash: null };
       }
+
       const isDifferent =
         currentVersionRef.current.version !== newVersion.version ||
         (currentVersionRef.current.buildHash &&
