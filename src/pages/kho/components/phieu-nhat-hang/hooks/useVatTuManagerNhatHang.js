@@ -16,9 +16,11 @@ export const useVatTuManagerNhatHang = () => {
     }
 
     const processedData = data2.map((item, index) => {
+      const maVt = (item.ma_vt || "").toString().trim();
       return {
         key: index + 1,
-        maHang: item.ma_vt || "",
+        maHang: maVt || "",
+        ma_vt: maVt || "",
         ten_mat_hang: item.ten_vt || item.ma_vt || "",
 
         // Sử dụng dữ liệu đã lưu trong phiếu
@@ -631,12 +633,14 @@ export const useVatTuManagerNhatHang = () => {
                   soLuong_goc: newValue,
                 };
               }
-            } else if (field === "soLuongDeNghi") {
-              // Xử lý thay đổi số lượng đề nghị (so_luong) - không ảnh hưởng đến soLuong_goc
-              return {
+            } else if (field === "soLuongDeNghi" || field === "so_luong") {
+              // Xử lý thay đổi SL đơn: dòng con được sửa; dòng mẹ tự = tổng nhóm - sum(SL đơn con)
+              const updated = {
                 ...item,
                 [field]: newValue,
+                ...(field === "soLuongDeNghi" ? { so_luong: newValue } : { soLuongDeNghi: newValue }),
               };
+              return updated;
             } else if (field === "so_luong_don") {
               // Xử lý thay đổi số lượng đơn
               return {
@@ -668,6 +672,48 @@ export const useVatTuManagerNhatHang = () => {
         return item;
       });
 
+      // Khi sửa SL đơn dòng con: SL đơn dòng mẹ = tổng nhóm - sum(con); reset số lượng nhặt mẹ + tất cả con về 0
+      if (
+        (field === "soLuongDeNghi" || field === "so_luong") &&
+        record.isChild &&
+        typeof newValue === "number"
+      ) {
+        const parentKey = record.parentKey;
+        const parentIndex = next.findIndex((r) => r.key === parentKey);
+        if (parentIndex >= 0) {
+          const parent = next[parentIndex];
+          const children = next.filter(
+            (r) => r.isChild && r.parentKey === parentKey
+          );
+          const sumChildren = children.reduce(
+            (s, c) => s + parseFloat(c.soLuongDeNghi ?? c.so_luong ?? 0),
+            0
+          );
+          const total =
+            parseFloat(
+              parent.soLuongDeNghi_tong ??
+                parent.soLuongDeNghi ??
+                parent.so_luong ??
+                0
+            ) || 0;
+          const parentSoLuongDeNghi =
+            Math.round((total - sumChildren) * 1000) / 1000;
+          next[parentIndex] = {
+            ...parent,
+            soLuongDeNghi: parentSoLuongDeNghi,
+            so_luong: parentSoLuongDeNghi,
+            tong_nhat: 0,
+            nhat: 0,
+          };
+          children.forEach((c) => {
+            const idx = next.findIndex((r) => r.key === c.key);
+            if (idx >= 0) {
+              next[idx] = { ...next[idx], tong_nhat: 0, nhat: 0 };
+            }
+          });
+        }
+      }
+
       // Recompute group validation flags for next data
       const groups = computeGroupState(next);
       const nextWithFlags = next.map((row) => {
@@ -690,13 +736,49 @@ export const useVatTuManagerNhatHang = () => {
       if (field === "ma_lo" || field === "ma_vi_tri") {
         processedValue = value ? String(value).trim() : "";
       }
-      
+
+      // Khi chọn mã lô: nếu trùng (ma_vt + ma_lo) thì clear ô vừa chọn + báo đỏ ô đó + noti
+      if (field === "ma_lo" && processedValue) {
+        const maVt = (record.ma_vt ?? record.maHang ?? "").toString().trim();
+        const otherHasSamePair = prev.some(
+          (r) =>
+            r.key !== record.key &&
+            (r.ma_vt ?? r.maHang ?? "").toString().trim() === maVt &&
+            (r.ma_lo || "").toString().trim() === processedValue
+        );
+        if (otherHasSamePair) {
+          message.error(
+            "Mã vật tư và mã lô này đã tồn tại. Vui lòng chọn mã lô khác."
+          );
+          // Clear mã lô ô vừa chọn và đánh dấu đỏ; tăng _ma_lo_clear_version để Select remount mỗi lần
+          const next = prev.map((item) =>
+            item.key === record.key
+              ? {
+                  ...item,
+                  ma_lo: "",
+                  _invalid_duplicate_ma_lo: true,
+                  _ma_lo_clear_version: (item._ma_lo_clear_version || 0) + 1,
+                  loOptions: item.loOptions || record.loOptions,
+                  viTriOptions: item.viTriOptions || record.viTriOptions,
+                }
+              : item
+          );
+          const groups = computeGroupState(next);
+          return next.map((row) => {
+            const groupKey = row.isChild ? row.parentKey : row.key;
+            const g = groups.get(groupKey);
+            return { ...row, groupExceeded: !!g?.exceeded };
+          });
+        }
+      }
+
       const next = prev.map((item) =>
         item.key === record.key
           ? {
               ...item,
               [field]: processedValue,
-              // Preserve loOptions and viTriOptions when updating other fields
+              // Khi sửa mã lô thì bỏ đánh dấu trùng (để bỏ nền đỏ)
+              ...(field === "ma_lo" ? { _invalid_duplicate_ma_lo: false } : {}),
               loOptions: item.loOptions || record.loOptions,
               viTriOptions: item.viTriOptions || record.viTriOptions,
             }
@@ -743,10 +825,31 @@ export const useVatTuManagerNhatHang = () => {
       });
     }
 
-    const reIndexedDataSource = newDataSource.map((item, i) => ({
+    let reIndexedDataSource = newDataSource.map((item, i) => ({
       ...item,
       key: i + 1,
     }));
+
+    // Sau khi xóa dòng con: cập nhật SL đơn dòng mẹ = soLuongDeNghi_tong - sum(SL đơn các con còn lại)
+    reIndexedDataSource = reIndexedDataSource.map((row) => {
+      if (row.isChild || row.soLuongDeNghi_tong == null) return row;
+      const children = reIndexedDataSource.filter(
+        (r) => r.isChild && r.parentKey === row.key
+      );
+      const sumChildren = children.reduce(
+        (s, c) => s + parseFloat(c.soLuongDeNghi ?? c.so_luong ?? 0),
+        0
+      );
+      const total = parseFloat(row.soLuongDeNghi_tong ?? 0) || 0;
+      const parentSoLuongDeNghi =
+        Math.round((total - sumChildren) * 1000) / 1000;
+      return {
+        ...row,
+        soLuongDeNghi: parentSoLuongDeNghi,
+        so_luong: parentSoLuongDeNghi,
+      };
+    });
+
     const groups = computeGroupState(reIndexedDataSource);
     const withFlags = reIndexedDataSource.map((row) => {
       const groupKey = row.isChild ? row.parentKey : row.key;
@@ -769,16 +872,37 @@ export const useVatTuManagerNhatHang = () => {
 
       const parent = parentRecord || prev[parentIndex];
 
+      // Khi thêm dòng con lần đầu: lưu tổng SL đơn của nhóm vào dòng cha (soLuongDeNghi_tong)
+      // và reset số lượng nhặt (tong_nhat, nhat) của dòng mẹ về 0
+      const hasOtherChildren = prev.some(
+        (r) => r.isChild && r.parentKey === parent.key
+      );
+      const parentUpdated =
+        !hasOtherChildren
+          ? {
+              ...parent,
+              soLuongDeNghi_tong:
+                parseFloat(
+                  parent.soLuongDeNghi ?? parent.soLuongDeNghi_tong ?? 0
+                ) || 0,
+              tong_nhat: 0,
+              nhat: 0,
+            }
+          : { ...parent, tong_nhat: 0, nhat: 0 };
+
+      // Dòng con: luôn có ma_vt từ dòng cha để validate trùng (ma_vt + ma_lo)
+      const parentMaVt = (parent.maHang || parent.ma_vt || "").toString().trim();
+
       // Copy tất cả các trường từ dòng cha
       const newChild = {
         ...parent,
         key: 0, // sẽ re-index sau
         
         // Override: dòng con để trống mã hàng và tên (ẩn trên UI)
-        // Nhưng giữ nguyên ma_vt, ten_vt từ parent để có trong payload
         maHang: "",
         ten_mat_hang: "",
-        // ma_vt giữ nguyên từ parent (đã được copy từ {...parent})
+        // Dòng con luôn có ma_vt = dòng cha (để validate trùng mã lô)
+        ma_vt: parentMaVt,
         
         // Override: Chỉ các trường số lượng nhặt hàng về 0
         soLuong: 0,
@@ -786,16 +910,12 @@ export const useVatTuManagerNhatHang = () => {
         soLuongDeNghi: 0,
         nhat: 0,
         tong_nhat: 0, // Tổng nhặt - về 0 cho dòng con mới
-        // so_luong và so_luong_ton giữ nguyên từ parent (đã được copy từ {...parent})
-        // so_luong: giữ nguyên từ parent
-        // so_luong_ton: giữ nguyên từ parent
         sl_td3: 0,
-        // so_luong_don: sẽ bị xóa khỏi payload (thêm vào uiOnlyFields)
         
         // Override: Ghi chú để trống
         ghi_chu: "",
         
-        // Override: Mã lô để trống (dòng con không cần theo dòng cha)
+        // Mã lô dòng con để trống, user chọn sau (validate trùng dùng ma_vt + ma_lo)
         ma_lo: "",
         
         // Liên kết cha
@@ -805,16 +925,20 @@ export const useVatTuManagerNhatHang = () => {
       };
 
       const newData = [
-        ...prev.slice(0, parentIndex + 1),
+        ...prev.slice(0, parentIndex),
+        parentUpdated,
         newChild,
         ...prev.slice(parentIndex + 1),
       ];
 
-      // Re-index keys và line_nbr nếu có
+      // Re-index keys và line_nbr; cập nhật parentKey của dòng con theo key mới của cha
       const reindexed = newData.map((item, i) => ({
         ...item,
         key: i + 1,
         line_nbr: i + 1,
+        ...(item.isChild && item.parentKey === parent.key
+          ? { parentKey: parentIndex + 1 }
+          : {}),
       }));
       const groups = computeGroupState(reindexed);
       return reindexed.map((row) => {

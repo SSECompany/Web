@@ -82,7 +82,7 @@ const ListPhieuNhatHang = () => {
     checkHasAppliedFilters(initialFilters)
   );
 
-  const pageSize = 20;
+  const pageSize = 50;
   const lastApiCall = useRef({
     pageIndex: 0,
     filters: {},
@@ -954,6 +954,13 @@ const ListPhieuNhatHang = () => {
           showQuickJumper: false,
         }}
         loading={isLoading}
+        tableProps={{
+          scroll: {
+            x: screenSize === "mobile" ? 600 : screenSize === "mobileLandscape" ? 800 : screenSize === "tablet" ? 1200 : 1660,
+            y: 1040, /* ~20 dòng visible, còn lại scroll (tối đa 50/trang) */
+          },
+          ...(screenSize === "mobile" || screenSize === "mobileLandscape" ? { size: "small" } : {}),
+        }}
       />
     </div>
   );

@@ -82,6 +82,41 @@ export const validateTongNhat = (dataSource) => {
 };
 
 /**
+ * Validate trùng cặp (mã vật tư + mã lô) trên toàn bảng.
+ * 1 vật tư có thể có nhiều mã lô nhưng không được trùng cặp (ma_vt, ma_lo).
+ * Cả khi mã lô rỗng: 2 dòng cùng mã vật tư mà đều không có mã lô cũng tính là trùng, không cho Lưu/Hoàn thành.
+ * @param {Array} dataSource - Dữ liệu bảng
+ * @returns {Object} { isValid: boolean, type?: string, details?: Array }
+ */
+export const validateDuplicateMaLo = (dataSource = []) => {
+  if (!Array.isArray(dataSource) || dataSource.length === 0) {
+    return { isValid: true };
+  }
+  const SEP = "\u0001"; // separator an toàn (không có trong mã)
+  const pairCount = new Map(); // key = "ma_vt\u0001ma_lo", value = number of rows
+
+  dataSource.forEach((row) => {
+    const maVt = String(row.ma_vt ?? row.maHang ?? "").trim();
+    const maLo = String(row.ma_lo ?? "").trim();
+    const key = `${maVt}${SEP}${maLo}`;
+    pairCount.set(key, (pairCount.get(key) || 0) + 1);
+  });
+
+  const duplicates = [];
+  for (const [key, count] of pairCount) {
+    if (count > 1) {
+      const [maVt, maLo] = key.split(SEP);
+      duplicates.push({ ma_vt: maVt || "", ma_lo: maLo || "", itemInfo: `${maVt || ""} - ${maLo || ""}` });
+    }
+  }
+
+  if (duplicates.length > 0) {
+    return { isValid: false, type: "duplicateMaLo", details: duplicates };
+  }
+  return { isValid: true };
+};
+
+/**
  * Validate điều kiện hoàn thành:
  * - Dòng nào có tổng nhặt (> 0) thì bắt buộc phải có mã lô
  * - Tổng nhặt nhóm phải BẰNG số lượng đơn (không thiếu, không dư)
@@ -162,10 +197,14 @@ export const computeGroupState = (dataSource = []) => {
     state.members.push(row);
     if (!row.isChild) {
       state.parentIndex = index + 1; // 1-based for display
-      // Ưu tiên so_luong_don, fallback so_luong/soLuongDeNghi
+      // Tổng SL đơn của nhóm: ưu tiên soLuongDeNghi_tong (khi có dòng con), rồi so_luong_don/so_luong/soLuongDeNghi
       const orderQty =
         parseFloat(
-          row.so_luong_don ?? row.so_luong ?? row.soLuongDeNghi ?? 0
+          row.soLuongDeNghi_tong ??
+            row.so_luong_don ??
+            row.so_luong ??
+            row.soLuongDeNghi ??
+            0
         ) || 0;
       state.orderQty = orderQty;
       state.parentItem = row;
@@ -402,11 +441,13 @@ export const buildPhieuNhatHangPayload = (
 
     // Mapping số lượng
     // Với dòng cha: set so_luong từ soLuongDeNghi
-    // Với dòng con: so_luong đã được copy từ parent qua {...parent}, giữ nguyên
+    // Với dòng con: set so_luong từ soLuongDeNghi của dòng con (SL đơn được phép sửa)
     if (!item.isChild && item.soLuongDeNghi !== undefined) {
       dynamicItem.so_luong = parseFloat(item.soLuongDeNghi || 0);
     }
-    // Với dòng con, so_luong đã được copy từ parent, không cần override
+    if (item.isChild && item.soLuongDeNghi !== undefined) {
+      dynamicItem.so_luong = parseFloat(item.soLuongDeNghi || 0);
+    }
     if (item.soLuong !== undefined)
       dynamicItem.sl_td3 = parseFloat(item.soLuong || 0);
 
@@ -448,6 +489,11 @@ export const buildPhieuNhatHangPayload = (
         dynamicItem.stt_rec0 = String(index + 1).padStart(3, "0");
       }
     }
+    // Bảng d28 bắt buộc có trường stt_rec0pn (stt_rec0 phiếu nhập / dòng chi tiết PN)
+    dynamicItem.stt_rec0pn =
+      item.stt_rec0pn != null && String(item.stt_rec0pn).trim() !== ""
+        ? String(item.stt_rec0pn).trim()
+        : (dynamicItem.stt_rec0 || "");
     if (!dynamicItem.ma_ct) {
       dynamicItem.ma_ct = "PND";
     }
@@ -567,6 +613,7 @@ export const buildPhieuNhatHangPayload = (
       "soLuong",
       "ten_mat_hang",
       "soLuongDeNghi",
+      "soLuongDeNghi_tong", // Tổng SL đơn nhóm (chỉ UI), API nhận so_luong từng dòng
       "soLuong_goc",
       "soLuongDeNghi_goc",
       "he_so_goc",

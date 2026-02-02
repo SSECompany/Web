@@ -482,6 +482,9 @@ const VatTuTable = ({
           const isLoLoading = !!loadingLo[record.key];
           const isViTriLoading = !!loadingViTri[record.key];
 
+          const isDuplicateMaLo = !!currentRecord._invalid_duplicate_ma_lo;
+          const maLoValue = currentRecord.ma_lo ?? maLo ?? "";
+          const clearVersion = currentRecord._ma_lo_clear_version ?? 0;
           return (
             <div
               style={{
@@ -489,18 +492,19 @@ const VatTuTable = ({
                 gap: 8,
                 width: "100%",
                 justifyContent: "center",
+                ...(isDuplicateMaLo
+                  ? { backgroundColor: "#ffccc7", border: "1px solid #ff4d4f", borderRadius: 4 }
+                  : {}),
               }}
             >
               <Select
-                key={`ma-lo-${record.key}`}
-                value={maLo || undefined}
-                showSearch
+                key={`ma-lo-${record.key}-${String(maLoValue)}-${clearVersion}`}
+                value={maLoValue || undefined}
                 allowClear
                 placeholder="Mã lô"
                 size="small"
                 style={{ width: 140 }}
                 loading={isLoLoading}
-                filterOption={false}
                 onFocus={() => {
                   const currentDataSource = dataSourceRef.current;
                   const currentRecord =
@@ -512,7 +516,6 @@ const VatTuTable = ({
                     loadLoOptions("", currentRecord, true);
                   }
                 }}
-                onSearch={(keyword) => loadLoOptions(keyword, record, false)}
                 onOpenChange={(visible) => {
                   setOpenLo((prev) => {
                     if (visible) {
@@ -587,11 +590,19 @@ const VatTuTable = ({
             if (!isEditMode) {
               return value;
             }
+            const currentRecord = dataSource.find((item) => item.key === record.key) || record;
+            const isDuplicateMaLo = !!currentRecord._invalid_duplicate_ma_lo;
             return (
               <Input
                 value={value}
                 onChange={(e) => onSelectChange(e.target.value, record, "ma_lo")}
-                style={{ width: "100%", textAlign: "center" }}
+                style={{
+                  width: "100%",
+                  textAlign: "center",
+                  ...(isDuplicateMaLo
+                    ? { backgroundColor: "#ffccc7", borderColor: "#ff4d4f" }
+                    : {}),
+                }}
                 className="vat-tu-table-input"
                 placeholder="Nhập mã lô"
                 size="small"
@@ -632,23 +643,27 @@ const VatTuTable = ({
     }
 
     // Thêm cột số lượng đề nghị (SL đơn)
+    // Dòng con: được phép sửa SL đơn; dòng mẹ tự trừ theo tổng - sum(con)
     if (columnConfig.showSoLuongDeNghi !== false) {
+      const soLuongDeNghiField = columnConfig.soLuongDeNghiField || "so_luong";
       baseColumns.push({
         title: columnConfig.soLuongDeNghiTitle === "Số lượng đơn" ? "SL đơn" : (columnConfig.soLuongDeNghiTitle || "Số lượng đề nghị"),
-        dataIndex: columnConfig.soLuongDeNghiField || "so_luong",
+        dataIndex: soLuongDeNghiField,
         key: "so_luong_de_nghi",
         width: 130,
         align: "center",
         ellipsis: true,
-        render: (value, record) =>
-          record.isChild
-            ? ""
-            : renderQuantityInput(
-                value,
-                record,
-                columnConfig.soLuongDeNghiField || "so_luong",
-                columnConfig.soLuongDeNghiEditable !== false
-              ),
+        render: (value, record) => {
+          if (record.isChild) {
+            return renderQuantityInput(value, record, soLuongDeNghiField, true);
+          }
+          return renderQuantityInput(
+            value,
+            record,
+            soLuongDeNghiField,
+            columnConfig.soLuongDeNghiEditable !== false
+          );
+        },
       });
     }
 
@@ -722,18 +737,18 @@ const VatTuTable = ({
           },
         }),
         render: (value, record, index) => {
-          if (record.isChild) return "";
-          
-          // Lấy giá trị mới nhất từ dataSource thay vì từ record closure
           const currentRecord = dataSource.find(item => item.key === record.key) || record;
-          
-          // Kiểm tra xem checkbox có được tích không (dựa vào tong_nhat)
           const tongNhatField = columnConfig.tongNhatField || "tong_nhat";
           const soLuongDeNghiField = columnConfig.soLuongDeNghiField || "soLuongDeNghi";
+          const soLuongDon = parseFloat(currentRecord[soLuongDeNghiField] ?? currentRecord.so_luong ?? 0);
+          
+          // Dòng con: chỉ hiển thị ô Nhặt sau khi đã nhập SL đơn > 0
+          if (currentRecord.isChild && soLuongDon <= 0) {
+            return "";
+          }
           
           const tongNhat = parseFloat(currentRecord[tongNhatField] || 0);
-          const soLuongDon = parseFloat(currentRecord[soLuongDeNghiField] || 0);
-          const isChecked = tongNhat > 0 && Math.abs(tongNhat - soLuongDon) < 0.001; // So sánh với sai số nhỏ
+          const isChecked = tongNhat > 0 && Math.abs(tongNhat - soLuongDon) < 0.001;
           
           if (!isEditMode) {
             return isChecked ? "✓" : "";
@@ -748,21 +763,16 @@ const VatTuTable = ({
                 key={`checkbox-${currentRecord.key}-${tongNhat}`}
                 checked={isChecked}
                 onChange={(e) => {
-                  e.stopPropagation(); // Prevent event bubbling
+                  e.stopPropagation();
                   const checked = e.target.checked;
-                  // Lấy giá trị mới nhất
                   const latestRecord = dataSource.find(item => item.key === currentRecord.key) || currentRecord;
-                  const latestSoLuongDon = parseFloat(latestRecord[soLuongDeNghiField] || 0);
+                  const latestSoLuongDon = parseFloat(latestRecord[soLuongDeNghiField] || latestRecord.so_luong || 0);
                   const newTongNhat = checked ? latestSoLuongDon : 0;
-                  
-                  // Sử dụng onQuantityChange để cập nhật tong_nhat
                   if (onQuantityChange) {
                     onQuantityChange(newTongNhat, latestRecord, tongNhatField);
                   }
                 }}
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent event bubbling
-                }}
+                onClick={(e) => e.stopPropagation()}
               />
             </div>
           );

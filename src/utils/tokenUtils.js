@@ -1,4 +1,16 @@
 // 🚀 Centralized Token Utilities - Single source of truth
+
+const VERSION_KEY = "app_version";
+
+/** Xóa toàn bộ localStorage nhưng giữ lại app_version (dùng khi đăng xuất) */
+export const clearStorageExceptVersion = () => {
+  const version = localStorage.getItem(VERSION_KEY);
+  localStorage.clear();
+  if (version) {
+    localStorage.setItem(VERSION_KEY, version);
+  }
+};
+
 export const clearAllTokenData = () => {
   const keysToRemove = [
     "access_token",

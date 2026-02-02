@@ -171,9 +171,11 @@ body {
   overflow-y: auto !important;
 }
 
+/* Tối đa ~20 dòng visible, còn lại scroll (tối đa 50 dòng/trang) */
 .phieu-data-table .ant-table-body {
   overflow-x: auto !important;
   overflow-y: auto !important;
+  max-height: 1040px; /* ~20 rows × 52px */
 }
 
 .phieu-data-table .ant-table-scroll {

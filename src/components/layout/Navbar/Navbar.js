@@ -12,6 +12,7 @@ import {
 } from "../../../store/reducers/claimsSlice";
 import { getUserInfo } from "../../../store/selectors/Selectors";
 import jwt from "../../../utils/jwt";
+import { clearStorageExceptVersion } from "../../../utils/tokenUtils";
 
 import "./Navbar.css";
 
@@ -61,11 +62,11 @@ const Navbar = () => {
     // Clear state trước
     dispatch(setClaims([]));
     
-    // Clear tokens và localStorage
+    // Clear tokens và localStorage (giữ lại app_version)
     await jwt.resetAccessToken();
     localStorage.removeItem("ban_hang_activeTabId");
     localStorage.removeItem("ban_hang_orders");
-    localStorage.clear();
+    clearStorageExceptVersion();
     
     // Force reload và redirect về trang login
     window.location.href = "/login";

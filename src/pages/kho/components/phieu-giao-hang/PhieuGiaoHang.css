@@ -125,6 +125,38 @@
   transform: scale(1.05);
 }
 
+.giao-hang-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.giao-hang-filter-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.giao-hang-filter-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.giao-hang-filter-btn.active {
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
 .giao-hang-qr-btn {
   width: 44px;
   height: 44px;
@@ -245,7 +277,7 @@
 .giao-hang-filter-tabs {
   display: flex;
   gap: 8px;
-  padding: 0 16px;
+  padding: 10px 0 16px 16px;
   margin-bottom: 16px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -792,6 +824,52 @@
   .giao-hang-fab {
     right: calc((100% - 414px) / 2 + 24px);
   }
+}
+
+/* Drawer bộ lọc */
+.giao-hang-filter-drawer-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.giao-hang-filter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.giao-hang-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.giao-hang-filter-item label {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.giao-hang-filter-date,
+.giao-hang-filter-form .ant-input {
+  width: 100%;
+}
+
+/* Phân trang */
+.giao-hang-pagination-wrap {
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  background: #fff;
+  margin: 0 16px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.giao-hang-pagination-wrap .ant-pagination {
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 /* Safe area for iOS */

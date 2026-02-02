@@ -4,6 +4,7 @@ import { refreshToken } from "../api";
 import router from "../router/routes";
 import { APP_CONFIG } from "./constants";
 import jwt from "./jwt";
+import { clearStorageExceptVersion } from "./tokenUtils";
 
 const controller = new AbortController();
 const MAX_REQUESTS_COUNT = 3;
@@ -66,9 +67,9 @@ instance.interceptors.response.use(
     if (error?.response?.status === 401) {
       // Kiểm tra xem token có thực sự hết hạn không
       if (jwt.isTokenExpired()) {
-        // Clear tất cả tokens và localStorage
+        // Clear tất cả tokens và localStorage (giữ lại app_version)
         jwt.clearTokens();
-        localStorage.clear();
+        clearStorageExceptVersion();
 
         notification.error({
           message: "Phiên đăng nhập hết hạn",
@@ -97,7 +98,7 @@ instance.interceptors.response.use(
           // if original req failed with 401 again - it means server returned not valid token for refresh request
           if (innerError?.response?.status === 401) {
             jwt.clearTokens();
-            localStorage.clear();
+            clearStorageExceptVersion();
 
             notification.error({
               message: "Phiên đăng nhập hết hạn",
@@ -114,7 +115,7 @@ instance.interceptors.response.use(
         }
       } catch (error) {
         jwt.clearTokens();
-        localStorage.clear();
+        clearStorageExceptVersion();
 
         notification.error({
           message: "Phiên đăng nhập hết hạn",

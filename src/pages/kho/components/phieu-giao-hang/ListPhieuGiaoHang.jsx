@@ -8,14 +8,14 @@ import {
   EyeOutlined,
   CheckOutlined,
   CloseOutlined,
-  SearchOutlined,
   InboxOutlined,
   SettingOutlined,
   PhoneOutlined,
   CalendarOutlined,
   FileTextOutlined,
+  FilterOutlined,
 } from "@ant-design/icons";
-import { Input, Spin, message, Tag, Badge } from "antd";
+import { Input, Spin, message, Tag, Badge, Pagination, Drawer, DatePicker, Button } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
@@ -32,14 +32,37 @@ const ListPhieuGiaoHang = () => {
 
   const [allData, setAllData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecord, setTotalRecord] = useState(0);
+  const [countByStatus, setCountByStatus] = useState(() => ({ "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 }));
   const [isLoading, setIsLoading] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [activeFilter, setActiveFilter] = useState("exported");
-  const [searchText, setSearchText] = useState("");
+  const [debouncedSearchText, setDebouncedSearchText] = useState("");
   const [expandedCards, setExpandedCards] = useState(() => new Set());
-  const [showSearch, setShowSearch] = useState(false);
+  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+  // Bộ lọc theo API DeliveryFilter
+  const [fromDate, setFromDate] = useState(null);
+  const [toDate, setToDate] = useState(null);
+  const [filterVoucherNo, setFilterVoucherNo] = useState("");
+  const [filterOrderNumber, setFilterOrderNumber] = useState("");
+  const [filterCustomerCode, setFilterCustomerCode] = useState("");
+  const [filterVehicleCode, setFilterVehicleCode] = useState("");
 
   const pageSize = 20;
+  const STATUS_KEYS = ["3", "4", "5", "6", "7"];
+
+  // Build object lọc gửi API (FromDate, ToDate, VoucherNo, OrderNumber, CustomerCode, VehicleCode, Keyword)
+  const buildApiFilter = useCallback(() => {
+    const filter = {};
+    if (fromDate && dayjs.isDayjs(fromDate)) filter.FromDate = fromDate.format("YYYY-MM-DD");
+    if (toDate && dayjs.isDayjs(toDate)) filter.ToDate = toDate.format("YYYY-MM-DD");
+    if (filterVoucherNo?.trim()) filter.VoucherNo = filterVoucherNo.trim();
+    if (filterOrderNumber?.trim()) filter.OrderNumber = filterOrderNumber.trim();
+    if (filterCustomerCode?.trim()) filter.CustomerCode = filterCustomerCode.trim();
+    if (filterVehicleCode?.trim()) filter.VehicleCode = filterVehicleCode.trim();
+    if (debouncedSearchText?.trim()) filter.Keyword = debouncedSearchText.trim();
+    return filter;
+  }, [fromDate, toDate, filterVoucherNo, filterOrderNumber, filterCustomerCode, filterVehicleCode, debouncedSearchText]);
 
   const toggleCardExpand = (key) => {
     setExpandedCards((prev) => {
@@ -51,10 +74,22 @@ const ListPhieuGiaoHang = () => {
   };
   const hasInitialLoad = useRef(false);
   const userInfoRef = useRef(userInfo);
+  const prevDebouncedSearchRef = useRef(null);
 
   useEffect(() => {
     userInfoRef.current = userInfo;
   }, [userInfo]);
+
+  // Khi debounced search thay đổi → gọi lại API (bỏ qua lần chạy đầu sau mount)
+  useEffect(() => {
+    if (!hasInitialLoad.current) return;
+    const isFirstRun = prevDebouncedSearchRef.current === null;
+    prevDebouncedSearchRef.current = debouncedSearchText;
+    if (isFirstRun) return;
+    fetchPhieuGiaoHang(1, effectiveStatus);
+    fetchCountsByStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchText]);
 
   const fetchPhieuGiaoHang = useCallback(
     async (pageIndex = 1, statusFilter = "") => {
@@ -69,11 +104,13 @@ const ListPhieuGiaoHang = () => {
 
       setIsLoading(true);
       try {
+        const apiFilter = buildApiFilter();
         const params = {
           MaDvcs: unitId || "",
           Status: statusFilter || undefined,
           PageIndex: pageIndex,
           PageSize: pageSize,
+          ...apiFilter,
         };
 
         const result = await fetchPhieuGiaoHangList(params);
@@ -81,6 +118,11 @@ const ListPhieuGiaoHang = () => {
         if (result.success) {
           setAllData(result.data);
           setCurrentPage(result.pagination?.pageIndex || pageIndex);
+          const total = result.pagination?.totalRecord ?? 0;
+          setTotalRecord(total);
+          if (statusFilter) {
+            setCountByStatus((prev) => ({ ...prev, [statusFilter]: total }));
+          }
         } else {
           message.error(result.error || "Lỗi khi tải dữ liệu");
         }
@@ -91,15 +133,59 @@ const ListPhieuGiaoHang = () => {
         setIsLoading(false);
       }
     },
-    [pageSize, isLoading]
+    [pageSize, isLoading, buildApiFilter]
   );
+
+  // Gọi API lấy tổng số theo từng trạng thái (chỉ cần totalCount, PageSize=1), có áp dụng bộ lọc
+  // excludeStatuses: bỏ qua các status đã có (vd. "3" đã lấy từ response danh sách)
+  const fetchCountsByStatus = useCallback(async (opts = {}) => {
+    const { excludeStatuses = [] } = opts;
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    const unitsResponse = JSON.parse(localStorage.getItem("unitsResponse") || "{}");
+    const currentUserInfo = userInfoRef.current;
+    const unitId = currentUserInfo?.unitId || unitsResponse?.unitId || unitsResponse?.unitCode || "";
+    const apiFilter = buildApiFilter();
+    const statusesToFetch = STATUS_KEYS.filter((s) => !excludeStatuses.includes(s));
+    if (statusesToFetch.length === 0) return;
+    const promises = statusesToFetch.map((status) =>
+      fetchPhieuGiaoHangList({
+        MaDvcs: unitId || "",
+        Status: status,
+        PageIndex: 1,
+        PageSize: 1,
+        ...apiFilter,
+      })
+    );
+    try {
+      const results = await Promise.all(promises);
+      setCountByStatus((prev) => {
+        const next = { ...prev };
+        results.forEach((res, i) => {
+          const status = statusesToFetch[i];
+          if (res.success && res.pagination != null && status) {
+            next[status] = res.pagination.totalRecord ?? 0;
+          }
+        });
+        return next;
+      });
+    } catch (e) {
+      console.error("Lỗi tải số lượng theo trạng thái:", e);
+    }
+  }, [buildApiFilter]);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (!token) return;
     if (hasInitialLoad.current) return;
     hasInitialLoad.current = true;
-    fetchPhieuGiaoHang(1, "");
+    // Chỉ gọi 1 API danh sách trước → hiển thị nhanh
+    fetchPhieuGiaoHang(1, "3");
+    // Trì hoãn gọi đếm theo tab (4 request: status 4,5,6,7), bỏ status 3 vì đã có từ response danh sách
+    const countTimer = setTimeout(() => {
+      fetchCountsByStatus({ excludeStatuses: ["3"] });
+    }, 400);
+    return () => clearTimeout(countTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -117,54 +203,60 @@ const ListPhieuGiaoHang = () => {
     });
   };
 
+  // Map tab key -> API Status
+  const statusMap = useMemo(() => ({
+    exported: "3",
+    received: "4",
+    handover: "5",
+    completed: "6",
+    failed: "7",
+  }), []);
+
+  // Có keyword thì không gửi Status (tìm trên mọi trạng thái)
+  const effectiveStatus = useMemo(
+    () => (debouncedSearchText?.trim() ? "" : (statusMap[activeFilter] || "")),
+    [debouncedSearchText, activeFilter, statusMap]
+  );
+
   const handleFilterChange = (filter) => {
     setActiveFilter(filter);
-    // Không gọi API, chỉ filter local
+    const statusParam = debouncedSearchText?.trim() ? "" : (statusMap[filter] || "");
+    fetchPhieuGiaoHang(1, statusParam);
   };
 
-  // Lọc data theo search text và filter
-  const filteredData = useMemo(() => {
-    let data = allData;
-    
-    // Lọc theo status - 6 trạng thái riêng biệt (mapping mới: 2-7, bỏ 1)
-    const statusMap = {
-      "exported": "3",      // Xuất hàng
-      "received": "4",      // Đã tiếp nhận
-      "handover": "5",      // Bàn giao ĐVVC
-      "completed": "6",    // Hoàn thành
-      "failed": "7",       // Thất bại
-    };
-    const targetStatus = statusMap[activeFilter];
-    if (targetStatus) {
-      data = data.filter(item => String(item.status) === targetStatus);
-    }
-    
-    // Lọc theo search text
-    if (searchText) {
-      const search = searchText.toLowerCase();
-      data = data.filter(item => 
-        (item.so_ct && item.so_ct.toLowerCase().includes(search)) ||
-        (item.ten_kh && item.ten_kh.toLowerCase().includes(search)) ||
-        (item.so_don_hang && item.so_don_hang.toLowerCase().includes(search)) ||
-        (item.ma_kh && item.ma_kh.toLowerCase().includes(search))
-      );
-    }
-    
-    return data;
-  }, [allData, activeFilter, searchText]);
+  const handleApplyFilter = () => {
+    setShowFilterDrawer(false);
+    fetchPhieuGiaoHang(1, effectiveStatus);
+    fetchCountsByStatus();
+    message.success("Đã áp dụng bộ lọc");
+  };
 
-  // Đếm số lượng theo trạng thái - 7 trạng thái mới
-  // 1: Lập chứng từ, 2: Lưu kho, 3: Xuất hàng, 4: Đã tiếp nhận, 5: Bàn giao ĐVVC, 6: Hoàn thành, 7: Thất bại
-  const stats = useMemo(() => {
-    const created = allData.filter(item => String(item.status) === "1").length;    // Lập chứng từ
-    const stored = allData.filter(item => String(item.status) === "2").length;       // Lưu kho
-    const exported = allData.filter(item => String(item.status) === "3").length;     // Xuất hàng
-    const received = allData.filter(item => String(item.status) === "4").length;     // Đã tiếp nhận
-    const handover = allData.filter(item => String(item.status) === "5").length;     // Bàn giao ĐVVC
-    const completed = allData.filter(item => String(item.status) === "6").length;   // Hoàn thành
-    const failed = allData.filter(item => String(item.status) === "7").length;       // Thất bại
-    return { created, stored, exported, received, handover, completed, failed, total: allData.length };
-  }, [allData]);
+  const handleClearFilter = () => {
+    setFromDate(null);
+    setToDate(null);
+    setFilterVoucherNo("");
+    setFilterOrderNumber("");
+    setFilterCustomerCode("");
+    setFilterVehicleCode("");
+    setShowFilterDrawer(false);
+    fetchPhieuGiaoHang(1, effectiveStatus);
+    fetchCountsByStatus();
+    message.info("Đã xóa bộ lọc");
+  };
+
+  const hasActiveFilter = fromDate || toDate || filterVoucherNo?.trim() || filterOrderNumber?.trim() || filterCustomerCode?.trim() || filterVehicleCode?.trim();
+
+  // Danh sách hiển thị = kết quả từ API (đã filter theo Keyword + Status + bộ lọc)
+  const filteredData = useMemo(() => allData, [allData]);
+
+  // Số lượng theo trạng thái lấy từ API (countByStatus), dùng cho nhãn tab
+  const stats = useMemo(() => ({
+    exported: countByStatus["3"] ?? 0,
+    received: countByStatus["4"] ?? 0,
+    handover: countByStatus["5"] ?? 0,
+    completed: countByStatus["6"] ?? 0,
+    failed: countByStatus["7"] ?? 0,
+  }), [countByStatus]);
 
   // Trạng thái theo yêu cầu mới: 
   // 1: Lập chứng từ, 2: Lưu kho, 3: Xuất hàng, 4: Đã tiếp nhận, 5: Bàn giao ĐVVC, 6: Hoàn thành, 7: Thất bại
@@ -268,29 +360,95 @@ const ListPhieuGiaoHang = () => {
             <LeftOutlined />
           </button>
           <div className="giao-hang-header-center">
-            <h1 className={`giao-hang-title ${showSearch ? "giao-hang-title-hidden" : ""}`}>
-              GIAO HÀNG
-            </h1>
-            <div className={`giao-hang-search-in-header ${showSearch ? "giao-hang-search-open" : ""}`}>
-              <Input
-                className="giao-hang-search-input"
-                placeholder="Tìm phiếu, khách hàng, đơn hàng..."
-                prefix={<SearchOutlined />}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                allowClear
-                autoFocus={showSearch}
-              />
-            </div>
+            <h1 className="giao-hang-title">GIAO HÀNG</h1>
           </div>
-          <button 
-            className="giao-hang-search-btn" 
-            onClick={() => setShowSearch(!showSearch)}
-          >
-            <SearchOutlined />
-          </button>
+          <div className="giao-hang-header-actions">
+            <button 
+              className={`giao-hang-filter-btn ${hasActiveFilter ? "active" : ""}`}
+              onClick={() => setShowFilterDrawer(true)}
+              title="Bộ lọc"
+            >
+              <FilterOutlined />
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Drawer bộ lọc theo API DeliveryFilter */}
+      <Drawer
+        title="Bộ lọc phiếu giao hàng"
+        placement="right"
+        onClose={() => setShowFilterDrawer(false)}
+        open={showFilterDrawer}
+        width={320}
+        footer={
+          <div className="giao-hang-filter-drawer-footer">
+            <Button onClick={handleClearFilter}>Xóa bộ lọc</Button>
+            <Button type="primary" onClick={handleApplyFilter}>Áp dụng</Button>
+          </div>
+        }
+      >
+        <div className="giao-hang-filter-form">
+          <div className="giao-hang-filter-item">
+            <label>Từ ngày</label>
+            <DatePicker
+              className="giao-hang-filter-date"
+              value={fromDate}
+              onChange={setFromDate}
+              format="DD/MM/YYYY"
+              allowClear
+              placeholder="Chọn từ ngày"
+            />
+          </div>
+          <div className="giao-hang-filter-item">
+            <label>Đến ngày</label>
+            <DatePicker
+              className="giao-hang-filter-date"
+              value={toDate}
+              onChange={setToDate}
+              format="DD/MM/YYYY"
+              allowClear
+              placeholder="Chọn đến ngày"
+            />
+          </div>
+          <div className="giao-hang-filter-item">
+            <label>Số chứng từ</label>
+            <Input
+              placeholder="Số chứng từ"
+              value={filterVoucherNo}
+              onChange={(e) => setFilterVoucherNo(e.target.value)}
+              allowClear
+            />
+          </div>
+          <div className="giao-hang-filter-item">
+            <label>Số đơn hàng</label>
+            <Input
+              placeholder="Số đơn hàng"
+              value={filterOrderNumber}
+              onChange={(e) => setFilterOrderNumber(e.target.value)}
+              allowClear
+            />
+          </div>
+          <div className="giao-hang-filter-item">
+            <label>Mã khách hàng</label>
+            <Input
+              placeholder="Mã khách hàng"
+              value={filterCustomerCode}
+              onChange={(e) => setFilterCustomerCode(e.target.value)}
+              allowClear
+            />
+          </div>
+          <div className="giao-hang-filter-item">
+            <label>Mã phương tiện</label>
+            <Input
+              placeholder="Mã phương tiện vận chuyển"
+              value={filterVehicleCode}
+              onChange={(e) => setFilterVehicleCode(e.target.value)}
+              allowClear
+            />
+          </div>
+        </div>
+      </Drawer>
 
       {/* Filter tabs - 5 trạng thái (bỏ Tất cả, Lập chứng từ và Lưu kho, bắt đầu từ Xuất hàng) */}
       <div className="giao-hang-filter-tabs">
@@ -460,6 +618,22 @@ const ListPhieuGiaoHang = () => {
           })
         )}
       </div>
+
+      {/* Phân trang */}
+      {!isLoading && totalRecord > 0 && (
+        <div className="giao-hang-pagination-wrap">
+          <Pagination
+            current={currentPage}
+            total={totalRecord}
+            pageSize={pageSize}
+            showSizeChanger={false}
+            showTotal={(total) => `Tổng ${total} phiếu`}
+            onChange={(page) => {
+              fetchPhieuGiaoHang(page, effectiveStatus);
+            }}
+          />
+        </div>
+      )}
 
       {/* Floating QR Button */}
       <button className="giao-hang-fab" onClick={() => setShowQRScanner(true)}>

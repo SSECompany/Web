@@ -6,7 +6,7 @@ import {
 } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { getLoItem, getViTriByKho } from "../../../../api";
@@ -28,9 +28,10 @@ import {
   buildPhieuNhatHangPayload,
   deletePhieuNhatHangDynamic,
   validateDataSource,
+  validateDuplicateMaLo,
   validateTongNhat,
-    validateCompletionRules,
-    computeGroupState,
+  validateCompletionRules,
+  computeGroupState,
 } from "./utils/phieuNhatHangUtils";
 
 const { Title } = Typography;
@@ -99,6 +100,12 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
     handleAddItem,
     handleDvtChange,
   } = useVatTuManagerNhatHang();
+
+  // Có trùng (mã vật tư + mã lô) => disable nút Lưu và Hoàn thành
+  const hasDuplicateMaLo = useMemo(
+    () => !validateDuplicateMaLo(dataSource).isValid,
+    [dataSource]
+  );
 
   // Phân trang vật tư - sử dụng API giống POS
   const fetchVatTuListPaging = useCallback(
@@ -613,16 +620,46 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       setLoading(true);
       const values = await form.validateFields();
 
-      // Validate data source
+      // Validate data source — chặn Lưu nếu không hợp lệ
       const validation = validateDataSource(dataSource);
       if (!validation.isValid) {
         setLoading(false);
         return;
       }
 
-      // Validate tổng nhặt không được vượt quá số lượng đơn
+      // Validate tổng nhặt không được vượt quá số lượng đơn — chặn Lưu
       const tongNhatValidation = validateTongNhat(dataSource);
       if (!tongNhatValidation.isValid) {
+        message.error("Tổng nhặt không được vượt quá số lượng đơn. Vui lòng kiểm tra lại.");
+        setLoading(false);
+        return;
+      }
+
+      // Validate không trùng (mã vật tư + mã lô) — chặn Lưu; đánh dấu đỏ và clear mã lô các dòng trùng
+      const duplicateMaLoCheck = validateDuplicateMaLo(dataSource);
+      if (!duplicateMaLoCheck.isValid) {
+        const duplicatePairs = new Set(
+          (duplicateMaLoCheck.details || []).map((d) => `${d.ma_vt}\u0001${d.ma_lo}`)
+        );
+        setDataSource((prev) =>
+          prev.map((row) => {
+            const maVt = String(row.ma_vt ?? row.maHang ?? "").trim();
+            const maLo = String(row.ma_lo ?? "").trim();
+            const key = `${maVt}\u0001${maLo}`;
+            if (duplicatePairs.has(key)) {
+              return {
+                ...row,
+                _invalid_duplicate_ma_lo: true,
+                ma_lo: "",
+                _ma_lo_clear_version: (row._ma_lo_clear_version || 0) + 1,
+              };
+            }
+            return { ...row, _invalid_duplicate_ma_lo: false };
+          })
+        );
+        message.error(
+          "Trùng mã vật tư và mã lô. Đã xóa mã lô trùng. Vui lòng chọn lại mã lô."
+        );
         setLoading(false);
         return;
       }
@@ -650,8 +687,17 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         return;
       }
 
+      // Rào chặn cuối: không gửi API nếu vẫn trùng (ma_vt + ma_lo)
+      const finalDuplicateCheck = validateDuplicateMaLo(dataSource);
+      if (!finalDuplicateCheck.isValid) {
+        message.error(
+          "Trùng mã vật tư và mã lô. Không được phép lưu."
+        );
+        setLoading(false);
+        return;
+      }
+
       // Gọi API cập nhật với stored procedure
-      // Wrap payload in Data structure như API cũ mong đợi
       const wrappedPayload = {
         Data: payload,
       };
@@ -682,16 +728,46 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           setLoading(true);
           const values = await form.validateFields();
 
-          // Validate data source
+          // Validate data source — chặn Hoàn thành nếu không hợp lệ
           const validation = validateDataSource(dataSource);
           if (!validation.isValid) {
             setLoading(false);
             return;
           }
 
-          // Validate tổng nhặt không được vượt quá số lượng đơn
+          // Validate tổng nhặt không được vượt quá số lượng đơn — chặn Hoàn thành
           const tongNhatValidation = validateTongNhat(dataSource);
           if (!tongNhatValidation.isValid) {
+            message.error("Tổng nhặt không được vượt quá số lượng đơn. Vui lòng kiểm tra lại.");
+            setLoading(false);
+            return;
+          }
+
+          // Validate không trùng (mã vật tư + mã lô) — chặn Hoàn thành; đánh dấu đỏ và clear mã lô các dòng trùng
+          const duplicateMaLoCheck = validateDuplicateMaLo(dataSource);
+          if (!duplicateMaLoCheck.isValid) {
+            const duplicatePairs = new Set(
+              (duplicateMaLoCheck.details || []).map((d) => `${d.ma_vt}\u0001${d.ma_lo}`)
+            );
+            setDataSource((prev) =>
+              prev.map((row) => {
+                const maVt = String(row.ma_vt ?? row.maHang ?? "").trim();
+                const maLo = String(row.ma_lo ?? "").trim();
+                const key = `${maVt}\u0001${maLo}`;
+                if (duplicatePairs.has(key)) {
+                  return {
+                    ...row,
+                    _invalid_duplicate_ma_lo: true,
+                    ma_lo: "",
+                    _ma_lo_clear_version: (row._ma_lo_clear_version || 0) + 1,
+                  };
+                }
+                return { ...row, _invalid_duplicate_ma_lo: false };
+              })
+            );
+            message.error(
+              "Trùng mã vật tư và mã lô. Đã xóa mã lô trùng. Vui lòng chọn lại mã lô."
+            );
             setLoading(false);
             return;
           }
@@ -759,8 +835,17 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             return;
           }
 
+          // Rào chặn cuối: không gửi API nếu vẫn trùng (ma_vt + ma_lo)
+          const finalDuplicateCheck = validateDuplicateMaLo(dataSource);
+          if (!finalDuplicateCheck.isValid) {
+            message.error(
+              "Trùng mã vật tư và mã lô. Không được phép hoàn thành."
+            );
+            setLoading(false);
+            return;
+          }
+
           // Gọi API cập nhật với stored procedure
-          // Wrap payload in Data structure như API cũ mong đợi
           const wrappedPayload = {
             Data: payload,
           };
@@ -888,13 +973,21 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               }}
             >
               <Space>
-                <Button type="primary" onClick={handleSubmit} loading={loading}>
+                <Button
+                  type="primary"
+                  onClick={handleSubmit}
+                  loading={loading}
+                  disabled={hasDuplicateMaLo}
+                  title={hasDuplicateMaLo ? "Trùng mã vật tư và mã lô. Vui lòng kiểm tra lại." : undefined}
+                >
                   Lưu
                 </Button>
                 <Button
                   type="primary"
                   onClick={handleComplete}
                   loading={loading}
+                  disabled={hasDuplicateMaLo}
+                  title={hasDuplicateMaLo ? "Trùng mã vật tư và mã lô. Vui lòng kiểm tra lại." : undefined}
                   style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
                 >
                   Hoàn thành

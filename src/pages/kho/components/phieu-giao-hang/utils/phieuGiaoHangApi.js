@@ -18,6 +18,7 @@ export const fetchPhieuGiaoHangList = async (params) => {
     if (params.Status) queryParams.Status = params.Status;
     if (params.OrderNumber) queryParams.OrderNumber = params.OrderNumber;
     if (params.VehicleCode) queryParams.VehicleCode = params.VehicleCode;
+    if (params.Keyword) queryParams.Keyword = params.Keyword;
     if (params.PageIndex) queryParams.PageIndex = params.PageIndex;
     if (params.PageSize) queryParams.PageSize = params.PageSize;
 
@@ -57,9 +58,9 @@ export const fetchPhieuGiaoHangList = async (params) => {
       return {
         data: mappedData,
         pagination: {
-          totalRecord: apiData.totalCount || 0,
-          pageIndex: apiData.pageIndex || 1,
-          pageSize: apiData.pageSize || 20,
+          totalRecord: apiData.totalCount ?? apiData.totalRecords ?? apiData.total ?? 0,
+          pageIndex: apiData.pageIndex ?? params.PageIndex ?? 1,
+          pageSize: apiData.pageSize ?? params.PageSize ?? 20,
         },
         success: true,
       };

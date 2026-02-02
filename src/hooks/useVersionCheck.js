@@ -213,6 +213,46 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
       } catch (error) {
         console.warn("Không thể parse version từ localStorage:", error);
       }
+    } else {
+      // Lần đầu truy cập hoặc đã xóa hết storage => thông báo để user cập nhật version (không ghi trực tiếp vào localStorage)
+      getCurrentVersion().then((versionData) => {
+        if (versionData) {
+          currentVersionRef.current = versionData;
+          setCurrentVersion(versionData);
+          notification.info({
+            key: "version-first-time",
+            message: "Cập nhật phiên bản",
+            description: `Đã phát hiện phiên bản ${versionData.version}. Nhấn để cập nhật và tiếp tục sử dụng.`,
+            duration: 0,
+            btn: (
+              <button
+                onClick={() => {
+                  try {
+                    localStorage.setItem(
+                      "app_version",
+                      JSON.stringify(versionData)
+                    );
+                    notification.destroy("version-first-time");
+                  } catch (e) {
+                    console.warn("Không thể lưu version vào localStorage:", e);
+                  }
+                }}
+                style={{
+                  background: "#1890ff",
+                  color: "white",
+                  border: "none",
+                  padding: "4px 12px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: 500,
+                }}
+              >
+                Cập nhật
+              </button>
+            ),
+          });
+        }
+      });
     }
     const initialCheck = setTimeout(() => {
       checkForNewVersion();
