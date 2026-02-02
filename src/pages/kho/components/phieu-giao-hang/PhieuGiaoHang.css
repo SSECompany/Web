@@ -277,7 +277,7 @@
 .giao-hang-filter-tabs {
   display: flex;
   gap: 8px;
-  padding: 10px 0 16px 16px;
+  padding: 0 16px;
   margin-bottom: 16px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;

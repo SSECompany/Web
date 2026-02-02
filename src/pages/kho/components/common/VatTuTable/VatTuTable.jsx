@@ -650,7 +650,7 @@ const VatTuTable = ({
         title: columnConfig.soLuongDeNghiTitle === "Số lượng đơn" ? "SL đơn" : (columnConfig.soLuongDeNghiTitle || "Số lượng đề nghị"),
         dataIndex: soLuongDeNghiField,
         key: "so_luong_de_nghi",
-        width: 130,
+        width: 100,
         align: "center",
         ellipsis: true,
         render: (value, record) => {

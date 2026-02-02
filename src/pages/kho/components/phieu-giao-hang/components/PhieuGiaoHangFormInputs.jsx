@@ -145,7 +145,7 @@ const PhieuGiaoHangFormInputs = ({
         
         {/* Ghi chú gộp vào đây */}
         <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f0f0f0' }}>
-          <Form.Item label="Ghi chú" name="ghi_chu" style={{ marginBottom: 0 }}>
+          <Form.Item label="" name="ghi_chu" style={{ marginBottom: 0 }}>
             <TextArea rows={2} placeholder="Nhập ghi chú" disabled={!isEditMode} />
           </Form.Item>
         </div>

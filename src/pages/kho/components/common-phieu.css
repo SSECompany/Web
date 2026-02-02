@@ -600,7 +600,13 @@ body {
   min-width: max-content;
 }
 
-.phieu-data-table .ant-table-cell {
+/* Cho phép ô nội dung xuống dòng để không bị cắt chữ (trừ cột cần giữ 1 dòng có thể override) */
+.phieu-data-table .ant-table-tbody .ant-table-cell {
+  white-space: normal !important;
+  word-break: break-word;
+  min-width: 0;
+}
+.phieu-data-table .ant-table-thead .ant-table-cell {
   white-space: nowrap;
 }
 

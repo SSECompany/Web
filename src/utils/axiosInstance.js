@@ -65,23 +65,35 @@ instance.interceptors.response.use(
     PENDING_REQUESTS = Math.max(0, PENDING_REQUESTS - 1);
 
     if (error?.response?.status === 401) {
-      // Kiểm tra xem token có thực sự hết hạn không
-      if (jwt.isTokenExpired()) {
-        // Clear tất cả tokens và localStorage (giữ lại app_version)
+      // Request refresh trả 401 → logout ngay, không gọi refresh lại
+      if (config?.url?.toLowerCase?.().includes("authentication/refresh")) {
         jwt.clearTokens();
         clearStorageExceptVersion();
-
         notification.error({
           message: "Phiên đăng nhập hết hạn",
           description: "Vui lòng đăng nhập lại để tiếp tục",
           placement: "topRight",
           duration: 3,
         });
-
         router.navigate("/login");
         return Promise.reject(error);
       }
 
+      // Đã retry rồi mà vẫn 401 → logout
+      if ((config?.__retryCount || 0) >= 1) {
+        jwt.clearTokens();
+        clearStorageExceptVersion();
+        notification.error({
+          message: "Phiên đăng nhập hết hạn",
+          description: "Vui lòng đăng nhập lại để tiếp tục",
+          placement: "topRight",
+          duration: 3,
+        });
+        router.navigate("/login");
+        return Promise.reject(error);
+      }
+
+      // Access token hết hạn (token_expiry qua) vẫn thử refresh trước; chỉ logout khi refresh thất bại (refresh_token hết hạn)
       try {
         if (!refreshingFunc) refreshingFunc = refreshToken();
 
@@ -89,11 +101,14 @@ instance.interceptors.response.use(
 
         await jwt.setRefreshToken(newRefreshToken);
         await jwt.setAccessToken(newToken, true); // Skip expiry update khi refresh token
+        jwt.setTokenExpiryFromJwt(newToken);
 
+        if (!config.headers) config.headers = {};
         config.headers.Authorization = `Bearer ${newToken}`;
-        // retry original request
+        config.__retryCount = (config.__retryCount || 0) + 1;
+        // retry original request bằng cùng instance (baseURL đúng)
         try {
-          return await axios.request(config);
+          return await instance.request(config);
         } catch (innerError) {
           // if original req failed with 401 again - it means server returned not valid token for refresh request
           if (innerError?.response?.status === 401) {
@@ -111,6 +126,7 @@ instance.interceptors.response.use(
             return Promise.reject(innerError);
           } else {
             controller.abort();
+            return Promise.reject(innerError);
           }
         }
       } catch (error) {

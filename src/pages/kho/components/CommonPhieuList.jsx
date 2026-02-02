@@ -58,8 +58,7 @@ const CommonPhieuList = ({
         <Table
           columns={columns.map((col) => ({
             ...col,
-            width: undefined,
-            ellipsis: false,
+            ellipsis: col.ellipsis !== undefined ? col.ellipsis : false,
           }))}
           dataSource={data}
           rowKey={rowKey}

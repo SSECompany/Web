@@ -356,7 +356,7 @@ const ListPhieuNhatHang = () => {
     if (filters.so_don_hang)
       chips.push({
         key: "so_don_hang",
-        label: "Số đơn hàng",
+        label: "Số ĐH",
         value: filters.so_don_hang,
       });
     if (filters.ma_kh)
@@ -368,7 +368,7 @@ const ListPhieuNhatHang = () => {
     if (filters.ten_kh)
       chips.push({
         key: "ten_kh",
-        label: "Tên khách hàng",
+        label: "Tên KH",
         value: filters.ten_kh,
       });
     if (filters.ma_nhomvitri)
@@ -469,14 +469,14 @@ const ListPhieuNhatHang = () => {
         title: "STT",
         key: "stt",
         render: (_, __, index) => index + 1,
-        width: 60,
+        width: 50,
         align: "center",
       },
       {
         title: "Số",
         dataIndex: "so_ct",
         key: "so_ct",
-        width: 120,
+        width: 60,
         align: "center",
         render: (text) => (text ? text.trim() : ""),
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
@@ -510,7 +510,7 @@ const ListPhieuNhatHang = () => {
         title: "Ngày",
         dataIndex: "ngay_ct",
         key: "ngay_ct",
-        width: 140,
+        width: 118,
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <div style={{ padding: 8 }}>
             <RangePicker
@@ -570,9 +570,13 @@ const ListPhieuNhatHang = () => {
         title: "Tên KH",
         dataIndex: "ten_kh",
         key: "ten_kh",
-        width: 180,
+        width: 100,
         align: "center",
-        render: (text) => (text || "").toString(),
+        ellipsis: false,
+        render: (text) => {
+          const s = (text || "").toString();
+          return s ? <span style={{ wordBreak: "break-word", whiteSpace: "normal" }}>{s}</span> : "";
+        },
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <div style={{ padding: 8 }}>
             <Input
@@ -601,16 +605,16 @@ const ListPhieuNhatHang = () => {
         filteredValue: filters.ten_kh ? [filters.ten_kh] : null,
       },
       {
-        title: "Số đơn hàng",
+        title: "Số ĐH",
         dataIndex: "so_don_hang",
         key: "so_don_hang",
-        width: 140,
+        width: 80,
         align: "center",
         render: (text) => (text ? text.trim() : ""),
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <div style={{ padding: 8 }}>
             <Input
-              placeholder="Tìm Số đơn hàng"
+              placeholder="Tìm Số ĐH"
               value={selectedKeys[0]}
               onChange={(e) =>
                 setSelectedKeys(e.target.value ? [e.target.value] : [])
@@ -638,7 +642,7 @@ const ListPhieuNhatHang = () => {
         title: "Vùng",
         dataIndex: "ma_nhomvitri",
         key: "ma_nhomvitri",
-        width: 120,
+        width: 72,
         align: "center",
         render: (text) => (text || "").toString(),
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
@@ -672,14 +676,14 @@ const ListPhieuNhatHang = () => {
         title: "Bàn",
         dataIndex: "ban_dong_goi",
         key: "ban_dong_goi",
-        width: 120,
+        width: 88,
         align: "center",
         render: (text) => (text || "").toString(),
       },
       {
-        title: "Tỉ lệ hoàn thành",
+        title: "% HT",
         key: "ti_le_hoan_thanh",
-        width: 120,
+        width: 80,
         align: "center",
         render: (_, record) => {
           const a = record?.sl_phieu_xuat1 ?? 0;
@@ -691,18 +695,19 @@ const ListPhieuNhatHang = () => {
         title: "Nhân viên",
         dataIndex: "ten_nvbh",
         key: "ma_nvbh",
-        width: 140,
+        width: 100,
         align: "center",
+        ellipsis: false,
         render: (text, record) => {
-          // Ưu tiên hiển thị tên nhân viên (ten_nvbh), nếu không có thì hiển thị mã (ma_nvbh)
-          return (text || record?.ma_nvbh || "").toString();
+          const s = (text || record?.ma_nvbh || "").toString();
+          return s ? <span style={{ wordBreak: "break-word", whiteSpace: "normal" }}>{s}</span> : "";
         },
       },
       {
         title: "Trạng thái",
         dataIndex: "statusname",
         key: "statusname",
-        width: screenSize === "mobile" ? 80 : 120,
+        width: screenSize === "mobile" ? 90 : 140,
         align: "center",
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <div style={{ padding: 8 }}>
@@ -756,8 +761,9 @@ const ListPhieuNhatHang = () => {
       {
         title: "Thời gian xử lý",
         key: "thoi_gian_xu_ly",
-        width: 200,
+        width: 120,
         align: "center",
+        ellipsis: false,
         render: (_, record) => {
           const formatTime = (text) => {
             if (!text || text === null || text === "null" || text === "*")
@@ -827,9 +833,13 @@ const ListPhieuNhatHang = () => {
         title: "Ghi chú",
         dataIndex: "ghi_chu",
         key: "ghi_chu",
-        width: 220,
+        width: 80,
         align: "center",
-        render: (text) => (text || "").toString(),
+        ellipsis: false,
+        render: (text) => {
+          const s = (text || "").toString();
+          return s ? <span style={{ wordBreak: "break-word", whiteSpace: "normal" }}>{s}</span> : "";
+        },
       },
       {
         title: "Hành động",
@@ -876,7 +886,7 @@ const ListPhieuNhatHang = () => {
       bordered: true,
       rowKey: "stt_rec",
       className: "phieu-data-table hidden_scroll_bar",
-      scroll: { x: 1660 },
+      scroll: { x: 1460 },
     };
 
     if (screenSize === "mobile") {
@@ -888,7 +898,7 @@ const ListPhieuNhatHang = () => {
     } else if (screenSize === "tablet") {
       baseProps.scroll = { x: 1200, y: 500 };
     } else {
-      baseProps.scroll = { x: 1660, y: 600 };
+      baseProps.scroll = { x: 1460, y: 600 };
     }
 
     return baseProps;
@@ -956,7 +966,7 @@ const ListPhieuNhatHang = () => {
         loading={isLoading}
         tableProps={{
           scroll: {
-            x: screenSize === "mobile" ? 600 : screenSize === "mobileLandscape" ? 800 : screenSize === "tablet" ? 1200 : 1660,
+            x: screenSize === "mobile" ? 600 : screenSize === "mobileLandscape" ? 800 : screenSize === "tablet" ? 1200 : 1460,
             y: 1040, /* ~20 dòng visible, còn lại scroll (tối đa 50/trang) */
           },
           ...(screenSize === "mobile" || screenSize === "mobileLandscape" ? { size: "small" } : {}),

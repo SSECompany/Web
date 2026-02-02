@@ -5,15 +5,18 @@ import jwt from "../utils/jwt";
 
 export const refreshToken = async () => {
   return await https
-    .post(`Authentication/Refresh`, {
-      token: await jwt.getAccessToken(),
-      refreshToken: await jwt.getRefreshToken(),
+    .post(`Authentication/refresh`, {
+      Token: await jwt.getAccessToken(),
+      RefreshToken: await jwt.getRefreshToken(),
     })
     .then(async (res) => {
-      const token = res?.data?.token;
-      const refreshToken = res?.data?.refreshToken;
-
-      return [token, refreshToken];
+      // Backend có thể trả PascalCase (Token, RefreshToken) hoặc camelCase (token, refreshToken)
+      const token = res?.data?.Token ?? res?.data?.token;
+      const newRefreshToken = res?.data?.RefreshToken ?? res?.data?.refreshToken;
+      if (!token || !newRefreshToken) {
+        throw new Error("Refresh response missing token");
+      }
+      return [token, newRefreshToken];
     });
 };
 

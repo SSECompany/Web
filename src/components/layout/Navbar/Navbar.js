@@ -1,4 +1,4 @@
-import { MoreOutlined } from "@ant-design/icons";
+import { FullscreenExitOutlined, FullscreenOutlined, MoreOutlined } from "@ant-design/icons";
 import { Dropdown, Menu } from "antd";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -20,7 +20,24 @@ const Navbar = () => {
   const dispatch = useDispatch();
   const userInfo = useSelector(getUserInfo);
   const [userFromStorage, setUserFromStorage] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const routeLocation = useLocation();
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -188,6 +205,15 @@ const Navbar = () => {
         </div>
 
         <div className="first_navbar_row_right flex gap-1">
+          <button
+            type="button"
+            className="navbar_fullscreen_btn"
+            onClick={toggleFullscreen}
+            title={isFullscreen ? "Thoát phóng to" : "Phóng to màn hình"}
+            aria-label={isFullscreen ? "Thoát phóng to" : "Phóng to màn hình"}
+          >
+            {isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+          </button>
           <div className="px-1 text-center flex items-center gap-2">
             <VersionIndicator showDetails={true} size="small" />
           </div>

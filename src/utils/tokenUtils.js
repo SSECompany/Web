@@ -52,9 +52,10 @@ export const setTokenExpiry = (expiryTime) => {
   }
 };
 
+/** Legacy: "now + 1 ngày". Ưu tiên dùng JWT exp qua jwt.setAccessToken / setTokenExpiryFromJwt (khớp 160p backend). */
 export const calculateTokenExpiry = () => {
   const expiryDate = new Date();
-  expiryDate.setDate(expiryDate.getDate() + 1); // 1 ngày
+  expiryDate.setDate(expiryDate.getDate() + 1);
   return expiryDate.getTime();
 };
 

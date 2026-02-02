@@ -74,16 +74,25 @@ const useTokenExpiryChecker = () => {
       return false;
     }
 
-    // JWT token - xử lý như cũ
+    // JWT token: access token hết hạn (token_expiry qua) không logout ngay; để request tiếp theo thử refresh
     const timeLeft = getTimeLeft(tokenExpiry);
 
-    // Token hết hạn -> logout
     if (timeLeft <= 0) {
-      performLogout();
-      return true;
+      // Chỉ cảnh báo; không logout. Request API tiếp theo sẽ 401 -> interceptor thử refresh; chỉ logout khi refresh thất bại (refresh_token hết hạn)
+      if (!hasNotifiedRef.current) {
+        hasNotifiedRef.current = true;
+        notification.info({
+          message: "Phiên đăng nhập đã hết hạn",
+          description: "Thao tác tiếp sẽ tự động gia hạn nếu còn phiên. Vui lòng đăng nhập lại nếu bị chuyển về trang đăng nhập.",
+          placement: "topRight",
+          duration: 5,
+        });
+      }
+      return false;
     }
 
-    // Cảnh báo 5 phút cuối (chỉ 1 lần)
+    // Cảnh báo 5 phút cuối (chỉ 1 lần); reset flag khi còn > 5 phút để lần sau vẫn cảnh báo
+    if (timeLeft > 300000) hasNotifiedRef.current = false;
     if (timeLeft <= 300000 && timeLeft > 60000 && !hasNotifiedRef.current) {
       hasNotifiedRef.current = true;
       notification.warning({
