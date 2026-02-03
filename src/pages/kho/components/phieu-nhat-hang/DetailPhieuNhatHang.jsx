@@ -23,6 +23,7 @@ import {
   fetchPhieuNhatHangData,
   startPhieuNhatHang,
   updatePhieuNhatHang,
+  huyPhieuNhatHang,
 } from "./utils/phieuNhatHangApi";
 import {
   buildPhieuNhatHangPayload,
@@ -42,6 +43,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   const { id } = useParams();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
+  const [loadingHuy, setLoadingHuy] = useState(false);
   const [phieuData, setPhieuData] = useState(null);
   const [isEditMode, setIsEditMode] = useState(initialEditMode);
   const [vatTuInput, setVatTuInput] = useState(undefined);
@@ -54,6 +56,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   const [currentKeyword, setCurrentKeyword] = useState("");
   const [phieuDetailLoaded, setPhieuDetailLoaded] = useState(false);
   const [showFormFields, setShowFormFields] = useState(true);
+  const [focusInvalidRowKey, setFocusInvalidRowKey] = useState(null);
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
@@ -221,6 +224,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 so_luong_ton: item.so_luong_ton || 0,
                 tong_nhat: Math.round(tongNhat * 1000) / 1000, // Giữ nguyên giá trị từ API
                 ghi_chu: item.ghi_chu || "",
+                ghi_chu_dh: item.ghi_chu_dh || "", // map cho cột Ghi chú KD
               };
             });
 
@@ -621,16 +625,29 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       const values = await form.validateFields();
 
       // Validate data source — chặn Lưu nếu không hợp lệ
-      const validation = validateDataSource(dataSource);
+      const validation = validateDataSource(dataSource, "nhat-hang");
       if (!validation.isValid) {
         setLoading(false);
         return;
       }
 
-      // Validate tổng nhặt không được vượt quá số lượng đơn — chặn Lưu
+      // Validate tổng nhặt không được vượt quá số lượng đơn — chặn Lưu (không check tồn khả dụng)
       const tongNhatValidation = validateTongNhat(dataSource);
       if (!tongNhatValidation.isValid) {
-        message.error("Tổng nhặt không được vượt quá số lượng đơn. Vui lòng kiểm tra lại.");
+        const firstError = tongNhatValidation.errors?.[0];
+        const firstInvalidKey =
+          firstError &&
+          (() => {
+            const parents = dataSource.filter((r) => !r.isChild);
+            const parentRow = parents[firstError.parentIndex - 1];
+            return parentRow?.key;
+          })();
+        if (firstInvalidKey) setFocusInvalidRowKey(firstInvalidKey);
+        const hasPerRowError = tongNhatValidation.errors?.some((e) => e.type === "perRow");
+        const errMsg = hasPerRowError
+          ? "SL nhặt không được vượt quá SL đơn của từng dòng (mẹ vs mẹ, con vs con)."
+          : "Tổng nhặt không được vượt quá số lượng đơn.";
+        message.error(`${errMsg} Vui lòng kiểm tra lại.`);
         setLoading(false);
         return;
       }
@@ -657,6 +674,12 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             return { ...row, _invalid_duplicate_ma_lo: false };
           })
         );
+        const firstDuplicateKey = dataSource.find((r) => {
+          const maVt = String(r.ma_vt ?? r.maHang ?? "").trim();
+          const maLo = String(r.ma_lo ?? "").trim();
+          return duplicatePairs.has(`${maVt}\u0001${maLo}`);
+        })?.key;
+        if (firstDuplicateKey) setFocusInvalidRowKey(firstDuplicateKey);
         message.error(
           "Trùng mã vật tư và mã lô. Đã xóa mã lô trùng. Vui lòng chọn lại mã lô."
         );
@@ -722,23 +745,36 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
     showConfirm({
       title: "Xác nhận hoàn thành",
       content: "Bạn có chắc chắn muốn hoàn thành phiếu nhặt hàng này không?",
-      type: "info",
+      type: "success",
       onOk: async () => {
         try {
           setLoading(true);
           const values = await form.validateFields();
 
           // Validate data source — chặn Hoàn thành nếu không hợp lệ
-          const validation = validateDataSource(dataSource);
+          const validation = validateDataSource(dataSource, "nhat-hang");
           if (!validation.isValid) {
             setLoading(false);
             return;
           }
 
-          // Validate tổng nhặt không được vượt quá số lượng đơn — chặn Hoàn thành
+          // Validate tổng nhặt không được vượt quá số lượng đơn — chặn Hoàn thành (không check tồn khả dụng)
           const tongNhatValidation = validateTongNhat(dataSource);
           if (!tongNhatValidation.isValid) {
-            message.error("Tổng nhặt không được vượt quá số lượng đơn. Vui lòng kiểm tra lại.");
+            const firstError = tongNhatValidation.errors?.[0];
+            const firstInvalidKey =
+              firstError &&
+              (() => {
+                const parents = dataSource.filter((r) => !r.isChild);
+                const parentRow = parents[firstError.parentIndex - 1];
+                return parentRow?.key;
+              })();
+            if (firstInvalidKey) setFocusInvalidRowKey(firstInvalidKey);
+            const hasPerRowError = tongNhatValidation.errors?.some((e) => e.type === "perRow");
+            const errMsg = hasPerRowError
+              ? "SL nhặt không được vượt quá SL đơn của từng dòng (mẹ vs mẹ, con vs con)."
+              : "Tổng nhặt không được vượt quá số lượng đơn.";
+            message.error(`${errMsg} Vui lòng kiểm tra lại.`);
             setLoading(false);
             return;
           }
@@ -765,6 +801,12 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 return { ...row, _invalid_duplicate_ma_lo: false };
               })
             );
+            const firstDuplicateKey = dataSource.find((r) => {
+              const maVt = String(r.ma_vt ?? r.maHang ?? "").trim();
+              const maLo = String(r.ma_lo ?? "").trim();
+              return duplicatePairs.has(`${maVt}\u0001${maLo}`);
+            })?.key;
+            if (firstDuplicateKey) setFocusInvalidRowKey(firstDuplicateKey);
             message.error(
               "Trùng mã vật tư và mã lô. Đã xóa mã lô trùng. Vui lòng chọn lại mã lô."
             );
@@ -807,6 +849,18 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               return updated;
             });
 
+            const firstInvalidKey =
+              completionCheck.type === "missingLot"
+                ? dataSource[completionCheck.details[0].index - 1]?.key
+                : completionCheck.type === "sumNotEqual"
+                  ? (() => {
+                      const parents = dataSource.filter((r) => !r.isChild);
+                      const parentRow =
+                        parents[completionCheck.details[0].parentIndex - 1];
+                      return parentRow?.key;
+                    })()
+                  : null;
+            if (firstInvalidKey) setFocusInvalidRowKey(firstInvalidKey);
             message.error("Có dòng chưa hợp lệ. Vui lòng kiểm tra các dòng màu đỏ.");
             setLoading(false);
             return;
@@ -868,6 +922,36 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           console.error("Complete failed:", error);
           message.error("Có lỗi xảy ra khi hoàn thành phiếu");
           setLoading(false);
+        }
+      },
+    });
+  };
+
+  const handleHuyNhat = () => {
+    if (!sctRec) {
+      message.warning("Không có thông tin phiếu");
+      return;
+    }
+    const userId = userInfo?.id || userInfo?.userId || "";
+    if (!userId) {
+      message.warning("Không có thông tin người dùng");
+      return;
+    }
+    showConfirm({
+      title: "Xác nhận huỷ nhặt",
+      content: "Bạn có chắc chắn muốn huỷ nhặt phiếu này không?",
+      type: "error",
+      onOk: async () => {
+        setLoadingHuy(true);
+        try {
+          const huyResult = await huyPhieuNhatHang(sctRec, userId);
+          if (huyResult?.success) {
+            const soDonHang = form.getFieldValue("soDonHang") || phieuData?.so_don_hang || "";
+            message.success(`Huỷ nhặt phiếu có số ĐH: ${soDonHang || "---"}`);
+            navigate(returnUrl);
+          }
+        } finally {
+          setLoadingHuy(false);
         }
       },
     });
@@ -962,6 +1046,8 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             onDataSourceUpdate={setDataSource}
             fetchLoList={fetchLoList}
             fetchViTriList={fetchViTriList}
+            focusInvalidRowKey={focusInvalidRowKey}
+            onFocusInvalidRowHandled={() => setFocusInvalidRowKey(null)}
           />
 
           {isEditMode && (
@@ -973,6 +1059,14 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               }}
             >
               <Space>
+                <Button
+                  type="primary"
+                  onClick={handleHuyNhat}
+                  loading={loadingHuy}
+                  style={{ backgroundColor: "#ff4d4f", borderColor: "#ff4d4f" }}
+                >
+                  Huỷ nhặt
+                </Button>
                 <Button
                   type="primary"
                   onClick={handleSubmit}

@@ -3,21 +3,44 @@ import { APP_CONFIG } from "../utils/constants";
 import https from "../utils/https";
 import jwt from "../utils/jwt";
 
+function getTokenFromData(data) {
+  if (!data || typeof data !== "object") return null;
+  return (
+    data.Token ??
+    data.token ??
+    data.accessToken ??
+    data.AccessToken ??
+    data.access_token ??
+    (data.data && getTokenFromData(data.data))
+  );
+}
+
+function getRefreshTokenFromData(data) {
+  if (!data || typeof data !== "object") return null;
+  return (
+    data.RefreshToken ??
+    data.refreshToken ??
+    data.refresh_token ??
+    (data.data && getRefreshTokenFromData(data.data))
+  );
+}
+
 export const refreshToken = async () => {
-  return await https
-    .post(`Authentication/refresh`, {
-      Token: await jwt.getAccessToken(),
-      RefreshToken: await jwt.getRefreshToken(),
-    })
-    .then(async (res) => {
-      // Backend có thể trả PascalCase (Token, RefreshToken) hoặc camelCase (token, refreshToken)
-      const token = res?.data?.Token ?? res?.data?.token;
-      const newRefreshToken = res?.data?.RefreshToken ?? res?.data?.refreshToken;
-      if (!token || !newRefreshToken) {
-        throw new Error("Refresh response missing token");
-      }
-      return [token, newRefreshToken];
-    });
+  const res = await https.post(`Authentication/Refresh`, {
+    Token: await jwt.getAccessToken(),
+    RefreshToken: await jwt.getRefreshToken(),
+  });
+  // https.post trả err.response khi lỗi (không reject) → phải kiểm tra status
+  if (!res || res.status >= 400) {
+    throw new Error(res?.data?.message || "Refresh failed");
+  }
+  const data = res?.data || {};
+  const token = getTokenFromData(data);
+  const newRefreshToken = getRefreshTokenFromData(data);
+  if (!token && !newRefreshToken) {
+    throw new Error("Refresh response missing token");
+  }
+  return [token ? String(token) : "", newRefreshToken ? String(newRefreshToken) : ""];
 };
 
 export const apiGetDVCS = async (username) => {

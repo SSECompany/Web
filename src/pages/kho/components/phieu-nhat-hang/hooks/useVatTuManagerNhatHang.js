@@ -68,6 +68,7 @@ export const useVatTuManagerNhatHang = () => {
         so_luong_don: parseFloat(item.so_luong_don) || 0,
         nhat: parseFloat(item.nhat) || parseFloat(item.soLuong) || 0,
         ghi_chu: item.ghi_chu ? item.ghi_chu.trim() : "",
+        ghi_chu_dh: item.ghi_chu_dh ? item.ghi_chu_dh.trim() : "", // map cho cột Ghi chú KD
         so_luong_ton: parseFloat(item.so_luong_ton) || 0,
         // Ban đầu tong_nhat = 0 (không tự động điền bằng số lượng đơn nữa)
         tong_nhat: parseFloat(item.tong_nhat) || 0,
@@ -451,6 +452,7 @@ export const useVatTuManagerNhatHang = () => {
             so_luong_don: Math.round(soLuongDeNghiHienThi * 1000) / 1000, // Số lượng đơn
             nhat: Math.round(soLuongHienThi * 1000) / 1000, // Nhặt
             ghi_chu: "", // Ghi chú
+            ghi_chu_dh: "", // Ghi chú KD (chỉ hiển thị)
             so_luong_ton: 0, // Số lượng tồn
             tong_nhat: 0, // Tổng nhặt - ban đầu = 0, chỉ cập nhật khi tích checkbox Nhặt
 
@@ -634,11 +636,38 @@ export const useVatTuManagerNhatHang = () => {
                 };
               }
             } else if (field === "soLuongDeNghi" || field === "so_luong") {
-              // Xử lý thay đổi SL đơn: dòng con được sửa; dòng mẹ tự = tổng nhóm - sum(SL đơn con)
+              // Xử lý thay đổi SL đơn: dòng con được sửa; SL đơn dòng con không được vượt SL đơn dòng mẹ
+              let finalValue = newValue;
+              if (item.isChild && typeof newValue === "number") {
+                const parent = prev.find((r) => !r.isChild && r.key === item.parentKey);
+                const parentTotal =
+                  parent
+                    ? parseFloat(
+                        parent.soLuongDeNghi_tong ??
+                          parent.soLuongDeNghi ??
+                          parent.so_luong ??
+                          0
+                      ) || 0
+                    : 0;
+                const otherChildren = prev.filter(
+                  (r) => r.isChild && r.parentKey === item.parentKey && r.key !== item.key
+                );
+                const sumOtherChildren = otherChildren.reduce(
+                  (s, c) => s + parseFloat(c.soLuongDeNghi ?? c.so_luong ?? 0),
+                  0
+                );
+                const maxAllowed = Math.max(0, parentTotal - 1 - sumOtherChildren);
+                if (parentTotal > 0 && newValue > maxAllowed) {
+                  finalValue = Math.round(maxAllowed * 1000) / 1000;
+                  message.warning(
+                    `SL đơn dòng con phải nhỏ hơn SL đơn dòng mẹ ít nhất 1 (tối đa ${maxAllowed}). Đã giới hạn về ${finalValue}.`
+                  );
+                }
+              }
               const updated = {
                 ...item,
-                [field]: newValue,
-                ...(field === "soLuongDeNghi" ? { so_luong: newValue } : { soLuongDeNghi: newValue }),
+                [field]: finalValue,
+                ...(field === "soLuongDeNghi" ? { so_luong: finalValue } : { soLuongDeNghi: finalValue }),
               };
               return updated;
             } else if (field === "so_luong_don") {
@@ -655,10 +684,61 @@ export const useVatTuManagerNhatHang = () => {
                 tong_nhat: newValue, // Cập nhật tổng nhặt bằng số lượng nhặt
               };
             } else if (field === "tong_nhat") {
-              // Xử lý thay đổi tổng nhặt
+              // SL nhặt không vượt SL đơn (mẹ vs mẹ, con vs con) và SL đơn nhóm — không check tồn khả dụng
+              const rowOrderQty =
+                parseFloat(item.soLuongDeNghi ?? item.so_luong ?? 0) || 0;
+              const groupKey = item.isChild ? item.parentKey : item.key;
+              const parent = prev.find((r) => !r.isChild && r.key === groupKey);
+              const groupOrderQty =
+                parent
+                  ? parseFloat(
+                      parent.soLuongDeNghi_tong ??
+                        parent.soLuongDeNghi ??
+                        parent.so_luong ??
+                        0
+                    ) || 0
+                  : 0;
+              const otherMembers = prev.filter(
+                (r) =>
+                  (r.isChild ? r.parentKey : r.key) === groupKey && r.key !== item.key
+              );
+              const sumOthers = otherMembers.reduce(
+                (s, m) => s + parseFloat(m.tong_nhat || 0),
+                0
+              );
+              const limits = [];
+              if (rowOrderQty > 0)
+                limits.push(rowOrderQty); // SL nhặt ≤ SL đơn của chính dòng đó
+              if (groupOrderQty > 0)
+                limits.push(Math.max(0, groupOrderQty - sumOthers));
+              const maxAllowed =
+                limits.length > 0 ? Math.min(...limits) : newValue;
+              const cappedValue =
+                typeof newValue === "number" &&
+                limits.length > 0 &&
+                newValue > maxAllowed
+                  ? Math.round(maxAllowed * 1000) / 1000
+                  : newValue;
+              if (
+                typeof newValue === "number" &&
+                limits.length > 0 &&
+                newValue > maxAllowed
+              ) {
+                const reasons = [];
+                if (rowOrderQty > 0 && newValue > rowOrderQty)
+                  reasons.push(`SL đơn (${rowOrderQty})`);
+                if (
+                  groupOrderQty > 0 &&
+                  newValue > Math.max(0, groupOrderQty - sumOthers)
+                )
+                  reasons.push(`SL đơn nhóm (${groupOrderQty})`);
+                message.warning(
+                  `SL nhặt không được vượt quá ${reasons.join(" và ")}. Đã giới hạn về ${cappedValue}.`
+                );
+              }
               return {
                 ...item,
-                [field]: newValue,
+                [field]: cappedValue,
               };
             } else {
               // Xử lý các trường khác
@@ -719,9 +799,15 @@ export const useVatTuManagerNhatHang = () => {
       const nextWithFlags = next.map((row) => {
         const groupKey = row.isChild ? row.parentKey : row.key;
         const g = groups.get(groupKey);
+        const picked = parseFloat(row.tong_nhat || 0) || 0;
+        const rowOrderQty =
+          parseFloat(row.soLuongDeNghi ?? row.so_luong ?? 0) || 0;
+        const rowExceededSlDon =
+          rowOrderQty > 0 && picked > rowOrderQty; // SL nhặt > SL đơn của chính dòng
         return {
           ...row,
           groupExceeded: !!g?.exceeded,
+          rowExceededSlDon,
         };
       });
       
@@ -914,6 +1000,7 @@ export const useVatTuManagerNhatHang = () => {
         
         // Override: Ghi chú để trống
         ghi_chu: "",
+        ghi_chu_dh: "", // Ghi chú KD (chỉ hiển thị)
         
         // Mã lô dòng con để trống, user chọn sau (validate trùng dùng ma_vt + ma_lo)
         ma_lo: "",
@@ -944,7 +1031,16 @@ export const useVatTuManagerNhatHang = () => {
       return reindexed.map((row) => {
         const groupKey = row.isChild ? row.parentKey : row.key;
         const g = groups.get(groupKey);
-        return { ...row, groupExceeded: !!g?.exceeded };
+        const picked = parseFloat(row.tong_nhat || 0) || 0;
+        const rowOrderQty =
+          parseFloat(row.soLuongDeNghi ?? row.so_luong ?? 0) || 0;
+        const rowExceededSlDon =
+          rowOrderQty > 0 && picked > rowOrderQty;
+        return {
+          ...row,
+          groupExceeded: !!g?.exceeded,
+          rowExceededSlDon,
+        };
       });
     });
   };

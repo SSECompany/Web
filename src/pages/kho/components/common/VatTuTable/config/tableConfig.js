@@ -16,6 +16,7 @@ export const phieuNhapKhoConfig = {
 
 // Cấu hình cho phiếu nhặt hàng
 export const phieuNhatHangConfig = {
+  showStt: false, 
   tenMatHangField: "ten_mat_hang",
   soLuongDeNghiField: "soLuongDeNghi",
   soLuongDeNghiEditable: false,
@@ -25,38 +26,28 @@ export const phieuNhatHangConfig = {
   soLuongCheatTitle: "Nhặt",
   showSoLuongCheat: false,
   showMaKho: false,
-  // Lock ĐVT editing for nhặt hàng (read-only display)
   dvtEditable: false,
-  // Các trường mới cho phiếu nhặt hàng
   showMaLo: true,
   maLoField: "ma_lo",
   showMaViTri: true,
   maViTriField: "ma_vi_tri",
   showGhiChu: true,
   ghiChuField: "ghi_chu",
-  ghiChuTitle: "Ghi chú nhặt", // Đổi tên cột ghi chú
-  // Thêm cột Ghi chú KD mới
+  ghiChuTitle: "Ghi chú nhặt", 
   showGhiChuKD: true,
-  ghiChuKDField: "ghi_chu_kd",
-  // Ẩn cột SL tồn và Tồn khả dụng (sẽ tích hợp vào Mặt hàng)
-  showSoLuongTon: false,
+  ghiChuKDField: "ghi_chu_dh",  showSoLuongTon: false,
   soLuongTonField: "so_luong_ton",
   showTonKh: false,
   tonKhField: "ton_kh",
-  // Tích hợp thông tin tồn vào cột Mặt hàng
   integrateStockInfoInMatHang: true,
   showTongNhat: true,
   tongNhatField: "tong_nhat",
   tongNhatEditable: true,
-  // Thêm checkbox Nhặt
   showNhatCheckbox: true,
   nhatCheckboxField: "nhat_checkbox",
   combineMaLoViTri: true,
-  // Sắp xếp lại thứ tự: tồn -> đơn -> tổng nhặt -> ghi chú
   tonDeNghiTongNhatGhiChuOrder: true,
-  // Hiển thị cột ghi chú ở cuối bảng
   placeGhiChuAtEnd: true,
-  // Thay đổi nút xóa thành nút thêm dòng mới
   useAddButtonInsteadOfDelete: true,
 };
 

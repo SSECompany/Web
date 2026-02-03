@@ -178,7 +178,19 @@ export const validateCompletionRules = (dataSource = []) => {
 };
 
 /**
+ * Lấy tồn khả dụng (vật tư mẹ) từ dòng - ưu tiên ton_kh, fallback so_luong_ton
+ */
+export const getTonKhFromRow = (row) => {
+  const tonKh = parseFloat(
+    row.ton_kh ?? row.tonKh ?? row.ton_kha_dung ?? row.sl_ton_kh ?? 0
+  );
+  const soLuongTon = parseFloat(row.so_luong_ton ?? 0);
+  return tonKh > 0 ? tonKh : soLuongTon;
+};
+
+/**
  * Tính trạng thái nhóm: tổng nhặt của nhóm (cha + các dòng con) không vượt quá số lượng đơn của dòng cha
+ * VÀ không vượt quá tồn khả dụng (vật tư mẹ) - để tránh vật tư mẹ = 0 hoặc âm
  * GroupKey: dòng cha dùng key của chính nó; dòng con dùng parentKey
  */
 export const computeGroupState = (dataSource = []) => {
@@ -189,6 +201,7 @@ export const computeGroupState = (dataSource = []) => {
       parentIndex: null,
       orderQty: 0,
       pickedSum: 0,
+      tonKh: 0,
       members: [],
       parentItem: null,
     };
@@ -208,18 +221,32 @@ export const computeGroupState = (dataSource = []) => {
         ) || 0;
       state.orderQty = orderQty;
       state.parentItem = row;
+      state.tonKh = getTonKhFromRow(row);
     }
     groups.set(groupKey, state);
   });
-  // Mark exceeded
-  for (const [key, g] of groups) {
+  // Mark exceeded: SL nhặt không vượt SL đơn (so sánh dòng mẹ vs mẹ, con vs con) + tổng nhóm — không check tồn khả dụng
+  for (const [, g] of groups) {
     g.exceeded = g.pickedSum > g.orderQty;
+    g.exceededTonKh = false; // Phiếu nhặt hàng không kiểm tra tồn khả dụng
+    // Per-row: mỗi dòng có tong_nhat > soLuongDeNghi của chính dòng đó
+    g.exceededPerRow = g.members.some((row) => {
+      const picked = parseFloat(row.tong_nhat || 0) || 0;
+      const rowOrderQty =
+        parseFloat(
+          row.soLuongDeNghi ?? row.so_luong ?? 0
+        ) || 0;
+      return rowOrderQty > 0 && picked > rowOrderQty;
+    });
   }
   return groups;
 };
 
 /**
  * Validate theo nhóm dựa trên computeGroupState
+ * - pickedSum không vượt orderQty (tổng nhóm)
+ * - SL nhặt từng dòng không vượt SL đơn của chính dòng đó (mẹ vs mẹ, con vs con)
+ * (Phiếu nhặt hàng không kiểm tra tồn khả dụng)
  */
 export const validateTongNhatByGroup = (dataSource = []) => {
   const groups = computeGroupState(dataSource);
@@ -238,6 +265,27 @@ export const validateTongNhatByGroup = (dataSource = []) => {
         itemInfo,
         orderQty: g.orderQty || 0,
         pickedSum: g.pickedSum || 0,
+        type: "orderQty",
+      });
+    }
+    if (g.exceededPerRow) {
+      g.members.forEach((row) => {
+        const picked = parseFloat(row.tong_nhat || 0) || 0;
+        const rowOrderQty =
+          parseFloat(row.soLuongDeNghi ?? row.so_luong ?? 0) || 0;
+        if (rowOrderQty > 0 && picked > rowOrderQty) {
+          const maHang = row.maHang || row.ma_vt || "";
+          const ten = row.ten_mat_hang || row.ten_vt || "";
+          const itemInfo =
+            maHang && ten ? `${maHang} - ${ten}` : maHang || ten || "Dòng";
+          errors.push({
+            parentIndex: g.parentIndex || 0,
+            itemInfo,
+            orderQty: rowOrderQty,
+            pickedSum: picked,
+            type: "perRow",
+          });
+        }
       });
     }
   }

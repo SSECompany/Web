@@ -33,7 +33,7 @@ import {
   Image,
 } from "antd";
 import dayjs from "dayjs";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import "./ProcessPhieuGiaoHang.css";
@@ -41,6 +41,7 @@ import {
   fetchPhieuGiaoHangData, 
   fetchPhieuGiaoHangDataByQR,
   fetchPhieuGiaoHangDataByView,
+  fetchVehicleList,
   updateDeliveryStatus,
   uploadDeliveryImage,
   deleteDeliveryImage 
@@ -85,18 +86,22 @@ const ProcessPhieuGiaoHang = () => {
   const [confirmAction, setConfirmAction] = useState(null);
   const [confirmNote, setConfirmNote] = useState("");
   const [confirmCost, setConfirmCost] = useState(0);
+  const [confirmVehicle, setConfirmVehicle] = useState("");
+  const [vehicleList, setVehicleList] = useState([]);
+  const [loadingVehicle, setLoadingVehicle] = useState(false);
+  const [confirmModalImages, setConfirmModalImages] = useState([]);
+  const [confirmLoading, setConfirmLoading] = useState(false); // Chặn spam bấm nút xác nhận
   
-  // Edit transport modal
-  const [showEditTransport, setShowEditTransport] = useState(false);
   const [transportInfo, setTransportInfo] = useState({
     ten_nha_xe: "",
     sdt_nha_xe: "",
     gio_chay: "",
   });
-
-  // Fetch data
-  const fetchData = useCallback(async () => {
+  // Fetch data - opts.preserveStatus: giá trị status cần giữ khi refresh (vd. sau cập nhật TT vận chuyển)
+  const fetchData = useCallback(async (opts = {}) => {
     if (!id) return;
+
+    const savedStatus = opts.preserveStatus ?? null;
 
     setLoading(true);
     try {
@@ -115,11 +120,21 @@ const ProcessPhieuGiaoHang = () => {
       }
       
       if (result.success) {
-        setPhieuData(result.master);
+        // Kiểm tra status = 0 → không cho phép truy cập xử lý giao hàng
+        const status = result.master?.status;
+        if (status != null && String(status) === "0") {
+          message.error("Phiếu giao hàng chưa lưu kho");
+          setTimeout(() => navigate("/kho/giao-hang"), 1500);
+          return;
+        }
+        const master = result.master;
+        const statusToUse = savedStatus != null && savedStatus !== "" ? savedStatus : master?.status;
+        setPhieuData(statusToUse != null ? { ...master, status: statusToUse } : master);
         setDetailData(result.detail || []);
-        // Set selected status từ current status
-        if (result.master?.status) {
-          setSelectedStatus(String(result.master.status));
+        if (statusToUse != null) {
+          setSelectedStatus(String(statusToUse));
+        } else if (master?.status) {
+          setSelectedStatus(String(master.status));
         }
         // Set transport info
         if (result.master) {
@@ -272,9 +287,11 @@ const ProcessPhieuGiaoHang = () => {
   const canStore = currentStatus === "1";       // 1 -> 2
   const canExport = currentStatus === "2";     // 2 -> 3
   const canReceive = currentStatus === "3";    // 3 -> 4
-  const canHandover = currentStatus === "4";   // 4 -> 5
+  const canUpdateDeliveryInfo = currentStatus === "4"; // 4 -> 5 (chỉ chuyển status, không đổi xe/chi phí)
+  const canHandover = currentStatus === "5";   // 5: Bàn giao ĐVVC (cho phép sửa xe/chi phí/ảnh)
   const canComplete = currentStatus === "5";   // 5 -> 6
   const canFail = currentStatus === "5";       // 5 -> 7
+  const canReturnToStore = currentStatus === "7"; // 7 -> 2 (Thất bại -> Chuyển về kho)
 
   const isManualSelection = selectedStatus != null && selectedStatus !== currentStatus;
 
@@ -307,8 +324,79 @@ const ProcessPhieuGiaoHang = () => {
     setConfirmAction(action);
     setConfirmNote("");
     setConfirmCost(0);
+    setConfirmModalImages([]);
+    setConfirmLoading(false); // Reset loading khi mở modal mới
+    // Đơn đã có nhà xe thì pre-fill ô chọn xe khi bàn giao ĐVVC
+    const vehicle = action === "handover" && phieuData?.vehicleCode ? phieuData.vehicleCode.trim() : "";
+    setConfirmVehicle(vehicle);
     setShowConfirmModal(true);
   };
+
+  const vehicleSearchTimerRef = useRef(null);
+  const timelineWrapperRef = useRef(null);
+  const VEHICLE_SEARCH_DEBOUNCE_MS = 400;
+
+  const doVehicleSearch = useCallback((keyword) => {
+    setLoadingVehicle(true);
+    fetchVehicleList(keyword || "")
+      .then((res) => {
+        if (res.success) {
+          setVehicleList(res.data || []);
+        } else {
+          setVehicleList([]);
+        }
+      })
+      .catch(() => setVehicleList([]))
+      .finally(() => setLoadingVehicle(false));
+  }, []);
+
+  // Search xe qua API - debounce khi gõ
+  const handleVehicleSearch = useCallback((keyword) => {
+    if (vehicleSearchTimerRef.current) {
+      clearTimeout(vehicleSearchTimerRef.current);
+      vehicleSearchTimerRef.current = null;
+    }
+    vehicleSearchTimerRef.current = setTimeout(() => {
+      doVehicleSearch(keyword ?? "");
+      vehicleSearchTimerRef.current = null;
+    }, VEHICLE_SEARCH_DEBOUNCE_MS);
+  }, [doVehicleSearch]);
+
+  // Cleanup debounce timer khi unmount
+  useEffect(() => {
+    return () => {
+      if (vehicleSearchTimerRef.current) clearTimeout(vehicleSearchTimerRef.current);
+    };
+  }, []);
+
+  // Scroll log trạng thái xuống cuối khi có dữ liệu (để không bị button che)
+  useEffect(() => {
+    if (statusLog.length > 0 && timelineWrapperRef.current) {
+      const el = timelineWrapperRef.current;
+      requestAnimationFrame(() => {
+        el.scrollTop = el.scrollHeight;
+      });
+    }
+  }, [statusLog.length]);
+
+  // Khi mở dropdown: load dữ liệu ban đầu (không debounce)
+  const handleVehicleDropdownOpen = useCallback((open) => {
+    if (open) doVehicleSearch("");
+  }, [doVehicleSearch]);
+
+  // Options cho Select xe: thêm xe từ phieuData nếu đơn đã có nhà xe mà chưa có trong list
+  const vehicleOptions = useMemo(() => {
+    const fromList = vehicleList.map((v) => ({
+      value: v.vehicleCode,
+      label: v.vehicleName ? `${v.vehicleCode} - ${v.vehicleName}` : v.vehicleCode,
+    }));
+    const code = confirmVehicle?.trim();
+    if (code && !fromList.some((o) => o.value === code) && phieuData?.vehicleCode?.trim() === code) {
+      const label = phieuData.ten_nha_xe ? `${code} - ${phieuData.ten_nha_xe}` : code;
+      return [{ value: code, label }, ...fromList];
+    }
+    return fromList;
+  }, [vehicleList, confirmVehicle, phieuData?.vehicleCode, phieuData?.ten_nha_xe]);
 
   const handleSaveStatus = () => {
     if (!selectedStatus || !phieuData) {
@@ -326,6 +414,21 @@ const ProcessPhieuGiaoHang = () => {
   // Confirm action
   const handleConfirmAction = async () => {
     if (!phieuData) return;
+    if (confirmLoading) return; // Chặn spam bấm nhiều lần
+
+    // Cập nhật thông tin giao hàng: chỉ chuyển status 4 -> 5, không bắt buộc ảnh/xe/chi phí
+    const isUpdateDeliveryInfo = confirmAction === "updateDeliveryInfo";
+    // Bàn giao ĐVVC: bắt buộc có ít nhất 1 ảnh MỚI trong modal mỗi lần xác nhận
+    const isHandover = confirmAction === "handover" || (confirmAction === "save" && selectedStatus === "5");
+    if (isHandover && !isUpdateDeliveryInfo) {
+      // Luôn yêu cầu có ít nhất 1 ảnh mới trong modal (không tính ảnh cũ đã có)
+      if (confirmModalImages.length < 1) {
+        message.warning("Vui lòng chụp ảnh xác minh trước khi bàn giao ĐVVC");
+        return;
+      }
+    }
+
+    setConfirmLoading(true); // Bắt đầu loading, chặn spam
 
     try {
       let newStatus;
@@ -333,20 +436,29 @@ const ProcessPhieuGiaoHang = () => {
       if (confirmAction === "save") {
         // Lưu trạng thái đã chọn
         newStatus = selectedStatus;
+      } else if (confirmAction === "updateDeliveryInfo") {
+        // Chỉ chuyển status 4 -> 5, không gửi xe/chi phí
+        newStatus = "5";
+      } else if (confirmAction === "handover" && currentStatus === "5") {
+        // Đã ở Bàn giao ĐVVC: chỉ cập nhật xe/chi phí/ảnh, không đổi trạng thái
+        newStatus = "";
       } else {
         // Map action sang status code (giữ lại cho tương thích nếu cần)
         const statusMap = {
-          store: "2",      // Lưu kho
-          export: "3",    // Xuất hàng
-          receive: "4",   // Đã tiếp nhận
-          handover: "5",  // Bàn giao ĐVVC
-          complete: "6",  // Hoàn thành
-          fail: "7",      // Thất bại
+          store: "2",           // Lưu kho
+          returnToStore: "2",   // Chuyển về kho (từ Thất bại)
+          export: "3",          // Xuất hàng
+          receive: "4",         // Đã tiếp nhận
+          handover: "5",        // Bàn giao ĐVVC (chỉ khi chưa ở 5)
+          complete: "6",        // Hoàn thành
+          fail: "7",            // Thất bại
         };
         newStatus = statusMap[confirmAction];
       }
 
-      if (!newStatus) {
+      // Cho phép newStatus "" khi Bàn giao ĐVVC (chỉ cập nhật xe/chi phí)
+      const allowEmptyStatus = confirmAction === "handover" && currentStatus === "5";
+      if (!newStatus && !allowEmptyStatus) {
         message.error("Trạng thái không hợp lệ");
         return;
       }
@@ -358,6 +470,8 @@ const ProcessPhieuGiaoHang = () => {
       // Đảm bảo unitCode không có khoảng trắng thừa
       unitCode = unitCode.trim();
 
+      // Cập nhật thông tin giao hàng: chỉ gửi newStatus 5, không gửi xe/chi phí (backend chỉ cho phép đổi xe/chi phí khi đã ở status 5)
+      const sendVehicleCost = (confirmAction === "handover" || (confirmAction === "save" && newStatus === "5")) && confirmAction !== "updateDeliveryInfo";
       // Gọi API update status TRƯỚC để đảm bảo có stt_rec
       const result = await updateDeliveryStatus({
         unitCode: unitCode,
@@ -365,15 +479,24 @@ const ProcessPhieuGiaoHang = () => {
         VoucherDate: phieuData.ngay_ct ? dayjs(phieuData.ngay_ct).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
         newStatus: newStatus,
         note: confirmNote || "",
+        ...(sendVehicleCost ? { vehicleCode: confirmVehicle || undefined, cost: confirmCost } : {}),
       });
 
       if (result.success) {
-        // Update local status
-        setPhieuData(prev => ({ ...prev, status: newStatus }));
-        setSelectedStatus(newStatus);
+        // Update local status (giữ nguyên "5" khi handover với newStatus "")
+        const statusToSet = newStatus || (confirmAction === "handover" ? "5" : currentStatus);
+        setPhieuData(prev => ({ ...prev, status: statusToSet }));
+        setSelectedStatus(statusToSet);
+        
+        // Gộp ảnh từ modal confirm vào banGiao (không gộp khi chỉ là updateDeliveryInfo)
+        const isHandoverOrSave5 = confirmAction === "handover" || (confirmAction === "save" && (newStatus === "5" || currentStatus === "5"));
+        const extraFromModal = isHandoverOrSave5 ? confirmModalImages : [];
+        if (extraFromModal.length > 0) {
+          setImages(prev => ({ ...prev, banGiao: [...extraFromModal, ...prev.banGiao] }));
+        }
         
         // Upload ảnh SAU KHI đã cập nhật trạng thái thành công (đảm bảo có stt_rec)
-        const uploadResult = await uploadPendingImages();
+        const uploadResult = await uploadPendingImages(extraFromModal);
         if (!uploadResult.success && uploadResult.failedCount > 0) {
           message.warning(`Có ${uploadResult.failedCount} ảnh upload thất bại`);
         }
@@ -393,13 +516,14 @@ const ProcessPhieuGiaoHang = () => {
           action: actionText,
           user: userInfo?.userName || userInfo?.Name || "User",
           note: confirmNote,
-          cost: (confirmAction === "handover" || newStatus === "5") && confirmCost > 0 ? confirmCost : undefined,
+          cost: (confirmAction === "handover" || (confirmAction === "save" && newStatus === "5")) && confirmCost > 0 ? confirmCost : undefined,
         }]);
 
         // Refresh data để lấy log mới nhất
         await fetchData();
         
         setShowConfirmModal(false);
+        setConfirmModalImages([]);
         message.success("Cập nhật trạng thái thành công!");
       } else {
         // Hiển thị lỗi từ API
@@ -408,14 +532,18 @@ const ProcessPhieuGiaoHang = () => {
     } catch (error) {
       console.error("Error updating status:", error);
       message.error("Có lỗi xảy ra khi cập nhật trạng thái!");
+    } finally {
+      setConfirmLoading(false); // Kết thúc loading
     }
   };
 
   const getActionText = (action) => {
     switch (action) {
       case "store": return "Lưu kho";
+      case "returnToStore": return "Chuyển về kho";
       case "export": return "Xuất hàng";
       case "receive": return "Đã tiếp nhận";
+      case "updateDeliveryInfo": return "Cập nhật thông tin giao hàng";
       case "handover": return "Bàn giao ĐVVC";
       case "complete": return "Hoàn thành";
       case "fail": return "Thất bại";
@@ -426,8 +554,10 @@ const ProcessPhieuGiaoHang = () => {
   const getActionColor = (action) => {
     switch (action) {
       case "store": return "#faad14";
+      case "returnToStore": return "#faad14";
       case "export": return "#1890ff";
       case "receive": return "#722ed1";
+      case "updateDeliveryInfo": return "#13c2c2";
       case "handover": return "#13c2c2";
       case "complete": return "#52c41a";
       case "fail": return "#ff4d4f";
@@ -435,78 +565,85 @@ const ProcessPhieuGiaoHang = () => {
     }
   };
 
+  // Helper: lấy fileId từ file (ảnh từ API có response.url). URL dạng .../fileupload/{id}/view → lấy id, không lấy "view"
+  const getFileIdFromFile = (file) => {
+    const url = file.response?.url || file.originalUrl || file.url || "";
+    if (!url || url.startsWith("blob:")) return null;
+    const parts = url.split("/").filter(Boolean);
+    if (parts.length === 0) return null;
+    const last = parts[parts.length - 1];
+    // Nếu segment cuối là "view" / "delete" (path action) thì id là segment trước đó
+    if (last === "view" || last === "delete") {
+      return parts.length >= 2 ? parts[parts.length - 2] : null;
+    }
+    return last;
+  };
+
   // Handle image upload - chỉ lưu vào state, không upload ngay
+  // Ảnh load từ API: khi xóa → popup confirm → xác nhận thì gọi API xóa ngay (không chờ đổi status)
   const handleImageUpload = (milestone, { fileList }) => {
     setImages(prev => {
       const currentFiles = prev[milestone] || [];
-      
-      // Tìm các file bị xóa (có trong currentFiles nhưng không có trong fileList)
-      const currentUids = new Set(currentFiles.map(f => f.uid));
       const fileListUids = new Set(fileList.map(f => f.uid));
+      const currentUids = new Set(currentFiles.map(f => f.uid));
       const deletedFiles = currentFiles.filter(f => !fileListUids.has(f.uid));
-      
-      // Lưu fileId của các ảnh đã xóa vào deletedImages (chỉ những ảnh đã upload - có url)
-      if (deletedFiles.length > 0) {
-        const deletedFileIds = deletedFiles
-          .filter(f => f.url || f.response?.url)
-          .map(f => {
-            // Extract fileId từ URL hoặc response
-            const url = f.url || f.response?.url || "";
-            if (url) {
-              // Extract ID từ URL (phần cuối cùng sau dấu /)
-              const parts = url.split("/");
-              return parts[parts.length - 1];
-            }
-            return null;
-          })
-          .filter(id => id !== null);
-        
-        if (deletedFileIds.length > 0) {
-          setDeletedImages(prevDeleted => {
-            const newDeleted = [...prevDeleted, ...deletedFileIds];
-            // Loại bỏ duplicate
-            return [...new Set(newDeleted)];
+      const newFilesInList = fileList.filter(f => !currentUids.has(f.uid));
+
+      // Chỉ hiện popup xóa khi user thực sự xóa ảnh (có ảnh cũ bị bỏ), KHÔNG phải khi đang thêm ảnh (fileList chỉ có file mới)
+      const isActuallyRemoving = deletedFiles.length > 0 && newFilesInList.length === 0;
+      const deletedFromApi = isActuallyRemoving
+        ? deletedFiles.filter(
+            (f) => f.response?.url || f.originalUrl || (f.url && !String(f.url).startsWith("blob:"))
+          )
+        : [];
+
+      if (deletedFromApi.length > 0) {
+        const fileIdsToDelete = deletedFromApi
+          .map(getFileIdFromFile)
+          .filter((id) => id !== null);
+        if (fileIdsToDelete.length > 0) {
+          Modal.confirm({
+            title: "Xác nhận xóa ảnh",
+            content: `Bạn có chắc muốn xóa ${deletedFromApi.length} ảnh? Ảnh sẽ bị xóa trên máy chủ ngay.`,
+            okText: "Xóa",
+            cancelText: "Hủy",
+            okButtonProps: { danger: true },
+            onOk: async () => {
+              const deleteResults = await Promise.all(
+                fileIdsToDelete.map((fileId) => deleteDeliveryImage(fileId))
+              );
+              const failedCount = deleteResults.filter((r) => !r.success).length;
+              if (failedCount > 0) {
+                message.warning(`Có ${failedCount} ảnh xóa thất bại`);
+              } else {
+                message.success("Xóa ảnh thành công");
+              }
+              setImages((prev2) => ({ ...prev2, [milestone]: fileList }));
+            },
           });
+          return prev; // Giữ nguyên list khi chờ user confirm
         }
       }
-      
+
       // Nếu fileList rỗng (xóa hết), dùng fileList
       if (fileList.length === 0) {
         return { ...prev, [milestone]: fileList };
       }
-      
-      // Kiểm tra xem tất cả file cũ có trong fileList không
-      const allCurrentFilesIncluded = currentFiles.every(f => fileListUids.has(f.uid));
-      
+
+      const allCurrentFilesIncluded = currentFiles.every((f) => fileListUids.has(f.uid));
       if (allCurrentFilesIncluded) {
-        // Tất cả file cũ đều có trong fileList (có thể có thêm file mới hoặc reorder)
-        // Kiểm tra xem có file mới không, nếu có thì đẩy lên đầu
-        const existingUids = new Set(currentFiles.map(f => f.uid));
-        const newFiles = fileList.filter(f => !existingUids.has(f.uid));
-        
-        if (newFiles.length > 0) {
-          // Có file mới, đẩy lên đầu
-          const updatedFileList = [...newFiles, ...currentFiles];
-          return { ...prev, [milestone]: updatedFileList };
-        } else {
-          // Không có file mới, có thể là reorder, dùng fileList
-          return { ...prev, [milestone]: fileList };
-        }
-      } else {
-        // Có file cũ không có trong fileList -> có file bị xóa, dùng fileList
-        // Hoặc fileList chỉ có file mới (từ button upload riêng) -> merge
-        const existingUids = new Set(currentFiles.map(f => f.uid));
-        const newFiles = fileList.filter(f => !existingUids.has(f.uid));
-        
-        if (newFiles.length > 0 && fileList.length <= newFiles.length) {
-          // fileList chỉ có file mới (từ button upload), thêm vào đầu danh sách
-          const mergedFileList = [...newFiles, ...currentFiles];
-          return { ...prev, [milestone]: mergedFileList };
-        } else {
-          // Có file bị xóa, dùng fileList
-          return { ...prev, [milestone]: fileList };
-        }
+        // Có thêm file mới hoặc reorder — dùng luôn fileList từ Upload để không mất dữ liệu
+        return { ...prev, [milestone]: fileList };
       }
+
+      const existingUids = new Set(currentFiles.map(f => f.uid));
+      const newFiles = fileList.filter((f) => !existingUids.has(f.uid));
+      if (newFiles.length > 0 && fileList.length <= newFiles.length) {
+        // Chỉ toàn file mới (từ nút upload) — merge với danh sách cũ
+        const mergedFileList = [...newFiles, ...currentFiles];
+        return { ...prev, [milestone]: mergedFileList };
+      }
+      return { ...prev, [milestone]: fileList };
     });
   };
 
@@ -557,13 +694,13 @@ const ProcessPhieuGiaoHang = () => {
     });
   };
 
-  // Upload tất cả ảnh chưa được upload
-  const uploadPendingImages = async () => {
+  // Upload tất cả ảnh chưa được upload - extraBanGiao: ảnh từ modal confirm
+  const uploadPendingImages = async (extraBanGiao = []) => {
     if (!phieuData?.stt_rec) {
       return { success: true }; // Không có stt_rec thì bỏ qua
     }
 
-    const allImages = [...images.banGiao, ...images.hoanThanh];
+    const allImages = [...extraBanGiao, ...images.banGiao, ...images.hoanThanh];
     const pendingImages = allImages.filter(
       (file) => !file.url && !file.response && file.originFileObj
     );
@@ -679,13 +816,6 @@ const ProcessPhieuGiaoHang = () => {
     return { success: true };
   };
 
-  // Handle transport edit
-  const handleSaveTransport = () => {
-    // TODO: Call API to update transport info
-    message.success("Cập nhật thông tin vận chuyển thành công!");
-    setShowEditTransport(false);
-  };
-
   if (loading) {
     return (
       <div className="process-loading">
@@ -778,16 +908,6 @@ const ProcessPhieuGiaoHang = () => {
         <div className="process-card-header">
           <CarOutlined className="process-card-icon transport" />
           <span className="process-card-title">TT Vận chuyển</span>
-          {!(currentStatus === "6" || currentStatus === "7") && (
-            <Button 
-              type="text" 
-              icon={<EditOutlined />} 
-              size="small"
-              onClick={() => setShowEditTransport(true)}
-            >
-              Sửa
-            </Button>
-          )}
         </div>
         <div className="process-info-list">
           <div className="process-info-row">
@@ -878,33 +998,47 @@ const ProcessPhieuGiaoHang = () => {
       </Card>
 
       {/* Log trạng thái */}
-      <Card className="process-card" size="small">
+      <Card className="process-card process-card-log" size="small">
         <div className="process-card-header">
           <HistoryOutlined className="process-card-icon" />
           <span className="process-card-title">Log trạng thái</span>
         </div>
-        <Timeline className="process-timeline">
-          {statusLog.map((log, index) => (
-            <Timeline.Item 
-              key={index}
-              color={index === statusLog.length - 1 ? "blue" : "gray"}
-            >
-              <div className="process-timeline-item">
-                <div className="process-timeline-header">
-                  <span className="process-timeline-action">{log.action}</span>
-                  <span className="process-timeline-time">{log.time}</span>
+        <div className="process-timeline-wrapper" ref={timelineWrapperRef}>
+          <Timeline className="process-timeline">
+            {statusLog.map((log, index) => (
+              <Timeline.Item 
+                key={index}
+                color={index === statusLog.length - 1 ? "blue" : "gray"}
+              >
+                <div className="process-timeline-item">
+                  <div className="process-timeline-header">
+                    <span className="process-timeline-action">{log.action}</span>
+                    <span className="process-timeline-time">
+                    {log.time ? dayjs(log.time).format("DD/MM/YYYY HH:mm") : log.time}
+                  </span>
+                  </div>
+                  <div className="process-timeline-user"><strong>Bởi:</strong> {log.user}</div>
+                  {log.note && (
+                    <div className="process-timeline-note"><strong>Ghi chú:</strong> {log.note}</div>
+                  )}
+                  {log.cost != null && log.cost > 0 && (
+                    <div className="process-timeline-cost"><strong>Chi phí:</strong> {log.cost.toLocaleString()}đ</div>
+                  )}
+                  {(log.vehicleCodeOld != null || log.vehicleCodeNew != null) && (
+                    <div className="process-timeline-detail" style={{ wordBreak: "break-word" }}>
+                      <strong>Xe:</strong> {(log.vehicleCodeOld || "").trim()} {" -> "} {(log.vehicleCodeNew || "").trim()}
+                    </div>
+                  )}
+                  {(log.shippingCostsOld != null || log.shippingCostsNew != null) && (
+                    <div className="process-timeline-detail">
+                      <strong>Chi phí:</strong> {Number(log.shippingCostsOld ?? 0).toLocaleString()}đ {" -> "} {Number(log.shippingCostsNew ?? 0).toLocaleString()}đ
+                    </div>
+                  )}
                 </div>
-                <div className="process-timeline-user">Bởi: {log.user}</div>
-                {log.note && (
-                  <div className="process-timeline-note">Ghi chú: {log.note}</div>
-                )}
-                {log.cost > 0 && (
-                  <div className="process-timeline-cost">Chi phí: {log.cost.toLocaleString()}đ</div>
-                )}
-              </div>
-            </Timeline.Item>
-          ))}
-        </Timeline>
+              </Timeline.Item>
+            ))}
+          </Timeline>
+        </div>
       </Card>
 
       {/* Action buttons: tuần tự hoặc button theo trạng thái đã chọn */}
@@ -960,18 +1094,51 @@ const ProcessPhieuGiaoHang = () => {
                 Đã tiếp nhận
               </Button>
             )}
+            {canUpdateDeliveryInfo && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<EditOutlined />}
+                className="process-action-btn handover"
+                onClick={() => handleAction("updateDeliveryInfo")}
+              >
+                Cập nhật thông tin giao hàng
+              </Button>
+            )}
             {canHandover && (
               <Button
                 type="primary"
                 size="large"
                 icon={<TruckOutlined />}
-                className="process-action-btn handover"
+                className="process-action-btn handover handover-primary"
                 onClick={() => handleAction("handover")}
               >
                 Bàn giao ĐVVC
               </Button>
             )}
-            {canComplete && (
+            {canComplete && canFail && (
+              <div className="process-actions-row">
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<CheckCircleOutlined />}
+                  className="process-action-btn complete"
+                  onClick={() => handleAction("complete")}
+                >
+                  Hoàn thành
+                </Button>
+                <Button
+                  danger
+                  size="large"
+                  icon={<CloseCircleOutlined />}
+                  className="process-action-btn fail"
+                  onClick={() => handleAction("fail")}
+                >
+                  Thất bại
+                </Button>
+              </div>
+            )}
+            {canComplete && !canFail && (
               <Button
                 type="primary"
                 size="large"
@@ -982,7 +1149,7 @@ const ProcessPhieuGiaoHang = () => {
                 Hoàn thành
               </Button>
             )}
-            {canFail && (
+            {canFail && !canComplete && (
               <Button
                 danger
                 size="large"
@@ -993,6 +1160,17 @@ const ProcessPhieuGiaoHang = () => {
                 Thất bại
               </Button>
             )}
+            {canReturnToStore && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<CheckCircleOutlined />}
+                className="process-action-btn store"
+                onClick={() => handleAction("returnToStore")}
+              >
+                Chuyển về kho
+              </Button>
+            )}
           </>
         )}
       </div>
@@ -1001,9 +1179,11 @@ const ProcessPhieuGiaoHang = () => {
       <Modal
         title={confirmAction === "save" ? "Xác nhận cập nhật trạng thái" : `Xác nhận ${getActionText(confirmAction)}`}
         open={showConfirmModal}
-        onCancel={() => setShowConfirmModal(false)}
+        onCancel={() => !confirmLoading && setShowConfirmModal(false)}
+        closable={!confirmLoading}
+        maskClosable={!confirmLoading}
         footer={[
-          <Button key="cancel" onClick={() => setShowConfirmModal(false)}>
+          <Button key="cancel" onClick={() => setShowConfirmModal(false)} disabled={confirmLoading}>
             {confirmAction === "save" ? "Hủy" : "Không"}
           </Button>,
           <Button 
@@ -1011,6 +1191,8 @@ const ProcessPhieuGiaoHang = () => {
             type="primary" 
             style={{ background: confirmAction === "save" ? getStatusColor(selectedStatus) : getActionColor(confirmAction) }}
             onClick={handleConfirmAction}
+            loading={confirmLoading}
+            disabled={confirmLoading}
           >
             {confirmAction === "save" ? "Lưu" : "Có"}
           </Button>,
@@ -1027,21 +1209,51 @@ const ProcessPhieuGiaoHang = () => {
             </p>
           )}
           
-          {(confirmAction === "handover" || (confirmAction === "save" && selectedStatus === "5")) && (
-            <div className="process-confirm-field">
-              <label style={{ fontWeight: 600, marginBottom: "8px", display: "block" }}>Nhập Chi phí:</label>
+          {(confirmAction === "handover" || (confirmAction === "save" && selectedStatus === "5")) && confirmAction !== "updateDeliveryInfo" && (
+            <>
+              <div className="process-confirm-field">
+                <label style={{ fontWeight: 600, marginBottom: "8px", display: "block" }}>Chọn xe:</label>
+                <Select
+                  style={{ width: "100%" }}
+                  placeholder="Nhập mã hoặc tên xe để tìm kiếm"
+                  value={confirmVehicle || undefined}
+                  onChange={setConfirmVehicle}
+                  allowClear
+                  loading={loadingVehicle}
+                  showSearch
+                  filterOption={false}
+                  onSearch={handleVehicleSearch}
+                  onDropdownVisibleChange={handleVehicleDropdownOpen}
+                  notFoundContent={loadingVehicle ? "Đang tải..." : "Nhập từ khóa để tìm xe"}
+                  options={vehicleOptions}
+                />
+              </div>
+              <div className="process-confirm-field">
+                <label style={{ fontWeight: 600, marginBottom: "8px", display: "block" }}>Nhập Chi phí:</label>
               <InputNumber
                 style={{ width: "100%" }}
                 value={confirmCost}
-                onChange={setConfirmCost}
+                onChange={(val) => setConfirmCost(val || 0)}
                 formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+                parser={(value) => value.replace(/[^\d]/g, "")}
                 placeholder="Nhập chi phí vận chuyển"
                 addonAfter="đ"
                 min={0}
+                max={999999999999}
                 controls={false}
+                inputMode="numeric"
+                onKeyDown={(e) => {
+                  // Chỉ cho phép số, Backspace, Delete, Tab, Arrow keys
+                  if (
+                    !/[0-9]/.test(e.key) &&
+                    !["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)
+                  ) {
+                    e.preventDefault();
+                  }
+                }}
               />
             </div>
+            </>
           )}
 
           <div className="process-confirm-field">
@@ -1053,43 +1265,49 @@ const ProcessPhieuGiaoHang = () => {
               placeholder="Nhập ghi chú (nếu có)"
             />
           </div>
-        </div>
-      </Modal>
-
-      {/* Edit Transport Modal */}
-      <Modal
-        title="Sửa thông tin vận chuyển"
-        open={showEditTransport}
-        onCancel={() => setShowEditTransport(false)}
-        onOk={handleSaveTransport}
-        okText="Lưu"
-        cancelText="Hủy"
-      >
-        <div className="process-edit-transport">
-          <div className="process-edit-field">
-            <label>Tên nhà xe:</label>
-            <Input
-              value={transportInfo.ten_nha_xe}
-              onChange={(e) => setTransportInfo(prev => ({ ...prev, ten_nha_xe: e.target.value }))}
-              placeholder="Nhập tên nhà xe"
-            />
-          </div>
-          <div className="process-edit-field">
-            <label>Số điện thoại:</label>
-            <Input
-              value={transportInfo.sdt_nha_xe}
-              onChange={(e) => setTransportInfo(prev => ({ ...prev, sdt_nha_xe: e.target.value }))}
-              placeholder="Nhập số điện thoại"
-            />
-          </div>
-          <div className="process-edit-field">
-            <label>Giờ chạy:</label>
-            <Input
-              value={transportInfo.gio_chay}
-              onChange={(e) => setTransportInfo(prev => ({ ...prev, gio_chay: e.target.value }))}
-              placeholder="Nhập giờ chạy"
-            />
-          </div>
+          
+          {(confirmAction === "handover" || (confirmAction === "save" && selectedStatus === "5")) && confirmAction !== "updateDeliveryInfo" && (
+            <div className="process-confirm-field">
+              <div className="process-upload-section">
+                <div className="process-upload-milestone">
+                  <div className="process-upload-label">Ảnh đính kèm</div>
+                  {confirmModalImages.length > 0 && (
+                    <div className="process-upload-list-wrapper">
+                      <Upload
+                        listType="picture-card"
+                        fileList={confirmModalImages}
+                        onChange={({ fileList }) => setConfirmModalImages(fileList)}
+                        onPreview={(file) => handlePreview(file)}
+                        beforeUpload={() => false}
+                        showUploadList={{
+                          showPreviewIcon: false,
+                          showRemoveIcon: true,
+                        }}
+                      />
+                    </div>
+                  )}
+                  {confirmModalImages.length <= 4 && (
+                    <div className="process-upload-button-wrapper">
+                      <Upload
+                        listType="picture-card"
+                        fileList={[]}
+                        onChange={({ fileList }) => setConfirmModalImages(prev => [...prev, ...fileList])}
+                        beforeUpload={() => false}
+                        showUploadList={false}
+                        accept="image/*"
+                        capture="environment"
+                      >
+                        <div>
+                          <CameraOutlined />
+                          <div style={{ marginTop: 8 }}>Chụp ảnh</div>
+                        </div>
+                      </Upload>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
 

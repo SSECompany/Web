@@ -79,7 +79,7 @@ const VatTuGiaoHangTable = ({
       title: "Mã lô",
       dataIndex: "ma_lo",
       key: "ma_lo",
-      width: 120,
+      width: 80,
       render: (value, record) => (
         <Input
           value={value}

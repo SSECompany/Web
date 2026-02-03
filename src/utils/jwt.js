@@ -50,6 +50,24 @@ const setRefreshToken = (token) => {
   }
 };
 
+/**
+ * Cập nhật toàn bộ token sau khi gọi API Refresh thành công.
+ * Ghi đè access_token, refresh_token, token_expiry trong localStorage.
+ * Ghi từng key khi có giá trị (không bỏ qua nếu thiếu một bên).
+ */
+const applyRefreshResponse = (newAccessToken, newRefreshToken) => {
+  const access = newAccessToken != null && String(newAccessToken).trim() !== "";
+  const refresh = newRefreshToken != null && String(newRefreshToken).trim() !== "";
+  if (!access && !refresh) return;
+  if (refresh) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, String(newRefreshToken));
+  }
+  if (access) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, String(newAccessToken));
+    setTokenExpiryFromJwt(newAccessToken);
+  }
+};
+
 // Fallback expiry khi JWT không có exp (khớp với thời hạn refresh token backend: 160 phút)
 const TOKEN_EXPIRY_FALLBACK_MS = 160 * 60 * 1000;
 
@@ -149,6 +167,7 @@ const jwt = {
   getRefreshToken,
   setAccessToken,
   setRefreshToken,
+  applyRefreshResponse,
   claimNewToken,
   checkExistToken,
   resetAccessToken,

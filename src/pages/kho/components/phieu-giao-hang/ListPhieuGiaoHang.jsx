@@ -22,7 +22,7 @@ import { useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import QRScanner from "../../../../components/common/QRScanner/QRScanner";
 import "./PhieuGiaoHang.css";
-import { fetchPhieuGiaoHangList } from "./utils/phieuGiaoHangApi";
+import { fetchPhieuGiaoHangList, fetchPhieuGiaoHangDataByQR } from "./utils/phieuGiaoHangApi";
 
 const ListPhieuGiaoHang = () => {
   const navigate = useNavigate();
@@ -189,18 +189,43 @@ const ListPhieuGiaoHang = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleQRScan = (decodedText) => {
-    message.success(`Quét thành công: ${decodedText}`);
+  const handleQRScan = async (decodedText) => {
+    const trimmed = decodedText?.trim();
+    if (!trimmed) return;
+
     setShowQRScanner(false);
-    // Navigate to xử lý giao hàng với mã QR - dùng API /Delivery/:voucherId
-    navigate(`/kho/giao-hang/xu-ly/${decodedText}`, {
-      state: { 
-        sctRec: decodedText, 
-        returnUrl: location.pathname, 
-        fromQR: true,
-        mode: "process"
+    message.loading({ content: "Đang kiểm tra phiếu giao hàng...", key: "qr-check" });
+
+    try {
+      const result = await fetchPhieuGiaoHangDataByQR(trimmed);
+      message.destroy("qr-check");
+
+      if (result.success) {
+        // Kiểm tra status = 0 → không cho phép truy cập xử lý giao hàng
+        const status = result.master?.status;
+        if (status != null && String(status) === "0") {
+          message.error("Phiếu giao hàng chưa lưu kho");
+          return;
+        }
+        message.success(`Quét thành công: ${trimmed}`);
+        navigate(`/kho/giao-hang/xu-ly/${trimmed}`, {
+          state: { 
+            sctRec: trimmed, 
+            returnUrl: location.pathname, 
+            fromQR: true,
+            mode: "process"
+          }
+        });
+      } else {
+        // Không tìm thấy hoặc lỗi → chỉ báo lỗi, không navigate
+        const errorMsg = result.error || "Không tìm thấy phiếu giao hàng với mã này";
+        message.error(errorMsg);
       }
-    });
+    } catch (err) {
+      message.destroy("qr-check");
+      const errorMsg = err?.response?.data?.message || err?.message || "Không tìm thấy phiếu giao hàng với mã này";
+      message.error(errorMsg);
+    }
   };
 
   // Map tab key -> API Status
@@ -217,6 +242,18 @@ const ListPhieuGiaoHang = () => {
     () => (debouncedSearchText?.trim() ? "" : (statusMap[activeFilter] || "")),
     [debouncedSearchText, activeFilter, statusMap]
   );
+
+  // Làm tươi mềm: bấm logo TAPMED → gọi lại API lấy data mới nhất (không reload trang)
+  useEffect(() => {
+    const handler = () => {
+      if (hasInitialLoad.current) {
+        fetchPhieuGiaoHang(currentPage, effectiveStatus);
+        fetchCountsByStatus();
+      }
+    };
+    window.addEventListener("appRefreshRequested", handler);
+    return () => window.removeEventListener("appRefreshRequested", handler);
+  }, [currentPage, effectiveStatus, fetchPhieuGiaoHang, fetchCountsByStatus]);
 
   const handleFilterChange = (filter) => {
     setActiveFilter(filter);
@@ -297,6 +334,29 @@ const ListPhieuGiaoHang = () => {
     }
   };
 
+  // Cột ngày: DD/MM/YYYY + giờ (ưu tiên datetime0, không có thì lấy từ ngay_don_hang nếu có phần T)
+  const formatNgayGio = (item) => {
+    if (!item?.ngay_don_hang) return "---";
+    const dateStr = dayjs(item.ngay_don_hang).format("DD/MM/YYYY");
+    const raw = item.datetime0;
+    if (raw) {
+      const d = dayjs(raw);
+      if (d.isValid()) return `${dateStr} ${d.format("HH:mm")}`;
+      if (typeof raw === "string" && raw.includes(":")) {
+        const part = raw.trim().split(" ").pop() || raw;
+        const timeMatch = part.match(/^(\d{1,2}):(\d{2})/);
+        if (timeMatch) return `${dateStr} ${timeMatch[0]}`;
+      }
+    }
+    // Fallback: ngay_don_hang dạng ISO có giờ (vd. 2026-01-22T14:30:00)
+    const orderDateStr = String(item.ngay_don_hang || "");
+    if (orderDateStr.includes("T")) {
+      const t = dayjs(item.ngay_don_hang);
+      if (t.isValid() && (t.hour() !== 0 || t.minute() !== 0)) return `${dateStr} ${t.format("HH:mm")}`;
+    }
+    return dateStr;
+  };
+
   const handleViewDetail = (record) => {
     // Format voucherDate thành YYYYMMDD cho API /Delivery/:voucherDateStr/:voucherId
     let voucherDateStr = null;
@@ -364,11 +424,11 @@ const ListPhieuGiaoHang = () => {
           </div>
           <div className="giao-hang-header-actions">
             <button 
-              className={`giao-hang-filter-btn ${hasActiveFilter ? "active" : ""}`}
-              onClick={() => setShowFilterDrawer(true)}
-              title="Bộ lọc"
+              className="giao-hang-filter-btn"
+              onClick={() => setShowQRScanner(true)}
+              title="Quét QR"
             >
-              <FilterOutlined />
+              <QrcodeOutlined />
             </button>
           </div>
         </div>
@@ -514,7 +574,8 @@ const ListPhieuGiaoHang = () => {
                     Mã vận đơn: <span className="giao-hang-card-code">{item.ma_van_don || item.so_don_hang || "---"}</span>
                   </span>
                   <span className="giao-hang-card-date">
-                    <CalendarOutlined /> {item.ngay_don_hang ? dayjs(item.ngay_don_hang).format("DD/MM/YYYY") : "---"}
+                    <CalendarOutlined />{" "}
+                    {formatNgayGio(item)}
                   </span>
                 </div>
                 <div className="giao-hang-card-header-right">
@@ -635,9 +696,13 @@ const ListPhieuGiaoHang = () => {
         </div>
       )}
 
-      {/* Floating QR Button */}
-      <button className="giao-hang-fab" onClick={() => setShowQRScanner(true)}>
-        <QrcodeOutlined />
+      {/* Floating Filter Button */}
+      <button 
+        className={`giao-hang-fab ${hasActiveFilter ? "active" : ""}`}
+        onClick={() => setShowFilterDrawer(true)}
+        title="Bộ lọc"
+      >
+        <FilterOutlined />
       </button>
 
       {/* QR Scanner */}

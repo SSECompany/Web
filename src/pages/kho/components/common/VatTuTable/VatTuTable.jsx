@@ -32,6 +32,8 @@ const VatTuTable = ({
   selectData = {},
   loadingStates = {},
   tableClassName = "vat-tu-table hidden_scroll_bar",
+  focusInvalidRowKey,
+  onFocusInvalidRowHandled,
   ...otherProps
 }) => {
   const [loadingDvt, setLoadingDvt] = useState({});
@@ -46,6 +48,70 @@ const VatTuTable = ({
   useEffect(() => {
     dataSourceRef.current = dataSource;
   }, [dataSource]);
+
+  // Scroll to invalid row and focus first editable input until validation is satisfied
+  const tableWrapperRef = useRef(null);
+  useEffect(() => {
+    if (!focusInvalidRowKey) return;
+    // Trên tablet/mobile DOM cập nhật chậm hơn, dùng delay dài hơn để đảm bảo bảng đã render và dòng đỏ đã hiển thị
+    const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+    const delay = isTouchDevice ? 450 : 250;
+    const timer = setTimeout(() => {
+      const root = tableWrapperRef.current || document;
+      const selector = `tr[data-row-key="${CSS.escape(String(focusInvalidRowKey))}"]`;
+      const allRows = root.querySelectorAll?.(selector) || [];
+      // Bảng có fixed cột thì có 2 dòng cùng key. Ưu tiên dòng trong .ant-table-body (vùng cuộn chính) để scroll + focus đúng trên cả tablet.
+      const row =
+        Array.from(allRows).find((r) => r.closest?.(".ant-table-body")) ||
+        Array.from(allRows).find((r) => r.querySelector('input:not([type="hidden"]), select')) ||
+        allRows[0];
+      if (row) {
+        // Tìm container scroll của bảng (ant-table-body) để cuộn đúng vùng
+        let scrollParent = row.parentElement;
+        while (scrollParent && scrollParent !== document.body) {
+          const { overflowY } = getComputedStyle(scrollParent);
+          const scrollHeight = scrollParent.scrollHeight;
+          const clientHeight = scrollParent.clientHeight;
+          const canScroll = scrollHeight > clientHeight && (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay");
+          if (canScroll) {
+            const rowRect = row.getBoundingClientRect();
+            const containerRect = scrollParent.getBoundingClientRect();
+            const rowOffsetInContent = scrollParent.scrollTop + (rowRect.top - containerRect.top);
+            const viewHeight = scrollParent.clientHeight;
+            const targetScroll = Math.max(0, rowOffsetInContent - Math.round(viewHeight / 3));
+            const maxScroll = scrollParent.scrollHeight - viewHeight;
+            scrollParent.scrollTop = Math.min(targetScroll, maxScroll);
+            break;
+          }
+          scrollParent = scrollParent.parentElement;
+        }
+        // Luôn cuộn trang (viewport) để dòng lỗi nằm trong màn hình — bảng có thể nằm dưới fold
+        row.scrollIntoView({ block: "center", behavior: "auto" });
+        // Focus sau khi scroll đã áp dụng; trên tablet dùng thêm setTimeout để scroll kịp vẽ trước khi focus
+        const focusInput = () => {
+          const focusable = row.querySelector(
+            'input:not([type="hidden"]), select, [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusable) {
+            focusable.focus({ preventScroll: true });
+          }
+          onFocusInvalidRowHandled?.();
+        };
+        if (isTouchDevice) {
+          requestAnimationFrame(() => {
+            setTimeout(focusInput, 80);
+          });
+        } else {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(focusInput);
+          });
+        }
+      } else {
+        onFocusInvalidRowHandled?.();
+      }
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [focusInvalidRowKey, onFocusInvalidRowHandled]);
 
   // Prefetch danh sách mã lô cho một dòng cụ thể, luôn dùng dataSource mới nhất
   const loadLoOptions = useCallback(
@@ -160,6 +226,7 @@ const VatTuTable = ({
       return (
         <Input
           type="text"
+          inputMode="decimal"
           value={value}
           onChange={(e) => handleQuantityChange(e.target.value, record, field)}
           style={{
@@ -167,17 +234,23 @@ const VatTuTable = ({
             textAlign: "center",
             fontWeight: "bold",
             borderColor:
-              (field === (columnConfig.tongNhatField || "tong_nhat") && record.groupExceeded)
+              (field === (columnConfig.tongNhatField || "tong_nhat") &&
+                (record.groupExceeded || record.rowExceededSlDon))
                 ? "#ff4d4f"
                 : undefined,
             boxShadow:
-              (field === (columnConfig.tongNhatField || "tong_nhat") && record.groupExceeded)
+              (field === (columnConfig.tongNhatField || "tong_nhat") &&
+                (record.groupExceeded || record.rowExceededSlDon))
                 ? "0 0 0 2px rgba(255,77,79,0.2)"
                 : undefined,
           }}
           className="vat-tu-table-input"
           title={
-            field === (columnConfig.tongNhatField || "tong_nhat") && record.groupExceeded
+            field === (columnConfig.tongNhatField || "tong_nhat") &&
+            record.rowExceededSlDon
+              ? "SL nhặt vượt quá SL đơn của dòng"
+              : field === (columnConfig.tongNhatField || "tong_nhat") &&
+                record.groupExceeded
               ? "Tổng nhặt nhóm vượt Số lượng đơn"
               : undefined
           }
@@ -309,26 +382,29 @@ const VatTuTable = ({
   // Tạo columns động dựa trên config
   const columns = useMemo(() => {
     const baseColumns = [
-      {
-        title: "STT",
-        dataIndex: "key",
-        key: "key",
-        width: 60,
-        align: "center",
-        fixed: "left",
-        ellipsis: true,
-        render: (value, record, index) => {
-          if (record.isChild) return "";
-          // Đếm số dòng cha trước dòng hiện tại (không tính dòng con)
-          let parentCount = 0;
-          for (let i = 0; i < index; i++) {
-            if (!dataSource[i]?.isChild) {
-              parentCount++;
-            }
-          }
-          return parentCount + 1;
-        },
-      },
+      ...(columnConfig.showStt !== false
+        ? [
+            {
+              title: "STT",
+              dataIndex: "key",
+              key: "key",
+              width: 60,
+              align: "center",
+              fixed: "left",
+              ellipsis: true,
+              render: (value, record, index) => {
+                if (record.isChild) return "";
+                let parentCount = 0;
+                for (let i = 0; i < index; i++) {
+                  if (!dataSource[i]?.isChild) {
+                    parentCount++;
+                  }
+                }
+                return parentCount + 1;
+              },
+            },
+          ]
+        : []),
       {
         title: "Ảnh",
         dataIndex: "image",
@@ -374,7 +450,7 @@ const VatTuTable = ({
       {
         title: "Mặt hàng",
         key: "mat_hang",
-        width: 260,
+        width: 200,
         align: "center",
         ellipsis: false,
         render: (_, record) => {
@@ -425,7 +501,7 @@ const VatTuTable = ({
                   style={{
                     fontSize: "14px",
                     fontWeight: 700,
-                    color: "#1890ff",
+                    color: "#ff4d4f",
                     marginTop: "6px",
                     letterSpacing: "0.5px",
                   }}
@@ -437,7 +513,7 @@ const VatTuTable = ({
                 <div
                   style={{
                     fontSize: "12px",
-                    color: "#52c41a",
+                    color: "#237804",
                     marginTop: "4px",
                     fontWeight: 500,
                   }}
@@ -583,7 +659,7 @@ const VatTuTable = ({
           title: "Mã lô",
           dataIndex: columnConfig.maLoField || "ma_lo",
           key: "ma_lo",
-          width: 100,
+          width: 90,
           align: "center",
           ellipsis: true,
           render: (value, record) => {
@@ -650,7 +726,7 @@ const VatTuTable = ({
         title: columnConfig.soLuongDeNghiTitle === "Số lượng đơn" ? "SL đơn" : (columnConfig.soLuongDeNghiTitle || "Số lượng đề nghị"),
         dataIndex: soLuongDeNghiField,
         key: "so_luong_de_nghi",
-        width: 100,
+        width: 65,
         align: "center",
         ellipsis: true,
         render: (value, record) => {
@@ -727,7 +803,7 @@ const VatTuTable = ({
         title: "Nhặt",
         dataIndex: columnConfig.nhatCheckboxField || "nhat_checkbox",
         key: "nhat_checkbox",
-        width: 80,
+        width: 40,
         align: "center",
         ellipsis: true,
         onCell: (record) => ({
@@ -786,7 +862,7 @@ const VatTuTable = ({
         title: "SL nhặt",
         dataIndex: columnConfig.tongNhatField || "tong_nhat",
         key: "tong_nhat",
-        width: 120,
+        width: 70,
         align: "center",
         ellipsis: true,
         render: (value, record) => {
@@ -831,56 +907,47 @@ const VatTuTable = ({
       });
     }
 
-    // Thêm cột Ghi chú KD (nếu có)
+    // Thêm cột Ghi chú KD (nếu có) - chỉ hiển thị, text xuống dòng khi dài
     let ghiChuKDColumn = null;
     if (columnConfig.showGhiChuKD) {
       ghiChuKDColumn = {
         title: "Ghi chú KD",
-        dataIndex: columnConfig.ghiChuKDField || "ghi_chu_kd",
-        key: "ghi_chu_kd",
-        width: 150,
+        dataIndex: columnConfig.ghiChuKDField || "ghi_chu_dh", 
+        key: "ghi_chu_dh",
+        width: 100,
         align: "center",
-        ellipsis: true,
-        render: (value, record) => {
-          if (!isEditMode) {
-            return value || "";
-          }
-          return (
-            <Input
-              value={value || ""}
-              onChange={(e) => onSelectChange(e.target.value, record, columnConfig.ghiChuKDField || "ghi_chu_kd")}
-              style={{ width: "100%" }}
-              className="vat-tu-table-input"
-              placeholder="Nhập ghi chú KD"
-              size="small"
-            />
-          );
-        },
+        ellipsis: false,
+        render: (value) => (
+          <span className="vat-tu-table-cell-wrap">{value || ""}</span>
+        ),
       };
     }
 
-    // Thêm cột ghi chú: mặc định, hoặc hoãn tới cuối nếu cấu hình yêu cầu
+    // Thêm cột ghi chú: mặc định, text xuống dòng khi dài
     let ghiChuColumn = null;
     if (columnConfig.showGhiChu) {
       ghiChuColumn = {
         title: columnConfig.ghiChuTitle || "Ghi chú",
         dataIndex: columnConfig.ghiChuField || "ghi_chu",
         key: "ghi_chu",
-        width: 150,
+        width: 120,
         align: "center",
-        ellipsis: true,
+        ellipsis: false,
         render: (value, record) => {
           if (!isEditMode) {
-            return value || "";
+            return (
+              <span className="vat-tu-table-cell-wrap">{value || ""}</span>
+            );
           }
           return (
-            <Input
+            <Input.TextArea
               value={value || ""}
               onChange={(e) => onSelectChange(e.target.value, record, columnConfig.ghiChuField || "ghi_chu")}
-              style={{ width: "100%" }}
+              style={{ width: "100%", minHeight: 32 }}
               className="vat-tu-table-input"
               placeholder="Nhập ghi chú"
-              size="small"
+              autoSize={{ minRows: 1, maxRows: 6 }}
+              rows={1}
             />
           );
         },
@@ -1021,23 +1088,24 @@ const VatTuTable = ({
   }, [columns]);
 
   return (
-    <Table
-      bordered
-      dataSource={dataSource}
-      columns={columns}
-      locale={{
-        emptyText: (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Trống" />
-        ),
-      }}
-      pagination={false}
-      className={tableClassName}
-      scroll={getScrollConfig()}
-      size="small"
-      tableLayout="auto"
-      
-      {...otherProps}
-    />
+    <div ref={tableWrapperRef} style={{ width: "100%" }}>
+      <Table
+        bordered
+        dataSource={dataSource}
+        columns={columns}
+        locale={{
+          emptyText: (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Trống" />
+          ),
+        }}
+        pagination={false}
+        className={tableClassName}
+        scroll={getScrollConfig()}
+        size="small"
+        tableLayout="auto"
+        {...otherProps}
+      />
+    </div>
   );
 };
 

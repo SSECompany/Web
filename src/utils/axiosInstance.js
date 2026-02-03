@@ -1,7 +1,13 @@
 import { notification } from "antd";
 import axios from "axios";
+import { store } from "../store";
 import { refreshToken } from "../api";
 import router from "../router/routes";
+import {
+  setClaims,
+  setRefreshToken as setRefreshTokenRedux,
+  setTokenExpiry as setTokenExpiryRedux,
+} from "../store/reducers/claimsSlice";
 import { APP_CONFIG } from "./constants";
 import jwt from "./jwt";
 import { clearStorageExceptVersion } from "./tokenUtils";
@@ -99,9 +105,10 @@ instance.interceptors.response.use(
 
         const [newToken, newRefreshToken] = await refreshingFunc;
 
-        await jwt.setRefreshToken(newRefreshToken);
-        await jwt.setAccessToken(newToken, true); // Skip expiry update khi refresh token
-        jwt.setTokenExpiryFromJwt(newToken);
+        jwt.applyRefreshResponse(newToken, newRefreshToken);
+        store.dispatch(setClaims(jwt.getClaims()));
+        store.dispatch(setRefreshTokenRedux(newRefreshToken));
+        store.dispatch(setTokenExpiryRedux(jwt.getTokenExpiry()));
 
         if (!config.headers) config.headers = {};
         config.headers.Authorization = `Bearer ${newToken}`;

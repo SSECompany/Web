@@ -45,6 +45,7 @@ export const fetchPhieuGiaoHangList = async (params) => {
         dia_chi: item.shippingAddressName || "",
         so_don_hang: item.orderNumber?.trim() || "",
         ngay_don_hang: item.orderDate || "",
+        datetime0: item.datetime0 ?? item.DateTime0 ?? item.orderDateTime ?? "",
         ma_van_don: item.orderNumber?.trim() || "",
         status: item.status || "1", // Default: 1 (Lập chứng từ)
         statusname: item.statusName || "",
@@ -148,6 +149,10 @@ const mapHistoryToLog = (history) => {
     user: log.userId || "",
     note: log.note || "",
     actionType: log.actionType || "",
+    vehicleCodeOld: log.vehicleCodeOld ?? null,
+    vehicleCodeNew: log.vehicleCodeNew ?? null,
+    shippingCostsOld: log.shippingCostsOld ?? null,
+    shippingCostsNew: log.shippingCostsNew ?? null,
   }));
 };
 
@@ -252,21 +257,75 @@ export const fetchPhieuGiaoHangDataByView = async (voucherDateStr, voucherId) =>
   }
 };
 
+// API lấy danh sách xe (Vehicle) - GET /api/Vehicle
+// Response: data.items[] với maVc, tenVc, tuyenDuong, sdt, gio
+// keyword: tìm kiếm theo mã/tên xe
+export const fetchVehicleList = async (keyword = "") => {
+  const token = localStorage.getItem("access_token");
+
+  try {
+    const params = { PageIndex: 1, PageSize: 50 };
+    if (keyword?.trim()) params.search = keyword.trim();
+
+    const response = await https.get("Vehicle", params, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        accept: "*/*",
+      },
+    });
+
+    if (response?.data?.isSucceeded === true && response?.data?.data) {
+      const raw = response.data.data;
+      const items = Array.isArray(raw) ? raw : (raw?.items || raw?.data || []);
+      return {
+        success: true,
+        data: items
+          .map((item) => ({
+            vehicleCode: (item.maVc || item.vehicleCode || item.code || item.maXe || item.id || "").toString().trim(),
+            vehicleName: (item.tenVc || item.vehicleName || item.name || item.tenXe || "").toString().trim(),
+            sdt: (item.sdt || "").toString().trim(),
+            gio: (item.gio || "").toString().trim(),
+            tuyenDuong: (item.tuyenDuong || "").toString().trim(),
+          }))
+          .filter((v) => v.vehicleCode),
+      };
+    }
+    return { success: false, data: [], error: response?.data?.message || "Lỗi không xác định" };
+  } catch (error) {
+    console.error("Lỗi gọi API Vehicle:", error);
+    return {
+      success: false,
+      data: [],
+      error: error?.response?.data?.message || error?.message || "Lỗi không xác định",
+    };
+  }
+};
 
 // API để cập nhật trạng thái phiếu giao hàng - Sử dụng API mới /api/Delivery/update-status
 export const updateDeliveryStatus = async (payload) => {
   const token = localStorage.getItem("access_token");
 
   try {
+    const body = {
+      unitCode: payload.unitCode,
+      voucherId: payload.voucherId,
+      VoucherDate: payload.VoucherDate,
+      newStatus: payload.newStatus ?? "",  // "" khi sửa TT vận chuyển để không đổi status
+      note: payload.note || "",
+    };
+    if (payload.VehicleCodeNew != null && payload.VehicleCodeNew !== "") {
+      body.VehicleCodeNew = payload.VehicleCodeNew;
+    }
+    if (payload.ShippingCostsNew != null && payload.ShippingCostsNew > 0) {
+      body.ShippingCostsNew = payload.ShippingCostsNew;
+    }
+    // Fallback cho flow confirm Bàn giao ĐVVC
+    if (!body.VehicleCodeNew && payload.vehicleCode) body.VehicleCodeNew = payload.vehicleCode;
+    if (!body.ShippingCostsNew && payload.cost != null && payload.cost > 0) body.ShippingCostsNew = payload.cost;
+
     const response = await https.post(
       "Delivery/update-status",
-      {
-        unitCode: payload.unitCode,
-        voucherId: payload.voucherId,
-        VoucherDate: payload.VoucherDate,
-        newStatus: payload.newStatus,
-        note: payload.note || "",
-      },
+      body,
       {
         headers: {
           Authorization: token ? `Bearer ${token}` : "",
@@ -384,7 +443,7 @@ export const uploadDeliveryImage = async ({
   }
 };
 
-// API để xóa ảnh cho phiếu giao hàng
+// API để xóa ảnh cho phiếu giao hàng (POST)
 export const deleteDeliveryImage = async (fileId) => {
   if (!fileId) {
     console.warn("No fileId provided to deleteDeliveryImage");
@@ -394,20 +453,28 @@ export const deleteDeliveryImage = async (fileId) => {
   try {
     const token = localStorage.getItem("access_token");
     
-    // Extract fileId từ URL nếu là full URL
+    // Extract fileId từ URL nếu là full URL. URL dạng .../fileupload/{id}/view → lấy id, không lấy "view"
     let fileIdToDelete = fileId;
     if (fileId.includes("/")) {
-      // Nếu là URL, extract ID từ cuối URL
-      const parts = fileId.split("/");
-      fileIdToDelete = parts[parts.length - 1];
+      const parts = fileId.split("/").filter(Boolean);
+      if (parts.length > 0) {
+        const last = parts[parts.length - 1];
+        fileIdToDelete = (last === "view" || last === "delete") && parts.length >= 2
+          ? parts[parts.length - 2]
+          : last;
+      }
     }
 
-    const response = await axiosInstance.delete(`FileUpload/${fileIdToDelete}`, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-        Accept: "application/json",
-      },
-    });
+    const response = await axiosInstance.post(
+      `FileUpload/delete/${fileIdToDelete}`,
+      null,
+      {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+          Accept: "*/*",
+        },
+      }
+    );
 
     return { success: true, data: response.data };
   } catch (error) {

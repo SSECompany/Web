@@ -1,9 +1,16 @@
 import { notification } from "antd";
 import { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setClaims } from "../store/reducers/claimsSlice";
+import { refreshToken } from "../api";
+import {
+  setClaims,
+  setRefreshToken as setRefreshTokenRedux,
+  setTokenExpiry as setTokenExpiryRedux,
+} from "../store/reducers/claimsSlice";
 import jwt from "../utils/jwt";
 import { clearAllTokenData, getTimeLeft } from "../utils/tokenUtils";
+
+const FIVE_MINUTES_MS = 5 * 60 * 1000;
 
 const useTokenExpiryChecker = () => {
   const dispatch = useDispatch();
@@ -22,6 +29,8 @@ const useTokenExpiryChecker = () => {
   
   const intervalRef = useRef(null);
   const hasNotifiedRef = useRef(false);
+  const hasNotified5MinRef = useRef(false);
+  const refreshingExpiredRef = useRef(false);
   const currentIntervalRef = useRef(null);
 
   const performLogout = () => {
@@ -74,32 +83,39 @@ const useTokenExpiryChecker = () => {
       return false;
     }
 
-    // JWT token: access token hết hạn (token_expiry qua) không logout ngay; để request tiếp theo thử refresh
+    // JWT token: khi hết hạn → tự động gọi refresh và lưu token mới; khi còn 5 phút → thông báo
     const timeLeft = getTimeLeft(tokenExpiry);
 
     if (timeLeft <= 0) {
-      // Chỉ cảnh báo; không logout. Request API tiếp theo sẽ 401 -> interceptor thử refresh; chỉ logout khi refresh thất bại (refresh_token hết hạn)
-      if (!hasNotifiedRef.current) {
-        hasNotifiedRef.current = true;
-        notification.info({
-          message: "Phiên đăng nhập đã hết hạn",
-          description: "Thao tác tiếp sẽ tự động gia hạn nếu còn phiên. Vui lòng đăng nhập lại nếu bị chuyển về trang đăng nhập.",
-          placement: "topRight",
-          duration: 5,
-        });
+      // Tự động làm tươi và lưu token mới; chỉ logout khi refresh thất bại
+      if (!refreshingExpiredRef.current) {
+        refreshingExpiredRef.current = true;
+        refreshToken()
+          .then(([newAccessToken, newRefreshToken]) => {
+            jwt.applyRefreshResponse(newAccessToken, newRefreshToken);
+            dispatch(setClaims(jwt.getClaims()));
+            dispatch(setRefreshTokenRedux(newRefreshToken));
+            dispatch(setTokenExpiryRedux(jwt.getTokenExpiry()));
+            // Không gọi refresh lại hay reload; chỉ lưu token mới và tiếp tục
+          })
+          .catch(() => {
+            performLogout();
+          })
+          .finally(() => {
+            refreshingExpiredRef.current = false;
+          });
       }
       return false;
     }
 
-    // Cảnh báo 5 phút cuối (chỉ 1 lần); reset flag khi còn > 5 phút để lần sau vẫn cảnh báo
-    if (timeLeft > 300000) hasNotifiedRef.current = false;
-    if (timeLeft <= 300000 && timeLeft > 60000 && !hasNotifiedRef.current) {
-      hasNotifiedRef.current = true;
+    // Cảnh báo khi còn 5 phút (chỉ 1 lần); reset flag khi còn > 5 phút
+    if (timeLeft > FIVE_MINUTES_MS) hasNotified5MinRef.current = false;
+    if (timeLeft <= FIVE_MINUTES_MS && timeLeft > 0 && !hasNotified5MinRef.current) {
+      hasNotified5MinRef.current = true;
+      const minutesLeft = Math.max(1, Math.ceil(timeLeft / 60000));
       notification.warning({
         message: "Phiên đăng nhập sắp hết hạn",
-        description: `Phiên của bạn sẽ hết hạn sau ${Math.floor(
-          timeLeft / 60000
-        )} phút`,
+        description: `Phiên của bạn sẽ hết hạn sau ${minutesLeft} phút. Hệ thống sẽ tự động gia hạn khi hết hạn.`,
         placement: "topRight",
         duration: 5,
       });
@@ -117,7 +133,8 @@ const useTokenExpiryChecker = () => {
       return 3600000; // Còn lại: 1 giờ
     }
 
-    // JWT token - check thường xuyên hơn
+    // JWT token - check thường xuyên hơn (để kịp cảnh báo 5 phút và auto refresh)
+    if (timeLeft <= FIVE_MINUTES_MS) return 15000; // 5 phút cuối: 15s
     if (timeLeft <= 600000) return 30000; // 10 phút cuối: 30s
     if (timeLeft <= 3600000) return 300000; // 1 giờ cuối: 5 phút
     if (timeLeft <= 7200000) return 600000; // 2 giờ cuối: 10 phút
@@ -178,6 +195,7 @@ const useTokenExpiryChecker = () => {
 
     // Reset notification flag khi token mới
     hasNotifiedRef.current = false;
+    hasNotified5MinRef.current = false;
     setupDynamicInterval();
 
     return () => {
@@ -187,6 +205,7 @@ const useTokenExpiryChecker = () => {
       }
       currentIntervalRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setupDynamicInterval ổn định theo isAuthenticated/tokenExpiry
   }, [isAuthenticated, tokenExpiry]);
 
   return { checkTokenExpiry };

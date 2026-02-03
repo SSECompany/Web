@@ -1,4 +1,4 @@
-import { EyeOutlined, FilterOutlined } from "@ant-design/icons";
+import { EyeOutlined, FilterOutlined, ReloadOutlined } from "@ant-design/icons";
 import { Button, DatePicker, Input, Select, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -11,6 +11,17 @@ import { fetchPhieuNhatHangList } from "./utils/phieuNhatHangApi";
 const { RangePicker } = DatePicker;
 
 const { Title } = Typography;
+
+// Vùng: fix cứng V1, V2, V3, V4 (multi-select)
+const VUNG_OPTIONS = ["V1", "V2", "V3", "V4"];
+
+// Trạng thái: multi-select, mặc định Mới chia đơn + Đang nhặt hàng
+const STATUS_OPTIONS = [
+  { value: "0", label: "Mới chia đơn" },
+  { value: "1", label: "Đang nhặt hàng" },
+  { value: "2", label: "Nhặt xong" },
+];
+const STATUS_DEFAULT = ["0", "1"]; // Mới chia đơn, Đang nhặt hàng
 
 const ListPhieuNhatHang = () => {
   const navigate = useNavigate();
@@ -36,13 +47,24 @@ const ListPhieuNhatHang = () => {
           parsed.dateRange && parsed.dateRange.from && parsed.dateRange.to
             ? [dayjs(parsed.dateRange.from), dayjs(parsed.dateRange.to)]
             : null;
+        const maNhomVitri = parsed.ma_nhomvitri;
+        const maNhomVitriArr = Array.isArray(maNhomVitri)
+          ? maNhomVitri.filter((v) => VUNG_OPTIONS.includes(v))
+          : typeof maNhomVitri === "string" && maNhomVitri
+            ? maNhomVitri.split(",").map((s) => s.trim()).filter((v) => VUNG_OPTIONS.includes(v))
+            : [];
         return {
           so_ct: parsed.so_ct || "",
           so_don_hang: parsed.so_don_hang || "",
           ma_kh: parsed.ma_kh || "",
           ten_kh: parsed.ten_kh || "",
-          ma_nhomvitri: parsed.ma_nhomvitri || "",
-          status: parsed.status || "",
+          ma_nhomvitri: maNhomVitriArr,
+          status: (() => {
+            const s = parsed.status;
+            if (Array.isArray(s)) return s.filter((v) => ["0", "1", "2"].includes(String(v)));
+            if (s && typeof s === "string") return s.split(",").map((x) => x.trim()).filter((v) => ["0", "1", "2"].includes(v));
+            return [...STATUS_DEFAULT];
+          })(),
           dateRange,
         };
       }
@@ -54,8 +76,8 @@ const ListPhieuNhatHang = () => {
       so_don_hang: "",
       ma_kh: "",
       ten_kh: "",
-      ma_nhomvitri: "",
-      status: "",
+      ma_nhomvitri: [],
+      status: [...STATUS_DEFAULT],
       dateRange: null,
     };
   };
@@ -70,8 +92,8 @@ const ListPhieuNhatHang = () => {
       f.so_don_hang ||
       f.ma_kh ||
       f.ten_kh ||
-      f.ma_nhomvitri ||
-      f.status ||
+      (Array.isArray(f.ma_nhomvitri) && f.ma_nhomvitri.length > 0) ||
+      (Array.isArray(f.status) && f.status.length > 0) ||
       (f.dateRange &&
         f.dateRange.length === 2 &&
         !f.dateRange[0].isSame(dayjs(), "day"))
@@ -133,8 +155,8 @@ const ListPhieuNhatHang = () => {
         so_don_hang: f.so_don_hang || "",
         ma_kh: f.ma_kh || "",
         ten_kh: f.ten_kh || "",
-        ma_nhomvitri: f.ma_nhomvitri || "",
-        status: f.status || "",
+        ma_nhomvitri: Array.isArray(f.ma_nhomvitri) ? f.ma_nhomvitri : [],
+        status: Array.isArray(f.status) ? f.status : [],
         dateRange:
           f.dateRange && f.dateRange.length === 2
             ? {
@@ -164,13 +186,24 @@ const ListPhieuNhatHang = () => {
         parsed.dateRange && parsed.dateRange.from && parsed.dateRange.to
           ? [dayjs(parsed.dateRange.from), dayjs(parsed.dateRange.to)]
           : null;
+      const maNhomVitri = parsed.ma_nhomvitri;
+      const maNhomVitriArr = Array.isArray(maNhomVitri)
+        ? maNhomVitri.filter((v) => VUNG_OPTIONS.includes(v))
+        : typeof maNhomVitri === "string" && maNhomVitri
+          ? maNhomVitri.split(",").map((s) => s.trim()).filter((v) => VUNG_OPTIONS.includes(v))
+          : [];
+      const statusArr = Array.isArray(parsed.status)
+        ? parsed.status.filter((v) => ["0", "1", "2"].includes(String(v)))
+        : parsed.status && typeof parsed.status === "string"
+          ? parsed.status.split(",").map((x) => x.trim()).filter((v) => ["0", "1", "2"].includes(v))
+          : [...STATUS_DEFAULT];
       return {
         so_ct: parsed.so_ct || "",
         so_don_hang: parsed.so_don_hang || "",
         ma_kh: parsed.ma_kh || "",
         ten_kh: parsed.ten_kh || "",
-        ma_nhomvitri: parsed.ma_nhomvitri || "",
-        status: parsed.status || "",
+        ma_nhomvitri: maNhomVitriArr,
+        status: statusArr.length > 0 ? statusArr : [...STATUS_DEFAULT],
         dateRange,
       };
     } catch (error) {
@@ -192,7 +225,7 @@ const ListPhieuNhatHang = () => {
   }, [filters, saveFiltersToStorage]);
 
   const fetchPhieuNhatHang = useCallback(
-    async (pageIndex = currentPage, customFilters = null) => {
+    async (pageIndex = currentPage, customFilters = null, forceRefresh = false) => {
       if (isLoading) return;
 
       // Chỉ gọi API khi userInfo đã có dữ liệu (tránh gọi lần đầu với empty userInfo)
@@ -205,17 +238,6 @@ const ListPhieuNhatHang = () => {
       }
 
       const filtersToUse = customFilters || stableFilters;
-      const normalizeStatus = (val) => {
-        if (val === undefined || val === null) return "";
-        const str = String(val).trim();
-        if (["0", "1", "2"].includes(str)) return str;
-        const map = {
-          "Mới chia đơn": "0",
-          "Đang nhặt hàng": "1",
-          "Nhặt xong": "2",
-        };
-        return map[str] || "";
-      };
 
       // Get unitsResponse from localStorage as fallback for unitId
       const unitsResponse = JSON.parse(
@@ -226,7 +248,7 @@ const ListPhieuNhatHang = () => {
       const unitId = currentUserInfo?.unitId || unitsResponse?.unitId || "";
       const storeId = currentUserInfo?.storeId || "";
 
-      // Duplicate prevention logic - bao gồm cả userInfo để tránh gọi lại khi userInfo thay đổi nhưng params giống nhau
+      // Duplicate prevention logic - bỏ qua khi forceRefresh (vd. bấm logo làm tươi)
       const currentCall = {
         pageIndex,
         filters: filtersToUse,
@@ -235,6 +257,7 @@ const ListPhieuNhatHang = () => {
         storeId,
       };
       if (
+        !forceRefresh &&
         lastApiCall.current.pageIndex === pageIndex &&
         JSON.stringify(lastApiCall.current.filters) ===
           JSON.stringify(filtersToUse) &&
@@ -261,12 +284,16 @@ const ListPhieuNhatHang = () => {
           ngay_ct: "",
           ma_kh: filtersToUse.ma_kh || "",
           ten_kh: filtersToUse.ten_kh || "",
-          Status: normalizeStatus(filtersToUse.status),
+          Status: Array.isArray(filtersToUse.status) && filtersToUse.status.length
+            ? filtersToUse.status.join(",")
+            : "",
           ma_ban: "",
           s2: "",
           s3: "",
           so_don_hang: filtersToUse.so_don_hang || "",
-          ma_nhomvitri: filtersToUse.ma_nhomvitri || "",
+          ma_nhomvitri: Array.isArray(filtersToUse.ma_nhomvitri) && filtersToUse.ma_nhomvitri.length
+            ? filtersToUse.ma_nhomvitri.join(",")
+            : "",
           pageIndex: pageIndex,
           pageSize: pageSize,
           userId: userId,
@@ -330,6 +357,23 @@ const ListPhieuNhatHang = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
+  // Làm tươi mềm: bấm logo TAPMED → gọi lại API lấy data mới nhất (không reload trang)
+  useEffect(() => {
+    const handler = () => {
+      if (hasInitialLoad.current) {
+        fetchPhieuNhatHang(currentPage, filters, true);
+      }
+    };
+    window.addEventListener("appRefreshRequested", handler);
+    return () => window.removeEventListener("appRefreshRequested", handler);
+  }, [currentPage, filters, fetchPhieuNhatHang]);
+
+  const handleRefreshClick = useCallback(() => {
+    if (hasInitialLoad.current) {
+      fetchPhieuNhatHang(currentPage, filters, true);
+    }
+  }, [currentPage, filters, fetchPhieuNhatHang]);
+
   const handlePageChange = (page) => {
     setCurrentPage(page);
     fetchPhieuNhatHang(page, filters);
@@ -371,26 +415,18 @@ const ListPhieuNhatHang = () => {
         label: "Tên KH",
         value: filters.ten_kh,
       });
-    if (filters.ma_nhomvitri)
+    if (Array.isArray(filters.ma_nhomvitri) && filters.ma_nhomvitri.length > 0)
       chips.push({
         key: "ma_nhomvitri",
         label: "Vùng",
-        value: filters.ma_nhomvitri,
+        value: filters.ma_nhomvitri.join(", "),
       });
-    if (
-      filters.status !== "" &&
-      filters.status !== null &&
-      filters.status !== undefined
-    ) {
-      const statusMap = {
-        0: "Mới chia đơn",
-        1: "Đang nhặt hàng",
-        2: "Nhặt xong",
-      };
+    if (Array.isArray(filters.status) && filters.status.length > 0) {
+      const statusMap = { "0": "Mới chia đơn", "1": "Đang nhặt hàng", "2": "Nhặt xong" };
       chips.push({
         key: "status",
         label: "Trạng thái",
-        value: statusMap[String(filters.status)] || String(filters.status),
+        value: filters.status.map((s) => statusMap[String(s)] || s).join(", "),
       });
     }
     // Chỉ hiển thị dateRange chip khi user đã thực sự apply filter (không phải mặc định)
@@ -414,6 +450,10 @@ const ListPhieuNhatHang = () => {
     const newFilters = { ...filters };
     if (chipKey === "dateRange") {
       newFilters.dateRange = null;
+    } else if (chipKey === "ma_nhomvitri") {
+      newFilters.ma_nhomvitri = [];
+    } else if (chipKey === "status") {
+      newFilters.status = [];
     } else {
       newFilters[chipKey] = "";
     }
@@ -430,8 +470,8 @@ const ListPhieuNhatHang = () => {
       so_don_hang: "",
       ma_kh: "",
       ten_kh: "",
-      ma_nhomvitri: "",
-      status: "",
+      ma_nhomvitri: [],
+      status: [...STATUS_DEFAULT],
       dateRange: null,
     };
     setFilters(cleared);
@@ -465,13 +505,6 @@ const ListPhieuNhatHang = () => {
 
   const getColumns = () => {
     const baseColumns = [
-      {
-        title: "STT",
-        key: "stt",
-        render: (_, __, index) => index + 1,
-        width: 50,
-        align: "center",
-      },
       {
         title: "Số",
         dataIndex: "so_ct",
@@ -510,7 +543,9 @@ const ListPhieuNhatHang = () => {
         title: "Ngày",
         dataIndex: "ngay_ct",
         key: "ngay_ct",
-        width: 118,
+        width: 100,
+        align: "center",
+        ellipsis: false,
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <div style={{ padding: 8 }}>
             <RangePicker
@@ -563,14 +598,35 @@ const ListPhieuNhatHang = () => {
                 filters.dateRange[1].format("DD/MM/YYYY"),
               ]
             : null,
-        render: (text) =>
-          dayjs(text).format(screenSize === "mobile" ? "DD/MM" : "DD/MM/YYYY"),
+        render: (text, record) => {
+          const dateStr = text
+            ? dayjs(text).format(screenSize === "mobile" ? "DD/MM" : "DD/MM/YYYY")
+            : "";
+          const raw = record?.datetime0;
+          let display = dateStr;
+          if (raw) {
+            const d = dayjs(raw);
+            if (d.isValid()) display = `${dateStr} ${d.format("HH:mm")}`;
+            else if (typeof raw === "string" && raw.includes(":")) {
+              const part = raw.trim().split(" ").pop() || raw;
+              const timeMatch = part.match(/^(\d{1,2}):(\d{2})/);
+              if (timeMatch) display = `${dateStr} ${timeMatch[0]}`;
+            }
+          }
+          return display ? (
+            <span style={{ wordBreak: "break-word", whiteSpace: "normal" }}>
+              {display}
+            </span>
+          ) : (
+            ""
+          );
+        },
       },
       {
         title: "Tên KH",
         dataIndex: "ten_kh",
         key: "ten_kh",
-        width: 100,
+        width: 120,
         align: "center",
         ellipsis: false,
         render: (text) => {
@@ -608,7 +664,7 @@ const ListPhieuNhatHang = () => {
         title: "Số ĐH",
         dataIndex: "so_don_hang",
         key: "so_don_hang",
-        width: 80,
+        width: 72,
         align: "center",
         render: (text) => (text ? text.trim() : ""),
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
@@ -642,27 +698,35 @@ const ListPhieuNhatHang = () => {
         title: "Vùng",
         dataIndex: "ma_nhomvitri",
         key: "ma_nhomvitri",
-        width: 72,
+        width: 65,
         align: "center",
         render: (text) => (text || "").toString(),
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm Vùng"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                handleFilter("ma_nhomvitri", selectedKeys[0] || "", confirm);
-              }}
-              style={{ marginBottom: 8, display: "block" }}
+          <div
+            style={{
+              padding: 8,
+              minWidth: 200,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Select
+              mode="multiple"
+              placeholder="Chọn Vùng"
+              value={selectedKeys}
+              onChange={(val) => setSelectedKeys(val || [])}
+              style={{ width: "100%", minWidth: 180 }}
+              size="small"
+              options={VUNG_OPTIONS.map((v) => ({ label: v, value: v }))}
+              listHeight={200}
+              placement="topLeft"
+              showSearch={false}
             />
             <Button
               className="search_button"
               type="primary"
               onClick={() => {
-                handleFilter("ma_nhomvitri", selectedKeys[0] || "", confirm);
+                handleFilter("ma_nhomvitri", selectedKeys, confirm);
               }}
               size="small"
             >
@@ -670,20 +734,20 @@ const ListPhieuNhatHang = () => {
             </Button>
           </div>
         ),
-        filteredValue: filters.ma_nhomvitri ? [filters.ma_nhomvitri] : null,
+        filteredValue: Array.isArray(filters.ma_nhomvitri) && filters.ma_nhomvitri.length > 0 ? filters.ma_nhomvitri : null,
       },
       {
         title: "Bàn",
         dataIndex: "ban_dong_goi",
         key: "ban_dong_goi",
-        width: 88,
+        width: 35,
         align: "center",
         render: (text) => (text || "").toString(),
       },
       {
         title: "% HT",
         key: "ti_le_hoan_thanh",
-        width: 80,
+        width: 45,
         align: "center",
         render: (_, record) => {
           const a = record?.sl_phieu_xuat1 ?? 0;
@@ -707,34 +771,42 @@ const ListPhieuNhatHang = () => {
         title: "Trạng thái",
         dataIndex: "statusname",
         key: "statusname",
-        width: screenSize === "mobile" ? 90 : 140,
+        width: screenSize === "mobile" ? 90 : 120,
         align: "center",
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
+          <div
+            style={{
+              padding: 8,
+              minWidth: 200,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
             <Select
+              mode="multiple"
               placeholder="Chọn trạng thái"
-              value={selectedKeys[0]}
-              onChange={(val) => setSelectedKeys(val ? [val] : [])}
-              style={{ width: 180, marginBottom: 8, display: "block" }}
+              value={selectedKeys}
+              onChange={(val) => setSelectedKeys(val || [])}
+              style={{ width: "100%", minWidth: 180 }}
               size="small"
-            >
-              <Select.Option value="0">Mới chia đơn</Select.Option>
-              <Select.Option value="1">Đang nhặt hàng</Select.Option>
-              <Select.Option value="2">Nhặt xong</Select.Option>
-            </Select>
+              options={STATUS_OPTIONS}
+              listHeight={200}
+              placement="topLeft"
+              showSearch={false}
+            />
             <Button
               className="search_button"
               type="primary"
-              onClick={() =>
-                handleFilter("status", selectedKeys[0] || "", confirm)
-              }
+              onClick={() => {
+                handleFilter("status", selectedKeys, confirm);
+              }}
               size="small"
             >
               Tìm kiếm
             </Button>
           </div>
         ),
-        filteredValue: filters.status ? [filters.status] : null,
+        filteredValue: Array.isArray(filters.status) && filters.status.length > 0 ? filters.status : null,
         render: (_, record) => {
           const status = record?.status;
           if (status === "*" || status === null) {
@@ -761,7 +833,7 @@ const ListPhieuNhatHang = () => {
       {
         title: "Thời gian xử lý",
         key: "thoi_gian_xu_ly",
-        width: 120,
+        width: 110,
         align: "center",
         ellipsis: false,
         render: (_, record) => {
@@ -833,12 +905,18 @@ const ListPhieuNhatHang = () => {
         title: "Ghi chú",
         dataIndex: "ghi_chu",
         key: "ghi_chu",
-        width: 80,
+        width: 150,
         align: "center",
         ellipsis: false,
         render: (text) => {
-          const s = (text || "").toString();
-          return s ? <span style={{ wordBreak: "break-word", whiteSpace: "normal" }}>{s}</span> : "";
+          const s = (text || "").toString().trim();
+          return s ? (
+            <span style={{ wordBreak: "break-word", whiteSpace: "normal", lineHeight: 1.4 }}>
+              {s}
+            </span>
+          ) : (
+            ""
+          );
         },
       },
       {
@@ -926,6 +1004,16 @@ const ListPhieuNhatHang = () => {
                     ? "filter-chip--blue"
                     : chip.key === "dateRange"
                     ? "filter-chip--green"
+                    : chip.key === "so_ct"
+                    ? "filter-chip--orange"
+                    : chip.key === "so_don_hang"
+                    ? "filter-chip--cyan"
+                    : chip.key === "ten_kh"
+                    ? "filter-chip--magenta"
+                    : chip.key === "ma_kh"
+                    ? "filter-chip--purple"
+                    : chip.key === "ma_nhomvitri"
+                    ? "filter-chip--geekblue"
                     : "filter-chip--gray"
                 }`}
               >
@@ -949,6 +1037,19 @@ const ListPhieuNhatHang = () => {
           screenSize === "mobile"
             ? "PHIẾU NHẬT HÀNG"
             : "DANH SÁCH PHIẾU NHẶT HÀNG"
+        }
+        extraButtons={
+          <span style={{ marginRight: 8 }}>
+            <button
+              type="button"
+              className="navbar_fullscreen_btn"
+              onClick={handleRefreshClick}
+              title="Làm tươi"
+              aria-label="Làm tươi"
+            >
+              <ReloadOutlined />
+            </button>
+          </span>
         }
         extraHeader={chipsBar}
         columns={getColumns()}

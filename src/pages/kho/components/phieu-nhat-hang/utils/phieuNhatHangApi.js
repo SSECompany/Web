@@ -363,6 +363,46 @@ export const updatePhieuNhatHangWithStoredProc = async (
   }
 };
 
+// API huỷ phiếu nhặt hàng: exec api_huy_phieu_nhat_hang stt_rec, userId
+export const huyPhieuNhatHang = async (stt_rec, userId) => {
+  const body = {
+    store: "api_huy_phieu_nhat_hang",
+    param: {
+      stt_rec: stt_rec,
+      userId: userId,
+    },
+    data: {},
+    resultSetNames: [],
+  };
+
+  try {
+    const response = await multipleTablePutApi(body);
+
+    if (response?.responseModel?.isSucceded === true) {
+      return { success: true };
+    }
+    if (response && response.statusCode === 200) {
+      return { success: true };
+    }
+    message.error(
+      response?.responseModel?.message ||
+        response?.message ||
+        "Có lỗi xảy ra khi huỷ nhặt"
+    );
+    return { success: false };
+  } catch (error) {
+    console.error("Error huy phieu nhat hang:", error);
+    if (error.response?.data?.responseModel?.message) {
+      message.error(error.response.data.responseModel.message);
+    } else if (error.response?.data?.message) {
+      message.error(error.response.data.message);
+    } else {
+      message.error("Vui lòng kiểm tra lại thông tin");
+    }
+    return { success: false };
+  }
+};
+
 // API để xóa phiếu nhặt hàng
 export const deletePhieuNhatHang = async (stt_rec, userInfo) => {
   const token = localStorage.getItem("access_token");

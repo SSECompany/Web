@@ -39,6 +39,10 @@ const Navbar = () => {
     }
   };
 
+  const handleRefresh = () => {
+    window.dispatchEvent(new CustomEvent("appRefreshRequested"));
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     const isSessionToken = token && token.startsWith("session.");
@@ -158,8 +162,10 @@ const Navbar = () => {
           <div className="navbar_logo_functions">
             <div className="navbar_search_function">
               <h2
-                onClick={handleSetBackground}
+                onClick={handleRefresh}
                 className="default_header_label"
+                title="Làm tươi"
+                style={{ cursor: "pointer" }}
               >
                 TAPMED
               </h2>
