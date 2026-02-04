@@ -116,6 +116,7 @@ const ListPhieuNhatHang = () => {
   const userInfoRef = useRef(userInfo); // Track userInfo để tránh re-render
   const filtersLoadedFromStorage = useRef(true); // Track đã load filters từ sessionStorage (true vì đã load trong getInitialFilters)
   const filtersInitialized = useRef(false); // Track filters đã được khởi tạo chưa
+  const filterChangeFromSearchRef = useRef(false); // Khi ấn Tìm kiếm: handleFilter đã gọi API → effect [filters] bỏ qua 1 lần
   const EMPTY_FILTERS = {};
   const stableFilters = useMemo(() => filters, [filters]);
 
@@ -303,10 +304,15 @@ const ListPhieuNhatHang = () => {
 
         const result = await fetchPhieuNhatHangList(params);
 
-        if (result.success) {
+        // Chỉ cập nhật state nếu response này vẫn là request mới nhất (tránh race: đổi filter khi đang ở trang 5 → request cũ trả về sau ghi đè totalRecords)
+        const stillCurrent =
+          lastApiCall.current.pageIndex === pageIndex &&
+          JSON.stringify(lastApiCall.current.filters) === JSON.stringify(filtersToUse);
+
+        if (result.success && stillCurrent) {
           setAllData(result.data);
-          setTotalRecords(result.pagination.totalRecord || result.data.length);
-        } else {
+          setTotalRecords(result.pagination.totalRecord ?? result.data.length);
+        } else if (!result.success) {
           console.error("Lỗi gọi API danh sách phiếu nhặt hàng:", result.error);
         }
       } catch (err) {
@@ -337,7 +343,7 @@ const ListPhieuNhatHang = () => {
   }, [userInfo?.id, userInfo?.userId]);
 
   // Effect riêng cho filters - chỉ gọi khi filters thay đổi và đã load lần đầu
-  // Bỏ qua lần đầu tiên vì filters đã được set từ sessionStorage và đã được gọi trong effect trên
+  // Bỏ qua khi vừa ấn Tìm kiếm (handleFilter đã gọi API) để tránh double call
   useEffect(() => {
     const currentUserInfo = userInfoRef.current;
     if (!currentUserInfo || (!currentUserInfo.id && !currentUserInfo.userId)) {
@@ -348,6 +354,12 @@ const ListPhieuNhatHang = () => {
     if (!filtersInitialized.current) {
       filtersInitialized.current = true;
       return; // Bỏ qua lần đầu tiên vì filters đã được load từ sessionStorage
+    }
+
+    // Khi ấn Tìm kiếm (đang ở trang 5 rồi bỏ trạng thái): handleFilter đã gọi API với newFilters → không gọi lại ở đây
+    if (filterChangeFromSearchRef.current) {
+      filterChangeFromSearchRef.current = false;
+      return;
     }
 
     // Chỉ gọi nếu đã load lần đầu để tránh double call với effect trên
@@ -375,21 +387,75 @@ const ListPhieuNhatHang = () => {
   }, [currentPage, filters, fetchPhieuNhatHang]);
 
   const handlePageChange = (page) => {
+    // Khi đang ở trang 5 rồi ấn Tìm kiếm: handleFilter set currentPage=1 → Table có thể gọi onChange(1) với filters cũ → bỏ qua
+    if (filterChangeFromSearchRef.current && page === 1) {
+      setCurrentPage(page);
+      return;
+    }
     setCurrentPage(page);
     fetchPhieuNhatHang(page, filters);
   };
 
   const handleFilter = (key, value, confirm) => {
+    // Đặt ref ngay đầu, trước confirm() và setState — nếu confirm() gây re-render/effect thì effect [filters] sẽ bỏ qua
+    filterChangeFromSearchRef.current = true;
     confirm();
+
+    // Chuẩn hóa multi-select: luôn dùng array cho ma_nhomvitri và status
     let filterValue = value;
+    if (key === "ma_nhomvitri" || key === "status") {
+      filterValue = Array.isArray(value) ? value : value ? [value] : [];
+    }
 
     const newFilters = { ...filters, [key]: filterValue };
     setFilters(newFilters);
     setHasUserAppliedFilters(true); // User đã apply filter
     setCurrentPage(1);
-    // Save to sessionStorage
     saveFiltersToStorage(newFilters);
     fetchPhieuNhatHang(1, newFilters);
+  };
+
+  // Dropdown multi-select: đồng bộ selectedKeys với filters khi mở, ấn Tìm kiếm thì lọc theo đúng value đang chọn
+  const MultiSelectFilterDropdown = ({
+    setSelectedKeys,
+    selectedKeys,
+    confirm,
+    filterKey,
+    initialValue,
+    placeholder,
+    options,
+    onFilter,
+  }) => {
+    useEffect(() => {
+      setSelectedKeys(Array.isArray(initialValue) ? [...initialValue] : []);
+      // Chỉ đồng bộ khi dropdown mở (mount), không re-sync khi initialValue thay đổi
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    const currentValues = Array.isArray(selectedKeys) ? selectedKeys : [];
+    return (
+      <div style={{ padding: 8, minWidth: 200, display: "flex", flexDirection: "column" }}>
+        <Select
+          mode="multiple"
+          placeholder={placeholder}
+          value={currentValues}
+          onChange={(val) => setSelectedKeys(val || [])}
+          style={{ width: "100%", minWidth: 180 }}
+          size="small"
+          options={options}
+          listHeight={200}
+          placement="topLeft"
+          showSearch={false}
+        />
+        <Button
+          className="search_button"
+          type="primary"
+          onClick={() => onFilter(filterKey, currentValues, confirm)}
+          size="small"
+        >
+          Tìm kiếm
+        </Button>
+      </div>
+    );
   };
 
   // Active filter chips
@@ -459,9 +525,8 @@ const ListPhieuNhatHang = () => {
     }
     setFilters(newFilters);
     setCurrentPage(1);
-    // Save to sessionStorage
     saveFiltersToStorage(newFilters);
-    fetchPhieuNhatHang(1, newFilters);
+    // useEffect([filters]) gọi API 1 lần
   };
 
   const clearAllChips = () => {
@@ -483,7 +548,7 @@ const ListPhieuNhatHang = () => {
     } catch (error) {
       console.error("Error clearing filters from sessionStorage:", error);
     }
-    fetchPhieuNhatHang(1, cleared);
+    // useEffect([filters]) gọi API 1 lần
   };
 
   const getStatusColor = (status) => {
@@ -509,7 +574,7 @@ const ListPhieuNhatHang = () => {
         title: "Số",
         dataIndex: "so_ct",
         key: "so_ct",
-        width: 60,
+        width: 100,
         align: "center",
         render: (text) => (text ? text.trim() : ""),
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
@@ -702,37 +767,16 @@ const ListPhieuNhatHang = () => {
         align: "center",
         render: (text) => (text || "").toString(),
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div
-            style={{
-              padding: 8,
-              minWidth: 200,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <Select
-              mode="multiple"
-              placeholder="Chọn Vùng"
-              value={selectedKeys}
-              onChange={(val) => setSelectedKeys(val || [])}
-              style={{ width: "100%", minWidth: 180 }}
-              size="small"
-              options={VUNG_OPTIONS.map((v) => ({ label: v, value: v }))}
-              listHeight={200}
-              placement="topLeft"
-              showSearch={false}
-            />
-            <Button
-              className="search_button"
-              type="primary"
-              onClick={() => {
-                handleFilter("ma_nhomvitri", selectedKeys, confirm);
-              }}
-              size="small"
-            >
-              Tìm kiếm
-            </Button>
-          </div>
+          <MultiSelectFilterDropdown
+            setSelectedKeys={setSelectedKeys}
+            selectedKeys={selectedKeys}
+            confirm={confirm}
+            filterKey="ma_nhomvitri"
+            initialValue={filters.ma_nhomvitri || []}
+            placeholder="Chọn Vùng"
+            options={VUNG_OPTIONS.map((v) => ({ label: v, value: v }))}
+            onFilter={handleFilter}
+          />
         ),
         filteredValue: Array.isArray(filters.ma_nhomvitri) && filters.ma_nhomvitri.length > 0 ? filters.ma_nhomvitri : null,
       },
@@ -774,37 +818,16 @@ const ListPhieuNhatHang = () => {
         width: screenSize === "mobile" ? 90 : 120,
         align: "center",
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div
-            style={{
-              padding: 8,
-              minWidth: 200,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <Select
-              mode="multiple"
-              placeholder="Chọn trạng thái"
-              value={selectedKeys}
-              onChange={(val) => setSelectedKeys(val || [])}
-              style={{ width: "100%", minWidth: 180 }}
-              size="small"
-              options={STATUS_OPTIONS}
-              listHeight={200}
-              placement="topLeft"
-              showSearch={false}
-            />
-            <Button
-              className="search_button"
-              type="primary"
-              onClick={() => {
-                handleFilter("status", selectedKeys, confirm);
-              }}
-              size="small"
-            >
-              Tìm kiếm
-            </Button>
-          </div>
+          <MultiSelectFilterDropdown
+            setSelectedKeys={setSelectedKeys}
+            selectedKeys={selectedKeys}
+            confirm={confirm}
+            filterKey="status"
+            initialValue={filters.status || []}
+            placeholder="Chọn trạng thái"
+            options={STATUS_OPTIONS}
+            onFilter={handleFilter}
+          />
         ),
         filteredValue: Array.isArray(filters.status) && filters.status.length > 0 ? filters.status : null,
         render: (_, record) => {

@@ -263,7 +263,8 @@
   max-height: none !important;
 }
 
-/* Dropdown options styling - ensure proper width */
+/* Dropdown options styling - ensure proper width (classNames.popup cho Select Đơn vị) */
+.login_unit_select_dropdown.ant-select-dropdown,
 .login_form .ant-select-dropdown {
   min-width: 200px !important;
   max-width: 500px !important;

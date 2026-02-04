@@ -258,7 +258,6 @@
 
 /* Wrapper cho button chụp ảnh */
 .process-upload-button-wrapper {
-  margin-top: 12px;
   margin-bottom: 0;
   width: 100%;
   display: flex;
@@ -733,8 +732,40 @@
 .process-confirm-field label {
   display: block;
   margin-bottom: 8px;
-  font-weight: 500;
+  font-weight: 700;
   color: #262626;
+}
+
+/* Ứng tiền checkbox: label trái, ô tick phải, căn phải */
+.process-confirm-advance-money {
+  margin-top: 12px;
+  padding-left: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+.process-confirm-advance-money .ant-checkbox-wrapper {
+  display: inline-flex;
+  align-items: center;
+  flex-direction: row-reverse;
+  font-weight: 700;
+  margin-inline-start: 0;
+  padding-left: 0;
+}
+.process-confirm-advance-money .ant-checkbox {
+  top: 0;
+  flex-shrink: 0;
+}
+.process-confirm-advance-money .ant-checkbox-inner {
+  border-radius: 4px;
+}
+.process-confirm-advance-money .ant-checkbox + span {
+  padding-inline-end: 8px;
+  padding-left: 0;
+  padding-inline-start: 0;
+}
+
+.process-confirm-content .process-upload-label {
+  font-weight: 700;
 }
 
 /* Edit transport modal */

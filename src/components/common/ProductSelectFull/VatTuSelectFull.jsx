@@ -69,6 +69,8 @@ const ProductSelectFull = ({
         clearTimeout(focusTimeoutRef.current);
       }
     };
+    // vatTuSelectRef is a ref (stable), no need in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [barcodeEnabled]);
 
   const handleSearch = (value) => {
@@ -202,6 +204,8 @@ const ProductSelectFull = ({
         return () => clearTimeout(timer);
       }
     }
+    // processBarcode is stable; omit to avoid unnecessary effect re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vatTuInput, barcodeEnabled]);
 
   // Cải thiện logic scroll phân trang
@@ -293,7 +297,7 @@ const ProductSelectFull = ({
                 onSelect={handleVatTuSelect}
                 onOpenChange={handleDropdownVisibleChange}
                 disabled={!isEditMode}
-                popupClassName="vat-tu-dropdown"
+                classNames={{ popup: { root: 'vat-tu-dropdown' } }}
                 popupMatchSelectWidth={true}
                 optionFilterProp="label"
                 notFoundContent={

@@ -75,7 +75,7 @@ const BaoCaoTonKho = () => {
 
   // Search refs for debounce
   const khoSearchRef = useRef(null);
-  const nhomVatTuSearchRef = useRef(null);
+  const nhomVatTuSearchRef = useRef({});
   const dvcsSearchRef = useRef(null);
   const vatTuSearchRef = useRef(null);
 
@@ -325,7 +325,7 @@ const BaoCaoTonKho = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters, userId, unitId, currentPage, pageSize]);
+  }, [filters, userId, currentPage, pageSize]);
 
   const [tableFilters, setTableFilters] = useState({
     ma_vt: "",
@@ -559,26 +559,16 @@ const BaoCaoTonKho = () => {
     [columns, renderCellContent]
   );
 
-  // Load options on mount
-  useEffect(() => {
-    fetchKhoOptions();
-    fetchNhomVatTuOptions(1);
-    fetchNhomVatTuOptions(2);
-    fetchNhomVatTuOptions(3);
-    fetchDvcsOptions();
-    fetchVatTuOptions();
-  }, [
-    fetchKhoOptions,
-    fetchNhomVatTuOptions,
-    fetchDvcsOptions,
-    fetchVatTuOptions,
-  ]);
+  // Không load options khi mount — chỉ load khi user mở từng select (onOpenChange)
+  const hasUserRequestedReport = useRef(false);
+  const fetchDataRef = useRef(fetchData);
+  fetchDataRef.current = fetchData;
 
+  // Chỉ gọi API báo cáo khi đổi trang/size (sau khi đã bấm "Xem báo cáo") — không gọi khi chỉ đổi filter
   useEffect(() => {
-    if (userId) {
-      fetchData();
-    }
-  }, [fetchData, userId, currentPage, pageSize]);
+    if (!hasUserRequestedReport.current || !userId) return;
+    fetchDataRef.current();
+  }, [currentPage, pageSize, userId]);
 
   // Tính tổng cộng
   const totals = useMemo(() => {
@@ -619,7 +609,13 @@ const BaoCaoTonKho = () => {
   const handleClearFilters = useCallback(() => {
     setFilters(getDefaultFilters());
     setCurrentPage(1);
-  }, [setCurrentPage]);
+  }, []);
+
+  const handleXemBaoCao = useCallback(() => {
+    hasUserRequestedReport.current = true;
+    setCurrentPage(1);
+    fetchData();
+  }, [fetchData]);
 
   const handleDateChange = (date) => {
     if (date) {
@@ -806,7 +802,10 @@ const BaoCaoTonKho = () => {
               />
             </div>
             <div className="filter-item button-item">
-              <Button type="primary" onClick={handleClearFilters} loading={loading}>
+              <Button type="primary" onClick={handleXemBaoCao} loading={loading}>
+                Xem báo cáo
+              </Button>
+              <Button onClick={handleClearFilters}>
                 Xoá bộ lọc
               </Button>
             </div>

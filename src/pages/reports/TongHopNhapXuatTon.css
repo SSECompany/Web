@@ -61,8 +61,11 @@
 .filter-item.button-item {
   grid-column: span 3;
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 8px;
   justify-content: flex-end;
-  align-items: flex-end;
+  align-items: center;
 }
 
 .filter-item.button-item .ant-btn {

@@ -68,6 +68,16 @@ body {
   box-shadow: 0 4px 16px rgba(108, 99, 255, 0.1);
 }
 
+/* Nút bên phải header (Làm tươi) nhỏ gọn, thẳng hàng nhờ flex align-items: center ở CommonPhieuList */
+.phieu-header .navbar_fullscreen_btn {
+  height: 32px;
+  width: 32px;
+}
+.phieu-header .navbar_fullscreen_btn svg {
+  width: 18px;
+  height: 18px;
+}
+
 .phieu-title {
   margin: 0 !important;
   text-align: center;

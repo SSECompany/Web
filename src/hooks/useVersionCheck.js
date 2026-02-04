@@ -262,6 +262,8 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       clearTimeout(initialCheck);
     };
+    // checkForNewVersion/getCurrentVersion are stable (use refs); we only want interval when checkInterval changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkInterval]);
 
   useEffect(() => {
@@ -272,6 +274,7 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
     };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

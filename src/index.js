@@ -7,7 +7,7 @@ import router from "./router/routes";
 import store from "./store";
 
 //primereact
-import { ConfigProvider, message } from "antd";
+import { App as AntdApp, ConfigProvider, message } from "antd";
 import locale from "antd/locale/vi_VN";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
@@ -32,6 +32,14 @@ message.config({
   top: 24,
 });
 
+// Bắt unhandled promise rejection (tránh "Uncaught (in promise) undefined" từ extension/chunk bên ngoài)
+window.addEventListener("unhandledrejection", (event) => {
+  if (event.reason === undefined && event.promise) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+});
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <Provider store={store}>
@@ -42,11 +50,13 @@ root.render(
           ...themeComponents,
         }}
       >
-        <RouterProvider
-          router={router}
-          future={{ v7_startTransition: true }}
-          fallbackElement={<App />}
-        />
+        <AntdApp>
+          <RouterProvider
+            router={router}
+            future={{ v7_startTransition: true }}
+            fallbackElement={<App />}
+          />
+        </AntdApp>
       </ConfigProvider>
     </Suspense>
   </Provider>

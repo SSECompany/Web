@@ -209,6 +209,8 @@ export const usePhieuNhatHangData = () => {
         setLoadingMaKho(false);
       }
     },
+    // maKhoList intentionally omitted to avoid infinite loop (callback sets it)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [token]
   );
 
@@ -279,6 +281,8 @@ export const usePhieuNhatHangData = () => {
         setLoadingMaKhach(false);
       }
     },
+    // maKhachList intentionally omitted to avoid infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [token]
   );
 
@@ -360,6 +364,8 @@ export const usePhieuNhatHangData = () => {
         setLoadingFcode3(false);
       }
     },
+    // fcode3List intentionally omitted to avoid infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [token]
   );
 
@@ -492,7 +498,7 @@ export const usePhieuNhatHangData = () => {
         setLoadingVatTu(false);
       }
     },
-    [token, userInfo]
+    [userInfo]
   );
 
   const fetchVatTuDetail = useCallback(
@@ -531,7 +537,7 @@ export const usePhieuNhatHangData = () => {
         return null;
       }
     },
-    [token, userInfo]
+    [userInfo]
   );
 
   const fetchDonViTinh = useCallback(

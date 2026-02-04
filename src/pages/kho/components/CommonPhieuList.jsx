@@ -37,9 +37,11 @@ const CommonPhieuList = ({
           </Title>
         </Col>
         {(onAdd || extraButtons) && (
-          <Col>
+          <Col style={{ display: "flex", alignItems: "center" }}>
             {extraButtons ? (
-              extraButtons
+              <span style={{ display: "inline-flex", alignItems: "center" }}>
+                {extraButtons}
+              </span>
             ) : (
               <Button
                 type="primary"

@@ -21,6 +21,7 @@ import {
 import {
   Button,
   Card,
+  Checkbox,
   Modal,
   Input,
   Upload,
@@ -37,6 +38,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import "./ProcessPhieuGiaoHang.css";
+import { runWithConcurrencyLimit } from "../../../../utils/runWithConcurrencyLimit";
 import { 
   fetchPhieuGiaoHangData, 
   fetchPhieuGiaoHangDataByQR,
@@ -91,6 +93,7 @@ const ProcessPhieuGiaoHang = () => {
   const [loadingVehicle, setLoadingVehicle] = useState(false);
   const [confirmModalImages, setConfirmModalImages] = useState([]);
   const [confirmLoading, setConfirmLoading] = useState(false); // Chặn spam bấm nút xác nhận
+  const [confirmAdvanceMoney, setConfirmAdvanceMoney] = useState(false);
   
   const [transportInfo, setTransportInfo] = useState({
     ten_nha_xe: "",
@@ -150,8 +153,9 @@ const ProcessPhieuGiaoHang = () => {
         } else if (result.statusLog && result.statusLog.length > 0) {
           setStatusLog(result.statusLog);
         }
-        // Load ảnh từ imageUrls và fetch với Bearer token
-        if (result.imageUrls && result.imageUrls.length > 0) {
+        // Load ảnh từ imageUrls và fetch với Bearer token (ưu tiên result.imageUrls, fallback result.master.imageUrls)
+        const imageUrlsToLoad = (result.imageUrls && result.imageUrls.length > 0) ? result.imageUrls : (result.master?.imageUrls || []);
+        if (imageUrlsToLoad.length > 0) {
           const token = localStorage.getItem("access_token");
           
           // Helper function để fetch ảnh với Bearer token
@@ -179,7 +183,7 @@ const ProcessPhieuGiaoHang = () => {
           };
           
           // Fetch tất cả ảnh với token
-          const imagePromises = result.imageUrls.map(async (img, index) => {
+          const imagePromises = imageUrlsToLoad.map(async (img, index) => {
             const blobUrl = await fetchImageWithToken(img.url);
             return {
               uid: `existing-${index}-${Date.now()}`,
@@ -243,8 +247,7 @@ const ProcessPhieuGiaoHang = () => {
 
   useEffect(() => {
     fetchData();
-    
-    // Cleanup: revoke blob URLs khi component unmount
+    // Cleanup: revoke blob URLs khi component unmount (images in closure is intentional)
     return () => {
       Object.values(images).flat().forEach((file) => {
         if (file.url && file.url.startsWith("blob:")) {
@@ -252,6 +255,8 @@ const ProcessPhieuGiaoHang = () => {
         }
       });
     };
+    // images omitted: we only want fetchData on mount; cleanup uses latest images via ref/closure at unmount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchData]);
 
   // Status helpers - 7 trạng thái theo yêu cầu mới
@@ -322,11 +327,14 @@ const ProcessPhieuGiaoHang = () => {
 
   const handleAction = (action) => {
     setConfirmAction(action);
+    // Pre-fill từ phieuData khi mở modal (chi phí, ứng tiền, xe). Ghi chú trong modal là ghi chú log, không map từ phieuData.
+    const cost = Number(phieuData?.shippingCosts ?? phieuData?.chi_phi ?? 0);
+    const advance = phieuData?.advanceMoney === 1;
     setConfirmNote("");
-    setConfirmCost(0);
+    setConfirmCost(cost);
+    setConfirmAdvanceMoney(advance);
     setConfirmModalImages([]);
     setConfirmLoading(false); // Reset loading khi mở modal mới
-    // Đơn đã có nhà xe thì pre-fill ô chọn xe khi bàn giao ĐVVC
     const vehicle = action === "handover" && phieuData?.vehicleCode ? phieuData.vehicleCode.trim() : "";
     setConfirmVehicle(vehicle);
     setShowConfirmModal(true);
@@ -418,14 +426,11 @@ const ProcessPhieuGiaoHang = () => {
 
     // Cập nhật thông tin giao hàng: chỉ chuyển status 4 -> 5, không bắt buộc ảnh/xe/chi phí
     const isUpdateDeliveryInfo = confirmAction === "updateDeliveryInfo";
-    // Bàn giao ĐVVC: bắt buộc có ít nhất 1 ảnh MỚI trong modal mỗi lần xác nhận
     const isHandover = confirmAction === "handover" || (confirmAction === "save" && selectedStatus === "5");
-    if (isHandover && !isUpdateDeliveryInfo) {
-      // Luôn yêu cầu có ít nhất 1 ảnh mới trong modal (không tính ảnh cũ đã có)
-      if (confirmModalImages.length < 1) {
-        message.warning("Vui lòng chụp ảnh xác minh trước khi bàn giao ĐVVC");
-        return;
-      }
+    // Bàn giao ĐVVC: bắt buộc có ít nhất 1 ảnh trong modal, không có ảnh thì không được gửi
+    if (isHandover && !isUpdateDeliveryInfo && confirmModalImages.length < 1) {
+      message.warning("Vui lòng chụp ảnh đính kèm trước khi xác nhận Bàn giao ĐVVC");
+      return;
     }
 
     setConfirmLoading(true); // Bắt đầu loading, chặn spam
@@ -472,14 +477,28 @@ const ProcessPhieuGiaoHang = () => {
 
       // Cập nhật thông tin giao hàng: chỉ gửi newStatus 5, không gửi xe/chi phí (backend chỉ cho phép đổi xe/chi phí khi đã ở status 5)
       const sendVehicleCost = (confirmAction === "handover" || (confirmAction === "save" && newStatus === "5")) && confirmAction !== "updateDeliveryInfo";
+      // Chỉ truyền vào payload các trường có giá trị thay đổi so với hiện tại
+      const currentVehicle = (phieuData?.vehicleCode || "").trim();
+      const newVehicle = (confirmVehicle || "").trim();
+      const currentCost = Number(phieuData?.shippingCosts ?? phieuData?.chi_phi ?? 0);
+      const currentAdvance = phieuData?.advanceMoney === 1 ? 1 : 0;
+      const newAdvance = confirmAdvanceMoney ? 1 : 0;
+      const payloadExtra = {};
+      if (sendVehicleCost) {
+        if (newVehicle !== currentVehicle) payloadExtra.vehicleCode = newVehicle || undefined;
+        if (Number(confirmCost) !== currentCost) payloadExtra.cost = confirmCost;
+        if (newAdvance !== currentAdvance) payloadExtra.advanceMoney = newAdvance;
+      }
+      // Ghi chú trong modal là ghi chú log: gửi khi user nhập, không so sánh với phieuData.ghi_chu
+      const logNote = (confirmNote || "").trim();
+      if (logNote !== "") payloadExtra.note = logNote;
       // Gọi API update status TRƯỚC để đảm bảo có stt_rec
       const result = await updateDeliveryStatus({
         unitCode: unitCode,
         voucherId: phieuData.stt_rec,
         VoucherDate: phieuData.ngay_ct ? dayjs(phieuData.ngay_ct).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
         newStatus: newStatus,
-        note: confirmNote || "",
-        ...(sendVehicleCost ? { vehicleCode: confirmVehicle || undefined, cost: confirmCost } : {}),
+        ...payloadExtra,
       });
 
       if (result.success) {
@@ -709,7 +728,8 @@ const ProcessPhieuGiaoHang = () => {
       return { success: true };
     }
 
-    const uploadPromises = pendingImages.map(async (file) => {
+    const UPLOAD_CONCURRENCY = 3;
+    const tasks = pendingImages.map((file) => async () => {
       try {
         const result = await uploadDeliveryImage({
           file: file.originFileObj || file,
@@ -717,7 +737,6 @@ const ProcessPhieuGiaoHang = () => {
           isPublicAccess: false,
           slug: "",
         });
-
         if (result.success) {
           return {
             uid: file.uid,
@@ -725,13 +744,12 @@ const ProcessPhieuGiaoHang = () => {
             response: result.data,
             success: true,
           };
-        } else {
-          return {
-            uid: file.uid,
-            success: false,
-            error: result.message,
-          };
         }
+        return {
+          uid: file.uid,
+          success: false,
+          error: result.message,
+        };
       } catch (error) {
         console.error("Error uploading image:", error);
         return {
@@ -742,7 +760,7 @@ const ProcessPhieuGiaoHang = () => {
       }
     });
 
-    const results = await Promise.all(uploadPromises);
+    const results = await runWithConcurrencyLimit(tasks, UPLOAD_CONCURRENCY);
     const failedUploads = results.filter((r) => !r.success);
 
     // Update file list with uploaded URLs
@@ -922,6 +940,24 @@ const ProcessPhieuGiaoHang = () => {
             <span className="process-info-label">Giờ chạy</span>
             <span className="process-info-value">{transportInfo.gio_chay || "---"}</span>
           </div>
+          {(phieuData?.shippingCosts != null && phieuData?.shippingCosts > 0) || (phieuData?.chi_phi != null && phieuData?.chi_phi > 0) ? (
+            <div className="process-info-row">
+              <span className="process-info-label">Chi phí</span>
+              <span className="process-info-value">{Number(phieuData?.shippingCosts ?? phieuData?.chi_phi ?? 0).toLocaleString()}đ</span>
+            </div>
+          ) : null}
+          {phieuData?.advanceMoney != null ? (
+            <div className="process-info-row">
+              <span className="process-info-label">Ứng tiền</span>
+              <span className="process-info-value">{phieuData.advanceMoney === 1 ? "Có" : "Không"}</span>
+            </div>
+          ) : null}
+          {(phieuData?.ghi_chu || "").trim() ? (
+            <div className="process-info-row">
+              <span className="process-info-label">Ghi chú</span>
+              <span className="process-info-value">{phieuData.ghi_chu}</span>
+            </div>
+          ) : null}
         </div>
       </Card>
 
@@ -1004,21 +1040,23 @@ const ProcessPhieuGiaoHang = () => {
           <span className="process-card-title">Log trạng thái</span>
         </div>
         <div className="process-timeline-wrapper" ref={timelineWrapperRef}>
-          <Timeline className="process-timeline">
-            {statusLog.map((log, index) => (
-              <Timeline.Item 
-                key={index}
-                color={index === statusLog.length - 1 ? "blue" : "gray"}
-              >
+          <Timeline
+            className="process-timeline"
+            items={statusLog.map((log, index) => ({
+              key: index,
+              color: index === statusLog.length - 1 ? "blue" : "gray",
+              children: (
                 <div className="process-timeline-item">
                   <div className="process-timeline-header">
                     <span className="process-timeline-action">{log.action}</span>
                     <span className="process-timeline-time">
-                    {log.time ? dayjs(log.time).format("DD/MM/YYYY HH:mm") : log.time}
-                  </span>
+                      {log.time ? dayjs(log.time).format("DD/MM/YYYY HH:mm") : log.time}
+                    </span>
                   </div>
-                  <div className="process-timeline-user"><strong>Bởi:</strong> {log.user}</div>
-                  {log.note && (
+                  <div className="process-timeline-user">
+                    <strong>Bởi:</strong> {log.user}{log.employeeName ? ` - ${log.employeeName}` : ""}
+                  </div>
+                  {log.note != null && String(log.note).trim() !== "" && (
                     <div className="process-timeline-note"><strong>Ghi chú:</strong> {log.note}</div>
                   )}
                   {log.cost != null && log.cost > 0 && (
@@ -1034,10 +1072,15 @@ const ProcessPhieuGiaoHang = () => {
                       <strong>Chi phí:</strong> {Number(log.shippingCostsOld ?? 0).toLocaleString()}đ {" -> "} {Number(log.shippingCostsNew ?? 0).toLocaleString()}đ
                     </div>
                   )}
+                  {(log.advanceMoneyOld != null || log.advanceMoneyNew != null) && (
+                    <div className="process-timeline-detail">
+                      <strong>Ứng tiền:</strong> {log.advanceMoneyOld === 1 ? "Có" : "Không"} {" -> "} {log.advanceMoneyNew === 1 ? "Có" : "Không"}
+                    </div>
+                  )}
                 </div>
-              </Timeline.Item>
-            ))}
-          </Timeline>
+              ),
+            }))}
+          />
         </div>
       </Card>
 
@@ -1212,7 +1255,7 @@ const ProcessPhieuGiaoHang = () => {
           {(confirmAction === "handover" || (confirmAction === "save" && selectedStatus === "5")) && confirmAction !== "updateDeliveryInfo" && (
             <>
               <div className="process-confirm-field">
-                <label style={{ fontWeight: 600, marginBottom: "8px", display: "block" }}>Chọn xe:</label>
+                <label style={{ fontWeight: 700, marginBottom: "8px", display: "block" }}>Chọn xe:</label>
                 <Select
                   style={{ width: "100%" }}
                   placeholder="Nhập mã hoặc tên xe để tìm kiếm"
@@ -1229,7 +1272,7 @@ const ProcessPhieuGiaoHang = () => {
                 />
               </div>
               <div className="process-confirm-field">
-                <label style={{ fontWeight: 600, marginBottom: "8px", display: "block" }}>Nhập Chi phí:</label>
+                <label style={{ fontWeight: 700, marginBottom: "8px", display: "block" }}>Chi phí:</label>
               <InputNumber
                 style={{ width: "100%" }}
                 value={confirmCost}
@@ -1253,11 +1296,19 @@ const ProcessPhieuGiaoHang = () => {
                 }}
               />
             </div>
+              <div className="process-confirm-field process-confirm-advance-money">
+                <Checkbox
+                  checked={confirmAdvanceMoney}
+                  onChange={(e) => setConfirmAdvanceMoney(e.target.checked)}
+                >
+                  Ứng tiền :
+                </Checkbox>
+              </div>
             </>
           )}
 
           <div className="process-confirm-field">
-            <label style={{ fontWeight: 600, marginBottom: "8px", display: "block" }}>Nhập ghi chú:</label>
+            <label style={{ fontWeight: 700, marginBottom: "8px", display: "block" }}>Ghi chú:</label>
             <TextArea
               rows={3}
               value={confirmNote}
@@ -1265,7 +1316,7 @@ const ProcessPhieuGiaoHang = () => {
               placeholder="Nhập ghi chú (nếu có)"
             />
           </div>
-          
+
           {(confirmAction === "handover" || (confirmAction === "save" && selectedStatus === "5")) && confirmAction !== "updateDeliveryInfo" && (
             <div className="process-confirm-field">
               <div className="process-upload-section">
@@ -1326,13 +1377,15 @@ const ProcessPhieuGiaoHang = () => {
         width="80%"
         style={{ maxWidth: "900px" }}
         centered
-        bodyStyle={{ 
-          padding: "20px",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          maxHeight: "80vh",
-          overflow: "auto"
+        styles={{
+          body: {
+            padding: "20px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            maxHeight: "80vh",
+            overflow: "auto"
+          }
         }}
       >
         <Image

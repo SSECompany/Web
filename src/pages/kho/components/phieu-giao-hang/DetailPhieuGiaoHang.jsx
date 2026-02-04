@@ -20,6 +20,7 @@ import PhieuGiaoHangFormInputs from "./components/PhieuGiaoHangFormInputs";
 import VatTuGiaoHangTable from "./components/VatTuGiaoHangTable";
 import { usePhieuGiaoHangData } from "./hooks/usePhieuGiaoHangData";
 import { useVatTuManagerGiaoHang } from "./hooks/useVatTuManagerGiaoHang";
+import { runWithConcurrencyLimit } from "../../../../utils/runWithConcurrencyLimit";
 import {
   fetchPhieuGiaoHangDataByQR,
   fetchPhieuGiaoHangDataByView,
@@ -382,7 +383,8 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
       return { success: true };
     }
 
-    const uploadPromises = pendingImages.map(async (file) => {
+    const UPLOAD_CONCURRENCY = 3;
+    const tasks = pendingImages.map((file) => async () => {
       try {
         const result = await uploadDeliveryImage({
           file: file.originFileObj || file,
@@ -390,7 +392,6 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
           isPublicAccess: false,
           slug: "",
         });
-
         if (result.success) {
           return {
             uid: file.uid,
@@ -398,13 +399,12 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
             response: result.data,
             success: true,
           };
-        } else {
-          return {
-            uid: file.uid,
-            success: false,
-            error: result.message,
-          };
         }
+        return {
+          uid: file.uid,
+          success: false,
+          error: result.message,
+        };
       } catch (error) {
         console.error("Error uploading image:", error);
         return {
@@ -415,7 +415,7 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
       }
     });
 
-    const results = await Promise.all(uploadPromises);
+    const results = await runWithConcurrencyLimit(tasks, UPLOAD_CONCURRENCY);
     const failedUploads = results.filter((r) => !r.success);
 
     // Update file list with uploaded URLs
@@ -638,17 +638,21 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
 
   const renderLogTimeline = () => {
     return (
-      <Timeline>
-        {logStatus.map((log, index) => (
-          <Timeline.Item key={index} color={log.action === "that_bai" ? "red" : "green"}>
-            <p><strong>{getStatusActionText(log.action)}</strong></p>
-            <p>{log.note}</p>
-            <p style={{ fontSize: "12px", color: "#999" }}>
-              {dayjs(log.time).format("DD/MM/YYYY HH:mm:ss")} - {log.user}
-            </p>
-          </Timeline.Item>
-        ))}
-      </Timeline>
+      <Timeline
+        items={logStatus.map((log, index) => ({
+          key: index,
+          color: log.action === "that_bai" ? "red" : "green",
+          children: (
+            <>
+              <p><strong>{getStatusActionText(log.action)}</strong></p>
+              <p>{log.note}</p>
+              <p style={{ fontSize: "12px", color: "#999" }}>
+                {dayjs(log.time).format("DD/MM/YYYY HH:mm:ss")} - {log.user}
+              </p>
+            </>
+          ),
+        }))}
+      />
     );
   };
 
@@ -726,12 +730,12 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
             {logStatus.length === 0 ? (
               <div className="detail-giao-hang-log-empty">Chưa có lịch sử xử lý</div>
             ) : (
-              <Timeline className="detail-giao-hang-timeline">
-                {logStatus.map((log, index) => (
-                  <Timeline.Item 
-                    key={index}
-                    color={index === logStatus.length - 1 ? "blue" : "gray"}
-                  >
+              <Timeline
+                className="detail-giao-hang-timeline"
+                items={logStatus.map((log, index) => ({
+                  key: index,
+                  color: index === logStatus.length - 1 ? "blue" : "gray",
+                  children: (
                     <div className="detail-giao-hang-timeline-item">
                       <div className="detail-giao-hang-timeline-header">
                         <span className="detail-giao-hang-timeline-action">{log.action || log.statusName || ""}</span>
@@ -740,15 +744,17 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
                         </span>
                       </div>
                       {log.user && (
-                        <div className="detail-giao-hang-timeline-user">Bởi: {log.user}</div>
+                        <div className="detail-giao-hang-timeline-user">
+                          Bởi: {log.user}{log.employeeName ? ` - ${log.employeeName}` : ""}
+                        </div>
                       )}
                       {log.note && (
                         <div className="detail-giao-hang-timeline-note">Ghi chú: {log.note}</div>
                       )}
                     </div>
-                  </Timeline.Item>
-                ))}
-              </Timeline>
+                  ),
+                }))}
+              />
             )}
           </div>
         </div>
@@ -835,13 +841,15 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
         width="80%"
         style={{ maxWidth: "900px" }}
         centered
-        bodyStyle={{ 
-          padding: "20px",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          maxHeight: "80vh",
-          overflow: "auto"
+        styles={{
+          body: {
+            padding: "20px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            maxHeight: "80vh",
+            overflow: "auto"
+          }
         }}
       >
         <Image

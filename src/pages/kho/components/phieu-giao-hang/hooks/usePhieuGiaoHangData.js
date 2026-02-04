@@ -79,7 +79,7 @@ export const usePhieuGiaoHangData = () => {
       message.error("Không thể tải danh sách mã giao dịch");
     }
     */
-  }, [token]);
+  }, []);
 
   const fetchMaKhoList = useCallback(
     async (keyword = "", forceRefresh = false) => {
@@ -148,7 +148,7 @@ export const usePhieuGiaoHangData = () => {
       }
       */
     },
-    [token] // Xóa maKhoList khỏi dependency để tránh vòng lặp vô hạn
+    []
   );
 
   const fetchMaKhachList = useCallback(
@@ -203,7 +203,7 @@ export const usePhieuGiaoHangData = () => {
       }
       */
     },
-    [token]
+    []
   );
 
   const fetchVatTuList = useCallback(

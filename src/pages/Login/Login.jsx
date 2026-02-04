@@ -5,6 +5,7 @@ import {
 } from "@ant-design/icons";
 import { UilExclamationOctagon } from "@iconscout/react-unicons";
 import {
+  App,
   Button,
   Carousel,
   Checkbox,
@@ -12,7 +13,6 @@ import {
   Input,
   Select,
   Space,
-  notification,
 } from "antd";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -27,6 +27,7 @@ import jwt from "../../utils/jwt";
 import "./Login.css";
 
 const Login = () => {
+  const { notification } = App.useApp();
   // Check version ngay từ màn login để tránh đăng nhập xong bị logout do lệch version
   useVersionCheck();
   const [loginLoading, setLoginLoading] = useState(false);
@@ -80,6 +81,13 @@ const Login = () => {
             message: `Đăng nhập thành công`,
           });
         }
+      })
+      .catch((err) => {
+        setLoginLoading(false);
+        notification.error({
+          message: err?.message || "Đăng nhập thất bại",
+          placement: "topLeft",
+        });
       });
   };
 
@@ -99,24 +107,27 @@ const Login = () => {
     await apiGetStoreByUser({
       unitId: unitSelected?.value.trim() || "",
       userName: userName,
-    }).then((res) => {
-      setLoginLoading(false);
-      setStoreOptions([
-        ...res.map((item) => {
-          return {
-            value: item.ma_bp,
-            label: item.ten_bp,
-          };
-        }),
-      ]);
-    });
+    })
+      .then((res) => {
+        setLoginLoading(false);
+        setStoreOptions([
+          ...res.map((item) => {
+            return {
+              value: item.ma_bp,
+              label: item.ten_bp,
+            };
+          }),
+        ]);
+      })
+      .catch(() => setLoginLoading(false));
   };
 
   useEffect(() => {
     if (unitSelected?.value) {
       fetchStoreData();
     }
-  }, [unitSelected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unitSelected?.value]);
 
   useEffect(() => {
     setUnits([{ value: "", label: "Không" }]);
@@ -142,7 +153,8 @@ const Login = () => {
             setUnitSelected({ value: "", label: "Không" });
           }
           setLoginLoading(false);
-        });
+        })
+        .catch(() => setLoginLoading(false));
     };
 
     if (userName) {
@@ -151,7 +163,7 @@ const Login = () => {
       setUnits([{ value: "", label: "Không" }]);
       setUnitSelected({ value: "", label: "Không" });
     }
-  }, [JSON.stringify(userName)]);
+  }, [userName]);
 
   useEffect(() => {
     if (jwt.checkExistToken()) {
@@ -256,10 +268,7 @@ const Login = () => {
                 value={unitSelected}
                 options={units}
                 popupMatchSelectWidth={false}
-                popupStyle={{
-                  minWidth: "200px",
-                  maxWidth: "500px",
-                }}
+                classNames={{ popup: { root: 'login_unit_select_dropdown' } }}
                 onSelect={handleChangeUnit}
                 optionLabelProp="label"
                 maxTagCount="responsive"

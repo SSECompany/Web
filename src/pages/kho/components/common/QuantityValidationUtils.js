@@ -176,8 +176,10 @@ export const validateQuantityForPhieu = (
   return { hasDifference: false };
 };
 
-export default {
+const QuantityValidationUtils = {
   validateQuantityDifference,
   validateQuantityForPhieu,
   STATUS_CONFIG,
 };
+
+export default QuantityValidationUtils;

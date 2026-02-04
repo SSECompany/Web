@@ -369,7 +369,7 @@ const TongHopNhapXuatTon = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters, unitId, userId, currentPage, pageSize]);
+  }, [filters, userId, currentPage, pageSize]);
 
   const columns = useMemo(
     () => [
@@ -648,29 +648,24 @@ const TongHopNhapXuatTon = () => {
   const handleClearFilters = useCallback(() => {
     setFilters(getDefaultFilters());
     setCurrentPage(1);
-  }, [setCurrentPage]);
+  }, []);
 
-  // Load danh sách filter ban đầu
-  useEffect(() => {
-    fetchKhoOptions();
-    fetchNhomVatTuOptions(1);
-    fetchNhomVatTuOptions(2);
-    fetchNhomVatTuOptions(3);
-    fetchLoaiVatTuOptions();
-    fetchDvcsOptions();
-  }, [
-    fetchKhoOptions,
-    fetchNhomVatTuOptions,
-    fetchLoaiVatTuOptions,
-    fetchDvcsOptions,
-  ]);
+  // Không load options khi mount — chỉ load khi user mở từng select (onOpenChange)
+  const hasUserRequestedReport = useRef(false);
+  const fetchDataRef = useRef(fetchData);
+  fetchDataRef.current = fetchData;
 
-  // Tự động gọi API khi vào trang hoặc khi pagination thay đổi
+  // Chỉ gọi API báo cáo khi đổi trang/size (sau khi đã bấm "Xem báo cáo") — không gọi khi chỉ đổi filter
   useEffect(() => {
-    if (userId) {
-      fetchData();
-    }
-  }, [fetchData, userId, currentPage, pageSize]);
+    if (!hasUserRequestedReport.current || !userId) return;
+    fetchDataRef.current();
+  }, [currentPage, pageSize, userId]);
+
+  const handleXemBaoCao = useCallback(() => {
+    hasUserRequestedReport.current = true;
+    setCurrentPage(1);
+    fetchData();
+  }, [fetchData]);
 
   return (
     <div className="tong-hop-nhap-xuat-container">
@@ -684,23 +679,28 @@ const TongHopNhapXuatTon = () => {
         <div className="bao-cao-filters">
           <div className="filters-grid">
             <div className="filter-item">
-              <label>Từ ngày:</label>
-              <DatePicker
-                value={dayjs(filters.DateFrom)}
-                onChange={(value) =>
-                  handleFilterChange("DateFrom", formatDate(value))
-                }
+              <label>Khoảng ngày:</label>
+              <DatePicker.RangePicker
+                value={[dayjs(filters.DateFrom), dayjs(filters.DateTo)]}
+                onChange={(dates) => {
+                  if (dates && dates[0] && dates[1]) {
+                    setFilters((prev) => ({
+                      ...prev,
+                      DateFrom: formatDate(dates[0].startOf("day")),
+                      DateTo: formatDate(dates[1].endOf("day")),
+                    }));
+                    setCurrentPage(1);
+                  } else {
+                    setFilters((prev) => ({
+                      ...prev,
+                      DateFrom: dayjs().startOf("day").format("YYYY-MM-DD HH:mm:ss.SSS"),
+                      DateTo: dayjs().endOf("day").format("YYYY-MM-DD HH:mm:ss.SSS"),
+                    }));
+                    setCurrentPage(1);
+                  }
+                }}
                 format="DD/MM/YYYY"
-              />
-            </div>
-            <div className="filter-item">
-              <label>Đến ngày:</label>
-              <DatePicker
-                value={dayjs(filters.DateTo)}
-                onChange={(value) =>
-                  handleFilterChange("DateTo", formatDate(value))
-                }
-                format="DD/MM/YYYY"
+                style={{ width: "100%" }}
               />
             </div>
             <div className="filter-item">
@@ -887,9 +887,10 @@ const TongHopNhapXuatTon = () => {
               />
             </div>
             <div className="filter-item button-item">
-              <Button type="primary" onClick={handleClearFilters} loading={loading}>
-                Xoá bộ lọc
+              <Button type="primary" onClick={handleXemBaoCao} loading={loading}>
+                Xem báo cáo
               </Button>
+              <Button onClick={handleClearFilters}>Xoá bộ lọc</Button>
             </div>
           </div>
         </div>

@@ -249,6 +249,8 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
     };
 
     fetchPhieuDetail();
+    // form/setDataSource are stable; omit to avoid unnecessary re-fetches
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sctRec, apiCalled, token, id, phieuDetailLoaded]);
 
   // Wrapper function to match VatTuSelectFullPOS expected signature (same as POS)
@@ -264,7 +266,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
     if (isEditMode) {
       fetchVatTuListPaging("", 1, false);
     }
-  }, [isEditMode]);
+  }, [isEditMode, fetchVatTuListPaging]);
 
   // === API: fetch lists for Mã lô / Vị trí (edit page) ===
   const fetchLoList = async (keyword = "", record = {}, page = 1) => {

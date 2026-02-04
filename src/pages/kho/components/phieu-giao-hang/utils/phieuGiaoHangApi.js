@@ -2,6 +2,7 @@ import { message } from "antd";
 import https from "../../../../../utils/https";
 import axiosInstance from "../../../../../utils/axiosInstance";
 import { APP_CONFIG } from "../../../../../utils/constants";
+import { compressImage } from "../../../../../utils/imageCompression";
 
 // API để lấy danh sách phiếu giao hàng - Sử dụng API mới /api/Delivery
 export const fetchPhieuGiaoHangList = async (params) => {
@@ -137,6 +138,8 @@ const mapDeliveryDataToMaster = (apiData) => {
     dispatcherCode: apiData.dispatcherCode || "",
     deliveryStaffCode: apiData.deliveryStaffCode || "",
     routeName: apiData.routeName || "",
+    shippingCosts: apiData.shippingCosts != null ? Number(apiData.shippingCosts) : null,
+    advanceMoney: apiData.advanceMoney != null ? Number(apiData.advanceMoney) : null,
     imageUrls: imageUrls, // Thêm imageUrls vào master data
   };
 };
@@ -147,12 +150,15 @@ const mapHistoryToLog = (history) => {
     time: log.createdDate || "",
     action: log.statusName || "",
     user: log.userId || "",
+    employeeName: log.employeeName ?? null,
     note: log.note || "",
     actionType: log.actionType || "",
     vehicleCodeOld: log.vehicleCodeOld ?? null,
     vehicleCodeNew: log.vehicleCodeNew ?? null,
     shippingCostsOld: log.shippingCostsOld ?? null,
     shippingCostsNew: log.shippingCostsNew ?? null,
+    advanceMoneyOld: log.advanceMoneyOld ?? null,
+    advanceMoneyNew: log.advanceMoneyNew ?? null,
   }));
 };
 
@@ -311,17 +317,17 @@ export const updateDeliveryStatus = async (payload) => {
       voucherId: payload.voucherId,
       VoucherDate: payload.VoucherDate,
       newStatus: payload.newStatus ?? "",  // "" khi sửa TT vận chuyển để không đổi status
-      note: payload.note || "",
     };
+    // Chỉ thêm các trường khi payload có giá trị (trường thay đổi hoặc nhập vào)
+    if (payload.note !== undefined && payload.note !== null) body.note = payload.note;
     if (payload.VehicleCodeNew != null && payload.VehicleCodeNew !== "") {
       body.VehicleCodeNew = payload.VehicleCodeNew;
     }
-    if (payload.ShippingCostsNew != null && payload.ShippingCostsNew > 0) {
-      body.ShippingCostsNew = payload.ShippingCostsNew;
-    }
+    if (payload.ShippingCostsNew != null) body.ShippingCostsNew = payload.ShippingCostsNew;
     // Fallback cho flow confirm Bàn giao ĐVVC
-    if (!body.VehicleCodeNew && payload.vehicleCode) body.VehicleCodeNew = payload.vehicleCode;
-    if (!body.ShippingCostsNew && payload.cost != null && payload.cost > 0) body.ShippingCostsNew = payload.cost;
+    if (!body.VehicleCodeNew && payload.vehicleCode != null && payload.vehicleCode !== "") body.VehicleCodeNew = payload.vehicleCode;
+    if (body.ShippingCostsNew == null && payload.cost != null) body.ShippingCostsNew = payload.cost;
+    if (payload.advanceMoney !== undefined && payload.advanceMoney !== null) body.advanceMoney = payload.advanceMoney;
 
     const response = await https.post(
       "Delivery/update-status",
@@ -377,9 +383,22 @@ export const uploadDeliveryImage = async ({
   }
 
   try {
+    let fileToUpload = file;
+    if (file?.type?.startsWith?.("image/")) {
+      try {
+        fileToUpload = await compressImage(file, {
+          maxWidth: 1920,
+          maxHeight: 1920,
+          quality: 0.8,
+          maxSizeMB: 1,
+        });
+      } catch (compressErr) {
+        console.warn("Compress image failed, upload original:", compressErr);
+      }
+    }
     const token = localStorage.getItem("access_token");
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", fileToUpload);
     formData.append("controllerFields", "delivery");
     formData.append("keyFields", stt_rec);
     formData.append("isPublicAccess", String(isPublicAccess));

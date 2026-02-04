@@ -55,6 +55,8 @@ const VatTuSelectFullPOS = ({
         clearTimeout(focusTimeoutRef.current);
       }
     };
+    // searchTimeoutRef is a ref (stable)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchVatTuList]);
 
   // Auto focus khi chuyển sang chế độ barcode
@@ -73,6 +75,8 @@ const VatTuSelectFullPOS = ({
         clearTimeout(focusTimeoutRef.current);
       }
     };
+    // vatTuSelectRef is a ref (stable)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [barcodeEnabled]);
 
   const handleSearch = (value, immediate = false) => {
@@ -305,6 +309,8 @@ const VatTuSelectFullPOS = ({
         return () => clearTimeout(timer);
       }
     }
+  // processBarcode is stable; omit to avoid unnecessary effect re-runs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vatTuInput, barcodeEnabled]);
 
   // Xử lý scroll phân trang

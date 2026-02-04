@@ -68,7 +68,6 @@ const BaoCaoPhieuBanLe = () => {
   const [nhanVienOptions, setNhanVienOptions] = useState([]);
   const [khachHangOptions, setKhachHangOptions] = useState([]);
   const [vatTuOptions, setVatTuOptions] = useState([]);
-  const [nhanVienLoaded, setNhanVienLoaded] = useState(false);
 
   // Loading states for selectboxes
   const [loadingKho, setLoadingKho] = useState(false);
@@ -571,34 +570,16 @@ const BaoCaoPhieuBanLe = () => {
     [renderCellContent]
   );
 
-  // Load options on mount
-  useEffect(() => {
-    const loadInitialOptions = async () => {
-      try {
-        await Promise.all([
-          fetchKhoOptions(),
-          fetchNhomVatTuOptions(1),
-          fetchNhomVatTuOptions(2),
-          fetchNhomVatTuOptions(3),
-          fetchDvcsOptions(),
-          fetchNhanVienOptions(),
-          fetchKhachHangOptions(),
-          fetchVatTuOptions(),
-        ]);
-        setNhanVienLoaded(true);
-      } catch (err) {
-        console.error("❌ Lỗi khi tải options ban đầu:", err);
-      }
-    };
+  // Không load options khi mount — chỉ load khi user mở từng select (onOpenChange)
+  const hasUserRequestedReport = useRef(false);
+  const fetchDataRef = useRef(fetchData);
+  fetchDataRef.current = fetchData;
 
-    loadInitialOptions();
-  }, []);
-
+  // Chỉ gọi API báo cáo khi đổi trang/size (sau khi đã bấm "Xem báo cáo") — không gọi khi chỉ đổi filter
   useEffect(() => {
-    if (userId) {
-      fetchData();
-    }
-  }, [fetchData, userId, currentPage, pageSize]);
+    if (!hasUserRequestedReport.current || !userId) return;
+    fetchDataRef.current();
+  }, [currentPage, pageSize, userId]);
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({
@@ -611,15 +592,29 @@ const BaoCaoPhieuBanLe = () => {
   const handleClearFilters = useCallback(() => {
     setFilters(getDefaultFilters());
     setCurrentPage(1);
-  }, [setCurrentPage]);
+  }, []);
 
-  const handleDateChange = (key, date) => {
-    if (date) {
-      handleFilterChange(key, formatDate(date));
+  const handleXemBaoCao = useCallback(() => {
+    hasUserRequestedReport.current = true;
+    setCurrentPage(1);
+    fetchData();
+  }, [fetchData]);
+
+  const handleDateRangeChange = (dates) => {
+    if (dates && dates[0] && dates[1]) {
+      setFilters((prev) => ({
+        ...prev,
+        DateFrom: formatDate(dates[0].startOf("day")),
+        DateTo: formatDate(dates[1].endOf("day")),
+      }));
+      setCurrentPage(1);
     } else {
-      const defaultDate =
-        key === "DateFrom" ? dayjs().startOf("day") : dayjs().endOf("day");
-      handleFilterChange(key, formatDate(defaultDate));
+      setFilters((prev) => ({
+        ...prev,
+        DateFrom: dayjs().startOf("day").format("YYYY-MM-DD HH:mm:ss.SSS"),
+        DateTo: dayjs().endOf("day").format("YYYY-MM-DD HH:mm:ss.SSS"),
+      }));
+      setCurrentPage(1);
     }
   };
 
@@ -635,19 +630,12 @@ const BaoCaoPhieuBanLe = () => {
         <div className="bao-cao-filters">
           <div className="filters-grid">
             <div className="filter-item">
-              <label>Từ ngày:</label>
-              <DatePicker
-                value={dayjs(filters.DateFrom)}
-                onChange={(value) => handleDateChange("DateFrom", value)}
+              <label>Khoảng ngày:</label>
+              <DatePicker.RangePicker
+                value={[dayjs(filters.DateFrom), dayjs(filters.DateTo)]}
+                onChange={handleDateRangeChange}
                 format="DD/MM/YYYY"
-              />
-            </div>
-            <div className="filter-item">
-              <label>Đến ngày:</label>
-              <DatePicker
-                value={dayjs(filters.DateTo)}
-                onChange={(value) => handleDateChange("DateTo", value)}
-                format="DD/MM/YYYY"
+                style={{ width: "100%" }}
               />
             </div>
             <div className="filter-item">
@@ -690,10 +678,7 @@ const BaoCaoPhieuBanLe = () => {
                   }, 300);
                 }}
                 onOpenChange={(open) => {
-                  if (open && !nhanVienLoaded) {
-                    fetchNhanVienOptions();
-                    setNhanVienLoaded(true);
-                  }
+                  if (open) fetchNhanVienOptions();
                 }}
                 options={nhanVienOptions}
                 notFoundContent={
@@ -895,9 +880,10 @@ const BaoCaoPhieuBanLe = () => {
               />
             </div> */}
             <div className="filter-item button-item">
-              <Button type="primary" onClick={handleClearFilters} loading={loading}>
-                Xoá bộ lọc
+              <Button type="primary" onClick={handleXemBaoCao} loading={loading}>
+                Xem báo cáo
               </Button>
+              <Button onClick={handleClearFilters}>Xoá bộ lọc</Button>
             </div>
           </div>
         </div>

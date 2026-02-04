@@ -151,7 +151,7 @@ const VatTuTable = ({
         setLoadingLo((prev) => ({ ...prev, [record.key]: false }));
       }
     },
-    [apiHandlers.fetchLoList, onDataSourceUpdate]
+    [apiHandlers, onDataSourceUpdate]
   );
 
   // Prefetch danh sách vị trí cho một dòng cụ thể, quản lý state riêng như POS số lô
@@ -193,7 +193,7 @@ const VatTuTable = ({
         setLoadingViTri((prev) => ({ ...prev, [record.key]: false }));
       }
     },
-    [apiHandlers.fetchViTriList, onDataSourceUpdate]
+    [apiHandlers, onDataSourceUpdate]
   );
 
   // Xử lý thay đổi số lượng với validation
@@ -260,7 +260,7 @@ const VatTuTable = ({
         />
       );
     },
-    [isEditMode, handleQuantityChange]
+    [isEditMode, handleQuantityChange, columnConfig]
   );
 
   // Render select đơn vị tính
@@ -1057,17 +1057,19 @@ const VatTuTable = ({
     return baseColumns;
   }, [
     columnConfig,
-    renderDvtSelect,
     renderQuantityInput,
     renderMaKhoSelect,
     onDeleteItem,
     isEditMode,
     otherProps,
-    dataSource, // Thêm dataSource để STT được tính lại khi có thay đổi
+    dataSource,
     viTriOptions,
-    onQuantityChange, // Thêm để re-render khi handler thay đổi
+    onQuantityChange,
     loadingLo,
     loadingViTri,
+    loadLoOptions,
+    onSelectChange,
+    openLo,
   ]);
 
   // Cấu hình scroll

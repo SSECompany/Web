@@ -15,7 +15,7 @@ import {
   FileTextOutlined,
   FilterOutlined,
 } from "@ant-design/icons";
-import { Input, Spin, message, Tag, Badge, Pagination, Drawer, DatePicker, Button } from "antd";
+import { Input, Spin, message, Tag, Badge, Pagination, Drawer, DatePicker, Button, Select } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
@@ -23,6 +23,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import QRScanner from "../../../../components/common/QRScanner/QRScanner";
 import "./PhieuGiaoHang.css";
 import { fetchPhieuGiaoHangList, fetchPhieuGiaoHangDataByQR } from "./utils/phieuGiaoHangApi";
+
+const STATUS_KEYS = ["3", "4", "5", "6", "7"];
 
 const ListPhieuGiaoHang = () => {
   const navigate = useNavigate();
@@ -43,26 +45,27 @@ const ListPhieuGiaoHang = () => {
   // Bộ lọc theo API DeliveryFilter
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
-  const [filterVoucherNo, setFilterVoucherNo] = useState("");
   const [filterOrderNumber, setFilterOrderNumber] = useState("");
   const [filterCustomerCode, setFilterCustomerCode] = useState("");
   const [filterVehicleCode, setFilterVehicleCode] = useState("");
+  // Trạng thái trong bộ lọc: "" = Tất cả (không gửi Status), "3","4",... = lọc đúng trạng thái đó
+  const [filterStatus, setFilterStatus] = useState("");
+  // Đã áp dụng bộ lọc trạng thái từ drawer (null = dùng tab, "" = all, "3"=... = lọc theo status)
+  const [appliedFilterStatus, setAppliedFilterStatus] = useState(null);
 
   const pageSize = 20;
-  const STATUS_KEYS = ["3", "4", "5", "6", "7"];
 
-  // Build object lọc gửi API (FromDate, ToDate, VoucherNo, OrderNumber, CustomerCode, VehicleCode, Keyword)
+  // Build object lọc gửi API (FromDate, ToDate, OrderNumber, CustomerCode, VehicleCode, Keyword)
   const buildApiFilter = useCallback(() => {
     const filter = {};
     if (fromDate && dayjs.isDayjs(fromDate)) filter.FromDate = fromDate.format("YYYY-MM-DD");
     if (toDate && dayjs.isDayjs(toDate)) filter.ToDate = toDate.format("YYYY-MM-DD");
-    if (filterVoucherNo?.trim()) filter.VoucherNo = filterVoucherNo.trim();
     if (filterOrderNumber?.trim()) filter.OrderNumber = filterOrderNumber.trim();
     if (filterCustomerCode?.trim()) filter.CustomerCode = filterCustomerCode.trim();
     if (filterVehicleCode?.trim()) filter.VehicleCode = filterVehicleCode.trim();
     if (debouncedSearchText?.trim()) filter.Keyword = debouncedSearchText.trim();
     return filter;
-  }, [fromDate, toDate, filterVoucherNo, filterOrderNumber, filterCustomerCode, filterVehicleCode, debouncedSearchText]);
+  }, [fromDate, toDate, filterOrderNumber, filterCustomerCode, filterVehicleCode, debouncedSearchText]);
 
   const toggleCardExpand = (key) => {
     setExpandedCards((prev) => {
@@ -75,6 +78,7 @@ const ListPhieuGiaoHang = () => {
   const hasInitialLoad = useRef(false);
   const userInfoRef = useRef(userInfo);
   const prevDebouncedSearchRef = useRef(null);
+  const tabRefs = useRef({});
 
   useEffect(() => {
     userInfoRef.current = userInfo;
@@ -237,11 +241,35 @@ const ListPhieuGiaoHang = () => {
     failed: "7",
   }), []);
 
-  // Có keyword thì không gửi Status (tìm trên mọi trạng thái)
-  const effectiveStatus = useMemo(
-    () => (debouncedSearchText?.trim() ? "" : (statusMap[activeFilter] || "")),
-    [debouncedSearchText, activeFilter, statusMap]
-  );
+  // Map API Status -> tab key (để đồng bộ tab khi áp dụng bộ lọc trạng thái)
+  const statusToTabKey = useMemo(() => ({
+    "3": "exported",
+    "4": "received",
+    "5": "handover",
+    "6": "completed",
+    "7": "failed",
+  }), []);
+
+  // Ưu tiên trạng thái từ bộ lọc (drawer): null = dùng tab, "" = lọc tất cả (không gửi Status), "3"=... = lọc theo status
+  const effectiveStatus = useMemo(() => {
+    if (appliedFilterStatus !== null) return appliedFilterStatus;
+    return debouncedSearchText?.trim() ? "" : (statusMap[activeFilter] || "");
+  }, [appliedFilterStatus, debouncedSearchText, activeFilter, statusMap]);
+
+  // Luôn focus tab theo trạng thái đang áp dụng: appliedFilterStatus thay đổi → activeFilter đồng bộ
+  useEffect(() => {
+    if (appliedFilterStatus === null) return;
+    const tabKey = appliedFilterStatus && statusToTabKey[appliedFilterStatus] ? statusToTabKey[appliedFilterStatus] : "exported";
+    setActiveFilter(tabKey);
+  }, [appliedFilterStatus, statusToTabKey]);
+
+  // Scroll tab đang chọn vào vùng nhìn thấy (focus) khi activeFilter thay đổi (vd. chọn "Hoàn thành" từ bộ lọc)
+  useEffect(() => {
+    const el = tabRefs.current[activeFilter];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+  }, [activeFilter]);
 
   // Làm tươi mềm: bấm logo TAPMED → gọi lại API lấy data mới nhất (không reload trang)
   useEffect(() => {
@@ -257,31 +285,44 @@ const ListPhieuGiaoHang = () => {
 
   const handleFilterChange = (filter) => {
     setActiveFilter(filter);
+    setAppliedFilterStatus(null); // Chuyển sang chế độ tab, bỏ trạng thái từ bộ lọc
     const statusParam = debouncedSearchText?.trim() ? "" : (statusMap[filter] || "");
     fetchPhieuGiaoHang(1, statusParam);
   };
 
   const handleApplyFilter = () => {
+    setAppliedFilterStatus(filterStatus);
+    // Luôn focus tab theo trạng thái: trạng thái cụ thể → tab tương ứng, "Tất cả" → tab Xuất hàng
+    setActiveFilter(filterStatus && statusToTabKey[filterStatus] ? statusToTabKey[filterStatus] : "exported");
     setShowFilterDrawer(false);
-    fetchPhieuGiaoHang(1, effectiveStatus);
-    fetchCountsByStatus();
+    // Chỉ gọi 1 lần API với status ("" = tất cả) + điều kiện lọc, không gọi fetchCountsByStatus (tránh N call theo từng status)
+    fetchPhieuGiaoHang(1, filterStatus);
     message.success("Đã áp dụng bộ lọc");
   };
 
   const handleClearFilter = () => {
     setFromDate(null);
     setToDate(null);
-    setFilterVoucherNo("");
     setFilterOrderNumber("");
     setFilterCustomerCode("");
     setFilterVehicleCode("");
+    setFilterStatus("");
+    setAppliedFilterStatus(null);
     setShowFilterDrawer(false);
-    fetchPhieuGiaoHang(1, effectiveStatus);
-    fetchCountsByStatus();
+    const nextStatus = debouncedSearchText?.trim() ? "" : (statusMap[activeFilter] || "");
+    // Chỉ gọi 1 lần API, không gọi fetchCountsByStatus
+    fetchPhieuGiaoHang(1, nextStatus);
     message.info("Đã xóa bộ lọc");
   };
 
-  const hasActiveFilter = fromDate || toDate || filterVoucherNo?.trim() || filterOrderNumber?.trim() || filterCustomerCode?.trim() || filterVehicleCode?.trim();
+  const hasActiveFilter = fromDate || toDate || filterOrderNumber?.trim() || filterCustomerCode?.trim() || filterVehicleCode?.trim() || appliedFilterStatus !== null;
+
+  // Khi mở drawer, đồng bộ trạng thái trong form với bộ lọc đang áp dụng
+  useEffect(() => {
+    if (showFilterDrawer) {
+      setFilterStatus(appliedFilterStatus !== null ? appliedFilterStatus : "");
+    }
+  }, [showFilterDrawer]);
 
   // Danh sách hiển thị = kết quả từ API (đã filter theo Keyword + Status + bộ lọc)
   const filteredData = useMemo(() => allData, [allData]);
@@ -450,6 +491,25 @@ const ListPhieuGiaoHang = () => {
       >
         <div className="giao-hang-filter-form">
           <div className="giao-hang-filter-item">
+            <label>Trạng thái</label>
+            <Select
+              className="giao-hang-filter-status"
+              placeholder="Tất cả"
+              allowClear
+              value={filterStatus || undefined}
+              onChange={(v) => setFilterStatus(v ?? "")}
+              options={[
+                { value: "", label: "Tất cả" },
+                { value: "3", label: "Xuất hàng" },
+                { value: "4", label: "Đã tiếp nhận" },
+                { value: "5", label: "Bàn giao ĐVVC" },
+                { value: "6", label: "Hoàn thành" },
+                { value: "7", label: "Thất bại" },
+              ]}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div className="giao-hang-filter-item">
             <label>Từ ngày</label>
             <DatePicker
               className="giao-hang-filter-date"
@@ -469,15 +529,6 @@ const ListPhieuGiaoHang = () => {
               format="DD/MM/YYYY"
               allowClear
               placeholder="Chọn đến ngày"
-            />
-          </div>
-          <div className="giao-hang-filter-item">
-            <label>Số chứng từ</label>
-            <Input
-              placeholder="Số chứng từ"
-              value={filterVoucherNo}
-              onChange={(e) => setFilterVoucherNo(e.target.value)}
-              allowClear
             />
           </div>
           <div className="giao-hang-filter-item">
@@ -513,30 +564,35 @@ const ListPhieuGiaoHang = () => {
       {/* Filter tabs - 5 trạng thái (bỏ Tất cả, Lập chứng từ và Lưu kho, bắt đầu từ Xuất hàng) */}
       <div className="giao-hang-filter-tabs">
         <button 
+          ref={(el) => { tabRefs.current.exported = el; }}
           className={`giao-hang-filter-tab ${activeFilter === "exported" ? "active" : ""}`}
           onClick={() => handleFilterChange("exported")}
         >
           Xuất hàng ({stats.exported})
         </button>
         <button 
+          ref={(el) => { tabRefs.current.received = el; }}
           className={`giao-hang-filter-tab ${activeFilter === "received" ? "active" : ""}`}
           onClick={() => handleFilterChange("received")}
         >
           Đã tiếp nhận ({stats.received})
         </button>
         <button 
+          ref={(el) => { tabRefs.current.handover = el; }}
           className={`giao-hang-filter-tab ${activeFilter === "handover" ? "active" : ""}`}
           onClick={() => handleFilterChange("handover")}
         >
           Bàn giao ĐVVC ({stats.handover})
         </button>
         <button 
+          ref={(el) => { tabRefs.current.completed = el; }}
           className={`giao-hang-filter-tab ${activeFilter === "completed" ? "active" : ""}`}
           onClick={() => handleFilterChange("completed")}
         >
           Hoàn thành ({stats.completed})
         </button>
         <button 
+          ref={(el) => { tabRefs.current.failed = el; }}
           className={`giao-hang-filter-tab ${activeFilter === "failed" ? "active" : ""}`}
           onClick={() => handleFilterChange("failed")}
         >
@@ -571,7 +627,7 @@ const ListPhieuGiaoHang = () => {
               >
                 <div className="giao-hang-card-header-left">
                   <span className="giao-hang-card-van-don">
-                    Mã vận đơn: <span className="giao-hang-card-code">{item.ma_van_don || item.so_don_hang || "---"}</span>
+                    Số đơn hàng: <span className="giao-hang-card-code">{item.ma_van_don || item.so_don_hang || "---"}</span>
                   </span>
                   <span className="giao-hang-card-date">
                     <CalendarOutlined />{" "}

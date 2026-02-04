@@ -44,7 +44,7 @@ const formatNumber = (val) => {
 const parserNumber = (val) => {
   if (!val) return 0;
   return Number.parseFloat(
-    val.replace(/\$\s?|(\.*)/g, "").replace(/(\,{1})/g, ".")
+    val.replace(/\$\s?|(\.*)/g, "").replace(/(,{1})/g, ".")
   ).toFixed(2);
 };
 
