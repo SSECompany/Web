@@ -83,6 +83,33 @@
   text-align: center;
 }
 
+.quantity-input {
+  width: 40px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: bold;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+.quantity-input:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, 0.25);
+}
+
+/* Ẩn nút tăng/giảm mặc định của input number */
+.quantity-input::-webkit-outer-spin-button,
+.quantity-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.quantity-input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 /* Dropdown */
 .dropdown-toggle {
   background-color: transparent;

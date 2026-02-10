@@ -25,6 +25,18 @@ export default function OrderItem({
   const dispatch = useDispatch();
   const token = localStorage.getItem("access_token");
 
+  const handleQuantityInputChange = (e) => {
+    if (isReadOnlyMode) return;
+    const rawValue = e.target.value.replace(/\D/g, "");
+    if (rawValue === "") return;
+    const newQuantity = Math.max(1, parseInt(rawValue, 10) || 1);
+    if (newQuantity === item.so_luong) return;
+    const diff = newQuantity - (parseFloat(item.so_luong || 0) || 0);
+    if (diff !== 0) {
+      onUpdateQuantity(index, diff);
+    }
+  };
+
   useEffect(() => {
     // Hiển thị giá sau giảm giá (thanh_tien) thay vì giá gốc (don_gia)
     setPriceInput(
@@ -96,7 +108,16 @@ export default function OrderItem({
             >
               -
             </Button>
-            <span>{item.so_luong}</span>
+            <input
+              type="number"
+              min={1}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              className="quantity-input hide-number-input-spinners"
+              value={item.so_luong}
+              onChange={handleQuantityInputChange}
+              disabled={isReadOnlyMode}
+            />
             <Button
               onClick={() => onUpdateQuantity(index, 1)}
               disabled={isReadOnlyMode}

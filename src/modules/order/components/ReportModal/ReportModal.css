@@ -35,6 +35,9 @@
 
 .report-modal_Container .ant-table-thead > tr > th {
   font-size: 13px !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
 }
 
 .report-modal_filterDropdown {

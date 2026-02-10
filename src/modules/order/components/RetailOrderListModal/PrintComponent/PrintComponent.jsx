@@ -13,6 +13,8 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
           return "Chuyển khoản";
         case "tien_mat":
           return "Tiền mặt";
+        case "cong_no":
+          return "Công nợ";
         default:
           return "Tiền mặt";
       }
@@ -69,53 +71,51 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
             .toString()
             .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`}
         </span>
+        {(master?.so_the?.trim() || master?.ma_ban?.trim()) && (
+          <>
+            <br />
+            <span style={{ fontSize: "14px", fontWeight: "bold", color: "#000" }}>
+              Số thẻ: {master.so_the?.trim() || master.ma_ban?.trim() || ""}
+            </span>
+          </>
+        )}
       </div>
 
-      {master?.ten_kh && master.ten_kh !== "Khách hàng căng tin" && (
-        <div style={{ color: "#000", marginBottom: "6px" }}>
-          <strong>Tên khách:</strong> {master.ten_kh}
-        </div>
-      )}
-      {master?.ma_so_thue_kh && (master.ma_so_thue_kh || "").trim() && (
+      {/* Thông tin khách hàng */}
+      <div style={{ color: "#000", marginBottom: "6px" }}>
+        <strong>Tên khách:</strong>{" "}
+        {(master?.ong_ba && master.ong_ba.trim()) ||
+          (master?.ten_kh && master.ten_kh.trim()) ||
+          "Khách hàng căng tin"}
+      </div>
+      {master?.ma_so_thue_kh && master.ma_so_thue_kh.trim() && (
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Mã số thuế:</strong> {master.ma_so_thue_kh}
         </div>
       )}
-      {master?.ten_dv_kh && (master.ten_dv_kh || "").trim() && (
-        <div style={{ color: "#000", marginBottom: "6px" }}>
-          <strong>Tên công ty:</strong> {master.ten_dv_kh}
-        </div>
-      )}
-      <div style={{ paddingBottom: "6px" }}>
-        <div style={{ color: "#000" }}>
-          <strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}
-        </div>
-      </div>
-      {/* Hình thức thanh toán chỉ hiển thị khi master.httt có giá trị */}
-      {master?.httt && (
-        <div style={{ color: "#000", marginBottom: "6px" }}>
-          <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
-        </div>
-      )}
-      {(Number(master?.chuyen_khoan || 0) > 0 ||
-        Number(master?.tien_mat || 0) > 0) && (
-        <div
-          style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}
-        >
-          {Number(master?.chuyen_khoan || 0) > 0 && (
-            <div>• Chuyển khoản: {formatNumber(master.chuyen_khoan)}đ</div>
-          )}
-          {Number(master?.tien_mat || 0) > 0 && (
-            <div>• Tiền mặt: {formatNumber(master.tien_mat)}đ</div>
-          )}
-        </div>
-      )}
-
       <div style={{ color: "#000", marginBottom: "6px" }}>
-        <strong>Số CT:</strong> {master?.so_ct}
+        <strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}
       </div>
+      
+      {/* Chi tiết thanh toán */}
+      {!(master?.httt && master.httt === "cong_no") &&
+        !(master?.xuat_hoa_don_yn === true || master?.xuat_hoa_don_yn === "1" || master?.kh_ts_yn === true || master?.kh_ts_yn === "1") &&
+        (Number(master?.chuyen_khoan || 0) > 0 || Number(master?.tien_mat || 0) > 0) && (
+          <div
+            style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}
+          >
+            {Number(master?.chuyen_khoan || 0) > 0 && (
+              <div>• Chuyển khoản: {formatNumber(master.chuyen_khoan)}đ</div>
+            )}
+            {Number(master?.tien_mat || 0) > 0 && (
+              <div>• Tiền mặt: {formatNumber(master.tien_mat)}đ</div>
+            )}
+          </div>
+        )}
+      
+      {/* Thông tin đơn hàng */}
       <div style={{ color: "#000", marginBottom: "6px" }}>
-        <strong>Nhân viên:</strong> {master?.username || "Không xác định"}
+        <strong>Số CT:</strong> {master?.so_ct || "Chưa có"}
       </div>
 
       <table
@@ -177,11 +177,11 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
         </thead>
         <tbody>
           {detail
-            .filter((item) => !item?.ma_vt_root)
+            .filter((item) => !item?.ma_vt_root || item.ma_vt_root === "")
             .map((item, index) => {
               const subItems = item?.extras || [];
               return (
-                <React.Fragment key={index}>
+                <React.Fragment key={item?.uniqueid || index}>
                   <tr style={{ fontSize: "12px", color: "#000" }}>
                     <td
                       style={{
@@ -220,13 +220,13 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
                           color: "#000",
                         }}
                       >
-                        {formatNumber(item?.thanh_tien_print || 0)}đ
+                        {formatNumber(item?.thanh_tien_print || item?.thanh_tien || 0)}đ
                       </td>
                   </tr>
 
                   {subItems.map((sub, subIndex) => (
                     <tr
-                      key={`sub-${index}-${subIndex}`}
+                      key={`sub-${item?.uniqueid || index}-${subIndex}`}
                       style={{ fontSize: "12px", color: "#000" }}
                     >
                       <td
@@ -268,14 +268,14 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
                             color: "#000",
                           }}
                         >
-                          {formatNumber(sub?.thanh_tien_print || 0)}đ
+                          {formatNumber(sub?.thanh_tien_print || sub?.thanh_tien || 0)}đ
                         </td>
                     </tr>
                   ))}
 
-                  {item?.ghi_chu && (
+                  {item?.ghi_chu && item.ghi_chu.trim() && (
                     <tr
-                      key={`note-${index}`}
+                      key={`note-${item?.uniqueid || index}`}
                       style={{
                         fontSize: "12px",
                         fontStyle: "italic",
@@ -342,7 +342,7 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
           color: "#000",
         }}
       >
-        Tổng tiền: {formatNumber(master?.tong_tien) || "0"}đ
+        Tổng tiền: {formatNumber(master?.tong_tien || master?.tong_tt || 0)}đ
       </div>
       <div
         style={{

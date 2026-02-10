@@ -21,6 +21,11 @@ import App from "./App";
 import Loading from "./components/common/Loading/Loading";
 import reportWebVitals from './reportWebVitals';
 import themeComponents from "./utils/theme";
+import IminPrinter from "./utils/imin-printer.js";
+
+if (typeof window !== "undefined") {
+  window.IminPrinter = IminPrinter;
+}
 
 dayjs.extend(updateLocale);
 dayjs.updateLocale("vi", {});

@@ -31,9 +31,10 @@ const SUMMARY_FIELDS = [
   "tien_mat",
   "tien_ck",
   "ap_voucher",
+  "cong_no",
 ];
 
-const MONEY_FIELDS = ["gia_ban", "thanh_tien", "ck_nt", "tien_mat", "tien_ck"];
+const MONEY_FIELDS = ["gia_ban", "thanh_tien", "ck_nt", "tien_mat", "tien_ck", "cong_no"];
 
 const formatDate = (date) => {
   const d = new Date(date);
@@ -62,15 +63,21 @@ const BOLD_CELL_STYLE = { fontWeight: "bold", textAlign: "center" };
 const ReportModal = ({ isOpen, onClose, unitId, id }) => {
   const [dataSource, setDataSource] = useState([]);
   const [filters, setFilters] = useState(() => ({ ...DEFAULT_FILTERS }));
-  const [selectedDate, setSelectedDate] = useState(formatDate(new Date()));
+  const [dateRange, setDateRange] = useState([
+    formatDate(new Date()),
+    formatDate(new Date()),
+  ]);
   const filtersRef = useRef(filters);
   const fetchDataRef = useRef(() => {});
 
   const fetchData = useCallback(
-    async (overrideNgayCT, overrideFilters) => {
+    async (overrideDateRange, overrideFilters) => {
       try {
         const effectiveFilters = overrideFilters || filtersRef.current;
-        const ngayCT = overrideNgayCT || selectedDate || formatDate(new Date());
+        const effectiveRange =
+          overrideDateRange || dateRange || [formatDate(new Date()), formatDate(new Date())];
+
+        const [fromDate, toDate] = effectiveRange;
 
         const res = await multipleTablePutApi({
           store: "api_get_pos_order_manv",
@@ -79,7 +86,9 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
             ma_kh: "",
             ten_kh: "",
             dien_thoai: "",
-            ngay_ct: ngayCT,
+            DateFrom: fromDate,
+            DateTo: toDate,
+            ngay_ct: "",
             PageIndex: 1,
             PageSize: 1000,
             StoreId: "",
@@ -108,7 +117,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         console.error("❌ Lỗi khi lấy dữ liệu:", err);
       }
     },
-    [unitId, id, selectedDate]
+    [unitId, id, dateRange]
   );
 
   useEffect(() => {
@@ -181,18 +190,20 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
 
   const columns = useMemo(
     () => [
-      { title: "STT", dataIndex: "fake_stt", key: "fake_stt", width: 70 },
+      { title: "STT", dataIndex: "fake_stt", key: "fake_stt", width: 70, ellipsis: false },
       {
         title: "Tên nhân viên",
         dataIndex: "ten_nhan_vien",
         key: "ten_nhan_vien",
-        width: 150,
+        width: 160,
+        ellipsis: false,
       },
       {
         title: "Mã bàn",
         dataIndex: "ma_ban",
         key: "ma_ban",
-        width: 100,
+        width: 110,
+        ellipsis: false,
         filteredValue: filters.ma_ban ? [filters.ma_ban] : null,
         filterDropdown: renderTextFilterDropdown("ma_ban", "Nhập mã bàn"),
       },
@@ -200,7 +211,8 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         title: "Số CT",
         dataIndex: "so_ct",
         key: "so_ct",
-        width: 100,
+        width: 110,
+        ellipsis: false,
         filteredValue: filters.so_ct ? [filters.so_ct] : null,
         filterDropdown: renderTextFilterDropdown("so_ct", "Nhập số CT"),
       },
@@ -208,23 +220,26 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         title: "Ngày CT",
         dataIndex: "ngay_ct",
         key: "ngay_ct",
-        width: 120,
-        filteredValue: selectedDate ? [selectedDate] : null,
+        width: 200,
+        ellipsis: false,
+        filteredValue: dateRange && dateRange.length === 2 ? [dateRange.join(" - ")] : null,
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <div className="report-modal_filterDropdown">
             <Space direction="vertical" size={8} style={{ width: "100%" }}>
-              <DatePicker
+              <DatePicker.RangePicker
                 inputReadOnly
-                onChange={(date) => {
-                  if (date) {
-                    setSelectedKeys([date.format("DD/MM/YYYY")]);
+                format="DD/MM/YYYY"
+                placeholder={["Từ ngày", "Đến ngày"]}
+                style={{ width: "100%" }}
+                onChange={(dates) => {
+                  if (dates && dates.length === 2) {
+                    const from = dates[0].format("DD/MM/YYYY");
+                    const to = dates[1].format("DD/MM/YYYY");
+                    setSelectedKeys([`${from} - ${to}`]);
                   } else {
                     setSelectedKeys([]);
                   }
                 }}
-                format="DD/MM/YYYY"
-                placeholder="Chọn ngày CT"
-                style={{ width: "100%" }}
               />
               <div className="report-modal_filterActions">
                 <Button
@@ -234,8 +249,10 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                     confirm({ closeDropdown: true });
                     const value = selectedKeys?.[0] || "";
                     if (value) {
-                      setSelectedDate(value);
-                      fetchData(value);
+                      const [from, to] = value.split(" - ");
+                      const newRange = [from || formatDate(new Date()), to || from || formatDate(new Date())];
+                      setDateRange(newRange);
+                      fetchData(newRange);
                     }
                   }}
                 >
@@ -247,8 +264,9 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                     setSelectedKeys([]);
                     confirm({ closeDropdown: true });
                     const today = formatDate(new Date());
-                    setSelectedDate(today);
-                    fetchData(today);
+                    const newRange = [today, today];
+                    setDateRange(newRange);
+                    fetchData(newRange);
                   }}
                 >
                   Làm mới
@@ -262,13 +280,15 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         title: "Thời gian",
         dataIndex: "datetime2",
         key: "datetime2",
-        width: 130,
+        width: 140,
+        ellipsis: false,
       },
       {
         title: "Tên món",
         dataIndex: "ten_mon",
         key: "ten_mon",
-        width: 150,
+        width: 160,
+        ellipsis: false,
         filteredValue: filters.ten_vt ? [filters.ten_vt] : null,
         filterDropdown: renderTextFilterDropdown("ten_vt", "Nhập tên món"),
       },
@@ -276,7 +296,8 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         title: "Nhóm món",
         dataIndex: "nh_vt1",
         key: "nh_vt1",
-        width: 140,
+        width: 150,
+        ellipsis: false,
         filteredValue: filters.nh_vt1 ? [filters.nh_vt1] : null,
         filterDropdown: renderTextFilterDropdown("nh_vt1", "Nhập nhóm món"),
       },
@@ -284,33 +305,45 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         title: "Số lượng",
         dataIndex: "so_luong",
         key: "so_luong",
-        width: 100,
+        width: 110,
+        ellipsis: false,
       },
-      { title: "Giá bán", dataIndex: "gia_ban", key: "gia_ban", width: 100 },
+      { title: "Giá bán", dataIndex: "gia_ban", key: "gia_ban", width: 110, ellipsis: false },
       {
         title: "Thành tiền",
         dataIndex: "thanh_tien",
         key: "thanh_tien",
-        width: 120,
+        width: 130,
+        ellipsis: false,
       },
       {
         title: "Tiền chiết khấu",
         dataIndex: "ck_nt",
         key: "ck_nt",
-        width: 140,
+        width: 160,
+        ellipsis: false,
       },
       {
         title: "Tiền mặt",
         dataIndex: "tien_mat",
         key: "tien_mat",
-        width: 120,
+        width: 130,
+        ellipsis: false,
       },
-      { title: "Tiền CK", dataIndex: "tien_ck", key: "tien_ck", width: 100 },
+      { title: "Tiền CK", dataIndex: "tien_ck", key: "tien_ck", width: 110, ellipsis: false },
+      {
+        title: "Công nợ",
+        dataIndex: "cong_no",
+        key: "cong_no",
+        width: 130,
+        ellipsis: false,
+      },
       {
         title: "Áp voucher",
         dataIndex: "ap_voucher",
         key: "ap_voucher",
-        width: 120,
+        width: 130,
+        ellipsis: false,
       },
       {
         title: "SysTotal",
@@ -319,7 +352,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         hidden: true,
       },
     ],
-    [filters, renderTextFilterDropdown, selectedDate, fetchData]
+    [filters, renderTextFilterDropdown, dateRange, fetchData]
   );
 
   const formatCellText = useCallback((col, text, record) => {
@@ -416,12 +449,12 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
           columns={optimizedColumns}
           dataSource={dataSource}
           pagination={false}
-          width="95%"
+          width="100%"
           rowKey="key"
           rowClassName={(record) =>
             record.systotal === 0 ? "summary-row group-row" : ""
           }
-          scroll={{ y: 450 }}
+          scroll={{ x: "max-content", y: 450 }}
           summary={(pageData) => {
             const totals = pageData.reduce(
               (acc, item) => {
@@ -432,6 +465,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                   ck_nt,
                   tien_mat,
                   tien_ck,
+                  cong_no,
                   ap_voucher,
                 } = item;
 
@@ -441,6 +475,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                   acc.totalTienChietKhau += Number(ck_nt) || 0;
                   acc.totalTienMat += Number(tien_mat) || 0;
                   acc.totalTienCK += Number(tien_ck) || 0;
+                  acc.totalCongNo += Number(cong_no) || 0;
                 } else {
                   if (isVoucherApplied(ap_voucher)) {
                     acc.totalApVoucher += 1;
@@ -455,6 +490,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                 totalTienChietKhau: 0,
                 totalTienMat: 0,
                 totalTienCK: 0,
+                totalCongNo: 0,
                 totalApVoucher: 0,
               }
             );
@@ -484,6 +520,9 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                       ),
                       tien_ck: (
                         <strong>{formatNumber(totals.totalTienCK)}</strong>
+                      ),
+                      cong_no: (
+                        <strong>{formatNumber(totals.totalCongNo)}</strong>
                       ),
                       ap_voucher: <strong>{totals.totalApVoucher}</strong>,
                     };

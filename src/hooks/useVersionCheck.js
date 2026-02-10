@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 // Global flags để tránh duplicate notifications
 let globalHasNotified = false;
 let globalCurrentNotificationKey = null;
+// Chỉ chạy initial version check một lần cho cả app (tránh nhiều component mount)
+let initialVersionCheckScheduled = false;
 
 const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
   const [hasNewVersion, setHasNewVersion] = useState(false);
@@ -289,13 +291,17 @@ const useVersionCheck = (checkInterval = 10 * 60 * 1000) => {
         console.warn("Không thể parse version từ localStorage:", error);
       }
     }
-    const initialCheck = setTimeout(() => {
-      checkForNewVersion();
-    }, 3000);
+    let initialCheckId;
+    if (!initialVersionCheckScheduled) {
+      initialVersionCheckScheduled = true;
+      initialCheckId = setTimeout(() => {
+        checkForNewVersion();
+      }, 3000);
+    }
     intervalRef.current = setInterval(checkForNewVersion, checkInterval);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
-      clearTimeout(initialCheck);
+      if (initialCheckId) clearTimeout(initialCheckId);
     };
   }, [checkInterval]);
 

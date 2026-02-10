@@ -126,6 +126,8 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
         cash: 0,
         transfer: 0,
         voucherCount: 0,
+        congNoKhTs: 0,
+        congNoXuatHd: 0,
         startTime: "--",
         endTime: "--",
       };
@@ -138,6 +140,8 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
     const transfer = Number(summaryData.tien_ck) || 0;
     const voucherCount = Number(summaryData.t_ap_voucher) || 0;
     const gross = net + discount;
+    const congNoKhTs = Number(summaryData.cong_no_kh_ts) || 0;
+    const congNoXuatHd = Number(summaryData.cong_no_xuat_hd) || 0;
 
     return {
       gross,
@@ -146,6 +150,8 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
       cash,
       transfer,
       voucherCount,
+      congNoKhTs,
+      congNoXuatHd,
       startTime: "--",
       endTime: "--",
     };
@@ -183,13 +189,6 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
     const data = [];
     let stt = 1;
 
-    // Debug: Kiểm tra dữ liệu
-    console.log("📊 ShiftReport Data:", {
-      summaryData,
-      categoryDataLength: categoryData.length,
-      groupedCategoriesLength: groupedCategories.length,
-    });
-
     // Sắp xếp nhóm món theo thứ tự
     const sortedGroups = [...groupedCategories].sort(
       (a, b) => b.revenue - a.revenue || b.quantity - a.quantity
@@ -224,7 +223,6 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
       });
     });
 
-    console.log("📋 Table Data:", data);
     return data;
   }, [groupedCategories, groupedItems, categoryData.length]);
 
@@ -464,6 +462,27 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
                 </div>
                 <div className="shift-report-modal__master-value">
                   {formatNumber(totals.transfer)}
+                </div>
+              </div>
+
+              {/* Công nợ */}
+              <div className="shift-report-modal__master-item shift-report-modal__master-item--section">
+                <div className="shift-report-modal__master-label">Công nợ</div>
+              </div>
+              <div className="shift-report-modal__master-item">
+                <div className="shift-report-modal__master-label">
+                  Công nợ KH trả sau
+                </div>
+                <div className="shift-report-modal__master-value">
+                  {formatNumber(totals.congNoKhTs)}
+                </div>
+              </div>
+              <div className="shift-report-modal__master-item">
+                <div className="shift-report-modal__master-label">
+                  Công nợ xuất hóa đơn
+                </div>
+                <div className="shift-report-modal__master-value">
+                  {formatNumber(totals.congNoXuatHd)}
                 </div>
               </div>
             </div>

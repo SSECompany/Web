@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../../api";
 import jwt from "../../../../utils/jwt";
+import IminPrinterService from "../../../../utils/IminPrinterService";
 import {
   addTab,
   clearTabData,
@@ -17,6 +18,7 @@ import MergeOrder from "./MergeOrders/MergeOrder";
 import "./OrderSummary.css";
 import PaymentModal from "./PaymentModal/PaymentModal";
 import PrintComponent from "./PrintComponent/PrintComponent";
+import ReceiptPreviewModal from "./ReceiptPreviewModal/ReceiptPreviewModal";
 
 // ✅ PERFORMANCE OPTIMIZATION: Cached network check
 let _networkCheckCache = null;
@@ -75,6 +77,9 @@ const generateRandomId = () =>
   Array.from({ length: 16 }, () =>
     Math.floor(Math.random() * 36).toString(36)
   ).join("");
+
+// Số liên hóa đơn mặc định khi in qua máy in nhiệt iMin (POS)
+const DEFAULT_RECEIPT_COPIES = 3;
 
 // Helper function để gọi trực tiếp API syncFast với tracking
 const callSyncFastApi = async (sttRec, userId) => {
@@ -155,10 +160,10 @@ const runParallelTasks = async (
     });
 };
 
-export default function OrderSummary({ total, itemCount }) {
+export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
   const dispatch = useDispatch();
   const { internalActiveTabId, orders } = useSelector((state) => state.orders);
-  const { id, storeId, unitId } = useSelector(
+  const { id, storeId, unitId, unitName } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
   );
   const rawToken = localStorage.getItem("access_token");
@@ -169,6 +174,8 @@ export default function OrderSummary({ total, itemCount }) {
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
   const [isCustomerPaymentModalVisible, setIsCustomerPaymentModalVisible] =
     useState(false);
+  const [paymentFormCache, setPaymentFormCache] = useState(null);
+  const [customerPaymentFormCache, setCustomerPaymentFormCache] = useState(null);
   const [message, contextHolder] = messageAPI.useMessage();
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -184,6 +191,8 @@ export default function OrderSummary({ total, itemCount }) {
   const [currentPrintData, setCurrentPrintData] = useState(null);
   const [hasReprinted, setHasReprinted] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [receiptPreviewVisible, setReceiptPreviewVisible] = useState(false);
+  const [confirmPrintLoading, setConfirmPrintLoading] = useState(false);
 
   const activeTab = orders?.find(
     (tab) => tab.internalId === internalActiveTabId
@@ -227,7 +236,9 @@ export default function OrderSummary({ total, itemCount }) {
     selectedPayments = [],
     paymentAmounts = {},
     customerInfo = {},
-    sync = true
+    sync = true,
+    orderStatus = { xuat_hoa_don: false, khach_tra_sau: false },
+    selectedStaff = null
   ) => {
     if (!activeTab) {
       message.warning("Không có dữ liệu!");
@@ -240,7 +251,18 @@ export default function OrderSummary({ total, itemCount }) {
 
     let finalHttt = "";
 
-    if (selectedPayments.length === 1) {
+    // Nếu là công nợ (xuất hóa đơn hoặc khách trả sau) => tiền vào công nợ, không vào tiền mặt/chuyển khoản
+    const isCredit = 
+      orderStatus?.xuat_hoa_don === true || 
+      orderStatus?.khach_tra_sau === true ||
+      selectedPayments.includes("cong_no");
+
+    if (isCredit) {
+      // Công nợ: tiền mặt và chuyển khoản = 0
+      finalTienMat = 0;
+      finalChuyenKhoan = 0;
+      finalHttt = "cong_no";
+    } else if (selectedPayments.length === 1) {
       if (selectedPayments[0] === "tien_mat") {
         finalTienMat = totalAmount;
       } else {
@@ -256,7 +278,7 @@ export default function OrderSummary({ total, itemCount }) {
     }
 
     const masterData = {
-      ma_ban: activeTab?.tableId,
+      ma_ban: customerInfo.so_the?.trim() || activeTab?.tableId || "",
       ma_kh: activeTab?.master?.ma_kh || activeTab?.metadata?.ma_kh || "",
       dien_giai: activeTab?.master?.dien_giai || "",
       tong_tien: totalAmount.toString(),
@@ -276,6 +298,7 @@ export default function OrderSummary({ total, itemCount }) {
       ma_so_thue_kh:
         customerInfo.ma_so_thue_kh ?? activeTab?.master?.ma_so_thue_kh ?? "",
       ten_dv_kh: customerInfo.ten_dv_kh ?? activeTab?.master?.ten_dv_kh ?? "",
+      so_the: customerInfo.so_the ?? activeTab?.master?.so_the ?? "",
       so_giuong: activeTab?.master?.so_giuong ?? "",
       so_phong: activeTab?.master?.so_phong ?? "",
       ca_an: activeTab?.master?.ca_an ?? "",
@@ -296,6 +319,19 @@ export default function OrderSummary({ total, itemCount }) {
       sinhvien_tratruoc:
         activeTab?.metadata?.typeStudent === "prepaid_student" ? "1" : "0",
       benhnhan_tratruoc: activeTab?.master?.benhnhan_tratruoc || "0",
+      // Các trường mới - lấy từ API khi sửa đơn, nếu không có thì dùng giá trị từ form
+      cookie_voucher: activeTab?.master?.cookie_voucher ?? "",
+      kh_ts_yn: activeTab?.master?.kh_ts_yn ?? (orderStatus?.khach_tra_sau ? "1" : "0"),
+      xuat_hoa_don_yn: activeTab?.master?.xuat_hoa_don_yn ?? (orderStatus?.xuat_hoa_don ? "1" : "0"),
+      cong_no: activeTab?.master?.cong_no ?? (selectedPayments.includes("cong_no") 
+        ? (paymentAmounts.cong_no || totalAmount).toString() 
+        : "0"),
+      ma_nvbh: activeTab?.master?.ma_nvbh ?? (selectedStaff 
+        ? (selectedStaff.ma_nvbh || selectedStaff.value || selectedStaff.id || "") 
+        : ""),
+      ten_nvbh: selectedStaff 
+        ? (selectedStaff.ten_nvbh || selectedStaff.label || selectedStaff.name || "") 
+        : "",
     };
 
     const detailData = activeTab?.detail?.flatMap((item) => {
@@ -355,7 +391,7 @@ export default function OrderSummary({ total, itemCount }) {
       return;
     }
 
-    const orderData = generateOrderData();
+    const orderData = generateOrderData("0", [], {}, {}, true, { xuat_hoa_don: false, khach_tra_sau: false }, null);
     if (!orderData) return;
 
     if (isSaveOnly) {
@@ -381,10 +417,11 @@ export default function OrderSummary({ total, itemCount }) {
         if (sttRec) {
           // BƯỚC 2: Bật hộp thoại in NGAY LẬP TỨC
           if (!isSaveOnly) {
-            setPrintMaster(orderData.masterData);
+            const masterWithDvcs = { ...orderData.masterData, ten_dvcs: unitName || "" };
+            setPrintMaster(masterWithDvcs);
             setPrintDetail(orderData.detailData);
             setCurrentPrintData({
-              master: orderData.masterData,
+              master: masterWithDvcs,
               detail: orderData.detailData,
               sttRec,
               sync: true,
@@ -418,7 +455,6 @@ export default function OrderSummary({ total, itemCount }) {
           if (isSaveOnly) {
             setTimeout(() => {
               dispatch(clearTabData(internalActiveTabId));
-              dispatch(removeTab({ internalId: internalActiveTabId }));
             }, 500);
           }
         }
@@ -447,11 +483,14 @@ export default function OrderSummary({ total, itemCount }) {
     setCurrentPrintData(null);
     setHasReprinted(false);
     setIsProcessingPayment(false); // ✅ Reset trạng thái thanh toán khi hoàn tất
+    setPaymentFormCache(null);
+    setCustomerPaymentFormCache(null);
     dispatch(clearTabData(internalActiveTabId));
-    dispatch(removeTab({ internalId: internalActiveTabId }));
   };
 
-  let hasPrinted = false;
+  const hasPrintedRef = useRef(false);
+  const printFallbackTimerRef = useRef(null);
+  const isMountedRef = useRef(true);
 
   const handleReprint = () => {
     if (currentPrintData) {
@@ -462,6 +501,51 @@ export default function OrderSummary({ total, itemCount }) {
     }
   };
 
+  const handleConfirmPreviewPrint = async () => {
+    if (!currentPrintData) return;
+    setConfirmPrintLoading(true);
+    try {
+      const printerService = new IminPrinterService();
+      await printerService.initPrinter();
+      const masterForPrint = {
+        ...currentPrintData.master,
+        so_ct: currentPrintData.orderNumber ?? currentPrintData.master?.so_ct ?? "Chưa có",
+      };
+      if (!printerService.isSimulationMode) {
+        await printerService.printReceipt(
+          masterForPrint,
+          currentPrintData.detail,
+          DEFAULT_RECEIPT_COPIES,
+          { isReprint: true }
+        );
+        notification.success({
+          message: "In lại hóa đơn",
+          description: "Đã in lại hóa đơn bằng máy in nhiệt.",
+          duration: 3,
+        });
+        setReceiptPreviewVisible(false);
+      } else {
+        setPrintMaster(masterForPrint);
+        setPrintDetail(currentPrintData.detail);
+        setReceiptPreviewVisible(false);
+        setTimeout(() => handlePrint(), 300);
+        notification.info({
+          message: "In lại hóa đơn",
+          description: "Chế độ simulation - in qua trình duyệt.",
+          duration: 3,
+        });
+      }
+    } catch (err) {
+      notification.error({
+        message: "Lỗi in lại hóa đơn",
+        description: err?.message || "Vui lòng kiểm tra máy in.",
+        duration: 4,
+      });
+    } finally {
+      setConfirmPrintLoading(false);
+    }
+  };
+
   const handlePrint = useReactToPrint({
     content: () => {
       return printContent.current;
@@ -469,20 +553,91 @@ export default function OrderSummary({ total, itemCount }) {
     documentTitle: "Print This Document",
     copyStyles: false,
     onAfterPrint: () => {
-      if (!hasPrinted) {
-        hasPrinted = true;
-        setIsPrinting(false);
-        setTimeout(() => handleSaveOrder(), 100);
+      if (!hasPrintedRef.current) {
+        hasPrintedRef.current = true;
+        clearPrintFallbackTimer();
+        handleSaveOrder(); // In xong tự clear dữ liệu (logic cũ)
       }
     },
   });
 
-  useEffect(() => {
-    if (isPrinting && !isPrinted) {
-      hasPrinted = false;
-      handlePrint();
-    } else {
+  const clearPrintFallbackTimer = () => {
+    if (printFallbackTimerRef.current) {
+      clearTimeout(printFallbackTimerRef.current);
+      printFallbackTimerRef.current = null;
     }
+  };
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      clearPrintFallbackTimer();
+    };
+  }, []);
+
+  // In hóa đơn: ưu tiên máy in nhiệt iMin (POS, nhiều liên + cắt giấy), fallback react-to-print
+  useEffect(() => {
+    if (!isPrinting || isPrinted) return;
+    hasPrintedRef.current = false;
+
+    // Clear timer cũ (nếu effect chạy lại), rồi đặt timer 10s. Không clear timer trong cleanup của effect
+    // để tránh Strict Mode / re-run xóa timer → đảm bảo sau 10s luôn tự clear khi không có máy in / init treo.
+    clearPrintFallbackTimer();
+    printFallbackTimerRef.current = setTimeout(() => {
+      printFallbackTimerRef.current = null;
+      if (!isMountedRef.current) return;
+      handleSaveOrder();
+    }, 10000);
+
+    const runPrint = async () => {
+      try {
+        const printerService = new IminPrinterService();
+        await printerService.initPrinter();
+
+        if (!printerService.isSimulationMode) {
+          try {
+            // Mở két tiền khi thanh toán (trước khi in hóa đơn)
+            try {
+              await printerService.openCashBox();
+            } catch (drawerErr) {
+              console.warn("Két tiền không mở được (có thể không kết nối):", drawerErr?.message);
+            }
+            const masterForPrint = {
+              ...printMaster,
+              so_ct: currentPrintData?.orderNumber ?? printMaster?.so_ct ?? "Chưa có",
+            };
+            await printerService.printReceipt(
+              masterForPrint,
+              printDetail,
+              DEFAULT_RECEIPT_COPIES
+            );
+            clearPrintFallbackTimer();
+            handleSaveOrder(); // In xong tự clear dữ liệu (logic cũ)
+          } catch (err) {
+            notification.error({
+              message: "Lỗi in hóa đơn",
+              description: err?.message || "Máy in chưa sẵn sàng",
+            });
+            clearPrintFallbackTimer();
+            setIsPrinting(false);
+            setTimeout(() => handleSaveOrder(), 100);
+          }
+        } else {
+          // Chế độ simulation (PC không có máy in): mở dialog in trình duyệt (timer 10s đã đặt ở trên)
+          handlePrint();
+        }
+      } catch (initErr) {
+        // initPrinter() lỗi/treo → clear ngay để không treo
+        clearPrintFallbackTimer();
+        setIsPrinting(false);
+        setTimeout(() => handleSaveOrder(), 100);
+      }
+    };
+
+    runPrint();
+    // Không clear timer ở đây: khi initPrinter() treo, effect không chạy lại → timer không bị xóa → sau 10s vẫn fire.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [printMaster, printDetail, isPrinting, isPrinted]);
 
   const handleOpenPaymentModal = () => {
@@ -498,7 +653,9 @@ export default function OrderSummary({ total, itemCount }) {
     }
   };
 
-  const handleClosePaymentModal = () => {
+  const handleClosePaymentModal = (cached) => {
+    if (cached?.fromPaymentModal) setPaymentFormCache(cached);
+    if (cached?.fromCustomerModal) setCustomerPaymentFormCache(cached);
     setIsPaymentModalVisible(false);
     setIsCustomerPaymentModalVisible(false);
     setIsProcessingPayment(false);
@@ -515,7 +672,9 @@ export default function OrderSummary({ total, itemCount }) {
     selectedPayments,
     paymentAmounts,
     customerInfo,
-    sync
+    sync,
+    orderStatus = { xuat_hoa_don: false, khach_tra_sau: false },
+    selectedStaff = null
   ) => {
     if (isProcessingPayment) {
       return;
@@ -581,12 +740,23 @@ export default function OrderSummary({ total, itemCount }) {
       setShowQR(true);
     }
 
+    // Nếu là công nợ thì ép httt = 'cong_no' và không có số tiền thanh toán
+    const isCredit =
+      orderStatus?.xuat_hoa_don === true || orderStatus?.khach_tra_sau === true;
+
+    const finalSelectedPayments = isCredit ? ["cong_no"] : selectedPayments;
+    const finalPaymentAmounts = isCredit
+      ? { tien_mat: 0, chuyen_khoan: 0 }
+      : paymentAmounts;
+
     const orderData = generateOrderData(
       "2",
-      selectedPayments,
-      paymentAmounts,
+      finalSelectedPayments,
+      finalPaymentAmounts,
       customerInfo,
-      sync
+      sync,
+      orderStatus,
+      selectedStaff
     );
     if (!orderData) {
       setIsProcessingPayment(false);
@@ -609,11 +779,12 @@ export default function OrderSummary({ total, itemCount }) {
         const orderNumber = response?.listObject[0][0]?.so_ct;
 
         if (sttRec) {
-          // BƯỚC 2: Mở hộp thoại in NGAY LẬP TỨC
-          setPrintMaster(orderData.masterData);
+          // BƯỚC 2: Mở hộp thoại in NGAY LẬP TỨC — giữ loading trên nút thanh toán đến khi in xong + clear trong handleSaveOrder
+          const masterWithDvcs = { ...orderData.masterData, ten_dvcs: unitName || "" };
+          setPrintMaster(masterWithDvcs);
           setPrintDetail(orderData.detailData);
           setCurrentPrintData({
-            master: orderData.masterData,
+            master: masterWithDvcs,
             detail: orderData.detailData,
             selectedPayments,
             paymentAmounts,
@@ -637,27 +808,31 @@ export default function OrderSummary({ total, itemCount }) {
             .catch(() => {
               // Silent error - already được guard
             });
-        }
 
-        // Thông báo thành công ngay lập tức
-        notification.success({
-          message: "Thanh toán thành công!",
-          duration: 4,
-        });
-
-        // Reset trạng thái sau khi thanh toán thành công
-        setIsProcessingPayment(false);
-        setIsCreatingOrder(false);
-
-        if (!sttRec) {
-          // Nếu không có stt_rec để in, clear dữ liệu ngay
+          notification.success({
+            message: "Thanh toán thành công!",
+            duration: 4,
+          });
+          setIsCreatingOrder(false);
+          // Không setIsProcessingPayment(false) ở đây — loading nút thanh toán chạy đến khi handleSaveOrder (sau khi in xong + clear dữ liệu)
+          setIsPaymentModalVisible(false);
+          setIsCustomerPaymentModalVisible(false);
+          setPaymentFormCache(null);
+          setCustomerPaymentFormCache(null);
+        } else {
+          // Không có stt_rec, không in — clear ngay và tắt loading
+          notification.success({
+            message: "Thanh toán thành công!",
+            duration: 4,
+          });
+          setIsProcessingPayment(false);
+          setIsCreatingOrder(false);
           dispatch(clearTabData(internalActiveTabId));
-          dispatch(removeTab({ internalId: internalActiveTabId }));
+          setIsPaymentModalVisible(false);
+          setIsCustomerPaymentModalVisible(false);
+          setPaymentFormCache(null);
+          setCustomerPaymentFormCache(null);
         }
-
-        // Đóng modal thanh toán (modal đã được đóng bởi closeModalOnConfirm, nhưng đảm bảo trạng thái)
-        setIsPaymentModalVisible(false);
-        setIsCustomerPaymentModalVisible(false);
       } else {
         notification.warning({
           message: "Thanh toán thất bại!",
@@ -743,7 +918,9 @@ export default function OrderSummary({ total, itemCount }) {
       [], // Chưa có hình thức thanh toán
       { tien_mat: 0, chuyen_khoan: 0 }, // Chưa có số tiền thanh toán
       customerInfo, // Thông tin khách hàng
-      false // Không đồng bộ
+      false, // Không đồng bộ
+      { xuat_hoa_don: false, khach_tra_sau: false }, // Trạng thái đơn hàng
+      null // Không có nhân viên (CustomerPaymentModal)
     );
 
     if (!orderData) {
@@ -769,9 +946,8 @@ export default function OrderSummary({ total, itemCount }) {
           duration: 3,
         });
 
-        // Clear data và đóng tab ngay lập tức
+        // Chỉ clear dữ liệu đơn, giữ tab
         dispatch(clearTabData(internalActiveTabId));
-        dispatch(removeTab({ internalId: internalActiveTabId }));
 
         // Reset processing state để bỏ loading
         setIsProcessingPayment(false);
@@ -966,26 +1142,46 @@ export default function OrderSummary({ total, itemCount }) {
         onClose={handleClosePaymentModal}
         onConfirm={handleConfirmPayment}
         total={total}
-        isCreatingOrder={false} // ✅ Không disable modal khi thanh toán
-        initialPaymentMethod={activeTab?.master?.httt}
-        initialPaymentAmounts={{
-          tien_mat: activeTab?.master?.tien_mat || 0,
-          chuyen_khoan: activeTab?.master?.chuyen_khoan || 0,
-        }}
-        initialCustomerInfo={{
-          ong_ba: (
-            activeTab?.master?.ong_ba ||
-            activeTab?.master?.ten_kh ||
-            ""
-          ).trim(),
-          cccd: (activeTab?.master?.cccd || "").trim(),
-          dia_chi: (activeTab?.master?.dia_chi || "").trim(),
-          so_dt: (activeTab?.master?.so_dt || "").trim(),
-          email: (activeTab?.master?.email || "").trim(),
-          ma_so_thue_kh: (activeTab?.master?.ma_so_thue_kh || "").trim(),
-          ten_dv_kh: (activeTab?.master?.ten_dv_kh || "").trim(),
-        }}
-        initialSync={activeTab?.master?.s3 !== "0"}
+        isCreatingOrder={false}
+        initialPaymentMethod={
+          paymentFormCache?.selectedPayments?.length
+            ? paymentFormCache.selectedPayments.join(",")
+            : activeTab?.master?.httt
+        }
+        initialPaymentAmounts={
+          paymentFormCache?.paymentAmounts ?? {
+            tien_mat: activeTab?.master?.tien_mat || 0,
+            chuyen_khoan: activeTab?.master?.chuyen_khoan || 0,
+            cong_no: activeTab?.master?.cong_no || 0,
+          }
+        }
+        initialCustomerInfo={
+          paymentFormCache?.customerInfo ?? {
+            ong_ba: (
+              activeTab?.master?.ong_ba ||
+              activeTab?.master?.ten_kh ||
+              ""
+            ).trim(),
+            cccd: (activeTab?.master?.cccd || "").trim(),
+            dia_chi: (activeTab?.master?.dia_chi || "").trim(),
+            so_dt: (activeTab?.master?.so_dt || "").trim(),
+            email: (activeTab?.master?.email || "").trim(),
+            ma_so_thue_kh: (activeTab?.master?.ma_so_thue_kh || "").trim(),
+            ten_dv_kh: (activeTab?.master?.ten_dv_kh || "").trim(),
+            so_the: (activeTab?.master?.so_the || "").trim(),
+          }
+        }
+        initialSync={paymentFormCache?.sync ?? activeTab?.master?.s3 !== "0"}
+        initialOrderStatus={
+          paymentFormCache?.orderStatus ?? {
+            xuat_hoa_don: activeTab?.master?.xuat_hoa_don_yn === "1",
+            khach_tra_sau: activeTab?.master?.kh_ts_yn === "1",
+          }
+        }
+        initialSelectedStaff={
+          paymentFormCache?.selectedStaff?.ma_nvbh ?? activeTab?.master?.ma_nvbh
+        }
+        salesStaff={salesStaff}
       />
 
       <CustomerPaymentModal
@@ -993,16 +1189,22 @@ export default function OrderSummary({ total, itemCount }) {
         onClose={handleClosePaymentModal}
         onConfirm={handleConfirmCustomerPayment}
         total={total}
-        customerInfo={{
-          ong_ba: (activeTab?.master?.ong_ba || "").trim(),
-          cccd: (activeTab?.master?.cccd || "").trim(),
-          dia_chi: (activeTab?.master?.dia_chi || "").trim(),
-          so_dt: (activeTab?.master?.so_dt || "").trim(),
-          email: (activeTab?.master?.email || "").trim(),
-          ma_so_thue_kh: (activeTab?.master?.ma_so_thue_kh || "").trim(),
-          ten_dv_kh: (activeTab?.master?.ten_dv_kh || "").trim(),
-        }}
+        customerInfo={
+          customerPaymentFormCache?.customerInfo ?? {
+            ong_ba: (activeTab?.master?.ong_ba || "").trim(),
+            cccd: (activeTab?.master?.cccd || "").trim(),
+            dia_chi: (activeTab?.master?.dia_chi || "").trim(),
+            so_dt: (activeTab?.master?.so_dt || "").trim(),
+            email: (activeTab?.master?.email || "").trim(),
+            ma_so_thue_kh: (activeTab?.master?.ma_so_thue_kh || "").trim(),
+            ten_dv_kh: (activeTab?.master?.ten_dv_kh || "").trim(),
+          }
+        }
+        initialSelectedStaff={
+          customerPaymentFormCache?.selectedStaff?.ma_nvbh ?? activeTab?.master?.ma_nvbh
+        }
         isSubmitting={isProcessingPayment}
+        salesStaff={salesStaff}
       />
 
       <MergeOrder
@@ -1107,6 +1309,17 @@ export default function OrderSummary({ total, itemCount }) {
         )}
       </div>
 
+      <ReceiptPreviewModal
+        visible={receiptPreviewVisible}
+        onCancel={() => setReceiptPreviewVisible(false)}
+        onConfirm={handleConfirmPreviewPrint}
+        master={currentPrintData?.master || {}}
+        detail={currentPrintData?.detail || []}
+        orderNumber={currentPrintData?.orderNumber || ""}
+        isReprint={true}
+        confirmLoading={confirmPrintLoading}
+      />
+
       <div style={{ display: "none" }}>
         <PrintComponent
           ref={printContent}
@@ -1120,3 +1333,4 @@ export default function OrderSummary({ total, itemCount }) {
     </div>
   );
 }
+

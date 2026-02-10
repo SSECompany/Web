@@ -40,6 +40,7 @@ const ReportExportExcelButton = ({ dataSource = [], selectedDate }) => {
           ck_nt,
           tien_mat,
           tien_ck,
+          cong_no,
           ap_voucher,
         } = item;
 
@@ -49,6 +50,7 @@ const ReportExportExcelButton = ({ dataSource = [], selectedDate }) => {
           acc.totalTienChietKhau += Number(ck_nt) || 0;
           acc.totalTienMat += Number(tien_mat) || 0;
           acc.totalTienCK += Number(tien_ck) || 0;
+          acc.totalCongNo += Number(cong_no) || 0;
         } else if (isVoucherApplied(ap_voucher)) {
           acc.totalApVoucher += 1;
         }
@@ -61,6 +63,7 @@ const ReportExportExcelButton = ({ dataSource = [], selectedDate }) => {
         totalTienChietKhau: 0,
         totalTienMat: 0,
         totalTienCK: 0,
+        totalCongNo: 0,
         totalApVoucher: 0,
       }
     );
@@ -88,6 +91,7 @@ const ReportExportExcelButton = ({ dataSource = [], selectedDate }) => {
         "Tiền chiết khấu": parseNumber(row.ck_nt),
         "Tiền mặt": parseNumber(row.tien_mat),
         "Tiền CK": parseNumber(row.tien_ck),
+        "Công nợ": parseNumber(row.cong_no),
         "Áp voucher": isVoucherApplied(row.ap_voucher) ? "x" : "",
       };
     });
@@ -107,6 +111,7 @@ const ReportExportExcelButton = ({ dataSource = [], selectedDate }) => {
       "Tiền chiết khấu": totals.totalTienChietKhau,
       "Tiền mặt": totals.totalTienMat,
       "Tiền CK": totals.totalTienCK,
+      "Công nợ": totals.totalCongNo,
       "Áp voucher": totals.totalApVoucher,
     });
 
@@ -133,6 +138,7 @@ const ReportExportExcelButton = ({ dataSource = [], selectedDate }) => {
       "Tiền chiết khấu",
       "Tiền mặt",
       "Tiền CK",
+      "Công nợ",
     ];
     moneyColumns.forEach((header) => {
       const colIndex = columnKeys.indexOf(header);

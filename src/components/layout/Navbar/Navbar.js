@@ -74,7 +74,10 @@ const Navbar = () => {
         <div className="navbar_logo_functions">
           <div className="navbar_search_function">
             <h2 onClick={handleSetBackground} className="default_header_label">
-              PHENIKAA
+              <img
+                src="/logo-phenikaa-uni-02.png"
+                alt="Phenikaa University"
+              />
             </h2>
           </div>
         </div>

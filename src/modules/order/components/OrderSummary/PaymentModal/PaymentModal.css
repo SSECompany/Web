@@ -206,3 +206,25 @@
 .qr-info-line:hover {
   color: #1890ff;
 }
+
+.order-status-options {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.order-status-checkbox {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.order-status-checkbox .ant-checkbox-inner {
+  width: 18px;
+  height: 18px;
+}
+
+.order-status-checkbox .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}

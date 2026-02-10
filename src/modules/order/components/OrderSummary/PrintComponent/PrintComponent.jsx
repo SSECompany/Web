@@ -85,49 +85,46 @@ const PrintComponent = forwardRef(
               .toString()
               .padStart(2, "0")}`}
           </span>
+          {(() => {
+            const soThe = master?.so_the?.trim() || master?.ma_ban?.trim() || "";
+            const hienThi = soThe && soThe.toUpperCase() !== "POS" ? soThe : "";
+            return hienThi ? (
+              <>
+                <br />
+                <span style={{ fontSize: "14px", fontWeight: "bold", color: "#000" }}>
+                  Số thẻ: {hienThi}
+                </span>
+              </>
+            ) : null;
+          })()}
         </div>
+        {/* Thông tin khách hàng */}
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Tên khách:</strong>{" "}
-          {master?.ong_ba && master.ong_ba.trim()
-            ? master.ong_ba
-            : "Khách hàng căng tin"}
+          {(master?.ong_ba && master.ong_ba.trim()) ||
+            (master?.ten_kh && master.ten_kh.trim()) ||
+            "Khách hàng căng tin"}
         </div>
         {master?.ma_so_thue_kh && master.ma_so_thue_kh.trim() && (
           <div style={{ color: "#000", marginBottom: "6px" }}>
             <strong>Mã số thuế:</strong> {master.ma_so_thue_kh}
           </div>
         )}
-        {master?.ten_dv_kh && master.ten_dv_kh.trim() && (
-          <div style={{ color: "#000", marginBottom: "6px" }}>
-            <strong>Tên công ty:</strong> {master.ten_dv_kh}
-          </div>
-        )}
-        <div style={{ paddingBottom: "6px" }}>
-          <div style={{ color: "#000" }}>
-            <strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}
-          </div>
-        </div>
-        <div style={{ color: "#000", marginBottom: "6px" }}>
-          <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
-        </div>
-        {(Number(master?.chuyen_khoan || 0) > 0 ||
-          Number(master?.tien_mat || 0) > 0) && (
-          <div
-            style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}
-          >
-            {Number(master?.chuyen_khoan || 0) > 0 && (
+        
+        {/* Chi tiết thanh toán — chỉ hiển thị khi đa phương thức */}
+        {!(master?.xuat_hoa_don_yn === "1" || master?.kh_ts_yn === "1") &&
+          Number(master?.chuyen_khoan || 0) > 0 &&
+          Number(master?.tien_mat || 0) > 0 && (
+            <div
+              style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}
+            >
               <div>• Chuyển khoản: {formatNumber(master.chuyen_khoan)}đ</div>
-            )}
-            {Number(master?.tien_mat || 0) > 0 && (
               <div>• Tiền mặt: {formatNumber(master.tien_mat)}đ</div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        {/* Thông tin đơn hàng */}
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Số CT:</strong> {orderNumber || "Chưa có"}
-        </div>
-        <div style={{ color: "#000", marginBottom: "6px" }}>
-          <strong>Nhân viên:</strong> {fullName}
         </div>
 
         <table
@@ -232,7 +229,11 @@ const PrintComponent = forwardRef(
                           color: "#000",
                         }}
                       >
-                        {formatNumber(item?.thanh_tien_print || 0)}đ
+                        {formatNumber(
+                          item?.thanh_tien_print || 
+                          item?.thanh_tien || 
+                          (Number(item?.don_gia || 0) * Number(item?.so_luong || 1))
+                        )}đ
                       </td>
                     </tr>
 
@@ -280,7 +281,11 @@ const PrintComponent = forwardRef(
                             color: "#000",
                           }}
                         >
-                          {formatNumber(sub?.thanh_tien_print || 0)}đ
+                          {formatNumber(
+                            sub?.thanh_tien_print || 
+                            sub?.thanh_tien || 
+                            (Number(sub?.don_gia || 0) * Number(sub?.so_luong || 1))
+                          )}đ
                         </td>
                       </tr>
                     ))}

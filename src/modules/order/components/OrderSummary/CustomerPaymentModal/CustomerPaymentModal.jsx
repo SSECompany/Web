@@ -1,4 +1,4 @@
-import { Button, Input, Modal } from "antd";
+import { Button, Input, Modal, Select, message } from "antd";
 import { useEffect, useState } from "react";
 import { formatCurrency } from "../../../../../app/hook/dataFormatHelper";
 import "./CustomerPaymentModal.css";
@@ -9,7 +9,9 @@ const CustomerPaymentModal = ({
   onConfirm,
   total,
   customerInfo = {},
+  initialSelectedStaff,
   isSubmitting = false,
+  salesStaff = [],
 }) => {
   const [localCustomerInfo, setLocalCustomerInfo] = useState({
     ong_ba: "",
@@ -18,6 +20,7 @@ const CustomerPaymentModal = ({
   const [errors, setErrors] = useState({
     so_dt: "",
   });
+  const [selectedStaff, setSelectedStaff] = useState(null);
 
   useEffect(() => {
     if (visible) {
@@ -28,8 +31,20 @@ const CustomerPaymentModal = ({
       setErrors({
         so_dt: "",
       });
+      if (initialSelectedStaff && salesStaff.length > 0) {
+        const staff =
+          salesStaff.find(
+            (x) =>
+              x.ma_nvbh === initialSelectedStaff ||
+              x.value === initialSelectedStaff ||
+              x.id === initialSelectedStaff
+          ) || null;
+        setSelectedStaff(staff);
+      } else {
+        setSelectedStaff(null);
+      }
     }
-  }, [visible, customerInfo]);
+  }, [visible, customerInfo, initialSelectedStaff, salesStaff]);
 
   const validatePhoneNumber = (value) => {
     if (!value) return "Số điện thoại là bắt buộc";
@@ -61,14 +76,16 @@ const CustomerPaymentModal = ({
   };
 
   const handleClose = () => {
-    setLocalCustomerInfo({
-      ong_ba: "",
-      so_dt: "",
+    onClose({
+      fromCustomerModal: true,
+      customerInfo: localCustomerInfo,
+      selectedStaff: selectedStaff
+        ? {
+            ma_nvbh: selectedStaff.ma_nvbh || selectedStaff.value || selectedStaff.id,
+            ten_nvbh: selectedStaff.ten_nvbh || selectedStaff.label || selectedStaff.name,
+          }
+        : null,
     });
-    setErrors({
-      so_dt: "",
-    });
-    onClose();
   };
 
   const handleConfirm = () => {
@@ -88,6 +105,12 @@ const CustomerPaymentModal = ({
       return;
     }
 
+    // Bắt buộc chọn nhân viên nếu có danh sách
+    if (salesStaff.length > 0 && !selectedStaff) {
+      message.error("Vui lòng chọn nhân viên bán hàng");
+      return;
+    }
+
     onConfirm(localCustomerInfo);
   };
 
@@ -101,6 +124,40 @@ const CustomerPaymentModal = ({
       width={500}
     >
       <div className="customer-payment-content">
+        {/* Nhân viên */}
+        {salesStaff && salesStaff.length > 0 && (
+          <div className="customer-info-section" style={{ marginBottom: 12 }}>
+            <h4 className="section-title">Nhân viên</h4>
+            <Select
+              style={{ width: "100%" }}
+              placeholder="Chọn nhân viên"
+              value={
+                selectedStaff
+                  ? selectedStaff.ma_nvbh ||
+                    selectedStaff.value ||
+                    selectedStaff.id
+                  : undefined
+              }
+              onChange={(value) => {
+                const staff =
+                  salesStaff.find(
+                    (x) =>
+                      x.ma_nvbh === value ||
+                      x.value === value ||
+                      x.id === value
+                  ) || null;
+                setSelectedStaff(staff);
+              }}
+              options={salesStaff.map((item) => ({
+                value:
+                  item.ma_nvbh || item.value || item.id,
+                label:
+                  item.ten_nvbh || item.label || item.name,
+              }))}
+            />
+          </div>
+        )}
+
         {/* Thông tin khách hàng */}
         <div className="customer-info-section">
           <h4 className="section-title">Thông tin khách hàng</h4>

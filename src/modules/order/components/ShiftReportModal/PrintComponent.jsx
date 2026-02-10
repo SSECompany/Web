@@ -22,6 +22,16 @@ const ShiftReportPrintComponent = forwardRef(
     const cash = Number(summaryData?.t_tien_mat) || 0;
     const transfer = Number(summaryData?.tien_ck) || 0;
     const voucherCount = Number(summaryData?.t_ap_voucher) || 0;
+    const congNoKhTs = Number(summaryData?.cong_no_kh_ts) || 0;
+    const congNoXuatHd = Number(summaryData?.cong_no_xuat_hd) || 0;
+
+    // Tổng cộng doanh thu theo nhóm món
+    const totalCategoryRevenue = Array.isArray(categoryData)
+      ? categoryData.reduce(
+          (sum, item) => sum + (Number(item.t_tt) || 0),
+          0
+        )
+      : 0;
 
     return (
       <div
@@ -81,6 +91,26 @@ const ShiftReportPrintComponent = forwardRef(
         </div>
         <div style={{ color: "#000", marginBottom: "4px" }}>
           <strong>Áp dụng voucher:</strong> {voucherCount}
+        </div>
+
+        <div
+          style={{
+            color: "#000",
+            marginTop: "8px",
+            marginBottom: "4px",
+            fontWeight: "bold",
+            textTransform: "uppercase",
+          }}
+        >
+          Công nợ
+        </div>
+        <div style={{ color: "#000", marginLeft: "12px", marginBottom: "4px" }}>
+          <strong>- Công nợ KH trả sau:</strong>{" "}
+          {formatNumber(congNoKhTs)}
+        </div>
+        <div style={{ color: "#000", marginLeft: "12px", marginBottom: "4px" }}>
+          <strong>- Công nợ xuất hóa đơn:</strong>{" "}
+          {formatNumber(congNoXuatHd)}
         </div>
 
         <div
@@ -206,6 +236,18 @@ const ShiftReportPrintComponent = forwardRef(
             )}
           </tbody>
         </table>
+
+        {/* Tổng cộng doanh thu (theo bảng nhóm món) */}
+        <div
+          style={{
+            marginTop: "4px",
+            textAlign: "right",
+            fontWeight: "bold",
+            color: "#000",
+          }}
+        >
+          Tổng cộng doanh thu: {formatNumber(totalCategoryRevenue)}
+        </div>
       </div>
     );
   }

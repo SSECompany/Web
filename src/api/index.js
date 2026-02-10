@@ -1,9 +1,14 @@
 import https from "../utils/https";
 import jwt from "../utils/jwt";
 import simpleLogger from "../utils/simpleLogger";
+import axios from "axios";
+import { APP_CONFIG } from "../utils/constants";
 
 // Use simple logger
 const logger = simpleLogger;
+
+// Tắt tạm API Print/print-order (chưa sử dụng). Bật lại: đổi thành false
+const PRINT_ORDER_API_DISABLED = true;
 
 export const refreshToken = async () => {
   return await https
@@ -87,6 +92,11 @@ export const addDataMultiObjectApi = async (payload) => {
 };
 
 export const printOrderApi = async (sttRec, userId) => {
+  // API Print/print-order tắt tạm - không gọi server, trả về [] để luồng gọi vẫn chạy
+  if (PRINT_ORDER_API_DISABLED) {
+    return [];
+  }
+
   const token = getCachedToken();
   const startTime = Date.now();
 
@@ -823,3 +833,50 @@ export const apiConfirmPrepaidStudentOrder = async ({
     userId,
   });
 };
+
+// API tra cứu thông tin khách hàng theo mã số thuế
+export const apiGetCustomerByTaxCode = async (ma_so_thue) => {
+  try {
+    const token = localStorage.getItem("access_token");
+    const taxApiUrl = APP_CONFIG.taxApiUrl ;
+    const response = await axios.get(
+      `${taxApiUrl}Tax/Lookup`,
+      {
+        params: {
+          taxCode: ma_so_thue || "",
+        },
+        headers: {
+          "Content-Type": "application/json",
+          accept: "*/*",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      }
+    );
+
+    // Kiểm tra response structure mới
+    const responseData = response?.data || {};
+    
+    // Kiểm tra nếu API trả về lỗi
+    if (!responseData.isSucceeded) {
+      throw new Error(responseData.message || "Tra cứu mã số thuế thất bại");
+    }
+
+    // Lấy dữ liệu từ response.data.data
+    const data = responseData?.data || {};
+
+    // Chuẩn hoá dữ liệu trả về để FE dùng thống nhất
+    return {
+      ...data,
+      // Chuẩn hoá tên công ty về field ten_dv_kh để binding vào "Tên công ty"
+      ten_dv_kh: data.ten_dv_kh || data.ten_cty || "",
+      // Chuẩn hoá mã số thuế
+      ma_so_thue_kh: data.ma_so_thue || data.masothue_id || "",
+      // Chuẩn hoá địa chỉ
+      dia_chi: data.dia_chi || data.diachi || "",
+    };
+  } catch (error) {
+    console.error("Error calling apiGetCustomerByTaxCode:", error);
+    throw error;
+  }
+};
+

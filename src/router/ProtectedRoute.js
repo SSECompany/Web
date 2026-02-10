@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { multipleTablePutApi } from "../api";
 import jwt from "../utils/jwt";
+import { setListOrderTable } from "../modules/order/store/order";
 
 const ProtectedRoute = () => {
+  const dispatch = useDispatch();
   const location = useLocation();
   const { unitId, id } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
@@ -16,7 +18,24 @@ const ProtectedRoute = () => {
   const [loadingRoom, setLoadingRoom] = useState(true);
   const [errorRoom, setErrorRoom] = useState(null);
 
+  const needsTableValidation = /^\/order\/[\w-]+(\?ma_qr=[\w-]+)?$/.test(
+    location.pathname
+  );
+  const tablesFetchedKeyRef = useRef(null);
+
   useEffect(() => {
+    if (!needsTableValidation) {
+      setLoading(false);
+      return;
+    }
+    if (!unitId || !id) {
+      setLoading(false);
+      return;
+    }
+    const key = `tables-${unitId}-${id}`;
+    if (tablesFetchedKeyRef.current === key) return;
+    tablesFetchedKeyRef.current = key;
+
     const fetchTableData = async () => {
       try {
         const res = await multipleTablePutApi({
@@ -30,15 +49,22 @@ const ProtectedRoute = () => {
           },
           data: {},
         });
-        setTableData(res?.listObject?.[0] || []);
+        const raw = res?.listObject?.[0] || [];
+        setTableData(raw);
+        const tableDataForStore = raw.map((item) => ({
+          id: item.value,
+          name: item.label,
+        }));
+        dispatch(setListOrderTable(tableDataForStore));
       } catch (err) {
         setError(err);
+        tablesFetchedKeyRef.current = null;
       } finally {
         setLoading(false);
       }
     };
     fetchTableData();
-  }, [unitId, id]);
+  }, [unitId, id, dispatch, needsTableValidation]);
 
   useEffect(() => {
     const fetchRoomData = async () => {
