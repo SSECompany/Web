@@ -1,6 +1,9 @@
 import { message } from "antd";
 import { multipleTablePutApi } from "../../../../../api";
 
+// Thời gian hiển thị thông báo lỗi khi lưu/hoàn thành phiếu nhặt hàng (giây)
+const ERROR_MESSAGE_DURATION = 4;
+
 // API để lấy danh sách phiếu nhặt hàng
 export const fetchPhieuNhatHangList = async (params) => {
   const token = localStorage.getItem("access_token");
@@ -187,7 +190,8 @@ export const updatePhieuNhatHang = async (
       return { success: true };
     } else {
       message.error(
-        response?.responseModel?.message || response?.message || "Có lỗi xảy ra"
+        response?.responseModel?.message || response?.message || "Có lỗi xảy ra",
+        ERROR_MESSAGE_DURATION
       );
       return { success: false };
     }
@@ -195,11 +199,11 @@ export const updatePhieuNhatHang = async (
     console.error("Error updating phieu nhat hang:", error);
 
     if (error.response?.data?.responseModel?.message) {
-      message.error(error.response.data.responseModel.message);
+      message.error(error.response.data.responseModel.message, ERROR_MESSAGE_DURATION);
     } else if (error.response?.data?.message) {
-      message.error(error.response.data.message);
+      message.error(error.response.data.message, ERROR_MESSAGE_DURATION);
     } else {
-      message.error("Vui lòng kiểm tra lại thông tin");
+      message.error("Vui lòng kiểm tra lại thông tin", ERROR_MESSAGE_DURATION);
     }
     return { success: false };
   }

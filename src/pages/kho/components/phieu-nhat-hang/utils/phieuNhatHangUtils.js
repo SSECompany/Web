@@ -118,18 +118,19 @@ export const validateDuplicateMaLo = (dataSource = []) => {
 
 /**
  * Validate điều kiện hoàn thành:
- * - Dòng nào có tổng nhặt (> 0) thì bắt buộc phải có mã lô
+ * - Dòng nào có tổng nhặt (> 0) và lo_yn = true thì bắt buộc phải có mã lô; lo_yn = false thì mã lô tùy chọn
  * - Tổng nhặt nhóm phải BẰNG số lượng đơn (không thiếu, không dư)
  */
 export const validateCompletionRules = (dataSource = []) => {
   const errors = [];
 
-  // 1) Kiểm tra mã lô cho mọi dòng có picked > 0
+  // 1) Kiểm tra mã lô: chỉ bắt buộc khi lo_yn = true và dòng có picked > 0
   const missingLotRows = [];
   dataSource.forEach((row, idx) => {
     const picked = parseFloat(row.tong_nhat || 0) || 0;
     const lot = (row.ma_lo || "").toString().trim();
-    if (picked > 0 && !lot) {
+    const loYn = row.lo_yn === true || row.lo_yn === "1" || row.lo_yn === 1;
+    if (picked > 0 && loYn && !lot) {
       const maHang = row.maHang || row.ma_vt || "";
       const ten = row.ten_mat_hang || row.ten_vt || "";
       const itemInfo =

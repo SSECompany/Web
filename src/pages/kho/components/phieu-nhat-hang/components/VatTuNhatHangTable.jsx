@@ -50,7 +50,6 @@ const VatTuNhatHangTable = ({
         const isInvalid =
           record._invalid_missing_lot ||
           record._invalid_sum_mismatch ||
-          record._invalid_duplicate_ma_lo ||
           record.rowExceededSlDon;
         return {
           ...(isInvalid

@@ -411,6 +411,11 @@ const ProcessPhieuGiaoHang = () => {
       message.warning("Vui lòng chọn trạng thái");
       return;
     }
+    // Chỉ cho phép chọn Bàn giao ĐVVC (5) khi đã qua bước Đã tiếp nhận (4)
+    if (selectedStatus === "5" && currentStatus !== "4") {
+      message.warning("Vui lòng cập nhật trạng thái đơn hàng lên \"Đã tiếp nhận\" trước khi chọn Bàn giao ĐVVC");
+      return;
+    }
     const action = getActionFromStatus(selectedStatus);
     if (action) {
       handleAction(action);
@@ -870,7 +875,7 @@ const ProcessPhieuGiaoHang = () => {
             <Select.Option value="2">Lưu kho</Select.Option>
             <Select.Option value="3">Xuất hàng</Select.Option>
             <Select.Option value="4">Đã tiếp nhận</Select.Option>
-            <Select.Option value="5">Bàn giao ĐVVC</Select.Option>
+            <Select.Option value="5" disabled={currentStatus !== "4"}>Bàn giao ĐVVC</Select.Option>
             <Select.Option value="6">Hoàn thành</Select.Option>
             <Select.Option value="7">Thất bại</Select.Option>
           </Select>

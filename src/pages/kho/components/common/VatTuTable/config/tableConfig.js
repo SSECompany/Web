@@ -12,6 +12,7 @@ export const phieuNhapKhoConfig = {
   soLuongCheatTitle: "Số lượng cheat",
   showSoLuongCheat: true,
   showMaKho: true,
+  showThaoTac: false,
 };
 
 // Cấu hình cho phiếu nhặt hàng
@@ -35,7 +36,8 @@ export const phieuNhatHangConfig = {
   ghiChuField: "ghi_chu",
   ghiChuTitle: "Ghi chú nhặt", 
   showGhiChuKD: true,
-  ghiChuKDField: "ghi_chu_dh",  showSoLuongTon: false,
+  ghiChuKDField: "ghi_chu_dh",
+  showSoLuongTon: false,
   soLuongTonField: "so_luong_ton",
   showTonKh: false,
   tonKhField: "ton_kh",
@@ -49,6 +51,7 @@ export const phieuNhatHangConfig = {
   tonDeNghiTongNhatGhiChuOrder: true,
   placeGhiChuAtEnd: true,
   useAddButtonInsteadOfDelete: true,
+  showThaoTac: false,
 };
 
 // Cấu hình cho phiếu xuất kho
@@ -61,6 +64,7 @@ export const phieuXuatKhoConfig = {
   soLuongCheatTitle: "Số lượng cheat",
   showSoLuongCheat: true,
   showMaKho: true,
+  showThaoTac: false,
 };
 
 // Cấu hình cho phiếu xuất điều chuyển
@@ -73,6 +77,7 @@ export const phieuXuatDieuChuyenConfig = {
   soLuongCheatTitle: "Số lượng cheat",
   showSoLuongCheat: true,
   showMaKho: false, // Không có cột mã kho
+  showThaoTac: false,
 };
 
 // Cấu hình cho phiếu xuất kho bán hàng
@@ -85,6 +90,7 @@ export const phieuXuatKhoBanHangConfig = {
   soLuongCheatTitle: "Số lượng xuất",
   showSoLuongCheat: true,
   showMaKho: false, // Không có cột mã kho
+  showThaoTac: false,
 };
 
 /**

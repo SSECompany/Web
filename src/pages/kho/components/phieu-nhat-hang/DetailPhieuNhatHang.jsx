@@ -6,7 +6,7 @@ import {
 } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { getLoItem, getViTriByKho } from "../../../../api";
@@ -29,11 +29,13 @@ import {
   buildPhieuNhatHangPayload,
   deletePhieuNhatHangDynamic,
   validateDataSource,
-  validateDuplicateMaLo,
   validateTongNhat,
   validateCompletionRules,
   computeGroupState,
 } from "./utils/phieuNhatHangUtils";
+
+// Thời gian hiển thị thông báo lỗi khi lưu/hoàn thành (giây)
+const ERROR_MESSAGE_DURATION = 4;
 
 const { Title } = Typography;
 
@@ -103,12 +105,6 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
     handleAddItem,
     handleDvtChange,
   } = useVatTuManagerNhatHang();
-
-  // Có trùng (mã vật tư + mã lô) => disable nút Lưu và Hoàn thành
-  const hasDuplicateMaLo = useMemo(
-    () => !validateDuplicateMaLo(dataSource).isValid,
-    [dataSource]
-  );
 
   // Phân trang vật tư - sử dụng API giống POS
   const fetchVatTuListPaging = useCallback(
@@ -225,6 +221,10 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 tong_nhat: Math.round(tongNhat * 1000) / 1000, // Giữ nguyên giá trị từ API
                 ghi_chu: item.ghi_chu || "",
                 ghi_chu_dh: item.ghi_chu_dh || "", // map cho cột Ghi chú KD
+                // Theo dõi lô: từ dòng hoặc master; true = bắt buộc mã lô
+                lo_yn: item.lo_yn !== undefined && item.lo_yn !== null
+                  ? (item.lo_yn === true || item.lo_yn === "1" || item.lo_yn === 1)
+                  : (phieuInfo.lo_yn === true || phieuInfo.lo_yn === "1" || phieuInfo.lo_yn === 1),
               };
             });
 
@@ -649,45 +649,12 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         const errMsg = hasPerRowError
           ? "SL nhặt không được vượt quá SL đơn của từng dòng (mẹ vs mẹ, con vs con)."
           : "Tổng nhặt không được vượt quá số lượng đơn.";
-        message.error(`${errMsg} Vui lòng kiểm tra lại.`);
+        message.error(`${errMsg} Vui lòng kiểm tra lại.`, ERROR_MESSAGE_DURATION);
         setLoading(false);
         return;
       }
 
-      // Validate không trùng (mã vật tư + mã lô) — chặn Lưu; đánh dấu đỏ và clear mã lô các dòng trùng
-      const duplicateMaLoCheck = validateDuplicateMaLo(dataSource);
-      if (!duplicateMaLoCheck.isValid) {
-        const duplicatePairs = new Set(
-          (duplicateMaLoCheck.details || []).map((d) => `${d.ma_vt}\u0001${d.ma_lo}`)
-        );
-        setDataSource((prev) =>
-          prev.map((row) => {
-            const maVt = String(row.ma_vt ?? row.maHang ?? "").trim();
-            const maLo = String(row.ma_lo ?? "").trim();
-            const key = `${maVt}\u0001${maLo}`;
-            if (duplicatePairs.has(key)) {
-              return {
-                ...row,
-                _invalid_duplicate_ma_lo: true,
-                ma_lo: "",
-                _ma_lo_clear_version: (row._ma_lo_clear_version || 0) + 1,
-              };
-            }
-            return { ...row, _invalid_duplicate_ma_lo: false };
-          })
-        );
-        const firstDuplicateKey = dataSource.find((r) => {
-          const maVt = String(r.ma_vt ?? r.maHang ?? "").trim();
-          const maLo = String(r.ma_lo ?? "").trim();
-          return duplicatePairs.has(`${maVt}\u0001${maLo}`);
-        })?.key;
-        if (firstDuplicateKey) setFocusInvalidRowKey(firstDuplicateKey);
-        message.error(
-          "Trùng mã vật tư và mã lô. Đã xóa mã lô trùng. Vui lòng chọn lại mã lô."
-        );
-        setLoading(false);
-        return;
-      }
+      // Lưu: không check mã lô; chỉ Hoàn thành mới bắt buộc mã lô (khi lo_yn = true)
 
       // Set status = 1 cho nút Lưu
       const updatedValues = {
@@ -707,17 +674,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       );
 
       if (!payload) {
-        message.error("Không thể tạo payload");
-        setLoading(false);
-        return;
-      }
-
-      // Rào chặn cuối: không gửi API nếu vẫn trùng (ma_vt + ma_lo)
-      const finalDuplicateCheck = validateDuplicateMaLo(dataSource);
-      if (!finalDuplicateCheck.isValid) {
-        message.error(
-          "Trùng mã vật tư và mã lô. Không được phép lưu."
-        );
+        message.error("Không thể tạo payload", ERROR_MESSAGE_DURATION);
         setLoading(false);
         return;
       }
@@ -737,7 +694,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       }
     } catch (error) {
       console.error("Submit failed:", error);
-      message.error("Có lỗi xảy ra khi cập nhật phiếu");
+      message.error("Có lỗi xảy ra khi cập nhật phiếu", ERROR_MESSAGE_DURATION);
       setLoading(false);
     }
   };
@@ -776,42 +733,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             const errMsg = hasPerRowError
               ? "SL nhặt không được vượt quá SL đơn của từng dòng (mẹ vs mẹ, con vs con)."
               : "Tổng nhặt không được vượt quá số lượng đơn.";
-            message.error(`${errMsg} Vui lòng kiểm tra lại.`);
-            setLoading(false);
-            return;
-          }
-
-          // Validate không trùng (mã vật tư + mã lô) — chặn Hoàn thành; đánh dấu đỏ và clear mã lô các dòng trùng
-          const duplicateMaLoCheck = validateDuplicateMaLo(dataSource);
-          if (!duplicateMaLoCheck.isValid) {
-            const duplicatePairs = new Set(
-              (duplicateMaLoCheck.details || []).map((d) => `${d.ma_vt}\u0001${d.ma_lo}`)
-            );
-            setDataSource((prev) =>
-              prev.map((row) => {
-                const maVt = String(row.ma_vt ?? row.maHang ?? "").trim();
-                const maLo = String(row.ma_lo ?? "").trim();
-                const key = `${maVt}\u0001${maLo}`;
-                if (duplicatePairs.has(key)) {
-                  return {
-                    ...row,
-                    _invalid_duplicate_ma_lo: true,
-                    ma_lo: "",
-                    _ma_lo_clear_version: (row._ma_lo_clear_version || 0) + 1,
-                  };
-                }
-                return { ...row, _invalid_duplicate_ma_lo: false };
-              })
-            );
-            const firstDuplicateKey = dataSource.find((r) => {
-              const maVt = String(r.ma_vt ?? r.maHang ?? "").trim();
-              const maLo = String(r.ma_lo ?? "").trim();
-              return duplicatePairs.has(`${maVt}\u0001${maLo}`);
-            })?.key;
-            if (firstDuplicateKey) setFocusInvalidRowKey(firstDuplicateKey);
-            message.error(
-              "Trùng mã vật tư và mã lô. Đã xóa mã lô trùng. Vui lòng chọn lại mã lô."
-            );
+            message.error(`${errMsg} Vui lòng kiểm tra lại.`, ERROR_MESSAGE_DURATION);
             setLoading(false);
             return;
           }
@@ -830,7 +752,8 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 updated = updated.map((row) => {
                   const picked = parseFloat(row.tong_nhat || 0) || 0;
                   const lot = (row.ma_lo || "").toString().trim();
-                  return picked > 0 && !lot ? { ...row, _invalid_missing_lot: true } : row;
+                  const loYn = row.lo_yn === true || row.lo_yn === "1" || row.lo_yn === 1;
+                  return picked > 0 && loYn && !lot ? { ...row, _invalid_missing_lot: true } : row;
                 });
               }
 
@@ -863,7 +786,11 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                     })()
                   : null;
             if (firstInvalidKey) setFocusInvalidRowKey(firstInvalidKey);
-            message.error("Có dòng chưa hợp lệ. Vui lòng kiểm tra các dòng màu đỏ.");
+            const errMsg =
+              completionCheck.type === "missingLot"
+                ? "Có dòng (theo dõi lô) chưa nhập mã lô. Vui lòng nhập mã lô."
+                : "Có dòng chưa hợp lệ. Vui lòng kiểm tra các dòng màu đỏ.";
+            message.error(errMsg, ERROR_MESSAGE_DURATION);
             setLoading(false);
             return;
           }
@@ -886,17 +813,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           );
 
           if (!payload) {
-            message.error("Không thể tạo payload");
-            setLoading(false);
-            return;
-          }
-
-          // Rào chặn cuối: không gửi API nếu vẫn trùng (ma_vt + ma_lo)
-          const finalDuplicateCheck = validateDuplicateMaLo(dataSource);
-          if (!finalDuplicateCheck.isValid) {
-            message.error(
-              "Trùng mã vật tư và mã lô. Không được phép hoàn thành."
-            );
+            message.error("Không thể tạo payload", ERROR_MESSAGE_DURATION);
             setLoading(false);
             return;
           }
@@ -922,7 +839,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           }
         } catch (error) {
           console.error("Complete failed:", error);
-          message.error("Có lỗi xảy ra khi hoàn thành phiếu");
+          message.error("Có lỗi xảy ra khi hoàn thành phiếu", ERROR_MESSAGE_DURATION);
           setLoading(false);
         }
       },
@@ -1073,8 +990,6 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                   type="primary"
                   onClick={handleSubmit}
                   loading={loading}
-                  disabled={hasDuplicateMaLo}
-                  title={hasDuplicateMaLo ? "Trùng mã vật tư và mã lô. Vui lòng kiểm tra lại." : undefined}
                 >
                   Lưu
                 </Button>
@@ -1082,8 +997,6 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                   type="primary"
                   onClick={handleComplete}
                   loading={loading}
-                  disabled={hasDuplicateMaLo}
-                  title={hasDuplicateMaLo ? "Trùng mã vật tư và mã lô. Vui lòng kiểm tra lại." : undefined}
                   style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
                 >
                   Hoàn thành

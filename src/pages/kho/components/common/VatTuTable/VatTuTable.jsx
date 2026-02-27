@@ -984,12 +984,13 @@ const VatTuTable = ({
       baseColumns.push(ghiChuColumn);
     }
 
-    // Thêm cột thao tác
-    baseColumns.push({
-      title: "Thao tác",
-      key: "action",
-      width: columnConfig.useAddButtonInsteadOfDelete ? 120 : 80, // Tăng width nếu có cả nút xóa và nút thêm
-      align: "center",
+    // Thêm cột thao tác (chỉ khi không bị ẩn)
+    if (columnConfig.showThaoTac !== false) {
+      baseColumns.push({
+        title: "Thao tác",
+        key: "action",
+        width: columnConfig.useAddButtonInsteadOfDelete ? 120 : 80, // Tăng width nếu có cả nút xóa và nút thêm
+        align: "center",
       render: (_, record, index) => {
         if (columnConfig.useAddButtonInsteadOfDelete) {
           // Dòng cha: hiển thị cả nút xóa và nút thêm dòng con
@@ -1052,7 +1053,8 @@ const VatTuTable = ({
           />
         );
       },
-    });
+      });
+    }
 
     return baseColumns;
   }, [

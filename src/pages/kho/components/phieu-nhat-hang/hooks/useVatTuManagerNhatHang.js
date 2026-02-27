@@ -73,6 +73,9 @@ export const useVatTuManagerNhatHang = () => {
         // Ban đầu tong_nhat = 0 (không tự động điền bằng số lượng đơn nữa)
         tong_nhat: parseFloat(item.tong_nhat) || 0,
 
+        // Theo dõi lô: true = bắt buộc mã lô khi có tổng nhặt, false = mã lô tùy chọn
+        lo_yn: item.lo_yn === true || item.lo_yn === "1" || item.lo_yn === 1,
+
         // Đánh dấu không phải là item mới thêm
         isNewlyAdded: false,
         _lastUpdated: Date.now(),
@@ -444,6 +447,8 @@ export const useVatTuManagerNhatHang = () => {
             ma_vi_tri: parentMaViTri,
             // Tự động set mã lô từ QR scan nếu có
             ma_lo: maLoStr,
+            // Theo dõi lô: từ API vật tư; true = bắt buộc mã lô, false = tùy chọn
+            lo_yn: vatTuInfo.lo_yn === true || vatTuInfo.lo_yn === "1" || vatTuInfo.lo_yn === 1,
             ma_vv: "",
             ma_nx: "",
             tk_du: "",
@@ -823,48 +828,11 @@ export const useVatTuManagerNhatHang = () => {
         processedValue = value ? String(value).trim() : "";
       }
 
-      // Khi chọn mã lô: nếu trùng (ma_vt + ma_lo) thì clear ô vừa chọn + báo đỏ ô đó + noti
-      if (field === "ma_lo" && processedValue) {
-        const maVt = (record.ma_vt ?? record.maHang ?? "").toString().trim();
-        const otherHasSamePair = prev.some(
-          (r) =>
-            r.key !== record.key &&
-            (r.ma_vt ?? r.maHang ?? "").toString().trim() === maVt &&
-            (r.ma_lo || "").toString().trim() === processedValue
-        );
-        if (otherHasSamePair) {
-          message.error(
-            "Mã vật tư và mã lô này đã tồn tại. Vui lòng chọn mã lô khác."
-          );
-          // Clear mã lô ô vừa chọn và đánh dấu đỏ; tăng _ma_lo_clear_version để Select remount mỗi lần
-          const next = prev.map((item) =>
-            item.key === record.key
-              ? {
-                  ...item,
-                  ma_lo: "",
-                  _invalid_duplicate_ma_lo: true,
-                  _ma_lo_clear_version: (item._ma_lo_clear_version || 0) + 1,
-                  loOptions: item.loOptions || record.loOptions,
-                  viTriOptions: item.viTriOptions || record.viTriOptions,
-                }
-              : item
-          );
-          const groups = computeGroupState(next);
-          return next.map((row) => {
-            const groupKey = row.isChild ? row.parentKey : row.key;
-            const g = groups.get(groupKey);
-            return { ...row, groupExceeded: !!g?.exceeded };
-          });
-        }
-      }
-
       const next = prev.map((item) =>
         item.key === record.key
           ? {
               ...item,
               [field]: processedValue,
-              // Khi sửa mã lô thì bỏ đánh dấu trùng (để bỏ nền đỏ)
-              ...(field === "ma_lo" ? { _invalid_duplicate_ma_lo: false } : {}),
               loOptions: item.loOptions || record.loOptions,
               viTriOptions: item.viTriOptions || record.viTriOptions,
             }
