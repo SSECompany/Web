@@ -102,20 +102,30 @@ function buildVietQR({ account, bankId, amount, content }) {
   return qrString + crcValue;
 }
 
-export default function VietQR({ amount, soChungTu, size = 100 }) {
+export default function VietQR({ amount, soChungTu, size = 100, payload }) {
   const account = process.env.REACT_APP_VIETQR_ACCOUNT;
   const bankId = process.env.REACT_APP_VIETQR_BANK_ID;
 
-  const qrData = buildVietQR({
-    account,
-    bankId,
-    amount,
-    content: soChungTu || "",
-  });
+  // Allow overriding QR payload (EMVCo/VietQR raw string) from caller.
+  // If `payload` is provided, we render it as-is.
+  let qrData = "";
+  try {
+    qrData = payload && String(payload).trim()
+      ? String(payload).trim()
+      : buildVietQR({
+          account,
+          bankId,
+          amount,
+          content: soChungTu || "",
+        });
+  } catch (e) {
+    console.error("Failed to build VietQR payload:", e);
+    qrData = "";
+  }
 
   return (
     <div>
-      <QRCodeCanvas value={qrData} size={size} />
+      <QRCodeCanvas value={qrData || " "} size={size} />
     </div>
   );
 }

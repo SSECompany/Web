@@ -11,6 +11,10 @@ import VietQR from "../../../../../components/common/GenerateQR/VietQR";
 import { apiGetCustomerByTaxCode } from "../../../../../api";
 import "./PaymentModal.css";
 
+// EMVCo/VietQR raw payload (provided by user) – dùng để thay thế QR hiện tại
+const PAYMENT_EMV_PAYLOAD =
+  "00020101021138560010A0000007270126000697041201121090034978650208QRIBFTTA53037045802VN6304C4F0";
+
 const PaymentModal = ({
   visible,
   onClose,
@@ -769,7 +773,8 @@ const PaymentModal = ({
                   gap: 8,
                 }}
               >
-                <VietQR amount={Math.max(0, total)} soChungTu={""} size={200} />
+                {/* Thay QR hiện tại bằng QR sinh từ chuỗi EMV được cung cấp */}
+                <VietQR payload={PAYMENT_EMV_PAYLOAD} size={200} />
                 <div className="qr-info">
                   {accountName?.split(" - ").map((line, index) => (
                     <div key={index} className="qr-info-line">

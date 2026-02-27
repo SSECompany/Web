@@ -26,9 +26,16 @@ const ShiftReportPrintComponent = forwardRef(
     const congNoXuatHd = Number(summaryData?.cong_no_xuat_hd) || 0;
 
     // Tổng cộng doanh thu theo nhóm món
+    // Chỉ tính tổng các dòng detail (systotal === 1), bỏ qua dòng tổng (systotal === 0)
     const totalCategoryRevenue = Array.isArray(categoryData)
       ? categoryData.reduce(
-          (sum, item) => sum + (Number(item.t_tt) || 0),
+          (sum, item) => {
+            // Chỉ cộng các dòng detail (systotal === 1), bỏ qua dòng tổng (systotal === 0)
+            if (item.systotal === 0) {
+              return sum; // Bỏ qua dòng tổng (như QUẦY BAR)
+            }
+            return sum + (Number(item.t_tt) || 0);
+          },
           0
         )
       : 0;
@@ -202,37 +209,44 @@ const ShiftReportPrintComponent = forwardRef(
                 </td>
               </tr>
             ) : (
-              categoryData.map((item, index) => (
-                <tr key={index}>
-                  <td
-                    style={{
-                      border: "1px solid #000",
-                      padding: "2px",
-                      textAlign: "left",
-                    }}
-                  >
-                    {item.ten_nh?.trim() || item.nh_vt1?.trim() || "Khác"}
-                  </td>
-                  <td
-                    style={{
-                      border: "1px solid #000",
-                      padding: "2px",
-                      textAlign: "center",
-                    }}
-                  >
-                    {formatNumber(item.t_so_luong || 0)}
-                  </td>
-                  <td
-                    style={{
-                      border: "1px solid #000",
-                      padding: "2px",
-                      textAlign: "right",
-                    }}
-                  >
-                    {formatNumber(item.t_tt || 0)}
-                  </td>
-                </tr>
-              ))
+              categoryData.map((item, index) => {
+                // Dòng có systotal === 0 là dòng tổng (như QUẦY BAR) - cần in đậm
+                const isTotalRow = item.systotal === 0;
+                return (
+                  <tr key={index}>
+                    <td
+                      style={{
+                        border: "1px solid #000",
+                        padding: "2px",
+                        textAlign: "left",
+                        fontWeight: isTotalRow ? "bold" : "normal",
+                      }}
+                    >
+                      {item.ten_nh?.trim() || item.nh_vt1?.trim() || "Khác"}
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #000",
+                        padding: "2px",
+                        textAlign: "center",
+                        fontWeight: isTotalRow ? "bold" : "normal",
+                      }}
+                    >
+                      {formatNumber(item.t_so_luong || 0)}
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #000",
+                        padding: "2px",
+                        textAlign: "right",
+                        fontWeight: isTotalRow ? "bold" : "normal",
+                      }}
+                    >
+                      {formatNumber(item.t_tt || 0)}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

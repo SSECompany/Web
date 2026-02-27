@@ -164,6 +164,7 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
         name: item.ten_nh?.trim() || item.nh_vt1?.trim() || "Khác",
         quantity: Number(item.t_so_luong) || 0,
         revenue: Number(item.t_tt) || 0,
+        systotal: item.systotal, // Giữ lại thông tin systotal để xác định dòng tổng
       }))
       .sort((a, b) => b.revenue - a.revenue || b.quantity - a.quantity);
   }, [categoryData]);
@@ -208,6 +209,7 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
         ten_truong: group.name,
         so_luong: formatNumber(group.quantity),
         doanh_thu: formatNumber(group.revenue),
+        systotal: group.systotal, // Giữ lại thông tin systotal
       });
 
       // Thêm các món ăn chi tiết trong nhóm (detail rows)
@@ -233,32 +235,35 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
     const { dataIndex } = col;
 
     if (record.type === "group") {
-      // Nhóm món (group row) - hiển thị như header row, in đậm
+      // Dòng có systotal === 0 là dòng tổng (như QUẦY BAR) - cần in đậm
+      const isTotalRow = record.systotal === 0;
+      const cellStyle = isTotalRow ? BOLD_CELL_STYLE : CELL_STYLE;
+      
       if (dataIndex === "stt") {
         return record.stt ? (
-          <div style={{ ...CELL_STYLE, backgroundColor: "#f2f2f2" }}>
-            <strong>{record.stt}</strong>
+          <div style={{ ...cellStyle, backgroundColor: isTotalRow ? "#f2f2f2" : "transparent" }}>
+            {isTotalRow ? <strong>{record.stt}</strong> : record.stt}
           </div>
         ) : null;
       }
       if (dataIndex === "ten_truong") {
         return (
-          <div style={{ ...BOLD_CELL_STYLE, backgroundColor: "#f2f2f2" }}>
-            <strong>{text}</strong>
+          <div style={{ ...cellStyle, backgroundColor: isTotalRow ? "#f2f2f2" : "transparent" }}>
+            {isTotalRow ? <strong>{text}</strong> : text}
           </div>
         );
       }
       if (dataIndex === "so_luong") {
         return (
-          <div style={{ ...BOLD_CELL_STYLE, backgroundColor: "#f2f2f2" }}>
-            <strong>{record.so_luong}</strong>
+          <div style={{ ...cellStyle, backgroundColor: isTotalRow ? "#f2f2f2" : "transparent" }}>
+            {isTotalRow ? <strong>{record.so_luong}</strong> : record.so_luong}
           </div>
         );
       }
       if (dataIndex === "doanh_thu") {
         return (
-          <div style={{ ...BOLD_CELL_STYLE, backgroundColor: "#f2f2f2" }}>
-            <strong>{record.doanh_thu}</strong>
+          <div style={{ ...cellStyle, backgroundColor: isTotalRow ? "#f2f2f2" : "transparent" }}>
+            {isTotalRow ? <strong>{record.doanh_thu}</strong> : record.doanh_thu}
           </div>
         );
       }

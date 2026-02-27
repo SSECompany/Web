@@ -24,6 +24,47 @@ class IminPrinterService {
     this.printerInstance = null;
     this.isSimulationMode = false;
     this.sdkVersion = null; // 'v1.0' hoặc 'v2.0'
+
+    // Mặc định theo iMin JS SDK demo: gửi lệnh trực tiếp, không delay thủ công.
+    this.delays = {
+      text: 0,
+      columns: 0,
+      style: 0,
+      qr: 0,
+      barcode: 0,
+      feed: 0,
+      cut: 0,
+      betweenCopies: 0,
+    };
+  }
+
+  sleep(ms = 0) {
+    if (!ms || ms <= 0) return Promise.resolve();
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Override delays runtime.
+   * @param {object} partial - ví dụ { text: 0, cut: 20 }
+   */
+  setDelays(partial = {}) {
+    this.delays = { ...this.delays, ...(partial || {}) };
+  }
+
+  /**
+   * Giữ mặc định theo iMin JS SDK demo: không chèn delay thủ công theo môi trường.
+   */
+  applyAutoDelays() {
+    this.setDelays({
+      text: 0,
+      columns: 0,
+      style: 0,
+      qr: 0,
+      barcode: 0,
+      feed: 0,
+      cut: 0,
+      betweenCopies: 0,
+    });
   }
 
   /**
@@ -38,19 +79,47 @@ class IminPrinterService {
         // SDK cần URL/address: mặc định 127.0.0.1:8081 (print service trên máy POS)
         this.printerInstance = new window.IminPrinter();
         this.sdkVersion = 'v1.0-js';
-        
+
         // JS SDK cần: 1) connect() WebSocket trước, 2) initPrinter(connectType)
-        try {
-          // Bước 1: Kết nối WebSocket tới print service (chạy trên D4-504, ws://127.0.0.1:8081/websocket)
-          await this.printerInstance.connect();
-          // Bước 2: Khởi tạo máy in - D4-504 dùng USB
-          this.printerInstance.initPrinter('USB');
-          this.isInitialized = true;
-          this.isSimulationMode = false;
-        } catch (initError) {
-          // Trên PC / browser không có print service → WebSocket fail → fallback simulation
-          console.warn('⚠️ Không kết nối được print service:', initError?.message || initError);
-          console.warn('💡 Chạy ở chế độ simulation. Trên D4-504 sẽ kết nối thật (ws://127.0.0.1:8081/websocket)');
+        // Trường hợp POS vừa khởi động, service có thể lên chậm → thử lại vài lần
+        const maxAttempts = 3;
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            // Bước 1: Kết nối WebSocket tới print service (chạy trên D4-504, ws://127.0.0.1:8081/websocket)
+            await this.printerInstance.connect();
+            // Bước 2: Khởi tạo máy in - D4-504 dùng USB
+            this.printerInstance.initPrinter('USB');
+            this.isInitialized = true;
+            this.isSimulationMode = false;
+            this.applyAutoDelays();
+            lastError = null;
+            break;
+          } catch (initError) {
+            lastError = initError;
+            console.warn(
+              `⚠️ Không kết nối được print service (lần ${attempt}/${maxAttempts}):`,
+              initError?.message || initError
+            );
+
+            // Nếu chưa hết số lần thử thì chờ một chút rồi kết nối lại
+            if (attempt < maxAttempts) {
+              // Backoff nhẹ: 500ms, 1000ms...
+              await this.sleep(500 * attempt);
+            }
+          }
+        }
+
+        // Sau khi thử nhiều lần mà vẫn không được → fallback simulation như cũ
+        if (!this.isInitialized) {
+          console.warn(
+            '⚠️ Không thể kết nối print service sau nhiều lần thử:',
+            lastError?.message || lastError
+          );
+          console.warn(
+            '💡 Chạy ở chế độ simulation. Trên D4-504 khi print service sẵn sàng, lần in sau sẽ tự kết nối lại.'
+          );
           this.printerInstance = null;
           this.isSimulationMode = true;
           this.isInitialized = true;
@@ -64,6 +133,7 @@ class IminPrinterService {
         await this.printerInstance.initPrinter();
         this.isInitialized = true;
         this.isSimulationMode = false;
+        this.applyAutoDelays();
       }
       // 3. Thử SDK V1.0 Native (Android 11 và thấp hơn)
       else if (window.IminPrintHelper || window.InnerPrinterManager) {
@@ -78,6 +148,7 @@ class IminPrinterService {
         
         this.isInitialized = true;
         this.isSimulationMode = false;
+        this.applyAutoDelays();
       }
       // 4. Thử qua Android WebView Interface
       else if (window.Android && window.Android.initPrinter) {
@@ -90,6 +161,7 @@ class IminPrinterService {
         
         this.isInitialized = true;
         this.isSimulationMode = false;
+        this.applyAutoDelays();
       }
       // 5. Chế độ simulation
       else {
@@ -152,7 +224,7 @@ class IminPrinterService {
 
     try {
       this.printerInstance.setTextLineSpacing(space);
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await this.sleep(this.delays.style);
       return { success: true };
     } catch (error) {
       console.error('❌ Lỗi set line spacing:', error);
@@ -168,7 +240,7 @@ class IminPrinterService {
     if (!this.isInitialized) return;
     try {
       this.printerInstance.setTextStyle(styleValue);
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await this.sleep(this.delays.style);
     } catch (e) {
       console.warn('setTextStyle:', e);
     }
@@ -177,14 +249,13 @@ class IminPrinterService {
   /**
    * In văn bản với style tùy chỉnh
    * @param {string} text - Nội dung cần in
-   * @param {object} options - Tùy chọn: { fontSize, fontStyle, align, wordWrap }
+   * @param {object} options - Tùy chọn: { fontSize, fontStyle, align }
    */
   async printText(text, options = {}) {
     const {
       fontSize = 24,
       fontStyle = 'normal', // 'normal', 'bold', 'italic', 'boldItalic'
       align = 'left', // 'left', 'center', 'right'
-      wordWrap = true,
     } = options;
 
     if (this.isSimulationMode) {
@@ -204,8 +275,8 @@ class IminPrinterService {
       this.printerInstance.setTextStyle(styleValue);
       const textToPrint = text.endsWith('\n') ? text : text + '\n';
       this.printerInstance.printText(textToPrint);
-      // Delay để WebSocket gửi hết messages
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Delay rất nhỏ (hoặc 0) để tránh mất lệnh trên WebSocket
+      await this.sleep(this.delays.text);
       
       return { success: true };
     } catch (error) {
@@ -237,8 +308,7 @@ class IminPrinterService {
       const size = columns.map(c => c.fontSize || 24);
       const width = 576;
       this.printerInstance.printColumnsText(colTextArr, colWidthArr, colAlignArr, size, width);
-      // Delay nhỏ để đảm bảo WebSocket gửi
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await this.sleep(this.delays.columns);
       
       return { success: true };
     } catch (error) {
@@ -280,8 +350,7 @@ class IminPrinterService {
       // 3. Print QR code (qrStr, alignmentMode)
       const alignValue = align === 'center' ? 1 : align === 'right' ? 2 : 0;
       this.printerInstance.printQrCode(data, alignValue);
-      // Delay để WebSocket gửi
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await this.sleep(this.delays.qr);
       
       return { success: true };
     } catch (error) {
@@ -334,8 +403,7 @@ class IminPrinterService {
       // 4. Print barcode (type, content, alignment)
       const alignValue = align === 'center' ? 1 : align === 'right' ? 2 : 0;
       this.printerInstance.printBarCode(barCodeTypeNum, data, alignValue);
-      // Delay để WebSocket gửi
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await this.sleep(this.delays.barcode);
       
       return { success: true };
     } catch (error) {
@@ -358,9 +426,12 @@ class IminPrinterService {
     }
 
     try {
+      // Tối ưu: nếu units = 0 thì bỏ qua hẳn (tránh tốn thời gian/overhead gọi xuống SDK)
+      if (!units || Number(units) <= 0) {
+        return { success: true };
+      }
       this.printerInstance.printAndFeedPaper(units);
-      // Delay để WebSocket gửi
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await this.sleep(this.delays.feed);
       
       return { success: true };
     } catch (error) {
@@ -383,8 +454,7 @@ class IminPrinterService {
 
     try {
       this.printerInstance.partialCut();
-      // Delay để WebSocket gửi
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await this.sleep(this.delays.cut);
       
       return { success: true };
     } catch (error) {
@@ -411,8 +481,7 @@ class IminPrinterService {
       } else {
         this.printerInstance.partialCut();
       }
-      // Delay để WebSocket gửi
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await this.sleep(this.delays.cut);
       
       return { success: true };
     } catch (error) {
@@ -435,8 +504,7 @@ class IminPrinterService {
 
     try {
       this.printerInstance.openCashBox();
-      // Delay để WebSocket gửi
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await this.sleep(this.delays.feed);
       
       return { success: true };
     } catch (error) {
@@ -459,7 +527,9 @@ class IminPrinterService {
         await this.initPrinter();
       }
 
-      const status = await this.getPrinterStatus('USB');
+      // NOTE: getPrinterStatus() có thể làm chậm (timeout) và hiện không dùng kết quả.
+      // Nếu cần kiểm tra trạng thái thật, hãy bật lại theo nhu cầu.
+      // const status = await this.getPrinterStatus('USB');
 
       // Dòng phân cách full width (80mm ~ 48 ký tự)
       const LINE_FULL_WIDTH = '────────────────────────────────';
@@ -568,8 +638,9 @@ class IminPrinterService {
           if (item?.ghi_chu) {
             await this.printText(`  Ghi chú: ${item.ghi_chu}`, { fontSize: 0, fontStyle: 'italic' });
           }
-          // Khoảng cách giữa các index (giữa các món), không tăng spacing khi 1 món xuống dòng
-          await this.printAndFeedPaper(6);
+          // TỐI ƯU TỐC ĐỘ: giảm feed giữa từng món (feed vật lý thường chậm).
+          // Có thể tăng lên 2-6 nếu bạn muốn tách dòng rõ hơn.
+          await this.printAndFeedPaper(0);
         }
 
         await this.printText(LINE_FULL_WIDTH, { align: 'center' });
@@ -603,7 +674,7 @@ class IminPrinterService {
         await this.partialCut();
 
         if (copy < numberOfCopies) {
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await this.sleep(this.delays.betweenCopies);
         }
       }
 
