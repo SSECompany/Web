@@ -303,7 +303,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
   }, [navigate, stt_rec]);
 
   const handleNew = useCallback(() => {
-    navigate("/kho/xuat-dieu-chuyen/add");
+    navigate("/kho/xuat-dieu-chuyen/them-moi");
   }, [navigate]);
 
   const handleDelete = useCallback(() => {

@@ -8,6 +8,9 @@ import ListPhieuNhatHang from "../pages/kho/components/phieu-nhat-hang/ListPhieu
 import DetailPhieuGiaoHang from "../pages/kho/components/phieu-giao-hang/DetailPhieuGiaoHang";
 import ListPhieuGiaoHang from "../pages/kho/components/phieu-giao-hang/ListPhieuGiaoHang";
 import ProcessPhieuGiaoHang from "../pages/kho/components/phieu-giao-hang/ProcessPhieuGiaoHang";
+import ListPhieuNhapKho from "../pages/kho/components/phieu-nhap-kho/ListPhieuNhapKho";
+import AddPhieuNhapKho from "../pages/kho/components/phieu-nhap-kho/AddPhieuNhapKho";
+import DetailPhieuNhapKho from "../pages/kho/components/phieu-nhap-kho/DetailPhieuNhapKho";
 // Pages
 const Login = lazy(() => import("../pages/Login/Login"));
 // ===== BÁN HÀNG & TRẢ HÀNG IMPORTS DISABLED IN BRANCH 08012026_kho =====
@@ -78,9 +81,11 @@ const protectedChildrenRoutes = [
     path: "kho/giao-hang",
     element: <ListPhieuGiaoHang />,
   },
-
-  // Route kho chính - đặt SAU các route con
-  { label: "Kho", path: "kho", element: <KhoPage /> },
+  {
+    label: "Danh sách phiếu nhập kho",
+    path: "kho/nhap-kho",
+    element: <ListPhieuNhapKho />,
+  },
 
   // Default route - chỉ redirect khi path là "/" (redirect to Kho instead of ban-hang)
   { path: "", element: <Navigate to="kho" replace /> },
@@ -104,6 +109,16 @@ const protectedChildrenRoutes = [
     label: "Chi tiết phiếu giao hàng",
     path: "kho/giao-hang/chi-tiet/:id",
     element: <DetailPhieuGiaoHang />,
+  },
+  {
+    label: "Thêm phiếu nhập kho",
+    path: "kho/nhap-kho/them-moi",
+    element: <AddPhieuNhapKho />,
+  },
+  {
+    label: "Chi tiết phiếu nhập kho",
+    path: "kho/nhap-kho/chi-tiet/:id",
+    element: <DetailPhieuNhapKho />,
   },
   {
     label: "Xử lý phiếu giao hàng",
@@ -181,6 +196,8 @@ const protectedChildrenRoutes = [
     path: "bao-cao/tong-hop-nhap-xuat-ton",
     element: <TongHopNhapXuatTon />,
   },
+  // Route kho chính - đặt CUỐI CÙNG sau tất cả các route con để tránh conflict
+  { label: "Kho", path: "kho", element: <KhoPage /> },
 ];
 
 const mainRoutes = [

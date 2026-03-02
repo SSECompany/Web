@@ -239,7 +239,9 @@ const AddPhieuXuatKho = () => {
               : response?.data?.statusCode === 200;
 
             if (isSuccess) {
-              navigate("/kho/xuat-kho");
+              message.success("Tạo phiếu xuất kho thành công");
+              // Dùng window.location để tránh route matching issues
+              window.location.href = "/kho/xuat-kho";
             } else {
               const serverMsg =
                 response.data?.responseModel?.message || response.data?.message;

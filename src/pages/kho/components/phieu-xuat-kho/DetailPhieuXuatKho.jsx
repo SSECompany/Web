@@ -338,7 +338,7 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
   }, [stt_rec, navigate, token, setLoading]);
 
   const handleNew = useCallback(() => {
-    navigate("/kho/xuat-kho/add");
+    navigate("/kho/xuat-kho/them-moi");
   }, [navigate]);
 
   return (

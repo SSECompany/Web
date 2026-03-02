@@ -1,4 +1,9 @@
-import { InboxOutlined, CarOutlined } from "@ant-design/icons";
+import {
+  InboxOutlined,
+  CarOutlined,
+  SendOutlined,
+  ExportOutlined,
+} from "@ant-design/icons";
 import { Card, Col, Row, Typography } from "antd";
 import React from "react";
 import { useNavigate } from "react-router-dom";
@@ -24,27 +29,27 @@ const Kho = () => {
       color: "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
       path: "/kho/giao-hang",
     },
-    // {
-    //   title: "Phiếu xuất kho bán hàng",
-    //   subtitle: "Quản lý xuất kho bán hàng",
-    //   icon: <ShoppingCartOutlined style={{ fontSize: "32px" }} />,
-    //   color: "linear-gradient(135deg, #722ed1 0%, #9254de 100%)",
-    //   path: "/kho/xuat-ban",
-    // },
-    // {
-    //   title: "Phiếu xuất điều chuyển",
-    //   subtitle: "Quản lý xuất kho điều chuyển",
-    //   icon: <SendOutlined style={{ fontSize: "32px" }} />,
-    //   color: "linear-gradient(135deg, #eb2f96 0%, #f759ab 100%)",
-    //   path: "/kho/xuat-dieu-chuyen",
-    // },
-    // {
-    //   title: "Phiếu xuất kho",
-    //   subtitle: "Quản lý xuất kho",
-    //   icon: <ExportOutlined style={{ fontSize: "32px" }} />,
-    //   color: "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
-    //   path: "/kho/xuat-kho",
-    // },
+    {
+      title: "Phiếu nhập kho",
+      subtitle: "Quản lý nhập kho",
+      icon: <InboxOutlined style={{ fontSize: "28px" }} />,
+      color: "linear-gradient(135deg, #13c2c2 0%, #36cfc9 100%)",
+      path: "/kho/nhap-kho",
+    },
+    {
+      title: "Phiếu xuất điều chuyển",
+      subtitle: "Quản lý xuất kho điều chuyển",
+      icon: <SendOutlined style={{ fontSize: "28px" }} />,
+      color: "linear-gradient(135deg, #eb2f96 0%, #f759ab 100%)",
+      path: "/kho/xuat-dieu-chuyen",
+    },
+    {
+      title: "Phiếu xuất kho",
+      subtitle: "Quản lý xuất kho",
+      icon: <ExportOutlined style={{ fontSize: "28px" }} />,
+      color: "linear-gradient(135deg, #ffa940 0%, #ffc069 100%)",
+      path: "/kho/xuat-kho",
+    },
   ];
 
   const handleMenuClick = (path) => {

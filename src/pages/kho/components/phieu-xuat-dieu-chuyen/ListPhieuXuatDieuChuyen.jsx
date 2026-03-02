@@ -521,7 +521,8 @@ const ListPhieuXuatDieuChuyen = () => {
       title="DANH SÁCH PHIẾU XUẤT ĐIỀU CHUYỂN"
       columns={getColumns()}
       data={paginatedData}
-      onAdd={() => navigate("/kho/xuat-dieu-chuyen/them-moi")}
+      // Dùng navigate tương đối để tránh mọi vấn đề base path
+      onAdd={() => navigate("them-moi")}
       onBack={() => navigate("/kho")}
       addLabel="Thêm mới"
       rowKey="stt_rec"

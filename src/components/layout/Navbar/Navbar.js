@@ -109,11 +109,14 @@ const Navbar = () => {
       "kho/nhat-hang/them-moi",
       "kho/giao-hang", // Phiếu giao hàng
       "kho/giao-hang/them-moi",
-      "kho/nhap-kho", // Legacy - có thể xóa sau
-      "kho/nhap-kho/them-moi", // Legacy - có thể xóa sau
+      "kho/nhap-kho",
+      "kho/nhap-kho/them-moi",
       "kho/xuat-ban",
+      // Các phiếu kho mới
       "kho/xuat-dieu-chuyen",
+      "kho/xuat-dieu-chuyen/them-moi",
       "kho/xuat-kho",
+      "kho/xuat-kho/them-moi",
       "bao-cao/phieu-ban-le", // Báo cáo
       "bao-cao/ton-kho",
       "bao-cao/tong-hop-nhap-xuat-ton",
@@ -135,7 +138,11 @@ const Navbar = () => {
       currentPath.match(/^kho\/giao-hang\/chi-tiet\/[^/]+$/) || // Phiếu giao hàng detail route
       currentPath.match(/^kho\/giao-hang\/xu-ly\/[^/]+$/) || // Phiếu giao hàng xử lý route
       currentPath.match(/^kho\/giao-hang\/edit\/[^/]+$/) || // Phiếu giao hàng edit route
-      currentPath.match(/^kho\/nhap-kho\/chi-tiet\/[^/]+$/); // Legacy detail route
+      currentPath.match(/^kho\/nhap-kho\/chi-tiet\/[^/]+$/) || // Legacy detail route
+      // Phiếu xuất kho: cho phép chi tiết + edit
+      currentPath.match(/^kho\/xuat-kho\/(chi-tiet|edit)\/[^/]+$/) ||
+      // Phiếu xuất điều chuyển: cho phép chi tiết + edit
+      currentPath.match(/^kho\/xuat-dieu-chuyen\/(chi-tiet|edit)\/[^/]+$/);
 
     if (!isValidRoute) {
       // Redirect to Kho if invalid route

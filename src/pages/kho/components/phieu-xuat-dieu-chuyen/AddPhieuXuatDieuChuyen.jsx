@@ -242,7 +242,8 @@ const AddPhieuXuatDieuChuyen = () => {
 
             if (isSuccess) {
               message.success("Tạo phiếu xuất điều chuyển thành công");
-              navigate("/kho/xuat-dieu-chuyen");
+              // Dùng window.location để tránh route matching issues
+              window.location.href = "/kho/xuat-dieu-chuyen";
             } else {
               const serverMsg =
                 response.data?.responseModel?.message || response.data?.message;

@@ -537,7 +537,8 @@ const ListPhieuXuatKho = () => {
       }
       columns={getColumns()}
       data={paginatedData}
-      onAdd={() => navigate("/kho/xuat-kho/them-moi")}
+      // Dùng navigate tương đối để tránh mọi vấn đề base path
+      onAdd={() => navigate("them-moi")}
       onBack={() => navigate("/kho")}
       addLabel={screenSize === "mobile" ? "Thêm" : "Thêm mới"}
       rowKey="stt_rec"
