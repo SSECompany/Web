@@ -5,7 +5,7 @@ import {
   FullscreenOutlined,
 } from "@ant-design/icons";
 import { Button, Modal, notification, Tabs, Tooltip } from "antd";
-import React, { useCallback, useEffect, useReducer, useState } from "react";
+import React, { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useParams } from "react-router-dom";
 import { multipleTablePutApi } from "../../api";
@@ -181,6 +181,35 @@ const POSPage = () => {
   const rawToken = localStorage.getItem("access_token");
   const claims =
     rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
+
+  // Warmup máy in sớm để tránh bill đầu tiên rơi vào simulation (SDK iMin inject/service lên chậm)
+  const printerWarmupRef = useRef({ started: false });
+  useEffect(() => {
+    if (!isOrderPage) return;
+    if (printerWarmupRef.current.started) return;
+    printerWarmupRef.current.started = true;
+
+    let canceled = false;
+    const t = setTimeout(async () => {
+      try {
+        const printerService = new IminPrinterService();
+        const res = await printerService.initPrinter();
+        if (!canceled) {
+          // Không spam UI; chỉ log để debug khi cần
+          console.log("🖨️ Printer warmup:", res?.message || res);
+        }
+      } catch (err) {
+        if (!canceled) {
+          console.warn("🖨️ Printer warmup failed:", err?.message || err);
+        }
+      }
+    }, 300);
+
+    return () => {
+      canceled = true;
+      clearTimeout(t);
+    };
+  }, [isOrderPage]);
 
   const listOrderTable = useSelector(
     (state) => state.orders.listOrderTable || []

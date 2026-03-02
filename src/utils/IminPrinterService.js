@@ -43,6 +43,48 @@ class IminPrinterService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  isLikelyAndroidPos() {
+    try {
+      const ua = navigator?.userAgent || "";
+      return /Android/i.test(ua) || !!window.Android;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  hasAnyIminSdk() {
+    try {
+      return (
+        (window.IminPrinter && typeof window.IminPrinter === "function") ||
+        !!window.iMinPrinter ||
+        !!window.IminPrintHelper ||
+        !!window.InnerPrinterManager ||
+        (window.Android && window.Android.initPrinter)
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Chờ SDK iMin inject vào WebView (thường xảy ra ngay sau khi mở app/đầu ca).
+   * Trên Android POS: chờ lâu hơn (10s) để đảm bảo SDK kịp inject.
+   * @returns {Promise<boolean>} true nếu SDK xuất hiện trong thời gian chờ
+   */
+  async waitForIminSdk({ timeoutMs = null, intervalMs = 100 } = {}) {
+    // Trên Android POS: chờ lâu hơn (10s) để SDK kịp inject
+    // PC/dev: chờ ngắn hơn (2.5s) vì không có SDK thật
+    const defaultTimeout = this.isLikelyAndroidPos() ? 10000 : 2500;
+    const finalTimeout = timeoutMs !== null ? timeoutMs : defaultTimeout;
+    
+    const start = Date.now();
+    while (Date.now() - start < finalTimeout) {
+      if (this.hasAnyIminSdk()) return true;
+      await this.sleep(intervalMs);
+    }
+    return this.hasAnyIminSdk();
+  }
+
   /**
    * Override delays runtime.
    * @param {object} partial - ví dụ { text: 0, cut: 20 }
@@ -71,7 +113,8 @@ class IminPrinterService {
    * Khởi tạo kết nối với máy in
    * Tự động detect SDK V1.0 hoặc V2.0
    */
-  async initPrinter() {
+  async initPrinter(options = {}) {
+    const { allowWaitForSdk = true } = options || {};
     try {
       // Kiểm tra các cách khác nhau để truy cập iMin SDK
       // 1. Thử JavaScript SDK (iMin Printer v1.4.0) - TỐT NHẤT cho D4-504
@@ -94,6 +137,14 @@ class IminPrinterService {
             this.isInitialized = true;
             this.isSimulationMode = false;
             this.applyAutoDelays();
+            if (typeof window !== "undefined") {
+              window.__IMIN_PRINTER_STATUS__ = {
+                mode: "real",
+                sdkVersion: this.sdkVersion,
+                isSimulation: false,
+                timestamp: Date.now(),
+              };
+            }
             lastError = null;
             break;
           } catch (initError) {
@@ -124,6 +175,14 @@ class IminPrinterService {
           this.isSimulationMode = true;
           this.isInitialized = true;
           this.sdkVersion = 'simulation';
+          if (typeof window !== "undefined") {
+            window.__IMIN_PRINTER_STATUS__ = {
+              mode: "simulation",
+              sdkVersion: this.sdkVersion,
+              isSimulation: true,
+              timestamp: Date.now(),
+            };
+          }
         }
       }
       // 2. Thử SDK V2.0 (Android 13+)
@@ -134,6 +193,14 @@ class IminPrinterService {
         this.isInitialized = true;
         this.isSimulationMode = false;
         this.applyAutoDelays();
+        if (typeof window !== "undefined") {
+          window.__IMIN_PRINTER_STATUS__ = {
+            mode: "real",
+            sdkVersion: this.sdkVersion,
+            isSimulation: false,
+            timestamp: Date.now(),
+          };
+        }
       }
       // 3. Thử SDK V1.0 Native (Android 11 và thấp hơn)
       else if (window.IminPrintHelper || window.InnerPrinterManager) {
@@ -149,6 +216,14 @@ class IminPrinterService {
         this.isInitialized = true;
         this.isSimulationMode = false;
         this.applyAutoDelays();
+        if (typeof window !== "undefined") {
+          window.__IMIN_PRINTER_STATUS__ = {
+            mode: "real",
+            sdkVersion: this.sdkVersion,
+            isSimulation: false,
+            timestamp: Date.now(),
+          };
+        }
       }
       // 4. Thử qua Android WebView Interface
       else if (window.Android && window.Android.initPrinter) {
@@ -162,14 +237,77 @@ class IminPrinterService {
         this.isInitialized = true;
         this.isSimulationMode = false;
         this.applyAutoDelays();
+        if (typeof window !== "undefined") {
+          window.__IMIN_PRINTER_STATUS__ = {
+            mode: "real",
+            sdkVersion: this.sdkVersion,
+            isSimulation: false,
+            timestamp: Date.now(),
+          };
+        }
       }
-      // 5. Chế độ simulation
+      // 5. Chế độ simulation hoặc pending (Android POS chưa có SDK)
       else {
-        console.warn('⚠️ iMin SDK không tìm thấy. Chạy ở chế độ simulation.');
+        const isAndroidPos = this.isLikelyAndroidPos();
+        // POS Android: SDK có thể inject chậm sau khi vừa mở app/đầu ca → chờ lâu hơn (10s)
+        // Nếu đang retry (allowWaitForSdk = true nhưng đã gọi lần 2) → dùng timeout ngắn hơn (3s)
+        if (allowWaitForSdk && isAndroidPos) {
+          // Kiểm tra xem có phải retry không (dựa vào status hiện tại)
+          const isRetry = typeof window !== "undefined" && 
+            window.__IMIN_PRINTER_STATUS__?.mode === "pending";
+          const timeoutMs = isRetry ? 3000 : 10000; // Retry: 3s, lần đầu: 10s
+          
+          const appeared = await this.waitForIminSdk({
+            timeoutMs,
+            intervalMs: 100,
+          });
+          if (appeared) {
+            // gọi lại init, nhưng không wait lần nữa để tránh loop
+            return await this.initPrinter({ allowWaitForSdk: false });
+          }
+        }
+
+        // Nếu đang chạy trên POS Android mà không có SDK sau khi chờ → set pending, KHÔNG throw lỗi
+        // Khi nào cần in sẽ retry lại với timeout ngắn hơn
+        if (isAndroidPos) {
+          this.isSimulationMode = false;
+          this.isInitialized = false;
+          this.sdkVersion = null;
+          if (typeof window !== "undefined") {
+            window.__IMIN_PRINTER_STATUS__ = {
+              mode: "pending",
+              sdkVersion: null,
+              isSimulation: false,
+              timestamp: Date.now(),
+              message: "iMin SDK chưa sẵn sàng trên POS Android. Sẽ retry khi cần in.",
+            };
+          }
+          // KHÔNG throw lỗi - chỉ log warning và return pending state
+          console.warn(
+            "⚠️ iMin SDK chưa sẵn sàng trên POS Android. Sẽ retry khi cần in."
+          );
+          return {
+            success: false,
+            mode: "pending",
+            sdkVersion: null,
+            message: "iMin SDK chưa sẵn sàng. Sẽ retry khi cần in.",
+          };
+        }
+
+        // PC/dev: cho phép chạy simulation để test in qua trình duyệt
+        console.warn('⚠️ iMin SDK không tìm thấy. Chạy ở chế độ simulation (PC/dev).');
         console.warn('💡 Cần import imin-printer (src/utils/imin-printer.js) trong entry.');
         this.isSimulationMode = true;
         this.isInitialized = true;
         this.sdkVersion = 'simulation';
+        if (typeof window !== "undefined") {
+          window.__IMIN_PRINTER_STATUS__ = {
+            mode: "simulation",
+            sdkVersion: this.sdkVersion,
+            isSimulation: true,
+            timestamp: Date.now(),
+          };
+        }
       }
       
       return { 

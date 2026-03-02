@@ -80,6 +80,13 @@ const generateRandomId = () =>
 
 // Số liên hóa đơn mặc định khi in qua máy in nhiệt iMin (POS)
 const DEFAULT_RECEIPT_COPIES = 3;
+const MAX_RECEIPT_COPIES = 10;
+const resolveReceiptCopiesFromClaims = (claims) => {
+  const raw = claims?.PrintQuantity;
+  const n = parseInt(String(raw ?? "").trim(), 10);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_RECEIPT_COPIES;
+  return Math.min(n, MAX_RECEIPT_COPIES);
+};
 
 // Helper function để gọi trực tiếp API syncFast với tracking
 const callSyncFastApi = async (sttRec, userId) => {
@@ -170,6 +177,7 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
   const claims =
     rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
   const roleWeb = claims?.RoleWeb;
+  const receiptCopies = resolveReceiptCopiesFromClaims(claims);
 
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
   const [isCustomerPaymentModalVisible, setIsCustomerPaymentModalVisible] =
@@ -515,7 +523,7 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
         await printerService.printReceipt(
           masterForPrint,
           currentPrintData.detail,
-          DEFAULT_RECEIPT_COPIES,
+          receiptCopies,
           { isReprint: true }
         );
         notification.success({
@@ -593,7 +601,28 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
     const runPrint = async () => {
       try {
         const printerService = new IminPrinterService();
-        await printerService.initPrinter();
+        const initResult = await printerService.initPrinter();
+
+        // Nếu Android POS đang ở trạng thái "pending" (SDK chưa sẵn sàng) → retry với timeout ngắn hơn
+        if (initResult?.mode === "pending" && /Android/i.test(navigator?.userAgent || "")) {
+          console.log("🔄 Retry init printer với timeout ngắn hơn (3s)...");
+          // Retry với timeout ngắn hơn (3s) - lúc này SDK có thể đã sẵn sàng
+          const retryResult = await printerService.initPrinter({ allowWaitForSdk: true });
+          // Nếu vẫn pending sau retry → báo warning nhưng không block thanh toán
+          if (retryResult?.mode === "pending") {
+            notification.warning({
+              message: "Máy in chưa sẵn sàng",
+              description:
+                "iMin SDK chưa sẵn sàng. Vui lòng kiểm tra dịch vụ in trên máy POS hoặc thử lại sau vài giây.",
+              duration: 5,
+            });
+            clearPrintFallbackTimer();
+            setIsPrinting(false);
+            setTimeout(() => handleSaveOrder(), 100);
+            return;
+          }
+          // Nếu retry thành công, tiếp tục in như bình thường
+        }
 
         if (!printerService.isSimulationMode) {
           try {
@@ -610,7 +639,7 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
             await printerService.printReceipt(
               masterForPrint,
               printDetail,
-              DEFAULT_RECEIPT_COPIES
+              receiptCopies
             );
             clearPrintFallbackTimer();
             handleSaveOrder(); // In xong tự clear dữ liệu (logic cũ)
@@ -624,13 +653,37 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
             setTimeout(() => handleSaveOrder(), 100);
           }
         } else {
-          // Chế độ simulation (PC không có máy in): mở dialog in trình duyệt (timer 10s đã đặt ở trên)
-          handlePrint();
+          const isAndroid = /Android/i.test(navigator?.userAgent || "");
+          // Chế độ simulation:
+          // - Android POS: coi là lỗi, KHÔNG in giả lập qua trình duyệt (để tránh case “báo thành công nhưng không in”)
+          // - PC dev: cho phép fallback react-to-print như hiện tại
+          if (isAndroid) {
+            notification.error({
+              message: "Máy in POS chưa sẵn sàng",
+              description:
+                "Không tìm thấy SDK iMin trên thiết bị POS. Vui lòng kiểm tra dịch vụ in / cấu hình máy in trước khi thanh toán lại.",
+              duration: 5,
+            });
+            clearPrintFallbackTimer();
+            setIsPrinting(false);
+            setTimeout(() => handleSaveOrder(), 100);
+          } else {
+            // Mở dialog in trình duyệt (timer 10s đã đặt ở trên)
+            handlePrint();
+          }
         }
       } catch (initErr) {
         // initPrinter() lỗi/treo → clear ngay để không treo
         clearPrintFallbackTimer();
         setIsPrinting(false);
+        // Trên Android POS: không block thanh toán, chỉ báo warning
+        if (/Android/i.test(navigator?.userAgent || "")) {
+          notification.warning({
+            message: "Máy in chưa sẵn sàng",
+            description: initErr?.message || "Không thể khởi tạo máy in. Vui lòng thử lại sau.",
+            duration: 5,
+          });
+        }
         setTimeout(() => handleSaveOrder(), 100);
       }
     };

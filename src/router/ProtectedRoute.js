@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { notification } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { multipleTablePutApi } from "../api";
@@ -8,6 +9,7 @@ import { setListOrderTable } from "../modules/order/store/order";
 const ProtectedRoute = () => {
   const dispatch = useDispatch();
   const location = useLocation();
+  const roleWarningShownRef = useRef(false);
   const { unitId, id } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
   );
@@ -136,6 +138,24 @@ const ProtectedRoute = () => {
 
   const roleWeb = claims?.RoleWeb;
 
+  if (!roleWeb && !roleWarningShownRef.current) {
+    const warnedKey = "missing_roleweb_warned";
+    const hasWarned = sessionStorage.getItem(warnedKey) === "1";
+
+    if (!hasWarned) {
+      notification.warning({
+        message: "Tài khoản chưa được cấp quyền truy cập",
+        description: "Vui lòng liên hệ quản trị viên để được phân quyền.",
+        placement: "topRight",
+      });
+      sessionStorage.setItem(warnedKey, "1");
+    }
+
+    roleWarningShownRef.current = true;
+  } else if (roleWeb) {
+    sessionStorage.removeItem("missing_roleweb_warned");
+  }
+
   // Điều hướng dựa trên RoleWeb
   if (roleWeb === "isPos" || roleWeb === "isPosMini") {
     if (location.pathname !== "/") {
@@ -145,6 +165,8 @@ const ProtectedRoute = () => {
     if (location.pathname !== "/meal-ticket") {
       return <Navigate to="/meal-ticket" replace />;
     }
+  } else if (!roleWeb) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
   } else {
     return <Navigate to="/error" replace />;
   }

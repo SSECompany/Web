@@ -43,7 +43,7 @@ const Login = () => {
       setLoginLoading(false);
       return notification.warning({
         message: `Vui lòng chọn đơn vị`,
-        placement: "topLeft",
+        placement: "topRight",
         icon: <UilExclamationOctagon size="25" color="#ffba00" />,
       });
     }
@@ -61,14 +61,26 @@ const Login = () => {
           if (res?.status == 203) {
             return notification.warning({
               message: `Sai tài khoản hoặc mật khẩu`,
-              placement: "topLeft",
+              placement: "topRight",
               icon: <UilExclamationOctagon size="25" color="#ffba00" />,
             });
           }
         } else {
+          const claims = jwt.saveClaims(res.data.token);
+          const roleWeb = claims?.RoleWeb;
+
+          if (!roleWeb) {
+            jwt.resetAccessToken();
+            return notification.warning({
+              message: "Tài khoản chưa được cấp quyền truy cập",
+              placement: "topRight",
+              icon: <UilExclamationOctagon size="25" color="#ffba00" />,
+            });
+          }
+
           jwt.setAccessToken(res.data.token);
           jwt.setRefreshToken(res.data.refreshToken);
-          dispatch(setClaims(jwt.saveClaims(res.data.token)));
+          dispatch(setClaims(claims));
           const from = location.state?.from || "/"; // Nếu không có đường dẫn trước đó thì chuyển đến trang chủ
           router.navigate(from, { replace: true });
           return notification.success({
@@ -149,8 +161,14 @@ const Login = () => {
   }, [JSON.stringify(userName)]);
 
   useEffect(() => {
-    if (jwt.checkExistToken()) {
-      dispatch(setClaims(jwt.saveClaims(jwt.getAccessToken())));
+    if (!jwt.checkExistToken()) return;
+
+    const token = jwt.getAccessToken();
+    const claims = jwt.saveClaims(token);
+    dispatch(setClaims(claims));
+
+    const roleWeb = claims?.RoleWeb;
+    if (roleWeb) {
       router.navigate("/");
     }
   }, [dispatch]);
