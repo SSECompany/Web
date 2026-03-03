@@ -132,8 +132,9 @@ class IminPrinterService {
           try {
             // Bước 1: Kết nối WebSocket tới print service (chạy trên D4-504, ws://127.0.0.1:8081/websocket)
             await this.printerInstance.connect();
-            // Bước 2: Khởi tạo máy in - D4-504 dùng USB
-            this.printerInstance.initPrinter('USB');
+            // Bước 2: Khởi tạo máy in - D4-504 dùng SPI (built-in printer)
+            // Theo tài liệu iMin JS Printer SDK: initPrinter(connectType) trả về Promise → cần await.
+            await this.printerInstance.initPrinter('SPI');
             this.isInitialized = true;
             this.isSimulationMode = false;
             this.applyAutoDelays();
@@ -327,7 +328,7 @@ class IminPrinterService {
   /**
    * Kiểm tra trạng thái máy in
    */
-  async getPrinterStatus(connectType = 'USB') {
+  async getPrinterStatus(connectType = 'SPI') {
     if (this.isSimulationMode) {
       return { code: '0', msg: 'Printer ready (simulation mode)', value: '0' };
     }
@@ -667,7 +668,7 @@ class IminPrinterService {
 
       // NOTE: getPrinterStatus() có thể làm chậm (timeout) và hiện không dùng kết quả.
       // Nếu cần kiểm tra trạng thái thật, hãy bật lại theo nhu cầu.
-      // const status = await this.getPrinterStatus('USB');
+      // const status = await this.getPrinterStatus('SPI');
 
       // Dòng phân cách full width (80mm ~ 48 ký tự)
       const LINE_FULL_WIDTH = '────────────────────────────────';
