@@ -145,16 +145,12 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             resultSetNames: ["master", "detail"],
           };
 
-          const response = await https.post(
-            "v1/dynamicApi/call-dynamic-api",
-            body,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const response = await https.post("User/AddData", body, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
           const masterData =
             response.data?.listObject?.dataLists?.master?.[0] || {};
@@ -229,16 +225,12 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
         }
       }
 
-      const response = await https.post(
-        "v1/dynamicApi/call-dynamic-api",
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await https.post("User/AddData", payload, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const isSuccess = response?.data?.responseModel?.isSucceded === true;
 
@@ -322,16 +314,12 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             data: {},
           };
 
-          const response = await https.post(
-            "v1/dynamicApi/call-dynamic-api",
-            body,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const response = await https.post("User/AddData", body, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
           const isSuccess = response?.data?.responseModel?.isSucceded === true;
 

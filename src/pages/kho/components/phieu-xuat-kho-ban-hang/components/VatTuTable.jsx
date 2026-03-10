@@ -228,7 +228,10 @@ const VatTuTable = ({
         ),
       }}
       pagination={false}
-      scroll={{ x: 1200 }}
+      scroll={{
+        x: 1200,
+        y: 50 + 40 * 25 // header + rowHeight * maxRows
+      }}
     />
   );
 };

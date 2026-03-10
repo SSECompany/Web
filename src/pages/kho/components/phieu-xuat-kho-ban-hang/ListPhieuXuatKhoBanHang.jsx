@@ -78,7 +78,7 @@ const ListPhieuXuatKhoBanHang = () => {
       resultSetNames: ["data", "pagination"],
     };
     try {
-      const res = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+      const res = await https.post("User/AddData", body, {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       });
@@ -126,16 +126,12 @@ const ListPhieuXuatKhoBanHang = () => {
             data: {},
           };
 
-          const response = await https.post(
-            "v1/dynamicApi/call-dynamic-api",
-            body,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const response = await https.post("User/AddData", body, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
           // Check new response structure with responseModel
           if (response.data?.responseModel?.isSucceded === true) {

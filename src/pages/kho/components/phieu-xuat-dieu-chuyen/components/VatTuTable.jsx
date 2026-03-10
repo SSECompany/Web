@@ -262,7 +262,7 @@ const VatTuTable = ({
 
     const rowHeight = 40;
     const headerHeight = 50;
-    const maxRows = 10;
+    const maxRows = 25;
     const y = headerHeight + rowHeight * maxRows;
 
     return {

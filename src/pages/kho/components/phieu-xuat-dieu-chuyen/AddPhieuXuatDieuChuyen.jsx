@@ -215,17 +215,13 @@ const AddPhieuXuatDieuChuyen = () => {
               return;
             }
 
-            // Gọi dynamicApi thêm mới phiếu xuất điều chuyển
-            const response = await https.post(
-              "v1/dynamicApi/call-dynamic-api",
-              payload,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
+            // Gọi API thêm mới phiếu xuất điều chuyển qua User/AddData
+            const response = await https.post("User/AddData", payload, {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            });
 
             if (!response) {
               message.error("Không nhận được phản hồi từ server");

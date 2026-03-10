@@ -38,7 +38,7 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 32px;
-  padding: 15px 5px;
+  padding: 10px;
   background: #fff;
   border: 1px solid #f0f0f0;
   border-radius: 16px;
@@ -62,6 +62,7 @@ body {
   transition: all 0.2s;
   box-shadow: 0 2px 8px rgba(108, 99, 255, 0.06);
 }
+
 .phieu-back-button:hover {
   background: #f0f4ff;
   color: #4f46e5;
@@ -73,6 +74,7 @@ body {
   height: 32px;
   width: 32px;
 }
+
 .phieu-header .navbar_fullscreen_btn svg {
   width: 18px;
   height: 18px;
@@ -109,10 +111,12 @@ body {
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(108, 99, 255, 0.06);
 }
+
 .phieu-add-button {
   background: #6c63ff;
   color: #fff;
 }
+
 .phieu-add-button:hover {
   background: #8577fa;
   color: #fff;
@@ -122,6 +126,7 @@ body {
   background: #4fd1c5;
   color: #fff;
 }
+
 .phieu-edit-button:hover {
   background: #38b2ac;
   color: #fff;
@@ -186,7 +191,8 @@ body {
 .phieu-data-table .ant-table-body {
   overflow-x: auto !important;
   overflow-y: auto !important;
-  max-height: 1040px; /* ~20 rows × 52px */
+  max-height: 1040px;
+  /* ~20 rows × 52px */
 }
 
 .phieu-data-table .ant-table-scroll {
@@ -237,7 +243,7 @@ body {
   word-break: break-word;
 }
 
-.phieu-data-table .ant-table-thead > tr > th {
+.phieu-data-table .ant-table-thead>tr>th {
   background: #f8f9fb;
   color: #6c63ff;
   font-weight: 600;
@@ -249,12 +255,12 @@ body {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-.phieu-data-table .ant-table-thead > tr > th:last-child {
+.phieu-data-table .ant-table-thead>tr>th:last-child {
   background: #f8f9fb;
   color: #4fd1c5;
 }
 
-.phieu-data-table .ant-table-tbody > tr > td {
+.phieu-data-table .ant-table-tbody>tr>td {
   padding: 12px;
   border-bottom: 1px solid #f0f0f0;
   background: #fff;
@@ -264,11 +270,11 @@ body {
   vertical-align: middle;
 }
 
-.phieu-data-table .ant-table-tbody > tr:hover > td {
+.phieu-data-table .ant-table-tbody>tr:hover>td {
   background: #f0f4ff;
 }
 
-.phieu-data-table .ant-table-tbody > tr:last-child > td {
+.phieu-data-table .ant-table-tbody>tr:last-child>td {
   border-bottom: none;
 }
 
@@ -289,26 +295,32 @@ body {
   background: #f8f9fb;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
+
 .phieu-view-btn {
   color: #6c63ff;
   background: #f0f4ff;
 }
+
 .phieu-view-btn:hover {
   background: #e0e7ef;
   color: #4f46e5;
 }
+
 .phieu-edit-btn {
   color: #38b2ac;
   background: #e6fffa;
 }
+
 .phieu-edit-btn:hover {
   background: #b2f5ea;
   color: #319795;
 }
+
 .phieu-delete-btn {
   color: #ee5a52;
   background: #fff5f5;
 }
+
 .phieu-delete-btn:hover {
   background: #fed7d7;
   color: #c53030;
@@ -328,18 +340,22 @@ body {
   background: #f8f9fb;
   border: none;
 }
+
 .ant-tag[style*="orange"] {
   background: #fff7e6 !important;
   color: #e6a23c !important;
 }
+
 .ant-tag[style*="blue"] {
   background: #e6f7ff !important;
   color: #409eff !important;
 }
+
 .ant-tag[style*="green"] {
   background: #e6fffb !important;
   color: #38b2ac !important;
 }
+
 .ant-tag[style*="purple"] {
   background: #f3e8ff !important;
   color: #a259e6 !important;
@@ -356,6 +372,7 @@ body {
   transition: all 0.2s;
   box-shadow: 0 2px 8px rgba(108, 99, 255, 0.06);
 }
+
 .search_button:hover {
   background: #8577fa;
   color: #fff;
@@ -399,7 +416,7 @@ body {
   padding: 0;
 }
 
-.ant-table-filter-dropdown .ant-picker-range .ant-picker-input > input {
+.ant-table-filter-dropdown .ant-picker-range .ant-picker-input>input {
   font-size: 14px;
   color: #64748b;
   background: transparent;
@@ -409,10 +426,7 @@ body {
   width: 100%;
 }
 
-.ant-table-filter-dropdown
-  .ant-picker-range
-  .ant-picker-input
-  > input::placeholder {
+.ant-table-filter-dropdown .ant-picker-range .ant-picker-input>input::placeholder {
   color: #94a3b8;
   font-size: 14px;
   opacity: 0.8;
@@ -526,6 +540,7 @@ body {
 .phieu-form-actions-start {
   justify-content: flex-start;
 }
+
 .phieu-form-actions .ant-btn {
   height: 40px;
   padding: 0 24px;
@@ -541,18 +556,22 @@ body {
   position: relative;
   overflow: hidden;
 }
+
 .phieu-form-actions .ant-btn-primary {
   background: #6c63ff;
   color: #fff;
 }
+
 .phieu-form-actions .ant-btn-primary:hover {
   background: #8577fa;
   color: #fff;
 }
+
 .phieu-form-actions .ant-btn-dangerous {
   background: #ee5a52;
   color: #fff;
 }
+
 .phieu-form-actions .ant-btn-dangerous:hover {
   background: #c53030;
   color: #fff;
@@ -568,14 +587,17 @@ body {
     height: auto;
     overflow: visible;
   }
+
   .phieu-header {
     padding: 16px 20px;
     margin-bottom: 24px;
     gap: 12px;
   }
+
   .phieu-title {
     font-size: 16px;
   }
+
   .phieu-back-button,
   .phieu-add-button,
   .phieu-edit-button {
@@ -583,31 +605,38 @@ body {
     padding: 0 16px;
     font-size: 13px;
   }
+
   .phieu-form-container {
     padding: 20px;
   }
+
   .phieu-table-container {
     padding: 16px;
   }
-  .phieu-data-table .ant-table-thead > tr > th {
+
+  .phieu-data-table .ant-table-thead>tr>th {
     padding: 12px 8px;
     font-size: 13px;
   }
-  .phieu-data-table .ant-table-tbody > tr > td {
+
+  .phieu-data-table .ant-table-tbody>tr>td {
     padding: 10px 8px;
     font-size: 13px;
   }
+
   .phieu-action-btn {
     height: 28px;
     width: 28px;
     font-size: 11px;
   }
+
   .phieu-action-btn .anticon {
     font-size: 12px;
   }
 }
 
 @media screen and (orientation: landscape) {
+
   html,
   body {
     height: auto !important;
@@ -615,15 +644,18 @@ body {
     overflow-x: hidden;
     min-height: auto;
   }
+
   .phieu-container {
     height: auto;
     min-height: auto;
     overflow: visible;
   }
+
   .phieu-form-container {
     height: auto;
     overflow: visible;
   }
+
   .phieu-table-container {
     height: auto;
     overflow: visible;
@@ -631,7 +663,7 @@ body {
 }
 
 /* Đảm bảo cột bảng co giãn theo tiêu đề, không bị xuống dòng */
-.phieu-data-table .ant-table-thead > tr > th {
+.phieu-data-table .ant-table-thead>tr>th {
   white-space: nowrap !important;
   min-width: max-content;
 }
@@ -642,6 +674,7 @@ body {
   word-break: break-word;
   min-width: 0;
 }
+
 .phieu-data-table .ant-table-thead .ant-table-cell {
   white-space: nowrap;
 }
@@ -671,6 +704,7 @@ body {
   box-shadow: 0 4px 12px #1890ff33;
   color: #1890ff;
 }
+
 .phieu-action-btn--view:hover,
 .phieu-action-btn--view:focus {
   border-color: #3182ce;
@@ -684,6 +718,7 @@ body {
   box-shadow: 0 4px 12px #fa8c1633;
   color: #fa8c16;
 }
+
 .phieu-action-btn--edit:hover,
 .phieu-action-btn--edit:focus {
   border-color: #dd6b20;
@@ -697,6 +732,7 @@ body {
   box-shadow: 0 4px 12px #ff4d4f33;
   color: #ff4d4f;
 }
+
 .phieu-action-btn--delete:hover,
 .phieu-action-btn--delete:focus {
   border-color: #e53e3e;
@@ -724,6 +760,7 @@ body {
 
 /* Tablet scroll fixes */
 @media (min-width: 768px) and (max-width: 1024px) {
+
   html,
   body {
     height: auto !important;
@@ -873,4 +910,49 @@ body {
 /* Highlight invalid rows for POS-style vật tư table */
 .row-invalid td {
   background-color: #fff1f0 !important;
+}
+
+/* Detail kiểm kê: căn giữa dọc + ngang, giảm padding */
+.phieu-container .ant-table-tbody>tr:not(.ant-table-measure-row)>td {
+  vertical-align: middle !important;
+  text-align: center !important;
+  padding: 8px 6px !important;
+}
+
+.phieu-container .ant-table-thead>tr>th {
+  padding: 10px 6px !important;
+}
+
+/* Căn giữa ảnh trong cell */
+.phieu-container .ant-table-tbody>tr:not(.ant-table-measure-row)>td img {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Bảng Tab 1 kiểm kê: scroll giống phiếu nhặt hàng */
+.kiem-ke-can-table .ant-table-body::-webkit-scrollbar {
+  height: 6px;
+}
+
+.kiem-ke-can-table .ant-table-body::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 3px;
+}
+
+/* Ẩn thanh scroll nhưng vẫn cho phép scroll */
+.hidden_scroll_bar .ant-table-body::-webkit-scrollbar,
+.hidden_scroll_bar .ant-table-content::-webkit-scrollbar,
+.hidden_scroll_bar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.hidden_scroll_bar .ant-table-body,
+.hidden_scroll_bar .ant-table-content,
+.hidden_scroll_bar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }

@@ -65,6 +65,18 @@ const DetailPhieuXuatDieuChuyen = lazy(() =>
   )
 );
 
+const ListPhieuYeuCauKiemKe = lazy(() =>
+  import(
+    "../pages/kho/components/phieu-yeu-cau-kiem-ke/ListPhieuYeuCauKiemKe"
+  )
+);
+
+const DetailPhieuYeuCauKiemKe = lazy(() =>
+  import(
+    "../pages/kho/components/phieu-yeu-cau-kiem-ke/DetailPhieuYeuCauKiemKe"
+  )
+);
+
 const protectedChildrenRoutes = [
   // ===== BÁN HÀNG & TRẢ HÀNG ROUTES DISABLED IN BRANCH 08012026_kho =====
   // { label: "Bán hàng", path: "ban-hang", element: <POSPage /> },
@@ -179,6 +191,22 @@ const protectedChildrenRoutes = [
     label: "Chi tiết phiếu xuất điều chuyển",
     path: "kho/xuat-dieu-chuyen/chi-tiet/:id",
     element: <DetailPhieuXuatDieuChuyen />,
+  },
+  {
+    label: "Danh sách phiếu yêu cầu kiểm kê",
+    path: "kho/yeu-cau-kiem-ke",
+    element: <ListPhieuYeuCauKiemKe />,
+  },
+
+  {
+    label: "Chi tiết phiếu yêu cầu kiểm kê",
+    path: "kho/yeu-cau-kiem-ke/chi-tiet/:id",
+    element: <DetailPhieuYeuCauKiemKe />,
+  },
+  {
+    label: "Chỉnh sửa phiếu yêu cầu kiểm kê",
+    path: "kho/yeu-cau-kiem-ke/chi-tiet/edit/:id",
+    element: <DetailPhieuYeuCauKiemKe isEditMode={true} />,
   },
   // Báo cáo routes
   {

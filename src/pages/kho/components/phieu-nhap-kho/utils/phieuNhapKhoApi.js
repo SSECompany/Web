@@ -23,7 +23,7 @@ export const fetchPhieuNhapKhoList = async (params) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -66,7 +66,7 @@ export const fetchPhieuNhapKhoDetail = async (stt_rec) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -105,7 +105,7 @@ export const createPhieuNhapKho = async (payload) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -156,7 +156,7 @@ export const updatePhieuNhapKho = async (payload) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -207,7 +207,7 @@ export const deletePhieuNhapKho = async (stt_rec) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,

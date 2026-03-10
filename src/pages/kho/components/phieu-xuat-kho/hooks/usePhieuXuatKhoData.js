@@ -364,14 +364,10 @@ export const usePhieuXuatKhoData = () => {
           resultSetNames: ["master", "detail"],
         };
 
-        const response = await https.post(
-          "v1/dynamicApi/call-dynamic-api",
-          body,
-          {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          }
-        );
+        const response = await https.post("User/AddData", body, {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        });
 
         // Xử lý response theo cấu trúc mới
         const masterData =

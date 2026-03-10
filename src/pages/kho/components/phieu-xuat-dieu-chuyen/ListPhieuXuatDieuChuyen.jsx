@@ -126,16 +126,12 @@ const ListPhieuXuatDieuChuyen = () => {
             param: { stt_rec: sttRec },
             data: {},
           };
-          const response = await https.post(
-            "v1/dynamicApi/call-dynamic-api",
-            body,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const response = await https.post("User/AddData", body, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
           const hasResponseModel =
             response?.data &&

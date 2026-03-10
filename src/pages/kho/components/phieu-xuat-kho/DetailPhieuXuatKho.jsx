@@ -293,16 +293,12 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
             param: { stt_rec: stt_rec },
             data: {},
           };
-          const response = await https.post(
-            "v1/dynamicApi/call-dynamic-api",
-            body,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const response = await https.post("User/AddData", body, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
           const isSuccess =
             (response.data &&

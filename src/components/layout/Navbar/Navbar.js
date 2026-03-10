@@ -62,33 +62,33 @@ const Navbar = () => {
               DVCS: unitsData.unitName || "",
             })
           );
-        } catch (error) {}
+        } catch (error) { }
       }
     } else {
       // Real JWT - try to decode
       try {
         dispatch(setClaims(jwt.getClaims() || {}));
-      } catch (error) {}
+      } catch (error) { }
     }
 
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         setUserFromStorage(JSON.parse(storedUser));
-      } catch (error) {}
+      } catch (error) { }
     }
   }, [dispatch]);
 
   const handleLogout = async () => {
     // Clear state trước
     dispatch(setClaims([]));
-    
+
     // Clear tokens và localStorage (giữ lại app_version)
     await jwt.resetAccessToken();
     localStorage.removeItem("ban_hang_activeTabId");
     localStorage.removeItem("ban_hang_orders");
     clearStorageExceptVersion();
-    
+
     // Force reload và redirect về trang login
     window.location.href = "/login";
   };
@@ -117,6 +117,8 @@ const Navbar = () => {
       "kho/xuat-dieu-chuyen/them-moi",
       "kho/xuat-kho",
       "kho/xuat-kho/them-moi",
+      "kho/yeu-cau-kiem-ke",
+      "kho/yeu-cau-kiem-ke/them-moi",
       "bao-cao/phieu-ban-le", // Báo cáo
       "bao-cao/ton-kho",
       "bao-cao/tong-hop-nhap-xuat-ton",
@@ -142,7 +144,9 @@ const Navbar = () => {
       // Phiếu xuất kho: cho phép chi tiết + edit
       currentPath.match(/^kho\/xuat-kho\/(chi-tiet|edit)\/[^/]+$/) ||
       // Phiếu xuất điều chuyển: cho phép chi tiết + edit
-      currentPath.match(/^kho\/xuat-dieu-chuyen\/(chi-tiet|edit)\/[^/]+$/);
+      currentPath.match(/^kho\/xuat-dieu-chuyen\/(chi-tiet|edit)\/[^/]+$/) ||
+      // Phiếu yêu cầu kiểm kê: cho phép chi tiết + edit
+      currentPath.match(/^kho\/yeu-cau-kiem-ke\/(chi-tiet|edit)\/[^/]+$/);
 
     if (!isValidRoute) {
       // Redirect to Kho if invalid route

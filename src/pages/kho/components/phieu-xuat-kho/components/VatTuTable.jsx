@@ -269,7 +269,7 @@ const VatTuTable = ({
             style={{ width: "100%" }}
             size="small"
             className="vat-tu-table-select"
-                classNames={{ popup: { root: "vat-tu-dropdown" } }}
+            classNames={{ popup: { root: "vat-tu-dropdown" } }}
             popupMatchSelectWidth={false}
           />
         ) : (
@@ -302,7 +302,7 @@ const VatTuTable = ({
 
     const rowHeight = 40;
     const headerHeight = 50;
-    const maxRows = 10;
+    const maxRows = 25;
     const y = headerHeight + rowHeight * maxRows;
 
     return {

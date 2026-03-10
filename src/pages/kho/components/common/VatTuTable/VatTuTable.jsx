@@ -42,7 +42,7 @@ const VatTuTable = ({
   const [openLo, setOpenLo] = useState({});
   const [openViTri, setOpenViTri] = useState({});
   const [viTriOptions, setViTriOptions] = useState({});
-  
+
   // Use ref to track latest dataSource to avoid stale closure in async callbacks
   const dataSourceRef = useRef(dataSource);
   useEffect(() => {
@@ -141,10 +141,10 @@ const VatTuTable = ({
         );
 
         if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
-      // Mở dropdown sau khi tải xong options (phù hợp yêu cầu auto show)
-      if (openAfter) {
-        setOpenLo((prev) => ({ ...prev, [record.key]: true }));
-      }
+        // Mở dropdown sau khi tải xong options (phù hợp yêu cầu auto show)
+        if (openAfter) {
+          setOpenLo((prev) => ({ ...prev, [record.key]: true }));
+        }
       } catch (error) {
         console.error("Error loading lot options:", error);
       } finally {
@@ -247,12 +247,12 @@ const VatTuTable = ({
           className="vat-tu-table-input"
           title={
             field === (columnConfig.tongNhatField || "tong_nhat") &&
-            record.rowExceededSlDon
+              record.rowExceededSlDon
               ? "SL nhặt vượt quá SL đơn của dòng"
               : field === (columnConfig.tongNhatField || "tong_nhat") &&
                 record.groupExceeded
-              ? "Tổng nhặt nhóm vượt Số lượng đơn"
-              : undefined
+                ? "Tổng nhặt nhóm vượt Số lượng đơn"
+                : undefined
           }
           tabIndex={-1}
           autoComplete="off"
@@ -384,26 +384,26 @@ const VatTuTable = ({
     const baseColumns = [
       ...(columnConfig.showStt !== false
         ? [
-            {
-              title: "STT",
-              dataIndex: "key",
-              key: "key",
-              width: 60,
-              align: "center",
-              fixed: "left",
-              ellipsis: true,
-              render: (value, record, index) => {
-                if (record.isChild) return "";
-                let parentCount = 0;
-                for (let i = 0; i < index; i++) {
-                  if (!dataSource[i]?.isChild) {
-                    parentCount++;
-                  }
+          {
+            title: "STT",
+            dataIndex: "key",
+            key: "key",
+            width: 60,
+            align: "center",
+            fixed: "left",
+            ellipsis: true,
+            render: (value, record, index) => {
+              if (record.isChild) return "";
+              let parentCount = 0;
+              for (let i = 0; i < index; i++) {
+                if (!dataSource[i]?.isChild) {
+                  parentCount++;
                 }
-                return parentCount + 1;
-              },
+              }
+              return parentCount + 1;
             },
-          ]
+          },
+        ]
         : []),
       {
         title: "Ảnh",
@@ -461,7 +461,7 @@ const VatTuTable = ({
           const currentRecord = dataSource.find((item) => item.key === record.key) || record;
           const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"] || "";
           const dvt = currentRecord.dvt || "";
-          
+
           // Tích hợp thông tin tồn vào cột Mặt hàng nếu config yêu cầu
           let stockInfo = null;
           if (columnConfig.integrateStockInfoInMatHang) {
@@ -471,7 +471,7 @@ const VatTuTable = ({
               stockInfo = `Tồn: ${formatQuantityDisplay(soLuongTon)} / Tồn khả dụng: ${formatQuantityDisplay(tonKh)}`;
             }
           }
-          
+
           return (
             <div
               style={{
@@ -538,8 +538,8 @@ const VatTuTable = ({
         render: (_, record) => {
           // Get current record from dataSource to avoid stale data
           const currentRecord = dataSource.find((item) => item.key === record.key) || record;
-          const maLo = currentRecord[columnConfig.maLoField || "ma_lo"]; 
-          const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"]; 
+          const maLo = currentRecord[columnConfig.maLoField || "ma_lo"];
+          const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"];
           if (!isEditMode) {
             // Chỉ hiển thị mã lô; mã vị trí đã hiển thị ở cột Mặt hàng
             let maLoDisplay = maLo || "";
@@ -817,22 +817,22 @@ const VatTuTable = ({
           const tongNhatField = columnConfig.tongNhatField || "tong_nhat";
           const soLuongDeNghiField = columnConfig.soLuongDeNghiField || "soLuongDeNghi";
           const soLuongDon = parseFloat(currentRecord[soLuongDeNghiField] ?? currentRecord.so_luong ?? 0);
-          
+
           // Dòng con: chỉ hiển thị ô Nhặt sau khi đã nhập SL đơn > 0
           if (currentRecord.isChild && soLuongDon <= 0) {
             return "";
           }
-          
+
           const tongNhat = parseFloat(currentRecord[tongNhatField] || 0);
           const isChecked = tongNhat > 0 && Math.abs(tongNhat - soLuongDon) < 0.001;
-          
+
           if (!isEditMode) {
             return isChecked ? "✓" : "";
           }
-          
+
           return (
-            <div 
-              onClick={(e) => e.stopPropagation()} 
+            <div
+              onClick={(e) => e.stopPropagation()}
               style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}
             >
               <Checkbox
@@ -912,7 +912,7 @@ const VatTuTable = ({
     if (columnConfig.showGhiChuKD) {
       ghiChuKDColumn = {
         title: "Ghi chú KD",
-        dataIndex: columnConfig.ghiChuKDField || "ghi_chu_dh", 
+        dataIndex: columnConfig.ghiChuKDField || "ghi_chu_dh",
         key: "ghi_chu_dh",
         width: 100,
         align: "center",
@@ -991,39 +991,54 @@ const VatTuTable = ({
         key: "action",
         width: columnConfig.useAddButtonInsteadOfDelete ? 120 : 80, // Tăng width nếu có cả nút xóa và nút thêm
         align: "center",
-      render: (_, record, index) => {
-        if (columnConfig.useAddButtonInsteadOfDelete) {
-          // Dòng cha: hiển thị cả nút xóa và nút thêm dòng con
-          if (!record.isChild) {
+        render: (_, record, index) => {
+          if (columnConfig.useAddButtonInsteadOfDelete) {
+            // Dòng cha: hiển thị cả nút xóa và nút thêm dòng con
+            if (!record.isChild) {
+              return (
+                <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+                  <Button
+                    type="text"
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={() => onDeleteItem(index, isEditMode)}
+                    title="Xóa dòng"
+                    disabled={true}
+                    className="vat-tu-delete-btn"
+                    style={{ opacity: 0.3, cursor: "not-allowed" }}
+                  />
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() =>
+                      otherProps.onAddItem ? otherProps.onAddItem(index, record) : null
+                    }
+                    title="Thêm dòng con"
+                    disabled={!isEditMode}
+                    className="vat-tu-add-btn"
+                    style={{ color: "#52c41a" }}
+                  />
+                </div>
+              );
+            }
+            // Dòng con: nút xóa dòng con
             return (
-              <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
-                <Button
-                  type="text"
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  onClick={() => onDeleteItem(index, isEditMode)}
-                  title="Xóa dòng"
-                  disabled={true}
-                  className="vat-tu-delete-btn"
-                  style={{ opacity: 0.3, cursor: "not-allowed" }}
-                />
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<PlusOutlined />}
-                  onClick={() =>
-                    otherProps.onAddItem ? otherProps.onAddItem(index, record) : null
-                  }
-                  title="Thêm dòng con"
-                  disabled={!isEditMode}
-                  className="vat-tu-add-btn"
-                  style={{ color: "#52c41a" }}
-                />
-              </div>
+              <Button
+                type="text"
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+                onClick={() => onDeleteItem(index, isEditMode)}
+                title="Xóa dòng"
+                disabled={!isEditMode}
+                className="vat-tu-delete-btn"
+              />
             );
           }
-          // Dòng con: nút xóa dòng con
+          // Trường hợp không dùng useAddButtonInsteadOfDelete: cả dòng cha và dòng con đều có nút xóa
+          // Disable nút xóa cho dòng chính (không phải dòng con)
           return (
             <Button
               type="text"
@@ -1031,28 +1046,13 @@ const VatTuTable = ({
               size="small"
               icon={<DeleteOutlined />}
               onClick={() => onDeleteItem(index, isEditMode)}
-              title="Xóa dòng"
-              disabled={!isEditMode}
+              title={record.isChild ? "Xóa dòng" : "Không thể xóa dòng chính"}
+              disabled={!isEditMode || !record.isChild}
               className="vat-tu-delete-btn"
+              style={!record.isChild ? { opacity: 0.3, cursor: "not-allowed" } : {}}
             />
           );
-        }
-        // Trường hợp không dùng useAddButtonInsteadOfDelete: cả dòng cha và dòng con đều có nút xóa
-        // Disable nút xóa cho dòng chính (không phải dòng con)
-        return (
-          <Button
-            type="text"
-            danger
-            size="small"
-            icon={<DeleteOutlined />}
-            onClick={() => onDeleteItem(index, isEditMode)}
-            title={record.isChild ? "Xóa dòng" : "Không thể xóa dòng chính"}
-            disabled={!isEditMode || !record.isChild}
-            className="vat-tu-delete-btn"
-            style={!record.isChild ? { opacity: 0.3, cursor: "not-allowed" } : {}}
-          />
-        );
-      },
+        },
       });
     }
 
@@ -1085,7 +1085,7 @@ const VatTuTable = ({
     // Tăng rowHeight để hiển thị ảnh tốt hơn (ảnh 120px + padding + text)
     const rowHeight = 160;
     const headerHeight = 50;
-    const maxRows = 10;
+    const maxRows = 25;
     const y = headerHeight + rowHeight * maxRows;
 
     return { x: minWidth, y };

@@ -832,7 +832,7 @@ export const fetchVatTuListDynamicApi = async (params) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -921,7 +921,7 @@ export const submitPhieuNhatHangDynamic = async (
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -1002,7 +1002,7 @@ export const deletePhieuNhatHangDynamic = async (sctRec, userInfo) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,

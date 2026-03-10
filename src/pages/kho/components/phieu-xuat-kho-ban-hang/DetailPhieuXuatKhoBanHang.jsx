@@ -161,7 +161,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         resultSetNames: ["master", "detail"],
       };
 
-      const res = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+      const res = await https.post("User/AddData", body, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,

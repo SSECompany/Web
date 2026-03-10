@@ -20,25 +20,34 @@ const CommonPhieuList = ({
 }) => {
   return (
     <div className="phieu-container">
-      <Row justify="space-between" align="middle" className="phieu-header">
-        <Col>
+      <Row align="middle" className="phieu-header" style={{ position: "relative" }}>
+        <Col flex={1} style={{ textAlign: "left", zIndex: 1 }}>
           <Button
             type="text"
             icon={<LeftOutlined />}
             onClick={onBack}
             className="phieu-back-button"
+            style={{ paddingLeft: 0 }}
           >
             Trở về
           </Button>
         </Col>
-        <Col flex="auto" style={{ textAlign: "center" }}>
-          <Title level={5} className="phieu-title">
+
+        <div style={{
+          position: "absolute",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 0,
+          whiteSpace: "nowrap"
+        }}>
+          <Title level={5} className="phieu-title" style={{ margin: 0 }}>
             {title}
           </Title>
-        </Col>
-        {(onAdd || extraButtons) && (
-          <Col style={{ display: "flex", alignItems: "center" }}>
-            {extraButtons ? (
+        </div>
+
+        <Col flex={1} style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", zIndex: 1 }}>
+          {(onAdd || extraButtons) && (
+            extraButtons ? (
               <span style={{ display: "inline-flex", alignItems: "center" }}>
                 {extraButtons}
               </span>
@@ -51,9 +60,9 @@ const CommonPhieuList = ({
               >
                 {addLabel}
               </Button>
-            )}
-          </Col>
-        )}
+            )
+          )}
+        </Col>
       </Row>
       {extraHeader}
       <div className="phieu-table-container">

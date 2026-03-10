@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   message as messageAPI,
+  Modal,
   notification,
   Select,
   Tag,
@@ -137,6 +138,47 @@ const PaymentSummary = ({
   const [currentPrintData, setCurrentPrintData] = useState(null);
   const [hasReprinted, setHasReprinted] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const hasPrintedRef = useRef(false);
+  const finalizeAfterPrintRef = useRef(false);
+  const finalizeTimerRef = useRef(null);
+  const [manualPrintOpen, setManualPrintOpen] = useState(false);
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  const fetchOrderMasterBySttRec = async (stt_rec) => {
+    const res = await multipleTablePutApi({
+      store: "api_get_data_detail_retail_order",
+      param: { stt_rec },
+      data: {},
+    });
+    if (res?.responseModel?.isSucceded) {
+      return res?.listObject?.[0]?.[0] || {};
+    }
+    return {};
+  };
+
+  const resolveOrderNumber = async (sttRec) => {
+    if (!sttRec) return "";
+    // Poll a few times because backend may not return so_ct immediately after create
+    for (let i = 0; i < 4; i++) {
+      const master = await fetchOrderMasterBySttRec(sttRec);
+      const soCt = (master?.so_ct || master?.soct || master?.soCT || "").toString().trim();
+      if (soCt) return soCt;
+      await sleep(200);
+    }
+    return "";
+  };
+
+  const finalizeAfterPrintAttempt = () => {
+    if (!finalizeAfterPrintRef.current) return;
+    finalizeAfterPrintRef.current = false;
+    if (finalizeTimerRef.current) {
+      clearTimeout(finalizeTimerRef.current);
+      finalizeTimerRef.current = null;
+    }
+    setIsProcessingPayment(false);
+    onClearCart();
+  };
 
   const updateNationalPrescriptionSale = async (sttRecValue) => {
     if (!prescriptionCode || !sttRecValue) {
@@ -411,28 +453,64 @@ const PaymentSummary = ({
     onClearCart();
   };
 
-  let hasPrinted = false;
-
   const handlePrint = useReactToPrint({
     content: () => {
       return printContent.current;
     },
     documentTitle: "Print This Document",
     copyStyles: false,
+    onPrintError: (error) => {
+      console.error("Print error:", error);
+      setManualPrintOpen(true);
+      notification.warning({
+        message: "Không thể mở hộp thoại in",
+        description: "Vui lòng bấm 'In hóa đơn' để thử lại.",
+        duration: 6,
+      });
+      setIsPrinting(false);
+      setIsPrinted(false);
+      // Still finalize so UI doesn't get stuck (order already created)
+      finalizeAfterPrintAttempt();
+    },
     onAfterPrint: () => {
-      if (!hasPrinted) {
-        hasPrinted = true;
+      if (!hasPrintedRef.current) {
+        hasPrintedRef.current = true;
         setIsPrinting(false);
-        // Bỏ logic in lại, chỉ đóng luôn
-        setTimeout(() => handleSaveOrder(), 100);
+        setIsPrinted(true);
+        finalizeAfterPrintAttempt();
       }
     },
   });
 
   useEffect(() => {
     if (isPrinting && !isPrinted) {
-      hasPrinted = false;
-      handlePrint();
+      hasPrintedRef.current = false;
+      // Fallback: if browser blocks print dialog, don't keep UI stuck forever
+      if (finalizeAfterPrintRef.current && !finalizeTimerRef.current) {
+        finalizeTimerRef.current = setTimeout(() => {
+          notification.info({
+            message: "Nếu chưa thấy hộp thoại in",
+            description: "Bạn có thể bấm 'In hóa đơn' để in lại.",
+            duration: 6,
+          });
+          setManualPrintOpen(true);
+          setIsPrinting(false);
+          setIsPrinted(false);
+          finalizeAfterPrintAttempt();
+        }, 5000);
+      }
+      const t = setTimeout(() => {
+        try {
+          handlePrint?.();
+        } catch (e) {
+          console.error("handlePrint failed:", e);
+          setManualPrintOpen(true);
+          setIsPrinting(false);
+          setIsPrinted(false);
+          finalizeAfterPrintAttempt();
+        }
+      }, 100);
+      return () => clearTimeout(t);
     }
   }, [printMaster, printDetail, isPrinting, isPrinted]);
 
@@ -472,7 +550,7 @@ const PaymentSummary = ({
     sync
   ) => {
     if (isProcessingPayment) {
-      return;
+      return false;
     }
 
     setIsProcessingPayment(true);
@@ -482,7 +560,7 @@ const PaymentSummary = ({
     if (!hasInternet) {
       showOfflineWarning();
       setIsProcessingPayment(false);
-      return;
+      return false;
     }
 
     if (selectedPayments.includes("chuyen_khoan")) {
@@ -498,7 +576,7 @@ const PaymentSummary = ({
     );
     if (!orderData) {
       setIsProcessingPayment(false);
-      return;
+      return false;
     }
 
     setIsCreatingOrder(true);
@@ -514,7 +592,10 @@ const PaymentSummary = ({
 
       if (response?.responseModel?.isSucceded) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
-        const orderNumber = response?.listObject[0][0]?.so_ct;
+        let orderNumber = (response?.listObject?.[0]?.[0]?.so_ct || "").toString().trim();
+        if (!orderNumber && sttRec) {
+          orderNumber = await resolveOrderNumber(sttRec);
+        }
 
         // Link uploaded image to order if keyFields exists
         if (uploadedKeyFields && sttRec) {
@@ -536,6 +617,7 @@ const PaymentSummary = ({
         const updatedMasterData = {
           ...orderData.masterData,
           stt_rec: sttRec || orderData.masterData.stt_rec,
+          so_ct: orderNumber || orderData.masterData?.so_ct || "",
         };
 
         setPrintMaster(updatedMasterData);
@@ -553,8 +635,11 @@ const PaymentSummary = ({
           sync,
         });
         setHasReprinted(false);
+        finalizeAfterPrintRef.current = true;
         setIsPrinting(true);
         setIsPrinted(false);
+        // Unlock UI immediately after successful server transaction
+        setIsProcessingPayment(false);
 
         if (typeof onUpdateCurrentOrderSttRec === "function" && sttRec) {
           onUpdateCurrentOrderSttRec(sttRec);
@@ -568,12 +653,14 @@ const PaymentSummary = ({
         });
 
         await updateNationalPrescriptionSale(sttRec);
+        return true;
       } else {
         notification.warning({
           message: "Thanh toán thất bại!",
           description: response?.responseModel?.message,
         });
         setIsProcessingPayment(false);
+        return false;
       }
     } catch (error) {
       notification.error({
@@ -581,6 +668,7 @@ const PaymentSummary = ({
         description: error.message,
       });
       setIsProcessingPayment(false);
+      return false;
     } finally {
       setIsCreatingOrder(false);
     }
@@ -744,6 +832,7 @@ const PaymentSummary = ({
         total={total}
         cart={cart}
         isCreatingOrder={false}
+        enableLocalPrint={false}
         initialPaymentMethod={payment?.method || "cash"}
         initialPaymentAmounts={{
           tien_mat: payment?.cash || 0,
@@ -769,6 +858,39 @@ const PaymentSummary = ({
           orderNumber={currentPrintData?.orderNumber || ""}
         />
       </div>
+
+      <Modal
+        title="In hóa đơn"
+        open={manualPrintOpen}
+        onCancel={() => setManualPrintOpen(false)}
+        footer={[
+          <Button key="close" onClick={() => setManualPrintOpen(false)}>
+            Đóng
+          </Button>,
+          <Button
+            key="print"
+            type="primary"
+            onClick={() => {
+              setManualPrintOpen(false);
+              try {
+                handlePrint?.();
+              } catch (e) {
+                console.error("Manual print failed:", e);
+                notification.error({ message: "Không thể in, vui lòng thử lại." });
+              }
+            }}
+          >
+            In hóa đơn
+          </Button>,
+        ]}
+      >
+        <div>
+          Số CT: <b>{currentPrintData?.orderNumber || printMaster?.so_ct || "Chưa có"}</b>
+        </div>
+        <div style={{ marginTop: 8, color: "#666" }}>
+          Nếu máy không tự bật hộp thoại in, bạn có thể bấm <b>In hóa đơn</b> để in lại.
+        </div>
+      </Modal>
 
       {contextHolder}
     </div>

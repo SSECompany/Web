@@ -3,6 +3,7 @@ import {
   CarOutlined,
   SendOutlined,
   ExportOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import { Card, Col, Row, Typography } from "antd";
 import React from "react";
@@ -13,7 +14,7 @@ const { Title, Text } = Typography;
 
 const Kho = () => {
   const navigate = useNavigate();
-  
+
   const menuItems = [
     {
       title: "Phiếu nhặt hàng",
@@ -29,26 +30,33 @@ const Kho = () => {
       color: "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
       path: "/kho/giao-hang",
     },
+    // {
+    //   title: "Phiếu nhập kho",
+    //   subtitle: "Quản lý nhập kho",
+    //   icon: <InboxOutlined style={{ fontSize: "28px" }} />,
+    //   color: "linear-gradient(135deg, #13c2c2 0%, #36cfc9 100%)",
+    //   path: "/kho/nhap-kho",
+    // },
+    // {
+    //   title: "Phiếu xuất điều chuyển",
+    //   subtitle: "Quản lý xuất kho điều chuyển",
+    //   icon: <SendOutlined style={{ fontSize: "28px" }} />,
+    //   color: "linear-gradient(135deg, #eb2f96 0%, #f759ab 100%)",
+    //   path: "/kho/xuat-dieu-chuyen",
+    // },
+    // {
+    //   title: "Phiếu xuất kho",
+    //   subtitle: "Quản lý xuất kho",
+    //   icon: <ExportOutlined style={{ fontSize: "28px" }} />,
+    //   color: "linear-gradient(135deg, #ffa940 0%, #ffc069 100%)",
+    //   path: "/kho/xuat-kho",
+    // },
     {
-      title: "Phiếu nhập kho",
-      subtitle: "Quản lý nhập kho",
-      icon: <InboxOutlined style={{ fontSize: "28px" }} />,
-      color: "linear-gradient(135deg, #13c2c2 0%, #36cfc9 100%)",
-      path: "/kho/nhap-kho",
-    },
-    {
-      title: "Phiếu xuất điều chuyển",
-      subtitle: "Quản lý xuất kho điều chuyển",
-      icon: <SendOutlined style={{ fontSize: "28px" }} />,
-      color: "linear-gradient(135deg, #eb2f96 0%, #f759ab 100%)",
-      path: "/kho/xuat-dieu-chuyen",
-    },
-    {
-      title: "Phiếu xuất kho",
-      subtitle: "Quản lý xuất kho",
-      icon: <ExportOutlined style={{ fontSize: "28px" }} />,
-      color: "linear-gradient(135deg, #ffa940 0%, #ffc069 100%)",
-      path: "/kho/xuat-kho",
+      title: "Phiếu yêu cầu kiểm kê",
+      subtitle: "Quản lý yêu cầu kiểm kê",
+      icon: <FileTextOutlined style={{ fontSize: "28px" }} />,
+      color: "linear-gradient(135deg, #722ed1 0%, #b37feb 100%)",
+      path: "/kho/yeu-cau-kiem-ke",
     },
   ];
 

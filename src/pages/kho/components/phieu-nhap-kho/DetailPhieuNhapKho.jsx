@@ -107,16 +107,12 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
           resultSetNames: ["master", "detail"],
         };
 
-        const response = await https.post(
-          "v1/dynamicApi/call-dynamic-api",
-          body,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await https.post("User/AddData", body, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         if (response && response.data) {
           const apiData = response.data.listObject?.dataLists || {};

@@ -220,16 +220,12 @@ const AddPhieuXuatKho = () => {
             }
 
             // Gọi dynamicApi thêm mới phiếu xuất kho
-            const response = await https.post(
-              "v1/dynamicApi/call-dynamic-api",
-              payload,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
+            const response = await https.post("User/AddData", payload, {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            });
 
             const hasResponseModel =
               response?.data &&

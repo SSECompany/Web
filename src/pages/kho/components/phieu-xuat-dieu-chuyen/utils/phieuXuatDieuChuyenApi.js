@@ -25,7 +25,7 @@ export const fetchPhieuXuatDieuChuyenList = async (params) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -68,7 +68,7 @@ export const fetchPhieuXuatDieuChuyenDetail = async (stt_rec) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -105,7 +105,7 @@ export const createPhieuXuatDieuChuyen = async (data) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -141,7 +141,7 @@ export const updatePhieuXuatDieuChuyen = async (data) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -179,7 +179,7 @@ export const deletePhieuXuatDieuChuyen = async (stt_rec) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -217,7 +217,7 @@ export const deletePhieuXuatDieuChuyenDirect = async (stt_rec) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,

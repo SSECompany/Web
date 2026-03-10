@@ -407,7 +407,7 @@ export const updatePhieuXuatKho = async (master, detail, token) => {
       detail: detail,
     },
   };
-  return https.post("v1/dynamicApi/call-dynamic-api", body, {
+  return https.post("User/AddData", body, {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
   });
@@ -419,7 +419,7 @@ export const deletePhieuXuatKho = async (stt_rec, token) => {
     param: { stt_rec },
     data: {},
   };
-  return https.post("v1/dynamicApi/call-dynamic-api", body, {
+  return https.post("User/AddData", body, {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
   });

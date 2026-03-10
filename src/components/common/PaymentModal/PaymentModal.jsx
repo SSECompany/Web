@@ -70,6 +70,7 @@ const PaymentModal = ({
   total,
   cart = [],
   isCreatingOrder = false,
+  enableLocalPrint = true,
   initialPaymentMethod = "cash",
   initialPaymentAmounts = { tien_mat: 0, chuyen_khoan: 0 },
   initialCustomerInfo = {},
@@ -159,8 +160,8 @@ const PaymentModal = ({
   const multiRemaining = Math.max(0, Math.round(safeTotal - multiTotal));
   const multiChange = Math.max(0, Math.round(multiTotal - safeTotal));
 
-  // Prepare print data
-  const preparePrintData = () => {
+  // Prepare print data (only used when enableLocalPrint=true)
+  const preparePrintData = React.useCallback(() => {
     const now = new Date();
     const orderNumber = `POS${now.getTime()}`;
 
@@ -204,7 +205,9 @@ const PaymentModal = ({
     }));
 
     return { master, detail, orderNumber };
-  };
+  }, [cart, customerInfo, paymentAmounts, paymentMethod, total]);
+
+  const printData = useMemo(() => preparePrintData(), [preparePrintData]);
 
   const handlePrint = useReactToPrint({
     content: () => printContent.current,
@@ -253,9 +256,11 @@ const PaymentModal = ({
         setMultiCash(0);
         setMultiTransfer(0);
 
-        setTimeout(() => {
-          handlePrint();
-        }, 500);
+        if (enableLocalPrint) {
+          setTimeout(() => {
+            handlePrint();
+          }, 300);
+        }
       }
     } catch (error) {
       console.error("Error in payment confirmation:", error);
@@ -738,14 +743,16 @@ const PaymentModal = ({
       </Modal>
 
       {/* Hidden print component */}
-      <div style={{ display: "none" }}>
-        <PrintComponent
-          ref={printContent}
-          master={preparePrintData().master}
-          detail={preparePrintData().detail}
-          orderNumber={preparePrintData().orderNumber}
-        />
-      </div>
+      {enableLocalPrint ? (
+        <div style={{ display: "none" }}>
+          <PrintComponent
+            ref={printContent}
+            master={printData.master}
+            detail={printData.detail}
+            orderNumber={printData.orderNumber}
+          />
+        </div>
+      ) : null}
     </>
   );
 };
