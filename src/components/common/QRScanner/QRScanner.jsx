@@ -5,9 +5,9 @@ import {
   KeyOutlined,
   QrcodeOutlined,
 } from "@ant-design/icons";
-import { Alert, Button, Card, Modal, Space } from "antd";
+import { Alert, Button, Card, Modal, Space, notification } from "antd";
 import { Html5QrcodeScanner } from "html5-qrcode";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import notificationManager from "../../../utils/notificationManager";
 import "./QRScanner.css";
 
@@ -56,7 +56,7 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
   };
 
   // Hàm cleanup scanner và camera (sync version cho useEffect cleanup)
-  const cleanupScannerSync = () => {
+  const cleanupScannerSync = useCallback(() => {
     if (scanner) {
       try {
         scanner.clear();
@@ -68,7 +68,7 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
     setIsScanning(false);
     // Cleanup camera streams
     cleanupCameraStreams();
-  };
+  }, [scanner]);
 
   // Hàm cleanup scanner và camera (async version cho các trường hợp khác)
   const cleanupScanner = async () => {
@@ -101,9 +101,22 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
       isProcessingRef.current = false;
       hasProcessedRef.current = false;
     };
-  }, [isOpen, openWithCamera]);
+  }, [isOpen, openWithCamera, cleanupScannerSync]);
 
-  const initializeScanner = () => {
+  const handleScanSuccess = useCallback(
+    (decodedText, decodedResult) => {
+      // Chỉ gọi callback onScanSuccess - tất cả logic đã được xử lý trong render callback
+      // Notification đã được hiển thị trong render callback
+      onScanSuccess(decodedText, decodedResult);
+    },
+    [onScanSuccess]
+  );
+
+  const onScanError = (error) => {
+    // Chỉ log error, không hiển thị notification để tránh spam
+  };
+
+  const initializeScanner = useCallback(() => {
     try {
       // Kiểm tra quyền truy cập camera trước
       navigator.mediaDevices
@@ -210,11 +223,8 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
           "Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập camera.",
       });
     }
-  };
+  }, [onClose, handleScanSuccess]);
 
-  const onScanError = (error) => {
-    // Chỉ log error, không hiển thị notification để tránh spam
-  };
 
   const handleClose = async () => {
     await cleanupScanner();
@@ -263,13 +273,8 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
         clearTimeout(timer);
       };
     }
-  }, [scanMode, isOpen]);
+  }, [scanMode, isOpen, scanner, cameraError, initializeScanner]);
 
-  const handleScanSuccess = (decodedText, decodedResult) => {
-    // Chỉ gọi callback onScanSuccess - tất cả logic đã được xử lý trong render callback
-    // Notification đã được hiển thị trong render callback
-    onScanSuccess(decodedText, decodedResult);
-  };
 
   return (
     <Modal

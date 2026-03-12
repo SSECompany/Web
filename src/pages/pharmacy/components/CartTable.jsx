@@ -222,6 +222,12 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
     recomputeLineTotals(index, record, { qty: safeQty });
   };
 
+  const handlePriceChange = (index, record, nextPrice) => {
+    const safePrice = Number(nextPrice) || 0;
+    updateLine(index, "price", safePrice);
+    recomputeLineTotals(index, record, { price: safePrice });
+  };
+
   const columns = [
     {
       title: "",
@@ -578,11 +584,21 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       ),
       dataIndex: "price",
       key: "price",
-      width: 120,
-      render: (price) => (
-        <span className="price-text">
-          {new Intl.NumberFormat("vi-VN").format(price)}đ
-        </span>
+      width: 140,
+      render: (price, record, index) => (
+        <InputNumber
+          value={price || 0}
+          min={0}
+          size="small"
+          className="detail-input-number"
+          formatter={(value) =>
+            `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          }
+          parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+          onChange={(value) => handlePriceChange(index, record, value)}
+          controls={false}
+          style={{ width: "100%", fontWeight: "700", color: "#059669" }}
+        />
       ),
     },
     {
