@@ -1095,3 +1095,24 @@ body {
     font-size: 13px;
   }
 }
+/* Highlight cho đơn hàng mới với hiệu ứng nhấp nháy rõ hơn */
+@keyframes blink-new-order {
+  0% { background-color: #66FF99; }
+  50% { background-color: #ffffff; }
+  100% { background-color: #66FF99; }
+}
+
+/* Áp dụng trực tiếp vào td; bỏ background-color static tĩnh để animation được chạy */
+/* Loại trừ các cột fixed (thường là cột Hành động) khỏi hiệu ứng nhấp nháy */
+.phieu-data-table .ant-table-tbody > tr.row-new-highlight > td:not(.ant-table-cell-fix-right):not(.ant-table-cell-fix-right-first),
+.mobile-phieu-card.row-new-highlight {
+  animation: blink-new-order 1.5s ease-in-out infinite !important;
+}
+
+/* Cột hành động và thanh hành động mobile không highlight và không nhấp nháy */
+.phieu-data-table .ant-table-tbody > tr.row-new-highlight > td.ant-table-cell-fix-right,
+.phieu-data-table .ant-table-tbody > tr.row-new-highlight > td.ant-table-cell-fix-right-first,
+.mobile-phieu-card.row-new-highlight .ant-card-actions {
+  animation: none !important;
+  background-color: #ffffff !important;
+}

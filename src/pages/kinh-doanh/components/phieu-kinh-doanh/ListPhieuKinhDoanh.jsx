@@ -53,6 +53,13 @@ const ListPhieuKinhDoanh = () => {
                 if (parsed.dateRange && Array.isArray(parsed.dateRange)) {
                     parsed.dateRange = parsed.dateRange.map(d => d ? dayjs(d) : null);
                 }
+                // Ensure status is always an array and has defaults if empty
+                if (parsed.status && !Array.isArray(parsed.status)) {
+                    parsed.status = [parsed.status];
+                }
+                if (!parsed.status || (Array.isArray(parsed.status) && parsed.status.length === 0)) {
+                    parsed.status = ["0", "1", "2"];
+                }
                 return parsed;
             }
         } catch (e) { console.error(e); }
@@ -62,7 +69,7 @@ const ListPhieuKinhDoanh = () => {
             ten_kh: "",
             ten_nvbh: "",
             dateRange: null,
-            status: "",
+            status: ["0", "1", "2"],
         };
     };
 
@@ -165,7 +172,7 @@ const ListPhieuKinhDoanh = () => {
             ten_kh: "",
             ten_nvbh: "",
             dateRange: null,
-            status: "",
+            status: ["0", "1", "2"],
         };
         // Xóa cả trong sessionStorage
         try { sessionStorage.removeItem(FILTER_STORAGE_KEY); } catch (e) { console.error(e); }
@@ -182,9 +189,10 @@ const ListPhieuKinhDoanh = () => {
         if (filters.so_ct) chips.push({ key: "so_ct", label: "Số ĐH", value: filters.so_ct });
         if (filters.ten_kh) chips.push({ key: "ten_kh", label: "Khách hàng", value: filters.ten_kh });
         if (filters.ten_nvbh) chips.push({ key: "ten_nvbh", label: "Nhân viên", value: filters.ten_nvbh });
-        if (filters.status) {
+        if (filters.status && Array.isArray(filters.status) && filters.status.length > 0) {
             const statusMap = { "0": "Lập chứng từ", "1": "Chờ duyệt", "2": "Duyệt", "4": "Hoàn tất", "6": "Đã hủy" };
-            chips.push({ key: "status", label: "Trạng thái", value: statusMap[filters.status] || filters.status });
+            const labels = filters.status.map(s => statusMap[s] || s);
+            chips.push({ key: "status", label: "Trạng thái", value: labels.join(", "), rawValue: filters.status });
         }
         if (filters.dateRange && filters.dateRange[0] && filters.dateRange[1]) {
             chips.push({
@@ -206,7 +214,15 @@ const ListPhieuKinhDoanh = () => {
                         <Tag 
                             key={chip.key} 
                             closable 
-                            onClose={(e) => { e.preventDefault(); removeFilter(chip.key); }}
+                            onClose={(e) => { 
+                                e.preventDefault(); 
+                                if (chip.key === "status") {
+                                    // Status is now multi-select
+                                    handleFilter("status", []);
+                                } else {
+                                    removeFilter(chip.key); 
+                                }
+                            }}
                             className={`filter-chip ${
                                 chip.key === "status"
                                   ? "filter-chip--blue"
@@ -441,71 +457,48 @@ const ListPhieuKinhDoanh = () => {
     const getColumns = () => {
         const baseColumns = [
             {
-                title: "Số đơn hàng",
-                dataIndex: "so_ct",
-                key: "so_ct",
-                width: 150,
-                align: "center",
+                title: "Thời gian",
+                key: "thoi_gian",
+                width: 140,
+                render: (_, record) => (
+                    <div style={{ fontSize: '11px', lineHeight: '1.4' }}>
+                        <div><Text type="secondary" style={{ fontSize: '10px' }}>Tạo:</Text> {record.datetime0 ? dayjs(record.datetime0).format("HH:mm DD/MM") : "--"}</div>
+                        <div><Text type="secondary" style={{ fontSize: '10px' }}>KD-Kho:</Text> {record.thoi_gian_chuyen_kho ? dayjs(record.thoi_gian_chuyen_kho).format("HH:mm DD/MM") : "--"}</div>
+                        <div><Text type="secondary" style={{ fontSize: '10px' }}>Kho-KD:</Text> {record.thoi_gian_chuyen_kinh_doanh ? dayjs(record.thoi_gian_chuyen_kinh_doanh).format("HH:mm DD/MM") : "--"}</div>
+                    </div>
+                )
+            },
+            {
+                title: "Đơn hàng",
+                key: "don_hang",
+                width: 160,
+                render: (_, record) => (
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Text strong>{record.so_ct}</Text>
+                            {record.bcontract_id && <Tag color="blue" style={{ margin: 0, fontSize: '10px', fontWeight: 600 }}>{record.bcontract_id.trim()}</Tag>}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#8c8c8c' }}>{dayjs(record.ngay_ct).format("DD/MM/YYYY")}</div>
+                    </div>
+                ),
                 filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
                     <div style={{ padding: 8 }}>
                         <Input
-                            placeholder="Tìm số đơn"
+                            placeholder="Số đơn hàng"
                             value={selectedKeys[0]}
                             onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
                             onPressEnter={() => handleFilter("so_ct", selectedKeys[0], confirm)}
                             style={{ marginBottom: 8, display: 'block' }}
                         />
-                        <Button
-                            className="search_button"
-                            type="primary"
-                            onClick={() => handleFilter("so_ct", selectedKeys[0], confirm)}
-                            size="small"
-                        >
-                            Tìm kiếm
-                        </Button>
+                        <Button type="primary" onClick={() => handleFilter("so_ct", selectedKeys[0], confirm)} size="small">Tìm</Button>
                     </div>
                 ),
                 filteredValue: filters.so_ct ? [filters.so_ct] : null,
             },
             {
-                title: "Ngày đơn hàng",
-                dataIndex: "ngay_ct",
-                key: "ngay_ct",
-                width: 150,
-                render: (text) => text ? dayjs(text).format("DD/MM/YYYY") : "",
-                filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-                    <div style={{ padding: 8 }}>
-                        <RangePicker
-                            inputReadOnly
-                            value={
-                                selectedKeys[0] && selectedKeys[0].length === 2
-                                    ? [
-                                        dayjs(selectedKeys[0][0]),
-                                        dayjs(selectedKeys[0][1]),
-                                    ]
-                                    : null
-                            }
-                            onChange={(dates) => setSelectedKeys(dates ? [dates] : [])}
-                            style={{ marginBottom: 8, display: 'flex' }}
-                            format="DD/MM/YYYY"
-                            placeholder={["Từ ngày", "Đến ngày"]}
-                        />
-                        <Button
-                            className="search_button"
-                            type="primary"
-                            onClick={() => handleFilter("dateRange", selectedKeys[0], confirm)}
-                            size="small"
-                        >
-                            Tìm kiếm
-                        </Button>
-                    </div>
-                ),
-                filteredValue: filters.dateRange ? [filters.dateRange] : null,
-            },
-            {
                 title: "Khách hàng",
                 key: "khach_hang",
-                width: 300,
+                width: 220,
                 render: (_, record) => (
                     <div>
                         <div style={{ fontWeight: 600, color: '#1a1a1a' }}>{record.ten_kh}</div>
@@ -521,50 +514,75 @@ const ListPhieuKinhDoanh = () => {
                             onPressEnter={() => handleFilter("ten_kh", selectedKeys[0], confirm)}
                             style={{ marginBottom: 8, display: 'block' }}
                         />
-                        <Button
-                            className="search_button"
-                            type="primary"
-                            onClick={() => handleFilter("ten_kh", selectedKeys[0], confirm)}
-                            size="small"
-                        >
-                            Tìm kiếm
-                        </Button>
+                        <Button type="primary" onClick={() => handleFilter("ten_kh", selectedKeys[0], confirm)} size="small">Tìm</Button>
                     </div>
                 ),
                 filteredValue: filters.ten_kh ? [filters.ten_kh] : null,
             },
             {
-                title: "Nhân viên",
-                dataIndex: "ten_nvbh",
-                key: "ten_nvbh",
-                width: 150,
-                filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-                    <div style={{ padding: 8 }}>
-                        <Input
-                            placeholder="Tìm nhân viên"
-                            value={selectedKeys[0]}
-                            onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-                            onPressEnter={() => handleFilter("ten_nvbh", selectedKeys[0], confirm)}
-                            style={{ marginBottom: 8, display: 'block' }}
-                        />
-                        <Button
-                            className="search_button"
-                            type="primary"
-                            onClick={() => handleFilter("ten_nvbh", selectedKeys[0], confirm)}
-                            size="small"
-                        >
-                            Tìm kiếm
-                        </Button>
+                title: "Ghi chú / Diễn giải",
+                key: "ghi_chu",
+                width: 180,
+                render: (_, record) => (
+                    <div style={{ fontSize: '11px', lineHeight: '1.4' }}>
+                        {record.dien_giai && <div><Text type="secondary">DG:</Text> {record.dien_giai}</div>}
+                        {record.ghi_chu_kh && <div style={{ color: '#fa8c16' }}><Text type="secondary">KH:</Text> {record.ghi_chu_kh}</div>}
+                        {record.ghi_chu_giao_hang && <div style={{ color: '#52c41a' }}><Text type="secondary">VC:</Text> {record.ghi_chu_giao_hang}</div>}
                     </div>
-                ),
-                filteredValue: filters.ten_nvbh ? [filters.ten_nvbh] : null,
+                )
             },
             {
-                title: "Ghi chú",
-                dataIndex: "dien_giai",
-                key: "dien_giai",
+                title: "Trạng thái",
+                key: "all_status",
+                width: 160,
+                render: (_, record) => (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <Tag color={getStatusColor(record.status)} style={{ margin: 0, textAlign: 'center', fontSize: '11px' }}>{record.statusname}</Tag>
+                        <div style={{ fontSize: '10px', color: '#8c8c8c' }}>
+                            Soạn: <Text style={{ color: record.status_soan_hang === "1" ? '#52c41a' : '#bfbfbf', fontSize: '10px' }}>{record.status_soan_hang === "1" ? "Đã soạn" : "Chưa soạn"}</Text>
+                        </div>
+                        {record.tt_giao_van && (
+                            <div style={{ fontSize: '10px', color: '#8c8c8c' }}>
+                                Giao: <Text type="secondary" style={{ fontSize: '10px' }}>{record.tt_giao_van}</Text>
+                            </div>
+                        )}
+                    </div>
+                )
+            },
+            {
+                title: "Tổng tiền",
+                dataIndex: "t_tt_nt",
+                key: "t_tt_nt",
+                width: 120,
+                align: "right",
+                render: (val) => <Text strong style={{ color: '#52c41a', fontSize: '15px' }}>{numFmt(val || 0)}</Text>,
+            },
+            {
+                title: "Vận chuyển",
+                key: "van_chuyen",
                 width: 200,
-                ellipsis: true,
+                render: (_, record) => (
+                    <div style={{ fontSize: '11px', lineHeight: '1.4' }}>
+                        {record.ten_vc && (
+                            <div style={{ fontWeight: 600, color: '#1890ff' }}>
+                                {record.ten_vc} {record.ma_vc ? `(${record.ma_vc.trim()})` : ""}
+                            </div>
+                        )}
+                        {(record.gio_xe || record.sdt_xe) && (
+                            <div style={{ color: '#555' }}>
+                                {record.gio_xe && <span style={{ marginRight: 8 }}>Giờ: {record.gio_xe.trim()}</span>}
+                                {record.sdt_xe && <div>SĐT: {record.sdt_xe.trim()}</div>}
+                            </div>
+                        )}
+                    </div>
+                )
+            },
+            {
+                title: "Người lập",
+                dataIndex: "nguoi_tao",
+                key: "nguoi_tao",
+                width: 120,
+                render: (val) => <span style={{ fontSize: '11px' }}>{val ? val.trim() : ""}</span>
             },
             {
                 title: "Trạng thái",
@@ -578,13 +596,13 @@ const ListPhieuKinhDoanh = () => {
                 filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
                     <div style={{ padding: 8 }}>
                         <Select
+                            mode="multiple"
                             placeholder="Chọn trạng thái"
-                            value={selectedKeys[0]}
+                            value={selectedKeys[0] || filters.status}
                             onChange={value => {
                                 setSelectedKeys(value ? [value] : []);
-                                handleFilter("status", value, confirm);
                             }}
-                            style={{ width: 150, display: 'block' }}
+                            style={{ width: 220, display: 'block' }}
                             allowClear
                         >
                             <Select.Option value="0">0. Lập chứng từ</Select.Option>
@@ -593,9 +611,20 @@ const ListPhieuKinhDoanh = () => {
                             <Select.Option value="4">4. Hoàn tất</Select.Option>
                             <Select.Option value="6">6. Đã hủy</Select.Option>
                         </Select>
+                        <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+                            <Button
+                                type="primary"
+                                size="small"
+                                onClick={() => {
+                                    handleFilter("status", selectedKeys[0] || filters.status, confirm);
+                                }}
+                            >
+                                Xác nhận
+                            </Button>
+                        </div>
                     </div>
                 ),
-                filteredValue: filters.status ? [filters.status] : null,
+                filteredValue: filters.status && filters.status.length > 0 ? filters.status : null,
             },
             {
                 title: "Hành động",
@@ -656,7 +685,7 @@ const ListPhieuKinhDoanh = () => {
 
         return (
             <Card
-                className={`mobile-phieu-card ${isSelected ? 'is-selected' : ''}`}
+                className={`mobile-phieu-card ${isSelected ? 'is-selected' : ''} ${(item.stt_rec_hightlight !== null && String(item.stt_rec_hightlight).trim() !== '') ? 'row-new-highlight' : ''}`}
                 key={item.stt_rec}
                 onClick={toggleSelect}
                 actions={[
@@ -668,15 +697,19 @@ const ListPhieuKinhDoanh = () => {
                     </div>
                 ]}
             >
-                <div className="mobile-card-header">
-                    <Text strong style={{ fontSize: '15px' }}>{item.so_ct}</Text>
-                    <Tag color={getStatusColor(item.status)}>{item.statusname}</Tag>
+                <div className="mobile-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {item.bcontract_id && (
+                            <Tag color="blue" style={{ margin: 0, fontWeight: 700, fontSize: '12px' }}>
+                                {item.bcontract_id.trim()}
+                            </Tag>
+                        )}
+                        <Text strong style={{ fontSize: '15px' }}>{item.so_ct}</Text>
+                        <Text type="secondary" style={{ fontSize: '13px' }}> - {dayjs(item.ngay_ct).format("DD/MM/YYYY")}</Text>
+                    </div>
+                    <Tag color={getStatusColor(item.status)} style={{ margin: 0 }}>{item.statusname}</Tag>
                 </div>
                 <div className="mobile-card-body">
-                    <div className="mobile-card-row">
-                        <Text type="secondary">Ngày:</Text>
-                        <Text>{dayjs(item.ngay_ct).format("DD/MM/YYYY")}</Text>
-                    </div>
                     <div className="mobile-card-row">
                         <Text type="secondary">Khách hàng:</Text>
                         <div style={{ textAlign: 'right' }}>
@@ -684,10 +717,51 @@ const ListPhieuKinhDoanh = () => {
                             <div><Text size="small" type="secondary">{item.ma_kh}</Text></div>
                         </div>
                     </div>
+                    <div className="mobile-card-row" style={{ marginTop: 2 }}>
+                        <Text type="secondary">Tổng tiền:</Text>
+                        <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>{numFmt(item.t_tt_nt || 0)}</Text>
+                    </div>
+                    <div className="mobile-card-row" style={{ marginTop: 4, borderTop: '1px solid #f0f0f0', paddingTop: 4 }}>
+                        <div style={{ fontSize: '11px', color: '#8c8c8c' }}>
+                            Giờ đặt: {item.datetime0 ? dayjs(item.datetime0).format("HH:mm DD/MM") : "--"}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#8c8c8c' }}>
+                            Chuyển kho: {item.thoi_gian_chuyen_kho ? dayjs(item.thoi_gian_chuyen_kho).format("HH:mm DD/MM") : "--"}
+                        </div>
+                    </div>
                     {item.ten_nvbh && (
                         <div className="mobile-card-row">
                             <Text type="secondary">Nhân viên:</Text>
                             <Text>{item.ten_nvbh}</Text>
+                        </div>
+                    )}
+                    {(item.ten_vc || item.gio_xe || item.sdt_xe || item.ghi_chu_giao_hang) && (
+                        <div className="mobile-card-shipping" style={{ 
+                            marginTop: 10, 
+                            borderTop: '1px dashed #eee', 
+                            paddingTop: 10
+                        }}>
+                            <div className="mobile-card-row" style={{ alignItems: 'flex-start' }}>
+                                <Text type="secondary" style={{ whiteSpace: 'nowrap' }}>Vận chuyển:</Text>
+                                <div style={{ textAlign: 'right', fontSize: '12px' }}>
+                                    {item.ten_vc && (
+                                        <Text strong style={{ color: '#1890ff' }}>
+                                            {item.ten_vc} {item.ma_vc ? `(${item.ma_vc.trim()})` : ""}
+                                        </Text>
+                                    )}
+                                    <div style={{ color: '#595959', marginTop: 2 }}>
+                                        {[
+                                            item.gio_xe && `Giờ: ${item.gio_xe.trim()}`,
+                                            item.sdt_xe && `SĐT: ${item.sdt_xe.trim()}`
+                                        ].filter(Boolean).join(' - ')}
+                                    </div>
+                                    {item.ghi_chu_giao_hang && (
+                                        <div style={{ fontStyle: 'italic', color: '#8c8c8c', marginTop: 2 }}>
+                                            {item.ghi_chu_giao_hang}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -718,14 +792,21 @@ const ListPhieuKinhDoanh = () => {
                         onChange={e => handleFilter("ten_kh", e.target.value)}
                         style={{ marginBottom: 8 }}
                     />
+                    <Input
+                        placeholder="Tên nhân viên (NVKD)"
+                        value={filters.ten_nvbh}
+                        onChange={e => handleFilter("ten_nvbh", e.target.value)}
+                        style={{ marginBottom: 8 }}
+                    />
                     <RangePicker
                         style={{ width: '100%', marginBottom: 8 }}
                         onChange={dates => handleFilter("dateRange", dates)}
                         placeholder={['Từ ngày', 'Đến ngày']}
                     />
                     <Select
+                        mode="multiple"
                         placeholder="Trạng thái"
-                        value={filters.status || undefined}
+                        value={filters.status && filters.status.length > 0 ? filters.status : []}
                         onChange={value => handleFilter("status", value)}
                         style={{ width: '100%' }}
                         allowClear
@@ -733,6 +814,8 @@ const ListPhieuKinhDoanh = () => {
                         <Select.Option value="0">0. Lập chứng từ</Select.Option>
                         <Select.Option value="1">1. Chờ duyệt</Select.Option>
                         <Select.Option value="2">2. Duyệt</Select.Option>
+                        <Select.Option value="4">4. Hoàn tất</Select.Option>
+                        <Select.Option value="6">6. Đã hủy</Select.Option>
                     </Select>
                 </div>
             )}
@@ -780,13 +863,18 @@ const ListPhieuKinhDoanh = () => {
                             <List
                                 dataSource={allData}
                                 renderItem={renderMobileItem}
-                                loadMore={
-                                    totalRecords > allData.length && (
-                                        <div style={{ textAlign: 'center', marginTop: 12, marginBottom: 12 }}>
-                                            <Button onClick={() => setCurrentPage(currentPage + 1)}>Xem thêm</Button>
-                                        </div>
-                                    )
-                                }
+                                pagination={{
+                                    current: currentPage,
+                                    pageSize: pageSize,
+                                    total: totalRecords,
+                                    onChange: (page) => {
+                                        setCurrentPage(page);
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    },
+                                    simple: true,
+                                    align: 'center',
+                                    style: { marginTop: 16, marginBottom: 16 }
+                                }}
                             />
                         ) : (
                             <Empty description="Không có đơn hàng nào" style={{ marginTop: 50 }} />
@@ -896,6 +984,11 @@ const ListPhieuKinhDoanh = () => {
                         </>
                     }
                     tableProps={{
+                        onRow: (record) => ({
+                            className: (record.stt_rec_hightlight !== null && String(record.stt_rec_hightlight).trim() !== '') 
+                                ? 'row-new-highlight' 
+                                : ''
+                        }),
                         rowSelection: {
                             selectedRowKeys,
                             preserveSelectedRowKeys: true,
@@ -1024,7 +1117,24 @@ const mobileStyles = `
 .mobile-card-row {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
     margin-bottom: 8px;
+    gap: 12px;
+}
+
+.mobile-card-row > *:first-child {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 8px;
+}
+
+.mobile-card-row > *:last-child {
+    flex: 0 0 55%;
+    text-align: right;
+    word-break: break-word;
+    line-height: 1.4;
 }
 
 .mobile-loading {
@@ -1036,6 +1146,19 @@ const mobileStyles = `
 .mobile-phieu-card .ant-card-actions {
     background: #fafafa;
     border-top: 1px solid #f0f0f0;
+}
+
+.ant-list-pagination {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+    margin: 16px 0 !important;
+}
+
+.ant-pagination.ant-pagination-simple {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
 }
 `;
 

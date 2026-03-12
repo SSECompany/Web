@@ -13,7 +13,7 @@ export const fetchPhieuKinhDoanhList = async (params) => {
             ma_vc: params.ma_vc || "",
             dien_giai: params.dien_giai || "",
             ghi_chu_giao_hang: params.ghi_chu_giao_hang || "",
-            status: params.status || "",
+            status: Array.isArray(params.status) ? params.status.join(",") : (params.status || ""),
             kw_so_ct: params.kw_so_ct || "",
             kw_ma_kh: params.kw_ma_kh || "",
             kw_dien_giai: params.kw_dien_giai || "",

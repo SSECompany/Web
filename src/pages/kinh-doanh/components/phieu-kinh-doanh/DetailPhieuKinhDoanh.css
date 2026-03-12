@@ -24,42 +24,48 @@
   border-bottom: 1px solid #f0f0f0;
 }
 
-.detail-don-hang__header-left {
+.detail-don-hang__header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: flex-end;
+  width: auto;
 }
 
-.detail-don-hang__back-btn {
-  color: #6c63ff !important;
-  border: 1px solid #e0e7ef !important;
-  background: #f8f9fb !important;
-  border-radius: 10px !important;
-  padding: 6px 16px !important;
+/* ---- Header Back Button synchronization ---- */
+.detail-don-hang__header .phieu-back-button {
   height: 36px !important;
+  width: 36px !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
   display: flex !important;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600 !important;
-  font-size: 13px !important;
-  transition: all 0.25s !important;
-  box-shadow: 0 2px 8px rgba(108, 99, 255, 0.06) !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #6c63ff !important;
+  background: #f8f9fb !important;
+  border: 1px solid #e0e7ef !important;
 }
-.detail-don-hang__back-btn:hover {
+
+.detail-don-hang__header .phieu-back-button .anticon {
+  font-size: 18px !important;
+  display: flex !important;
+}
+.detail-don-hang__header .phieu-back-button:hover {
   background: #f0f4ff !important;
   color: #4f46e5 !important;
   box-shadow: 0 4px 16px rgba(108, 99, 255, 0.12) !important;
 }
 
-.detail-don-hang__title {
+/* Phieu title override to ensure visibility in this specific header */
+.detail-don-hang__header .header-order-title {
+  font-size: 15px !important;
+  line-height: 1.2 !important;
+}
+
+.detail-don-hang__header .phieu-title {
+  text-align: center !important;
+  font-size: 15px !important;
   margin: 0 !important;
-  font-weight: 700 !important;
-  font-size: 17px !important;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: 0.3px;
+  flex: 1;
 }
 
 .detail-don-hang__edit-btn {
@@ -158,6 +164,17 @@
 .detail-don-hang__body .ant-picker-focused {
   border-color: #6c63ff !important;
   box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.08) !important;
+}
+
+/* ---- Khách hàng (Class riêng để !important ăn được) ---- */
+.detail-don-hang__body .customer-display .ant-input,
+.detail-don-hang__body .customer-display.ant-input {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  color: #6c63ff !important;
+  height: 40px !important;
+  background: rgba(108, 99, 255, 0.03) !important;
+  border: none !important;
 }
 
 /* ---- Tabs ---- */
@@ -393,15 +410,23 @@
     font-size: 20px !important;
   }
 
-  .detail-don-hang__back-btn {
-    padding: 4px 10px !important;
+  .detail-don-hang__header .phieu-back-button {
     height: 32px !important;
-    font-size: 12px !important;
+    width: 32px !important;
+    padding: 0 !important;
     border-radius: 8px !important;
   }
 
-  .detail-don-hang__title {
-    font-size: 15px !important;
+  .detail-don-hang__header .phieu-title {
+    font-size: 14px !important;
+  }
+
+  .detail-don-hang__header .header-order-title {
+    font-size: 10.5px !important;
+  }
+
+  .header-order-info {
+    padding-left: 4px !important;
   }
 
   .detail-don-hang__body {
@@ -436,20 +461,33 @@
     padding: 6px 8px !important;
   }
 
-  /* Nút hành động xếp dọc */
+  /* Nút hành động đứng cạnh nhau */
   .detail-don-hang__actions {
-    flex-direction: column;
+    flex-direction: row !important;
     gap: 10px;
     padding: 14px 0 0;
     margin-top: 16px;
   }
   .detail-don-hang__actions .ant-btn {
-    width: 100% !important;
+    width: auto !important;
+    flex: 1;
   }
 
   /* Form items on mobile */
   .detail-don-hang__body .ant-form-item {
     margin-bottom: 12px;
+  }
+
+  /* Khách hàng nhỏ lại trên mobile */
+  .detail-don-hang__body .customer-display .ant-input,
+  .detail-don-hang__body .customer-display.ant-input {
+    font-size: 14px !important;
+    height: 36px !important;
+  }
+
+  /* Center pagination on mobile */
+  .ant-table-pagination {
+    justify-content: center !important;
   }
 }
 

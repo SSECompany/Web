@@ -6,11 +6,13 @@ import {
     PlusOutlined,
     DeleteOutlined,
     SearchOutlined,
+    DownOutlined,
+    UpOutlined,
 } from "@ant-design/icons";
 import {
     Button, Form, Input, Select, Typography,
     message, Checkbox, Tabs, Row, Col, DatePicker,
-    Table, Spin, InputNumber
+    Table, Spin, InputNumber, Card
 } from "antd";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -36,6 +38,9 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
     );
     const [loading, setLoading] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [showGeneralInfo, setShowGeneralInfo] = useState(true);
+
+    const toggleGeneralInfo = () => setShowGeneralInfo(!showGeneralInfo);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -101,7 +106,10 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                         t_thue_nt: header.t_thue_nt || header.t_thue || 0,
                         tong_cong: header.t_tt_nt || header.t_tt || 0,
                         the_voucher: header.ds_voucher || "",
-                        khach_hang_display: header.ma_kh && header.ten_kh ? `${header.ma_kh} - ${header.ten_kh}` : (header.ma_kh || header.ten_kh || ""),
+                        khach_hang_display: header.ma_kh || header.ten_kh ? `Khách hàng: ${header.ten_kh || ""} - ${header.ma_kh || ""}` : "",
+                        // Timestamp fields
+                        gio_dat_hang: header.datetime0 ? dayjs(header.datetime0).format("HH:mm DD/MM/YYYY") : "",
+                        gio_chuyen_kho: header.thoi_gian_chuyen_kho ? dayjs(header.thoi_gian_chuyen_kho).format("HH:mm DD/MM/YYYY") : "",
                     });
                 }
             } else {
@@ -212,44 +220,50 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                             },
                             { title: "Kho", dataIndex: "ma_kho", width: 80 },
                             { title: "SL", dataIndex: "so_luong", width: 65, align: "right", render: (v) => numFmt(Math.round(v || 0)) },
+                            { title: "Tồn", dataIndex: "ton13", width: 65, align: "right", render: (v) => numFmt(Math.round(v || 0)) },
+                            { title: "Giá niêm yết", dataIndex: "gia_ban_nt", width: 100, align: "right", render: (v) => numFmt(Math.round(v || 0)) },
                             { title: "Giá bán", dataIndex: "gia_nt2", width: 100, align: "right", render: (v) => numFmt(Math.round(v || 0)) },
                             { title: "Tiền hàng", dataIndex: "tien_nt2", width: 110, align: "right", render: (v) => numFmt(Math.round(v || 0)) },
                             { title: "CK%", dataIndex: "tl_ck", width: 60, align: "right", render: (v) => (v ? `${v}%` : "") },
                             { title: "Tiền CK", dataIndex: "ck_nt", width: 90, align: "right", render: (v) => v ? numFmt(Math.round(v)) : "" },
                             { title: "Thuế", dataIndex: "thue_nt", width: 90, align: "right", render: (v) => numFmt(Math.round(v || 0)) },
-                            { title: "Tồn", dataIndex: "ton13", width: 65, align: "right", render: (v) => numFmt(Math.round(v || 0)) },
                             { title: "Ghi chú", dataIndex: "ghi_chu", width: 120, ellipsis: true },
+                            {
+                                title: "Hành động",
+                                key: "action",
+                                width: 80,
+                                fixed: "right",
+                                align: "center",
+                                render: (_, record) => (
+                                    <Button
+                                        type="text"
+                                        danger
+                                        icon={<DeleteOutlined />}
+                                        disabled={!isEditMode}
+                                        onClick={() => {
+                                            setChiTietData(prev => prev.filter(item => item.line_nbr !== record.line_nbr));
+                                            message.success("Đã xóa mã hàng khỏi đơn");
+                                        }}
+                                    />
+                                )
+                            },
                         ]}
-                        pagination={false}
+                        pagination={{
+                            pageSize: 10,
+                            size: "small",
+                            showSizeChanger: false,
+                            simple: true,
+                            align: "center",
+                            style: { marginTop: 16, marginBottom: 16 }
+                        }}
                         bordered
-                        scroll={{ x: 1150 }}
+                        scroll={{ x: 1250 }}
                         rowKey={(r) => r.stt_rec + "_" + r.line_nbr}
                     />
                 </div>
             ),
         },
-        {
-            key: "giao_hang",
-            label: "Thông tin giao hàng",
-            children: (
-                <Row gutter={24}>
-                    <Col xs={24} lg={14}>
-                        <Form.Item name="ma_dc" label="Nơi giao">
-                            <Input suffix={<SearchOutlined style={{ color: '#94a3b8' }} />} />
-                        </Form.Item>
-                        <Form.Item name="ma_htvc" label="Loại vận chuyển">
-                            <Input />
-                        </Form.Item>
-                        <Form.Item name="ma_vc" label="P.tiện d.chuyển">
-                            <Input suffix={<SearchOutlined style={{ color: '#94a3b8' }} />} />
-                        </Form.Item>
-                        <Form.Item name="ghi_chu_giao_hang" label="Ghi chú giao hàng">
-                            <Input.TextArea rows={2} />
-                        </Form.Item>
-                    </Col>
-                </Row>
-            ),
-        },
+
         {
             key: "chi_phi",
             label: "Chi phí",
@@ -316,32 +330,27 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
         <div className="detail-don-hang">
             <div className="detail-don-hang__card">
                 {/* ===== HEADER ===== */}
-                <Row align="middle" className="detail-don-hang__header" style={{ position: "relative" }}>
-                    <Col flex={1} style={{ textAlign: "left", zIndex: 1 }}>
-                        <Button
-                            type="text"
-                            icon={<LeftOutlined />}
-                            className="detail-don-hang__back-btn"
-                            onClick={() => navigate("/kinh-doanh/danh-sach")}
-                        />
-                    </Col>
+                <div className="detail-don-hang__header">
+                    <Button
+                        type="text"
+                        icon={<LeftOutlined />}
+                        className="phieu-back-button"
+                        onClick={() => navigate(-1)}
+                    />
 
-                    <div style={{
-                        position: "absolute",
-                        left: "50%",
-                        transform: "translateX(-50%)",
-                        zIndex: 0,
-                        whiteSpace: "nowrap"
-                    }}>
-                        <Title level={5} className="phieu-title" style={{ margin: 0 }}>
-                            {stt_rec
-                                ? isEditMode ? "SỬA ĐƠN HÀNG" : "CHI TIẾT ĐƠN HÀNG"
-                                : "THÊM ĐƠN HÀNG MỚI"}
+                    <div className="header-order-info" style={{ display: 'flex', flexDirection: 'column', flex: 1, paddingLeft: 8 }}>
+                        <Title level={5} className="header-order-title" style={{ margin: 0, color: '#ff4d4f', fontWeight: 800 }}>
+                            ĐƠN HÀNG SỐ: <span style={{ color: '#262626' }}>{form.getFieldValue('so_ct') || '.........'}</span>
+                            <span style={{ margin: '0 12px', color: '#d9d9d9' }}>|</span>
+                            NGÀY: <span style={{ color: '#262626' }}>{form.getFieldValue('ngay_ct') ? dayjs(form.getFieldValue('ngay_ct')).format('DD/MM/YYYY') : '.........'}</span>
                         </Title>
+                        <Text type="secondary" style={{ fontSize: '11px', fontWeight: 500 }}>
+                             {stt_rec ? (isEditMode ? "SỬA ĐƠN HÀNG" : "CHI TIẾT ĐƠN HÀNG") : "THÊM ĐƠN HÀNG MỚI"}
+                        </Text>
                     </div>
 
-                    <Col flex={1} style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", zIndex: 1 }}>
-                        {stt_rec && !isEditMode && (
+                    <div className="detail-don-hang__header-right">
+                        {stt_rec && !isEditMode ? (
                             <Button
                                 type="text"
                                 icon={<EditOutlined />}
@@ -349,9 +358,11 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                 onClick={handleToggleEdit}
                                 title="Chỉnh sửa"
                             />
+                        ) : (
+                            <div style={{ width: 36 }}></div>
                         )}
-                    </Col>
-                </Row>
+                    </div>
+                </div>
 
                 {/* ===== BODY ===== */}
                 <div className="detail-don-hang__body">
@@ -361,77 +372,179 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                         disabled={!isEditMode && !!stt_rec}
                         labelCol={isMobile ? null : { flex: "140px" }}
                         wrapperCol={isMobile ? null : { flex: 1 }}
-                        size={isMobile ? "middle" : "small"}
+                        size="middle"
                         colon={false}
                     >
                         {/* ---- Thông tin chung ---- */}
-                        <div className="detail-don-hang__section">
-                            <Row gutter={32}>
-                                <Col xs={24} lg={11}>
-                                    <Form.Item name="khach_hang_display" label="Khách hàng">
-                                        <Input disabled />
-                                    </Form.Item>
-                                    <Form.Item name="ma_nvbh" label="NVKD">
-                                        <Input />
-                                    </Form.Item>
-                                    <Form.Item name="ma_tt" label="Mã thanh toán">
-                                        <Input />
-                                    </Form.Item>
-                                </Col>
+                        <div className="detail-don-hang__section" style={{ marginBottom: 16 }}>
+                            {/* ---- Khách hàng (Dòng riêng trên cùng) ---- */}
+                            <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '12px',
+                                paddingBottom: showGeneralInfo ? '16px' : '0',
+                                borderBottom: showGeneralInfo ? '1px solid #f0f0f0' : 'none',
+                                marginBottom: showGeneralInfo ? '16px' : '0'
+                            }}>
+                                <Form.Item name="khach_hang_display" noStyle>
+                                    <Input disabled className="customer-display" />
+                                </Form.Item>
 
-                                <Col xs={24} lg={{ span: 11, offset: 1 }}>
-                                    <Form.Item name="so_ct" label="Số đơn hàng">
-                                        <Input />
-                                    </Form.Item>
-                                    <Form.Item name="ngay_ct" label="Ngày lập">
-                                        <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} placeholder="Chọn thời điểm" />
-                                    </Form.Item>
-                                    <Form.Item name="status" label="Trạng thái">
-                                        <Select>
-                                            {statusList.length > 0 ? (
-                                                statusList.map((s) => (
-                                                    <Select.Option key={s.status} value={s.status}>
-                                                        {s.status}. {s.statusname}
-                                                    </Select.Option>
-                                                ))
-                                            ) : (
-                                                <>
-                                                    <Select.Option value="0">0. Lập chứng từ</Select.Option>
-                                                    <Select.Option value="1">1. Chờ duyệt</Select.Option>
-                                                    <Select.Option value="2">2. Duyệt</Select.Option>
-                                                </>
-                                            )}
-                                        </Select>
-                                    </Form.Item>
-                                </Col>
-                            </Row>
+                                {!isMobile && (
+                                    <div style={{ minWidth: '180px' }}>
+                                        <Form.Item name="status" noStyle>
+                                            <Select placeholder="Trạng thái" style={{ width: '100%' }}>
+                                                {statusList.length > 0 ? (
+                                                    statusList.map((s) => (
+                                                        <Select.Option key={s.status} value={s.status}>
+                                                            {s.status}. {s.statusname}
+                                                        </Select.Option>
+                                                    ))
+                                                ) : (
+                                                    <>
+                                                        <Select.Option value="0">0. Lập chứng từ</Select.Option>
+                                                        <Select.Option value="1">1. Chờ duyệt</Select.Option>
+                                                        <Select.Option value="2">2. Duyệt</Select.Option>
+                                                    </>
+                                                )}
+                                            </Select>
+                                        </Form.Item>
+                                    </div>
+                                )}
 
-                            <Row gutter={32}>
-                                <Col xs={24} lg={11}>
-                                    <Form.Item name="dien_giai" label="Diễn giải">
-                                        <Input />
-                                    </Form.Item>
-                                    <Form.Item name="ghi_chu_kh" label="Ghi chú KH">
-                                        <Input.TextArea rows={2} />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
+                                <Button
+                                    type="text"
+                                    disabled={false}
+                                    icon={showGeneralInfo ? <UpOutlined /> : <DownOutlined />}
+                                    onClick={toggleGeneralInfo}
+                                    style={{ 
+                                        color: "#6c63ff", 
+                                        height: '40px',
+                                        width: '40px',
+                                        background: 'rgba(108, 99, 255, 0.05)',
+                                        borderRadius: '8px',
+                                        opacity: 1
+                                    }}
+                                />
+                            </div>
 
-                            <Row gutter={32}>
-                                <Col xs={24} lg={11}>
-                                    <Form.Item name="kh_chiu_cuoc" valuePropName="checked" wrapperCol={{ offset: 0 }} style={isMobile ? {} : { marginLeft: "140px" }}>
-                                        <Checkbox>Khách hàng chịu cước</Checkbox>
-                                    </Form.Item>
-                                </Col>
-                                <Col xs={24} lg={{ span: 11, offset: 1 }}>
-                                    <Form.Item name="hinh_thuc_tt" label="Hình thức TT">
-                                        <Select>
-                                            <Select.Option value="1">1. Chuyển khoản</Select.Option>
-                                            <Select.Option value="2">2. Tiền mặt</Select.Option>
-                                        </Select>
-                                    </Form.Item>
-                                </Col>
-                            </Row>
+                            {/* ---- Lưới thông tin chi tiết ---- */}
+                            {showGeneralInfo && (
+                                <Row gutter={[16, 0]}>
+                                    {/* Left Column: Who - Where - How */}
+                                    <Col xs={24} lg={11}>
+                                        <Row gutter={16}>
+                                            <Col span={12}>
+                                                <Form.Item name="ma_nvbh" label="NVKD">
+                                                    <Input />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={12}>
+                                                <Form.Item name="ma_tt" label="Mã TT">
+                                                    <Input />
+                                                </Form.Item>
+                                            </Col>
+                                        </Row>
+                                        
+                                        <Form.Item name="ma_dc" label="Nơi giao">
+                                            <Input suffix={<SearchOutlined style={{ color: '#94a3b8' }} />} />
+                                        </Form.Item>
+
+                                        <Row gutter={16}>
+                                            <Col span={12}>
+                                                <Form.Item name="ma_htvc" label="Loại VC">
+                                                    <Input />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={12}>
+                                                <Form.Item name="ma_vc" label="Phương tiện">
+                                                    <Input suffix={<SearchOutlined style={{ color: '#94a3b8' }} />} />
+                                                </Form.Item>
+                                            </Col>
+                                        </Row>
+
+                                        <Row gutter={16}>
+                                            <Col span={12}>
+                                                <Form.Item name="hinh_thuc_tt" label="Hình thức">
+                                                    <Select>
+                                                        <Select.Option value="1">1. Chuyển khoản</Select.Option>
+                                                        <Select.Option value="2">2. Tiền mặt</Select.Option>
+                                                        <Select.Option value="3">3. COD</Select.Option>
+                                                    </Select>
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={12}>
+                                                <Form.Item name="kh_chiu_cuoc" label="Cước phí">
+                                                    <Select>
+                                                        <Select.Option value={1}>1. Khách chịu</Select.Option>
+                                                        <Select.Option value={0}>0. Shop chịu</Select.Option>
+                                                    </Select>
+                                                </Form.Item>
+                                            </Col>
+                                        </Row>
+
+                                        {/* Những trường phụ đẩy xuống dưới */}
+                                        <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px dashed #f0f0f0' }}>
+                                            <Row gutter={16}>
+                                                <Col span={14}>
+                                                    <Form.Item name="so_ct" label="Số đơn">
+                                                        <Input />
+                                                    </Form.Item>
+                                                </Col>
+                                                <Col span={10}>
+                                                    <Form.Item name="bcontract_id" label="Thứ tự">
+                                                        <Input disabled style={{ fontWeight: 600, color: '#1890ff', textAlign: 'center' }} />
+                                                    </Form.Item>
+                                                </Col>
+                                            </Row>
+                                            <Form.Item name="ngay_ct" label="Ngày lập">
+                                                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} placeholder="Chọn" />
+                                            </Form.Item>
+                                            <Row gutter={16}>
+                                                <Col span={12}>
+                                                    <div style={{ fontSize: '14px', color: '#595959' }}>Giờ đặt: <Text strong style={{ color: '#262626' }}>{form.getFieldValue('gio_dat_hang') || '--'}</Text></div>
+                                                </Col>
+                                                <Col span={12}>
+                                                    <div style={{ fontSize: '14px', color: '#595959' }}>Chuyển kho: <Text strong style={{ color: '#262626' }}>{form.getFieldValue('gio_chuyen_kho') || '--'}</Text></div>
+                                                </Col>
+                                            </Row>
+                                        </div>
+                                    </Col>
+
+                                    {/* Right Column: Notes & Status */}
+                                    <Col xs={24} lg={{ span: 11, offset: 1 }}>
+                                        <Form.Item name="dien_giai" label="Diễn giải">
+                                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} />
+                                        </Form.Item>
+                                        <Form.Item name="ghi_chu_kh" label="Ghi chú KH">
+                                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} />
+                                        </Form.Item>
+                                        <Form.Item name="ghi_chu_giao_hang" label="Ghi chú VC">
+                                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} />
+                                        </Form.Item>
+                                        
+                                        {isMobile && (
+                                            <Form.Item name="status" label="Trạng thái">
+                                                <Select>
+                                                    {statusList.length > 0 ? (
+                                                        statusList.map((s) => (
+                                                            <Select.Option key={s.status} value={s.status}>
+                                                                {s.status}. {s.statusname}
+                                                            </Select.Option>
+                                                        ))
+                                                    ) : (
+                                                        <>
+                                                            <Select.Option value="0">0. Lập chứng từ</Select.Option>
+                                                            <Select.Option value="1">1. Chờ duyệt</Select.Option>
+                                                            <Select.Option value="2">2. Duyệt</Select.Option>
+                                                        </>
+                                                    )}
+                                                </Select>
+                                            </Form.Item>
+                                        )}
+                                    </Col>
+                                </Row>
+                            )}
                         </div>
 
                         {/* ---- Tabs ---- */}
@@ -443,39 +556,61 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
 
                         {/* ---- Tổng tiền ---- */}
                         <div className="detail-don-hang__totals">
-                            <Row gutter={32} justify="space-between">
-                                <Col xs={24} lg={10}>
+                            {/* --- Thẻ Voucher (Dòng riêng trên cùng) --- */}
+                            <Row gutter={16}>
+                                <Col xs={24} lg={11}>
                                     <Form.Item name="the_voucher" label="Thẻ voucher">
                                         <Input suffix={<SearchOutlined style={{ color: '#94a3b8' }} />} />
                                     </Form.Item>
+                                </Col>
+                            </Row>
+
+                            {/* --- Chi tiết các khoản phí (Chia 2 cột cân đối) --- */}
+                            <Row gutter={[16, 0]}>
+                                <Col xs={12} lg={11}>
                                     <Form.Item name="t_ck_tt" label="CK tổng đơn">
                                         <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} formatter={numFmt} />
                                     </Form.Item>
+                                </Col>
+                                <Col xs={12} lg={{ span: 11, offset: 1 }}>
+                                    <Form.Item name="t_tien2" label="Tiền hàng">
+                                        <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} disabled formatter={numFmt} />
+                                    </Form.Item>
+                                </Col>
+
+                                <Col xs={12} lg={11}>
                                     <Form.Item name="t_ck" label="Tiền chiết khấu">
                                         <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} formatter={numFmt} />
                                     </Form.Item>
+                                </Col>
+                                <Col xs={12} lg={{ span: 11, offset: 1 }}>
+                                    <Form.Item name="t_ck_voucher" label="CK voucher">
+                                        <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} disabled formatter={numFmt} />
+                                    </Form.Item>
+                                </Col>
+
+                                <Col xs={12} lg={11}>
                                     <Form.Item name="tien_cp" label="Chi phí">
                                         <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} formatter={numFmt} />
                                     </Form.Item>
                                 </Col>
-
-                                <Col xs={24} lg={10} className="detail-don-hang__totals-right">
-                                    <Form.Item name="t_tien2" label="Tiền hàng">
-                                        <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} disabled formatter={numFmt} />
-                                    </Form.Item>
-                                    <Form.Item name="t_ck_voucher" label="CK voucher">
-                                        <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} disabled formatter={numFmt} />
-                                    </Form.Item>
+                                <Col xs={12} lg={{ span: 11, offset: 1 }}>
                                     <Form.Item name="t_thue_nt" label="Tiền thuế">
                                         <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} disabled formatter={numFmt} />
                                     </Form.Item>
-                                    <div className="detail-don-hang__totals-grand">
+                                </Col>
+                            </Row>
+
+                            {/* --- Tổng cộng (Dòng nhấn mạnh cuối cùng) --- */}
+                            <div className="detail-don-hang__totals-grand" style={{ borderTop: '1px solid #f0f0f0', paddingTop: '16px', marginTop: '8px' }}>
+                                <Row justify="end">
+                                    <Col xs={24} lg={11}>
                                         <Form.Item name="tong_cong" label="Tổng cộng">
                                             <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} disabled formatter={numFmt} />
                                         </Form.Item>
-                                    </div>
-                                </Col>
-                            </Row>
+                                    </Col>
+                                </Row>
+                            </div>
                         </div>
 
                         {/* ---- Actions ---- */}
