@@ -94,6 +94,7 @@ const BaoCaoTonKho = () => {
           store: "api_getKho",
           param: {
             unitId: unitId,
+            userId: userId,
             searchValue: searchValue || "",
             pageIndex: 1,
             pageSize: 100,
@@ -113,7 +114,7 @@ const BaoCaoTonKho = () => {
         setLoadingKho(false);
       }
     },
-    [unitId]
+    [unitId, userId]
   );
 
   // Fetch nhóm vật tư

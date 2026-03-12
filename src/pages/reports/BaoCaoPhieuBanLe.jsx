@@ -98,6 +98,7 @@ const BaoCaoPhieuBanLe = () => {
           store: "api_getKho",
           param: {
             unitId: unitId,
+            userId: userId,
             searchValue: searchValue || "",
             pageIndex: 1,
             pageSize: 100,
@@ -117,7 +118,7 @@ const BaoCaoPhieuBanLe = () => {
         setLoadingKho(false);
       }
     },
-    [unitId]
+    [unitId, userId]
   );
 
   // Fetch nhóm vật tư

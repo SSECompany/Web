@@ -97,6 +97,7 @@ const TongHopNhapXuatTon = () => {
           store: "api_getKho",
           param: {
             unitId: unitId,
+            userId: userId,
             searchValue: searchValue || "",
             pageIndex: 1,
             pageSize: 100,
@@ -119,7 +120,7 @@ const TongHopNhapXuatTon = () => {
         setLoadingKho(false);
       }
     },
-    [unitId]
+    [unitId, userId]
   );
 
   const fetchNhomVatTuOptions = useCallback(
