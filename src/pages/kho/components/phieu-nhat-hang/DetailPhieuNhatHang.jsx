@@ -884,9 +884,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           icon={<LeftOutlined />}
           onClick={() => navigate(returnUrl)}
           className="phieu-back-button"
-        >
-          Trở về
-        </Button>
+        />
         <Title level={5} className="phieu-title">
           {isEditMode
             ? "CHỈNH SỬA PHIẾU NHẶT HÀNG"
@@ -945,7 +943,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               setVatTuList={setVatTuList}
               currentKeyword={currentKeyword}
               onOpenQRScanner={() => setShowQRScanner(true)}
-              disableSearch={true}
+              disableSearch={false}
             />
           </div>
 

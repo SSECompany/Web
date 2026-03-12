@@ -183,10 +183,12 @@ export const useVatTuManagerNhatHang = () => {
         return;
       }
 
-      // Bỏ API danh-sach-dv, sử dụng đơn vị tính từ vatTuInfo
-      const donViTinhList = vatTuInfo.dvt 
-        ? [{ dvt: vatTuInfo.dvt.trim(), he_so: parseFloat(vatTuInfo.he_so) || 1 }]
-        : [];
+      // Re-enable unit of measure fetching
+      const donViTinhList = fetchDonViTinh ? await fetchDonViTinh(value.trim()) : [];
+      // Fallback if API returns empty
+      if (donViTinhList.length === 0 && vatTuInfo.dvt) {
+        donViTinhList.push({ dvt: vatTuInfo.dvt.trim(), he_so: parseFloat(vatTuInfo.he_so) || 1 });
+      }
 
       setDataSource((prev) => {
         // Đảm bảo maLo là string hợp lệ (không phải object)
@@ -858,11 +860,9 @@ export const useVatTuManagerNhatHang = () => {
       return;
     }
 
-    // Không cho phép xóa dòng chính (dòng cha)
-    if (!itemToDelete.isChild) {
-      message.warning("Không thể xóa dòng chính");
-      return;
-    }
+    // Allow deleting both parent and child rows
+    // (Wait, the logic below already handles parent deletion, just remove the guard)
+
 
     // Nếu là dòng cha, xóa cả dòng cha và tất cả các dòng con
     // Nếu là dòng con, chỉ xóa dòng con đó

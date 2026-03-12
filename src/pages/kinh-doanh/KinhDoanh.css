@@ -1,0 +1,62 @@
+.kinh-doanh-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 40px 20px;
+}
+
+.kinh-doanh-header {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.kinh-doanh-title {
+    color: #2c3e50 !important;
+    margin-bottom: 16px !important;
+    font-weight: 700;
+}
+
+.kinh-doanh-subtitle {
+    color: #7f8c8d !important;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.kinh-doanh-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.kinh-doanh-menu-card {
+    height: 180px;
+    min-width: 260px;
+    margin-bottom: 24px;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.kinh-doanh-menu-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+}
+
+.kinh-doanh-menu-item {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 16px;
+}
+
+.kinh-doanh-menu-icon {
+    margin-bottom: 8px;
+    color: white;
+    font-size: 28px !important;
+}
+
+@media (max-width: 768px) {
+    .kinh-doanh-container {
+        padding: 20px 16px;
+    }
+}

@@ -1004,9 +1004,9 @@ const VatTuTable = ({
                     icon={<DeleteOutlined />}
                     onClick={() => onDeleteItem(index, isEditMode)}
                     title="Xóa dòng"
-                    disabled={true}
+                    disabled={!isEditMode}
                     className="vat-tu-delete-btn"
-                    style={{ opacity: 0.3, cursor: "not-allowed" }}
+
                   />
                   <Button
                     type="text"
@@ -1047,9 +1047,9 @@ const VatTuTable = ({
               icon={<DeleteOutlined />}
               onClick={() => onDeleteItem(index, isEditMode)}
               title={record.isChild ? "Xóa dòng" : "Không thể xóa dòng chính"}
-              disabled={!isEditMode || !record.isChild}
+              disabled={!isEditMode}
               className="vat-tu-delete-btn"
-              style={!record.isChild ? { opacity: 0.3, cursor: "not-allowed" } : {}}
+
             />
           );
         },

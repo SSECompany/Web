@@ -104,6 +104,9 @@ const Navbar = () => {
       "/",
       "login",
       // Bán hàng và Trả hàng routes removed - not allowed in this branch
+      "kinh-doanh",
+      "kinh-doanh/danh-sach",
+      "kinh-doanh/them-moi",
       "kho",
       "kho/nhat-hang", // Phiếu nhặt hàng
       "kho/nhat-hang/them-moi",
@@ -146,7 +149,9 @@ const Navbar = () => {
       // Phiếu xuất điều chuyển: cho phép chi tiết + edit
       currentPath.match(/^kho\/xuat-dieu-chuyen\/(chi-tiet|edit)\/[^/]+$/) ||
       // Phiếu yêu cầu kiểm kê: cho phép chi tiết + edit
-      currentPath.match(/^kho\/yeu-cau-kiem-ke\/(chi-tiet|edit)\/[^/]+$/);
+      currentPath.match(/^kho\/yeu-cau-kiem-ke\/(chi-tiet|edit)\/[^/]+$/) ||
+      // Phiếu kinh doanh: cho phép chi tiết + edit
+      currentPath.match(/^kinh-doanh\/(chi-tiet|edit)\/[^/]+$/);
 
     if (!isValidRoute) {
       // Redirect to Kho if invalid route
@@ -181,6 +186,32 @@ const Navbar = () => {
                 TAPMED
               </h2>
             </div>
+
+            {/* Mobile Router Dropdown Menu */}
+            <Dropdown
+              overlayClassName="navbar_mobile_dropdown"
+              placement="bottomLeft"
+              trigger={["click"]}
+              menu={{
+                items: [
+                  { key: "kinh-doanh", label: <Link to="/kinh-doanh">Kinh doanh</Link> },
+                  { key: "kho", label: <Link to="/kho">Kho</Link> },
+                  {
+                    key: "bao-cao",
+                    label: "Báo cáo",
+                    children: [
+                      { key: "phieu-ban-le", label: <Link to="/bao-cao/phieu-ban-le">Báo cáo phiếu bán lẻ</Link> },
+                      { key: "ton-kho", label: <Link to="/bao-cao/ton-kho">Báo cáo tồn kho</Link> },
+                      { key: "tong-hop-nhap-xuat-ton", label: <Link to="/bao-cao/tong-hop-nhap-xuat-ton">Tổng hợp nhập xuất tồn</Link> },
+                    ],
+                  },
+                ]
+              }}
+            >
+              <button className="navbar_mobile_menu_btn" aria-label="Menu">
+                <MoreOutlined style={{ transform: "rotate(90deg)" }} />
+              </button>
+            </Dropdown>
           </div>
 
           <Menu
@@ -188,6 +219,10 @@ const Navbar = () => {
             className="navbar_routes"
             items={[
               // Bán hàng và Trả hàng modules removed - not available in this branch
+              {
+                key: "kinh-doanh",
+                label: <Link to="/kinh-doanh">Kinh doanh</Link>,
+              },
               {
                 key: "kho",
                 label: <Link to="/kho">Kho</Link>,
@@ -231,11 +266,11 @@ const Navbar = () => {
           >
             {isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
           </button>
-          <div className="px-1 text-center flex items-center gap-2">
+          <div className="navbar_version px-1 text-center items-center gap-2">
             <VersionIndicator showDetails={true} size="small" />
           </div>
           <div className="px-1 text-center flex full-name">
-            <div className="primary_bold_text">
+            <div className="primary_bold_text user_name_text">
               {userInfo?.fullName || userInfo?.userName}
             </div>
           </div>

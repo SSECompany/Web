@@ -327,9 +327,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
           icon={<LeftOutlined />}
           onClick={() => navigate("/kho/nhap-kho")}
           className="phieu-back-button"
-        >
-          Trở về
-        </Button>
+        />
         <Title level={5} className="phieu-title">
           {isEditMode ? "CHỈNH SỬA PHIẾU NHẬP KHO" : "CHI TIẾT PHIẾU NHẬP KHO"}
         </Title>

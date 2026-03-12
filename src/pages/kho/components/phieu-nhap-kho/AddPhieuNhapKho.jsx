@@ -206,9 +206,7 @@ const AddPhieuNhapKho = () => {
           icon={<LeftOutlined />}
           onClick={() => navigate("/kho/nhap-kho")}
           className="phieu-back-button"
-        >
-          Trở về
-        </Button>
+        />
         <Title level={5} className="phieu-title">
           THÊM PHIẾU NHẬP KHO MỚI
         </Title>

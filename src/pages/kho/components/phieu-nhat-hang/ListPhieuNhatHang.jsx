@@ -1047,7 +1047,7 @@ const ListPhieuNhatHang = () => {
         </div>
         <div className="filter-chips-right">
           <Button size="small" onClick={clearAllChips}>
-            Xóa tất cả
+            Xóa lọc
           </Button>
         </div>
       </div>

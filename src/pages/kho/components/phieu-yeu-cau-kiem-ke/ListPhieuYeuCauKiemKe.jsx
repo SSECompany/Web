@@ -1,7 +1,7 @@
-import { AuditOutlined, ReloadOutlined } from "@ant-design/icons";
+import { AuditOutlined, ReloadOutlined, FilterOutlined } from "@ant-design/icons";
 import { Button, DatePicker, Input, message, Tag, Typography } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
@@ -37,9 +37,6 @@ const ListPhieuYeuCauKiemKe = () => {
   });
 
   const pageSize = 20;
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedData = allData.slice(startIndex, endIndex);
 
   // Detect screen size
   useEffect(() => {
@@ -61,7 +58,7 @@ const ListPhieuYeuCauKiemKe = () => {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  const fetchPhieuYeuCauKiemKe = async (filterParams = filters) => {
+  const fetchPhieuYeuCauKiemKe = useCallback(async (filterParams = filters) => {
     const body = {
       store: "api_list_phieu_yeu_cau_kiem_ke",
       param: {
@@ -115,11 +112,82 @@ const ListPhieuYeuCauKiemKe = () => {
     } catch (err) {
       console.error("Lỗi gọi API danh sách phiếu yêu cầu kiểm kê:", err);
     }
-  };
+  }, [currentPage, filters, pageSize, currentStoreId, currentUnitId, currentUserId, token]);
 
   useEffect(() => {
     fetchPhieuYeuCauKiemKe();
-  }, [currentPage]); // re-fetch when page changes
+  }, [fetchPhieuYeuCauKiemKe]);
+
+  const removeFilter = (key) => {
+    const newFilters = { ...filters };
+    if (key === "dateRange") {
+      newFilters.dateRange = null;
+    } else {
+      newFilters[key] = "";
+    }
+    setFilters(newFilters);
+    fetchPhieuYeuCauKiemKe(newFilters);
+  };
+
+  const clearAllFilters = () => {
+    const cleared = {
+      so_ct: "",
+      dateRange: null,
+    };
+    setFilters(cleared);
+    fetchPhieuYeuCauKiemKe(cleared);
+  };
+
+  const activeChips = useMemo(() => {
+    const chips = [];
+    if (filters.so_ct)
+      chips.push({ key: "so_ct", label: "Số chứng từ", value: filters.so_ct });
+    if (filters.dateRange && filters.dateRange.length === 2) {
+      const display = `${filters.dateRange[0].format(
+        "DD/MM/YYYY"
+      )} - ${filters.dateRange[1].format("DD/MM/YYYY")}`;
+      chips.push({ key: "dateRange", label: "Ngày", value: display });
+    }
+    return chips;
+  }, [filters]);
+
+  const chipsBar =
+    activeChips.length > 0 ? (
+      <div className="filter-chips-container">
+        <div className="filter-chips-left">
+          <FilterOutlined className="filter-chips-icon" />
+          <span className="filter-chips-title">
+            Đang áp dụng {activeChips.length} bộ lọc
+          </span>
+          <div className="filter-chips-list">
+            {activeChips.map((chip) => (
+              <Tag
+                key={chip.key}
+                closable
+                onClose={(e) => {
+                  e.preventDefault();
+                  removeFilter(chip.key);
+                }}
+                className={`filter-chip ${
+                   chip.key === "dateRange"
+                    ? "filter-chip--green"
+                    : chip.key === "so_ct"
+                    ? "filter-chip--orange"
+                    : "filter-chip--cyan"
+                }`}
+              >
+                {chip.label}: {chip.value}
+              </Tag>
+            ))}
+          </div>
+        </div>
+        <div className="filter-chips-right">
+          <Button size="small" onClick={clearAllFilters}>
+            Xóa lọc
+          </Button>
+        </div>
+      </div>
+    ) : null;
 
   // Làm tươi mềm: gọi lại API lấy data mới nhất (không reload trang)
   useEffect(() => {
@@ -244,16 +312,7 @@ const ListPhieuYeuCauKiemKe = () => {
 
     if (screenSize !== "mobile") {
       baseColumns.push({
-        title: () => (
-          <div className="filter-column-header">
-            Số chứng từ{" "}
-            {filters.so_ct ? (
-              <Tag color="blue" size="small">
-                {filters.so_ct}
-              </Tag>
-            ) : null}
-          </div>
-        ),
+        title: "Số chứng từ",
         dataIndex: "so_ct",
         key: "so_ct",
         width: 150,
@@ -358,20 +417,19 @@ const ListPhieuYeuCauKiemKe = () => {
         screenSize === "mobile" ? "YÊU CẦU KIỂM KÊ" : "DANH SÁCH YÊU CẦU KIỂM KÊ"
       }
       columns={getColumns()}
-      data={paginatedData}
+      data={allData}
       onBack={() => navigate("/kho")}
+      extraHeader={chipsBar}
       extraButtons={
-        <span style={{ marginRight: 8 }}>
-          <button
-            type="button"
-            className="navbar_fullscreen_btn"
-            onClick={handleRefreshClick}
-            title="Làm tươi"
-            aria-label="Làm tươi"
-          >
-            <ReloadOutlined />
-          </button>
-        </span>
+        <button
+          type="button"
+          className="navbar_fullscreen_btn"
+          onClick={handleRefreshClick}
+          title="Làm tươi"
+          aria-label="Làm tươi"
+        >
+          <ReloadOutlined />
+        </button>
       }
       rowKey="stt_rec"
       pagination={{

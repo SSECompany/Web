@@ -634,12 +634,15 @@ const DetailPhieuYeuCauKiemKe = () => {
                                 key={chip.key}
                                 closable
                                 onClose={(e) => { e.preventDefault(); onRemove(chip.key); }}
-                                className={`filter-chip ${chip.key === "ma_vt" ? "filter-chip--blue" :
+                                className={`filter-chip ${
+                                    chip.key === "ma_vt" ? "filter-chip--blue" :
                                     chip.key === "ten_vt" ? "filter-chip--magenta" :
-                                        chip.key === "ma_lo" ? "filter-chip--orange" :
-                                            chip.key === "ma_vung" ? "filter-chip--geekblue" :
-                                                "filter-chip--cyan"
-                                    }`}
+                                    chip.key === "ma_lo" ? "filter-chip--orange" :
+                                    chip.key === "ma_vung" ? "filter-chip--geekblue" :
+                                    chip.key === "ma_vi_tri" ? "filter-chip--purple" :
+                                    chip.key === "ng_tao" ? "filter-chip--cyan" :
+                                    "filter-chip--gray"
+                                }`}
                             >
                                 {chip.label}: {chip.value}
                             </Tag>
@@ -647,7 +650,7 @@ const DetailPhieuYeuCauKiemKe = () => {
                     </div>
                 </div>
                 <div className="filter-chips-right">
-                    <Button size="small" onClick={onClearAll}>Xóa tất cả</Button>
+                    <Button size="small" onClick={onClearAll}>Xóa lọc</Button>
                 </div>
             </div>
         );
@@ -1163,9 +1166,7 @@ const DetailPhieuYeuCauKiemKe = () => {
         <Layout className="phieu-container" style={{ background: "#f5f6fa", minHeight: "100vh" }} >
             <Row align="middle" className="phieu-header" style={{ position: "relative" }}>
                 <Col flex={1} style={{ zIndex: 1, textAlign: "left" }}>
-                    <Button type="text" icon={<LeftOutlined />} onClick={() => navigate("/kho/yeu-cau-kiem-ke")} className="phieu-back-button">
-                        Trở về
-                    </Button>
+                    <Button type="text" icon={<LeftOutlined />} onClick={() => navigate("/kho/yeu-cau-kiem-ke")} className="phieu-back-button" />
                 </Col>
 
                 <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", zIndex: 0, whiteSpace: "nowrap" }}>

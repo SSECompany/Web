@@ -371,21 +371,20 @@ export const usePhieuNhatHangData = () => {
 
   const fetchVatTuList = useCallback(
     async (keyword = "", page = 1, append = false, callback) => {
-      // TẠM THỜI TẮT CACHE để test pagination
       // Use cache for empty search - CHỈ cache khi không có keyword và page 1
-      // if (
-      //   !keyword &&
-      //   masterDataCache.lastFetch &&
-      //   Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
-      //   masterDataCache.vatTu &&
-      //   page === 1 &&
-      //   !append
-      // ) {
-      //   setVatTuList(masterDataCache.vatTu);
-      //   // KHÔNG set totalPage = 1 cố định, để API tự tính
-      //   if (callback) callback({ totalPage: 1 });
-      //   return;
-      // }
+      if (
+        !keyword &&
+        masterDataCache.lastFetch &&
+        Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
+        masterDataCache.vatTu &&
+        page === 1 &&
+        !append
+      ) {
+        setVatTuList(masterDataCache.vatTu);
+        // KHÔNG set totalPage = 1 cố định, để API tự tính
+        if (callback) callback({ totalPage: 1 });
+        return;
+      }
 
       try {
         setLoadingVatTu(true);

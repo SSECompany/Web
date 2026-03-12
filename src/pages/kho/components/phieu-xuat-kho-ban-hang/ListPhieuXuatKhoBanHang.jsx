@@ -2,10 +2,12 @@ import {
   DeleteOutlined,
   EditOutlined,
   FileTextOutlined,
+  FilterOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import { Button, DatePicker, Input, message, Tag, Typography } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
@@ -31,9 +33,6 @@ const ListPhieuXuatKhoBanHang = () => {
   });
 
   const pageSize = 20;
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedData = allData.slice(startIndex, endIndex);
 
   // Detect screen size
   useEffect(() => {
@@ -54,7 +53,7 @@ const ListPhieuXuatKhoBanHang = () => {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  const fetchPhieuXuatKhoBanHang = async (filterParams = filters) => {
+  const fetchPhieuXuatKhoBanHang = useCallback(async (filterParams = filters) => {
     const body = {
       store: "api_list_phieu_xuat_kho_ban_hang_voucher",
       param: {
@@ -70,8 +69,8 @@ const ListPhieuXuatKhoBanHang = () => {
           filterParams.dateRange && filterParams.dateRange[1]
             ? filterParams.dateRange[1].format("YYYY-MM-DD")
             : dayjs().endOf("month").format("YYYY-MM-DD"),
-        PageIndex: 1,
-        PageSize: 50,
+        PageIndex: currentPage,
+        PageSize: pageSize,
         Status: "",
       },
       data: {},
@@ -83,16 +82,102 @@ const ListPhieuXuatKhoBanHang = () => {
         Authorization: `Bearer ${token}`,
       });
       const responseData = res.data?.listObject?.dataLists?.data || [];
+      const paginationData = res.data?.listObject?.dataLists?.pagination?.[0] || {};
+      
       setAllData(responseData);
-      setTotalRecords(responseData.length);
+      setTotalRecords(paginationData.totalRecord || responseData.length);
     } catch (err) {
       console.error("Lỗi gọi API danh sách phiếu xuất kho bán hàng:", err);
     }
-  };
+  }, [currentPage, filters, pageSize, token]);
 
   useEffect(() => {
     fetchPhieuXuatKhoBanHang();
-  }, []);
+  }, [fetchPhieuXuatKhoBanHang]);
+
+  const handleRefresh = () => {
+    fetchPhieuXuatKhoBanHang(filters);
+  };
+
+  const removeFilter = (key) => {
+    const newFilters = { ...filters };
+    if (key === "dateRange") {
+      newFilters.dateRange = null;
+    } else {
+      newFilters[key] = "";
+    }
+    setFilters(newFilters);
+    fetchPhieuXuatKhoBanHang(newFilters);
+  };
+
+  const clearAllFilters = () => {
+    const cleared = {
+      so_ct: "",
+      ma_kh: "",
+      ten_kh: "",
+      dateRange: null,
+      status: "",
+    };
+    setFilters(cleared);
+    fetchPhieuXuatKhoBanHang(cleared);
+  };
+
+  const activeChips = useMemo(() => {
+    const chips = [];
+    if (filters.so_ct)
+      chips.push({ key: "so_ct", label: "Số chứng từ", value: filters.so_ct });
+    if (filters.ma_kh)
+      chips.push({ key: "ma_kh", label: "Mã khách", value: filters.ma_kh });
+    if (filters.ten_kh)
+      chips.push({ key: "ten_kh", label: "Tên khách", value: filters.ten_kh });
+    if (filters.dateRange && filters.dateRange.length === 2) {
+      const display = `${filters.dateRange[0].format(
+        "DD/MM/YYYY"
+      )} - ${filters.dateRange[1].format("DD/MM/YYYY")}`;
+      chips.push({ key: "dateRange", label: "Ngày", value: display });
+    }
+    return chips;
+  }, [filters]);
+
+  const chipsBar =
+    activeChips.length > 0 ? (
+      <div className="filter-chips-container">
+        <div className="filter-chips-left">
+          <FilterOutlined className="filter-chips-icon" />
+          <span className="filter-chips-title">
+            Đang áp dụng {activeChips.length} bộ lọc
+          </span>
+          <div className="filter-chips-list">
+            {activeChips.map((chip) => (
+              <Tag
+                key={chip.key}
+                closable
+                onClose={(e) => {
+                  e.preventDefault();
+                  removeFilter(chip.key);
+                }}
+                className={`filter-chip ${
+                  chip.key === "dateRange"
+                    ? "filter-chip--green"
+                    : chip.key === "so_ct"
+                    ? "filter-chip--orange"
+                    : chip.key === "ma_kh" || chip.key === "ten_kh"
+                    ? "filter-chip--magenta"
+                    : "filter-chip--cyan"
+                }`}
+              >
+                {chip.label}: {chip.value}
+              </Tag>
+            ))}
+          </div>
+        </div>
+        <div className="filter-chips-right">
+          <Button size="small" onClick={clearAllFilters}>
+            Xóa lọc
+          </Button>
+        </div>
+      </div>
+    ) : null;
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -245,16 +330,7 @@ const ListPhieuXuatKhoBanHang = () => {
 
     if (screenSize !== "mobile") {
       baseColumns.push({
-        title: () => (
-          <div className="filter-column-header">
-            Số chứng từ{" "}
-            {filters.so_ct ? (
-              <Tag color="blue" size="small">
-                {filters.so_ct}
-              </Tag>
-            ) : null}
-          </div>
-        ),
+        title: "Số chứng từ",
         dataIndex: "so_ct",
         key: "so_ct",
         width: 150,
@@ -298,16 +374,7 @@ const ListPhieuXuatKhoBanHang = () => {
     if (screenSize !== "mobile") {
       baseColumns.push(
         {
-          title: () => (
-            <div className="filter-column-header">
-              Mã khách{" "}
-              {filters.ma_kh ? (
-                <Tag color="blue" size="small">
-                  {filters.ma_kh}
-                </Tag>
-              ) : null}
-            </div>
-          ),
+          title: "Mã khách",
           dataIndex: "ma_kh",
           key: "ma_kh",
           width: 150,
@@ -353,16 +420,7 @@ const ListPhieuXuatKhoBanHang = () => {
           filteredValue: filters.ma_kh ? [filters.ma_kh] : null,
         },
         {
-          title: () => (
-            <div className="filter-column-header-wide">
-              Tên khách
-              {filters.ten_kh ? (
-                <Tag color="blue" size="small">
-                  {filters.ten_kh}
-                </Tag>
-              ) : null}
-            </div>
-          ),
+          title: "Tên khách",
           dataIndex: "ten_kh",
           key: "ten_kh",
           width: 250,
@@ -481,45 +539,25 @@ const ListPhieuXuatKhoBanHang = () => {
     return baseColumns;
   };
 
-  const getTableProps = () => {
-    const baseProps = {
-      columns: getColumns(),
-      dataSource: paginatedData,
-      pagination: {
-        current: currentPage,
-        pageSize: pageSize,
-        total: totalRecords,
-        onChange: (page) => setCurrentPage(page),
-        showSizeChanger: false,
-        showQuickJumper: false,
-      },
-      bordered: true,
-      rowKey: "stt_rec",
-      className: "phieu-data-table hidden_scroll_bar",
-      scroll: { x: 1600 },
-    };
-    if (screenSize === "mobile") {
-      baseProps.scroll = { x: 600 };
-      baseProps.size = "small";
-    } else if (screenSize === "mobileLandscape") {
-      baseProps.scroll = { x: 800, y: 400 };
-      baseProps.size = "small";
-    } else if (screenSize === "tablet") {
-      baseProps.scroll = { x: 1200, y: 500 };
-    } else {
-      baseProps.scroll = { x: 1600, y: 600 };
-    }
-    return baseProps;
-  };
 
   return (
     <CommonPhieuList
       title="DANH SÁCH PHIẾU XUẤT KHO BÁN HÀNG"
       columns={getColumns()}
-      data={paginatedData}
+      data={allData}
       onAdd={() => navigate("/kho/xuat-ban/them-moi")}
       onBack={() => navigate("/kho")}
       addLabel="Thêm mới"
+      extraHeader={chipsBar}
+      extraButtons={
+        <button
+          className="navbar_fullscreen_btn"
+          onClick={handleRefresh}
+          title="Làm tươi"
+        >
+          <ReloadOutlined />
+        </button>
+      }
       rowKey="stt_rec"
       pagination={{
         current: currentPage,

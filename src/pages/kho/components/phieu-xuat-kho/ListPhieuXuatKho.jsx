@@ -2,10 +2,12 @@ import {
   DeleteOutlined,
   EditOutlined,
   FileTextOutlined,
+  FilterOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import { Button, DatePicker, Input, message, Tag, Typography } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
@@ -31,9 +33,6 @@ const ListPhieuXuatKho = () => {
   });
 
   const pageSize = 20;
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedData = allData.slice(startIndex, endIndex);
 
   // Detect screen size
   useEffect(() => {
@@ -55,7 +54,7 @@ const ListPhieuXuatKho = () => {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  const fetchPhieuXuatKho = async (filterParams = filters) => {
+  const fetchPhieuXuatKho = useCallback(async (filterParams = filters) => {
     const body = {
       store: "api_list_phieu_xuat_kho_voucher",
       param: {
@@ -98,11 +97,94 @@ const ListPhieuXuatKho = () => {
     } catch (err) {
       console.error("Lỗi gọi API danh sách phiếu xuất kho:", err);
     }
-  };
+  }, [currentPage, filters, pageSize, token]);
 
   useEffect(() => {
     fetchPhieuXuatKho();
-  }, []);
+  }, [fetchPhieuXuatKho]);
+
+  const handleRefresh = () => {
+    fetchPhieuXuatKho(filters);
+  };
+
+  const removeFilter = (key) => {
+    const newFilters = { ...filters };
+    if (key === "dateRange") {
+      newFilters.dateRange = null;
+    } else {
+      newFilters[key] = "";
+    }
+    setFilters(newFilters);
+    fetchPhieuXuatKho(newFilters);
+  };
+
+  const clearAllFilters = () => {
+    const cleared = {
+      so_ct: "",
+      ma_kh: "",
+      ten_kh: "",
+      dateRange: null,
+    };
+    setFilters(cleared);
+    fetchPhieuXuatKho(cleared);
+  };
+
+  const activeChips = useMemo(() => {
+    const chips = [];
+    if (filters.so_ct)
+      chips.push({ key: "so_ct", label: "Số chứng từ", value: filters.so_ct });
+    if (filters.ma_kh)
+      chips.push({ key: "ma_kh", label: "Mã khách", value: filters.ma_kh });
+    if (filters.ten_kh)
+      chips.push({ key: "ten_kh", label: "Tên khách", value: filters.ten_kh });
+    if (filters.dateRange && filters.dateRange.length === 2) {
+      const display = `${filters.dateRange[0].format(
+        "DD/MM/YYYY"
+      )} - ${filters.dateRange[1].format("DD/MM/YYYY")}`;
+      chips.push({ key: "dateRange", label: "Ngày", value: display });
+    }
+    return chips;
+  }, [filters]);
+
+  const chipsBar =
+    activeChips.length > 0 ? (
+      <div className="filter-chips-container">
+        <div className="filter-chips-left">
+          <FilterOutlined className="filter-chips-icon" />
+          <span className="filter-chips-title">
+            Đang áp dụng {activeChips.length} bộ lọc
+          </span>
+          <div className="filter-chips-list">
+            {activeChips.map((chip) => (
+              <Tag
+                key={chip.key}
+                closable
+                onClose={(e) => {
+                  e.preventDefault();
+                  removeFilter(chip.key);
+                }}
+                className={`filter-chip ${
+                  chip.key === "dateRange"
+                    ? "filter-chip--green"
+                    : chip.key === "so_ct"
+                    ? "filter-chip--orange"
+                    : chip.key === "ma_kh" || chip.key === "ten_kh"
+                    ? "filter-chip--magenta"
+                    : "filter-chip--cyan"
+                }`}
+              >
+                {chip.label}: {chip.value}
+              </Tag>
+            ))}
+          </div>
+        </div>
+        <div className="filter-chips-right">
+          <Button size="small" onClick={clearAllFilters}>
+            Xóa lọc
+          </Button>
+        </div>
+      </div>
+    ) : null;
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -493,38 +575,6 @@ const ListPhieuXuatKho = () => {
     return baseColumns;
   };
 
-  const getTableProps = () => {
-    const baseProps = {
-      columns: getColumns(),
-      dataSource: paginatedData,
-      pagination: {
-        current: currentPage,
-        pageSize: pageSize,
-        total: totalRecords,
-        onChange: (page) => setCurrentPage(page),
-        showSizeChanger: false,
-        showQuickJumper: false,
-      },
-      bordered: true,
-      rowKey: "stt_rec",
-      className: "phieu-data-table hidden_scroll_bar",
-      scroll: { x: 1600 },
-    };
-
-    if (screenSize === "mobile") {
-      baseProps.scroll = { x: 600 };
-      baseProps.size = "small";
-    } else if (screenSize === "mobileLandscape") {
-      baseProps.scroll = { x: 800, y: 400 };
-      baseProps.size = "small";
-    } else if (screenSize === "tablet") {
-      baseProps.scroll = { x: 1200, y: 500 };
-    } else {
-      baseProps.scroll = { x: 1600, y: 600 };
-    }
-
-    return baseProps;
-  };
 
   return (
     <CommonPhieuList
@@ -532,11 +582,21 @@ const ListPhieuXuatKho = () => {
         screenSize === "mobile" ? "PHIẾU XUẤT KHO" : "DANH SÁCH PHIẾU XUẤT KHO"
       }
       columns={getColumns()}
-      data={paginatedData}
+      data={allData}
       // Dùng navigate tương đối để tránh mọi vấn đề base path
       onAdd={() => navigate("them-moi")}
       onBack={() => navigate("/kho")}
       addLabel={screenSize === "mobile" ? "Thêm" : "Thêm mới"}
+      extraHeader={chipsBar}
+      extraButtons={
+        <button
+          className="navbar_fullscreen_btn"
+          onClick={handleRefresh}
+          title="Làm tươi"
+        >
+          <ReloadOutlined />
+        </button>
+      }
       rowKey="stt_rec"
       pagination={{
         current: currentPage,

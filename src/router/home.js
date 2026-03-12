@@ -17,11 +17,12 @@ const Login = lazy(() => import("../pages/Login/Login"));
 // const POSPage = lazy(() => import("../pages/pharmacy/POS"));
 // const ReturnPOSPage = lazy(() => import("../pages/pharmacy/ReturnPOS"));
 const KhoPage = lazy(() => import("../pages/kho/Kho"));
+const KinhDoanhPage = lazy(() => import("../pages/kinh-doanh/KinhDoanh"));
+const ListPhieuKinhDoanh = lazy(() => import("../pages/kinh-doanh/components/phieu-kinh-doanh/ListPhieuKinhDoanh"));
+const DetailPhieuKinhDoanh = lazy(() => import("../pages/kinh-doanh/components/phieu-kinh-doanh/DetailPhieuKinhDoanh"));
 const BaoCaoPhieuBanLe = lazy(() => import("../pages/reports/BaoCaoPhieuBanLe"));
 const BaoCaoTonKho = lazy(() => import("../pages/reports/BaoCaoTonKho"));
 const TongHopNhapXuatTon = lazy(() => import("../pages/reports/TongHopNhapXuatTon"));
-
-
 
 const ListPhieuXuatKho = lazy(() =>
   import("../pages/kho/components/phieu-xuat-kho/ListPhieuXuatKho")
@@ -81,6 +82,32 @@ const protectedChildrenRoutes = [
   // ===== BÁN HÀNG & TRẢ HÀNG ROUTES DISABLED IN BRANCH 08012026_kho =====
   // { label: "Bán hàng", path: "ban-hang", element: <POSPage /> },
   // { label: "Trả hàng", path: "tra-hang", element: <ReturnPOSPage /> },
+
+  {
+    label: "Kinh doanh",
+    path: "kinh-doanh",
+    element: <KinhDoanhPage />,
+  },
+  {
+    label: "Danh sách phiếu kinh doanh",
+    path: "kinh-doanh/danh-sach",
+    element: <ListPhieuKinhDoanh />,
+  },
+  {
+    label: "Thêm mới phiếu kinh doanh",
+    path: "kinh-doanh/them-moi",
+    element: <DetailPhieuKinhDoanh />,
+  },
+  {
+    label: "Chi tiết phiếu kinh doanh",
+    path: "kinh-doanh/chi-tiet/:stt_rec",
+    element: <DetailPhieuKinhDoanh />,
+  },
+  {
+    label: "Chỉnh sửa phiếu kinh doanh",
+    path: "kinh-doanh/edit/:stt_rec",
+    element: <DetailPhieuKinhDoanh isEditMode={true} />,
+  },
 
   // Kho routes - ĐẶT TRƯỚC route kho chính để tránh conflict
   {

@@ -1,8 +1,11 @@
+import { LeftOutlined } from "@ant-design/icons";
 import {
   Button,
   Card,
+  Col,
   DatePicker,
   Input,
+  Row,
   Select,
   Spin,
   Table,
@@ -11,8 +14,10 @@ import {
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { multipleTablePutApi } from "../../api";
 import { formatNumber } from "../../pharmacy-utils/hook/dataFormatHelper";
+import "../kho/components/common-phieu.css";
 import "./TongHopNhapXuatTon.css";
 
 const { Title } = Typography;
@@ -47,6 +52,7 @@ const getDefaultFilters = () => ({
 });
 
 const TongHopNhapXuatTon = () => {
+  const navigate = useNavigate();
   const { id: userId, unitId } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
   );
@@ -58,6 +64,27 @@ const TongHopNhapXuatTon = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [screenSize, setScreenSize] = useState("desktop");
+
+  // Detect screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      if (width < 480) {
+        setScreenSize("mobile");
+      } else if (width < 768) {
+        setScreenSize("mobileLandscape");
+      } else if (width < 1024) {
+        setScreenSize("tablet");
+      } else {
+        setScreenSize("desktop");
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
 
   // Options
   const [khoOptions, setKhoOptions] = useState([]);
@@ -668,13 +695,35 @@ const TongHopNhapXuatTon = () => {
   }, [fetchData]);
 
   return (
-    <div className="tong-hop-nhap-xuat-container">
-      <Card>
-        <div className="bao-cao-header">
-          <Title level={2} style={{ margin: 0 }}>
-            Báo cáo tổng hợp nhập xuất tồn
-          </Title>
-        </div>
+    <div className={`tong-hop-nhap-xuat-container ${screenSize === "mobile" ? "is-mobile" : ""}`}>
+      <div className={`phieu-container ${screenSize === "mobile" ? "mobile-app-layout" : ""}`}>
+        <Row align="middle" className={`phieu-header ${screenSize === "mobile" ? "mobile-sticky-header" : ""}`} style={{ position: "relative" }}>
+          <Col flex={1} style={{ textAlign: "left", zIndex: 1 }}>
+            <Button
+              type="text"
+              icon={<LeftOutlined />}
+              onClick={() => navigate(-1)}
+              className="phieu-back-button"
+              style={{ paddingLeft: 0 }}
+            />
+          </Col>
+
+          <div style={{
+            position: "absolute",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 0,
+            whiteSpace: "nowrap"
+          }}>
+            <Title level={5} className="phieu-title" style={{ margin: 0 }}>
+              {screenSize === "mobile" ? "NHẬP XUẤT TỒN" : "BÁO CÁO TỔNG HỢP NHẬP XUẤT TỒN"}
+            </Title>
+          </div>
+
+          <Col flex={1} style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", zIndex: 1 }}>
+            {/* Space for symmetry */}
+          </Col>
+        </Row>
 
         <div className="bao-cao-filters">
           <div className="filters-grid">
@@ -966,7 +1015,7 @@ const TongHopNhapXuatTon = () => {
             )}
           />
         </div>
-      </Card>
+      </div>
     </div>
   );
 };

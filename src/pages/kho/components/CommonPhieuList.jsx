@@ -28,9 +28,7 @@ const CommonPhieuList = ({
             onClick={onBack}
             className="phieu-back-button"
             style={{ paddingLeft: 0 }}
-          >
-            Trở về
-          </Button>
+          />
         </Col>
 
         <div style={{

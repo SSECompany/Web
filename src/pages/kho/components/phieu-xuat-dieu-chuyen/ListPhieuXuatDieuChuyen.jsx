@@ -2,10 +2,12 @@ import {
   DeleteOutlined,
   EditOutlined,
   FileTextOutlined,
+  FilterOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import { Button, DatePicker, Input, message, Tag, Typography } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
@@ -32,9 +34,6 @@ const ListPhieuXuatDieuChuyen = () => {
   });
 
   const pageSize = 20;
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedData = allData.slice(startIndex, endIndex);
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -55,7 +54,7 @@ const ListPhieuXuatDieuChuyen = () => {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  const fetchPhieuXuatDieuChuyen = async (filterParams = filters) => {
+  const fetchPhieuXuatDieuChuyen = useCallback(async (filterParams = filters) => {
     const params = {
       so_ct: filterParams.so_ct || "",
       ma_kho: filterParams.ma_kho || "",
@@ -84,11 +83,94 @@ const ListPhieuXuatDieuChuyen = () => {
         result.error
       );
     }
-  };
+  }, [currentPage, filters, pageSize]);
 
   useEffect(() => {
     fetchPhieuXuatDieuChuyen();
-  }, []);
+  }, [fetchPhieuXuatDieuChuyen]);
+
+  const handleRefresh = () => {
+    fetchPhieuXuatDieuChuyen(filters);
+  };
+
+  const removeFilter = (key) => {
+    const newFilters = { ...filters };
+    if (key === "dateRange") {
+      newFilters.dateRange = null;
+    } else {
+      newFilters[key] = "";
+    }
+    setFilters(newFilters);
+    fetchPhieuXuatDieuChuyen(newFilters);
+  };
+
+  const clearAllFilters = () => {
+    const cleared = {
+      so_ct: "",
+      ma_kho: "",
+      ma_khon: "",
+      dateRange: null,
+    };
+    setFilters(cleared);
+    fetchPhieuXuatDieuChuyen(cleared);
+  };
+
+  const activeChips = useMemo(() => {
+    const chips = [];
+    if (filters.so_ct)
+      chips.push({ key: "so_ct", label: "Số chứng từ", value: filters.so_ct });
+    if (filters.ma_kho)
+      chips.push({ key: "ma_kho", label: "Mã kho", value: filters.ma_kho });
+    if (filters.ma_khon)
+      chips.push({ key: "ma_khon", label: "Mã kho nhập", value: filters.ma_khon });
+    if (filters.dateRange && filters.dateRange.length === 2) {
+      const display = `${filters.dateRange[0].format(
+        "DD/MM/YYYY"
+      )} - ${filters.dateRange[1].format("DD/MM/YYYY")}`;
+      chips.push({ key: "dateRange", label: "Ngày", value: display });
+    }
+    return chips;
+  }, [filters]);
+
+  const chipsBar =
+    activeChips.length > 0 ? (
+      <div className="filter-chips-container">
+        <div className="filter-chips-left">
+          <FilterOutlined className="filter-chips-icon" />
+          <span className="filter-chips-title">
+            Đang áp dụng {activeChips.length} bộ lọc
+          </span>
+          <div className="filter-chips-list">
+            {activeChips.map((chip) => (
+              <Tag
+                key={chip.key}
+                closable
+                onClose={(e) => {
+                  e.preventDefault();
+                  removeFilter(chip.key);
+                }}
+                className={`filter-chip ${
+                  chip.key === "dateRange"
+                    ? "filter-chip--green"
+                    : chip.key === "so_ct"
+                    ? "filter-chip--orange"
+                    : chip.key === "ma_kho" || chip.key === "ma_khon"
+                    ? "filter-chip--magenta"
+                    : "filter-chip--cyan"
+                }`}
+              >
+                {chip.label}: {chip.value}
+              </Tag>
+            ))}
+          </div>
+        </div>
+        <div className="filter-chips-right">
+          <Button size="small" onClick={clearAllFilters}>
+            Xóa lọc
+          </Button>
+        </div>
+      </div>
+    ) : null;
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -245,16 +327,7 @@ const ListPhieuXuatDieuChuyen = () => {
 
     if (screenSize !== "mobile") {
       baseColumns.push({
-        title: () => (
-          <div className="filter-column-header">
-            Số chứng từ{" "}
-            {filters.so_ct ? (
-              <Tag color="blue" size="small">
-                {filters.so_ct}
-              </Tag>
-            ) : null}
-          </div>
-        ),
+        title: "Số chứng từ",
         dataIndex: "so_ct",
         key: "so_ct",
         width: 150,
@@ -298,16 +371,7 @@ const ListPhieuXuatDieuChuyen = () => {
     if (screenSize !== "mobile") {
       baseColumns.push(
         {
-          title: () => (
-            <div className="filter-column-header">
-              Mã kho{" "}
-              {filters.ma_kho ? (
-                <Tag color="blue" size="small">
-                  {filters.ma_kho}
-                </Tag>
-              ) : null}
-            </div>
-          ),
+          title: "Mã kho",
           dataIndex: "ma_kho",
           key: "ma_kho",
           width: 150,
@@ -353,16 +417,7 @@ const ListPhieuXuatDieuChuyen = () => {
           filteredValue: filters.ma_kho ? [filters.ma_kho] : null,
         },
         {
-          title: () => (
-            <div className="filter-column-header-wide">
-              Mã kho nhập
-              {filters.ma_khon ? (
-                <Tag color="blue" size="small">
-                  {filters.ma_khon}
-                </Tag>
-              ) : null}
-            </div>
-          ),
+          title: "Mã kho nhập",
           dataIndex: "ma_khon",
           key: "ma_khon",
           width: 250,
@@ -481,46 +536,26 @@ const ListPhieuXuatDieuChuyen = () => {
     return baseColumns;
   };
 
-  const getTableProps = () => {
-    const baseProps = {
-      columns: getColumns(),
-      dataSource: paginatedData,
-      pagination: {
-        current: currentPage,
-        pageSize: pageSize,
-        total: totalRecords,
-        onChange: (page) => setCurrentPage(page),
-        showSizeChanger: false,
-        showQuickJumper: false,
-      },
-      bordered: true,
-      rowKey: "stt_rec",
-      className: "phieu-data-table hidden_scroll_bar",
-      scroll: { x: 1800, y: 600 },
-    };
-    if (screenSize === "mobile") {
-      baseProps.scroll = { x: 600 };
-      baseProps.size = "small";
-    } else if (screenSize === "mobileLandscape") {
-      baseProps.scroll = { x: 800, y: 400 };
-      baseProps.size = "small";
-    } else if (screenSize === "tablet") {
-      baseProps.scroll = { x: 1400, y: 500 };
-    } else {
-      baseProps.scroll = { x: 1800, y: 600 };
-    }
-    return baseProps;
-  };
 
   return (
     <CommonPhieuList
       title="DANH SÁCH PHIẾU XUẤT ĐIỀU CHUYỂN"
       columns={getColumns()}
-      data={paginatedData}
+      data={allData}
       // Dùng navigate tương đối để tránh mọi vấn đề base path
       onAdd={() => navigate("them-moi")}
       onBack={() => navigate("/kho")}
       addLabel="Thêm mới"
+      extraHeader={chipsBar}
+      extraButtons={
+        <button
+          className="navbar_fullscreen_btn"
+          onClick={handleRefresh}
+          title="Làm tươi"
+        >
+          <ReloadOutlined />
+        </button>
+      }
       rowKey="stt_rec"
       pagination={{
         current: currentPage,

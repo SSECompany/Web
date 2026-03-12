@@ -956,3 +956,142 @@ body {
   scrollbar-width: none;
   /* Firefox */
 }
+/* ========== RESPONSIVE MOBILE APP STYLE ========== */
+@media (max-width: 768px) {
+  .is-mobile .phieu-container {
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    background: #fff;
+    min-height: 100vh;
+  }
+
+  .mobile-app-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .mobile-sticky-header {
+    position: sticky !important;
+    top: 0;
+    z-index: 1000;
+    background: #fff !important;
+    margin-bottom: 0 !important;
+    border-radius: 0 !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+    padding: 12px 16px !important;
+  }
+
+  /* Sticky Actions at bottom */
+  .mobile-sticky-actions {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 12px));
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+    z-index: 1001;
+    border-top: 1px solid #f0ecff;
+    animation: commonMobileSlideUp 0.3s ease-out;
+  }
+
+  @keyframes commonMobileSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .mobile-sticky-actions__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .mobile-sticky-actions__buttons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .mobile-sticky-actions__buttons .ant-btn {
+    flex: 1;
+    height: 40px;
+    border-radius: 10px;
+    font-weight: 600;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 13px;
+  }
+
+  /* List & Cards */
+  .mobile-list-content {
+    padding: 12px;
+    background: #f8f9fb;
+    flex: 1;
+  }
+
+  .mobile-phieu-card {
+    margin-bottom: 12px;
+    border-radius: 16px !important;
+    border: 1px solid #f0ecff !important;
+    transition: all 0.2s;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
+  }
+
+  .mobile-phieu-card.is-selected {
+    border-color: #6c63ff !important;
+    background-color: #f5f3ff !important;
+    box-shadow: 0 4px 16px rgba(108, 99, 255, 0.15) !important;
+    transform: scale(0.98);
+  }
+
+  .mobile-phieu-card .ant-card-actions {
+    background: #fafafa;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .mobile-phieu-card .ant-card-actions > li {
+    margin: 8px 0 !important;
+  }
+
+  .mobile-phieu-card .ant-card-body {
+    padding: 16px !important;
+  }
+
+  .mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed #f0f0f0;
+  }
+
+  .mobile-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .mobile-card-row {
+     display: flex;
+     justify-content: space-between;
+     align-items: flex-start;
+  }
+
+  .mobile-card-row .ant-typography-secondary {
+    font-size: 12px;
+  }
+
+  .mobile-card-row .ant-typography {
+    font-size: 13px;
+  }
+}

@@ -51,7 +51,8 @@ export const phieuNhatHangConfig = {
   tonDeNghiTongNhatGhiChuOrder: true,
   placeGhiChuAtEnd: true,
   useAddButtonInsteadOfDelete: true,
-  showThaoTac: false,
+  showThaoTac: true,
+
 };
 
 // Cấu hình cho phiếu xuất kho

@@ -294,9 +294,7 @@ const AddPhieuXuatKhoBanHang = () => {
           icon={<LeftOutlined />}
           onClick={() => navigate("/kho/xuat-kho-ban-hang")}
           className="phieu-back-button"
-        >
-          Trở về
-        </Button>
+        />
         <Title level={5} className="phieu-title">
           THÊM PHIẾU XUẤT KHO BÁN HÀNG
         </Title>
