@@ -228,6 +228,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       key: "delete",
       width: 50,
       fixed: "left",
+      align: "center",
       render: (_, record, index) => (
         <Button
           type="text"
@@ -339,6 +340,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       dataIndex: "name",
       key: "name",
       width: 260,
+      align: "center",
       render: (text, record) => {
         return (
           <div
@@ -346,7 +348,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
             style={{
               display: "flex",
               flexDirection: "column",
-              alignItems: "flex-start",
+              alignItems: "center",
               gap: 8,
             }}
           >
@@ -356,7 +358,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
                 className="product-code"
                 style={{
                   display: "flex",
-                  justifyContent: "flex-start",
+                  justifyContent: "center",
                   alignItems: "center",
                   marginTop: "4px",
                 }}
@@ -393,6 +395,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       dataIndex: "unit",
       key: "unit",
       width: 120,
+      align: "center",
       render: (text, record, index) => {
         const loading = !!unitLoading[index];
         const options = unitOptions[index] || [];
@@ -476,6 +479,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       dataIndex: "batchExpiry",
       key: "batchExpiry",
       width: 180,
+      align: "center",
       render: (text, record, index) => {
         const isLoading = !!batchLoading[index];
         const hasOptions = (batchOptions[index] || []).length > 0;
@@ -537,6 +541,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       dataIndex: "qty",
       key: "qty",
       width: 120,
+      align: "center",
       render: (qty, record, index) => (
         <div className="qty-control">
           <button
@@ -579,6 +584,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       dataIndex: "price",
       key: "price",
       width: 120,
+      align: "center",
       render: (price) => (
         <span className="price-text">
           {new Intl.NumberFormat("vi-VN").format(price)}đ
@@ -601,6 +607,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       ),
       key: "total",
       width: 120,
+      align: "center",
       render: (_, record) => {
         const total = record.price * (record.qty || 1);
         return (
@@ -627,6 +634,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       dataIndex: "discountPercent",
       key: "discountPercent",
       width: 90,
+      align: "center",
       render: (discountPercent, record, index) => {
         // Display the exact discountPercent value from modal, don't calculate from discountAmount
         const displayPercent = discountPercent || 0;
@@ -661,6 +669,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       ),
       key: "discountAmountDisplay",
       width: 110,
+      align: "center",
       render: (_, record, index) => {
         // Display the exact discountAmount value from modal, don't calculate from discountPercent
         const finalDiscount = record.discountAmount || 0;
@@ -696,6 +705,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       dataIndex: "vatPercent",
       key: "vatPercent",
       width: 120,
+      align: "center",
       render: (vatPercent, record, index) => {
         const currentThueSuat =
           record.thue_suat !== undefined

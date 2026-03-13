@@ -67,6 +67,7 @@ const CommonPhieuList = ({
         <Table
           columns={columns.map((col) => ({
             ...col,
+            align: col.align || "center",
             ellipsis: col.ellipsis !== undefined ? col.ellipsis : false,
           }))}
           dataSource={data}

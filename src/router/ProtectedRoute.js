@@ -82,13 +82,15 @@ const ProtectedRoute = () => {
     }
   }
 
-  const isGiaoHangRoute = location.pathname.startsWith("/kho/giao-hang");
+  const hideNavbar = 
+    location.pathname.startsWith("/kho/giao-hang") || 
+    (location.pathname.startsWith("/kinh-doanh") && location.pathname !== "/kinh-doanh");
 
   return (
     <>
-      {!isGiaoHangRoute && <Navbar />}
-      {/* Khi ẩn Navbar (giao-hang): vẫn cần VersionIndicator để check + hiện badge có bản mới */}
-      {isGiaoHangRoute && <VersionIndicator showDetails={false} />}
+      {!hideNavbar && <Navbar />}
+      {/* Khi ẩn Navbar: vẫn cần VersionIndicator để check + hiện badge có bản mới */}
+      {hideNavbar && <VersionIndicator showDetails={false} />}
       <Outlet />
     </>
   );

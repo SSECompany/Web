@@ -272,6 +272,7 @@ const ReturnOrderModal = ({ isOpen, onClose, onApplyReturnOrder }) => {
       key: "select",
       width: 320,
       minWidth: 280,
+      align: "center",
       render: (_, record) => (
         <VatTuSelectFullPOS
           isEditMode={true}
@@ -325,6 +326,7 @@ const ReturnOrderModal = ({ isOpen, onClose, onApplyReturnOrder }) => {
       key: "maVt",
       width: 140,
       minWidth: 120,
+      align: "center",
       render: (text) => <div>{text}</div>,
     },
     {
@@ -333,6 +335,7 @@ const ReturnOrderModal = ({ isOpen, onClose, onApplyReturnOrder }) => {
       key: "tenVt",
       width: 250,
       minWidth: 220,
+      align: "center",
       render: (text) => (
         <div
           style={{
@@ -353,6 +356,7 @@ const ReturnOrderModal = ({ isOpen, onClose, onApplyReturnOrder }) => {
       key: "dvt",
       width: 80,
       minWidth: 70,
+      align: "center",
     },
     {
       title: "SL đã bán",
@@ -360,6 +364,7 @@ const ReturnOrderModal = ({ isOpen, onClose, onApplyReturnOrder }) => {
       key: "soLuongBan",
       width: 110,
       minWidth: 90,
+      align: "center",
     },
     {
       title: "Đơn giá",
@@ -367,6 +372,7 @@ const ReturnOrderModal = ({ isOpen, onClose, onApplyReturnOrder }) => {
       key: "donGia",
       width: 120,
       minWidth: 100,
+      align: "center",
       render: (price) => (
         <span style={{ color: "#059669", fontWeight: "600" }}>
           {new Intl.NumberFormat("vi-VN").format(price)}đ
@@ -379,6 +385,7 @@ const ReturnOrderModal = ({ isOpen, onClose, onApplyReturnOrder }) => {
       key: "soLuongTra",
       width: 100,
       minWidth: 80,
+      align: "center",
       render: (quantity, record) => (
         <Input
           type="number"
@@ -402,6 +409,7 @@ const ReturnOrderModal = ({ isOpen, onClose, onApplyReturnOrder }) => {
       key: "action",
       width: 80,
       minWidth: 70,
+      align: "center",
       render: (_, record) => (
         <Button
           type={record.selected ? "primary" : "default"}

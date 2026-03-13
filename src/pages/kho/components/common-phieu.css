@@ -37,15 +37,119 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 32px;
-  padding: 10px;
+  padding: 16px 24px;
   background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  position: relative;
-  gap: 10px;
-  z-index: 2;
+  border-bottom: 1px solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.phieu-header--sticky {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+}
+
+.phieu-header-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin-left: 10px;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.phieu-header-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.phieu-header-badge {
+  padding: 2px 10px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.phieu-header-badge--blue {
+  background: rgba(108, 99, 255, 0.08);
+  border: 1px solid rgba(108, 99, 255, 0.15);
+  color: #4f46e5;
+}
+
+.phieu-header-badge--orange {
+  background: rgba(255, 140, 0, 0.08);
+  border: 1px solid rgba(255, 140, 0, 0.15);
+  color: #d35400;
+}
+
+.phieu-header-badge--green {
+  background: rgba(40, 167, 69, 0.08);
+  border: 1px solid rgba(40, 167, 69, 0.15);
+  color: #1e7e34;
+}
+
+.phieu-header-badge--tt {
+  background: rgba(24, 144, 255, 0.08);
+  border: 1px solid rgba(24, 144, 255, 0.15);
+  color: #096dd9;
+}
+
+.phieu-header-meta-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.phieu-header-meta-item {
+  margin: 0 !important;
+  color: #ff4d4f;
+  font-weight: 800;
+  font-size: 13px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+.phieu-header-meta-value {
+  color: #262626;
+  margin-left: 4px;
+}
+
+.phieu-header-meta-sequence {
+  color: #096dd9;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.phieu-header-status-row {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  margin-top: 2px;
+}
+
+.phieu-header-status-label {
+  color: #ff4d4f;
+  font-weight: 800;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.phieu-header-status-select {
+  margin-left: 8px;
+  min-width: 140px;
 }
 
 .phieu-back-button {
@@ -147,6 +251,47 @@ body {
 .phieu-form .ant-form-item-label {
   font-weight: 600;
   color: #64748b;
+}
+
+/* FLOATING LABELS - LABELS INSIDE INPUT */
+.phieu-form--floating .ant-form-item {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.phieu-form--floating .ant-form-item-label {
+  position: absolute;
+  top: -8px;
+  left: 10px;
+  background: var(--phieu-floating-label-bg, white);
+  padding: 0 5px;
+  z-index: 10;
+  height: 16px;
+  line-height: 16px;
+  pointer-events: none;
+  transition: all 0.2s;
+}
+
+.phieu-form--floating .ant-form-item-label > label {
+  color: #6366f1 !important;
+  font-weight: 700 !important;
+  font-size: 10px !important;
+  height: 16px !important;
+  line-height: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.phieu-form--floating .ant-form-item-label > label::after {
+  display: none !important;
+}
+
+/* Reusable inner label prefix if needed */
+.phieu-inner-label {
+  color: #8c8c8c;
+  font-size: 11px;
+  font-weight: 600;
+  margin-right: 4px;
 }
 
 /* TABLE */

@@ -12,7 +12,7 @@ import {
 import {
     Button, Form, Input, Select, Typography,
     message, Checkbox, Tabs, Row, Col, DatePicker,
-    Table, Spin, InputNumber, Card
+    Table, Spin, InputNumber
 } from "antd";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -80,9 +80,13 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                 if (header) {
                     form.setFieldsValue({
                         ...header,
+                        // Explicitly map and format key fields
+                        status: header.status !== undefined && header.status !== null ? String(header.status).trim() : "0",
+                        hinh_thuc_tt: header.ma_gd ? String(header.ma_gd).trim() : "1",
+                        kh_chiu_cuoc: header.kh_chiu_cuoc ? 1 : 0,
+                        
                         ngay_ct: header.ngay_ct ? dayjs(header.ngay_ct) : null,
                         ngay_ct0: header.ngay_ct0 ? dayjs(header.ngay_ct0) : null,
-                        kh_chiu_cuoc: !!header.kh_chiu_cuoc,
                         // Complaint tab mapping
                         hang_bi_loi: !!header.hl_yn,
                         khong_tra_cuoc: !!header.ktc_yn,
@@ -159,15 +163,48 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
 
     // ============ Tabs ============
     const chiPhiColumns = [
-        { title: "Mã chi phí", dataIndex: "ma_cp", key: "ma_cp", width: 160 },
-        { title: "Tên chi phí", dataIndex: "ten_cp", key: "ten_cp" },
+        { title: "Mã chi phí", dataIndex: "ma_cp", key: "ma_cp", width: 120, align: "center" },
+        { title: "Tên chi phí", dataIndex: "ten_cp", key: "ten_cp", align: "center" },
         {
             title: "Tiền",
             dataIndex: "tien_cp",
             key: "tien_cp",
-            align: "right",
-            width: 160,
-            render: (v) => (v ? v.toLocaleString() : "0"),
+            align: "center",
+            width: 140,
+            render: (v, record) => isEditMode ? (
+                <InputNumber
+                    size="small"
+                    value={v}
+                    controls={false}
+                    className="phieu-table-input"
+                    formatter={numFmt}
+                    style={{ width: '100%' }}
+                    onChange={(val) => {
+                        setChiPhiData(prev => prev.map(item => 
+                            (item.ma_cp === record.ma_cp && item.line_nbr === record.line_nbr) ? { ...item, tien_cp: val } : item
+                        ));
+                    }}
+                />
+            ) : (v ? v.toLocaleString() : "0"),
+        },
+        { 
+            title: "Ghi chú", 
+            dataIndex: "ghi_chu", 
+            key: "ghi_chu", 
+            align: "center", 
+            width: 200,
+            render: (v, record) => isEditMode ? (
+                <Input
+                    size="small"
+                    value={v}
+                    className="phieu-table-input"
+                    onChange={(e) => {
+                        setChiPhiData(prev => prev.map(item => 
+                            (item.ma_cp === record.ma_cp && item.line_nbr === record.line_nbr) ? { ...item, ghi_chu: e.target.value } : item
+                        ));
+                    }}
+                />
+            ) : v
         },
     ];
 
@@ -196,6 +233,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                 title: "Sản phẩm",
                                 key: "san_pham",
                                 width: 220,
+                                align: "center",
                                 render: (_, record) => (
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '4px 0' }}>
                                         {record.image ? (
@@ -218,16 +256,16 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                     </div>
                                 )
                             },
-                            { title: "Kho", dataIndex: "ma_kho", width: 80 },
-                            { title: "SL", dataIndex: "so_luong", width: 65, align: "right", render: (v) => numFmt(Math.round(v || 0)) },
-                            { title: "Tồn", dataIndex: "ton13", width: 65, align: "right", render: (v) => numFmt(Math.round(v || 0)) },
-                            { title: "Giá niêm yết", dataIndex: "gia_ban_nt", width: 100, align: "right", render: (v) => numFmt(Math.round(v || 0)) },
-                            { title: "Giá bán", dataIndex: "gia_nt2", width: 100, align: "right", render: (v) => numFmt(Math.round(v || 0)) },
-                            { title: "Tiền hàng", dataIndex: "tien_nt2", width: 110, align: "right", render: (v) => numFmt(Math.round(v || 0)) },
-                            { title: "CK%", dataIndex: "tl_ck", width: 60, align: "right", render: (v) => (v ? `${v}%` : "") },
-                            { title: "Tiền CK", dataIndex: "ck_nt", width: 90, align: "right", render: (v) => v ? numFmt(Math.round(v)) : "" },
-                            { title: "Thuế", dataIndex: "thue_nt", width: 90, align: "right", render: (v) => numFmt(Math.round(v || 0)) },
-                            { title: "Ghi chú", dataIndex: "ghi_chu", width: 120, ellipsis: true },
+                            { title: "Kho", dataIndex: "ma_kho", width: 80, align: "center" },
+                            { title: "SL", dataIndex: "so_luong", width: 65, align: "center", render: (v) => numFmt(Math.round(v || 0)) },
+                            { title: "Tồn", dataIndex: "ton13", width: 65, align: "center", render: (v) => numFmt(Math.round(v || 0)) },
+                            { title: "Giá niêm yết", dataIndex: "gia_ban_nt", width: 100, align: "center", render: (v) => numFmt(Math.round(v || 0)) },
+                            { title: "Giá bán", dataIndex: "gia_nt2", width: 100, align: "center", render: (v) => numFmt(Math.round(v || 0)) },
+                            { title: "Tiền hàng", dataIndex: "tien_nt2", width: 110, align: "center", render: (v) => numFmt(Math.round(v || 0)) },
+                            { title: "CK%", dataIndex: "tl_ck", width: 60, align: "center", render: (v) => (v ? `${v}%` : "") },
+                            { title: "Tiền CK", dataIndex: "ck_nt", width: 90, align: "center", render: (v) => v ? numFmt(Math.round(v)) : "" },
+                            { title: "Thuế", dataIndex: "thue_nt", width: 90, align: "center", render: (v) => numFmt(Math.round(v || 0)) },
+                            { title: "Ghi chú", dataIndex: "ghi_chu", width: 120, align: "center", ellipsis: true },
                             {
                                 title: "Hành động",
                                 key: "action",
@@ -271,8 +309,22 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                 <div>
                     {isEditMode && (
                         <div style={{ marginBottom: 10, display: "flex", gap: 6 }}>
-                            <Button icon={<PlusOutlined />} size="small" />
-                            <Button icon={<DeleteOutlined />} size="small" danger />
+                            <Button 
+                                icon={<PlusOutlined />} 
+                                size="small" 
+                                onClick={() => {
+                                    setChiPhiData([...chiPhiData, { ma_cp: "", ten_cp: "", tien_cp: 0, ghi_chu: "", line_nbr: Date.now() }]);
+                                }}
+                            />
+                            <Button 
+                                icon={<DeleteOutlined />} 
+                                size="small" 
+                                danger 
+                                onClick={() => {
+                                    setChiPhiData(prev => prev.slice(0, -1));
+                                    message.success("Đã xóa dòng chi phí cuối cùng");
+                                }}
+                            />
                         </div>
                     )}
                     <Table
@@ -329,52 +381,92 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
     return (
         <div className="detail-don-hang">
             <div className="detail-don-hang__card">
-                {/* ===== HEADER ===== */}
-                <div className="detail-don-hang__header">
-                    <Button
-                        type="text"
-                        icon={<LeftOutlined />}
-                        className="phieu-back-button"
-                        onClick={() => navigate(-1)}
-                    />
+                <Form
+                    form={form}
+                    layout="vertical"
+                    className="phieu-form--floating"
+                    disabled={!isEditMode && !!stt_rec}
+                    size="middle"
+                    colon={false}
+                >
+                    {/* ===== HEADER ===== */}
+                    <div className="detail-don-hang__header">
+                        <Button
+                            type="text"
+                            icon={<LeftOutlined />}
+                            className="phieu-back-button"
+                            onClick={() => navigate(-1)}
+                            disabled={false}
+                        />
 
-                    <div className="header-order-info" style={{ display: 'flex', flexDirection: 'column', flex: 1, paddingLeft: 8 }}>
-                        <Title level={5} className="header-order-title" style={{ margin: 0, color: '#ff4d4f', fontWeight: 800 }}>
-                            ĐƠN HÀNG SỐ: <span style={{ color: '#262626' }}>{form.getFieldValue('so_ct') || '.........'}</span>
-                            <span style={{ margin: '0 12px', color: '#d9d9d9' }}>|</span>
-                            NGÀY: <span style={{ color: '#262626' }}>{form.getFieldValue('ngay_ct') ? dayjs(form.getFieldValue('ngay_ct')).format('DD/MM/YYYY') : '.........'}</span>
-                        </Title>
-                        <Text type="secondary" style={{ fontSize: '11px', fontWeight: 500 }}>
-                             {stt_rec ? (isEditMode ? "SỬA ĐƠN HÀNG" : "CHI TIẾT ĐƠN HÀNG") : "THÊM ĐƠN HÀNG MỚI"}
-                        </Text>
+                        <div className="phieu-header-info">
+                            <div className="phieu-header-tags">
+                                <span className={`phieu-header-badge ${!stt_rec ? 'phieu-header-badge--green' : isEditMode ? 'phieu-header-badge--orange' : 'phieu-header-badge--blue'}`}>
+                                    {stt_rec ? (isEditMode ? "SỬA ĐƠN HÀNG" : "CHI TIẾT ĐƠN HÀNG") : "THÊM ĐƠN HÀNG MỚI"}
+                                </span>
+                            </div>
+
+                            <div className="phieu-header-meta-stack">
+                                <div className="phieu-header-meta-item">
+                                    ĐƠN HÀNG: <span className="phieu-header-meta-value">
+                                        {form.getFieldValue('so_ct') || '.........'} 
+                                        {form.getFieldValue('bcontract_id') && (
+                                            <span className="phieu-header-meta-sequence">
+                                                ({form.getFieldValue('bcontract_id')})
+                                            </span>
+                                        )}
+                                    </span>
+                                </div>
+                                <div className="phieu-header-meta-item">
+                                    NGÀY: <span className="phieu-header-meta-value">{form.getFieldValue('ngay_ct') ? dayjs(form.getFieldValue('ngay_ct')).format('DD/MM/YYYY') : '.........'}</span>
+                                </div>
+                                <div className="phieu-header-status-row">
+                                    <span className="phieu-header-status-label">TRẠNG THÁI:</span>
+                                    <Form.Item name="status" noStyle>
+                                        <Select 
+                                            size="small"
+                                            className="phieu-header-status-select"
+                                            dropdownMatchSelectWidth={false}
+                                        >
+                                            {statusList.length > 0 ? (
+                                                statusList.map((s) => (
+                                                    <Select.Option key={s.status} value={String(s.status).trim()}>
+                                                        {String(s.status).trim()}. {s.statusname}
+                                                    </Select.Option>
+                                                ))
+                                            ) : (
+                                                <>
+                                                    <Select.Option value="0">0. Lập chứng từ</Select.Option>
+                                                    <Select.Option value="1">1. Chờ duyệt</Select.Option>
+                                                    <Select.Option value="2">2. Duyệt</Select.Option>
+                                                    <Select.Option value="4">4. Hoàn tất</Select.Option>
+                                                    <Select.Option value="6">6. Đã hủy</Select.Option>
+                                                </>
+                                            )}
+                                        </Select>
+                                    </Form.Item>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="detail-don-hang__header-right">
+                            {stt_rec && !isEditMode ? (
+                                <Button
+                                    type="text"
+                                    icon={<EditOutlined />}
+                                    className="detail-don-hang__edit-btn"
+                                    onClick={handleToggleEdit}
+                                    title="Chỉnh sửa"
+                                    disabled={false}
+                                />
+                            ) : (
+                                <div style={{ width: 36 }}></div>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="detail-don-hang__header-right">
-                        {stt_rec && !isEditMode ? (
-                            <Button
-                                type="text"
-                                icon={<EditOutlined />}
-                                className="detail-don-hang__edit-btn"
-                                onClick={handleToggleEdit}
-                                title="Chỉnh sửa"
-                            />
-                        ) : (
-                            <div style={{ width: 36 }}></div>
-                        )}
-                    </div>
-                </div>
-
-                {/* ===== BODY ===== */}
-                <div className="detail-don-hang__body">
-                    <Form
-                        form={form}
-                        layout={isMobile ? "vertical" : "horizontal"}
-                        disabled={!isEditMode && !!stt_rec}
-                        labelCol={isMobile ? null : { flex: "140px" }}
-                        wrapperCol={isMobile ? null : { flex: 1 }}
-                        size="middle"
-                        colon={false}
-                    >
+                    {/* ===== BODY ===== */}
+                    <div className="detail-don-hang__body">
                         {/* ---- Thông tin chung ---- */}
                         <div className="detail-don-hang__section" style={{ marginBottom: 16 }}>
                             {/* ---- Khách hàng (Dòng riêng trên cùng) ---- */}
@@ -389,28 +481,6 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                 <Form.Item name="khach_hang_display" noStyle>
                                     <Input disabled className="customer-display" />
                                 </Form.Item>
-
-                                {!isMobile && (
-                                    <div style={{ minWidth: '180px' }}>
-                                        <Form.Item name="status" noStyle>
-                                            <Select placeholder="Trạng thái" style={{ width: '100%' }}>
-                                                {statusList.length > 0 ? (
-                                                    statusList.map((s) => (
-                                                        <Select.Option key={s.status} value={s.status}>
-                                                            {s.status}. {s.statusname}
-                                                        </Select.Option>
-                                                    ))
-                                                ) : (
-                                                    <>
-                                                        <Select.Option value="0">0. Lập chứng từ</Select.Option>
-                                                        <Select.Option value="1">1. Chờ duyệt</Select.Option>
-                                                        <Select.Option value="2">2. Duyệt</Select.Option>
-                                                    </>
-                                                )}
-                                            </Select>
-                                        </Form.Item>
-                                    </div>
-                                )}
 
                                 <Button
                                     type="text"
@@ -441,28 +511,24 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                             </Col>
                                             <Col span={12}>
                                                 <Form.Item name="ma_tt" label="Mã TT">
-                                                    <Input />
-                                                </Form.Item>
-                                            </Col>
-                                        </Row>
-                                        
-                                        <Form.Item name="ma_dc" label="Nơi giao">
-                                            <Input suffix={<SearchOutlined style={{ color: '#94a3b8' }} />} />
-                                        </Form.Item>
-
-                                        <Row gutter={16}>
-                                            <Col span={12}>
-                                                <Form.Item name="ma_htvc" label="Loại VC">
-                                                    <Input />
-                                                </Form.Item>
-                                            </Col>
-                                            <Col span={12}>
-                                                <Form.Item name="ma_vc" label="Phương tiện">
                                                     <Input suffix={<SearchOutlined style={{ color: '#94a3b8' }} />} />
                                                 </Form.Item>
                                             </Col>
                                         </Row>
+                                        
+                                        <Form.Item name="dien_giai" label="Diễn giải">
+                                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} />
+                                        </Form.Item>
+                                        <Form.Item name="ghi_chu_kh" label="Ghi chú KH">
+                                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} />
+                                        </Form.Item>
+                                        <Form.Item name="ghi_chu_giao_hang" label="Ghi chú VC">
+                                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} />
+                                        </Form.Item>
+                                    </Col>
 
+                                    {/* Right Column: Other Info */}
+                                    <Col xs={24} lg={{ span: 11, offset: 1 }}>
                                         <Row gutter={16}>
                                             <Col span={12}>
                                                 <Form.Item name="hinh_thuc_tt" label="Hình thức">
@@ -482,66 +548,6 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                                 </Form.Item>
                                             </Col>
                                         </Row>
-
-                                        {/* Những trường phụ đẩy xuống dưới */}
-                                        <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px dashed #f0f0f0' }}>
-                                            <Row gutter={16}>
-                                                <Col span={14}>
-                                                    <Form.Item name="so_ct" label="Số đơn">
-                                                        <Input />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={10}>
-                                                    <Form.Item name="bcontract_id" label="Thứ tự">
-                                                        <Input disabled style={{ fontWeight: 600, color: '#1890ff', textAlign: 'center' }} />
-                                                    </Form.Item>
-                                                </Col>
-                                            </Row>
-                                            <Form.Item name="ngay_ct" label="Ngày lập">
-                                                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} placeholder="Chọn" />
-                                            </Form.Item>
-                                            <Row gutter={16}>
-                                                <Col span={12}>
-                                                    <div style={{ fontSize: '14px', color: '#595959' }}>Giờ đặt: <Text strong style={{ color: '#262626' }}>{form.getFieldValue('gio_dat_hang') || '--'}</Text></div>
-                                                </Col>
-                                                <Col span={12}>
-                                                    <div style={{ fontSize: '14px', color: '#595959' }}>Chuyển kho: <Text strong style={{ color: '#262626' }}>{form.getFieldValue('gio_chuyen_kho') || '--'}</Text></div>
-                                                </Col>
-                                            </Row>
-                                        </div>
-                                    </Col>
-
-                                    {/* Right Column: Notes & Status */}
-                                    <Col xs={24} lg={{ span: 11, offset: 1 }}>
-                                        <Form.Item name="dien_giai" label="Diễn giải">
-                                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} />
-                                        </Form.Item>
-                                        <Form.Item name="ghi_chu_kh" label="Ghi chú KH">
-                                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} />
-                                        </Form.Item>
-                                        <Form.Item name="ghi_chu_giao_hang" label="Ghi chú VC">
-                                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} />
-                                        </Form.Item>
-                                        
-                                        {isMobile && (
-                                            <Form.Item name="status" label="Trạng thái">
-                                                <Select>
-                                                    {statusList.length > 0 ? (
-                                                        statusList.map((s) => (
-                                                            <Select.Option key={s.status} value={s.status}>
-                                                                {s.status}. {s.statusname}
-                                                            </Select.Option>
-                                                        ))
-                                                    ) : (
-                                                        <>
-                                                            <Select.Option value="0">0. Lập chứng từ</Select.Option>
-                                                            <Select.Option value="1">1. Chờ duyệt</Select.Option>
-                                                            <Select.Option value="2">2. Duyệt</Select.Option>
-                                                        </>
-                                                    )}
-                                                </Select>
-                                            </Form.Item>
-                                        )}
                                     </Col>
                                 </Row>
                             )}
@@ -624,8 +630,8 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                 </Button>
                             </div>
                         )}
-                    </Form>
-                </div>
+                    </div>
+                </Form>
             </div>
         </div>
     );

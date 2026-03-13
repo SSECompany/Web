@@ -11,7 +11,8 @@
   background: #fff;
   border-radius: 20px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
+  /* overflow: hidden; */ /* Bỏ để sticky hoạt động */
+  position: relative;
 }
 
 /* ---- Header ---- */
@@ -22,6 +23,12 @@
   padding: 16px 24px;
   background: #fff;
   border-bottom: 1px solid #f0f0f0;
+  position: sticky;
+  top: -12px; /* Offset phần padding 12px của container để dính sát mép trên */
+  z-index: 1001;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
 }
 
 .detail-don-hang__header-right {
@@ -96,6 +103,7 @@
 /* ---- Section nhỏ có border nhạt, bo tròn ---- */
 .detail-don-hang__section {
   background: #f8f9fb;
+  --phieu-floating-label-bg: linear-gradient(to bottom, #f8f9fb 55%, #ffffff 45%);
   border: 1px solid #eef2f7;
   border-radius: 14px;
   padding: 20px 24px;
@@ -104,33 +112,60 @@
 
 /* ---- Form field – Thống nhất MỌI loại input ---- */
 .detail-don-hang__body .ant-form-item {
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 }
-.detail-don-hang__body .ant-form-item-label {
-  text-align: left !important;
-  justify-content: flex-start !important;
-}
-.detail-don-hang__body .ant-form-item-label > label {
-  color: #475569 !important;
-  font-weight: 600;
-  font-size: 11px; /* Desktop reduced font */
-  justify-content: flex-start !important;
-}
+
 
 /* Đồng bộ border-radius 8px cho TẤT CẢ loại input */
 .detail-don-hang__body .ant-input,
 .detail-don-hang__body .ant-input-affix-wrapper,
 .detail-don-hang__body .ant-input-number,
 .detail-don-hang__body .ant-select-selector,
-.detail-don-hang__body .ant-picker,
+.detail-don-hang__body .ant-picker {
+  border-radius: 8px !important;
+  border-color: #d1d5db !important;
+  transition: all 0.2s;
+  font-size: 11px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* ---- Header Status Select ---- */
+.header-status-select-minimal .ant-select-selector {
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  background: #fff !important;
+  height: 24px !important;
+  padding: 0 10px !important;
+  transition: all 0.2s !important;
+}
+
+.header-status-select-minimal:hover .ant-select-selector {
+  border-color: #6366f1 !important;
+}
+
+.header-status-select-minimal .ant-select-selection-item {
+  color: #262626 !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  line-height: 22px !important;
+}
+
+.header-status-select-minimal .ant-select-arrow {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
 .detail-don-hang__body textarea.ant-input {
   border-radius: 8px !important;
   border-color: #d1d5db !important;
   transition: all 0.2s;
-  font-size: 11px !important; /* Desktop reduced font */
-  min-height: 30px;
-  display: flex !important;
-  align-items: center !important;
+  font-size: 11px !important;
+  min-height: 32px !important;
+  height: auto !important;
+  padding: 6px 11px !important;
 }
 .detail-don-hang__body .ant-input-number-input-wrap,
 .detail-don-hang__body .ant-input-number-input {
@@ -153,6 +188,8 @@
 .detail-don-hang__body .ant-input-affix-wrapper > .ant-input {
   border-radius: 0 !important;
   border: none !important;
+  height: 100% !important;
+  padding: 0 !important;
 }
 
 /* Focus states */
@@ -208,6 +245,14 @@
   padding: 16px 0 0;
 }
 
+/* Synchronize label gradient for disabled fields inside tabs (e.g. Khiếu nại) */
+.detail-don-hang__tabs .ant-tabs-content-holder .ant-form-item:has(.ant-input-disabled) .ant-form-item-label,
+.detail-don-hang__tabs .ant-tabs-content-holder .ant-form-item:has(.ant-input-number-disabled) .ant-form-item-label,
+.detail-don-hang__tabs .ant-tabs-content-holder .ant-form-item:has(.ant-select-disabled) .ant-form-item-label,
+.detail-don-hang__tabs .ant-tabs-content-holder .ant-form-item:has(.ant-picker-disabled) .ant-form-item-label {
+  --phieu-floating-label-bg: linear-gradient(to bottom, #ffffff 55%, #e2e8f0 45%);
+}
+
 /* ---- Bảng (chi tiết / chi phí) ---- */
 .detail-don-hang__body .ant-table-wrapper {
   border-radius: 10px;
@@ -223,33 +268,68 @@
   white-space: nowrap;
   padding: 8px 10px !important;
 }
-.detail-don-hang__body .ant-table-tbody > tr > td {
+.detail-don-hang__body .ant-table-tbody > tr:not(.ant-table-measure-row) > td {
   font-size: 13px;
   padding: 8px 10px !important;
 }
-.detail-don-hang__body .ant-table-tbody > tr:hover > td {
+.detail-don-hang__body .ant-table-tbody > tr:not(.ant-table-measure-row):hover > td {
   background: #f0f4ff !important;
 }
 
 /* ---- Footer tổng tiền ---- */
 .detail-don-hang__totals {
   background: #f8f9fb;
+  --phieu-floating-label-bg: linear-gradient(to bottom, #f8f9fb 55%, #ffffff 45%);
   border: 1px solid #eef2f7;
   border-radius: 14px;
   padding: 20px 24px;
   margin-top: 20px;
 }
 .detail-don-hang__totals .ant-form-item-label > label {
-  font-size: 11px !important; /* Desktop reduced font */
-  font-weight: 600;
-  color: #334155 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #6366f1 !important;
 }
-.detail-don-hang__totals-right .ant-input-number-disabled {
-  background: #f1f5f9 !important;
+
+.detail-don-hang__totals .ant-input,
+.detail-don-hang__totals .ant-input-number,
+.detail-don-hang__totals .ant-select-selector,
+.detail-don-hang__totals .ant-picker {
+  border-color: #6366f144 !important;
+}
+
+.detail-don-hang__totals .ant-input:focus,
+.detail-don-hang__totals .ant-input-number-focused,
+.detail-don-hang__totals .ant-select-focused .ant-select-selector,
+.detail-don-hang__totals .ant-picker-focused {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+}
+/* Unified disabled styling across the body */
+.detail-don-hang__body .ant-input-disabled,
+.detail-don-hang__body .ant-input-number-disabled,
+.detail-don-hang__body .ant-select-disabled .ant-select-selector,
+.detail-don-hang__body .ant-picker-disabled {
+  background: #e2e8f0 !important;
   border-color: #cbd5e1 !important;
-  color: #0f172a !important;
+  color: #334155 !important;
   font-weight: 600;
-  font-size: 12px !important; /* Desktop reduced font */
+}
+
+/* Synchronize label gradient for disabled fields inside regular sections */
+.detail-don-hang__section .ant-form-item:has(.ant-input-disabled) .ant-form-item-label,
+.detail-don-hang__section .ant-form-item:has(.ant-input-number-disabled) .ant-form-item-label,
+.detail-don-hang__section .ant-form-item:has(.ant-select-disabled) .ant-form-item-label,
+.detail-don-hang__section .ant-form-item:has(.ant-picker-disabled) .ant-form-item-label {
+  --phieu-floating-label-bg: linear-gradient(to bottom, #f8f9fb 55%, #e2e8f0 45%);
+}
+
+/* Synchronize label gradient for disabled fields inside totals section */
+.detail-don-hang__totals .ant-form-item:has(.ant-input-disabled) .ant-form-item-label,
+.detail-don-hang__totals .ant-form-item:has(.ant-input-number-disabled) .ant-form-item-label,
+.detail-don-hang__totals .ant-form-item:has(.ant-select-disabled) .ant-form-item-label,
+.detail-don-hang__totals .ant-form-item:has(.ant-picker-disabled) .ant-form-item-label {
+  --phieu-floating-label-bg: linear-gradient(to bottom, #f8f9fb 55%, #e2e8f0 45%);
 }
 
 /* Dòng Tổng cộng highlight – Cực kỳ rõ ràng */
@@ -270,6 +350,11 @@
   display: flex !important;
   align-items: center !important;
   justify-content: flex-end !important;
+}
+
+/* Sync floating label bg specifically for grand total highlight */
+.detail-don-hang__totals-grand .ant-form-item:has(.ant-input-number-disabled) .ant-form-item-label {
+  --phieu-floating-label-bg: linear-gradient(to bottom, #f8f9fb 55%, #eff6ff 45%);
 }
 .detail-don-hang__totals-grand .ant-input-number-input {
   height: 100% !important;

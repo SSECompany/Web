@@ -1,5 +1,5 @@
 import { EditOutlined, LeftOutlined } from "@ant-design/icons";
-import { Button, Form, Space, Typography, message } from "antd";
+import { Button, Form, Space, Typography, message, Select } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -356,30 +356,66 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
           onClick={() => navigate("/kho/xuat-dieu-chuyen")}
           className="phieu-back-button"
         />
-        <Title level={5} className="phieu-title">
-          {isEditMode
-            ? "CHỈNH SỬA PHIẾU XUẤT ĐIỀU CHUYỂN"
-            : "CHI TIẾT PHIẾU XUẤT ĐIỀU CHUYỂN"}
-        </Title>
-        {!isEditMode ? (
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={handleEdit}
-            className="phieu-edit-button"
-          >
-            Chỉnh sửa
-          </Button>
-        ) : (
-          <div style={{ width: 120 }}></div>
-        )}
+
+        <div className="phieu-header-info">
+          <div className="phieu-header-tags">
+            <span className={`phieu-header-badge ${!stt_rec ? 'phieu-header-badge--green' : isEditMode ? 'phieu-header-badge--orange' : 'phieu-header-badge--blue'}`}>
+              {stt_rec ? (isEditMode ? "SỬA PHIẾU XUẤT" : "CHI TIẾT PHIẾU XUẤT") : "THÊM PHIẾU XUẤT MỚI"}
+            </span>
+          </div>
+
+          <div className="phieu-header-meta-stack">
+            <div className="phieu-header-meta-item">
+              ĐƠN HÀNG: <span className="phieu-header-meta-value">
+                {form.getFieldValue('soPhieu') || '.........'} 
+                {form.getFieldValue('bcontract_id') && (
+                  <span className="phieu-header-meta-sequence">
+                    ({form.getFieldValue('bcontract_id')})
+                  </span>
+                )}
+              </span>
+            </div>
+            <div className="phieu-header-meta-item">
+              NGÀY: <span className="phieu-header-meta-value">{form.getFieldValue('ngay') ? dayjs(form.getFieldValue('ngay')).format('DD/MM/YYYY') : '.........'}</span>
+            </div>
+            <div className="phieu-header-status-row">
+              <span className="phieu-header-status-label">TRẠNG THÁI:</span>
+              <Form.Item name="trangThai" noStyle>
+                <Select 
+                  size="small"
+                  className="phieu-header-status-select"
+                  dropdownMatchSelectWidth={false}
+                >
+                  <Select.Option value="0">0. Lập chứng từ</Select.Option>
+                  <Select.Option value="1">1. Chờ duyệt</Select.Option>
+                  <Select.Option value="2">2. Duyệt</Select.Option>
+                </Select>
+              </Form.Item>
+            </div>
+          </div>
+        </div>
+
+        <div className="phieu-header-right">
+          {!isEditMode && stt_rec ? (
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={handleEdit}
+              className="phieu-edit-button"
+            >
+              Chỉnh sửa
+            </Button>
+          ) : (
+            <div style={{ width: 120 }}></div>
+          )}
+        </div>
       </div>
 
       <div className="phieu-form-container">
         <Form
           form={form}
           layout="vertical"
-          className="phieu-form"
+          className="phieu-form phieu-form--floating"
           disabled={!isEditMode}
         >
           <PhieuFormInputs
