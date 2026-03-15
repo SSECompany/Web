@@ -251,7 +251,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
     if (filters.s3 !== "" && filters.s3 !== null && filters.s3 !== undefined) {
       chips.push({
         key: "s3",
-        label: "Đồng bộ",
+        label: "Phát hành HĐĐT",
         value: getSyncResultLabel(filters.s3),
       });
     }
@@ -414,13 +414,13 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
   };
 
   const getSyncRequestLabel = (value) =>
-    isSyncRequested(value) ? "Đồng bộ" : "Không đồng bộ";
+    isSyncRequested(value) ? "Phát hành HĐĐT" : "Không phát hành";
 
   const renderSyncRequestTag = (value) => {
     const requested = isSyncRequested(value);
     return (
       <Tag color={requested ? "green" : "red"}>
-        {requested ? "Đồng bộ" : "Không đồng bộ"}
+        {requested ? "Phát hành HĐĐT" : "Không phát hành"}
       </Tag>
     );
   };
@@ -450,7 +450,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
     const status = getSyncResultStatus(value);
     if (status === "success") return "Thành công";
     if (status === "failed") return "Thất bại";
-    return "Chưa đồng bộ";
+    return "Chưa phát hành";
   };
 
   const renderSyncResultTag = (value) => {
@@ -599,8 +599,8 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
             onChange={(val) => setSelectedKeys(val !== undefined ? [val] : [])}
             allowClear
           >
-            <Select.Option value="Synchronize     ">Đồng bộ</Select.Option>
-            <Select.Option value="*">Không đồng bộ</Select.Option>
+            <Select.Option value="Synchronize     ">Phát hành HĐĐT</Select.Option>
+            <Select.Option value="*">Không phát hành</Select.Option>
           </Select>
           <Button
             className="search_button"
@@ -615,7 +615,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       filteredValue: filters.s2 ? [filters.s2] : null,
     },
     {
-      title: "Đồng bộ",
+      title: "Phát hành HĐĐT",
       dataIndex: "s3",
       key: "syncStatus",
       align: "center",

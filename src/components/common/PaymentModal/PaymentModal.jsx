@@ -275,10 +275,10 @@ const PaymentModal = ({
       >
         <div style={{ marginBottom: 16 }}>
           <div style={{ marginBottom: 8, fontWeight: 600, color: "#262626" }}>
-            Đồng bộ:
+            Phát hành HĐĐT:
           </div>
           <Checkbox checked={sync} onChange={(e) => setSync(e.target.checked)}>
-            Đồng bộ
+            Phát hành HĐĐT
           </Checkbox>
         </div>
 
@@ -362,7 +362,7 @@ const PaymentModal = ({
                     }}
                   >
                     {process.env.REACT_APP_VIETQR_ACCOUNT_NAME ||
-                      "DANG HUU DAT"}
+                      ""}
                   </div>
                   <div
                     style={{
@@ -373,7 +373,7 @@ const PaymentModal = ({
                       textAlign: "center",
                     }}
                   >
-                    STK: {process.env.REACT_APP_VIETQR_ACCOUNT || "03775720401"}
+                    STK: {process.env.REACT_APP_VIETQR_ACCOUNT || ""}
                   </div>
 
                   <Divider

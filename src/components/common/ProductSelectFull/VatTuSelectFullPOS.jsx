@@ -42,7 +42,8 @@ const VatTuSelectFullPOS = ({
 
   useEffect(() => {
     if (!didInitRef.current) {
-      fetchVatTuList("", 1, false);
+      // Don't fetch on mount if empty - as per user request
+      // fetchVatTuList("", 1, false);
       didInitRef.current = true;
     }
     
@@ -140,8 +141,12 @@ const VatTuSelectFullPOS = ({
           if (setPageIndex) {
             setPageIndex(1);
           }
-          // Call API with proper parameters: keyword, page, append
-          await fetchVatTuList(trimmedValue, 1, false);
+          // Only call API if trimmedValue is not empty
+          if (trimmedValue) {
+            await fetchVatTuList(trimmedValue, 1, false);
+          } else {
+            setVatTuList([]);
+          }
         } catch (error) {
           console.error("Error in handleSearch:", error);
         } finally {
@@ -179,15 +184,8 @@ const VatTuSelectFullPOS = ({
       lastSearchValueRef.current = "";
       // Reset searchPromiseRef to allow new searches
       searchPromiseRef.current = null;
-      // Clear input value when dropdown opens to ensure onSearch is triggered on new input
-      // This fixes the issue where onSearch doesn't fire on second open if input has value
-      // Use setTimeout to ensure the clear happens after dropdown is fully opened
-      setTimeout(() => {
-        if (vatTuInput) {
-          setVatTuInput("");
-        }
-      }, 0);
-      fetchVatTuList("", 1, false);
+      // Don't clear input when opening, keep what user typed or leave empty
+      // fetchVatTuList("", 1, false);
       dropdownOpenedRef.current = true;
     } else {
       // Reset state when dropdown closes
@@ -379,9 +377,13 @@ const VatTuSelectFullPOS = ({
                       <div style={{ padding: "8px", textAlign: "center" }}>
                         <Spin size="small" /> <span style={{ marginLeft: 8 }}>Đang tìm kiếm...</span>
                       </div>
+                    ) : !vatTuInput ? (
+                      <div style={{ padding: "8px", textAlign: "center", color: "#999" }}>
+                        Vui lòng nhập để tìm kiếm
+                      </div>
                     ) : vatTuList.length === 0 ? (
                       <div style={{ padding: "8px", textAlign: "center" }}>
-                        <Spin size="small" /> <span style={{ marginLeft: 8 }}>Đang tìm kiếm...</span>
+                        Không tìm thấy
                       </div>
                     ) : (
                       "Không tìm thấy"

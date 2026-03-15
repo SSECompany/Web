@@ -37,7 +37,8 @@ const ProductSelectFull = ({
 
   useEffect(() => {
     if (!didInitRef.current) {
-      fetchVatTuList("", 1, false);
+      // Don't fetch on mount if empty - as per user request
+      // fetchVatTuList("", 1, false);
       didInitRef.current = true;
     }
   }, [fetchVatTuList]);
@@ -83,8 +84,13 @@ const ProductSelectFull = ({
     }
 
     searchTimeoutRef.current = setTimeout(() => {
-      if (setPageIndex) setPageIndex(1);
-      fetchVatTuList(value, 1, false); // reset page, không append
+      // Only call API if value is not empty
+      if (value?.trim()) {
+        if (setPageIndex) setPageIndex(1);
+        fetchVatTuList(value, 1, false); // reset page, không append
+      } else {
+        setVatTuList([]);
+      }
       // Reset scroll state khi search mới
       isScrollingRef.current = false;
       lastScrollPageRef.current = 0;
@@ -93,8 +99,8 @@ const ProductSelectFull = ({
 
   const handleDropdownVisibleChange = (open) => {
     if (open) {
-      // Always fetch fresh data when dropdown opens (like POS)
-      fetchVatTuList("", 1, false);
+      // Don't always fetch fresh data if empty - as per user request
+      // fetchVatTuList("", 1, false);
       dropdownOpenedRef.current = true;
     } else {
       // Reset state when dropdown closes

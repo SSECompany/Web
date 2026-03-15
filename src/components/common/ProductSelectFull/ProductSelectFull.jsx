@@ -112,7 +112,9 @@ const ProductSelectFull = ({
       searchTimeoutRef.current = setTimeout(() => {
         if (setPageIndex) setPageIndex(1);
         if (fetchVatTuList) {
-          fetchVatTuList(value, 1, false);
+          if (value?.trim()) {
+            fetchVatTuList(value, 1, false);
+          }
         }
         hasInitialDataRef.current = true;
         isSearchingRef.current = false;
@@ -133,8 +135,8 @@ const ProductSelectFull = ({
           vatTuList.every((item) => item.label)) &&
         !loadingVatTu
       ) {
-        if (fetchVatTuList) {
-          fetchVatTuList("", 1, false);
+        if (fetchVatTuList && vatTuInput?.trim()) {
+          fetchVatTuList(vatTuInput, 1, false);
         }
       }
     } else {
@@ -151,8 +153,8 @@ const ProductSelectFull = ({
         vatTuList.every((item) => item.label)) &&
       !loadingVatTu
     ) {
-      if (fetchVatTuList) {
-        fetchVatTuList("", 1, false);
+      if (fetchVatTuList && vatTuInput?.trim()) {
+        fetchVatTuList(vatTuInput, 1, false);
       }
     }
   };
