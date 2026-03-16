@@ -209,7 +209,7 @@
   font-size: 18px !important;
   font-weight: 800 !important;
   color: #6c63ff !important;
-  height: 40px !important;
+  height: 32px !important;
   background: rgba(108, 99, 255, 0.03) !important;
   border: none !important;
 }
@@ -333,18 +333,18 @@
 }
 
 /* Dòng Tổng cộng highlight – Cực kỳ rõ ràng */
-.detail-don-hang__totals-grand .ant-form-item-label > label {
+.detail-don-hang__totals-grand.ant-form-item .ant-form-item-label > label {
   color: #6366f1 !important;
   font-weight: 800 !important;
-  font-size: 13px !important; /* Desktop reduced font */
+  font-size: 13px !important;
   text-transform: uppercase;
 }
-.detail-don-hang__totals-grand .ant-input-number-disabled {
+.detail-don-hang__totals-grand.ant-form-item .ant-input-number-disabled {
   background: #eff6ff !important;
   border-color: #6366f1 !important;
   color: #4338ca !important;
   font-weight: 800 !important;
-  font-size: 15px !important; /* Desktop reduced font */
+  font-size: 15px !important;
   height: 36px !important;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
   display: flex !important;
@@ -353,8 +353,8 @@
 }
 
 /* Sync floating label bg specifically for grand total highlight */
-.detail-don-hang__totals-grand .ant-form-item:has(.ant-input-number-disabled) .ant-form-item-label {
-  --phieu-floating-label-bg: linear-gradient(to bottom, #f8f9fb 55%, #eff6ff 45%);
+.detail-don-hang__totals-grand.ant-form-item:has(.ant-input-number-disabled) .ant-form-item-label {
+  --phieu-floating-label-bg: linear-gradient(to bottom, #f8f9fb 50%, #eff6ff 50%);
 }
 .detail-don-hang__totals-grand .ant-input-number-input {
   height: 100% !important;
@@ -603,4 +603,32 @@
   .detail-don-hang__totals {
     padding: 12px;
   }
+}
+
+/* ---- Header Meta/Status Balance ---- */
+.phieu-header-meta-stack {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 4px !important;
+}
+
+.phieu-header-status-row {
+  display: flex !important;
+  align-items: center !important;
+  height: 24px !important;
+  margin-top: 0 !important;
+}
+
+.phieu-header-meta-item {
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.phieu-header-status-select .ant-select-selector {
+  height: 24px !important;
+  padding: 0 8px !important;
+  background: white !important;
+  border: 1px solid #d1d5db !important;
 }

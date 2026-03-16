@@ -19,6 +19,7 @@ import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import "../../../kho/components/common-phieu.css";
+import "./ListPhieuKinhDoanh.css";
 import CommonPhieuList from "../../../kho/components/CommonPhieuList";
 import { 
     fetchPhieuKinhDoanhList, 
@@ -60,11 +61,7 @@ const ListPhieuKinhDoanh = () => {
                 if (parsed.dateRange && Array.isArray(parsed.dateRange)) {
                     parsed.dateRange = parsed.dateRange.map(d => d ? dayjs(d) : null);
                 }
-                // Ensure status is always an array and has defaults if empty
-                if (parsed.status && !Array.isArray(parsed.status)) {
-                    parsed.status = [parsed.status];
-                }
-                if (!parsed.status || (Array.isArray(parsed.status) && parsed.status.length === 0)) {
+                if (!parsed.status) {
                     parsed.status = ["0", "1", "2"];
                 }
                 return parsed;
@@ -101,6 +98,7 @@ const ListPhieuKinhDoanh = () => {
 
     // Cancel state
     const [cancelLoading, setCancelLoading] = useState(false);
+
 
     const pageSize = 20;
 
@@ -210,12 +208,7 @@ const ListPhieuKinhDoanh = () => {
             const statusMap = { 
                 "0": "0. Lập chứng từ", 
                 "1": "1. Chờ duyệt", 
-                "2": "2. Duyệt", 
-                "3": "3. Chờ kinh doanh",
-                "4": "4. Hoàn tất", 
-                "5": "5. Chờ kho",
-                "6": "6. Đã hủy",
-                "9": "9. Hoàn thành"
+                "2": "2. Duyệt"
             };
             const labels = filters.status.map(s => statusMap[s] || s);
             chips.push({ key: "status", label: "Trạng thái", value: labels.join(", "), rawValue: filters.status });
@@ -482,6 +475,7 @@ const ListPhieuKinhDoanh = () => {
         });
     };
 
+
     const numFmt = (val) => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
     const getColumns = () => {
@@ -495,7 +489,6 @@ const ListPhieuKinhDoanh = () => {
                     <div style={{ fontSize: '11px', lineHeight: '1.4' }}>
                         <div><Text type="secondary" style={{ fontSize: '10px' }}>Tạo:</Text> {record.datetime0 ? dayjs(record.datetime0).format("HH:mm DD/MM") : "--"}</div>
                         <div><Text type="secondary" style={{ fontSize: '10px' }}>KD-Kho:</Text> {record.thoi_gian_chuyen_kho ? dayjs(record.thoi_gian_chuyen_kho).format("HH:mm DD/MM") : "--"}</div>
-                        <div><Text type="secondary" style={{ fontSize: '10px' }}>Kho-KD:</Text> {record.thoi_gian_chuyen_kinh_doanh ? dayjs(record.thoi_gian_chuyen_kinh_doanh).format("HH:mm DD/MM") : "--"}</div>
                     </div>
                 )
             },
@@ -542,19 +535,80 @@ const ListPhieuKinhDoanh = () => {
                         )}
                     </div>
                 ),
-                filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-                    <div style={{ padding: 8 }}>
+                filterDropdown: ({ confirm }) => (
+                    <div style={{ padding: 12, width: 280 }}>
+                        <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Số đơn hàng:</div>
                         <Input
-                            placeholder="Số đơn hàng"
-                            value={selectedKeys[0]}
-                            onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-                            onPressEnter={() => handleFilter("so_ct", selectedKeys[0], confirm)}
-                            style={{ marginBottom: 8, display: 'block' }}
+                            placeholder="Nhập số đơn hàng..."
+                            value={filters.so_ct}
+                            onChange={e => {
+                                const val = e.target.value;
+                                setFilters(prev => ({ ...prev, so_ct: val }));
+                            }}
+                            onPressEnter={() => {
+                                fetchData(1, filters);
+                                confirm();
+                            }}
+                            style={{ marginBottom: 16, display: 'block' }}
                         />
-                        <Button type="primary" onClick={() => handleFilter("so_ct", selectedKeys[0], confirm)} size="small">Tìm</Button>
+
+                        <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Khoảng ngày:</div>
+                        <RangePicker
+                            value={filters.dateRange}
+                            onChange={(dates) => {
+                                setFilters(prev => ({ ...prev, dateRange: dates }));
+                            }}
+                            format="DD/MM/YYYY"
+                            style={{ width: '100%', marginBottom: 16 }}
+                            placeholder={['Từ ngày', 'Đến ngày']}
+                        />
+
+                        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                            <Button 
+                                onClick={() => {
+                                    const cleared = { ...filters, so_ct: "", dateRange: null };
+                                    setFilters(cleared);
+                                    fetchData(1, cleared);
+                                    confirm();
+                                }}
+                                style={{ 
+                                    flex: 1, 
+                                    height: '36px', 
+                                    borderRadius: '8px', 
+                                    fontSize: '13px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    margin: 0
+                                }}
+                            >
+                                Xóa lọc
+                            </Button>
+                            <Button 
+                                type="primary" 
+                                onClick={() => {
+                                    fetchData(1, filters);
+                                    confirm();
+                                }}
+                                style={{ 
+                                    flex: 1, 
+                                    height: '36px', 
+                                    borderRadius: '8px', 
+                                    fontSize: '13px', 
+                                    fontWeight: 600,
+                                    background: '#6366f1',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    margin: 0
+                                }}
+                            >
+                                Tìm kiếm
+                            </Button>
+                        </div>
                     </div>
                 ),
-                filteredValue: filters.so_ct ? [filters.so_ct] : null,
+                filteredValue: (filters.so_ct || filters.dateRange) ? [1] : null,
             },
             {
                 title: "Khách hàng",
@@ -661,7 +715,7 @@ const ListPhieuKinhDoanh = () => {
                 align: "center",
                 render: (statusname, record) => {
                     const status = String(record.status).trim();
-                    const displayStatus = (status === "0" || status === "1" || status === "2" || status === "4" || status === "6") 
+                    const displayStatus = (status === "0" || status === "1" || status === "2") 
                         ? `${status}. ${statusname}` 
                         : (statusname || "Chưa xác định");
                         
@@ -682,32 +736,39 @@ const ListPhieuKinhDoanh = () => {
                     );
                 },
                 filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-                    <div style={{ padding: 8 }}>
-                        <Select
-                            mode="multiple"
-                            placeholder="Chọn trạng thái"
-                            value={selectedKeys.length > 0 ? selectedKeys : filters.status}
+                    <div className="status-filter-dropdown">
+                        <div className="status-filter-dropdown__title">
+                            Trạng thái đơn hàng:
+                        </div>
+                        <Checkbox.Group
+                            value={selectedKeys}
                             onChange={value => {
                                 setSelectedKeys(value || []);
                             }}
-                            style={{ width: 220, display: 'block' }}
-                            allowClear
+                            className="status-filter-dropdown__checkbox-group"
                         >
-                            <Select.Option value="0">0. Lập chứng từ</Select.Option>
-                            <Select.Option value="1">1. Chờ duyệt</Select.Option>
-                            <Select.Option value="2">2. Duyệt</Select.Option>
-                            <Select.Option value="3">3. Chờ kinh doanh</Select.Option>
-                            <Select.Option value="4">4. Hoàn tất</Select.Option>
-                            <Select.Option value="5">5. Chờ kho</Select.Option>
-                            <Select.Option value="6">6. Đã hủy</Select.Option>
-                            <Select.Option value="9">9. Hoàn thành</Select.Option>
-                        </Select>
-                        <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+                            <Checkbox value="0">0. Lập chứng từ</Checkbox>
+                            <Checkbox value="1">1. Chờ duyệt</Checkbox>
+                            <Checkbox value="2">2. Duyệt</Checkbox>
+                        </Checkbox.Group>
+                        <div className="status-filter-dropdown__actions">
+                            <Button
+                                size="small"
+                                style={{ flex: 1 }}
+                                onClick={() => {
+                                    setSelectedKeys([]);
+                                    handleFilter("status", [], confirm);
+                                }}
+                            >
+                                Xóa
+                            </Button>
                             <Button
                                 type="primary"
                                 size="small"
+                                className="status-filter-dropdown__confirm-btn"
+                                style={{ flex: 1 }}
                                 onClick={() => {
-                                    handleFilter("status", selectedKeys.length > 0 ? selectedKeys : filters.status, confirm);
+                                    handleFilter("status", selectedKeys, confirm);
                                 }}
                             >
                                 Xác nhận
@@ -716,14 +777,6 @@ const ListPhieuKinhDoanh = () => {
                     </div>
                 ),
                 filteredValue: filters.status && filters.status.length > 0 ? filters.status : null,
-            },
-            {
-                title: "ĐVCS",
-                dataIndex: "ma_dvcs",
-                key: "ma_dvcs",
-                width: 100,
-                align: "center",
-                render: (val) => <Tag color="default" style={{ fontSize: '10px' }}>{val}</Tag>
             },
             {
                 title: "Hành động",
@@ -1025,23 +1078,22 @@ const ListPhieuKinhDoanh = () => {
                     columns={getColumns()}
                     data={allData}
                     loading={loading}
-                    onAdd={() => navigate("/kinh-doanh/them-moi")}
                     onBack={() => navigate("/kinh-doanh")}
-                    addLabel="Thêm mới"
                     rowKey="stt_rec"
-                    extraButtons={
-                        <Button
-                            icon={<ReloadOutlined />}
-                            onClick={handleRefresh}
-                            className="navbar_fullscreen_btn"
-                            title="Làm tươi"
-                            style={{ marginRight: 8 }}
-                        />
-                    }
+                    extraButtons={null}
                     extraHeader={
                         <>
                             {chipsBar}
-                            <div style={{ padding: "0 16px 12px", display: "flex", gap: 12 }}>
+                            <div className={`list-phieu-extra-header-actions ${chipsBar ? 'has-chips' : ''}`}>
+                                <Button
+                                    type="primary"
+                                    icon={<PlusOutlined />}
+                                    onClick={() => navigate("/kinh-doanh/them-moi")}
+                                    style={{ background: '#1d4ed8', borderColor: '#1d4ed8' }}
+                                >
+                                    Tạo đơn hàng
+                                </Button>
+                                <div style={{ borderLeft: '1px solid #e5e7eb', height: '24px', margin: '0 4px' }} />
                                 <Button 
                                     icon={<ExportOutlined />}
                                     type="primary" 
@@ -1077,6 +1129,16 @@ const ListPhieuKinhDoanh = () => {
                                         setSelectedRowsData([]);
                                     }}>Bỏ chọn</Button>
                                 )}
+                                
+                                <div style={{ flex: 1 }} /> {/* Push refresh button to the end */}
+                                
+                                <Button
+                                    icon={<ReloadOutlined />}
+                                    onClick={handleRefresh}
+                                    title="Làm tươi"
+                                >
+                                    Làm tươi
+                                </Button>
                             </div>
                         </>
                     }
@@ -1151,119 +1213,5 @@ const ListPhieuKinhDoanh = () => {
         </div>
     );
 };
-
-// Add CSS locally for mobile app feel
-const mobileStyles = `
-.is-mobile .phieu-container {
-    padding: 0;
-    background: #f0f2f5;
-    min-height: 100vh;
-    border-radius: 0;
-    box-shadow: none;
-}
-
-.mobile-sticky-header {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    background: #fff;
-    padding: 12px 16px !important;
-    margin-bottom: 0 !important;
-    border-radius: 0 !important;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
-}
-
-.mobile-filter-header {
-    padding: 12px 16px;
-    background: #fff;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.mobile-filter-content {
-    margin-top: 12px;
-    padding: 12px;
-    background: #fafafa;
-    border-radius: 8px;
-}
-
-.mobile-list-content {
-    padding: 12px;
-}
-
-.mobile-phieu-card {
-    margin-bottom: 12px;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-}
-
-.mobile-phieu-card .ant-card-body {
-    padding: 16px;
-}
-
-.mobile-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.mobile-card-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8px;
-    gap: 12px;
-}
-
-.mobile-card-row > *:first-child {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-right: 8px;
-}
-
-.mobile-card-row > *:last-child {
-    flex: 0 0 55%;
-    text-align: right;
-    word-break: break-word;
-    line-height: 1.4;
-}
-
-.mobile-loading {
-    display: flex;
-    justify-content: center;
-    padding: 40px;
-}
-
-.mobile-phieu-card .ant-card-actions {
-    background: #fafafa;
-    border-top: 1px solid #f0f0f0;
-}
-
-.ant-list-pagination {
-    display: flex !important;
-    justify-content: center !important;
-    width: 100% !important;
-    margin: 16px 0 !important;
-}
-
-.ant-pagination.ant-pagination-simple {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-}
-`;
-
-// Inject styles
-if (typeof document !== 'undefined') {
-    const styleSheet = document.createElement("style");
-    styleSheet.innerText = mobileStyles;
-    document.head.appendChild(styleSheet);
-}
 
 export default ListPhieuKinhDoanh;

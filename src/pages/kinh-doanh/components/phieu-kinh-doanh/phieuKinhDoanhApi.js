@@ -1,4 +1,11 @@
+import dayjs from "dayjs";
 import { multipleTablePutApi } from "../../../../api";
+
+const roundNum = (val, dec = 2) => {
+    if (val === undefined || val === null || val === "") return 0;
+    const factor = Math.pow(10, dec);
+    return Math.round(parseFloat(val) * factor) / factor;
+};
 
 export const fetchPhieuKinhDoanhList = async (params) => {
     const body = {
@@ -124,14 +131,12 @@ export const fetchPhieuKinhDoanhDetail = async (stt_rec) => {
     }
 };
 
-export const fetchPhieuKinhDoanhChiTiet = async (stt_rec, pageIndex = 1, pageSize = 50) => {
+export const fetchPhieuKinhDoanhChiTiet = async (stt_rec) => {
     const body = {
         store: "api_list_don_hang_ban_chi_tiet",
         param: {
             stt_rec,
             UserId: 1,
-            PageIndex: pageIndex,
-            PageSize: pageSize,
         },
         data: {},
         resultSetNames: ["data"],
@@ -258,5 +263,717 @@ export const cancelDonHangBan = async (stt_rec_list, userId = 1) => {
     } catch (error) {
         console.error("Lỗi khi gọi API api_cancel_don_hang_ban:", error);
         return { success: false, message: error.message };
+    }
+};
+
+export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED", storeId = "", userId = "3425") => {
+    // Map Master Data
+    const masterData = {
+        stt_rec: master.stt_rec || "",
+        ma_dvcs: unitId,
+        ma_ct: "DXA",
+        loai_ct: String(master.loai_ct || "1"),
+        so_lo: master.so_lo || "",
+        ngay_lo: master.ngay_lo || null,
+        ma_nk: master.ma_nk || "",
+        ma_gd: String(master.hinh_thuc_tt || "1"),
+        ngay_lct: master.ngay_ct ? master.ngay_ct : new Date(),
+        ngay_ct: master.ngay_ct ? master.ngay_ct : new Date(),
+        so_ct: master.so_ct || "",
+        ma_nt: master.ma_nt || "VND",
+        ty_gia: master.ty_gia || 1,
+        ong_ba: master.ong_ba || "",
+        ma_kh: master.ma_kh || "",
+        dien_giai: master.dien_giai || "",
+        ma_nx: master.ma_nx || "",
+        tk: master.tk || "",
+        t_so_luong: roundNum(master.t_so_luong || 0),
+        t_tien_nt: roundNum(master.t_tien_nt || 0),
+        t_tien: roundNum(master.t_tien || 0),
+        t_thue_nt: roundNum(master.t_thue_nt || 0),
+        t_thue: roundNum(master.t_thue || 0),
+        t_tt_nt: roundNum(master.tong_cong || 0),
+        t_tt: roundNum(master.tong_cong || 0),
+        ma_tt: master.ma_tt || "",
+        t_tien2: roundNum(master.t_tien2 || 0),
+        t_tien_nt2: roundNum(master.t_tien2 || 0),
+        t_ck: roundNum(master.t_ck || 0),
+        t_ck_nt: roundNum(master.t_ck || 0),
+        t_cp: roundNum(master.tien_cp || 0),
+        t_cp_nt: roundNum(master.tien_cp || 0),
+        ma_nvbh: master.ma_nvbh || "",
+        status: master.status || "0",
+        user_id2: userId,
+        ghi_chu_giao_hang: master.ghi_chu_giao_hang || "",
+        ghi_chu_kh: master.ghi_chu_kh || "",
+        kh_chiu_cuoc: master.kh_chiu_cuoc ? 1 : 0,
+        t_ck_tt: roundNum(master.t_ck_tt || 0),
+        t_ck_tt_nt: roundNum(master.t_ck_tt || 0),
+        t_ck_voucher: roundNum(master.t_ck_voucher || 0),
+        t_ck_voucher_nt: roundNum(master.t_ck_voucher || 0),
+        ds_voucher: master.the_voucher || "",
+        hl_yn: master.hang_bi_loi ? 1 : 0,
+        ktc_yn: master.khong_tra_cuoc ? 1 : 0,
+        gnh_yn: master.giao_nham_hang ? 1 : 0,
+        tth_yn: master.thua_thieu_hang ? 1 : 0,
+        kng_yn: master.khieu_nai_gia ? 1 : 0,
+        dthh_yn: master.doi_tra_hang ? 1 : 0,
+        hdgkb_yn: master.hang_date_gan ? 1 : 0,
+        vcc_yn: master.van_chuyen_cham ? 1 : 0,
+        vdk_yn: master.van_de_khac ? 1 : 0,
+        yk_kh: master.y_kien_kh || "",
+        ph_kn: master.phan_hoi || "",
+        fdate3: master.ngay_khieu_nai ? master.ngay_khieu_nai : null,
+        fdate4: master.ngay_phan_hoi ? master.ngay_phan_hoi : null,
+        t_cp_bh: 0,
+        t_cp_bh_nt: 0,
+        t_cp_vc: 0,
+        t_cp_vc_nt: 0,
+        t_cp_khac: 0,
+        t_cp_khac_nt: 0,
+        ngay_hl: null,
+        ma_dc: "",
+        ma_htvc: "",
+        so_hd0: "",
+        stt_rec_hd0: "",
+        so_ct0: "",
+        ngay_ct0: null,
+        ngay_ct2: null,
+        ngay_ct3: null,
+        ck_thue_yn: 0,
+        ma_gia: "",
+        tien_hd: 0,
+        nam: new Date().getFullYear(),
+        ky: new Date().getMonth() + 1,
+        xtag: "",
+        datetime0: null,
+        datetime2: null,
+        user_id0: 0,
+        contract_id: "",
+        bcontract_id: "",
+        fee_id: "",
+        so_dh: "",
+        job_id: "",
+        prd_id: "",
+        dept_id: "",
+        mo_nbr: "",
+        fcode1: "",
+        fcode2: "",
+        fcode3: "",
+        fdate1: null,
+        fdate2: null,
+        fqty1: 0,
+        fqty2: 0,
+        fqty3: 0,
+        fnote1: "",
+        fnote2: "",
+        fnote3: "",
+        s1: "",
+        s2: "",
+        s3: "",
+        s4: 0,
+        s5: 0,
+        s6: 0,
+        s7: null,
+        s8: null,
+        s9: null,
+        so_dt: "",
+        dia_chi: master.dia_chi || "",
+        u_status: "0",
+        u_status0: "0",
+        kieu_duyet: "",
+        user_id3: 0,
+        ma_ck: "",
+        status_soan_hang: "0",
+        status_giao_van: "0",
+        tt_soan_hang: 0,
+        tt_giao_van: 0,
+        ma_vc: master.ma_vc || "",
+        first_stt_rec_NDH: "",
+        stt_rec_DX2: "",
+        stt_rec_HDA: "",
+        ma_ban: "",
+        tl_ck_voucher: 0,
+        t_ck_khac: 0,
+        t_ck_khac_nt: 0,
+        thoi_gian_chuyen_kho: null,
+        thoi_gian_chia_don: null,
+        tra_lai_yn: 0,
+    };
+
+    // Map Detail Data
+    const detail64 = detail.map((item, index) => ({
+        stt_rec: item.stt_rec || "",
+        stt_rec0: String(index + 1).padStart(3, '0'),
+        ma_ct: "DXA",
+        ngay_ct: master.ngay_ct ? master.ngay_ct : new Date(),
+        ma_kh: master.ma_kh || "",
+        ma_vt: item.ma_vt || "",
+        dvt: item.dvt || "",
+        ma_kho: item.ma_kho || "",
+        so_luong: roundNum(item.so_luong || 0),
+        gia_nt2: roundNum(item.gia_nt2 || 0),
+        gia2: roundNum(item.gia_nt2 || 0),
+        tien_nt2: roundNum(item.tien_nt2 || 0),
+        tien2: roundNum(item.tien_nt2 || 0),
+        ma_thue: item.ma_thue || "",
+        thue_nt: roundNum(item.thue_nt || 0),
+        thue: roundNum(item.thue_nt || 0),
+        ck_nt: roundNum(item.ck_nt || 0),
+        ck: roundNum(item.ck_nt || 0),
+        ck_khac_nt: roundNum(item.ck_khac_nt || 0),
+        ngay_giao: item.ngay_giao || null,
+        km_yn: item.km_yn ? 1 : 0,
+        line_nbr: index + 1,
+        gia_ban: roundNum(item.gia_ban || item.gia_ban_nt || 0),
+        gia_ban_nt: roundNum(item.gia_ban_nt || 0),
+        sl_xuat: item.sl_xuat || 0,
+        sl_hd: item.sl_hd || 0,
+        tl_ck: roundNum(item.tl_ck || 0),
+        ghi_chu: item.ghi_chu || "",
+        ghi_chu_ck_khac: item.ghi_chu_ck_khac || "",
+        so_ct: "",
+        ma_sp: "",
+        ma_bp: "",
+        so_lsx: "",
+        he_so: 1,
+        ma_vi_tri: "",
+        ma_lo: "",
+        ma_vv: "",
+        tk_vt: "",
+        gia_nt: 0,
+        gia: 0,
+        tien_nt: 0,
+        tien: 0,
+        tk_thue: "",
+        thue_suat: 0,
+        tt: 0,
+        tt_nt: 0,
+        xstatus: "0",
+        xaction: "0",
+        cp_bh: 0,
+        cp_bh_nt: 0,
+        cp_vc: 0,
+        cp_vc_nt: 0,
+        cp_khac: 0,
+        cp_khac_nt: 0,
+        cp: 0,
+        cp_nt: 0,
+        stt_rec_ct: "",
+        stt_rec0ct: "",
+        gia_ban0: 0,
+        gia_ban_nt0: 0,
+        gia_ck: 0,
+        gia_ck_nt: 0,
+        sl_dh: 0,
+        sl_min: 0,
+        sl_max: 0,
+        sl_giao: 0,
+        sl_tl: 0,
+        sl_tl0: 0,
+        stt_rec_bg: "",
+        stt_rec0bg: "",
+        stt_rec_hd: "",
+        stt_rec0hd: "",
+        ma_nvbh_i: "",
+        ma_hd: "",
+        ma_ku: "",
+        ma_phi: "",
+        so_dh_i: "",
+        ma_td1: "",
+        ma_td2: "",
+        ma_td3: "",
+        sl_td1: 0,
+        sl_td2: 0,
+        sl_td3: 0,
+        ngay_td1: null,
+        ngay_td2: null,
+        ngay_td3: null,
+        gc_td1: "",
+        gc_td2: "",
+        gc_td3: "",
+        s1: "",
+        s2: "",
+        s3: "",
+        s4: 0,
+        s5: 0,
+        s6: 0,
+        s7: null,
+        s8: null,
+        s9: null,
+        ck_tt: 0,
+        ck_tt_nt: 0,
+        tl_ck_tt: 0,
+        ma_ck: "",
+        cb_yn: 0,
+        sx_yn: 0,
+        gia_net: 0,
+        gia_net_nt: 0,
+        tien_net: 0,
+        tien_net_nt: 0,
+        xkey: "",
+        db_yn: 0,
+        ck_khac: 0,
+        ghi_chu_dh: "",
+    }));
+
+    // Note: r60Table (Chi phí) is not sent during creation as per requirements
+    // const r60Table = r60.map((item, index) => ({...}));
+
+    const body = {
+        store: "api_tao_don_hang",
+        param: {
+            UnitId: unitId,
+            StoreID: storeId,
+            userId: userId,
+        },
+        data: {
+            master64: [masterData],
+            detail64: detail64,
+        }
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        return {
+            success: response?.responseModel?.isSucceded,
+            message: response?.responseModel?.message,
+            data: response
+        };
+    } catch (error) {
+        console.error("Lỗi khi gọi API api_tao_don_hang:", error);
+        return { success: false, message: error.message };
+    }
+};
+
+export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED", storeId = "", userId = "3425") => {
+    // Map Master Data
+    const masterData = {
+        ...master,
+        stt_rec: master.stt_rec || "",
+        ma_dvcs: unitId,
+        ma_ct: "DXA",
+        loai_ct: String(master.loai_ct || "1"),
+        ma_gd: String(master.hinh_thuc_tt || master.ma_gd || "1"),
+        ngay_lct: master.ngay_ct ? (dayjs.isDayjs(master.ngay_ct) ? master.ngay_ct.toDate() : master.ngay_ct) : (master.ngay_lct || new Date()),
+        ngay_ct: master.ngay_ct ? (dayjs.isDayjs(master.ngay_ct) ? master.ngay_ct.toDate() : master.ngay_ct) : (master.ngay_ct || new Date()),
+        ty_gia: master.ty_gia || 1,
+        so_lo: master.so_lo || "",
+        ngay_lo: master.ngay_lo || null,
+        ma_nk: master.ma_nk || "",
+        ong_ba: master.ong_ba || "",
+        ma_nx: master.ma_nx || "",
+        tk: master.tk || "",
+        t_so_luong: roundNum(master.t_so_luong || 0),
+        t_tien_nt: roundNum(master.t_tien_nt || 0),
+        t_tien: roundNum(master.t_tien || 0),
+        t_thue_nt: roundNum(master.t_thue_nt || 0),
+        t_thue: roundNum(master.t_thue || 0),
+        t_tt_nt: roundNum(master.tong_cong || master.t_tt_nt || 0),
+        t_tt: roundNum(master.tong_cong || master.t_tt || 0),
+        t_tien2: roundNum(master.t_tien2 || 0),
+        t_tien_nt2: roundNum(master.t_tien2 || 0),
+        t_ck: roundNum(master.t_ck || 0),
+        t_ck_nt: roundNum(master.t_ck || 0),
+        t_cp: roundNum(master.tien_cp || master.t_cp || 0),
+        t_cp_nt: roundNum(master.tien_cp || master.t_cp_nt || 0),
+        status: String(master.status || "0"),
+        user_id2: userId,
+        kh_chiu_cuoc: master.kh_chiu_cuoc ? 1 : 0,
+        t_ck_tt: roundNum(master.t_ck_tt || 0),
+        t_ck_tt_nt: roundNum(master.t_ck_tt || 0),
+        t_ck_voucher: roundNum(master.t_ck_voucher || 0),
+        t_ck_voucher_nt: roundNum(master.t_ck_voucher || 0),
+        hl_yn: master.hang_bi_loi ? 1 : (master.hl_yn || 0),
+        ktc_yn: master.khong_tra_cuoc ? 1 : (master.ktc_yn || 0),
+        gnh_yn: master.giao_nham_hang ? 1 : (master.gnh_yn || 0),
+        tth_yn: master.thua_thieu_hang ? 1 : (master.tth_yn || 0),
+        kng_yn: master.khieu_nai_gia ? 1 : (master.kng_yn || 0),
+        dthh_yn: master.doi_tra_hang ? 1 : (master.dthh_yn || 0),
+        hdgkb_yn: master.hang_date_gan ? 1 : (master.hdgkb_yn || 0),
+        vcc_yn: master.van_chuyen_cham ? 1 : (master.vcc_yn || 0),
+        vdk_yn: master.van_de_khac ? 1 : (master.vdk_yn || 0),
+        fdate3: master.ngay_khieu_nai ? (dayjs.isDayjs(master.ngay_khieu_nai) ? master.ngay_khieu_nai.toDate() : master.ngay_khieu_nai) : (master.fdate3 || null),
+        fdate4: master.ngay_phan_hoi ? (dayjs.isDayjs(master.ngay_phan_hoi) ? master.ngay_phan_hoi.toDate() : master.ngay_phan_hoi) : (master.fdate4 || null),
+        t_cp_bh: master.t_cp_bh || 0,
+        t_cp_bh_nt: master.t_cp_bh_nt || 0,
+        t_cp_vc: master.t_cp_vc || 0,
+        t_cp_vc_nt: master.t_cp_vc_nt || 0,
+        t_cp_khac: master.t_cp_khac || 0,
+        t_cp_khac_nt: master.t_cp_khac_nt || 0,
+        ngay_hl: master.ngay_hl ? (dayjs.isDayjs(master.ngay_hl) ? master.ngay_hl.toDate() : master.ngay_hl) : (master.ngay_hl || null),
+        ma_dc: master.ma_dc || "",
+        ma_htvc: master.ma_htvc || "",
+        so_hd0: master.so_hd0 || "",
+        stt_rec_hd0: master.stt_rec_hd0 || "",
+        so_ct0: master.so_ct0 || "",
+        ngay_ct0: master.ngay_ct0 ? (dayjs.isDayjs(master.ngay_ct0) ? master.ngay_ct0.toDate() : master.ngay_ct0) : (master.ngay_ct0 || null),
+        ngay_ct2: master.ngay_ct2 ? (dayjs.isDayjs(master.ngay_ct2) ? master.ngay_ct2.toDate() : master.ngay_ct2) : (master.ngay_ct2 || null),
+        ngay_ct3: master.ngay_ct3 ? (dayjs.isDayjs(master.ngay_ct3) ? master.ngay_ct3.toDate() : master.ngay_ct3) : (master.ngay_ct3 || null),
+        ck_thue_yn: master.ck_thue_yn || 0,
+        ma_gia: master.ma_gia || "",
+        tien_hd: master.tien_hd || 0,
+        nam: master.nam || new Date().getFullYear(),
+        ky: master.ky || new Date().getMonth() + 1,
+        xtag: master.xtag || "",
+        datetime0: master.datetime0 ? (dayjs.isDayjs(master.datetime0) ? master.datetime0.toDate() : master.datetime0) : (master.datetime0 || null),
+        datetime2: master.datetime2 ? (dayjs.isDayjs(master.datetime2) ? master.datetime2.toDate() : master.datetime2) : (master.datetime2 || null),
+        user_id0: master.user_id0 || 0,
+        contract_id: master.contract_id || "",
+        bcontract_id: master.bcontract_id || "",
+        fee_id: master.fee_id || "",
+        so_dh: master.so_dh || "",
+        job_id: master.job_id || "",
+        prd_id: master.prd_id || "",
+        dept_id: master.dept_id || "",
+        mo_nbr: master.mo_nbr || "",
+        fcode1: master.fcode1 || "",
+        fcode2: master.fcode2 || "",
+        fcode3: master.fcode3 || "",
+        fdate1: master.fdate1 ? (dayjs.isDayjs(master.fdate1) ? master.fdate1.toDate() : master.fdate1) : (master.fdate1 || null),
+        fdate2: master.fdate2 ? (dayjs.isDayjs(master.fdate2) ? master.fdate2.toDate() : master.fdate2) : (master.fdate2 || null),
+        fqty1: master.fqty1 || 0,
+        fqty2: master.fqty2 || 0,
+        fqty3: master.fqty3 || 0,
+        fnote1: master.fnote1 || "",
+        fnote2: master.fnote2 || "",
+        fnote3: master.fnote3 || "",
+        s1: master.s1 || "",
+        s2: master.s2 || "",
+        s3: master.s3 || "",
+        s4: master.s4 || 0,
+        s5: master.s5 || 0,
+        s6: master.s6 || 0,
+        s7: master.s7 ? (dayjs.isDayjs(master.s7) ? master.s7.toDate() : master.s7) : (master.s7 || null),
+        s8: master.s8 ? (dayjs.isDayjs(master.s8) ? master.s8.toDate() : master.s8) : (master.s8 || null),
+        s9: master.s9 ? (dayjs.isDayjs(master.s9) ? master.s9.toDate() : master.s9) : (master.s9 || null),
+        so_dt: master.so_dt || "",
+        u_status: master.u_status || "0",
+        u_status0: master.u_status0 || "0",
+        kieu_duyet: master.kieu_duyet || "",
+        user_id3: master.user_id3 || 0,
+        ma_ck: master.ma_ck || "",
+        status_soan_hang: master.status_soan_hang || "0",
+        status_giao_van: master.status_giao_van || "0",
+        tt_soan_hang: master.tt_soan_hang || 0,
+        tt_giao_van: master.tt_giao_van || 0,
+        first_stt_rec_NDH: master.first_stt_rec_NDH || "",
+        stt_rec_DX2: master.stt_rec_DX2 || "",
+        stt_rec_HDA: master.stt_rec_HDA || "",
+        ma_ban: master.ma_ban || "",
+        tl_ck_voucher: master.tl_ck_voucher || 0,
+        t_ck_khac: master.t_ck_khac || 0,
+        t_ck_khac_nt: master.t_ck_khac_nt || 0,
+        thoi_gian_chuyen_kho: master.thoi_gian_chuyen_kho ? (dayjs.isDayjs(master.thoi_gian_chuyen_kho) ? master.thoi_gian_chuyen_kho.toDate() : master.thoi_gian_chuyen_kho) : (master.thoi_gian_chuyen_kho || null),
+        thoi_gian_chia_don: master.thoi_gian_chia_don ? (dayjs.isDayjs(master.thoi_gian_chia_don) ? master.thoi_gian_chia_don.toDate() : master.thoi_gian_chia_don) : (master.thoi_gian_chia_don || null),
+        tra_lai_yn: master.tra_lai_yn || 0,
+    };
+
+    // Map Detail Data
+    const detail64 = detail.map((item, index) => ({
+        stt_rec: item.stt_rec || master.stt_rec || "",
+        stt_rec0: item.stt_rec0 || String(index + 1).padStart(3, '0'),
+        ma_ct: "DXA",
+        ngay_ct: master.ngay_ct ? (dayjs.isDayjs(master.ngay_ct) ? master.ngay_ct.toDate() : master.ngay_ct) : new Date(),
+        ma_kh: item.ma_kh || master.ma_kh || "",
+        so_luong: roundNum(item.so_luong || 0),
+        gia_nt2: roundNum(item.gia_nt2 || 0),
+        gia2: roundNum(item.gia_nt2 || 0),
+        tien_nt2: roundNum(item.tien_nt2 || 0),
+        tien2: roundNum(item.tien_nt2 || 0),
+        thue_nt: roundNum(item.thue_nt || 0),
+        thue: roundNum(item.thue_nt || 0),
+        ck_nt: roundNum(item.ck_nt || 0),
+        ck: roundNum(item.ck_nt || 0),
+        ck_khac_nt: roundNum(item.ck_khac_nt || 0),
+        ngay_giao: item.ngay_giao ? (dayjs.isDayjs(item.ngay_giao) ? item.ngay_giao.toDate() : item.ngay_giao) : (item.ngay_giao || null),
+        km_yn: item.km_yn ? 1 : 0,
+        line_nbr: index + 1,
+        gia_ban: roundNum(item.gia_ban || item.gia_ban_nt || 0),
+        gia_ban_nt: roundNum(item.gia_ban_nt || 0),
+        sl_xuat: item.sl_xuat || 0,
+        sl_hd: item.sl_hd || 0,
+        tl_ck: roundNum(item.tl_ck || 0),
+        ghi_chu: item.ghi_chu || "",
+        ghi_chu_ck_khac: item.ghi_chu_ck_khac || "",
+        so_ct: item.so_ct || "",
+        ma_sp: item.ma_sp || "",
+        ma_bp: item.ma_bp || "",
+        so_lsx: item.so_lsx || "",
+        he_so: item.he_so || 1,
+        ma_vi_tri: item.ma_vi_tri || "",
+        ma_lo: item.ma_lo || "",
+        ma_vv: item.ma_vv || "",
+        tk_vt: item.tk_vt || "",
+        gia_nt: item.gia_nt || 0,
+        gia: item.gia || 0,
+        tien_nt: item.tien_nt || 0,
+        tien: item.tien || 0,
+        tk_thue: item.tk_thue || "",
+        thue_suat: roundNum(item.thue_suat || 0),
+        tt: item.tt || 0,
+        tt_nt: item.tt_nt || 0,
+        xstatus: item.xstatus || "0",
+        xaction: item.xaction || "0",
+        cp_bh: item.cp_bh || 0,
+        cp_bh_nt: item.cp_bh_nt || 0,
+        cp_vc: item.cp_vc || 0,
+        cp_vc_nt: item.cp_vc_nt || 0,
+        cp_khac: item.cp_khac || 0,
+        cp_khac_nt: item.cp_khac_nt || 0,
+        cp: item.cp || 0,
+        cp_nt: item.cp_nt || 0,
+        stt_rec_ct: item.stt_rec_ct || "",
+        stt_rec0ct: item.stt_rec0ct || "",
+        gia_ban0: item.gia_ban0 || 0,
+        gia_ban_nt0: item.gia_ban_nt0 || 0,
+        gia_ck: item.gia_ck || 0,
+        gia_ck_nt: item.gia_ck_nt || 0,
+        sl_dh: item.sl_dh || 0,
+        sl_min: item.sl_min || 0,
+        sl_max: item.sl_max || 0,
+        sl_giao: item.sl_giao || 0,
+        sl_tl: item.sl_tl || 0,
+        sl_tl0: item.sl_tl0 || 0,
+        stt_rec_bg: item.stt_rec_bg || "",
+        stt_rec0bg: item.stt_rec0bg || "",
+        stt_rec_hd: item.stt_rec_hd || "",
+        stt_rec0hd: item.stt_rec0hd || "",
+        ma_nvbh_i: item.ma_nvbh_i || "",
+        ma_hd: item.ma_hd || "",
+        ma_ku: item.ma_ku || "",
+        ma_phi: item.ma_phi || "",
+        so_dh_i: item.so_dh_i || "",
+        ma_td1: item.ma_td1 || "",
+        ma_td2: item.ma_td2 || "",
+        ma_td3: item.ma_td3 || "",
+        sl_td1: item.sl_td1 || 0,
+        sl_td2: item.sl_td2 || 0,
+        sl_td3: item.sl_td3 || 0,
+        ngay_td1: item.ngay_td1 ? (dayjs.isDayjs(item.ngay_td1) ? item.ngay_td1.toDate() : item.ngay_td1) : null,
+        ngay_td2: item.ngay_td2 ? (dayjs.isDayjs(item.ngay_td2) ? item.ngay_td2.toDate() : item.ngay_td2) : null,
+        ngay_td3: item.ngay_td3 ? (dayjs.isDayjs(item.ngay_td3) ? item.ngay_td3.toDate() : item.ngay_td3) : null,
+        gc_td1: item.gc_td1 || "",
+        gc_td2: item.gc_td2 || "",
+        gc_td3: item.gc_td3 || "",
+        s1: item.s1 || "",
+        s2: item.s2 || "",
+        s3: item.s3 || "",
+        s4: item.s4 || 0,
+        s5: item.s5 || 0,
+        s6: item.s6 || 0,
+        s7: item.s7 ? (dayjs.isDayjs(item.s7) ? item.s7.toDate() : item.s7) : (item.s7 || null),
+        s8: item.s8 ? (dayjs.isDayjs(item.s8) ? item.s8.toDate() : item.s8) : (item.s8 || null),
+        s9: item.s9 ? (dayjs.isDayjs(item.s9) ? item.s9.toDate() : item.s9) : (item.s9 || null),
+        ck_tt: item.ck_tt || 0,
+        ck_tt_nt: item.ck_tt_nt || 0,
+        tl_ck_tt: item.tl_ck_tt || 0,
+        ma_ck: item.ma_ck || "",
+        cb_yn: item.cb_yn || 0,
+        sx_yn: item.sx_yn || 0,
+        gia_net: item.gia_net || 0,
+        gia_net_nt: item.gia_net_nt || 0,
+        tien_net: item.tien_net || 0,
+        tien_net_nt: item.tien_net_nt || 0,
+        xkey: item.xkey || "",
+        db_yn: item.db_yn || 0,
+        ck_khac: roundNum(item.ck_khac || 0),
+        ghi_chu_dh: item.ghi_chu_dh || "",
+        ma_vt: item.ma_vt || "",
+        dvt: item.dvt || "",
+        ma_kho: item.ma_kho || "",
+        ten_vt: item.ten_vt || "",
+        image: item.image || null,
+        ma_thue: item.ma_thue || "",
+    }));
+
+    const body = {
+        store: "api_sua_don_hang",
+        param: {
+            UnitId: unitId,
+            StoreID: storeId,
+            userId: userId,
+        },
+        data: {
+            master64: [masterData],
+            detail64: detail64,
+        }
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        return {
+            success: response?.responseModel?.isSucceded,
+            message: response?.responseModel?.message,
+            data: response
+        };
+    } catch (error) {
+        console.error("Lỗi khi gọi API api_sua_don_hang:", error);
+        return { success: false, message: error.message };
+    }
+};
+
+// ===== HELPER APIs FOR SELECTION =====
+
+export const fetchKhachHangSelection = async (keyword = "", searchField = "ten_kh", pageIndex = 1, pageSize = 20, userId = 0) => {
+    const body = {
+        store: "api_list_khach_hang",
+        param: {
+            PageIndex: pageIndex,
+            PageSize: pageSize,
+            ma_kh: searchField === "ma_kh" ? keyword : "",
+            ten_kh: searchField === "ten_kh" ? keyword : "",
+            userId: userId,
+        },
+        data: {},
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        return response?.listObject?.[0] || [];
+    } catch (error) {
+        console.error("Error fetchKhachHangSelection:", error);
+        return [];
+    }
+};
+
+export const fetchNhanVienKDSelection = async (keyword = "", pageIndex = 1, pageSize = 20, userId = 0) => {
+    const body = {
+        store: "api_list_nhan_vien_kinh_doanh",
+        param: {
+            PageIndex: pageIndex,
+            PageSize: pageSize,
+            ma_nvbh: "",
+            ten_nvbh: keyword,
+            userId: userId,
+        },
+        data: {},
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        return response?.listObject?.[0] || [];
+    } catch (error) {
+        console.error("Error fetchNhanVienKDSelection:", error);
+        return [];
+    }
+};
+
+export const fetchVanChuyenSelection = async (keyword = "", pageIndex = 1, pageSize = 20, userId = 0) => {
+    const body = {
+        store: "api_list_van_chuyen",
+        param: {
+            PageIndex: pageIndex,
+            PageSize: pageSize,
+            ma_vc: "",
+            ten_vc: keyword,
+            userId: userId,
+        },
+        data: {},
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        return response?.listObject?.[0] || [];
+    } catch (error) {
+        console.error("Error fetchVanChuyenSelection:", error);
+        return [];
+    }
+};
+
+export const fetchThanhToanSelection = async (keyword = "", pageIndex = 1, pageSize = 20, userId = 0) => {
+    const body = {
+        store: "api_list_thanh_toan",
+        param: {
+            PageIndex: pageIndex,
+            PageSize: pageSize,
+            ma_tt: "",
+            ten_tt: keyword,
+            userId: userId,
+        },
+        data: {},
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        return response?.listObject?.[0] || [];
+    } catch (error) {
+        console.error("Error fetchThanhToanSelection:", error);
+        return [];
+    }
+};
+
+export const fetchVatTuSelection = async (keyword = "", pageIndex = 1, pageSize = 20, userId = 0) => {
+    const body = {
+        store: "api_list_vat_tu",
+        param: {
+            PageIndex: pageIndex,
+            PageSize: pageSize,
+            ma_vt: "",
+            ten_vt: keyword,
+            userId: userId,
+        },
+        data: {},
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        return response?.listObject?.[0] || [];
+    } catch (error) {
+        console.error("Error fetchVatTuSelection:", error);
+        return [];
+    }
+};
+
+export const fetchVoucherSelection = async (ma_kh = "", ngay_ct = "", pageIndex = 1, pageSize = 20) => {
+    const body = {
+        store: "api_list_the_voucher",
+        param: {
+            ma_kh,
+            ngay_ct: ngay_ct ? dayjs(ngay_ct).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
+            PageIndex: pageIndex,
+            PageSize: pageSize,
+        },
+        data: {},
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        return response?.listObject?.[0] || [];
+    } catch (error) {
+        console.error("Error fetchVoucherSelection:", error);
+        return [];
+    }
+};
+
+export const fetchThongTinVatTu = async ({
+    ma_vt,
+    ma_kho,
+    ma_kh = "",
+    ngay_ct = dayjs().format("YYYY-MM-DD"),
+    ma_nt = "VND",
+    userId = 0,
+    UnitId = "TAPMED"
+}) => {
+    const body = {
+        store: "api_get_thong_tin_vat_tu",
+        param: {
+            ma_vt,
+            ma_kho,
+            ma_kh,
+            ngay_ct: dayjs(ngay_ct).format("YYYY-MM-DD"),
+            ma_nt,
+            userId,
+            UnitId,
+        },
+        data: {},
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        return response?.listObject?.[0]?.[0] || null;
+    } catch (error) {
+        console.error("Error fetchThongTinVatTu:", error);
+        return null;
     }
 };

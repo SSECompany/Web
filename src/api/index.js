@@ -1124,3 +1124,194 @@ export const searchKhachHang = async (
       return { listObject: [[]] };
     });
 };
+
+// ===== NEW LIST & DETAIL APIs =====
+
+/**
+ * List Customers
+ */
+export const apiListKhachHang = async ({
+  pageIndex = 1,
+  pageSize = 20,
+  ma_kh = "",
+  ten_kh = "",
+  userId = 0,
+} = {}) => {
+  const token = localStorage.getItem("access_token");
+  const payload = {
+    store: "api_list_khach_hang",
+    param: {
+      PageIndex: pageIndex,
+      PageSize: pageSize,
+      ma_kh,
+      ten_kh,
+      userId,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => res?.data || { listObject: [[]] })
+    .catch((error) => {
+      console.error("Error api_list_khach_hang:", error);
+      return { listObject: [[]] };
+    });
+};
+
+/**
+ * List Sales Staff
+ */
+export const apiListNhanVienKinhDoanh = async ({
+  pageIndex = 1,
+  pageSize = 20,
+  ma_nvbh = "",
+  ten_nvbh = "",
+  userId = 0,
+} = {}) => {
+  const token = localStorage.getItem("access_token");
+  const payload = {
+    store: "api_list_nhan_vien_kinh_doanh",
+    param: {
+      PageIndex: pageIndex,
+      PageSize: pageSize,
+      ma_nvbh,
+      ten_nvbh,
+      userId,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => res?.data || { listObject: [[]] })
+    .catch((error) => {
+      console.error("Error api_list_nhan_vien_kinh_doanh:", error);
+      return { listObject: [[]] };
+    });
+};
+
+/**
+ * List Payment Methods
+ */
+export const apiListThanhToan = async ({
+  pageIndex = 1,
+  pageSize = 20,
+  ma_tt = "",
+  ten_tt = "",
+  userId = 0,
+} = {}) => {
+  const token = localStorage.getItem("access_token");
+  const payload = {
+    store: "api_list_thanh_toan",
+    param: {
+      PageIndex: pageIndex,
+      PageSize: pageSize,
+      ma_tt,
+      ten_tt,
+      userId,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => res?.data || { listObject: [[]] })
+    .catch((error) => {
+      console.error("Error api_list_thanh_toan:", error);
+      return { listObject: [[]] };
+    });
+};
+
+/**
+ * List Items (Vật tư)
+ */
+export const apiListVatTu = async ({
+  pageIndex = 1,
+  pageSize = 20,
+  ma_vt = "",
+  ten_vt = "",
+  userId = 0,
+} = {}) => {
+  const token = localStorage.getItem("access_token");
+  const payload = {
+    store: "api_list_vat_tu",
+    param: {
+      PageIndex: pageIndex,
+      PageSize: pageSize,
+      ma_vt,
+      ten_vt,
+      userId,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => res?.data || { listObject: [[]] })
+    .catch((error) => {
+      console.error("Error api_list_vat_tu:", error);
+      return { listObject: [[]] };
+    });
+};
+
+/**
+ * Get Item Details (Thông tin vật tư)
+ */
+export const apiGetThongTinVatTu = async ({
+  ma_vt = "",
+  ma_kho = "",
+  ma_kh = "",
+  ngay_ct = "",
+  ma_nt = "VND",
+  userId = 0,
+  UnitId = "TAPMED",
+} = {}) => {
+  const token = localStorage.getItem("access_token");
+  const payload = {
+    store: "api_get_thong_tin_vat_tu",
+    param: {
+      ma_vt,
+      ma_kho,
+      ma_kh,
+      ngay_ct,
+      ma_nt,
+      userId,
+      UnitId,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => res?.data || { listObject: [[]] })
+    .catch((error) => {
+      console.error("Error api_get_thong_tin_vat_tu:", error);
+      return { listObject: [[]] };
+    });
+};
