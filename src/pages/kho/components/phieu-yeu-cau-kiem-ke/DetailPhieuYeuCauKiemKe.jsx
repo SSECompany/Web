@@ -135,7 +135,7 @@ const DetailPhieuYeuCauKiemKe = () => {
         } finally {
             setLoadingKKSS(false);
         }
-    }, [id, headerProps.ngay_ct, currentUserId, token, filterKKSS]);
+    }, [id, headerProps.ngay_ct, headerProps.ma_kho, headerProps.so_ct, currentUserId, token, filterKKSS]);
 
     // ==================== API: Tab 2 - Vật tư ĐÃ kiểm kê (api_get_list_kkct) ====================
     const fetchDaKiemKe = useCallback(async (page = 1, pageSize = 25, filters = filterKKCT) => {
@@ -196,7 +196,7 @@ const DetailPhieuYeuCauKiemKe = () => {
         } finally {
             setLoadingKKCT(false);
         }
-    }, [id, headerProps.ngay_ct, currentUserId, token, filterKKCT]);
+    }, [id, headerProps.ngay_ct, headerProps.ma_kho, headerProps.so_ct, currentUserId, token, filterKKCT]);
 
     // ==================== Init ====================
     useEffect(() => {
@@ -708,6 +708,19 @@ const DetailPhieuYeuCauKiemKe = () => {
             filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
                 <div style={{ padding: 8 }}>
                     <Input
+                        placeholder="Tìm Mã VT"
+                        value={selectedKeys[0]}
+                        onChange={(e) => setSelectedKeys([e.target.value, selectedKeys[1] || ""])}
+                        onPressEnter={() => {
+                            filterChangeFromSearchRefKKSS.current = true;
+                            confirm();
+                            const newFilters = { ...filterKKSS, ma_vt: selectedKeys[0] || "", ten_vt: selectedKeys[1] || "" };
+                            setFilterKKSS(newFilters);
+                            fetchCanKiemKe(1, paginationKKSS.pageSize, newFilters);
+                        }}
+                        style={{ marginBottom: 8, display: "block" }}
+                    />
+                    <Input
                         placeholder="Tìm Tên VT"
                         value={selectedKeys[1]}
                         onChange={(e) => setSelectedKeys([selectedKeys[0] || "", e.target.value])}
@@ -851,6 +864,19 @@ const DetailPhieuYeuCauKiemKe = () => {
             dataIndex: "ma_vt", key: "ma_vt", width: 200, align: "center", fixed: "left",
             filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
                 <div style={{ padding: 8 }}>
+                    <Input
+                        placeholder="Tìm Mã VT"
+                        value={selectedKeys[0]}
+                        onChange={(e) => setSelectedKeys([e.target.value, selectedKeys[1] || ""])}
+                        onPressEnter={() => {
+                            filterChangeFromSearchRefKKCT.current = true;
+                            confirm();
+                            const newFilters = { ...filterKKCT, ma_vt: selectedKeys[0] || "", ten_vt: selectedKeys[1] || "" };
+                            setFilterKKCT(newFilters);
+                            fetchDaKiemKe(1, paginationKKCT.pageSize, newFilters);
+                        }}
+                        style={{ marginBottom: 8, display: "block" }}
+                    />
                     <Input
                         placeholder="Tìm Tên VT"
                         value={selectedKeys[1]}

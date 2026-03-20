@@ -1,3 +1,5 @@
+import React, { useRef } from "react";
+import { useReactToPrint } from "react-to-print";
 import {
     LeftOutlined,
     EditOutlined,
@@ -5,560 +7,120 @@ import {
     CloseCircleOutlined,
     PlusOutlined,
     DeleteOutlined,
-    SearchOutlined,
     DownOutlined,
     UpOutlined,
+    GiftOutlined,
+    PrinterOutlined,
 } from "@ant-design/icons";
 import {
     Button, Form, Input, Select, Typography,
-    message, Checkbox, Tabs, Row, Col, DatePicker,
-    Table, Spin, InputNumber
+    Checkbox, Tabs, Row, Col, DatePicker,
+    Table, Spin, InputNumber, Divider
 } from "antd";
-import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
 import dayjs from "dayjs";
-import _ from "lodash";
-import { useRef } from "react";
 import VatTuSelectFullPOS from "../../../../components/common/ProductSelectFull/VatTuSelectFullPOS";
 import QRScanner from "../../../../components/common/QRScanner/QRScanner";
-import notificationManager from "../../../../utils/notificationManager";
-import { 
-    fetchPhieuKinhDoanhDetail, 
-    fetchPhieuKinhDoanhChiTiet,
-    transferDonHangBan,
-    cancelDonHangBan as cancelOrderApi,
-    createPhieuKinhDoanh,
-    updatePhieuKinhDoanh,
-    fetchKhachHangSelection,
-    fetchNhanVienKDSelection,
-    fetchThanhToanSelection,
-    fetchVatTuSelection,
-    fetchThongTinVatTu,
-    fetchVanChuyenSelection,
-    fetchVoucherSelection
-} from "./phieuKinhDoanhApi";
-import { calculateRowOnChange, calculateMasterTotals, validateKinhDoanh } from "./utils/phieuKinhDoanhUtils";
+import { usePhieuKinhDoanh } from "./Detail/usePhieuKinhDoanh";
+import DiscountModal from "./Detail/DiscountModal";
+import TotalsSection from "./Detail/TotalsSection";
+import { numFmt } from "./Detail/constants";
+import PrintOrderTemplate from "./Detail/PrintOrderPreview";
 import "../../../kho/components/common-phieu.css";
 import "./DetailPhieuKinhDoanh.css";
 
-const { Title, Text } = Typography;
-const numFmt = (val, precision = 0) => {
-    if (val === undefined || val === null || val === "") return "";
-    // If precision is boolean false (old behavior), use 2 as default for prices
-    const dec = typeof precision === 'boolean' ? (precision ? 0 : 2) : precision;
-    let value = parseFloat(val);
-    return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: dec
-    }).format(value);
-};
+const { Text } = Typography;
 
 const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
-    const [form] = Form.useForm();
-    const navigate = useNavigate();
-    const { stt_rec } = useParams();
-    const location = useLocation();
-    const watchSoCt = Form.useWatch('so_ct', form);
-    const watchBContractId = Form.useWatch('bcontract_id', form);
-    const watchNgayCt = Form.useWatch('ngay_ct', form);
-    const watchStatus = Form.useWatch('status', form);
-    const watchTenKh = Form.useWatch('ten_kh', form);
-    const watchMaKh = Form.useWatch('ma_kh', form);
+    const {
+        form,
+        navigate,
+        stt_rec,
+        watchSoCt,
+        watchBContractId,
+        watchNgayCt,
+        watchStatus,
+        isEditMode,
+        loading,
+        isMobile,
+        showGeneralInfo,
+        tinhCKLoading,
+        discountModalVisible,
+        setDiscountModalVisible,
+        discountItemsSelection,
+        setDiscountItemsSelection,
+        discountResults,
+        selectedDiscountResultsKeys,
+        setSelectedDiscountResultsKeys,
+        discountModalStage,
+        discountSearchText,
+        setDiscountSearchText,
+        printModalVisible,
+        setPrintModalVisible,
+        toggleGeneralInfo,
+        statusList,
+        chiTietData,
+        setChiTietData,
+        chiPhiData,
+        setChiPhiData,
+        khSelectOptions,
+        nvSelectOptions,
+        ttSelectOptions,
+        vcSelectOptions,
+        voucherSelectOptions,
+        noiGiaoSelectOptions,
+        khSearchLoading,
+        nvSearchLoading,
+        ttSearchLoading,
+        vcSearchLoading,
+        voucherSearchLoading,
+        noiGiaoSearchLoading,
+        vatTuInput,
+        setVatTuInput,
+        barcodeEnabled,
+        setBarcodeEnabled,
+        setBarcodeJustEnabled,
+        showQRScanner,
+        setShowQRScanner,
+        vatTuSearchList,
+        setVatTuSearchList,
+        pageIndexVt,
+        setPageIndexVt,
+        totalPageVt,
+        currentKeywordVt,
+        vatTuSelectRef,
+        searchTimeoutRef,
+        handleFormValuesChange,
+        handleCellChange,
+        handleChiPhiChange,
+        handleCalculateDiscounts,
+        applySelectedDiscounts,
+        handleSearchKh,
+        handleSearchNv,
+        handleSearchTt,
+        handleSearchVc,
+        handleSearchVoucher,
+        handleSearchNoiGiao,
+        fetchVatTuListWrapper,
+        handleVatTuSelect,
+        handleQRScanSuccess,
+        handleSwitchToBarcodeMode,
+        handleToggleEdit,
+        handleSubmit,
+        updateTotals,
+        watchMaKh,
+        bankInfo,
+        selectedDetailRowKeys,
+        setSelectedDetailRowKeys,
+        handleDeleteSelected,
+        handleDeleteRow,
+        handleDeleteChiPhi
+    } = usePhieuKinhDoanh(initialEditMode);
 
-    const [isEditMode, setIsEditMode] = useState(
-        initialEditMode || location.pathname.includes("/edit/") || !stt_rec
-    );
-    const [loading, setLoading] = useState(false);
-    const [originalHeader, setOriginalHeader] = useState({});
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [showGeneralInfo, setShowGeneralInfo] = useState(true);
+    const printRef = useRef();
+    const handlePrint = useReactToPrint({
+        content: () => printRef.current,
+    });
 
-    const toggleGeneralInfo = () => setShowGeneralInfo(!showGeneralInfo);
-
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 768);
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
-
-    const [statusList, setStatusList] = useState([]);
-    const [chiTietData, setChiTietData] = useState([]);
-    const [chiPhiData, setChiPhiData] = useState([]);
-    const [anhWebData, setAnhWebData] = useState([]);
-
-    const [khSelectOptions, setKhSelectOptions] = useState([]);
-    const [nvSelectOptions, setNvSelectOptions] = useState([]);
-    const [ttSelectOptions, setTtSelectOptions] = useState([]);
-    const [vcSelectOptions, setVcSelectOptions] = useState([]);
-    const [voucherSelectOptions, setVoucherSelectOptions] = useState([]);
-    
-    const [khSearchLoading, setKhSearchLoading] = useState(false);
-    const [nvSearchLoading, setNvSearchLoading] = useState(false);
-    const [ttSearchLoading, setTtSearchLoading] = useState(false);
-    const [vcSearchLoading, setVcSearchLoading] = useState(false);
-    const [voucherSearchLoading, setVoucherSearchLoading] = useState(false);
-    const [vtSearchLoading, setVtSearchLoading] = useState({});
-    const [waitingVatTu, setWaitingVatTu] = useState({}); 
-
-    // States for top-level Product Search (VatTuSelectFullPOS)
-    const [vatTuInput, setVatTuInput] = useState("");
-    const [barcodeEnabled, setBarcodeEnabled] = useState(false);
-    const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
-    const [showQRScanner, setShowQRScanner] = useState(false);
-    const [vatTuSearchList, setVatTuSearchList] = useState([]);
-    const [pageIndexVt, setPageIndexVt] = useState(1);
-    const [totalPageVt, setTotalPageVt] = useState(1);
-    const [currentKeywordVt, setCurrentKeywordVt] = useState("");
-    const vatTuSelectRef = useRef();
-    const searchTimeoutRef = useRef();
-    const qrProcessingRef = useRef(false);
-
-    useEffect(() => {
-        if (stt_rec) {
-            loadData();
-            loadDetails();
-        } else {
-            form.setFieldsValue({
-                ma_gd: "1",
-                hinh_thuc_tt: "1",
-                ty_gia: 1,
-                ngay_ct: dayjs(),
-                status: "0",
-            });
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [stt_rec]);
-
-    const loadData = async () => {
-        setLoading(true);
-        try {
-            const res = await fetchPhieuKinhDoanhDetail(stt_rec);
-            if (res.success && res.data) {
-                const { header, statusList: statuses, chiPhi, anhWeb } = res.data;
-                setStatusList(statuses || []);
-                setChiPhiData(chiPhi || []);
-                setAnhWebData(anhWeb || []);
-                if (header) {
-                    setOriginalHeader(header);
-                    form.setFieldsValue({
-                        ...header,
-                        // Explicitly map and format key fields
-                        status: header.status !== undefined && header.status !== null ? String(header.status).trim() : "0",
-                        hinh_thuc_tt: header.ma_gd ? String(header.ma_gd).trim() : "1",
-                        kh_chiu_cuoc: header.kh_chiu_cuoc ? 1 : 0,
-                        ma_vc: header.ma_vc || "",
-                        dia_chi: header.dia_chi || "",
-                        
-                        ngay_ct: header.ngay_ct ? dayjs(header.ngay_ct) : null,
-                        ngay_ct0: header.ngay_ct0 ? dayjs(header.ngay_ct0) : null,
-                        // Complaint tab mapping
-                        hang_bi_loi: !!header.hl_yn,
-                        khong_tra_cuoc: !!header.ktc_yn,
-                        giao_nham_hang: !!header.gnh_yn,
-                        thua_thieu_hang: !!header.tth_yn,
-                        khieu_nai_gia: !!header.kng_yn,
-                        doi_tra_hang: !!header.dthh_yn,
-                        hang_date_gan: !!header.hdgkb_yn,
-                        van_chuyen_cham: !!header.vcc_yn,
-                        van_de_khac: !!header.vdk_yn,
-                        y_kien_kh: header.yk_kh || "",
-                        phan_hoi: header.ph_kn || "",
-                        ngay_khieu_nai: header.fdate3 ? dayjs(header.fdate3) : null,
-                        ngay_phan_hoi: header.fdate4 ? dayjs(header.fdate4) : null,
-                        // Totals mapping
-                        t_ck_tt: header.t_ck_tt_nt || header.t_ck_tt || 0,
-                        t_ck: header.t_ck_nt || header.t_ck || 0,
-                        tien_cp: header.t_cp_nt || header.t_cp || 0,
-                        t_tien2: header.t_tien_nt2 || header.t_tien2 || 0,
-                        t_ck_voucher: header.t_ck_voucher_nt || header.t_ck_voucher || 0,
-                        t_thue_nt: header.t_thue_nt || header.t_thue || 0,
-                        tong_cong: header.t_tt_nt || header.t_tt || 0,
-                        the_voucher: header.ds_voucher || "",
-                        khach_hang_display: header.ma_kh || header.ten_kh ? `Khách hàng: ${header.ten_kh || ""} - ${header.ma_kh || ""}` : "",
-                        // Timestamp fields
-                        gio_dat_hang: header.datetime0 ? dayjs(header.datetime0).format("HH:mm DD/MM/YYYY") : "",
-                        gio_chuyen_kho: header.thoi_gian_chuyen_kho ? dayjs(header.thoi_gian_chuyen_kho).format("HH:mm DD/MM/YYYY") : "",
-                    });
-                }
-            } else {
-                message.error("Không thể tải dữ liệu phiếu");
-            }
-        } catch (error) {
-            console.error(error);
-            message.error("Lỗi hệ thống khi tải phiếu");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const loadDetails = async () => {
-        try {
-            const res = await fetchPhieuKinhDoanhChiTiet(stt_rec);
-            if (res.success) {
-                // Initialize details exactly as loaded without recalculation
-                setChiTietData(res.data || []);
-            }
-        } catch (error) {
-            console.error("Error loading details:", error);
-        }
-    };
-
-    const updateTotals = (details, chiPhi) => {
-        let headerValues = form.getFieldsValue();
-        
-        // Recalculate voucher amount if it's percentage-based
-        const tl_ck_voucher = parseFloat(headerValues.tl_ck_voucher || 0);
-        if (tl_ck_voucher > 0) {
-            // First get the latest t_tien_nt2 from details
-            const currentTien2 = details.reduce((sum, row) => sum + parseFloat(row.tien_nt2 || 0), 0);
-            const newVoucherAmt = Math.round(currentTien2 * (tl_ck_voucher / 100));
-            form.setFieldsValue({ t_ck_voucher: newVoucherAmt });
-            // Refresh headerValues for calculateMasterTotals
-            headerValues = form.getFieldsValue();
-        }
-
-        const totals = calculateMasterTotals(details, chiPhi, headerValues);
-        
-        form.setFieldsValue({
-            t_tien2: totals.t_tien_nt2, // Mapping total item value to t_tien2
-            t_ck: totals.t_ck_nt,
-            tien_cp: totals.t_cp_nt,
-            t_thue_nt: totals.t_thue_nt,
-            tong_cong: totals.t_tt_nt
-        });
-    };
-
-    const handleFormValuesChange = (changedValues) => {
-        const ty_gia = changedValues.ty_gia || form.getFieldValue("ty_gia") || 1;
-        
-        if ("ty_gia" in changedValues) {
-            // Recalculate every row in Chi Tiet if ty_gia changes
-            const updatedDetails = chiTietData.map(row => calculateRowOnChange(row, "so_luong", row.so_luong, ty_gia));
-            setChiTietData(updatedDetails);
-            updateTotals(updatedDetails, chiPhiData);
-        } else if ("t_ck_tt" in changedValues || "t_ck_voucher" in changedValues || "tien_cp" in changedValues) {
-            updateTotals(chiTietData, chiPhiData);
-        }
-    };
-
-    const handleCellChange = async (record, field, value) => {
-        const ty_gia = form.getFieldValue("ty_gia") || 1;
-        
-        let newData = chiTietData.map(item => {
-            if (item.line_nbr === record.line_nbr) {
-                return calculateRowOnChange(item, field, value, ty_gia);
-            }
-            return item;
-        });
-
-        // Special handling for ma_vt change: fetch item details
-        if (field === "ma_vt" && value) {
-            const selectedOpt = record.vtOptions?.find(opt => opt.ma_vt === value);
-            if (selectedOpt) {
-                // Update basic info first
-                newData = newData.map(item => 
-                    item.line_nbr === record.line_nbr 
-                    ? { ...item, ma_vt: selectedOpt.ma_vt, ten_vt: selectedOpt.ten_vt, dvt: selectedOpt.dvt } 
-                    : item
-                );
-                
-                // Fetch full details (prices, etc.)
-                const maKh = form.getFieldValue("ma_kh");
-                const ngayCt = form.getFieldValue("ngay_ct");
-                const maNt = form.getFieldValue("ma_nt") || "VND";
-                
-                try {
-                    const info = await fetchThongTinVatTu({
-                        ma_vt: selectedOpt.ma_vt,
-                        ma_kho: record.ma_kho || "KOL-T2",
-                        ma_kh: maKh,
-                        ngay_ct: ngayCt,
-                        ma_nt: maNt
-                    });
-                    
-                    if (info) {
-                        newData = newData.map(item => {
-                            if (item.line_nbr === record.line_nbr) {
-                                // Apply info from API
-                                const updated = { 
-                                    ...item, 
-                                    gia_ban_nt: info.gia_ban_nt || item.gia_ban_nt,
-                                    gia_nt2: info.gia_nt2 || info.gia_ban_nt || item.gia_nt2,
-                                    ma_thue: info.ma_thue || item.ma_thue,
-                                    ton13: info.ton13 || item.ton13,
-                                };
-                                // Force recalculate totals for this row
-                                return calculateRowOnChange(updated, "gia_nt2", updated.gia_nt2, ty_gia);
-                            }
-                            return item;
-                        });
-                    }
-                } catch (err) {
-                    console.error("Error fetching VT info:", err);
-                }
-            }
-        }
-
-        setChiTietData(newData);
-        updateTotals(newData, chiPhiData);
-    };
-
-    const handleChiPhiChange = (record, field, value) => {
-        const ty_gia = form.getFieldValue("ty_gia") || 1;
-        const newData = chiPhiData.map(item => {
-            if (item.line_nbr === record.line_nbr || (item.ma_cp === record.ma_cp && item.ma_cp)) {
-                const updatedItem = { ...item, [field]: value };
-                if (field === "tien_cp_nt") {
-                    updatedItem.tien_cp = value * ty_gia;
-                }
-                return updatedItem;
-            }
-            return item;
-        });
-        setChiPhiData(newData);
-        updateTotals(chiTietData, newData);
-    };
-
-    const handleSubmit = async () => {
-        try {
-            const values = await form.validateFields();
-            
-            // Perform custom validations
-            const validationErrors = validateKinhDoanh(values, chiTietData, chiPhiData);
-            if (validationErrors.length > 0) {
-                validationErrors.forEach(err => message.error(err));
-                return;
-            }
-
-            setLoading(true);
-            const userInfoStr = localStorage.getItem("user_info");
-            const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
-            
-            const saveFunc = stt_rec ? updatePhieuKinhDoanh : createPhieuKinhDoanh;
-            
-            // Merge form values with original header to preserve fields not in form
-            const masterPayload = stt_rec ? { ...originalHeader, ...values, stt_rec } : { ...values };
-
-            const res = await saveFunc(
-                masterPayload, 
-                chiTietData, 
-                chiPhiData,
-                userInfo?.ma_dvcs || "TAPMED",
-                "",
-                userInfo?.id || userInfo?.userId || "3425"
-            );
-
-            if (res.success) {
-                message.success(res.message || "Lưu đơn hàng thành công");
-                navigate("/kinh-doanh/danh-sach");
-            } else {
-                message.error(res.message || "Lỗi khi lưu đơn hàng");
-            }
-            setLoading(false);
-        } catch (error) {
-            console.error("Validation failed:", error);
-            message.error("Vui lòng kiểm tra lại thông tin");
-        }
-    };
-
-
-    const handleSearchKh = useMemo(() => _.debounce(async (val, searchField = "ten_kh") => {
-        console.log(`🔍 Searching Customer by ${searchField}: "${val}"`);
-        setKhSearchLoading(true);
-        try {
-            const list = await fetchKhachHangSelection(val, searchField);
-            console.log(`✅ Found ${list.length} customers`);
-            setKhSelectOptions(list.map(i => ({ value: i.ma_kh, label: `${i.ma_kh} - ${i.ten_kh}`, ...i  })));
-        } catch (err) {
-            console.error("❌ Error searching customer:", err);
-        } finally {
-            setKhSearchLoading(false);
-        }
-    }, 300), []);
-
-    const handleSearchNv = useMemo(() => _.debounce(async (val) => {
-        console.log(`🔍 Searching NVKD: "${val}"`);
-        setNvSearchLoading(true);
-        try {
-            const list = await fetchNhanVienKDSelection(val);
-            setNvSelectOptions(list.map(i => ({ value: i.ma_nvbh, label: `${i.ma_nvbh} - ${i.ten_nvbh}`, ...i })));
-        } finally {
-            setNvSearchLoading(false);
-        }
-    }, 300), []);
-
-    const handleSearchTt = useMemo(() => _.debounce(async (val) => {
-        console.log(`🔍 Searching Thanh Toan: "${val}"`);
-        setTtSearchLoading(true);
-        try {
-            const list = await fetchThanhToanSelection(val);
-            setTtSelectOptions(list.map(i => ({ value: i.ma_tt, label: `${i.ma_tt} - ${i.ten_tt}`, ...i })));
-        } finally {
-            setTtSearchLoading(false);
-        }
-    }, 300), []);
-
-    const handleSearchVc = useMemo(() => _.debounce(async (val) => {
-        console.log(`🔍 Searching Van Chuyen: "${val}"`);
-        setVcSearchLoading(true);
-        try {
-            const list = await fetchVanChuyenSelection(val);
-            setVcSelectOptions(list.map(i => ({ value: i.ma_vc, label: `${i.ma_vc} - ${i.ten_vc}`, ...i })));
-        } finally {
-            setVcSearchLoading(false);
-        }
-    }, 300), []);
-
-    const handleSearchVoucher = useMemo(() => _.debounce(async (val) => {
-        const currentVals = form.getFieldsValue();
-        console.log(`🔍 Searching Voucher: "${val}" for Ma_KH: ${currentVals.ma_kh}`);
-        setVoucherSearchLoading(true);
-        try {
-            const list = await fetchVoucherSelection(
-                currentVals.ma_kh || "", 
-                currentVals.ngay_ct ? currentVals.ngay_ct.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
-                1,
-                50
-            );
-            // Deduplicate if needed, but assuming API provides the list
-            setVoucherSelectOptions(list.map(i => ({ value: i.the_voucher, label: `${i.the_voucher} - ${i.ten_loai_the}`, ...i })));
-        } finally {
-            setVoucherSearchLoading(false);
-        }
-    }, 300), [form]);
-
-    const handleSearchVt = useMemo(() => _.debounce(async (keyword, record) => {
-        console.log(`🔍 Searching Vật tư: "${keyword}"`);
-        setVtSearchLoading(prev => ({ ...prev, [record.line_nbr]: true }));
-        try {
-            const list = await fetchVatTuSelection(keyword);
-            const options = list.map(i => ({ value: i.ma_vt, label: `${i.ma_vt} - ${i.ten_vt}`, ...i }));
-            setChiTietData(prev => prev.map(item => 
-                item.line_nbr === record.line_nbr ? { ...item, vtOptions: options } : item
-            ));
-        } finally {
-            setVtSearchLoading(prev => ({ ...prev, [record.line_nbr]: false }));
-        }
-    }, 300), []);
-
-    // ===== TOP-LEVEL PRODUCT SEARCH HANDLERS =====
-    const fetchVatTuListWrapper = async (keyword = "", page = 1, append = false) => {
-        setCurrentKeywordVt(keyword);
-        try {
-            const list = await fetchVatTuSelection(keyword, page);
-            // Assuming fetchVatTuSelection returns the list directly or handles pagination internally
-            // For now, let's treat it as returning the list
-            const options = list.map(i => ({ value: i.ma_vt, label: `${i.ma_vt} - ${i.ten_vt}`, ...i }));
-            if (append) {
-                setVatTuSearchList(prev => [...prev, ...options]);
-            } else {
-                setVatTuSearchList(options);
-            }
-            // Update totalPage if the API provides it (default to 1 for now)
-            setTotalPageVt(1); 
-        } catch (error) {
-            console.error("fetchVatTuListWrapper error", error);
-        }
-    };
-
-    const handleVatTuSelect = async (ma_vt) => {
-        console.log(`🎯 Top-level selected Vat tu: ${ma_vt}`);
-        setLoading(true);
-        try {
-            // Find in search list for fallback info (name, image, etc.)
-            const searchItem = vatTuSearchList.find(i => i.ma_vt === ma_vt || i.value === ma_vt);
-            
-            const currentFormValues = form.getFieldsValue();
-            const detail = await fetchThongTinVatTu({
-                ma_vt: ma_vt,
-                ma_kho: "KOL-T2", 
-                ma_kh: currentFormValues.ma_kh || "",
-                ngay_ct: currentFormValues.ngay_ct ? currentFormValues.ngay_ct.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
-            });
-
-            if (detail) {
-                const newLine = {
-                    line_nbr: chiTietData.length > 0 ? Math.max(...chiTietData.map(i => (typeof i.line_nbr === 'number' && i.line_nbr < 1000000) ? i.line_nbr : 0)) + 1 : 1,
-                    stt_rec: "",
-                    stt_rec0: "",
-                    ma_vt: detail.ma_vt || ma_vt,
-                    ten_vt: detail.ten_vt || searchItem?.ten_vt || "",
-                    image: detail.image || searchItem?.image || null,
-                    dvt: detail.dvt || searchItem?.dvt || "",
-                    ma_kho: "KOL-T2",
-                    so_luong: 1,
-                    // Map correctly to match existing data pattern:
-                    // gia_ban_nt -> Giá niêm yết (Price WITH tax)
-                    // gia_nt2 -> Giá bán (Price WITHOUT tax)
-                    gia_ban_nt: detail.gia_ban_nt || 0,
-                    gia_nt2: detail.gia_nt2 || detail.gia_ban_nt || 0,
-                    tien_nt2: detail.gia_nt2 || detail.gia_ban_nt || 0,
-                    ma_thue: detail.ma_thue || "08",
-                    thue_suat: detail.thue_suat || 0,
-                    ton13: detail.ton13 !== undefined ? detail.ton13 : (detail.stock !== undefined ? detail.stock : 0),
-                    km_yn: 0,
-                    db_yn: 0,
-                    tl_ck: 0,
-                    ck_nt: 0,
-                    ck_khac_nt: 0,
-                    s4: 0,
-                    ghi_chu_ck_khac: "",
-                    ghi_chu_dh: "",
-                    ghi_chu: "",
-                    sl_xuat: 0,
-                    sl_hd: 0,
-                };
-                
-                // Ensure row is fully calculated (especially for tien2, thue, etc.)
-                const ty_gia = currentFormValues.ty_gia || 1;
-                const calculatedLine = calculateRowOnChange(newLine, "so_luong", 1, ty_gia);
-                
-                const updatedData = [...chiTietData, calculatedLine];
-                setChiTietData(updatedData);
-                
-                // Recalculate totals using central helper
-                updateTotals(updatedData, chiPhiData);
-                
-                notificationManager.showMessageOnce(detail.ma_vt, `Đã thêm: ${detail.ten_vt}`);
-                setVatTuInput("");
-            } else {
-                message.error("Không tìm thấy thông tin vật tư này trên hệ thống");
-            }
-        } catch (error) {
-            console.error("handleVatTuSelect error:", error);
-            message.error("Lỗi khi lấy thông tin vật tư: " + (error.message || ""));
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleQRScanSuccess = async (scannedCode) => {
-        if (qrProcessingRef.current) return;
-        qrProcessingRef.current = true;
-        try {
-            const trimmedCode = scannedCode.trim();
-            // Handle cases where QR might have ma_vt#ma_lo
-            const maVt = trimmedCode.split('#')[0].trim();
-            await handleVatTuSelect(maVt);
-        } finally {
-            setTimeout(() => { qrProcessingRef.current = false; }, 2000);
-        }
-    };
-
-    const handleSwitchToBarcodeMode = () => {
-        setShowQRScanner(false);
-        setBarcodeEnabled(true);
-        setBarcodeJustEnabled(true);
-    };
-
-    const handleToggleEdit = () => {
-        if (!isEditMode && stt_rec) {
-            navigate(`/kinh-doanh/edit/${stt_rec}`);
-        }
-        setIsEditMode(true);
-    };
-
-    // ============ Tabs ============
     const chiPhiColumns = [
         { title: "Mã chi phí", dataIndex: "ma_cp", key: "ma_cp", width: 120, align: "center" },
         { title: "Tên chi phí", dataIndex: "ten_cp", key: "ten_cp", align: "center" },
@@ -574,7 +136,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                     value={v}
                     controls={false}
                     className="phieu-table-input"
-                    formatter={numFmt}
+                    formatter={v => numFmt(v)}
                     style={{ width: '100%' }}
                     onChange={(val) => handleChiPhiChange(record, "tien_cp_nt", val)}
                 />
@@ -610,10 +172,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                     danger
                     icon={<DeleteOutlined />}
                     disabled={!isEditMode}
-                    onClick={() => {
-                        setChiPhiData(prev => prev.filter(item => !(item.ma_cp === record.ma_cp && item.line_nbr === record.line_nbr)));
-                        message.success("Đã xóa chi phí khỏi đơn");
-                    }}
+                    onClick={() => handleDeleteChiPhi(record)}
                 />
             )
         },
@@ -626,8 +185,8 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
             children: (
                 <div style={{ minHeight: 120 }}>
                     {isEditMode && (
-                        <div style={{ marginBottom: 16 }}>
-                            <div style={{ marginBottom: 8, fontWeight: 'bold', fontSize: '14px' }}>Tìm kiếm vật tư</div>
+                        <div className="detail-don-hang__add-product-section">
+                            <div className="section-title">Thêm vật tư</div>
                             <VatTuSelectFullPOS
                                 isEditMode={isEditMode}
                                 barcodeEnabled={barcodeEnabled}
@@ -650,10 +209,15 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                             />
                         </div>
                     )}
+
+                    {/* Old selection bar removed from here */}
+
+
                     <Table
                         size="small"
                         dataSource={chiTietData}
                         columns={[
+                            { title: "STT", width: 45, align: "center", render: (v, r, i) => i + 1 },
                             { title: "Đ.bộ", dataIndex: "db_yn", width: 50, align: "center", render: (v, record) => (
                                 <Checkbox
                                     checked={!!v}
@@ -668,22 +232,32 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                             {
                                 title: "Sản phẩm",
                                 key: "san_pham",
-                                width: 220,
+                                width: 300,
                                 align: "center",
+                                onCell: (record) => ({
+                                    onClick: () => {
+                                        if (!isEditMode) return;
+                                        const key = record.stt_rec + "_" + record.line_nbr;
+                                        setSelectedDetailRowKeys(prev => 
+                                            prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+                                        );
+                                    },
+                                    className: isEditMode ? 'product-column-clickable' : ''
+                                }),
                                 render: (_, record) => (
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: '8px 0' }}>
                                         {record.image ? (
-                                            <img src={record.image} alt="" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 8, border: '1px solid #f0f0f0' }} />
+                                            <img src={record.image} alt="" style={{ width: 100, height: 100, flexShrink: 0, objectFit: "cover", borderRadius: 8, border: '1px solid #f0f0f0' }} />
                                         ) : (
-                                            <div style={{ width: 60, height: 60, background: '#f8f9fb', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#94a3b8', border: '1px solid #eef2f7' }}>No Image</div>
+                                            <div style={{ width: 100, height: 100, flexShrink: 0, background: '#f8f9fb', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#94a3b8', border: '1px solid #eef2f7' }}>No Image</div>
                                         )}
-                                        <div style={{ width: '100%', textAlign: 'center' }}>
+                                        <div style={{ flex: 1, textAlign: 'left' }}>
                                             <div style={{ marginBottom: 4 }}>
                                                 <Text strong style={{ fontSize: '13px', lineHeight: '1.4', whiteSpace: 'normal', wordBreak: 'break-word', display: 'block' }}>
                                                     {record.ten_vt}
                                                 </Text>
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, fontSize: '11px', color: '#64748b', background: '#f1f5f9', borderRadius: 4, padding: '2px 6px', width: 'fit-content', margin: '0 auto' }}>
+                                            <div style={{ display: 'flex', gap: 6, fontSize: '11px', color: '#64748b', background: '#f1f5f9', borderRadius: 4, padding: '2px 8px', width: 'fit-content' }}>
                                                 <span style={{ fontWeight: 600 }}>{record.ma_vt}</span>
                                                 <span style={{ color: '#cbd5e1' }}>|</span>
                                                 <span>{record.dvt}</span>
@@ -693,13 +267,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                 )
                             },
                        
-                            { title: "KM", dataIndex: "km_yn", width: 50, align: "center", render: (v, record) => (
-                                <Checkbox
-                                    checked={!!v}
-                                    disabled={!isEditMode}
-                                    onChange={(e) => handleCellChange(record, "km_yn", e.target.checked ? 1 : 0)}
-                                />
-                            ) },
+                           
                             { title: "SL", dataIndex: "so_luong", width: 80, align: "center", render: (v, record) => isEditMode ? (
                                 <InputNumber 
                                     size="small" 
@@ -711,7 +279,22 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                     style={{ width: '100%', textAlign: 'right' }} 
                                 />
                             ) : numFmt(v) },
-                            { title: "Tồn", dataIndex: "ton13", width: 65, align: "center", render: (v) => numFmt(v) },
+                            // { title: "SL chuyển kho", dataIndex: "tong_chuyen", width: 100, align: "center", render: (v) => numFmt(v) },
+                            { title: "Tồn", dataIndex: "ton13", width: 125, align: "center", render: (_, record) => (
+                                <div style={{ fontSize: '11px', textAlign: 'left', padding: '0 4px' }}>
+                                    <div>KLT-T1: {numFmt(record.tonl1 || 0)}</div>
+                                    <div>KOL-T2: {numFmt(record.ton13 || 0)}</div>
+                                    <div>SL chuyển kho: {numFmt(record.tong_chuyen || 0)}</div>
+
+                                </div>
+                            ) },
+                             { title: "KM", dataIndex: "km_yn", width: 50, align: "center", render: (v, record) => (
+                                <Checkbox
+                                    checked={!!v}
+                                    disabled={!isEditMode}
+                                    onChange={(e) => handleCellChange(record, "km_yn", e.target.checked ? 1 : 0)}
+                                />
+                            ) },
                             { title: "Giá niêm yết", dataIndex: "gia_ban_nt", width: 100, align: "center", render: (v, record) => isEditMode ? (
                                 <InputNumber 
                                     size="small" 
@@ -724,29 +307,38 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                     style={{ width: '100%' }} 
                                 />
                             ) : numFmt(v, 2) },
-                            { title: "Giá bán", dataIndex: "gia_nt2", width: 100, align: "center", render: (v, record) => isEditMode ? (
-                                <InputNumber 
-                                    size="small" 
-                                    value={v} 
-                                    controls={false} 
-                                    precision={2}
-                                    formatter={val => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                    parser={val => val.replace(/\$\s?|(,*)/g, '')}
-                                    onChange={(val) => handleCellChange(record, "gia_nt2", val)} 
-                                    style={{ width: '100%' }} 
-                                />
-                            ) : numFmt(v, 2) },
-                            { title: "Tiền hàng", dataIndex: "tien_nt2", width: 110, align: "center", render: (v, record) => isEditMode ? (
-                                <InputNumber 
-                                    size="small" 
-                                    value={v} 
-                                    controls={false} 
-                                    formatter={val => numFmt(val)}
-                                    parser={val => val.replace(/\$\s?|(,*)/g, '')}
-                                    onChange={(val) => handleCellChange(record, "tien_nt2", val)} 
-                                    style={{ width: '100%', textAlign: 'right' }} 
-                                />
-                            ) : numFmt(v) },
+                            // { title: "Giá bán(Trước VAT)", dataIndex: "gia_nt2", width: 100, align: "center", render: (v, record) => isEditMode ? (
+                            //     <InputNumber 
+                            //         size="small" 
+                            //         value={v} 
+                            //         controls={false} 
+                            //         precision={2}
+                            //         disabled
+                            //         formatter={val => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                            //         parser={val => val.replace(/\$\s?|(,*)/g, '')}
+                            //         onChange={(val) => handleCellChange(record, "gia_nt2", val)} 
+                            //         style={{ width: '100%' }} 
+                            //     />
+                            // ) : numFmt(v, 2) },
+                            // { title: "Tiền hàng(Trước VAT)", dataIndex: "tien_nt2", width: 110, align: "center", render: (v, record) => isEditMode ? (
+                            //     <InputNumber 
+                            //         size="small" 
+                            //         value={v} 
+                            //         controls={false} 
+                            //         disabled
+                            //         formatter={val => numFmt(val)}
+                            //         parser={val => val.replace(/\$\s?|(,*)/g, '')}
+                            //         onChange={(val) => handleCellChange(record, "tien_nt2", val)} 
+                            //         style={{ width: '100%', textAlign: 'right' }} 
+                            //     />
+                            // ) : numFmt(v) },
+                            { 
+                                title: "Tiền hàng sau Thuế", 
+                                key: "tien_hang_sau_thue", 
+                                width: 120, 
+                                align: "center", 
+                                render: (_, record) => numFmt(parseFloat(record.so_luong || 0) * parseFloat(record.gia_ban_nt || 0)) 
+                            },
                             { title: "CK%", dataIndex: "tl_ck", width: 70, align: "center", render: (v) => (v ? `${v}%` : "") },
                             { title: "Tiền CK", dataIndex: "ck_nt", width: 90, align: "center", render: (v, record) => isEditMode ? (
                                 <InputNumber 
@@ -759,39 +351,29 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                     style={{ width: '100%', textAlign: 'right' }} 
                                 />
                             ) : (v ? numFmt(v) : "") },
-                            { title: "Thuế", dataIndex: "thue_nt", width: 90, align: "center", render: (v, record) => isEditMode ? (
-                                <InputNumber 
-                                    size="small" 
-                                    value={v} 
-                                    controls={false} 
-                                    formatter={val => numFmt(val)}
-                                    parser={val => val.replace(/\$\s?|(,*)/g, '')}
-                                    onChange={(val) => handleCellChange(record, "thue_nt", val)} 
-                                    style={{ width: '100%', textAlign: 'right' }} 
-                                />
-                            ) : numFmt(v) },
-                            { title: "Mã thuế", dataIndex: "ma_thue", width: 80, align: "center", render: (v, record) => isEditMode ? (
-                                <Input size="small" value={v} onChange={(e) => handleCellChange(record, "ma_thue", e.target.value)} />
-                            ) : v },
-                            { title: "Ngày giao", dataIndex: "ngay_giao", width: 120, align: "center", render: (v, record) => {
-                                const dateVal = v || record.ngay_gh || record.ngay_ct0 || record.fdate1;
-                                return isEditMode ? (
-                                    <DatePicker 
-                                        size="small" 
-                                        value={dateVal && dayjs(dateVal).year() > 1900 ? dayjs(dateVal) : null} 
-                                        format="DD/MM/YYYY"
-                                        onChange={(date) => handleCellChange(record, "ngay_giao", date ? date.format("YYYY-MM-DD") : null)} 
-                                    />
-                                ) : (dateVal && dayjs(dateVal).year() > 1900 ? dayjs(dateVal).format("DD/MM/YYYY") : "")
-                            }},
-                            { title: "Ghi chú giao hàng", dataIndex: "ghi_chu", width: 120, align: "center", render: (v, record) => isEditMode ? (
-                                <Input size="small" value={v} onChange={(e) => handleCellChange(record, "ghi_chu", e.target.value)} />
+                            // { title: "Thuế", dataIndex: "thue_nt", width: 90, align: "center", render: (v, record) => isEditMode ? (
+                            //     <InputNumber 
+                            //         size="small" 
+                            //         value={v} 
+                            //         controls={false} 
+                            //         disabled
+                            //         formatter={val => numFmt(val)}
+                            //         parser={val => val.replace(/\$\s?|(,*)/g, '')}
+                            //         onChange={(val) => handleCellChange(record, "thue_nt", val)} 
+                            //         style={{ width: '100%', textAlign: 'right' }} 
+                            //     />
+                            // ) : numFmt(v) },
+                            // { title: "Mã thuế", dataIndex: "ma_thue", width: 80, align: "center", render: (v, record) => isEditMode ? (
+                            //     <Input size="small" value={v} onChange={(e) => handleCellChange(record, "ma_thue", e.target.value)} />
+                            // ) : v },
+
+                            { title: "Ghi chú ĐH", dataIndex: "ghi_chu_dh", width: 150, align: "center", render: (v, record) => isEditMode ? (
+                                <Input size="small" value={v} onChange={(e) => handleCellChange(record, "ghi_chu_dh", e.target.value)} />
                             ) : v },
                             {
                                 title: "Hành động",
                                 key: "action",
                                 width: 80,
-                                fixed: "right",
                                 align: "center",
                                 render: (_, record) => (
                                     <Button
@@ -799,18 +381,13 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                         danger
                                         icon={<DeleteOutlined />}
                                         disabled={!isEditMode}
-                                        onClick={() => {
-                                            const newData = chiTietData.filter(item => item.line_nbr !== record.line_nbr);
-                                            setChiTietData(newData);
-                                            updateTotals(newData, chiPhiData);
-                                            message.success("Đã xóa mã hàng khỏi đơn");
-                                        }}
+                                        onClick={() => handleDeleteRow(record)}
                                     />
                                 )
                             },
                         ]}
                         pagination={{
-                            pageSize: 10,
+                            pageSize: 50,
                             size: "small",
                             showSizeChanger: false,
                             simple: true,
@@ -820,6 +397,31 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                         bordered
                         scroll={{ x: 1250 }}
                         rowKey={(r) => r.stt_rec + "_" + r.line_nbr}
+                        rowClassName={(record) => {
+                            const classes = [];
+                            const key = record.stt_rec + "_" + record.line_nbr;
+                            if (selectedDetailRowKeys && selectedDetailRowKeys.includes(key)) {
+                                classes.push('row-selected-highlight');
+                            }
+
+                            // logic tô màu tồn kho
+                            const tonl1 = parseFloat(record.tonl1 || 0);
+                            const ton13 = parseFloat(record.ton13 || 0);
+                            const soluong = parseFloat(record.so_luong || 0);
+                            const sl_ck = parseFloat(record.tong_chuyen || 0);
+                            const flag = (ton13 + tonl1) - sl_ck;
+
+                            if (flag < soluong) {
+                                classes.push('row-stock-warning');
+                            }
+
+                            // logic tô màu phạm vi kinh doanh
+                            if (record.pvkd_yn === 0) {
+                                classes.push('row-pvkd-red');
+                            }
+
+                            return classes.join(' ');
+                        }}
                     />
                 </div>
             ),
@@ -845,7 +447,6 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                 danger 
                                 onClick={() => {
                                     setChiPhiData(prev => prev.slice(0, -1));
-                                    message.success("Đã xóa dòng chi phí cuối cùng");
                                 }}
                             />
                         </div>
@@ -881,14 +482,84 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                         <Form.Item name="y_kien_kh" label="Ý kiến khách hàng"><Input.TextArea rows={2} /></Form.Item>
                         <Form.Item name="phan_hoi" label="Phản hồi khiếu nại"><Input.TextArea rows={2} /></Form.Item>
                         <Row gutter={24}>
-                            <Col span={12}><Form.Item name="ngay_khieu_nai" label="Ngày khiếu nại"><DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} /></Form.Item></Col>
-                            <Col span={12}><Form.Item name="ngay_phan_hoi" label="Ngày phản hồi"><DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} /></Form.Item></Col>
+                            <Col span={12}><Form.Item name="ngay_khieu_nai" label="Ngày khiếu nại"><DatePicker format={["DD-MM-YYYY", "DD/MM/YYYY", "DDMMYYYY"]} style={{ width: "100%" }} /></Form.Item></Col>
+                            <Col span={12}><Form.Item name="ngay_phan_hoi" label="Ngày phản hồi"><DatePicker format={["DD-MM-YYYY", "DD/MM/YYYY", "DDMMYYYY"]} style={{ width: "100%" }} /></Form.Item></Col>
                         </Row>
                     </div>
                 </div>
             ),
         },
-        { key: "khac", label: "Khác", children: <div style={{ minHeight: 120, color: '#94a3b8', padding: 20 }}>Chưa có dữ liệu</div> },
+        { 
+            key: "khac", 
+            label: "Khác", 
+            children: (
+                <div style={{ padding: '20px', minHeight: '300px' }}>
+                    <Row gutter={[32, 16]}>
+                        <Col xs={24} md={12}>
+                            <Form.Item name="so_hd0" label="Số hóa đơn">
+                                <Input placeholder="Số hóa đơn" />
+                            </Form.Item>
+                        </Col>
+                        <Col xs={24} md={12}>
+                            <Form.Item name="u_status" label="Trạng thái">
+                                <Select placeholder="Chọn trạng thái">
+                                    <Select.Option value="0">0. Lập chứng từ</Select.Option>
+                                    <Select.Option value="1">1. Chờ duyệt</Select.Option>
+                                    <Select.Option value="2">2. Duyệt</Select.Option>
+                                </Select>
+                            </Form.Item>
+                        </Col>
+
+                        <Col xs={24} md={12}>
+                            <Form.Item name="ngay_ct0" label="Ngày hóa đơn">
+                                <DatePicker format={["DD-MM-YYYY", "DD/MM/YYYY", "DDMMYYYY"]} style={{ width: '100%' }} />
+                            </Form.Item>
+                        </Col>
+                        <Col xs={24} md={12}></Col>
+
+                        <Col xs={24} md={12}>
+                            <Form.Item name="status_soan_hang" label="Soạn hàng">
+                                <Select placeholder="Trạng thái soạn hàng">
+                                    <Select.Option value="0">0. Chưa soạn</Select.Option>
+                                    <Select.Option value="1">1. Đã soạn</Select.Option>
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col xs={24} md={12}>
+                            <Form.Item name="tt_giao_van" label="Giao vận">
+                                <Select placeholder="Trạng thái giao vận">
+                                    <Select.Option value="0">0. Chờ lấy hàng</Select.Option>
+                                    <Select.Option value="1">1. Đang giao hàng</Select.Option>
+                                    <Select.Option value="2">2. Đã giao hàng</Select.Option>
+                                </Select>
+                            </Form.Item>
+                        </Col>
+
+                        <Col xs={24} md={12}>
+                            <Form.Item name="ban_dong_goi" label="Bàn đóng gói">
+                                <Input placeholder="Nhập bàn đóng gói" />
+                            </Form.Item>
+                        </Col>
+                        <Col xs={24} md={12}>
+                            <Form.Item name="ma_nv_dh" label="NV đóng hàng">
+                                <Input placeholder="Nhân viên đóng hàng" />
+                            </Form.Item>
+                        </Col>
+
+                        <Col xs={24} md={12}>
+                            <Form.Item name="bat_dau_dh" label="Thời gian bắt đầu đóng hàng">
+                                <DatePicker showTime format={["DD-MM-YYYY HH:mm", "DDMMYYYY HH:mm", "DD/MM/YYYY HH:mm"]} style={{ width: '100%' }} placeholder="Ngày-Tháng-Năm Giờ:Phút" />
+                            </Form.Item>
+                        </Col>
+                        <Col xs={24} md={12}>
+                            <Form.Item name="ket_thuc_dh" label="Thời gian kết thúc đóng hàng">
+                                <DatePicker showTime format={["DD-MM-YYYY HH:mm", "DDMMYYYY HH:mm", "DD/MM/YYYY HH:mm"]} style={{ width: '100%' }} placeholder="Ngày-Tháng-Năm Giờ:Phút" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                </div>
+            )
+        },
         { key: "dinh_kem", label: "Tệp đính kèm", children: <div style={{ minHeight: 120, color: '#94a3b8', padding: 20 }}>Chưa có tệp đính kèm</div> },
         { key: "anh_web", label: "Ảnh Web", children: <div style={{ minHeight: 120, color: '#94a3b8', padding: 20 }}>Chưa có ảnh</div> },
     ];
@@ -913,14 +584,19 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                     colon={false}
                     onValuesChange={handleFormValuesChange}
                 >
-                    {/* Hidden fields to support useWatch for header display */}
                     <Form.Item name="bcontract_id" noStyle><Input type="hidden" /></Form.Item>
                     <Form.Item name="so_ct" noStyle><Input type="hidden" /></Form.Item>
                     <Form.Item name="ngay_ct" noStyle><Input type="hidden" /></Form.Item>
                     <Form.Item name="ma_kh" noStyle><Input type="hidden" /></Form.Item>
+                    <Form.Item name="ten_kh" noStyle><Input type="hidden" /></Form.Item>
+                    <Form.Item name="dien_thoai" noStyle><Input type="hidden" /></Form.Item>
+                    <Form.Item name="so_dien_thoai" noStyle><Input type="hidden" /></Form.Item>
+                    <Form.Item name="sdt" noStyle><Input type="hidden" /></Form.Item>
+                    <Form.Item name="phone" noStyle><Input type="hidden" /></Form.Item>
+                    <Form.Item name="ten_vc" noStyle><Input type="hidden" /></Form.Item>
                     <Form.Item name="tl_ck_voucher" noStyle><Input type="hidden" /></Form.Item>
+                    <Form.Item name="ma_ck" noStyle><Input type="hidden" /></Form.Item>
                     
-                    {/* ===== HEADER ===== */}
                     <div className="detail-don-hang__header">
                         <Button
                             type="text"
@@ -951,7 +627,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                     </div>
                                 )}
                                 <div className="phieu-header-meta-item">
-                                    NGÀY: <span className="phieu-header-meta-value">{watchNgayCt ? dayjs(watchNgayCt).format('DD/MM/YYYY') : '.........'}</span>
+                                    NGÀY: <span className="phieu-header-meta-value">{watchNgayCt ? dayjs(watchNgayCt).format('DD-MM-YYYY') : '.........'}</span>
                                 </div>
                                 <div className="phieu-header-status-row">
                                     <span className="phieu-header-status-label">TRẠNG THÁI:</span>
@@ -960,22 +636,19 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                             size="small"
                                             className="phieu-header-status-select"
                                             dropdownMatchSelectWidth={false}
+                                            disabled={!isEditMode || !["0", "1", "2"].includes(String(watchStatus).trim())}
                                         >
-                                            {statusList.length > 0 ? (
-                                                statusList.map((s) => (
+                                            {(() => {
+                                                const options = statusList.filter(s => 
+                                                    ["0", "1", "2"].includes(String(s.status).trim()) || 
+                                                    String(s.status).trim() === String(watchStatus).trim()
+                                                );
+                                                return options.map((s) => (
                                                     <Select.Option key={s.status} value={String(s.status).trim()}>
                                                         {String(s.status).trim()}. {s.statusname}
                                                     </Select.Option>
-                                                ))
-                                            ) : (
-                                                <>
-                                                    <Select.Option value="0">0. Lập chứng từ</Select.Option>
-                                                    <Select.Option value="1">1. Chờ duyệt</Select.Option>
-                                                    <Select.Option value="2">2. Duyệt</Select.Option>
-                                                    <Select.Option value="4">4. Hoàn tất</Select.Option>
-                                                    <Select.Option value="6">6. Đã hủy</Select.Option>
-                                                </>
-                                            )}
+                                                ));
+                                            })()}
                                         </Select>
                                     </Form.Item>
                                 </div>
@@ -990,7 +663,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                     className="detail-don-hang__edit-btn"
                                     onClick={handleToggleEdit}
                                     title="Chỉnh sửa"
-                                    disabled={false}
+                                    disabled={stt_rec && !["0", "1", "2"].includes(String(watchStatus).trim())}
                                 />
                             ) : (
                                 <div style={{ width: 36 }}></div>
@@ -998,11 +671,8 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                         </div>
                     </div>
 
-                    {/* ===== BODY ===== */}
                     <div className="detail-don-hang__body">
-                        {/* ---- Thông tin chung ---- */}
                         <div className="detail-don-hang__section" style={{ marginBottom: 16 }}>
-                            {/* ---- Khách hàng (Dòng riêng trên cùng) ---- */}
                             <div style={{ 
                                 display: 'flex', 
                                 alignItems: 'flex-end', 
@@ -1027,7 +697,11 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                                             if (opt) {
                                                                 form.setFieldsValue({ 
                                                                     ma_kh: opt.ma_kh,
-                                                                    ten_kh: opt.ten_kh 
+                                                                    ten_kh: opt.ten_kh,
+                                                                    dien_thoai: opt.dien_thoai,
+                                                                    so_dien_thoai: opt.so_dien_thoai || opt.dien_thoai,
+                                                                    sdt: opt.sdt || opt.dien_thoai,
+                                                                    phone: opt.phone || opt.dien_thoai
                                                                 });
                                                             }
                                                         }}
@@ -1063,10 +737,8 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                 />
                             </div>
 
-                            {/* ---- Lưới thông tin chi tiết ---- */}
                             {showGeneralInfo && (
                                 <Row gutter={[16, 0]}>
-                                    {/* Left Column: Who - Where - How */}
                                     <Col xs={24} lg={11}>
                                         <Row gutter={16}>
                                             <Col span={24}>
@@ -1103,11 +775,10 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                             <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} />
                                         </Form.Item>
                                         <Form.Item name="ghi_chu_kh" label="Ghi chú KH">
-                                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} />
+                                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} disabled />
                                         </Form.Item>
                                     </Col>
 
-                                    {/* Right Column: Other Info */}
                                     <Col xs={24} lg={{ span: 11, offset: 1 }}>
                                         <Row gutter={16}>
                                             <Col span={12}>
@@ -1138,8 +809,8 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                             <Col span={12}>
                                                 <Form.Item name="kh_chiu_cuoc" label="Cước phí">
                                                     <Select>
-                                                        <Select.Option value={1}>1. Khách chịu</Select.Option>
-                                                        <Select.Option value={0}>0. Shop chịu</Select.Option>
+                                                        <Select.Option value={0}>0. Công ty chịu cước</Select.Option>
+                                                        <Select.Option value={1}>1. Khách hàng chịu cước</Select.Option>
                                                     </Select>
                                                 </Form.Item>
                                             </Col>
@@ -1156,138 +827,193 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                                         filterOption={false}
                                                         options={vcSelectOptions}
                                                         style={{ borderRadius: '6px' }}
+                                                        onChange={(val) => {
+                                                            const opt = vcSelectOptions.find(o => o.value === val);
+                                                            if (opt) {
+                                                                form.setFieldsValue({ ten_vc: opt.ten_vc });
+                                                            }
+                                                        }}
                                                     />
                                                 </Form.Item>
                                             </Col>
                                         </Row>
                                         <Form.Item name="dia_chi" label="Nơi giao">
-                                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} />
+                                            <Select
+                                                showSearch
+                                                placeholder="Chọn nơi giao"
+                                                loading={noiGiaoSearchLoading}
+                                                onSearch={handleSearchNoiGiao}
+                                                onFocus={() => !noiGiaoSelectOptions.length && handleSearchNoiGiao("")}
+                                                filterOption={false}
+                                                options={noiGiaoSelectOptions}
+                                                style={{ borderRadius: '6px' }}
+                                                allowClear
+                                                disabled={(!isEditMode && !!stt_rec) || !watchMaKh}
+                                            />
                                         </Form.Item>
-                                        <Form.Item name="ghi_chu_giao_hang" label="Ghi chú giao hàng">
-                                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} />
+                                        <Form.Item name="ghi_chu_giao_hang" label="Ghi chú ĐH">
+                                            <Input.TextArea 
+                                                autoSize={{ minRows: 1, maxRows: 6 }} 
+                                                style={{ borderRadius: '6px' }} 
+                                                disabled={!isEditMode && !!stt_rec}
+                                            />
                                         </Form.Item>
                                     </Col>
                                 </Row>
                             )}
                         </div>
 
-                        {/* ---- Tabs ---- */}
                         <Tabs
                             defaultActiveKey="chi_tiet"
                             items={tabItems}
                             className="detail-don-hang__tabs"
                         />
 
-                        {/* ---- Tổng tiền ---- */}
-                        <div className="detail-don-hang__totals">
-                            <Row gutter={[32, 0]}>
-                                {/* --- Cột bên trái: Các khoản giảm trừ & Chi phí --- */}
-                                <Col xs={24} lg={12}>
-                                    <Form.Item name="the_voucher" label="Thẻ voucher">
-                                        <Select
-                                            showSearch
-                                            placeholder="Chọn thẻ voucher"
-                                            loading={voucherSearchLoading}
-                                            onSearch={handleSearchVoucher}
-                                            onFocus={() => !voucherSelectOptions.length && handleSearchVoucher("")}
-                                            onChange={(val) => {
-                                                const opt = voucherSelectOptions.find(o => o.value === val);
-                                                if (opt) {
-                                                    const headerValues = form.getFieldsValue();
-                                                    // Calculate current items total
-                                                    const currentTien2 = chiTietData.reduce((sum, row) => sum + parseFloat(row.tien_nt2 || 0), 0);
-                                                    
-                                                    const ck_tien = parseFloat(opt.tien_ck || 0);
-                                                    const ck_phantram = parseFloat(opt.tl_ck || 0);
-                                                    
-                                                    let tienck = 0;
-                                                    if (ck_tien !== 0) {
-                                                        tienck = ck_tien;
-                                                        // If it's fixed, we clear tl_ck_voucher so it doesn't recalculate on total changes
-                                                        form.setFieldsValue({
-                                                            t_ck_voucher: Math.round(tienck),
-                                                            tl_ck_voucher: 0
-                                                        });
-                                                    } else if (ck_phantram !== 0) {
-                                                        tienck = currentTien2 * (ck_phantram / 100);
-                                                        form.setFieldsValue({
-                                                            t_ck_voucher: Math.round(tienck),
-                                                            tl_ck_voucher: ck_phantram
-                                                        });
-                                                    } else {
-                                                        form.setFieldsValue({
-                                                            t_ck_voucher: 0,
-                                                            tl_ck_voucher: 0
-                                                        });
-                                                    }
-                                                } else {
-                                                    form.setFieldsValue({
-                                                        t_ck_voucher: 0,
-                                                        tl_ck_voucher: 0
-                                                    });
-                                                }
-                                                updateTotals(chiTietData, chiPhiData);
-                                            }}
-                                            filterOption={false}
-                                            options={voucherSelectOptions}
-                                            allowClear
-                                            disabled={!watchMaKh}
-                                        />
-                                    </Form.Item>
-                                    <Form.Item name="t_ck_tt" label="CK tổng đơn">
-                                        <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} formatter={v => numFmt(v)} />
-                                    </Form.Item>
-                                    <Form.Item name="t_ck" label="Tiền chiết khấu">
-                                        <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} formatter={v => numFmt(v)} />
-                                    </Form.Item>
-                                    <Form.Item name="tien_cp" label="Chi phí">
-                                        <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} formatter={v => numFmt(v)} />
-                                    </Form.Item>
-                                </Col>
+                        <TotalsSection 
+                            form={form}
+                            watchMaKh={watchMaKh}
+                            voucherSearchLoading={voucherSearchLoading}
+                            handleSearchVoucher={handleSearchVoucher}
+                            voucherSelectOptions={voucherSelectOptions}
+                            chiTietData={chiTietData}
+                            chiPhiData={chiPhiData}
+                            updateTotals={updateTotals}
+                            numFmt={numFmt}
+                            isEditMode={isEditMode}
+                            stt_rec={stt_rec}
+                        />
 
-                                {/* --- Cột bên phải: Tiền hàng, Thuế & Tổng cộng --- */}
-                                <Col xs={24} lg={12}>
-                                    <Form.Item name="t_tien2" label="Tiền hàng">
-                                        <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} disabled formatter={v => numFmt(v)} />
-                                    </Form.Item>
-                                    <Form.Item name="t_ck_voucher" label="CK voucher">
-                                        <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} disabled formatter={v => numFmt(v)} />
-                                    </Form.Item>
-                                    <Form.Item name="t_thue_nt" label="Tiền thuế">
-                                        <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} disabled formatter={v => numFmt(v)} />
-                                    </Form.Item>
+                        {/* Old actions removed from here */}
 
-                                    <div className="total-grand-divider" style={{ borderTop: '1px solid #f0f0f0', paddingTop: '16px', marginTop: '8px' }}>
-                                        <Form.Item name="tong_cong" label="Tổng cộng" className="detail-don-hang__totals-grand">
-                                            <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} disabled formatter={v => numFmt(v)} />
-                                        </Form.Item>
-                                    </div>
-                                </Col>
-                            </Row>
-                        </div>
-
-                        {/* ---- Actions ---- */}
-                        {(isEditMode || !stt_rec) && (
-                            <div className="detail-don-hang__actions">
-                                <Button type="primary" icon={<SaveOutlined />} onClick={handleSubmit} loading={loading}>
-                                    Lưu
-                                </Button>
-                                <Button icon={<CloseCircleOutlined />} onClick={() => navigate("/kinh-doanh/danh-sach")}>
-                                    Hủy
-                                </Button>
-                            </div>
-                        )}
                     </div>
                 </Form>
             </div>
+
+            <DiscountModal
+                visible={discountModalVisible}
+                onCancel={() => setDiscountModalVisible(false)}
+                onApply={applySelectedDiscounts}
+                stage={discountModalStage}
+                searchText={discountSearchText}
+                onSearchTextChange={setDiscountSearchText}
+                chiTietData={chiTietData}
+                discountResults={discountResults}
+                itemsSelection={discountItemsSelection}
+                onItemsSelectionChange={setDiscountItemsSelection}
+                resultsSelection={selectedDiscountResultsKeys}
+                onResultsSelectionChange={setSelectedDiscountResultsKeys}
+                watchSoCt={watchSoCt}
+                watchNgayCt={watchNgayCt}
+                isMobile={isMobile}
+            />
+
             <QRScanner
-                isOpen={showQRScanner}
+                visible={showQRScanner}
                 onClose={() => setShowQRScanner(false)}
                 onScanSuccess={handleQRScanSuccess}
-                onSwitchToBarcode={handleSwitchToBarcodeMode}
-                openWithCamera={true}
             />
+
+            {/* ========== NEW FIXED FOOTER ========== */}
+            <div className="detail-don-hang__fixed-footer">
+                {isEditMode && selectedDetailRowKeys && selectedDetailRowKeys.length > 0 && (
+                    <div className="fixed-footer__selection-bar">
+                        <div className="selection-bar__left">
+                            <Text type="secondary" className="selection-text">
+                                Đã chọn <Text strong style={{ color: '#ff4d4f' }}>{selectedDetailRowKeys.length}</Text> mặt hàng
+                            </Text>
+                            <Divider type="vertical" />
+                            <Button 
+                                type="link" 
+                                size="small" 
+                                onClick={() => setSelectedDetailRowKeys(chiTietData.map(item => item.stt_rec + "_" + item.line_nbr))}
+                                className="selection-link"
+                            >
+                                Chọn hết
+                            </Button>
+                            <Divider type="vertical" />
+                            <Button 
+                                type="link" 
+                                size="small" 
+                                onClick={() => setSelectedDetailRowKeys([])}
+                                className="selection-link"
+                            >
+                                Bỏ chọn
+                            </Button>
+                        </div>
+                        <Button
+                            type="primary"
+                            danger
+                            size="small"
+                            icon={<DeleteOutlined />}
+                            onClick={handleDeleteSelected}
+                            className="selection-delete-btn"
+                        >
+                            Xoá nhiều
+                        </Button>
+                    </div>
+                )}
+                
+                <div className="fixed-footer__actions">
+                    {(isEditMode || !stt_rec) ? (
+                        <>
+                            <Button
+                                className="btn-calculate-discounts-fixed"
+                                icon={<GiftOutlined />}
+                                onClick={handleCalculateDiscounts}
+                                loading={tinhCKLoading}
+                            >
+                                Tính CK
+                            </Button>
+                            <Button
+                                icon={<PrinterOutlined />}
+                                onClick={handlePrint}
+                                className="btn-print-fixed"
+                            >
+                                In
+                            </Button>
+                            <Button 
+                                type="primary" 
+                                icon={<SaveOutlined />} 
+                                onClick={handleSubmit} 
+                                loading={loading}
+                                className="btn-save-fixed"
+                            >
+                                Lưu
+                            </Button>
+                            <Button 
+                                icon={<LeftOutlined />} 
+                                onClick={() => navigate("/kinh-doanh/danh-sach")}
+                                className="btn-cancel-fixed"
+                            >
+                                Quay lại
+                            </Button>
+                        </>
+                    ) : (
+                        <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
+                            <Button
+                                icon={<PrinterOutlined />}
+                                onClick={handlePrint}
+                                className="btn-print-fixed"
+                                style={{ minWidth: 160 }}
+                            >
+                                In đơn hàng
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div style={{ display: "none" }}>
+                <PrintOrderTemplate 
+                    ref={printRef} 
+                    data={form.getFieldsValue()} 
+                    details={chiTietData} 
+                    totals={form.getFieldsValue()} 
+                    bankInfo={bankInfo} 
+                />
+            </div>
         </div>
+
     );
 };
 

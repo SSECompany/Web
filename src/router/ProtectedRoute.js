@@ -76,6 +76,10 @@ const ProtectedRoute = () => {
         clearAllTokenData();
         return <Navigate to="/login" state={{ from: location }} replace />;
       }
+      if (claims.Permision === "") {
+        clearAllTokenData();
+        return <Navigate to="/login" state={{ from: location, error: "Tài khoản không được cấp quyền." }} replace />;
+      }
     } catch (error) {
       clearAllTokenData();
       return <Navigate to="/login" state={{ from: location }} replace />;

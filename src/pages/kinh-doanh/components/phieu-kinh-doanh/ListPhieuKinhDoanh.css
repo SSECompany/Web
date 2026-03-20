@@ -14,27 +14,32 @@
 
 /* Status Filter Dropdown */
 .status-filter-dropdown {
-    padding: 12px;
-    min-width: 220px;
+    padding: 8px 10px;
+    min-width: 180px;
 }
 
 .status-filter-dropdown__title {
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 11px;
     color: #6366f1;
 }
 
 .status-filter-dropdown__checkbox-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
+}
+
+.status-filter-dropdown__checkbox-group .ant-checkbox-wrapper {
+    font-size: 11px;
+    margin-left: 0 !important;
 }
 
 .status-filter-dropdown__actions {
-    margin-top: 16px;
+    margin-top: 12px;
     display: flex;
-    gap: 8px;
+    gap: 6px;
 }
 
 .status-filter-dropdown__confirm-btn {
@@ -72,9 +77,30 @@
 
 .mobile-filter-content {
     margin-top: 12px;
-    padding: 12px;
-    background: #fafafa;
-    border-radius: 8px;
+    padding: 16px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border: 1px solid #f0f2f5;
+}
+
+/* Fix RangePicker dropdown on mobile */
+@media (max-width: 768px) {
+    .ant-picker-dropdown {
+        max-width: 95vw !important;
+        left: 2.5vw !important;
+    }
+    .ant-picker-range-wrapper {
+        flex-direction: column !important;
+    }
+    .ant-picker-panels {
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+    .ant-picker-panel:first-child {
+        border-right: none !important;
+        border-bottom: 1px solid #f0f0f0 !important;
+    }
 }
 
 .mobile-list-content {

@@ -52,6 +52,7 @@ export const phieuNhatHangConfig = {
   placeGhiChuAtEnd: true,
   useAddButtonInsteadOfDelete: true,
   showThaoTac: true,
+  preventDeleteMainRow: true,
 
 };
 

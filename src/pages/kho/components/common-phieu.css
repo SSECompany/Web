@@ -18,10 +18,10 @@ body {
 }
 
 .phieu-container {
-  padding: 10px;
-  background: #f8f9fb;
-  border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 0;
+  background: #fff;
+  border-radius: 0;
+  box-shadow: none;
   position: relative;
   min-height: auto;
   height: auto;
@@ -239,10 +239,10 @@ body {
 /* FORM */
 .phieu-form-container {
   background: #fff;
-  border-radius: 16px;
+  border-radius: 0;
   padding: 24px;
-  border: 1px solid #f0f0f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: none;
+  box-shadow: none;
   position: relative;
   z-index: 2;
   overflow: visible;
@@ -297,10 +297,10 @@ body {
 /* TABLE */
 .phieu-table-container {
   background: #fff;
-  border-radius: 16px;
+  border-radius: 0;
   padding: 20px;
-  border: 1px solid #f0f0f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: none;
+  box-shadow: none;
   position: relative;
   z-index: 2;
   overflow: visible;
@@ -405,7 +405,7 @@ body {
   color: #4fd1c5;
 }
 
-.phieu-data-table .ant-table-tbody>tr>td {
+.phieu-data-table .ant-table-tbody>tr:not(.ant-table-measure-row)>td {
   padding: 12px;
   border-bottom: 1px solid #f0f0f0;
   background: #fff;
@@ -764,7 +764,7 @@ body {
     font-size: 13px;
   }
 
-  .phieu-data-table .ant-table-tbody>tr>td {
+  .phieu-data-table .ant-table-tbody>tr:not(.ant-table-measure-row)>td {
     padding: 10px 8px;
     font-size: 13px;
   }
@@ -1108,13 +1108,13 @@ body {
     box-shadow: none;
     padding: 0;
     background: #fff;
-    min-height: 100vh;
+    min-height: auto;
   }
 
   .mobile-app-layout {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    min-height: auto;
   }
 
   .mobile-sticky-header {
@@ -1240,24 +1240,21 @@ body {
     font-size: 13px;
   }
 }
-/* Highlight cho đơn hàng mới với hiệu ứng nhấp nháy rõ hơn */
-@keyframes blink-new-order {
-  0% { background-color: #66FF99; }
-  50% { background-color: #ffffff; }
-  100% { background-color: #66FF99; }
-}
-
-/* Áp dụng trực tiếp vào td; bỏ background-color static tĩnh để animation được chạy */
-/* Loại trừ các cột fixed (thường là cột Hành động) khỏi hiệu ứng nhấp nháy */
+/* Highlight cho đơn hàng mới với tông màu nhẹ nhàng, không nhấp nháy */
 .phieu-data-table .ant-table-tbody > tr.row-new-highlight > td:not(.ant-table-cell-fix-right):not(.ant-table-cell-fix-right-first),
 .mobile-phieu-card.row-new-highlight {
-  animation: blink-new-order 1.5s ease-in-out infinite !important;
+  background-color: #f2fff5 !important;
 }
 
-/* Cột hành động và thanh hành động mobile không highlight và không nhấp nháy */
+/* Chỉ để lại 1 vạch xanh bên trái cùng làm điểm nhấn, không phân tách các cột */
+.phieu-data-table .ant-table-tbody > tr.row-new-highlight > td:first-child,
+.mobile-phieu-card.row-new-highlight {
+  border-left: 4px solid #52c41a !important;
+}
+
+/* Cột hành động và thanh hành động mobile không highlight */
 .phieu-data-table .ant-table-tbody > tr.row-new-highlight > td.ant-table-cell-fix-right,
 .phieu-data-table .ant-table-tbody > tr.row-new-highlight > td.ant-table-cell-fix-right-first,
 .mobile-phieu-card.row-new-highlight .ant-card-actions {
-  animation: none !important;
   background-color: #ffffff !important;
 }

@@ -17,7 +17,7 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
     let gia2 = parseFloat(updatedRow.gia2 || 0);
     let tien_nt2 = parseFloat(updatedRow.tien_nt2 || 0);
     let tien2 = parseFloat(updatedRow.tien2 || updatedRow.tien2_tg || 0);
-    let ck_nt = parseFloat(updatedRow.ck_nt || 0);
+    let ck_nt = parseFloat(updatedRow.ck_nt || 0);  
     let ck_khac_nt = parseFloat(updatedRow.ck_khac_nt || 0);
     let tl_ck = parseFloat(updatedRow.tl_ck || 0);
     let thue_nt = parseFloat(updatedRow.thue_nt || 0);
@@ -47,7 +47,7 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.ck_nt = updatedRow.tien_nt2 * tl_ck / 100;
             updatedRow.ck = updatedRow.ck_nt * ty_gia;
             recomputeDeps();
-            updatedRow.thue_nt = gia_ban_nt * so_luong - s4 - tien_nt2 + ck_nt;
+            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
@@ -62,7 +62,7 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.ck_nt = updatedRow.tien_nt2 * tl_ck / 100;
             updatedRow.ck = updatedRow.ck_nt * ty_gia;
             recomputeDeps();
-            updatedRow.thue_nt = gia_ban_nt * so_luong - s4 - tien_nt2 + ck_nt;
+            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
@@ -75,7 +75,7 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.ck_nt = updatedRow.tien_nt2 * tl_ck / 100;
             updatedRow.ck = updatedRow.ck_nt * ty_gia;
             recomputeDeps();
-            updatedRow.thue_nt = gia_ban_nt * so_luong - s4 - tien_nt2 + ck_nt;
+            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
@@ -90,7 +90,7 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.tien2_tg = tien_nt2 * ty_gia;
             updatedRow.tien2 = updatedRow.tien2_tg;
             recomputeDeps();
-            updatedRow.thue_nt = gia_ban_nt * so_luong - s4 - tien_nt2 + ck_nt;
+            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
@@ -103,7 +103,7 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.ck = ck_nt * ty_gia;
             updatedRow.s4 = gia_ban_nt * so_luong * tl_ck / 100;
             recomputeDeps();
-            updatedRow.thue_nt = gia_ban_nt * so_luong - s4 - tien_nt2 + ck_nt;
+            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
@@ -111,14 +111,14 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.ck_nt = tien_nt2 * tl_ck / 100;
             updatedRow.ck_tl = tien2 * tl_ck / 100;
             recomputeDeps();
-            updatedRow.thue_nt = gia_ban_nt * so_luong - s4 - tien_nt2 + ck_nt;
+            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
         case 'ck_khac_nt':
             updatedRow.ck_khac = ck_khac_nt * ty_gia;
             recomputeDeps();
-            updatedRow.thue_nt = gia_ban_nt * so_luong - s4 - tien_nt2 + ck_nt;
+            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
@@ -137,7 +137,7 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.ck_tl = tien2 * tl_ck / 100;
             updatedRow.s4 = gia_ban_nt * so_luong * tl_ck / 100;
             recomputeDeps();
-            updatedRow.thue_nt = gia_ban_nt * so_luong - s4 - tien_nt2 + ck_nt;
+            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
@@ -149,9 +149,43 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.tien2_tg = updatedRow.tien_nt2 * ty_gia;
             updatedRow.tien2 = updatedRow.tien2_tg; // Tie to tien2
             recomputeDeps();
-            updatedRow.thue_nt = gia_ban_nt * so_luong - s4 - tien_nt2 + ck_nt;
+            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
+
+        case 'km_yn': {
+            const isKM = parseInt(value) === 1;
+            if (isKM) {
+                // Save current prices to backup fields before zeroing out
+                updatedRow.gia_ban_nt_old = parseFloat(row.gia_ban_nt || 0);
+                updatedRow.gia_nt2_old = parseFloat(row.gia_nt2 || 0);
+                
+                updatedRow.gia_ban_nt = 0;
+                updatedRow.gia_ban = 0;
+                updatedRow.gia_nt2 = 0;
+                updatedRow.gia2 = 0;
+                updatedRow.tien_nt2 = 0;
+                updatedRow.tien2 = 0;
+                updatedRow.tien2_tg = 0;
+                updatedRow.tl_ck = 0;
+                updatedRow.ck_nt = 0;
+                updatedRow.ck = 0;
+                updatedRow.s4 = 0;
+                updatedRow.thue_nt = 0;
+                updatedRow.thue = 0;
+            } else {
+                // Restore original prices
+                const restoredGiaBanNt = parseFloat(updatedRow.gia_ban_nt_old || 0);
+                const restoredGiaNt2 = parseFloat(updatedRow.gia_nt2_old || 0);
+                
+                updatedRow.gia_ban_nt = restoredGiaBanNt;
+                updatedRow.gia_nt2 = restoredGiaNt2;
+                
+                // Trigger full recalculation as if gia_nt2 was just manually entered
+                return calculateRowOnChange(updatedRow, 'gia_nt2', restoredGiaNt2, ty_gia);
+            }
+            break;
+        }
 
         default:
             break;
@@ -223,7 +257,7 @@ export const validateKinhDoanh = (header, details, chiPhi) => {
 
     // 1) Điều kiện lỗi: loai_ct = 3 và status = 2
     if (loai_ct === 3 && status === 2) {
-        errors.push("e1: Mã giao dịch hoặc xử lý không đúng.");
+        errors.push("Mã giao dịch hoặc xử lý không đúng.");
     }
 
     // 2) Check tổng tiền master khớp công thức
@@ -239,7 +273,7 @@ export const validateKinhDoanh = (header, details, chiPhi) => {
     const calculated_t_tt_nt = hd_t_tien_nt2 - hd_t_ck_nt - hd_t_ck_voucher_nt - hd_t_ck_tt_nt + hd_t_thue_nt + hd_t_cp_nt;
     
     if (Math.abs(calculated_t_tt_nt - hd_t_tt_nt) > 2) { // Increase margin slightly for rounding variants
-         errors.push("e8: Có lỗi từ hệ thống. (Lệch tổng tiền Master)");
+         errors.push("Có lỗi từ hệ thống. (Lệch tổng tiền Master)");
     }
 
     details.forEach((row, index) => {
@@ -262,11 +296,11 @@ export const validateKinhDoanh = (header, details, chiPhi) => {
             if (d_giao.isValid() && d_ct.isValid() && !isZeroDate) {
                 if (loai_ct === 3) {
                     if (d_giao.isAfter(d_ct)) {
-                        errors.push(`e2 (Dòng ${line}): Ngày giao (${d_giao.format("DD/MM/YYYY")}) phải ≤ ngày lập (${d_ct.format("DD/MM/YYYY")}) khi loai_ct=3.`);
+                        errors.push(`(Dòng ${line}): Ngày giao (${d_giao.format("DD/MM/YYYY")}) phải ≤ ngày lập (${d_ct.format("DD/MM/YYYY")}) khi loai_ct=3.`);
                     }
                 } else {
                     if (d_giao.isBefore(d_ct)) {
-                        errors.push(`e3 (Dòng ${line}): Ngày giao (${d_giao.format("DD/MM/YYYY")}) phải ≥ ngày lập (${d_ct.format("DD/MM/YYYY")}) khi loai_ct!=3.`);
+                        errors.push(`(Dòng ${line}): Ngày giao (${d_giao.format("DD/MM/YYYY")}) phải ≥ ngày lập (${d_ct.format("DD/MM/YYYY")}) khi loai_ct!=3.`);
                     }
                 }
             }
@@ -277,7 +311,7 @@ export const validateKinhDoanh = (header, details, chiPhi) => {
             // Note: DB mapping usually has ma_kh. 
             // In case it's on details, if it differs from header.ma_kh -> Error e4
             if (row.ma_kh && header.ma_kh && row.ma_kh !== header.ma_kh) {
-                errors.push(`e4 (Dòng ${line}): Thông tin mã khách của đơn hàng phải giống với giấy báo giá hoặc hợp đồng.`);
+                errors.push(`(Dòng ${line}): Thông tin mã khách của đơn hàng phải giống với giấy báo giá hoặc hợp đồng.`);
             }
         }
 
@@ -285,7 +319,7 @@ export const validateKinhDoanh = (header, details, chiPhi) => {
         if (parseInt(row.km_yn || 0) === 1) {
             const value = parseFloat(row.tien_nt2 || 0) + parseFloat(row.thue_nt || 0) + parseFloat(row.ck_nt || 0);
             if (Math.abs(value) > 0.01) { // practically > 0
-                errors.push(`e7 (Dòng ${line}): Dữ liệu trong chi tiết có hàng khuyến mại mà có giá trị.`);
+                errors.push(`(Dòng ${line}): Dữ liệu trong chi tiết có hàng khuyến mại mà có giá trị.`);
             }
         }
 
@@ -296,7 +330,7 @@ export const validateKinhDoanh = (header, details, chiPhi) => {
             const check_so_luong = parseFloat(row.so_luong || 0);
             const diff = Math.abs(check_tien_nt2 - (check_gia_nt2 * check_so_luong));
             if (diff > 100) {
-                errors.push(`e8 (Dòng ${line}): Có lỗi từ hệ thống. (Lệch tiền hàng dòng thường)`);
+                errors.push(`(Dòng ${line}): Có lỗi từ hệ thống. (Lệch tiền hàng dòng thường)`);
             }
         }
     });
@@ -304,7 +338,7 @@ export const validateKinhDoanh = (header, details, chiPhi) => {
     // 6) Check chi tiết lấy từ nhiều hợp đồng khác nhau
     const distinctHd = [...new Set(details.map(r => r.stt_rec_hd).filter(Boolean))];
     if (distinctHd.length > 1) {
-        errors.push("e5: Dữ liệu trong chi tiết không được lấy từ nhiều hợp đồng.");
+        errors.push("Dữ liệu trong chi tiết không được lấy từ nhiều hợp đồng.");
     }
 
     // 7) Check chi tiết vừa lấy từ báo giá vừa từ hợp đồng
@@ -312,7 +346,7 @@ export const validateKinhDoanh = (header, details, chiPhi) => {
     const countBgDetail = details.filter(r => r.stt_rec_bg).length;
     // Condition: n1 + n2 > 1 AND has both
     if (countHdDetail > 0 && countBgDetail > 0) {
-        errors.push("e6: Dữ liệu trong chi tiết chỉ được lấy số liệu từ giấy báo giá hoặc hợp đồng.");
+        errors.push("Dữ liệu trong chi tiết chỉ được lấy số liệu từ giấy báo giá hoặc hợp đồng.");
     }
 
     return errors;

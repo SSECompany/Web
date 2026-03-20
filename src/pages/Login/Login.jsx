@@ -24,6 +24,7 @@ import router from "../../router/routes";
 import { setClaims } from "../../store/reducers/claimsSlice";
 import https from "../../utils/https";
 import jwt from "../../utils/jwt";
+import { clearAllTokenData } from "../../utils/tokenUtils";
 import "./Login.css";
 
 const Login = () => {
@@ -48,7 +49,7 @@ const Login = () => {
       setLoginLoading(false);
       return notification.warning({
         message: `Vui lòng chọn đơn vị`,
-        placement: "topLeft",
+        placement: "topRight",
         icon: <UilExclamationOctagon size="25" color="#ffba00" />,
       });
     }
@@ -66,7 +67,7 @@ const Login = () => {
           if (res?.status == 203) {
             return notification.warning({
               message: `Sai tài khoản hoặc mật khẩu`,
-              placement: "topLeft",
+              placement: "topRight",
               icon: <UilExclamationOctagon size="25" color="#ffba00" />,
             });
           }
@@ -74,6 +75,14 @@ const Login = () => {
           jwt.setAccessToken(res.data.token);
           jwt.setRefreshToken(res.data.refreshToken);
           const claims = jwt.saveClaims(res.data.token);
+          if (claims.Permision === "") {
+            clearAllTokenData();
+            return notification.error({
+              message: `Lỗi Phân Quyền`,
+              description: "Tài khoản không được cấp quyền.",
+              placement: "topRight",
+            });
+          }
           dispatch(setClaims(claims));
           const from = location.state?.from || "/";
           router.navigate(from, { replace: true });
@@ -86,7 +95,7 @@ const Login = () => {
         setLoginLoading(false);
         notification.error({
           message: err?.message || "Đăng nhập thất bại",
-          placement: "topLeft",
+          placement: "topRight",
         });
       });
   };
@@ -170,7 +179,18 @@ const Login = () => {
       dispatch(setClaims(jwt.saveClaims(jwt.getAccessToken())));
       router.navigate("/");
     }
-  }, [dispatch]);
+    
+    // Check if we were redirected here with an error
+    if (location.state?.error) {
+      notification.error({
+        message: 'Lỗi Phân Quyền',
+        description: location.state.error,
+        placement: "topRight",
+      });
+      // Clear the state so it doesn't show again on refresh
+      window.history.replaceState({}, document.title)
+    }
+  }, [dispatch, location.state, notification]);
 
   const handleChangeUnit = (item) => {
     setUnitSelected(units.find((unit) => unit.value == item));

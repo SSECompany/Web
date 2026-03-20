@@ -1,5 +1,5 @@
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Empty, Input, Select, Table, Spin, Checkbox } from "antd";
+import { Button, Empty, Input, Select, Table, Spin, Checkbox, message } from "antd";
 import { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
 import { validateQuantityInput } from "./utils/validation";
@@ -613,27 +613,11 @@ const VatTuTable = ({
                   }
                 }}
                 onChange={(val) => {
-                  // Find the latest record from dataSource using ref to avoid stale reference
-                  // Match POS behavior: ensure value is string (val || "")
                   const currentDataSource = dataSourceRef.current;
                   const currentRecord = currentDataSource.find((item) => item.key === record.key);
-                  if (currentRecord) {
-                    // Preserve loOptions when updating ma_lo - important to keep options after selection
-                    const recordWithOptions = {
-                      ...currentRecord,
-                      loOptions: currentRecord.loOptions || record.loOptions,
-                    };
-                    onSelectChange(val || "", recordWithOptions, "ma_lo");
-                  } else {
-                    // Fallback to original record if not found
-                    onSelectChange(val || "", record, "ma_lo");
-                  }
-                  // Đóng dropdown sau khi chọn (trả về uncontrolled)
-                  setOpenLo((prev) => {
-                    const next = { ...prev };
-                    delete next[record.key];
-                    return next;
-                  });
+                  // Match POS behavior: ensure value is string (val || "") 
+                  // Preserve loOptions when updating ma_lo
+                  onSelectChange(val || "", currentRecord || record, "ma_lo");
                 }}
                 // Cho phép antd tự điều khiển nếu chưa set state; nếu đã có state thì control
                 open={openLo[record.key]}
@@ -730,14 +714,12 @@ const VatTuTable = ({
         align: "center",
         ellipsis: true,
         render: (value, record) => {
-          if (record.isChild) {
-            return renderQuantityInput(value, record, soLuongDeNghiField, true);
-          }
+          const isEditable = columnConfig.soLuongDeNghiEditable !== false;
           return renderQuantityInput(
             value,
             record,
             soLuongDeNghiField,
-            columnConfig.soLuongDeNghiEditable !== false
+            isEditable
           );
         },
       });
@@ -994,9 +976,19 @@ const VatTuTable = ({
         render: (_, record, index) => {
           if (columnConfig.useAddButtonInsteadOfDelete) {
             // Dòng cha: hiển thị cả nút xóa và nút thêm dòng con
-            if (!record.isChild) {
-              return (
-                <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+            const groupKey = record.isChild ? record.parentKey : record.key;
+            // Tìm xem đây có phải là dòng cuối cùng của nhóm vật tư này không để hiển thị nút +
+            const isLastInGroup =
+              index === dataSource.length - 1 ||
+              (dataSource[index + 1].isChild
+                ? dataSource[index + 1].parentKey !== groupKey
+                : true);
+
+            return (
+              <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+                {(!record.isChild &&
+                columnConfig.preventDeleteMainRow &&
+                !record.isNewlyAdded) ? null : (
                   <Button
                     type="text"
                     danger
@@ -1006,39 +998,40 @@ const VatTuTable = ({
                     title="Xóa dòng"
                     disabled={!isEditMode}
                     className="vat-tu-delete-btn"
-
                   />
+                )}
+                {isLastInGroup && (
                   <Button
                     type="text"
                     size="small"
                     icon={<PlusOutlined />}
-                    onClick={() =>
-                      otherProps.onAddItem ? otherProps.onAddItem(index, record) : null
-                    }
+                    onClick={() => {
+                      if (!isEditMode) return;
+                      const tongueNhatValue = parseFloat(record.tong_nhat || 0);
+                      if (tongueNhatValue <= 0) {
+                        message.warning("Vui lòng nhập số lượng nhặt trước khi cộng dòng.");
+                        return;
+                      }
+                      if (otherProps.onAddItem) {
+                        otherProps.onAddItem(index, record);
+                      }
+                    }}
                     title="Thêm dòng con"
-                    disabled={!isEditMode}
+                    disabled={
+                      !isEditMode ||
+                      parseFloat(record.so_luong || record.soLuongDeNghi || 0) <= 0 ||
+                      parseFloat(record.tong_nhat || 0) >= parseFloat(record.so_luong || record.soLuongDeNghi || 0)
+                    }
                     className="vat-tu-add-btn"
                     style={{ color: "#52c41a" }}
                   />
-                </div>
-              );
-            }
-            // Dòng con: nút xóa dòng con
-            return (
-              <Button
-                type="text"
-                danger
-                size="small"
-                icon={<DeleteOutlined />}
-                onClick={() => onDeleteItem(index, isEditMode)}
-                title="Xóa dòng"
-                disabled={!isEditMode}
-                className="vat-tu-delete-btn"
-              />
+                )}
+              </div>
             );
           }
           // Trường hợp không dùng useAddButtonInsteadOfDelete: cả dòng cha và dòng con đều có nút xóa
           // Disable nút xóa cho dòng chính (không phải dòng con)
+          const isMainRowLocked = !record.isChild && columnConfig.preventDeleteMainRow && !record.isNewlyAdded;
           return (
             <Button
               type="text"
@@ -1046,10 +1039,9 @@ const VatTuTable = ({
               size="small"
               icon={<DeleteOutlined />}
               onClick={() => onDeleteItem(index, isEditMode)}
-              title={record.isChild ? "Xóa dòng" : "Không thể xóa dòng chính"}
-              disabled={!isEditMode}
+              title={record.isChild ? "Xóa dòng" : (isMainRowLocked ? "Không thể xóa dòng chính" : "Xóa dòng")}
+              disabled={!isEditMode || isMainRowLocked}
               className="vat-tu-delete-btn"
-
             />
           );
         },

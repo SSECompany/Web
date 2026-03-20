@@ -225,6 +225,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 lo_yn: item.lo_yn !== undefined && item.lo_yn !== null
                   ? (item.lo_yn === true || item.lo_yn === "1" || item.lo_yn === 1)
                   : (phieuInfo.lo_yn === true || phieuInfo.lo_yn === "1" || phieuInfo.lo_yn === 1),
+                isNewlyAdded: false,
               };
             });
 
@@ -654,8 +655,6 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         return;
       }
 
-      // Lưu: không check mã lô; chỉ Hoàn thành mới bắt buộc mã lô (khi lo_yn = true)
-
       // Set status = 1 cho nút Lưu
       const updatedValues = {
         ...values,
@@ -917,9 +916,9 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             <div
               style={{
                 marginBottom: 8,
-                fontWeight: "bold",
-                fontSize: "14px",
-                color: "#333",
+                fontWeight: "600",
+                fontSize: "13px",
+                color: "#374151",
               }}
             >
               Vật tư
@@ -971,7 +970,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             <div
               style={{
                 display: "flex",
-                justifyContent: "flex-start",
+                justifyContent: "flex-end",
                 marginTop: 16,
               }}
             >

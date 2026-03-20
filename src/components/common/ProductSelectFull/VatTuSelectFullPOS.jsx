@@ -328,12 +328,11 @@ const VatTuSelectFullPOS = ({
   };
 
   return (
-    <>
-      <Row gutter={16}>
+    <Row gutter={16}>
         <Col span={24}>
           <Space.Compact style={{ width: "100%" }}>
             {!barcodeEnabled ? (
-              <div style={{ position: "relative", width: "calc(100% - 40px)" }}>
+              <div style={{ position: "relative", flex: 1 }}>
                 {(loadingVatTu || isSearching) && (
                   <div
                     style={{
@@ -385,12 +384,10 @@ const VatTuSelectFullPOS = ({
                       <div style={{ padding: "8px", textAlign: "center" }}>
                         <Spin size="small" /> <span style={{ marginLeft: 8 }}>Đang tìm kiếm...</span>
                       </div>
-                    ) : vatTuList.length === 0 ? (
-                      <div style={{ padding: "8px", textAlign: "center" }}>
-                        <Spin size="small" /> <span style={{ marginLeft: 8 }}>Đang tìm kiếm...</span>
-                      </div>
                     ) : (
-                      "Không tìm thấy"
+                      <div style={{ padding: "8px", textAlign: "center", color: "#999" }}>
+                        Không tìm thấy vật tư
+                      </div>
                     )
                   }
                 onKeyDown={async (e) => {
@@ -471,12 +468,6 @@ const VatTuSelectFullPOS = ({
                 }}
                   style={{ width: "100%" }}
                   disabled={!isEditMode || disableSearch || (isSearching && isWaitingForEnter)}
-                  styles={{
-                    popup: {
-                      root: { maxHeight: 300, overflow: "auto" },
-                    },
-                  }}
-                  getPopupContainer={(trigger) => trigger.parentNode}
                 >
                   {vatTuList.map((item) => (
                     <Select.Option key={item.value} value={item.value}>
@@ -556,7 +547,6 @@ const VatTuSelectFullPOS = ({
           </Space.Compact>
         </Col>
       </Row>
-    </>
   );
 };
 

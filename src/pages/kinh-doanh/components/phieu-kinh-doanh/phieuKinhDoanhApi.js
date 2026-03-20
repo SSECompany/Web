@@ -334,10 +334,15 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         ngay_hl: null,
         ma_dc: "",
         ma_htvc: "",
-        so_hd0: "",
+        so_hd0: master.so_hd0 || "",
         stt_rec_hd0: "",
         so_ct0: "",
-        ngay_ct0: null,
+        ngay_ct0: master.ngay_ct0 ? master.ngay_ct0 : null,
+        bat_dau_dh: master.bat_dau_dh ? master.bat_dau_dh : null,
+        ket_thuc_dh: master.ket_thuc_dh ? master.ket_thuc_dh : null,
+        u_status: master.u_status || "0",
+        ban_dong_goi: master.ban_dong_goi || "",
+        ma_nv_dh: master.ma_nv_dh || "",
         ngay_ct2: null,
         ngay_ct3: null,
         ck_thue_yn: 0,
@@ -379,15 +384,14 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         s9: null,
         so_dt: "",
         dia_chi: master.dia_chi || "",
-        u_status: "0",
         u_status0: "0",
         kieu_duyet: "",
         user_id3: 0,
         ma_ck: "",
-        status_soan_hang: "0",
-        status_giao_van: "0",
-        tt_soan_hang: 0,
-        tt_giao_van: 0,
+        status_soan_hang: master.status_soan_hang || "0",
+        status_giao_van: master.status_giao_van || "0",
+        tt_soan_hang: master.tt_soan_hang || 0,
+        tt_giao_van: master.tt_giao_van || 0,
         ma_vc: master.ma_vc || "",
         first_stt_rec_NDH: "",
         stt_rec_DX2: "",
@@ -397,6 +401,7 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         t_ck_khac: 0,
         t_ck_khac_nt: 0,
         thoi_gian_chuyen_kho: null,
+        thoi_gian_chuyen_kinh_doanh: null,
         thoi_gian_chia_don: null,
         tra_lai_yn: 0,
     };
@@ -605,6 +610,11 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         ma_dc: master.ma_dc || "",
         ma_htvc: master.ma_htvc || "",
         so_hd0: master.so_hd0 || "",
+        u_status: master.u_status || "0",
+        ban_dong_goi: master.ban_dong_goi || "",
+        ma_nv_dh: master.ma_nv_dh || "",
+        bat_dau_dh: master.bat_dau_dh ? (dayjs.isDayjs(master.bat_dau_dh) ? master.bat_dau_dh.toDate() : master.bat_dau_dh) : (master.bat_dau_dh || null),
+        ket_thuc_dh: master.ket_thuc_dh ? (dayjs.isDayjs(master.ket_thuc_dh) ? master.ket_thuc_dh.toDate() : master.ket_thuc_dh) : (master.ket_thuc_dh || null),
         stt_rec_hd0: master.stt_rec_hd0 || "",
         so_ct0: master.so_ct0 || "",
         ngay_ct0: master.ngay_ct0 ? (dayjs.isDayjs(master.ngay_ct0) ? master.ngay_ct0.toDate() : master.ngay_ct0) : (master.ngay_ct0 || null),
@@ -648,7 +658,6 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         s8: master.s8 ? (dayjs.isDayjs(master.s8) ? master.s8.toDate() : master.s8) : (master.s8 || null),
         s9: master.s9 ? (dayjs.isDayjs(master.s9) ? master.s9.toDate() : master.s9) : (master.s9 || null),
         so_dt: master.so_dt || "",
-        u_status: master.u_status || "0",
         u_status0: master.u_status0 || "0",
         kieu_duyet: master.kieu_duyet || "",
         user_id3: master.user_id3 || 0,
@@ -665,6 +674,7 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         t_ck_khac: master.t_ck_khac || 0,
         t_ck_khac_nt: master.t_ck_khac_nt || 0,
         thoi_gian_chuyen_kho: master.thoi_gian_chuyen_kho ? (dayjs.isDayjs(master.thoi_gian_chuyen_kho) ? master.thoi_gian_chuyen_kho.toDate() : master.thoi_gian_chuyen_kho) : (master.thoi_gian_chuyen_kho || null),
+        thoi_gian_chuyen_kinh_doanh: master.thoi_gian_chuyen_kinh_doanh ? (dayjs.isDayjs(master.thoi_gian_chuyen_kinh_doanh) ? master.thoi_gian_chuyen_kinh_doanh.toDate() : master.thoi_gian_chuyen_kinh_doanh) : (master.thoi_gian_chuyen_kinh_doanh || null),
         thoi_gian_chia_don: master.thoi_gian_chia_don ? (dayjs.isDayjs(master.thoi_gian_chia_don) ? master.thoi_gian_chia_don.toDate() : master.thoi_gian_chia_don) : (master.thoi_gian_chia_don || null),
         tra_lai_yn: master.tra_lai_yn || 0,
     };
@@ -843,7 +853,7 @@ export const fetchNhanVienKDSelection = async (keyword = "", pageIndex = 1, page
         param: {
             PageIndex: pageIndex,
             PageSize: pageSize,
-            ma_nvbh: "",
+            ma_nvbh: keyword,
             ten_nvbh: keyword,
             userId: userId,
         },
@@ -865,7 +875,7 @@ export const fetchVanChuyenSelection = async (keyword = "", pageIndex = 1, pageS
         param: {
             PageIndex: pageIndex,
             PageSize: pageSize,
-            ma_vc: "",
+            ma_vc: keyword,
             ten_vc: keyword,
             userId: userId,
         },
@@ -887,7 +897,7 @@ export const fetchThanhToanSelection = async (keyword = "", pageIndex = 1, pageS
         param: {
             PageIndex: pageIndex,
             PageSize: pageSize,
-            ma_tt: "",
+            ma_tt: keyword,
             ten_tt: keyword,
             userId: userId,
         },
@@ -946,6 +956,49 @@ export const fetchVoucherSelection = async (ma_kh = "", ngay_ct = "", pageIndex 
     }
 };
 
+export const calculateDiscounts = async ({
+    ma_kh,
+    ngay_ct,
+    ds_vt,
+    ds_so_luong,
+    ds_gia,
+    ds_tien,
+    ds_ma_kho,
+    ds_ma_lo = "",
+    t_tien_hang,
+    stt_rec = "",
+    kh_chiu_cuoc = "1",
+    UnitId = "TAPMED"
+}) => {
+    const body = {
+        store: "api_tinh_chiet_khau",
+        param: {
+            ma_kh,
+            ngay_ct: dayjs(ngay_ct).format("YYYY-MM-DD"),
+            ds_vt,
+            ds_so_luong,
+            ds_gia,
+            ds_tien,
+            ds_ma_kho,
+            ds_ma_lo,
+            t_tien_hang,
+            stt_rec,
+            kh_chiu_cuoc: String(kh_chiu_cuoc),
+            UnitId,
+        },
+        data: {},
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        // The API likely returns multiple lists of objects for 'H', 'D', 'M' types or similar
+        return response?.listObject || [];
+    } catch (error) {
+        console.error("Error calculateDiscounts:", error);
+        return [];
+    }
+};
+
 export const fetchThongTinVatTu = async ({
     ma_vt,
     ma_kho,
@@ -971,9 +1024,50 @@ export const fetchThongTinVatTu = async ({
 
     try {
         const response = await multipleTablePutApi(body);
-        return response?.listObject?.[0]?.[0] || null;
+        const list = response?.listObject?.[0] || [];
+        return list;
     } catch (error) {
         console.error("Error fetchThongTinVatTu:", error);
         return null;
+    }
+};
+
+export const fetchNoiGiaoSelection = async (ma_kh = "", keyword = "", pageIndex = 1, pageSize = 20) => {
+    const body = {
+        store: "api_list_noi_giao",
+        param: {
+            ma_kh: ma_kh || "",
+            PageIndex: pageIndex,
+            PageSize: pageSize,
+            ma_dc: "",
+            ten_dc: keyword,
+        },
+        data: {},
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        return response?.listObject?.[0] || [];
+    } catch (error) {
+        console.error("Error fetchNoiGiaoSelection:", error);
+        return [];
+    }
+};
+
+export const fetchThongTinNganHang = async (ma_dvcs = "TAPMED") => {
+    const body = {
+        store: "api_get_thong_tin_ngan_hang",
+        param: {
+            ma_dvcs: ma_dvcs,
+        },
+        data: {},
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        return response?.listObject?.[0] || [];
+    } catch (error) {
+        console.error("Error fetchThongTinNganHang:", error);
+        return [];
     }
 };

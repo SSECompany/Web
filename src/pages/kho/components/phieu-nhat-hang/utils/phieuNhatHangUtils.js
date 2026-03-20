@@ -521,28 +521,17 @@ export const buildPhieuNhatHangPayload = (
     if (!dynamicItem.stt_rec && phieuData?.stt_rec) {
       dynamicItem.stt_rec = phieuData.stt_rec;
     }
-    // Với dòng con (isChild), stt_rec0 đã được copy từ parent qua {...parent}
-    // Chỉ set stt_rec0 theo index nếu không phải dòng con và chưa có giá trị
-    if (!dynamicItem.stt_rec0 && !item.isChild) {
-      dynamicItem.stt_rec0 = String(index + 1).padStart(3, "0");
-    } else if (item.isChild && !dynamicItem.stt_rec0) {
-      // Nếu dòng con không có stt_rec0 (trường hợp hiếm), tìm parent để copy
-      // Nhưng thường thì đã được copy qua {...parent}
-      const parentIndex = dataSource.findIndex(
-        (row) => row.key === item.parentKey || row.line_nbr === item.parentKey
-      );
-      if (parentIndex >= 0 && dataSource[parentIndex]?.stt_rec0) {
-        dynamicItem.stt_rec0 = dataSource[parentIndex].stt_rec0;
-      } else {
-        // Fallback: set theo index của parent gần nhất
-        dynamicItem.stt_rec0 = String(index + 1).padStart(3, "0");
-      }
-    }
     // Bảng d28 bắt buộc có trường stt_rec0pn (stt_rec0 phiếu nhập / dòng chi tiết PN)
+    // Lưu lại stt_rec0 nguyên bản (hoạt từ parent nếu là dòng con) vào stt_rec0pn trước khi re-index
+    const originalSttRec0 = (item.stt_rec0 || "").toString().trim();
     dynamicItem.stt_rec0pn =
       item.stt_rec0pn != null && String(item.stt_rec0pn).trim() !== ""
         ? String(item.stt_rec0pn).trim()
-        : (dynamicItem.stt_rec0 || "");
+        : originalSttRec0;
+
+    // Luôn đảm bảo stt_rec0 trong payload là duy nhất dựa trên index dòng
+    // Điều này cực kỳ quan trọng đối với các dòng tách lô để tránh bị ghi đè/mất dữ liệu khi gửi API
+    dynamicItem.stt_rec0 = String(index + 1).padStart(3, "0");
     if (!dynamicItem.ma_ct) {
       dynamicItem.ma_ct = "PND";
     }

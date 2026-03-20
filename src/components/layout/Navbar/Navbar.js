@@ -1,6 +1,6 @@
 import { FullscreenExitOutlined, FullscreenOutlined, MoreOutlined } from "@ant-design/icons";
 import { Dropdown, Menu } from "antd";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
 
@@ -19,6 +19,10 @@ import "./Navbar.css";
 const Navbar = () => {
   const dispatch = useDispatch();
   const userInfo = useSelector(getUserInfo);
+  const claims = useSelector((state) => state.claimsReducer.claims);
+  const permissionsString = claims?.Permision || "";
+  const hasBusinessPermission = permissionsString.includes("Permissions.Business");
+  const hasSitePermission = permissionsString.includes("Permissions.Site");
   const [userFromStorage, setUserFromStorage] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const routeLocation = useLocation();
@@ -97,7 +101,7 @@ const Navbar = () => {
     dispatch(setIsBackgrouds(true));
   };
 
-  const handleRouteChange = (data) => {
+  const handleRouteChange = useCallback((data) => {
     // Simplified route handling for pharmacy app - BÁN HÀNG & TRẢ HÀNG DISABLED IN THIS BRANCH
     const validRoutes = [
       "",
@@ -131,6 +135,20 @@ const Navbar = () => {
 
     // Block any ban-hang and tra-hang routes
     if (currentPath && (currentPath.startsWith("ban-hang") || currentPath.startsWith("tra-hang"))) {
+      router.navigate(hasSitePermission ? "/kho" : "/kinh-doanh");
+      return;
+    }
+
+    // Role-based route enforcement
+    const isKhoRoute = currentPath === "kho" || currentPath.startsWith("kho/");
+    const isKinhDoanhRoute = currentPath === "kinh-doanh" || currentPath.startsWith("kinh-doanh/");
+
+    if (isKhoRoute && !hasSitePermission && hasBusinessPermission) {
+      router.navigate("/kinh-doanh");
+      return;
+    }
+
+    if (isKinhDoanhRoute && !hasBusinessPermission && hasSitePermission) {
       router.navigate("/kho");
       return;
     }
@@ -154,14 +172,13 @@ const Navbar = () => {
       currentPath.match(/^kinh-doanh\/(chi-tiet|edit)\/[^/]+$/);
 
     if (!isValidRoute) {
-      // Redirect to Kho if invalid route
       router.navigate("/kho");
     }
-  };
+  }, [hasBusinessPermission, hasSitePermission]);
 
   useEffect(() => {
     handleRouteChange(routeLocation);
-  }, [routeLocation]);
+  }, [routeLocation, handleRouteChange]);
 
   const menuItems = [
     {
@@ -194,8 +211,8 @@ const Navbar = () => {
               trigger={["click"]}
               menu={{
                 items: [
-                  { key: "kinh-doanh", label: <Link to="/kinh-doanh">Kinh doanh</Link> },
-                  { key: "kho", label: <Link to="/kho">Kho</Link> },
+                  hasBusinessPermission && { key: "kinh-doanh", label: <Link to="/kinh-doanh">Kinh doanh</Link> },
+                  hasSitePermission && { key: "kho", label: <Link to="/kho">Kho</Link> },
                   {
                     key: "bao-cao",
                     label: "Báo cáo",
@@ -205,7 +222,7 @@ const Navbar = () => {
                       { key: "tong-hop-nhap-xuat-ton", label: <Link to="/bao-cao/tong-hop-nhap-xuat-ton">Tổng hợp nhập xuất tồn</Link> },
                     ],
                   },
-                ]
+                ].filter(Boolean)
               }}
             >
               <button className="navbar_mobile_menu_btn" aria-label="Menu">
@@ -218,12 +235,11 @@ const Navbar = () => {
             mode="horizontal"
             className="navbar_routes"
             items={[
-              // Bán hàng và Trả hàng modules removed - not available in this branch
-              {
+              hasBusinessPermission && {
                 key: "kinh-doanh",
                 label: <Link to="/kinh-doanh">Kinh doanh</Link>,
               },
-              {
+              hasSitePermission && {
                 key: "kho",
                 label: <Link to="/kho">Kho</Link>,
               },
@@ -245,7 +261,7 @@ const Navbar = () => {
                   },
                 ],
               },
-            ]}
+            ].filter(Boolean)}
             style={{
               lineHeight: "30px",
               border: "none",
