@@ -1,6 +1,7 @@
 import {
   CheckOutlined,
   EditOutlined,
+  FilterOutlined,
   PrinterOutlined,
 } from "@ant-design/icons";
 import {
@@ -368,8 +369,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       return dayjs(nativeDate).format("DD/MM/YYYY");
     }
 
-    // Last resort: manual parsing for date strings like "11/08/2025"
-    const parts = dateStr.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+    const parts = dateStr.match(/(\d{1,2})[-./](\d{1,2})[-./](\d{4})/);
     if (parts && parts.length === 4) {
       const [, p1, p2, year] = parts;
       const num1 = parseInt(p1);
@@ -519,7 +519,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       align: "center",
       render: (text) => formatDateToDDMMYYYY(text),
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
+        <div className="filter-dropdown">
           <DatePicker.RangePicker
             inputReadOnly
             value={
@@ -540,7 +540,6 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
                 setSelectedKeys([]);
               }
             }}
-            style={{ marginBottom: 8 }}
             format="DD/MM/YYYY"
             placeholder={["Từ ngày", "Đến ngày"]}
           />
@@ -914,11 +913,14 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       >
         <div className="retail__modal__Container">
           {activeChips.length > 0 && (
-            <div className="filter-chips-container" style={{ marginBottom: 8 }}>
+            <div className="filter-chips-container">
               <div className="filter-chips-left">
-                <span className="filter-chips-title">
-                  Đang áp dụng {activeChips.length} bộ lọc
-                </span>
+                <div className="filter-chips-header">
+                  <FilterOutlined className="filter-chips-icon" />
+                  <span className="filter-chips-title">
+                    Đang áp dụng <strong>{activeChips.length}</strong> bộ lọc
+                  </span>
+                </div>
                 <div className="filter-chips-list">
                   {activeChips.map((chip) => (
                     <Tag
@@ -937,7 +939,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
               </div>
               <div className="filter-chips-right">
                 <Button size="small" onClick={clearAllChips}>
-                  Xóa tất cả
+                  Xóa lọc
                 </Button>
               </div>
             </div>

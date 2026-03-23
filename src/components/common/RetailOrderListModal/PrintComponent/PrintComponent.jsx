@@ -24,6 +24,20 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
     return formattedMethods.join(" + ");
   };
 
+  const parseNumber = (value) => {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : 0;
+  };
+
+  const computedTotal = detail?.reduce((acc, item) => {
+    return acc + parseNumber(item?.thanh_tien);
+  }, 0);
+
+  const grandTotal =
+    parseNumber(master?.tong_tien) > 0
+      ? parseNumber(master?.tong_tien)
+      : computedTotal;
+
   const now = master?.datetime2 ? new Date(master.datetime2) : new Date();
   return (
     <div
@@ -37,13 +51,6 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
       }}
       ref={ref}
     >
-      <div style={{ textAlign: "center" }}>
-        <img
-          src="/logo.png"
-          alt="Tapmed Logo"
-          style={{ width: "120px", height: "auto", marginBottom: "8px" }}
-        />
-      </div>
       <div style={{ textAlign: "center", marginBottom: "8px" }}>
         <label style={{ fontWeight: "bold", fontSize: "14px", color: "#000" }}>
           HÓA ĐƠN
@@ -293,7 +300,7 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
           color: "#000",
         }}
       >
-        Tổng tiền: {formatNumber(master?.tong_tien) || "0"}đ
+        Tổng tiền: {formatNumber(grandTotal)}đ
       </div>
 
       <div
@@ -322,14 +329,14 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
             amount={
               master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
                 ? master.chuyen_khoan
-                : master?.tong_tien
+                : grandTotal
             }
             soChungTu={`Thanh toan Tapmed so CT ${(
               master?.so_ct || ""
             ).trim()} ${
               master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
                 ? master.chuyen_khoan
-                : master?.tong_tien
+                : grandTotal
             }vnd`}
             size={80}
           />
