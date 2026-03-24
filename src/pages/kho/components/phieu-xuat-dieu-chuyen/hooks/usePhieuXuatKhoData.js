@@ -122,7 +122,7 @@ export const usePhieuXuatKhoData = () => {
         setLoadingMaKho(false);
       }
     },
-    [token]
+    [token, maKhoList]
   );
 
   const fetchVatTuList = useCallback(
@@ -180,7 +180,7 @@ export const usePhieuXuatKhoData = () => {
         setLoadingVatTu(false);
       }
     },
-    [token]
+    []
   );
 
   const fetchVatTuDetail = useCallback(

@@ -267,7 +267,7 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
       console.error("Lỗi khi cập nhật phiếu xuất kho:", error);
       setLoading(false);
     }
-  }, [form, dataSource, phieuData, isEditMode, navigate, setLoading, token]);
+  }, [form, dataSource, phieuData, navigate, setLoading, token]);
 
   const handleEdit = useCallback(() => {
     navigate(`/kho/xuat-kho/edit/${stt_rec}`);

@@ -128,7 +128,7 @@ export const usePhieuXuatKhoData = () => {
         setLoadingMaKhach(false);
       }
     },
-    [token]
+    [token, maKhachList]
   );
 
   const fetchVatTuList = useCallback(
@@ -186,7 +186,7 @@ export const usePhieuXuatKhoData = () => {
         setLoadingVatTu(false);
       }
     },
-    [token]
+    []
   );
 
   const fetchVatTuDetail = useCallback(
@@ -340,7 +340,7 @@ export const usePhieuXuatKhoData = () => {
         setLoadingMaKho(false);
       }
     },
-    [token]
+    [token, maKhoList]
   );
 
   const fetchMaKhoListDebounced = useMemo(

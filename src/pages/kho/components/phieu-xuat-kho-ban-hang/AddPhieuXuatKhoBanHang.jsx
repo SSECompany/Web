@@ -78,7 +78,7 @@ const AddPhieuXuatKhoBanHang = () => {
       ngay: dayjs(),
       trangThai: "0",
     });
-  }, []);
+  }, [fetchMaGiaoDichList, fetchMaKhachList, fetchVatTuList, fetchVoucherInfo, form]);
 
   useEffect(() => {
     if (barcodeJustEnabled && vatTuSelectRef.current) {
@@ -88,9 +88,10 @@ const AddPhieuXuatKhoBanHang = () => {
   }, [barcodeJustEnabled]);
 
   useEffect(() => {
+    const searchTimeout = searchTimeoutRef.current;
     return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
       }
     };
   }, []);

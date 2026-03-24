@@ -220,13 +220,14 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
     if (phieuDetailLoadedRef.current !== stt_rec) {
       fetchPhieuDetail();
     }
-  }, [stt_rec, location.pathname]);
+  }, [stt_rec, location.pathname, fetchPhieuDetail]);
 
   // Cleanup timeout
   useEffect(() => {
+    const searchTimeout = searchTimeoutRef.current;
     return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
       }
     };
   }, []);
@@ -327,7 +328,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
       console.error("Lỗi khi cập nhật phiếu xuất kho:", error);
       setLoading(false);
     }
-  }, [form, dataSource, phieuData, isEditMode, navigate, setLoading]);
+  }, [form, dataSource, submitPhieuData, setLoading]);
 
   const submitPhieuData = useCallback(
     async (values) => {

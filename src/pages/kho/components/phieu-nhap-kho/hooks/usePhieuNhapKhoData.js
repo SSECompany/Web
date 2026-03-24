@@ -304,7 +304,7 @@ export const usePhieuNhapKhoData = () => {
         setLoadingVatTu(false);
       }
     },
-    [token]
+    []
   );
 
   const fetchVatTuDetail = useCallback(

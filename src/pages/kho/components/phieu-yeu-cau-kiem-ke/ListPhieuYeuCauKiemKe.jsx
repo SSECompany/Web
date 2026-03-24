@@ -196,7 +196,7 @@ const ListPhieuYeuCauKiemKe = () => {
     };
     window.addEventListener("appRefreshRequested", handler);
     return () => window.removeEventListener("appRefreshRequested", handler);
-  }, [currentPage, filters]);
+  }, [currentPage, filters, fetchPhieuYeuCauKiemKe]);
 
   const handleRefreshClick = () => {
     fetchPhieuYeuCauKiemKe(filters);

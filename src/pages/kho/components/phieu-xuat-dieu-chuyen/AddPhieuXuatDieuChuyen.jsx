@@ -72,7 +72,7 @@ const AddPhieuXuatDieuChuyen = () => {
       trangThai: "3",
       maGiaoDich: "3",
     });
-  }, []);
+  }, [fetchMaGiaoDichList, fetchMaKhoList, fetchVatTuList, fetchVoucherInfo, form]);
 
   useEffect(() => {
     if (barcodeJustEnabled && vatTuSelectRef.current) {
@@ -82,9 +82,10 @@ const AddPhieuXuatDieuChuyen = () => {
   }, [barcodeJustEnabled]);
 
   useEffect(() => {
+    const searchTimeout = searchTimeoutRef.current;
     return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
       }
     };
   }, []);

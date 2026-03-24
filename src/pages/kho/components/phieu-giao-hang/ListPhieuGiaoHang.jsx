@@ -322,7 +322,7 @@ const ListPhieuGiaoHang = () => {
     if (showFilterDrawer) {
       setFilterStatus(appliedFilterStatus !== null ? appliedFilterStatus : "");
     }
-  }, [showFilterDrawer]);
+  }, [showFilterDrawer, appliedFilterStatus]);
 
   // Danh sách hiển thị = kết quả từ API (đã filter theo Keyword + Status + bộ lọc)
   const filteredData = useMemo(() => allData, [allData]);

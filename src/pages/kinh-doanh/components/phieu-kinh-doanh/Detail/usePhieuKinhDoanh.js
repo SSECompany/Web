@@ -36,12 +36,14 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
     const watchStatus = Form.useWatch('status', form);
     const watchTenKh = Form.useWatch('ten_kh', form);
     const watchMaKh = Form.useWatch('ma_kh', form);
+    const [originalHeader, setOriginalHeader] = useState({});
+    
+    const watchStatusSoanHang = Form.useWatch('status_soan_hang', form) || originalHeader?.status_soan_hang;
 
     const [isEditMode, setIsEditMode] = useState(
         initialEditMode || location.pathname.includes("/edit/") || !stt_rec
     );
     const [loading, setLoading] = useState(false);
-    const [originalHeader, setOriginalHeader] = useState({});
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [showGeneralInfo, setShowGeneralInfo] = useState(true);
     const [tinhCKLoading, setTinhCKLoading] = useState(false);
@@ -130,9 +132,11 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
             if (res.success && res.data) {
                 const { header, statusList: statuses, chiPhi, anhWeb } = res.data;
                 const currentStatus = header?.status !== undefined && header?.status !== null ? String(header.status).trim() : "0";
+                const currentSoanHang = String(header?.status_soan_hang || "").trim();
                 const isEditableStatus = ["0", "1", "2"].includes(currentStatus);
+                const isSoanHangLocked = ['1', '2', '3', '4', '5', '6'].includes(currentSoanHang);
                 
-                if (stt_rec && !isEditableStatus) {
+                if (stt_rec && (!isEditableStatus || isSoanHangLocked)) {
                     setIsEditMode(false);
                 }
 
@@ -760,10 +764,18 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
 
     const handleToggleEdit = () => {
         const currentStatus = form.getFieldValue("status");
+        const currentSoanHang = String(form.getFieldValue("status_soan_hang") || originalHeader?.status_soan_hang || "").trim();
+        
         if (!["0", "1", "2"].includes(String(currentStatus).trim())) {
             message.warning("Đơn hàng đã ở trạng thái không thể chỉnh sửa");
             return;
         }
+
+        if (['1', '2', '3', '4', '5', '6'].includes(currentSoanHang)) {
+            message.warning("Đơn hàng đã chuyển kho. Không thể sửa!");
+            return;
+        }
+
         if (!isEditMode && stt_rec) {
             navigate(`/kinh-doanh/edit/${stt_rec}`);
         }
@@ -822,6 +834,7 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
         watchBContractId,
         watchNgayCt,
         watchStatus,
+        watchStatusSoanHang,
         watchTenKh,
         watchMaKh,
         isEditMode,

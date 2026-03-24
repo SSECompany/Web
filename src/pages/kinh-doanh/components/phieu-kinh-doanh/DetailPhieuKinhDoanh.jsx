@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import { createPortal } from "react-dom";
 import { useReactToPrint } from "react-to-print";
 import {
     LeftOutlined,
@@ -39,6 +40,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
         watchBContractId,
         watchNgayCt,
         watchStatus,
+        watchStatusSoanHang,
         isEditMode,
         loading,
         isMobile,
@@ -253,7 +255,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                         )}
                                         <div style={{ flex: 1, textAlign: 'left' }}>
                                             <div style={{ marginBottom: 4 }}>
-                                                <Text strong style={{ fontSize: '13px', lineHeight: '1.4', whiteSpace: 'normal', wordBreak: 'break-word', display: 'block' }}>
+                                                <Text strong style={{ fontSize: '13px', lineHeight: '1.4', whiteSpace: 'normal', wordBreak: 'break-word', display: 'block', color: 'red' }}>
                                                     {record.ten_vt}
                                                 </Text>
                                             </div>
@@ -656,7 +658,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                         </div>
 
                         <div className="detail-don-hang__header-right">
-                            {stt_rec && !isEditMode ? (
+                            {stt_rec && !isEditMode && !['1', '2', '3', '4', '5', '6'].includes(String(watchStatusSoanHang || "").trim()) ? (
                                 <Button
                                     type="text"
                                     icon={<EditOutlined />}
@@ -1003,15 +1005,18 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                 </div>
             </div>
 
-            <div style={{ display: "none" }}>
-                <PrintOrderTemplate 
-                    ref={printRef} 
-                    data={form.getFieldsValue()} 
-                    details={chiTietData} 
-                    totals={form.getFieldsValue()} 
-                    bankInfo={bankInfo} 
-                />
-            </div>
+            {createPortal(
+                <div className="print-preview-wrapper">
+                    <PrintOrderTemplate 
+                        ref={printRef} 
+                        data={form.getFieldsValue()} 
+                        details={chiTietData} 
+                        totals={form.getFieldsValue()} 
+                        bankInfo={bankInfo} 
+                    />
+                </div>,
+                document.body
+            )}
         </div>
 
     );

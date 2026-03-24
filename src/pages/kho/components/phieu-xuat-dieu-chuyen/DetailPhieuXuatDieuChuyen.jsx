@@ -207,9 +207,9 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
       }
     };
     fetchPhieuDetail();
-  }, [stt_rec, token]);
+  }, [stt_rec, token, form, setDataSource]);
 
-  const submitPhieuData = async (values) => {
+  const submitPhieuData = useCallback(async (values) => {
     try {
       const payload = buildPayload(values, dataSource, phieuData, true);
 
@@ -253,7 +253,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dataSource, phieuData, token, navigate, setLoading]);
 
   const handleSubmit = useCallback(async () => {
     try {
@@ -287,7 +287,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
       console.error("Lỗi khi cập nhật phiếu xuất điều chuyển:", error);
       setLoading(false);
     }
-  }, [form, dataSource, phieuData, isEditMode, navigate, setLoading]);
+  }, [form, dataSource, submitPhieuData, setLoading]);
 
   const handleEdit = useCallback(() => {
     navigate(`/kho/xuat-dieu-chuyen/edit/${stt_rec}`);

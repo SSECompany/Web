@@ -1,37 +1,56 @@
-/* PrintOrderPreview.css */
-.print-preview-container {
-    display: none;
+@media screen {
+    .print-preview-wrapper {
+        display: none !important;
+    }
 }
 
 @media print {
-    body * {
-        visibility: hidden;
+    /* Mặc định react-to-print giải quyết in trên desktop.
+       Bổ sung cho Cốc Cốc / Safari trên thiết bị di động (tính năng window.print() fallback):
+       Ẩn triệt để ứng dụng hiện tại (#root) để giải phóng layout,
+       từ đó .print-preview-wrapper có thể thoải mái dàn trang. 
+    */
+    body > #root {
+        display: none !important;
     }
+
+    .print-preview-wrapper {
+        display: block !important;
+        position: static !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
     .print-template, .print-template * {
-        visibility: visible;
+        visibility: visible !important;
     }
+
+    .print-template {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+    }
+
     @page {
         size: A4;
-        margin: 0;
+        margin: 5mm;
     }
-    .print-template {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 210mm;
-        min-height: 297mm;
-        box-shadow: none;
-        padding: 10mm 15mm;
-        margin: 0;
-    }
-    .print-preview-container {
-        display: block;
+
+    html, body {
+        height: auto !important;
+        overflow: visible !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 }
 
 .print-template {
-    width: 210mm;
-    min-height: 297mm;
+    width: 100%;
+    max-width: 210mm;
+    margin: 0 auto;
     padding: 10mm 15mm;
     background: white;
     font-family: "Times New Roman", Times, serif;
@@ -174,7 +193,7 @@
 .print-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 12px;
+    margin-bottom: 0; /* Bỏ khoảng cách để dính liền với tổng tiền */
 }
 
 .print-table th, .print-table td {
@@ -197,17 +216,54 @@
     text-align: right;
 }
 
-.print-table.font-bold, .print-table tfoot td {
+.print-table.font-bold {
     font-weight: bold;
 }
 
-.empty-row td {
-    height: 24px;
+/* Totals styling moved out of table */
+.print-totals-container {
+    margin-top: -1px; /* Ghi đè đường viền để liền mạch với bảng */
+    border-left: 1px solid #000;
+    border-right: 1px solid #000;
+    border-bottom: 1px solid #000;
+    border-top: none;
+    width: 100%;
 }
 
-/* Footer & Policy */
+.total-row {
+    display: flex;
+    width: 100%;
+    border-top: 1px solid #000;
+}
+
+.total-row:first-child {
+    border-top: none;
+}
+
+.total-spacer {
+    flex: 1;
+}
+
+.total-label {
+    width: 180px;
+    padding: 5px 10px;
+    text-align: right;
+    font-weight: bold;
+    border-left: none; /* Bỏ gạch này theo yêu cầu */
+}
+
+.total-value {
+    width: 120px;
+    padding: 5px 10px;
+    text-align: right;
+    font-weight: bold;
+    border-left: 1px solid #000; /* Giữ lại vạch ngăn cách giữa tên và số tiền */
+}
+
+/* Print amount words styling */
 .print-amount-words {
-    margin-bottom: 25px;
+    margin-top: 10px;
+    margin-bottom: 20px;
     font-size: 10pt;
     font-style: italic;
 }
