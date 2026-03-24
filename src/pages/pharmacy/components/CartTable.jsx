@@ -376,6 +376,11 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
                 >
                   {record.sku}
                 </span>
+                {record.ma_kho && (
+                  <Tag color="cyan" style={{ marginLeft: "8px", fontSize: "12px", border: "none" }}>
+                    {record.ma_kho}
+                  </Tag>
+                )}
               </div>
             </div>
           </div>

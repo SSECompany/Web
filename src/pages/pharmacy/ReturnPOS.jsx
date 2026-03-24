@@ -85,6 +85,7 @@ const ReturnPOS = () => {
               price: item.gia || 0,
               unit: item.dvt || "viên",
               stock: 0, // API không trả về stock
+              ma_kho: item.ma_kho || "",
             },
           }));
 
@@ -230,6 +231,7 @@ const ReturnPOS = () => {
               stock: 0, // API không trả về stock
               ma_thue: (item.ma_thue || "").trim(),
               thue_suat: Number(item.thue_suat) || 0,
+              ma_kho: item.ma_kho || "",
             },
           }));
 
@@ -303,6 +305,7 @@ const ReturnPOS = () => {
                 stock: 0, // API không trả về stock
                 ma_thue: (foundItem.ma_thue || "").trim(),
                 thue_suat: Number(foundItem.thue_suat) || 0,
+                ma_kho: foundItem.ma_kho || "",
               };
             } else {
               // Hiển thị error message từ API nếu có

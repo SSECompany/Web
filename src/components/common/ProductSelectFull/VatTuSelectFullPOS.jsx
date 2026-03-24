@@ -476,10 +476,24 @@ const VatTuSelectFullPOS = ({
                 >
                   {vatTuList.map((item) => (
                     <Select.Option key={item.value} value={item.value}>
-                      <div>
-                        <div style={{ fontWeight: "bold" }}>{item.value}</div>
-                        <div style={{ fontSize: "12px", color: "#666" }}>
-                          {item.label}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <div style={{ flex: 1, paddingRight: '16px', overflow: 'hidden' }}>
+                          <div style={{ fontWeight: "bold" }}>{item.value}</div>
+                          <div style={{ fontSize: "12px", color: "#666", whiteSpace: "normal" }}>
+                            {item.label}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', minWidth: 'max-content' }}>
+                          {item.ma_kho && (
+                            <div style={{ fontSize: "13px", color: "#1890ff" }}>
+                              Kho: <strong>{item.ma_kho}</strong>
+                            </div>
+                          )}
+                          {item.ton13 !== undefined && item.ton13 !== null && (
+                            <div style={{ fontSize: "13px", color: "#f5222d" }}>
+                              Tồn: <strong>{item.ton13}</strong>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </Select.Option>

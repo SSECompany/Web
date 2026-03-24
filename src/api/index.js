@@ -626,6 +626,7 @@ export const createRetailOrder = async (
         ma_thue: maThue,
         thue_nt: itemVatAmount.toString(),
         dvt: (item.unit || item.dvt || "").trim(),
+        ma_kho: (item.ma_kho || "").trim(),
       };
     }) || [];
 

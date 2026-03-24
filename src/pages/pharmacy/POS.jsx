@@ -201,6 +201,7 @@ const POS = () => {
               price: item.gia || 0,
               unit: item.dvt || "viên",
               stock: 0, // API không trả về stock
+              ma_kho: item.ma_kho || "",
             },
           }));
 
@@ -361,6 +362,7 @@ const POS = () => {
               ma_thue: (item.ma_thue || "").trim(),
               thue_suat: Number(item.thue_suat) || 0,
               image: item.image || "",
+              ma_kho: item.ma_kho || "",
             },
             // Giữ thêm trường image ở root để tiện dùng
             image: item.image || "",
@@ -438,6 +440,7 @@ const POS = () => {
                 stock: 0, // API không trả về stock
                 ma_thue: (foundItem.ma_thue || "").trim(),
                 thue_suat: Number(foundItem.thue_suat) || 0,
+                ma_kho: foundItem.ma_kho || "",
               };
             } else {
               // Hiển thị error message từ API nếu có
