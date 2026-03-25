@@ -15,6 +15,28 @@ export const phieuNhapKhoConfig = {
   showThaoTac: false,
 };
 
+// Cấu hình cho phiếu nhập hàng theo đơn
+export const phieuNhapHangConfig = {
+  tenMatHangField: "ten_mat_hang",
+  soLuongDeNghiField: "soLuongDeNghi",
+  soLuongDeNghiEditable: false,
+  showSoLuongDeNghi: false,
+  soLuongCheatTitle: "Số lượng",
+  soLuongCheatField: "so_luong",
+  showSoLuongCheat: true,
+  showMaKho: true,
+  maKhoRequired: false,
+  showMaLo: true,
+  showMaViTri: true,
+  showHanSuDung: true,
+  showDonHang: true,
+  maLoField: "ma_lo",
+  maViTriField: "ma_vi_tri",
+  hanSuDungField: "ngay_hh",
+  donHangField: "fcode2",
+  showThaoTac: false,
+};
+
 // Cấu hình cho phiếu nhặt hàng
 export const phieuNhatHangConfig = {
   showStt: false, 
@@ -103,6 +125,7 @@ export const phieuXuatKhoBanHangConfig = {
 export const getTableConfig = (type) => {
   const configs = {
     "nhap-kho": phieuNhapKhoConfig,
+    "nhap-hang": phieuNhapHangConfig,
     "nhat-hang": phieuNhatHangConfig,
     "xuat-kho": phieuXuatKhoConfig,
     "xuat-dieu-chuyen": phieuXuatDieuChuyenConfig,

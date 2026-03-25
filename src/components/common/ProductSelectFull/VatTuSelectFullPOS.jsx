@@ -248,7 +248,8 @@ const VatTuSelectFullPOS = ({
 
     // Process the barcode
     try {
-      const result = await handleVatTuSelect(barcodeValue);
+      const foundItem = vatTuList.find(i => i.value === barcodeValue || i.item?.sku === barcodeValue || i.item?.barcode === barcodeValue);
+      const result = await handleVatTuSelect(barcodeValue, { item: foundItem?.item || foundItem });
       if (result === false) {
         // Báo lỗi và clear input sau 2 giây
         message.error("Thông tin vật tư không hợp lệ!");
@@ -470,7 +471,7 @@ const VatTuSelectFullPOS = ({
                   disabled={!isEditMode || disableSearch || (isSearching && isWaitingForEnter)}
                 >
                   {vatTuList.map((item) => (
-                    <Select.Option key={item.value} value={item.value}>
+                    <Select.Option key={item.value} value={item.value} item={item}>
                       <div>
                         <div style={{ fontWeight: "bold" }}>{item.value}</div>
                         <div style={{ fontSize: "12px", color: "#666" }}>

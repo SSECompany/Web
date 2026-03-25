@@ -7,6 +7,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import CommonPhieuList from "../CommonPhieuList";
 import "../common-phieu.css";
 import { fetchPhieuNhatHangList } from "./utils/phieuNhatHangApi";
+import { formatDate, formatDateTime, formatDateForApi, formatDateForStorage } from "../../../../utils/dateUtils";
 
 const { RangePicker } = DatePicker;
 
@@ -161,8 +162,8 @@ const ListPhieuNhatHang = () => {
         dateRange:
           f.dateRange && f.dateRange.length === 2
             ? {
-                from: f.dateRange[0].format("YYYY-MM-DD"),
-                to: f.dateRange[1].format("YYYY-MM-DD"),
+                from: formatDateForStorage(f.dateRange[0]),
+                to: formatDateForStorage(f.dateRange[1]),
               }
             : null,
       };
@@ -276,11 +277,11 @@ const ListPhieuNhatHang = () => {
           so_ct: filtersToUse.so_ct || "",
           DateFrom:
             filtersToUse.dateRange && filtersToUse.dateRange.length === 2
-              ? filtersToUse.dateRange[0].format("MM/DD/YYYY")
+              ? formatDateForApi(filtersToUse.dateRange[0])
               : "",
           DateTo:
             filtersToUse.dateRange && filtersToUse.dateRange.length === 2
-              ? filtersToUse.dateRange[1].format("MM/DD/YYYY")
+              ? formatDateForApi(filtersToUse.dateRange[1])
               : "",
           ngay_ct: "",
           ma_kh: filtersToUse.ma_kh || "",
@@ -504,9 +505,7 @@ const ListPhieuNhatHang = () => {
       chips.push({
         key: "dateRange",
         label: "Ngày",
-        value: `${filters.dateRange[0].format(
-          "DD/MM/YYYY"
-        )} - ${filters.dateRange[1].format("DD/MM/YYYY")}`,
+        value: `${formatDate(filters.dateRange[0])} - ${formatDate(filters.dateRange[1])}`,
       });
     }
     return chips;
@@ -626,8 +625,8 @@ const ListPhieuNhatHang = () => {
               onChange={(dates) => {
                 if (dates && dates.length === 2) {
                   setSelectedKeys([
-                    dates[0].format("DD/MM/YYYY"),
-                    dates[1].format("DD/MM/YYYY"),
+                    formatDate(dates[0]),
+                    formatDate(dates[1]),
                   ]);
                 } else {
                   setSelectedKeys([]);
@@ -659,13 +658,13 @@ const ListPhieuNhatHang = () => {
         filteredValue:
           filters.dateRange && filters.dateRange.length === 2
             ? [
-                filters.dateRange[0].format("DD/MM/YYYY"),
-                filters.dateRange[1].format("DD/MM/YYYY"),
+                formatDate(filters.dateRange[0]),
+                formatDate(filters.dateRange[1]),
               ]
             : null,
         render: (text, record) => {
           const dateStr = text
-            ? dayjs(text).format(screenSize === "mobile" ? "DD/MM" : "DD/MM/YYYY")
+            ? formatDate(text, screenSize === "mobile" ? "DD/MM" : "DD/MM/YYYY")
             : "";
           const raw = record?.datetime0;
           let display = dateStr;
@@ -864,7 +863,7 @@ const ListPhieuNhatHang = () => {
             if (!text || text === null || text === "null" || text === "*")
               return null;
             try {
-              return dayjs(text).format("DD/MM/YYYY HH:mm");
+              return formatDateTime(text);
             } catch {
               return null;
             }

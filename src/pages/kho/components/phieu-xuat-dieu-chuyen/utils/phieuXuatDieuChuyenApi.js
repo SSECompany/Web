@@ -37,9 +37,7 @@ export const fetchPhieuXuatDieuChuyenList = async (params) => {
       response.data?.listObject?.dataLists?.pagination?.[0] || {};
 
     return {
-      data: responseData.filter(
-        (item) => item.status !== "*" && item.status !== null
-      ),
+      data: responseData,
       pagination: paginationData,
       success: true,
     };

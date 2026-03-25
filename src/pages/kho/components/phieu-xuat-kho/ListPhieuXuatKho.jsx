@@ -88,12 +88,8 @@ const ListPhieuXuatKho = () => {
       const paginationData =
         res.data?.listObject?.dataLists?.pagination?.[0] || {};
 
-      const filteredData = responseData.filter(
-        (item) => item.status !== "*" && item.status !== null
-      );
-
-      setAllData(filteredData);
-      setTotalRecords(paginationData.totalRecord || filteredData.length);
+      setAllData(responseData);
+      setTotalRecords(paginationData.totalRecord || responseData.length);
     } catch (err) {
       console.error("Lỗi gọi API danh sách phiếu xuất kho:", err);
     }

@@ -1,0 +1,181 @@
+/* ========== DETAIL PHIEU NHAP HANG - SYNC WITH KINH DOANH ========== */
+
+.detail-phieu-nhap-hang {
+  padding: 0;
+  background: #fff;
+  min-height: 100%;
+}
+
+.detail-phieu-nhap-hang__card {
+  background: #fff;
+  border-radius: 0;
+  box-shadow: none;
+  position: relative;
+}
+
+.detail-phieu-nhap-hang__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  position: sticky;
+  top: 0; 
+  z-index: 1001;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.detail-phieu-nhap-hang__body {
+  padding: 24px;
+  padding-bottom: 40px;
+}
+
+.detail-phieu-nhap-hang__section {
+  background: #f8f9fb;
+  --phieu-floating-label-bg: linear-gradient(to bottom, #f8f9fb 55%, #ffffff 45%);
+  border: 1px solid #eef2f7;
+  border-radius: 14px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+}
+
+/* Form inputs styling - sync with DetailPhieuKinhDoanh.css */
+.detail-phieu-nhap-hang__body .ant-form-item {
+  margin-bottom: 24px;
+}
+
+.detail-phieu-nhap-hang__body .ant-input,
+.detail-phieu-nhap-hang__body .ant-input-affix-wrapper,
+.detail-phieu-nhap-hang__body .ant-input-number,
+.detail-phieu-nhap-hang__body .ant-select-selector,
+.detail-phieu-nhap-hang__body .ant-picker,
+.detail-phieu-nhap-hang__body .ant-btn:not(.ant-btn-text):not(.ant-btn-sm) {
+  border-radius: 8px !important;
+  border-color: #d1d5db !important;
+  transition: all 0.2s;
+  font-size: 11px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.detail-phieu-nhap-hang__body textarea.ant-input {
+  border-radius: 8px !important;
+  border-color: #d1d5db !important;
+  transition: all 0.2s;
+  font-size: 11px !important;
+  min-height: 32px !important;
+  height: auto !important;
+  padding: 6px 11px !important;
+}
+
+/* Floating labels adjustments for 32px height */
+.detail-phieu-nhap-hang__body .phieu-form--floating .ant-form-item-label {
+  top: -8px;
+  height: 16px;
+  line-height: 16px;
+}
+
+.detail-phieu-nhap-hang__body .phieu-form--floating .ant-form-item-label > label {
+  font-size: 10px !important;
+  height: 16px !important;
+  line-height: 16px !important;
+}
+
+/* Status select minimal */
+.phieu-header-status-select.ant-select .ant-select-selector {
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  background: #fff !important;
+  height: 24px !important;
+  padding: 0 10px !important;
+  transition: all 0.2s !important;
+}
+
+.phieu-header-status-select.ant-select .ant-select-selection-item {
+  color: #262626 !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  line-height: 22px !important;
+}
+
+/* Disabled fields styling */
+.detail-phieu-nhap-hang__body .ant-input-disabled,
+.detail-phieu-nhap-hang__body .ant-input-number-disabled,
+.detail-phieu-nhap-hang__body .ant-select-disabled .ant-select-selector,
+.detail-phieu-nhap-hang__body .ant-picker-disabled {
+  background: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+  font-weight: 600;
+}
+
+/* Floating label bg sync for disabled fields */
+.detail-phieu-nhap-hang__section .ant-form-item:has(.ant-input-disabled) .ant-form-item-label,
+.detail-phieu-nhap-hang__section .ant-form-item:has(.ant-input-number-disabled) .ant-form-item-label,
+.detail-phieu-nhap-hang__section .ant-form-item:has(.ant-select-disabled) .ant-form-item-label,
+.detail-phieu-nhap-hang__section .ant-form-item:has(.ant-picker-disabled) .ant-form-item-label {
+  --phieu-floating-label-bg: linear-gradient(to bottom, #f8f9fb 55%, #e2e8f0 45%);
+}
+
+/* Premium Add Product Section */
+.detail-phieu-nhap-hang__add-product-section {
+    background: #fff !important;
+    padding: 12px 16px !important;
+    border-radius: 16px !important;
+    border: 1px solid #f0f0f0 !important;
+    margin-bottom: 20px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+}
+
+.detail-phieu-nhap-hang__add-product-section .section-title {
+    margin-bottom: 8px !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    color: #374151 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.detail-phieu-nhap-hang__add-product-section .section-title::before {
+    content: '' !important;
+    width: 3px !important;
+    height: 14px !important;
+    background: linear-gradient(to bottom, #6c63ff, #4f46e5) !important;
+    border-radius: 2px !important;
+}
+
+.phieu-table-toolbar .ant-btn {
+    color: #64748b !important;
+    transition: all 0.2s;
+}
+
+.phieu-table-toolbar .ant-btn:hover {
+    color: #4f46e5 !important;
+    background: #f1f5f9 !important;
+}
+
+/* Standardized edit button - sync with KD */
+.phieu-edit-button-kd {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  color: #1890ff !important;
+  transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1) !important;
+}
+
+.phieu-edit-button-kd:hover {
+  background-color: #e6f7ff !important;
+  transform: scale(1.05);
+}
+
+.phieu-edit-button-kd .anticon {
+  font-size: 20px !important;
+}

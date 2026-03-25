@@ -1,6 +1,7 @@
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Empty, Input, Select, Table, Spin, Checkbox, message } from "antd";
 import { useCallback, useMemo, useState, useRef, useEffect } from "react";
+import dayjs from "dayjs";
 import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
 import { validateQuantityInput } from "./utils/validation";
 
@@ -22,6 +23,9 @@ import { validateQuantityInput } from "./utils/validation";
 const VatTuTable = ({
   dataSource,
   isEditMode = true,
+  showMaKho = true,
+  maKhoRequired = false,
+  showMaLo = true,
   onQuantityChange,
   onDeleteItem,
   onDvtChange,
@@ -406,126 +410,53 @@ const VatTuTable = ({
         ]
         : []),
       {
-        title: "Ảnh",
-        dataIndex: "image",
-        key: "image",
-        width: 150,
+        title: "Mã hàng",
+        dataIndex: "maHang",
+        key: "ma_hang",
+        width: 100,
         align: "center",
         fixed: "left",
-        ellipsis: false,
-        render: (_, record) => {
-          if (record.isChild) return "";
-          const imageUrl = record.image || record.item?.image || "";
-          if (!imageUrl) return null;
-          const tenMatHang = record[columnConfig.tenMatHangField || "ten_mat_hang"] || record.maHang || "";
-          return (
-            <div style={{ display: "flex", justifyContent: "center", padding: "4px 0" }}>
-              <img
-                src={imageUrl}
-                alt={tenMatHang}
-                style={{
-                  width: 120,
-                  height: 120,
-                  objectFit: "cover",
-                  borderRadius: 6,
-                  border: "1px solid #e8e8e8",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                  cursor: "pointer",
-                }}
-                onError={(e) => {
-                  // Ẩn ảnh nếu lỗi load
-                  e.target.style.display = "none";
-                }}
-                onClick={() => {
-                  if (imageUrl) {
-                    window.open(imageUrl, "_blank");
-                  }
-                }}
-                title="Click để xem ảnh lớn"
-              />
-            </div>
-          );
-        },
+        render: (v) => <span style={{ fontWeight: 600 }}>{v}</span>
       },
       {
-        title: "Mặt hàng",
-        key: "mat_hang",
-        width: 200,
-        align: "center",
-        ellipsis: false,
-        render: (_, record) => {
-          if (record.isChild) return "";
-          const maHang = record.maHang || "";
-          const tenMatHang = record[columnConfig.tenMatHangField || "ten_mat_hang"] || "";
-          // Lấy mã vị trí và ĐVT từ record
-          const currentRecord = dataSource.find((item) => item.key === record.key) || record;
-          const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"] || "";
-          const dvt = currentRecord.dvt || "";
-
-          // Tích hợp thông tin tồn vào cột Mặt hàng nếu config yêu cầu
-          let stockInfo = null;
-          if (columnConfig.integrateStockInfoInMatHang) {
-            const soLuongTon = parseFloat(currentRecord[columnConfig.soLuongTonField || "so_luong_ton"] || 0);
-            const tonKh = parseFloat(currentRecord[columnConfig.tonKhField || "ton_kh"] || 0);
-            if (soLuongTon > 0 || tonKh > 0) {
-              stockInfo = `Tồn: ${formatQuantityDisplay(soLuongTon)} / Tồn khả dụng: ${formatQuantityDisplay(tonKh)}`;
-            }
-          }
-
-          return (
-            <div
-              style={{
-                fontSize: "13px",
-                lineHeight: "1.4",
-                fontWeight: 400,
-                color: "#333",
-                padding: "4px 0",
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontWeight: 400 }}>{`${maHang}${maHang && tenMatHang ? " - " : ""}${tenMatHang}`}</div>
-              {dvt && (
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    marginTop: "2px",
-                    fontWeight: 400,
-                  }}
-                >
-                  {dvt}
-                </div>
-              )}
-              {maViTri && (
-                <div
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: "#ff4d4f",
-                    marginTop: "6px",
-                    letterSpacing: "0.5px",
-                  }}
-                >
-                  {maViTri}
-                </div>
-              )}
-              {stockInfo && (
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#237804",
-                    marginTop: "4px",
-                    fontWeight: 500,
-                  }}
-                >
-                  {stockInfo}
-                </div>
-              )}
+        title: "Tên mặt hàng",
+        dataIndex: columnConfig.tenMatHangField || "ten_mat_hang",
+        key: "ten_mat_hang_separate",
+        width: 250,
+        align: "left",
+        render: (v, record) => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {record.image && <img src={record.image} alt="" style={{ width: 40, height: 40, borderRadius: 4, objectFit: 'cover' }} />}
+                <span className="vat-tu-table-cell-wrap" style={{ fontWeight: 400 }}>{v}</span>
             </div>
-          );
-        },
+        )
+      },
+      {
+        title: "Đvt",
+        dataIndex: "dvt",
+        key: "dvt",
+        width: 70,
+        align: "center",
+        render: (v, r) => renderDvtSelect(v, r)
       },
     ];
+
+    // Thêm cột mã kho sớm if needed (after Đvt)
+    if (columnConfig.showMaKho) {
+        baseColumns.push({
+            title: (
+                <span>
+            Mã kho {columnConfig.maKhoRequired !== false && <span style={{ color: "red" }}>*</span>}
+          </span>
+            ),
+            dataIndex: "ma_kho",
+            key: "ma_kho",
+            width: 120,
+            align: "center",
+            ellipsis: true,
+            render: renderMaKhoSelect,
+        });
+    }
 
     // Cột gộp Mã lô / Mã vị trí hoặc hai cột riêng
     if (columnConfig.combineMaLoViTri) {
@@ -637,6 +568,35 @@ const VatTuTable = ({
         },
       });
     } else {
+      // Thêm cột mã vị trí
+      if (columnConfig.showMaViTri) {
+        baseColumns.push({
+          title: "Mã vị trí",
+          dataIndex: columnConfig.maViTriField || "ma_vi_tri",
+          key: "ma_vi_tri",
+          width: 100,
+          align: "center",
+          ellipsis: true,
+          render: (value, record) => {
+            if (!isEditMode) {
+              return value;
+            }
+            return (
+              <Input
+                value={value}
+                onChange={(e) =>
+                  onSelectChange(e.target.value, record, "ma_vi_tri")
+                }
+                style={{ width: "100%", textAlign: "center" }}
+                className="vat-tu-table-input"
+                placeholder="Nhập mã vị trí"
+                size="small"
+              />
+            );
+          },
+        });
+      }
+
       // Thêm cột mã lô
       if (columnConfig.showMaLo) {
         baseColumns.push({
@@ -672,32 +632,14 @@ const VatTuTable = ({
         });
       }
 
-      // Thêm cột mã vị trí
-      if (columnConfig.showMaViTri) {
+      if (columnConfig.showHanSuDung) {
         baseColumns.push({
-          title: "Mã vị trí",
-          dataIndex: columnConfig.maViTriField || "ma_vi_tri",
-          key: "ma_vi_tri",
-          width: 100,
+          title: "Hạn sử dụng",
+          dataIndex: columnConfig.hanSuDungField || "ngay_hh",
+          key: "han_su_dung",
+          width: 120,
           align: "center",
-          ellipsis: true,
-          render: (value, record) => {
-            if (!isEditMode) {
-              return value;
-            }
-            return (
-              <Input
-                value={value}
-                onChange={(e) =>
-                  onSelectChange(e.target.value, record, "ma_vi_tri")
-                }
-                style={{ width: "100%", textAlign: "center" }}
-                className="vat-tu-table-input"
-                placeholder="Nhập mã vị trí"
-                size="small"
-              />
-            );
-          },
+          render: (v) => (v ? dayjs(v).format("DD/MM/YYYY") : ""),
         });
       }
     }
@@ -941,21 +883,29 @@ const VatTuTable = ({
     }
 
 
-    // Thêm cột mã kho nếu cần
-    if (columnConfig.showMaKho) {
-      baseColumns.push({
-        title: (
-          <span>
-            Mã kho <span style={{ color: "red" }}>*</span>
-          </span>
-        ),
-        dataIndex: "ma_kho",
-        key: "ma_kho",
-        width: 180,
-        align: "center",
-        ellipsis: true,
-        render: renderMaKhoSelect,
-      });
+
+
+
+    // Moved Mã kho logic is now above at line 444+
+
+    if (columnConfig.showDonHang) {
+        baseColumns.push({
+            title: "Đơn hàng",
+            dataIndex: columnConfig.donHangField || "fcode2",
+            key: "don_hang",
+            width: 120,
+            align: "center",
+            render: (v, record) => {
+                const poNum = (record.fcode2 || record.dh_so || "").trim();
+                const poDate = record.fdate1 ? dayjs(record.fdate1).format("DD/MM/YYYY") : "";
+                return (
+                    <div style={{ fontSize: '11px' }}>
+                        <div>{poNum}</div>
+                        {poDate && <div style={{ color: '#64748b' }}>{poDate}</div>}
+                    </div>
+                );
+            }
+        });
     }
 
     // Nếu cần, thêm cột ghi chú KD và ghi chú ở cuối trước khi thêm thao tác
@@ -1053,6 +1003,7 @@ const VatTuTable = ({
     columnConfig,
     renderQuantityInput,
     renderMaKhoSelect,
+    renderDvtSelect,
     onDeleteItem,
     isEditMode,
     otherProps,

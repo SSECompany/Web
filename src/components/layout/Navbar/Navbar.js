@@ -118,6 +118,8 @@ const Navbar = () => {
       "kho/giao-hang/them-moi",
       "kho/nhap-kho",
       "kho/nhap-kho/them-moi",
+      "kho/nhap-hang",
+      "kho/nhap-hang/them-moi",
       "kho/xuat-ban",
       // Các phiếu kho mới
       "kho/xuat-dieu-chuyen",
@@ -161,7 +163,11 @@ const Navbar = () => {
       currentPath.match(/^kho\/giao-hang\/chi-tiet\/[^/]+$/) || // Phiếu giao hàng detail route
       currentPath.match(/^kho\/giao-hang\/xu-ly\/[^/]+$/) || // Phiếu giao hàng xử lý route
       currentPath.match(/^kho\/giao-hang\/edit\/[^/]+$/) || // Phiếu giao hàng edit route
+      currentPath.match(/^kho\/nhap-kho\/chi-tiet\/edit\/[^/]+$/) || // Phiếu nhập kho edit
       currentPath.match(/^kho\/nhap-kho\/chi-tiet\/[^/]+$/) || // Legacy detail route
+      // Phiếu nhập hàng mới
+      currentPath.match(/^kho\/nhap-hang\/chi-tiet\/edit\/[^/]+$/) ||
+      currentPath.match(/^kho\/nhap-hang\/(chi-tiet|edit)\/[^/]+$/) ||
       // Phiếu xuất kho: cho phép chi tiết + edit
       currentPath.match(/^kho\/xuat-kho\/(chi-tiet|edit)\/[^/]+$/) ||
       // Phiếu xuất điều chuyển: cho phép chi tiết + edit

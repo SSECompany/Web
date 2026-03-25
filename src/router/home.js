@@ -11,6 +11,9 @@ import ProcessPhieuGiaoHang from "../pages/kho/components/phieu-giao-hang/Proces
 import ListPhieuNhapKho from "../pages/kho/components/phieu-nhap-kho/ListPhieuNhapKho";
 import AddPhieuNhapKho from "../pages/kho/components/phieu-nhap-kho/AddPhieuNhapKho";
 import DetailPhieuNhapKho from "../pages/kho/components/phieu-nhap-kho/DetailPhieuNhapKho";
+import ListPhieuNhapHang from "../pages/kho/components/phieu-nhap-hang/ListPhieuNhapHang";
+import AddPhieuNhapHang from "../pages/kho/components/phieu-nhap-hang/AddPhieuNhapHang";
+import DetailPhieuNhapHang from "../pages/kho/components/phieu-nhap-hang/DetailPhieuNhapHang";
 // Pages
 const Login = lazy(() => import("../pages/Login/Login"));
 // ===== BÁN HÀNG & TRẢ HÀNG IMPORTS DISABLED IN BRANCH 08012026_kho =====
@@ -116,6 +119,31 @@ const protectedChildrenRoutes = [
     element: <ListPhieuNhatHang />,
   },
   {
+    label: "Danh sách phiếu nhập hàng theo đơn",
+    path: "kho/nhap-hang",
+    element: <ListPhieuNhapHang />,
+  },
+  {
+    label: "Thêm mới phiếu nhập hàng",
+    path: "kho/nhap-hang/them-moi",
+    element: <AddPhieuNhapHang />,
+  },
+  {
+    label: "Chi tiết phiếu nhập hàng",
+    path: "kho/nhap-hang/chi-tiet/:stt_rec",
+    element: <DetailPhieuNhapHang />,
+  },
+  {
+    label: "Chỉnh sửa phiếu nhập hàng",
+    path: "kho/nhap-hang/chi-tiet/edit/:stt_rec",
+    element: <DetailPhieuNhapHang isEditMode={true} />,
+  },
+  {
+    label: "Chỉnh sửa phiếu nhập hàng",
+    path: "kho/nhap-hang/edit/:stt_rec",
+    element: <DetailPhieuNhapHang isEditMode={true} />,
+  },
+  {
     label: "Danh sách phiếu giao hàng",
     path: "kho/giao-hang",
     element: <ListPhieuGiaoHang />,
@@ -124,6 +152,16 @@ const protectedChildrenRoutes = [
     label: "Danh sách phiếu nhập kho",
     path: "kho/nhap-kho",
     element: <ListPhieuNhapKho />,
+  },
+  {
+    label: "Thêm phiếu nhập kho",
+    path: "kho/nhap-kho/them-moi",
+    element: <AddPhieuNhapKho />,
+  },
+  {
+    label: "Chi tiết phiếu nhập kho",
+    path: "kho/nhap-kho/chi-tiet/:stt_rec",
+    element: <DetailPhieuNhapKho />,
   },
 
   // Default route - chỉ redirect khi path là "/" (redirect to Kho instead of ban-hang)
@@ -148,16 +186,6 @@ const protectedChildrenRoutes = [
     label: "Chi tiết phiếu giao hàng",
     path: "kho/giao-hang/chi-tiet/:id",
     element: <DetailPhieuGiaoHang />,
-  },
-  {
-    label: "Thêm phiếu nhập kho",
-    path: "kho/nhap-kho/them-moi",
-    element: <AddPhieuNhapKho />,
-  },
-  {
-    label: "Chi tiết phiếu nhập kho",
-    path: "kho/nhap-kho/chi-tiet/:id",
-    element: <DetailPhieuNhapKho />,
   },
   {
     label: "Xử lý phiếu giao hàng",

@@ -63,7 +63,7 @@ const ListPhieuKinhDoanh = () => {
                     parsed.dateRange = parsed.dateRange.map(d => d ? dayjs(d) : null);
                 }
                 if (!parsed.status) {
-                    parsed.status = ["0", "1", "2"];
+                    parsed.status = ["0", "1", "2", "3", "4", "5", "6", "9"];
                 }
                 return parsed;
             }
@@ -75,7 +75,7 @@ const ListPhieuKinhDoanh = () => {
             ten_nvbh: "",
             kw_nguoi_tao: "",
             dateRange: null,
-            status: ["0", "1", "2"],
+            status: ["0", "1", "2", "3", "4", "5", "6", "9"],
         };
     };
 
@@ -200,7 +200,7 @@ const ListPhieuKinhDoanh = () => {
             ten_nvbh: "",
             kw_nguoi_tao: "",
             dateRange: null,
-            status: ["0", "1", "2"],
+            status: ["0", "1", "2", "3", "4", "5", "6", "9"],
         };
         // Xóa cả trong sessionStorage
         try { sessionStorage.removeItem(FILTER_STORAGE_KEY); } catch (e) { console.error(e); }

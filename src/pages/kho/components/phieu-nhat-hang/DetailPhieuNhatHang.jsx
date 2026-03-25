@@ -25,6 +25,7 @@ import {
   updatePhieuNhatHang,
   huyPhieuNhatHang,
 } from "./utils/phieuNhatHangApi";
+import { formatDate, formatDateTime } from "../../../../utils/dateUtils";
 import {
   buildPhieuNhatHangPayload,
   deletePhieuNhatHangDynamic,
@@ -182,10 +183,10 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               // Map bat_dau_nhat_hang and nhat_hang_xong
               batDauNhatHang: isEmptyDate(phieuInfo.bat_dau_nhat_hang)
                 ? ""
-                : dayjs(phieuInfo.bat_dau_nhat_hang).format("DD/MM/YYYY HH:mm"),
+                : formatDateTime(phieuInfo.bat_dau_nhat_hang),
               ketThucNhatHang: isEmptyDate(phieuInfo.nhat_hang_xong)
                 ? ""
-                : dayjs(phieuInfo.nhat_hang_xong).format("DD/MM/YYYY HH:mm"),
+                : formatDateTime(phieuInfo.nhat_hang_xong),
             };
 
             // Process vật tư list - DYNAMIC: Giữ nguyên TẤT CẢ trường từ API
@@ -288,7 +289,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         // Format label: ma_lo-ngay_hhsd nếu có ngay_hhsd
         let label = value;
         if (x?.ngay_hhsd) {
-          const ngayHHSD = dayjs(x.ngay_hhsd).format("DD/MM/YYYY");
+          const ngayHHSD = formatDate(x.ngay_hhsd);
           label = `${value}-${ngayHHSD}`;
         } else {
           label = x?.ma_lo || x?.ten_lo || x?.label || value;
@@ -578,10 +579,10 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             "",
           // Map bat_dau_nhat_hang and nhat_hang_xong
           batDauNhatHang: result.master.bat_dau_nhat_hang
-            ? dayjs(result.master.bat_dau_nhat_hang).format("DD/MM/YYYY HH:mm")
+            ? formatDateTime(result.master.bat_dau_nhat_hang)
             : "",
           ketThucNhatHang: result.master.nhat_hang_xong
-            ? dayjs(result.master.nhat_hang_xong).format("DD/MM/YYYY HH:mm")
+            ? formatDateTime(result.master.nhat_hang_xong)
             : "",
         };
 

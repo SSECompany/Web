@@ -43,26 +43,31 @@ const CommonPhieuList = ({
           </Title>
         </div>
 
-        <Col flex={1} style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", zIndex: 1 }}>
-          {(onAdd || extraButtons) && (
-            extraButtons ? (
-              <span style={{ display: "inline-flex", alignItems: "center" }}>
-                {extraButtons}
-              </span>
-            ) : (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={onAdd}
-                className="phieu-add-button"
-              >
-                {addLabel}
-              </Button>
-            )
+        <Col flex={1} style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", zIndex: 1, gap: 8 }}>
+          {onAdd && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={onAdd}
+              className="phieu-add-button"
+            >
+              {addLabel}
+            </Button>
+          )}
+          {extraButtons && (
+            <span style={{ display: "inline-flex", alignItems: "center" }}>
+              {extraButtons}
+            </span>
           )}
         </Col>
       </Row>
       {extraHeader}
+      {/* Dynamic toolbar area under extraHeader */}
+      {tableProps.toolbar && (
+        <div className="phieu-table-toolbar" style={{ padding: '0 24px 12px 24px', display: 'flex', justifyContent: 'flex-start' }}>
+          {tableProps.toolbar}
+        </div>
+      )}
       <div className="phieu-table-container">
         <Table
           columns={columns.map((col) => ({

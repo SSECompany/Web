@@ -1,8 +1,9 @@
 import { LeftOutlined } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { formatDate } from "../../../../utils/dateUtils";
 import VatTuSelectFull from "../../../../components/common/ProductSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
@@ -61,36 +62,7 @@ const AddPhieuXuatDieuChuyen = () => {
 
   const token = localStorage.getItem("access_token");
 
-  useEffect(() => {
-    fetchMaGiaoDichList();
-    fetchMaKhoList();
-    fetchVatTuList();
-    fetchVoucherInfo();
-
-    form.setFieldsValue({
-      ngay: dayjs(),
-      trangThai: "3",
-      maGiaoDich: "3",
-    });
-  }, [fetchMaGiaoDichList, fetchMaKhoList, fetchVatTuList, fetchVoucherInfo, form]);
-
-  useEffect(() => {
-    if (barcodeJustEnabled && vatTuSelectRef.current) {
-      vatTuSelectRef.current.focus();
-      setBarcodeJustEnabled(false);
-    }
-  }, [barcodeJustEnabled]);
-
-  useEffect(() => {
-    const searchTimeout = searchTimeoutRef.current;
-    return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
-    };
-  }, []);
-
-  const fetchVoucherInfo = async () => {
+  const fetchVoucherInfo = useCallback(async () => {
     try {
       const response = await https.get(
         "v1/web/thong-tin-phieu-nhap",
@@ -120,7 +92,7 @@ const AddPhieuXuatDieuChuyen = () => {
     } catch (error) {
       console.error("Error fetching voucher info:", error);
     }
-  };
+  }, [form, token]);
 
   const handleVatTuSelect = async (value) => {
     await vatTuSelectHandler(
@@ -135,7 +107,7 @@ const AddPhieuXuatDieuChuyen = () => {
     );
   };
 
-  const fetchVatTuList = async (
+  const fetchVatTuList = useCallback(async (
     keyword = "",
     page = 1,
     append = false,
@@ -174,7 +146,36 @@ const AddPhieuXuatDieuChuyen = () => {
     } finally {
       setLoadingVatTu(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchMaGiaoDichList();
+    fetchMaKhoList();
+    fetchVatTuList();
+    fetchVoucherInfo();
+
+    form.setFieldsValue({
+      ngay: dayjs(),
+      trangThai: "3",
+      maGiaoDich: "3",
+    });
+  }, [fetchMaGiaoDichList, fetchMaKhoList, fetchVatTuList, fetchVoucherInfo, form]);
+
+  useEffect(() => {
+    if (barcodeJustEnabled && vatTuSelectRef.current) {
+      vatTuSelectRef.current.focus();
+      setBarcodeJustEnabled(false);
+    }
+  }, [barcodeJustEnabled]);
+
+  useEffect(() => {
+    const searchTimeout = searchTimeoutRef.current;
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, []);
 
   // Phân trang vật tư
   const fetchVatTuListPaging = async (
@@ -239,8 +240,7 @@ const AddPhieuXuatDieuChuyen = () => {
 
             if (isSuccess) {
               message.success("Tạo phiếu xuất điều chuyển thành công");
-              // Dùng window.location để tránh route matching issues
-              window.location.href = "/kho/xuat-dieu-chuyen";
+              navigate("/kho/xuat-dieu-chuyen");
             } else {
               const serverMsg =
                 response.data?.responseModel?.message || response.data?.message;

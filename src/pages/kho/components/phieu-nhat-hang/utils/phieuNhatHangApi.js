@@ -41,9 +41,7 @@ export const fetchPhieuNhatHangList = async (params) => {
     const paginationData = response?.listObject?.[1]?.[0] || {};
 
     return {
-      data: responseData.filter(
-        (item) => item.status !== "*" && item.status !== null
-      ),
+      data: responseData,
       pagination: paginationData,
       success: true,
     };

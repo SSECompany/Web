@@ -3,10 +3,8 @@ import { Col, DatePicker, Form, Input, Row, Select } from "antd";
 
 // Constants
 const TRANG_THAI_OPTIONS = [
-  { value: "0", label: "Lập chứng từ" },
-  { value: "2", label: "Nhập kho" },
-  { value: "3", label: "Chuyển số cái" },
-  { value: "5", label: "Đề nghị nhập kho" },
+  { value: "2", label: "2. Chuyển vào SC" },
+  { value: "3", label: "3. Nhập kho" },
 ];
 
 const PhieuFormInputs = memo(({
@@ -56,6 +54,22 @@ const PhieuFormInputs = memo(({
         ngay: 'ngay',
         maGiaoDich: 'maGiaoDich',
         trangThai: 'trangThai',
+      },
+      'nhap-hang': {
+        maKhach: "maKhach",
+        soPhieu: "soPhieu",
+        dienGiai: "dienGiai",
+        ngay: "ngay",
+        maGiaoDich: "maGiaoDich",
+        trangThai: "trangThai",
+        soDonHang: "soDonHang",
+        nguoiGiaoHang: "nguoiGiaoHang",
+        maKho: "maKho",
+        ngayDonHang: "ngayDonHang",
+        ma_nv_mua: "ma_nv_mua",
+        ngayHachToan: "ngayHachToan",
+        maNT: "maNT",
+        tyGia: "tyGia",
       },
       'xuat-kho': {
         maKhach: 'ma_kh',
@@ -151,7 +165,7 @@ const PhieuFormInputs = memo(({
       <Col span={12}>
         <Form.Item
           name={fieldNames.maKhach}
-          label="Mã khách"
+          label="Mã ncc"
           rules={[{ required: true, message: "Vui lòng chọn mã khách" }]}
         >
           <Select
@@ -185,6 +199,132 @@ const PhieuFormInputs = memo(({
     }));
   }, [maGiaoDichList]);
 
+  // Layout đặc thù cho Phiếu nhập hàng theo đơn - MATCH HOÀN TOÀN ẢNH SSE
+  if (formType === 'nhap-hang') {
+    return (
+      <div className="phieu-form-rows">
+        {/* Hidden fields for auto-generated values */}
+        <Form.Item name={fieldNames.soPhieu} noStyle><Input type="hidden" /></Form.Item>
+        <Form.Item name={fieldNames.soDonHang} noStyle><Input type="hidden" /></Form.Item>
+        <Form.Item name={fieldNames.ngayDonHang} noStyle><Input type="hidden" /></Form.Item>
+
+        {/* Hàng 1: Mã ncc */}
+        <Row gutter={24}>
+          <Col span={24}>
+            <Row gutter={8}>
+                <Col span={4}>
+                    <Form.Item
+                        name={fieldNames.maKhach}
+                        label="Mã ncc"
+                        rules={[{ required: true, message: "Vui lòng chọn nhà cung cấp" }]}
+                    >
+                    <Select
+                        showSearch
+                        allowClear
+                        placeholder="Mã"
+                        loading={loadingMaKhach}
+                        filterOption={false}
+                        onSearch={fetchMaKhachListDebounced}
+                        onOpenChange={(open) => {
+                        if (open && fetchMaKhachList) {
+                            fetchMaKhachList("");
+                        }
+                        }}
+                        options={maKhachList}
+                        classNames={{ popup: { root: "phieu-form-dropdown" } }}
+                        optionLabelProp="value"
+                        disabled={!isEditMode}
+                        popupMatchSelectWidth={false}
+                    />
+                    </Form.Item>
+                </Col>
+                <Col span={20}>
+                    <Form.Item label="&nbsp;" shouldUpdate={(prevValues, currentValues) => prevValues.maKhach !== currentValues.maKhach || prevValues.tenKhach !== currentValues.tenKhach}>
+                        {({ getFieldValue }) => {
+                            const currentVal = getFieldValue(fieldNames.maKhach);
+                            const option = maKhachList.find(o => o.value === currentVal);
+                            const name = option ? (option.label.split(' - ')[1] || "") : (getFieldValue('tenKhach') || "");
+                            return <Input value={name} disabled placeholder="Tên nhà cung cấp" />;
+                        }}
+                    </Form.Item>
+                </Col>
+            </Row>
+          </Col>
+        </Row>
+
+        {/* Hàng 2: Người giao hàng | Ngày lập */}
+        <Row gutter={24}>
+          <Col span={16}>
+            <Form.Item name={fieldNames.nguoiGiaoHang} label="Người giao hàng">
+              <Input placeholder="Nhập người giao hàng" disabled={!isEditMode} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name={fieldNames.ngay}
+              label="Ngày lập"
+              rules={[{ required: true, message: "Chọn ngày lập" }]}
+            >
+              <DatePicker
+                style={{ width: "100%" }}
+                format="DD/MM/YYYY"
+                disabled={!isEditMode}
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        {/* Hàng 3: Diễn giải | Ngày hạch toán */}
+        <Row gutter={24}>
+          <Col span={16}>
+            <Form.Item name={fieldNames.dienGiai} label="Diễn giải">
+              <Input placeholder="Nhập diễn giải" disabled={!isEditMode} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name={fieldNames.ngayHachToan}
+              label="Ngày hạch toán"
+              rules={[{ required: true, message: "Chọn ngày hạch toán" }]}
+            >
+              <DatePicker
+                style={{ width: "100%" }}
+                format="DD/MM/YYYY"
+                disabled={!isEditMode}
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+
+
+
+        {/* Hàng 5: Nhân viên mua */}
+        <Row gutter={24}>
+          <Col span={16}>
+            <Form.Item name={fieldNames.ma_nv_mua} label="Nhân viên mua">
+              <Input placeholder="Nhân viên mua" disabled={!isEditMode} />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        {/* Vật tư select component (giữ nguyên ở dưới) */}
+        {isEditMode && VatTuSelectComponent && (
+          <Row gutter={16} style={{ marginTop: 24 }}>
+            <Col span={24}>
+              <Form.Item label="Tìm quét vật tư nhập hàng">
+                <VatTuSelectComponent
+                  isEditMode={isEditMode}
+                  {...vatTuProps}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        )}
+      </div>
+    );
+  }
+
+  // Layout mặc định cho các loại phiếu khác
   return (
     <>
       {/* Row 1: Mã khách/kho và Số phiếu */}
@@ -202,6 +342,32 @@ const PhieuFormInputs = memo(({
           </Col>
         )}
       </Row>
+
+      {/* Row extra: Số đơn hàng (PO) for nhap-hang (đã xử lý ở trên nhưng giữ lại cho tương thích nếu config sai) */}
+      {formType === 'nhap-hang' && (
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name={fieldNames.soDonHang}
+              label={
+                <span>
+                  Số đơn hàng (PO) <span style={{ color: '#8c8c8c', fontSize: '12px', fontWeight: 'normal' }}>(Nhấn Enter để lấy dữ liệu)</span>
+                </span>
+              }
+            >
+              <Input 
+                placeholder="Nhập số đơn hàng mua (PO)" 
+                disabled={!isEditMode}
+                onPressEnter={(e) => {
+                  if (selectHandlers.onPoSearch) {
+                    selectHandlers.onPoSearch(e.target.value);
+                  }
+                }}
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+      )}
 
       {/* Row 2: Diễn giải và Ngày lập (hoặc Số phiếu cho xuất điều chuyển) */}
       <Row gutter={16}>

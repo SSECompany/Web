@@ -103,12 +103,8 @@ const ListPhieuYeuCauKiemKe = () => {
         paginationData = Array.isArray(listObj[1]) ? listObj[1]?.[0] || {} : {};
       }
 
-      const filteredData = responseData.filter(
-        (item) => item.status !== "*" && item.status !== null
-      );
-
-      setAllData(filteredData);
-      setTotalRecords(paginationData.totalRecord || filteredData.length);
+      setAllData(responseData);
+      setTotalRecords(paginationData.totalRecord || responseData.length);
     } catch (err) {
       console.error("Lỗi gọi API danh sách phiếu yêu cầu kiểm kê:", err);
     }
