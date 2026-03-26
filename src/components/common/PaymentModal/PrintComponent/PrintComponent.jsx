@@ -256,7 +256,7 @@ const PrintComponent = forwardRef(
                           color: "#000",
                         }}
                       >
-                        {formatNumber(item?.don_gia) || "0"}đ
+                        {formatNumber(item?.listPrice || item?.don_gia) || "0"}đ
                       </td>
                       <td
                         style={{
@@ -266,7 +266,7 @@ const PrintComponent = forwardRef(
                           color: "#000",
                         }}
                       >
-                        {formatNumber(item?.thanh_tien) || "0"}đ
+                        {formatNumber(item?.thanh_tien_list || item?.thanh_tien) || "0"}đ
                       </td>
                     </tr>
 

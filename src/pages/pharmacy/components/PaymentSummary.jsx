@@ -15,6 +15,7 @@ import {
   multipleTablePutApi,
   keyFileUploadsM81,
   updateDonThuocQGSoldQuantity,
+  exportToEInvoice,
 } from "../../../api";
 import PaymentModal from "../../../components/common/PaymentModal/PaymentModal";
 import PrintComponent from "../../../components/common/PaymentModal/PrintComponent/PrintComponent";
@@ -248,7 +249,9 @@ const PaymentSummary = ({
         ma_vt: item.sku,
         so_luong: (item.qty || 0).toString(),
         don_gia: (item.price || 0).toString(),
-        thanh_tien: ((item.qty || 0) * (item.price || 0)).toString(),
+        listPrice: item.listPrice || 0,
+        thanh_tien: (item.thanh_tien || (item.qty || 0) * (item.price || 0)).toString(),
+        thanh_tien_list: (item.thanh_tien_sau_vat || (item.qty || 0) * (item.listPrice || 0)).toString(),
         ghi_chu: item.instructions || item.ghi_chu || "",  // Thêm dòng này: lấy từ instructions
         uniqueid,
         ap_voucher: item.ap_voucher || "0",
@@ -261,7 +264,7 @@ const PaymentSummary = ({
         ma_lo: (item.batchExpiry || "").trim(),
         // Các field Đơn thuốc QG cần có; nếu không áp dụng thì để rỗng / 0
         ma_vt_dtqg: "",
-        ten_vt_dtqg: "",
+        ten_vt_dtqg: (item.ten_vt_dtqg || "").trim(),
         so_luong_dtqg: "0",
         lieu_dung: "",
         biet_duoc: "",
@@ -411,7 +414,7 @@ const PaymentSummary = ({
     onClearCart();
   };
 
-  let hasPrinted = false;
+  const hasPrintedRef = useRef(false);
 
   const handlePrint = useReactToPrint({
     content: () => {
@@ -420,8 +423,8 @@ const PaymentSummary = ({
     documentTitle: "Print This Document",
     copyStyles: false,
     onAfterPrint: () => {
-      if (!hasPrinted) {
-        hasPrinted = true;
+      if (!hasPrintedRef.current) {
+        hasPrintedRef.current = true;
         setIsPrinting(false);
         // Bỏ logic in lại, chỉ đóng luôn
         setTimeout(() => handleSaveOrder(), 100);
@@ -431,10 +434,10 @@ const PaymentSummary = ({
 
   useEffect(() => {
     if (isPrinting && !isPrinted) {
-      hasPrinted = false;
+      hasPrintedRef.current = false;
       handlePrint();
     }
-  }, [printMaster, printDetail, isPrinting, isPrinted]);
+  }, [printMaster, printDetail, isPrinting, isPrinted, handlePrint]);
 
   // Allow external trigger to open payment modal (e.g., from order list approve)
   useEffect(() => {
@@ -566,6 +569,29 @@ const PaymentSummary = ({
             : "Thanh toán đơn hàng mới thành công!",
           duration: 4,
         });
+
+        // Tự động xuất hóa đơn điện tử khi thanh toán thành công (status=2) và người dùng có chọn tích "Phát hành HĐĐT"
+        if (sttRec && sync) {
+          try {
+            const eInvoiceResult = await exportToEInvoice(sttRec);
+            if (eInvoiceResult?.success || eInvoiceResult?.isSucceeded || eInvoiceResult?.isSucceded) {
+              notification.success({
+                message: "Xuất hóa đơn điện tử thành công!",
+                duration: 3,
+              });
+            } else {
+              if (eInvoiceResult?.message) {
+                notification.warning({
+                  message: "Lỗi xuất hóa đơn điện tử",
+                  description: eInvoiceResult.message,
+                  duration: 5,
+                });
+              }
+            }
+          } catch (eInvError) {
+            console.error("Lỗi khi call api exportToEInvoice:", eInvError);
+          }
+        }
 
         await updateNationalPrescriptionSale(sttRec);
       } else {

@@ -139,46 +139,13 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
   };
 
   const recomputeLineTotals = (index, record, overrides = {}) => {
-    const price = Number(
-      overrides.price !== undefined ? overrides.price : record.price || 0
-    );
-    const qtySource =
-      overrides.qty !== undefined ? overrides.qty : record.qty || 1;
-    const parsedQty = Number(qtySource);
-    const qty = Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 1;
-    const discountPercentNum = Number(
-      overrides.discountPercent !== undefined
-        ? overrides.discountPercent
-        : record.discountPercent || 0
-    );
-    let discountAmountValue = Number(
-      overrides.discountAmount !== undefined
-        ? overrides.discountAmount
-        : record.discountAmount || 0
-    );
-    const newTotal = Math.max(0, Math.round(price * qty));
-
-    if (discountPercentNum > 0) {
-      const recalculatedDiscount = Math.round(
-        (newTotal * discountPercentNum) / 100
-      );
-      if (discountAmountValue !== recalculatedDiscount) {
-        updateLine(index, "discountAmount", recalculatedDiscount);
-      }
-      discountAmountValue = recalculatedDiscount;
-    } else {
-      const cappedManualDiscount = Math.min(discountAmountValue, newTotal);
-      if (discountAmountValue !== cappedManualDiscount) {
-        updateLine(index, "discountAmount", cappedManualDiscount);
-      }
-      discountAmountValue = cappedManualDiscount;
-    }
-
-    const totalAfterDiscount = Math.max(
-      0,
-      newTotal - Math.round(discountAmountValue)
-    );
-
+    const listPrice = Number(overrides.listPrice !== undefined ? overrides.listPrice : record.listPrice || 0);
+    const qty = Number(overrides.qty !== undefined ? overrides.qty : record.qty || 1);
+    
+    // 1. TIỀN SAU VAT (TỔNG TIỀN TRÊN UI) = Số lượng * Giá niêm yết
+    const totalAfterVAT = Math.round(listPrice * qty);
+    
+    // 2. Get VAT %
     let effectiveVatPercent = Number(
       overrides.thue_suat !== undefined
         ? overrides.thue_suat
@@ -207,12 +174,73 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       }
     }
 
-    const recomputedVat = Math.round(
-      (totalAfterDiscount * Math.max(0, effectiveVatPercent)) / 100
+    // 3. TIỀN TRƯỚC V (TÍNH NHƯ ERP) = round(Tiền sau VAT / (1 + VAT%), 0)
+    const totalBeforeVAT = Math.round(totalAfterVAT / (1 + effectiveVatPercent / 100));
+    
+    // 4. TIỀN VAT = Tiền sau VAT - Tiền trước V
+    const vatAmountTotal = totalAfterVAT - totalBeforeVAT;
+    
+    // 5. GIÁ trước V = round(Giá niêm yết / (1 + VAT%), 0)
+    const priceBeforeVAT = Math.round(listPrice / (1 + effectiveVatPercent / 100));
+
+    // Update record with these ERP-calculated values
+    updateLine(index, "price", priceBeforeVAT);
+    updateLine(index, "thanh_tien", totalBeforeVAT); // Lưu lại Tiền trước V để ERP ko tính lại sai
+    updateLine(index, "thue_nt", vatAmountTotal);
+    updateLine(index, "thanh_tien_sau_vat", totalAfterVAT); // Cột ảo cần view
+
+    const discountPercentNum = parseFloat(
+      overrides.discountPercent !== undefined
+        ? overrides.discountPercent
+        : record.discountPercent || 0
     );
-    if (Number(record.thue_nt) !== recomputedVat) {
-      updateLine(index, "thue_nt", recomputedVat);
+    let discountAmountValue = Number(
+      overrides.discountAmount !== undefined
+        ? overrides.discountAmount
+        : record.discountAmount || 0
+    );
+
+    // Xử lý Chiết khấu dựa trên Tiền sau VAT
+    if (discountPercentNum > 0) {
+      const calculatedDiscount = Math.round(
+        (totalAfterVAT * discountPercentNum) / 100
+      );
+      if (discountAmountValue !== calculatedDiscount) {
+        updateLine(index, "discountAmount", calculatedDiscount);
+      }
+      discountAmountValue = calculatedDiscount;
+    } else {
+      const cappedManualDiscount = Math.min(discountAmountValue, totalAfterVAT);
+      if (discountAmountValue !== cappedManualDiscount) {
+        updateLine(index, "discountAmount", cappedManualDiscount);
+      }
+      discountAmountValue = cappedManualDiscount;
     }
+
+    // CÒN LẠI = Tiền sau VAT - Chiết khấu
+    const remainingValue = Math.max(0, totalAfterVAT - discountAmountValue);
+    updateLine(index, "remaining", remainingValue);
+  };
+
+  const handleListPriceChange = (index, record, nextListPrice) => {
+    const safeListPrice = Number(nextListPrice) || 0;
+    updateLine(index, "listPrice", safeListPrice);
+
+    // Calculate base price backwards from listPrice and VAT %
+    let effectiveVatPercent = 0;
+    if (Number(record.thue_suat) > 0) {
+      effectiveVatPercent = Number(record.thue_suat) || 0;
+    } else if (Number(record.vatPercent) > 0) {
+      effectiveVatPercent = Number(record.vatPercent) || 0;
+    }
+
+    const basePrice = Number((safeListPrice / (1 + effectiveVatPercent / 100)).toFixed(2));
+    updateLine(index, "price", basePrice);
+    // Explicitly pass both new values to recomputeLineTotals to avoid using stale record data
+    recomputeLineTotals(index, record, { 
+      listPrice: safeListPrice, 
+      price: basePrice 
+    });
   };
 
   const handleQtyChange = (index, record, nextQtyRaw) => {
@@ -225,7 +253,21 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
   const handlePriceChange = (index, record, nextPrice) => {
     const safePrice = Number(nextPrice) || 0;
     updateLine(index, "price", safePrice);
-    recomputeLineTotals(index, record, { price: safePrice });
+
+    // Update listPrice forwards: listPrice = price * (1 + vat%)
+    let effectiveVatPercent = 0;
+    if (Number(record.thue_suat) > 0) {
+      effectiveVatPercent = Number(record.thue_suat) || 0;
+    } else if (Number(record.vatPercent) > 0) {
+      effectiveVatPercent = Number(record.vatPercent) || 0;
+    }
+    const listPrice = Number((safePrice * (1 + effectiveVatPercent / 100)).toFixed(2));
+    updateLine(index, "listPrice", listPrice);
+
+    recomputeLineTotals(index, record, { 
+      price: safePrice,
+      listPrice: listPrice
+    });
   };
 
   const columns = [
@@ -254,15 +296,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
     },
     {
       title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
+        <span className="column-title">
           STT
         </span>
       ),
@@ -273,73 +307,8 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
     },
     {
       title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          ẢNH
-        </span>
-      ),
-      dataIndex: "image",
-      key: "image",
-      width: 140,
-      align: "center",
-      render: (_text, record) => {
-        const imageUrl = record.image || record.item?.image || "";
-        if (!imageUrl) return null;
-        const alt = record.name || record.sku || "";
-        return (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              padding: "4px 0",
-            }}
-          >
-            <img
-              src={imageUrl}
-              alt={alt}
-              style={{
-                width: 90,
-                height: 90,
-                objectFit: "cover",
-                borderRadius: 6,
-                border: "1px solid #e8e8e8",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                cursor: "pointer",
-              }}
-              onError={(e) => {
-                e.target.style.display = "none";
-              }}
-              onClick={() => {
-                if (imageUrl) {
-                  window.open(imageUrl, "_blank");
-                }
-              }}
-              title="Click để xem ảnh lớn"
-            />
-          </div>
-        );
-      },
-    },
-    {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          TÊN SẢN PHẨM
+        <span className="column-title">
+          Tên sản phẩm
         </span>
       ),
       dataIndex: "name",
@@ -381,6 +350,11 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
                     {record.ma_kho}
                   </Tag>
                 )}
+                {record.ton13 !== undefined && (
+                  <Tag color="orange" style={{ marginLeft: "4px", fontSize: "12px", border: "none", fontWeight: "600" }}>
+                    Tồn: {record.ton13}
+                  </Tag>
+                )}
               </div>
             </div>
           </div>
@@ -389,15 +363,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
     },
     {
       title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
+        <span className="column-title">
           ĐVT
         </span>
       ),
@@ -472,16 +438,8 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
     },
     {
       title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          SỐ LÔ/HẠN DÙNG
+        <span className="column-title">
+          Số lô/Hạn dùng
         </span>
       ),
       dataIndex: "batchExpiry",
@@ -532,19 +490,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       },
     },
     {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          SỐ LƯỢNG
-        </span>
-      ),
+      title: <span className="column-title">Số lượng</span>,
       dataIndex: "qty",
       key: "qty",
       width: 120,
@@ -574,25 +520,13 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       ),
     },
     {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          GIÁ BÁN
-        </span>
-      ),
-      dataIndex: "price",
-      key: "price",
+      title: <span className="column-title">Giá niêm yết</span>,
+      dataIndex: "listPrice",
+      key: "listPrice",
       width: 140,
-      render: (price, record, index) => (
+      render: (listPrice, record, index) => (
         <InputNumber
-          value={price || 0}
+          value={listPrice || 0}
           min={0}
           size="small"
           className="detail-input-number"
@@ -600,120 +534,50 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
             `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
           }
           parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-          onChange={(value) => handlePriceChange(index, record, value)}
+          onChange={(value) => handleListPriceChange(index, record, value)}
           controls={false}
-          style={{ width: "100%", fontWeight: "700", color: "#059669" }}
+          style={{ width: "100%", fontWeight: "700", color: "#1890ff" }}
         />
       ),
     },
     {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          TỔNG TIỀN
-        </span>
-      ),
-      key: "total",
-      width: 120,
+      title: <span className="column-title">Tiền sau VAT</span>,
+      key: "total_after_vat",
+      width: 140,
       render: (_, record) => {
-        const total = record.price * (record.qty || 1);
+        const total = record.thanh_tien_sau_vat || (record.listPrice || 0) * (record.qty || 1);
         return (
-          <span className="total-text">
+          <span className="total-text" style={{ fontWeight: "600", color: "#334155" }}>
             {new Intl.NumberFormat("vi-VN").format(total)}đ
           </span>
         );
       },
     },
     {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          % CK
+      title: <span className="column-title">GIÁ trước V</span>,
+      key: "price_readonly",
+      width: 140,
+      render: (_, record) => (
+        <span style={{ fontWeight: "700", color: "#059669" }}>
+          {new Intl.NumberFormat("vi-VN").format(record.price || 0)}đ
         </span>
       ),
-      dataIndex: "discountPercent",
-      key: "discountPercent",
-      width: 90,
-      render: (discountPercent, record, index) => {
-        // Display the exact discountPercent value from modal, don't calculate from discountAmount
-        const displayPercent = discountPercent || 0;
-
+    },
+    {
+      title: <span className="column-title">Tiền trước V</span>,
+      key: "thanh_tien",
+      width: 140,
+      render: (_, record) => {
+        const value = record.thanh_tien || 0;
         return (
-          <div
-            onClick={() => {
-              setSelectedItemIndex(index);
-              setFocusField("percent");
-              setDiscountModalVisible(true);
-            }}
-            className={`discount-cell ${displayPercent > 0 ? "positive" : ""}`}
-          >
-            {displayPercent > 0 ? `${displayPercent}%` : "-"}
-          </div>
+          <span className="total-text">
+            {new Intl.NumberFormat("vi-VN").format(value)}đ
+          </span>
         );
       },
     },
     {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          CK TIỀN
-        </span>
-      ),
-      key: "discountAmountDisplay",
-      width: 110,
-      render: (_, record, index) => {
-        // Display the exact discountAmount value from modal, don't calculate from discountPercent
-        const finalDiscount = record.discountAmount || 0;
-
-        return (
-          <div
-            onClick={() => {
-              setSelectedItemIndex(index);
-              setFocusField("amount");
-              setDiscountModalVisible(true);
-            }}
-            className={`discount-cell ${finalDiscount > 0 ? "positive" : ""}`}
-          >
-            {new Intl.NumberFormat("vi-VN").format(finalDiscount)}đ
-          </div>
-        );
-      },
-    },
-    {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          %VAT
-        </span>
-      ),
+      title: <span className="column-title">%VAT</span>,
       dataIndex: "vatPercent",
       key: "vatPercent",
       width: 120,
@@ -778,6 +642,15 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
                 updateLine(index, "ma_thue", ma_thue);
                 // Clear thue_nt so UI recalculates VAT/remaining using new %VAT
                 updateLine(index, "thue_nt", 0);
+                // Backwards calculate price from listPrice using new VAT
+                const newListPrice = Number(record.listPrice) || 0;
+                const newBasePrice = Number((newListPrice / (1 + thue_suat / 100)).toFixed(2));
+                updateLine(index, "price", newBasePrice);
+                recomputeLineTotals(index, record, {
+                  price: newBasePrice,
+                  thue_suat: thue_suat,
+                  listPrice: newListPrice,
+                });
               } else if (
                 selectedMaThue &&
                 selectedMaThue.startsWith("custom_")
@@ -788,6 +661,15 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
                 updateLine(index, "thue_suat", customThueSuat);
                 // Clear thue_nt so UI recalculates VAT/remaining using new %VAT
                 updateLine(index, "thue_nt", 0);
+                // Backwards calculate price from listPrice using custom VAT
+                const newListPrice = Number(record.listPrice) || 0;
+                const newBasePrice = Number((newListPrice / (1 + customThueSuat / 100)).toFixed(2));
+                updateLine(index, "price", newBasePrice);
+                recomputeLineTotals(index, record, {
+                  price: newBasePrice,
+                  thue_suat: customThueSuat,
+                  listPrice: newListPrice,
+                });
               }
             }}
             loading={taxLoading}
@@ -882,45 +764,11 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       },
     },
     {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          VAT
-        </span>
-      ),
+      title: <span className="column-title">Tiền VAT</span>,
       key: "vatAmount",
-      width: 110,
+      width: 140,
       render: (_, record) => {
-        const total = record.price * (record.qty || 1);
-        const discountAmount =
-          record.discountAmount > 0
-            ? record.discountAmount
-            : Math.round((total * (record.discountPercent || 0)) / 100);
-        const totalAfterDiscount = total - discountAmount;
-        let effectiveVatPercent = 0;
-        if (Number(record.thue_suat) > 0) {
-          effectiveVatPercent = Number(record.thue_suat) || 0;
-        } else if (Number(record.vatPercent) > 0) {
-          effectiveVatPercent = Number(record.vatPercent) || 0;
-        } else if ((record.ma_thue || "").trim()) {
-          const opt = (taxOptions || []).find(
-            (o) => o?.value === (record.ma_thue || "").trim()
-          );
-          if (opt?.thue_suat !== undefined) {
-            effectiveVatPercent = Number(opt.thue_suat) || 0;
-          }
-        }
-        const vatAmount =
-          Number(record.thue_nt) > 0
-            ? Math.round(Number(record.thue_nt))
-            : Math.round((totalAfterDiscount * effectiveVatPercent) / 100);
+        const vatAmount = record.thue_nt || 0;
         return (
           <span className="vat-text">
             {new Intl.NumberFormat("vi-VN").format(vatAmount)}đ
@@ -929,68 +777,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       },
     },
     {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          CÒN LẠI
-        </span>
-      ),
-      dataIndex: "remaining",
-      key: "remaining",
-      width: 110,
-      render: (_, record) => {
-        const total = record.price * (record.qty || 1);
-        const discountAmount =
-          record.discountAmount > 0
-            ? record.discountAmount
-            : Math.round((total * (record.discountPercent || 0)) / 100);
-        const totalAfterDiscount = total - discountAmount;
-        let effectiveVatPercent = 0;
-        if (Number(record.thue_suat) > 0) {
-          effectiveVatPercent = Number(record.thue_suat) || 0;
-        } else if (Number(record.vatPercent) > 0) {
-          effectiveVatPercent = Number(record.vatPercent) || 0;
-        } else if ((record.ma_thue || "").trim()) {
-          const opt = (taxOptions || []).find(
-            (o) => o?.value === (record.ma_thue || "").trim()
-          );
-          if (opt?.thue_suat !== undefined) {
-            effectiveVatPercent = Number(opt.thue_suat) || 0;
-          }
-        }
-        const vatAmount =
-          Number(record.thue_nt) > 0
-            ? Math.round(Number(record.thue_nt))
-            : Math.round((totalAfterDiscount * effectiveVatPercent) / 100);
-        const remaining = Math.max(0, total - discountAmount + vatAmount);
-        return (
-          <span className="remaining-text">
-            {new Intl.NumberFormat("vi-VN").format(remaining)}đ
-          </span>
-        );
-      },
-    },
-    {
-      title: (
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "12px",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          CHỈ DẪN
-        </span>
-      ),
+      title: <span className="column-title">Chỉ dẫn</span>,
       dataIndex: "instructions",
       key: "instructions",
       width: 300,

@@ -103,8 +103,10 @@ const DiscountModal = ({
       const totalBeforeDiscount = basePrice + extrasTotal;
       const calculatedDiscount =
         (totalBeforeDiscount * parseFloat(cleanPercent)) / 100;
-      setDiscountAmount(calculatedDiscount.toFixed(0));
-      setDiscountAmountDisplay(calculatedDiscount.toFixed(0));
+      // Round to 2 decimals
+      const roundedDiscount = Number(calculatedDiscount.toFixed(2));
+      setDiscountAmount(roundedDiscount.toString());
+      setDiscountAmountDisplay(roundedDiscount.toString());
     } else {
       setDiscountAmount("0");
       setDiscountAmountDisplay("0");
@@ -117,11 +119,15 @@ const DiscountModal = ({
       return;
     }
 
-    // Loại bỏ tất cả ký tự không phải số từ giá trị nhập vào
-    const numericOnly = value.replace(/\D/g, "");
+    // Replace commas with dots if user entered them for decimal separator
+    const normalizedValue = value.replace(/,/g, ".");
+    const numericOnly = normalizedValue.replace(/[^0-9.]/g, "");
 
     // Loại bỏ số 0 ở đầu
-    const cleanAmount = numericOnly.replace(/^0+/, "") || "0";
+    let cleanAmount = numericOnly.replace(/^0+/, "") || "0";
+    if (numericOnly.includes(".") && cleanAmount === "0") {
+      cleanAmount = "0.";
+    }
 
     // Clear error nếu input hợp lệ
     setAmountError("");
@@ -153,8 +159,6 @@ const DiscountModal = ({
     } else {
       setAmountError("");
     }
-
-    // Không dispatch ngay lập tức, chỉ cập nhật state local
   };
 
   const handleClose = () => {
@@ -220,14 +224,14 @@ const DiscountModal = ({
       percentValue > 0
         ? Math.min(
             totalBeforeDiscount,
-            Math.round((totalBeforeDiscount * percentValue) / 100)
+            Number(((totalBeforeDiscount * percentValue) / 100).toFixed(2))
           )
-        : Math.min(totalBeforeDiscount, Math.round(amountValue));
+        : Math.min(totalBeforeDiscount, Number(amountValue.toFixed(2)));
 
-    const totalAfterDiscount = Math.max(
+    const totalAfterDiscount = Number(Math.max(
       0,
       totalBeforeDiscount - computedDiscount
-    );
+    ).toFixed(2));
 
     return {
       totalBeforeDiscount,
@@ -251,7 +255,7 @@ const DiscountModal = ({
       const effectiveVatPercent = getEffectiveVatPercent();
       const recomputedVat =
         effectiveVatPercent > 0
-          ? Math.round((totalAfterDiscount * effectiveVatPercent) / 100)
+          ? Number(((totalAfterDiscount * effectiveVatPercent) / 100).toFixed(2))
           : 0;
 
       const updatedItem = {
@@ -378,40 +382,22 @@ const DiscountModal = ({
               value={formatNumber(discountAmountDisplay)}
               onChange={(e) => handleDiscountAmountChange(e.target.value)}
               onInput={(e) => {
-                // Chặn ngay khi input, chỉ giữ lại số và loại bỏ số 0 ở đầu
+                // Chặn ngay khi input, chỉ giữ lại số và dấu chấm (cho phép lẻ)
                 const value = e.target.value;
-                const numericOnly = value.replace(/\D/g, ""); // Loại bỏ tất cả ký tự không phải số
-                const cleanValue = numericOnly.replace(/^0+/, "") || "0"; // Loại bỏ số 0 ở đầu, giữ lại "0" nếu rỗng
+                const normalizedValue = value.replace(/,/g, ".");
+                const numericOnly = normalizedValue.replace(/[^0-9.]/g, "");
+                let cleanValue = numericOnly.replace(/^0+/, "") || "0";
+                if (numericOnly.includes(".") && cleanValue === "0") {
+                  cleanValue = "0.";
+                }
+                
                 if (value !== formatNumber(cleanValue)) {
                   e.target.value = formatNumber(cleanValue);
                   setDiscountAmount(cleanValue);
                   setDiscountAmountDisplay(cleanValue);
                 }
               }}
-              onKeyPress={(e) => {
-                // Chặn nhập ký tự không phải số và phím điều khiển
-                if (
-                  !/[0-9]/.test(e.key) &&
-                  ![
-                    "Backspace",
-                    "Delete",
-                    "Tab",
-                    "Enter",
-                    "ArrowLeft",
-                    "ArrowRight",
-                  ].includes(e.key)
-                ) {
-                  e.preventDefault();
-                }
-              }}
-              onPaste={(e) => {
-                // Chặn paste nội dung không phải số
-                const paste = e.clipboardData.getData("text");
-                if (!/^\d*$/.test(paste)) {
-                  e.preventDefault();
-                }
-              }}
-              inputMode="numeric"
+              inputMode="decimal"
               placeholder="0"
               addonAfter="VND"
               readOnly={parseFloat(discountPercent) > 0}

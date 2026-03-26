@@ -1342,3 +1342,10 @@ body > iframe {
 
   /* Removed legacy grid */
 }
+.column-title {
+  font-weight: 600;
+  font-size: 12px;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}

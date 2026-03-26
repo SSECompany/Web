@@ -166,6 +166,27 @@ export const syncFastMutiApi = async (sttRecList, userId) => {
     });
 };
 
+export const exportToEInvoice = async (sttRec) => {
+  const token = localStorage.getItem("access_token");
+  return await https
+    .post(
+      `MinInvoice/exportToEInvoice`,
+      {
+        voucherIds: sttRec,
+        publish: true,
+      },
+      {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+          "Content-Type": "application/json",
+        },
+      }
+    )
+    .then((res) => {
+      return res?.data || [];
+    });
+};
+
 // ===== TAPMED PHARMACY APIs =====
 
 export const searchVatTu = async (

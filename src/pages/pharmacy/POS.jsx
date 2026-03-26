@@ -200,8 +200,9 @@ const POS = () => {
               name: item.label || `Sản phẩm`,
               price: item.gia || 0,
               unit: item.dvt || "viên",
-              stock: 0, // API không trả về stock
+              stock: item.ton13 || 0,
               ma_kho: item.ma_kho || "",
+              ton13: item.ton13,
             },
           }));
 
@@ -238,62 +239,35 @@ const POS = () => {
     }
   }, [unitId, userId]);
 
-  const subtotal = useMemo(
-    () => cart.reduce((s, x) => s + x.price * x.qty, 0),
-    [cart]
-  );
-  const discount = useMemo(
-    () =>
-      cart.reduce((s, x) => {
-        const itemTotal = x.price * x.qty;
-        // Phenikaa logic: Ưu tiên giảm tiền, nếu không có thì dùng giảm %
-        const itemDiscount =
-          x.discountAmount > 0
-            ? x.discountAmount
-            : Math.round((itemTotal * (x.discountPercent || 0)) / 100);
-        return s + itemDiscount;
-      }, 0),
-    [cart]
-  );
-  const vat = useMemo(
-    () =>
-      cart.reduce((s, x) => {
-        const itemTotal = x.price * x.qty;
-        // Phenikaa logic: Tính VAT sau khi trừ giảm giá
-        const itemDiscount =
-          x.discountAmount > 0
-            ? x.discountAmount
-            : Math.round((itemTotal * (x.discountPercent || 0)) / 100);
-        const totalAfterDiscount = itemTotal - itemDiscount;
-        // Ưu tiên thue_nt nếu đã có, nếu không thì tính từ thue_suat hoặc vatPercent
-        let itemVat = 0;
-        if (Number(x.thue_nt) > 0) {
-          itemVat = Math.round(Number(x.thue_nt));
-        } else {
-          let effectiveVatPercent = 0;
-          if (Number(x.thue_suat) > 0) {
-            effectiveVatPercent = Number(x.thue_suat);
-          } else if (Number(x.vatPercent) > 0) {
-            effectiveVatPercent = Number(x.vatPercent);
-          }
-          itemVat = Math.round(
-            (totalAfterDiscount * effectiveVatPercent) / 100
-          );
-        }
-        return s + itemVat;
-      }, 0),
-    [cart]
-  );
-  const total = useMemo(
-    () => Math.max(0, subtotal + vat - discount),
-    [subtotal, vat, discount]
-  );
+  const subtotal = useMemo(() => {
+    // Tạm tính = Tổng (Tiền trước V)
+    return cart.reduce((s, x) => s + Number(x.thanh_tien || (x.price * (x.qty || 1))), 0);
+  }, [cart]);
+
+  const discount = useMemo(() => {
+    return cart.reduce((s, x) => s + Number(x.discountAmount || 0), 0);
+  }, [cart]);
+
+  const vat = useMemo(() => {
+    // Tổng tiền thuế đã được tính lẻ từng dòng theo logic ERP
+    return cart.reduce((s, x) => s + Number(x.thue_nt || 0), 0);
+  }, [cart]);
+
+  const total = useMemo(() => {
+    // Tổng cộng = Tổng(giá niêm yết * số lượng) - Tổng(chiết khấu)
+    // Phải khớp từng đơn vị (round error) với cột TỔNG TIỀN trên UI
+    return cart.reduce((s, x) => {
+      const lineTotalAfterVAT = Number(x.thanh_tien_sau_vat || ((x.listPrice || x.price || 0) * (x.qty || 1)));
+      const lineDiscount = Number(x.discountAmount || 0);
+      return s + (lineTotalAfterVAT - lineDiscount);
+    }, 0);
+  }, [cart]);
   const change = useMemo(
     () => Math.max(0, (payment.cash || 0) - total),
     [payment.cash, total]
   );
 
-  const addToCart = (item, ma_gd = null) => {
+  const addToCart = useCallback((item, ma_gd = null) => {
     const existingIndex = cart.findIndex((x) => x.sku === item.sku);
     if (existingIndex >= 0) {
       setCart((prev) =>
@@ -306,6 +280,8 @@ const POS = () => {
         ...prev,
         {
           ...item,
+          listPrice: item.price || 0,
+          price: Number(((item.price || 0) / (1 + (Number(item.thue_suat) || 0) / 100)).toFixed(2)),
           qty: 1,
           batchExpiry: "",
           vatPercent: Number(item.thue_suat) || 0,
@@ -320,7 +296,7 @@ const POS = () => {
         },
       ]);
     }
-  };
+  }, [cart]);
 
   const removeAt = (index) => {
     setCart((prev) => prev.filter((_, i) => i !== index));
@@ -358,11 +334,12 @@ const POS = () => {
               name: item.label || `Sản phẩm`,
               price: item.gia || 0,
               unit: item.dvt || "viên",
-              stock: 0, // API không trả về stock
+              stock: item.ton13 || 0,
               ma_thue: (item.ma_thue || "").trim(),
               thue_suat: Number(item.thue_suat) || 0,
               image: item.image || "",
               ma_kho: item.ma_kho || "",
+              ton13: item.ton13,
             },
             // Giữ thêm trường image ở root để tiện dùng
             image: item.image || "",
@@ -437,10 +414,11 @@ const POS = () => {
                 name: foundItem.label || `Sản phẩm ${value}`,
                 price: foundItem.gia || 0,
                 unit: foundItem.dvt || "cái",
-                stock: 0, // API không trả về stock
+                stock: foundItem.ton13 || 0,
                 ma_thue: (foundItem.ma_thue || "").trim(),
                 thue_suat: Number(foundItem.thue_suat) || 0,
                 ma_kho: foundItem.ma_kho || "",
+                ton13: foundItem.ton13,
               };
             } else {
               // Hiển thị error message từ API nếu có
@@ -509,6 +487,7 @@ const POS = () => {
         price: Number(d.don_gia) || 0,
         unit: (d.dvt || "").trim(),
         qty: Number(d.so_luong) || 1,
+        listPrice: Number(d.listPrice) || Number(d.don_gia) || 0,
         batchExpiry: (d.ma_lo || "").trim(),
         vatPercent: Number(d.thue_suat) || 0,
         ma_thue: (d.ma_thue || "").trim(),

@@ -329,47 +329,6 @@ const VatTuTable = ({
         },
       },
       {
-        title: "Ảnh",
-        dataIndex: "image",
-        key: "image",
-        width: 150,
-        align: "center",
-        ellipsis: false,
-        render: (_, record) => {
-          if (record.isChild) return "";
-          const imageUrl = record.image || record.item?.image || "";
-          if (!imageUrl) return null;
-          const tenMatHang = record[columnConfig.tenMatHangField || "ten_mat_hang"] || record.maHang || "";
-          return (
-            <div style={{ display: "flex", justifyContent: "center", padding: "4px 0" }}>
-              <img
-                src={imageUrl}
-                alt={tenMatHang}
-                style={{
-                  width: 120,
-                  height: 120,
-                  objectFit: "cover",
-                  borderRadius: 6,
-                  border: "1px solid #e8e8e8",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                  cursor: "pointer",
-                }}
-                onError={(e) => {
-                  // Ẩn ảnh nếu lỗi load
-                  e.target.style.display = "none";
-                }}
-                onClick={() => {
-                  if (imageUrl) {
-                    window.open(imageUrl, "_blank");
-                  }
-                }}
-                title="Click để xem ảnh lớn"
-              />
-            </div>
-          );
-        },
-      },
-      {
         title: "Mặt hàng",
         key: "mat_hang",
         width: 260,

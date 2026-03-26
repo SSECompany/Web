@@ -35,16 +35,20 @@ const formatCurrency = (num = 0, numDegit = 0) => {
 };
 
 const formatNumber = (val) => {
-  if (!val) return 0;
-  return `${val}`
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-    .replace(/\.(?=\d{0,2}$)/g, ",");
+  if (val === undefined || val === null || val === "") return "0";
+  const num = Number(val);
+  if (isNaN(num)) return "0";
+  
+  return new Intl.NumberFormat("vi-VN", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(num);
 };
 
 const parserNumber = (val) => {
   if (!val) return 0;
   return Number.parseFloat(
-    val.replace(/\$\s?|(\.*)/g, "").replace(/(\,{1})/g, ".")
+    val.replace(/\$\s?|(\.*)/g, "").replace(/(,{1})/g, ".")
   ).toFixed(2);
 };
 
