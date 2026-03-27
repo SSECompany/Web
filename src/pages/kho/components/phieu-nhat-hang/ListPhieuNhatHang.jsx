@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
-import CommonPhieuList from "../CommonPhieuList";
+import ListTemplate from "../../../../components/common/PageTemplates/ListTemplate";
 import "../common-phieu.css";
 import { fetchPhieuNhatHangList } from "./utils/phieuNhatHangApi";
 import { formatDate, formatDateTime, formatDateForApi, formatDateForStorage } from "../../../../utils/dateUtils";
@@ -1045,89 +1045,31 @@ const ListPhieuNhatHang = () => {
     return baseProps;
   };
 
-  const chipsBar =
-    activeChips.length > 0 ? (
-      <div className="filter-chips-container">
-        <div className="filter-chips-left">
-          <FilterOutlined className="filter-chips-icon" />
-          <span className="filter-chips-title">
-            Đang áp dụng {activeChips.length} bộ lọc
-          </span>
-          <div className="filter-chips-list">
-            {activeChips.map((chip) => (
-              <Tag
-                key={chip.key}
-                closable
-                onClose={(e) => {
-                  e.preventDefault();
-                  removeChip(chip.key);
-                }}
-                className={`filter-chip ${
-                  chip.key === "status"
-                    ? "filter-chip--blue"
-                    : chip.key === "dateRange"
-                    ? "filter-chip--green"
-                    : chip.key === "so_ct"
-                    ? "filter-chip--orange"
-                    : chip.key === "so_don_hang"
-                    ? "filter-chip--cyan"
-                    : chip.key === "ten_kh"
-                    ? "filter-chip--magenta"
-                    : chip.key === "ma_kh"
-                    ? "filter-chip--purple"
-                    : chip.key === "ma_nhomvitri"
-                    ? "filter-chip--geekblue"
-                    : "filter-chip--gray"
-                }`}
-              >
-                {chip.label}: {chip.value}
-              </Tag>
-            ))}
-          </div>
-        </div>
-        <div className="filter-chips-right">
-          <Button size="small" onClick={clearAllChips}>
-            Xóa lọc
-          </Button>
-        </div>
-      </div>
-    ) : null;
+  // chipsBar removed, handled by ListTemplate
 
   return (
     <div>
-      <CommonPhieuList
+      <ListTemplate
         title={
           screenSize === "mobile"
             ? "PHIẾU NHẬT HÀNG"
-            : "DANH SÁCH PHIẾU NHẶT HÀNG"
+            : "PHIẾU NHẶT HÀNG"
         }
-        extraButtons={
-          <span style={{ marginRight: 8 }}>
-            <button
-              type="button"
-              className="navbar_fullscreen_btn"
-              onClick={handleRefreshClick}
-              title="Làm tươi"
-              aria-label="Làm tươi"
-            >
-              <ReloadOutlined />
-            </button>
-          </span>
-        }
-        extraHeader={chipsBar}
         columns={getColumns()}
         data={allData}
         onBack={() => navigate("/kho")}
+        onRefresh={handleRefreshClick}
         rowKey="stt_rec"
         pagination={{
           current: currentPage,
           pageSize: pageSize,
           total: totalRecords,
           onChange: handlePageChange,
-          showSizeChanger: false,
-          showQuickJumper: false,
         }}
         loading={isLoading}
+        activeChips={activeChips}
+        onRemoveFilter={removeChip}
+        onClearAllFilters={clearAllChips}
         tableProps={{
           scroll: {
             x: screenSize === "mobile" ? 600 : screenSize === "mobileLandscape" ? 800 : screenSize === "tablet" ? 1200 : 1460,

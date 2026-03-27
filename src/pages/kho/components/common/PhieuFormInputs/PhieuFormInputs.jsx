@@ -37,6 +37,7 @@ const PhieuFormInputs = memo(({
     fetchMaGiaoDichList,
     fetchMaKhoList,
     fetchMaKhoListDebounced,
+    onPoSearch,
   } = selectHandlers;
 
   const {
@@ -106,7 +107,7 @@ const PhieuFormInputs = memo(({
     if (formType === 'xuat-dieu-chuyen') {
       return (
         <>
-          <Col span={12}>
+          <Col xs={24} sm={24} md={12}>
             <Form.Item
               name={fieldNames.maKhoXuat}
               label="Mã kho xuất"
@@ -131,7 +132,7 @@ const PhieuFormInputs = memo(({
               />
             </Form.Item>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={24} md={12}>
             <Form.Item
               name={fieldNames.maKhoNhap}
               label="Mã kho nhập"
@@ -162,7 +163,7 @@ const PhieuFormInputs = memo(({
 
     // Default: mã khách field
     return (
-      <Col span={12}>
+      <Col xs={24}>
         <Form.Item
           name={fieldNames.maKhach}
           label="Mã ncc"
@@ -200,6 +201,8 @@ const PhieuFormInputs = memo(({
   }, [maGiaoDichList]);
 
   // Layout đặc thù cho Phiếu nhập hàng theo đơn - MATCH HOÀN TOÀN ẢNH SSE
+  const responsiveGutter = { xs: 8, sm: 16, md: 24 };
+
   if (formType === 'nhap-hang') {
     return (
       <div className="phieu-form-rows">
@@ -208,58 +211,67 @@ const PhieuFormInputs = memo(({
         <Form.Item name={fieldNames.soDonHang} noStyle><Input type="hidden" /></Form.Item>
         <Form.Item name={fieldNames.ngayDonHang} noStyle><Input type="hidden" /></Form.Item>
 
-        {/* Hàng 1: Mã ncc */}
-        <Row gutter={24}>
+        {/* Hàng 1: Nhà cung cấp (Gộp Mã và Tên) */}
+        <Row gutter={responsiveGutter}>
           <Col span={24}>
-            <Row gutter={8}>
-                <Col span={4}>
-                    <Form.Item
-                        name={fieldNames.maKhach}
-                        label="Mã ncc"
-                        rules={[{ required: true, message: "Vui lòng chọn nhà cung cấp" }]}
-                    >
-                    <Select
-                        showSearch
-                        allowClear
-                        placeholder="Mã"
-                        loading={loadingMaKhach}
-                        filterOption={false}
-                        onSearch={fetchMaKhachListDebounced}
-                        onOpenChange={(open) => {
-                        if (open && fetchMaKhachList) {
-                            fetchMaKhachList("");
-                        }
-                        }}
-                        options={maKhachList}
-                        classNames={{ popup: { root: "phieu-form-dropdown" } }}
-                        optionLabelProp="value"
-                        disabled={!isEditMode}
-                        popupMatchSelectWidth={false}
-                    />
-                    </Form.Item>
-                </Col>
-                <Col span={20}>
-                    <Form.Item label="&nbsp;" shouldUpdate={(prevValues, currentValues) => prevValues.maKhach !== currentValues.maKhach || prevValues.tenKhach !== currentValues.tenKhach}>
-                        {({ getFieldValue }) => {
-                            const currentVal = getFieldValue(fieldNames.maKhach);
-                            const option = maKhachList.find(o => o.value === currentVal);
-                            const name = option ? (option.label.split(' - ')[1] || "") : (getFieldValue('tenKhach') || "");
-                            return <Input value={name} disabled placeholder="Tên nhà cung cấp" />;
-                        }}
-                    </Form.Item>
-                </Col>
-            </Row>
+            <Form.Item
+              name={fieldNames.maKhach}
+              label="Tên nhà cung cấp"
+              rules={[{ required: true, message: "Vui lòng chọn nhà cung cấp" }]}
+            >
+              {!isEditMode ? (
+                <Form.Item noStyle shouldUpdate={(pv, cv) => pv[fieldNames.maKhach] !== cv[fieldNames.maKhach]}>
+                  {({ getFieldValue }) => {
+                    const currentVal = getFieldValue(fieldNames.maKhach);
+                    const option = maKhachList.find(o => o.value === currentVal);
+                    const nameDisplay = option ? option.label : (getFieldValue('tenKhach') ? `${currentVal} - ${getFieldValue('tenKhach')}` : currentVal);
+                    return (
+                        <Input.TextArea 
+                            disabled 
+                            autoSize 
+                            className="customer-display" 
+                            style={{ 
+                                color: "#6c63ff", 
+                                fontWeight: 500,
+                                background: "rgba(108, 99, 255, 0.04)",
+                                border: "none"
+                            }}
+                            value={nameDisplay} 
+                        />
+                    );
+                  }}
+                </Form.Item>
+              ) : (
+                <Select
+                  showSearch
+                  allowClear
+                  placeholder="Nhập tên nhà cung cấp"
+                  loading={loadingMaKhach}
+                  filterOption={false}
+                  onSearch={fetchMaKhachListDebounced}
+                  onOpenChange={(open) => {
+                    if (open && fetchMaKhachList) {
+                      fetchMaKhachList("");
+                    }
+                  }}
+                  options={maKhachList}
+                  classNames={{ popup: { root: "phieu-form-dropdown" } }}
+                  disabled={!isEditMode}
+                  popupMatchSelectWidth={false}
+                />
+              )}
+            </Form.Item>
           </Col>
         </Row>
 
         {/* Hàng 2: Người giao hàng | Ngày lập */}
-        <Row gutter={24}>
-          <Col span={16}>
+        <Row gutter={responsiveGutter}>
+          <Col xs={24} sm={16}>
             <Form.Item name={fieldNames.nguoiGiaoHang} label="Người giao hàng">
               <Input placeholder="Nhập người giao hàng" disabled={!isEditMode} />
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col xs={24} sm={8}>
             <Form.Item
               name={fieldNames.ngay}
               label="Ngày lập"
@@ -275,13 +287,13 @@ const PhieuFormInputs = memo(({
         </Row>
 
         {/* Hàng 3: Diễn giải | Ngày hạch toán */}
-        <Row gutter={24}>
-          <Col span={16}>
+        <Row gutter={responsiveGutter}>
+          <Col xs={24} sm={16}>
             <Form.Item name={fieldNames.dienGiai} label="Diễn giải">
               <Input placeholder="Nhập diễn giải" disabled={!isEditMode} />
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col xs={24} sm={8}>
             <Form.Item
               name={fieldNames.ngayHachToan}
               label="Ngày hạch toán"
@@ -296,11 +308,9 @@ const PhieuFormInputs = memo(({
           </Col>
         </Row>
 
-
-
-        {/* Hàng 5: Nhân viên mua */}
-        <Row gutter={24}>
-          <Col span={16}>
+        {/* Hàng 4: Nhân viên mua */}
+        <Row gutter={responsiveGutter}>
+          <Col xs={24} sm={16}>
             <Form.Item name={fieldNames.ma_nv_mua} label="Nhân viên mua">
               <Input placeholder="Nhân viên mua" disabled={!isEditMode} />
             </Form.Item>
@@ -315,10 +325,10 @@ const PhieuFormInputs = memo(({
   return (
     <>
       {/* Row 1: Mã khách/kho và Số phiếu */}
-      <Row gutter={16}>
+      <Row gutter={responsiveGutter}>
         {renderMainSelectFields()}
         {formType !== 'xuat-dieu-chuyen' && (
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <Form.Item
               name={fieldNames.soPhieu}
               label="Số phiếu"
@@ -332,8 +342,8 @@ const PhieuFormInputs = memo(({
 
       {/* Row extra: Số đơn hàng (PO) for nhap-hang (đã xử lý ở trên nhưng giữ lại cho tương thích nếu config sai) */}
       {formType === 'nhap-hang' && (
-        <Row gutter={16}>
-          <Col span={12}>
+        <Row gutter={responsiveGutter}>
+          <Col xs={24} sm={12}>
             <Form.Item
               name={fieldNames.soDonHang}
               label={
@@ -346,8 +356,8 @@ const PhieuFormInputs = memo(({
                 placeholder="Nhập số đơn hàng mua (PO)" 
                 disabled={!isEditMode}
                 onPressEnter={(e) => {
-                  if (selectHandlers.onPoSearch) {
-                    selectHandlers.onPoSearch(e.target.value);
+                  if (onPoSearch) {
+                    onPoSearch(e.target.value);
                   }
                 }}
               />
@@ -357,8 +367,8 @@ const PhieuFormInputs = memo(({
       )}
 
       {/* Row 2: Diễn giải và Ngày lập (hoặc Số phiếu cho xuất điều chuyển) */}
-      <Row gutter={16}>
-        <Col span={12}>
+      <Row gutter={responsiveGutter}>
+        <Col xs={24} sm={12}>
           {formType === 'xuat-dieu-chuyen' ? (
             <Form.Item
               name={fieldNames.soPhieu}
@@ -373,7 +383,7 @@ const PhieuFormInputs = memo(({
             </Form.Item>
           )}
         </Col>
-        <Col span={12}>
+        <Col xs={24} sm={12}>
           <Form.Item
             name={fieldNames.ngay}
             label="Ngày lập"
@@ -391,8 +401,8 @@ const PhieuFormInputs = memo(({
       </Row>
 
       {/* Row 3: Mã giao dịch và Trạng thái (hoặc Diễn giải cho xuất điều chuyển) */}
-      <Row gutter={16}>
-        <Col span={12}>
+      <Row gutter={responsiveGutter}>
+        <Col xs={24} sm={12}>
           {formType === 'xuat-dieu-chuyen' ? (
             <Form.Item name={fieldNames.dienGiai} label="Diễn giải">
               <Input placeholder="Nhập diễn giải" disabled={!isEditMode} />
@@ -417,7 +427,7 @@ const PhieuFormInputs = memo(({
             </Form.Item>
           )}
         </Col>
-        <Col span={12}>
+        <Col xs={24} sm={12}>
           {formType === 'xuat-dieu-chuyen' ? (
             <Form.Item name={fieldNames.maGiaoDich} label="Mã giao dịch">
               <Select
@@ -452,8 +462,8 @@ const PhieuFormInputs = memo(({
 
       {/* Row 4: Trạng thái cho xuất điều chuyển */}
       {formType === 'xuat-dieu-chuyen' && (
-        <Row gutter={16}>
-          <Col span={12}>
+        <Row gutter={responsiveGutter}>
+          <Col xs={24} sm={12}>
             <Form.Item name={fieldNames.trangThai} label="Trạng thái">
               <Select
                 placeholder="Chọn trạng thái"
@@ -469,7 +479,7 @@ const PhieuFormInputs = memo(({
 
       {/* Vật tư select component */}
       {isEditMode && VatTuSelectComponent && (
-        <Row gutter={16}>
+        <Row gutter={responsiveGutter}>
           <Col span={24}>
             <Form.Item label="Vật tư">
               <VatTuSelectComponent

@@ -365,13 +365,15 @@ export const submitPhieuNhapHangDynamic = async (
 };
 
 export const deletePhieuNhapHangDynamic = async (stt_rec) => {
+  const userInfo = getUserInfo();
   const token = localStorage.getItem("access_token");
   const https = (await import("../../../../../utils/https")).default;
 
   const body = {
-    store: "Api_delete_phieu_nhap_hang_voucher",
+    store: "api_xoa_phieu_nhap_hang_theo_don",
     param: {
       stt_rec: stt_rec,
+      UserId: userInfo.userId,
     },
     data: {},
     resultSetNames: [],

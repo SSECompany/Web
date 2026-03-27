@@ -2,11 +2,8 @@ import React, { useRef } from "react";
 import { createPortal } from "react-dom";
 import { useReactToPrint } from "react-to-print";
 import {
-    LeftOutlined,
     EditOutlined,
     SaveOutlined,
-    CloseCircleOutlined,
-    PlusOutlined,
     DeleteOutlined,
     DownOutlined,
     UpOutlined,
@@ -26,6 +23,7 @@ import DiscountModal from "./Detail/DiscountModal";
 import TotalsSection from "./Detail/TotalsSection";
 import { numFmt } from "./Detail/constants";
 import PrintOrderTemplate from "./Detail/PrintOrderPreview";
+import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate/index.jsx";
 import "../../../kho/components/common-phieu.css";
 import "./DetailPhieuKinhDoanh.css";
 
@@ -56,8 +54,6 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
         discountModalStage,
         discountSearchText,
         setDiscountSearchText,
-        printModalVisible,
-        setPrintModalVisible,
         toggleGeneralInfo,
         statusList,
         chiTietData,
@@ -105,7 +101,6 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
         fetchVatTuListWrapper,
         handleVatTuSelect,
         handleQRScanSuccess,
-        handleSwitchToBarcodeMode,
         handleToggleEdit,
         handleSubmit,
         updateTotals,
@@ -211,10 +206,6 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                             />
                         </div>
                     )}
-
-                    {/* Old selection bar removed from here */}
-
-
                     <Table
                         size="small"
                         dataSource={chiTietData}
@@ -234,7 +225,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                             {
                                 title: "Sản phẩm",
                                 key: "san_pham",
-                                width: 300,
+                                width: 240,
                                 align: "center",
                                 onCell: (record) => ({
                                     onClick: () => {
@@ -247,13 +238,13 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                     className: isEditMode ? 'product-column-clickable' : ''
                                 }),
                                 render: (_, record) => (
-                                    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: '8px 0' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: '4px 0' }}>
                                         {record.image ? (
-                                            <img src={record.image} alt="" style={{ width: 100, height: 100, flexShrink: 0, objectFit: "cover", borderRadius: 8, border: '1px solid #f0f0f0' }} />
+                                            <img src={record.image} alt="" style={{ width: 48, height: 48, flexShrink: 0, objectFit: "cover", borderRadius: 8, border: '1px solid #f0f0f0' }} />
                                         ) : (
-                                            <div style={{ width: 100, height: 100, flexShrink: 0, background: '#f8f9fb', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#94a3b8', border: '1px solid #eef2f7' }}>No Image</div>
+                                            <div style={{ width: 48, height: 48, flexShrink: 0, background: '#f8f9fb', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#94a3b8', border: '1px solid #eef2f7' }}>No Image</div>
                                         )}
-                                        <div style={{ flex: 1, textAlign: 'left' }}>
+                                        <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
                                             <div style={{ marginBottom: 4 }}>
                                                 <Text strong style={{ fontSize: '13px', lineHeight: '1.4', whiteSpace: 'normal', wordBreak: 'break-word', display: 'block', color: 'red' }}>
                                                     {record.ten_vt}
@@ -268,8 +259,6 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                     </div>
                                 )
                             },
-                       
-                           
                             { title: "SL", dataIndex: "so_luong", width: 80, align: "center", render: (v, record) => isEditMode ? (
                                 <InputNumber 
                                     size="small" 
@@ -281,13 +270,11 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                     style={{ width: '100%', textAlign: 'right' }} 
                                 />
                             ) : numFmt(v) },
-                            // { title: "SL chuyển kho", dataIndex: "tong_chuyen", width: 100, align: "center", render: (v) => numFmt(v) },
                             { title: "Tồn", dataIndex: "ton13", width: 125, align: "center", render: (_, record) => (
                                 <div style={{ fontSize: '11px', textAlign: 'left', padding: '0 4px' }}>
                                     <div>KLT-T1: {numFmt(record.tonl1 || 0)}</div>
                                     <div>KOL-T2: {numFmt(record.ton13 || 0)}</div>
                                     <div>SL chuyển kho: {numFmt(record.tong_chuyen || 0)}</div>
-
                                 </div>
                             ) },
                              { title: "KM", dataIndex: "km_yn", width: 50, align: "center", render: (v, record) => (
@@ -309,31 +296,6 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                     style={{ width: '100%' }} 
                                 />
                             ) : numFmt(v, 2) },
-                            // { title: "Giá bán(Trước VAT)", dataIndex: "gia_nt2", width: 100, align: "center", render: (v, record) => isEditMode ? (
-                            //     <InputNumber 
-                            //         size="small" 
-                            //         value={v} 
-                            //         controls={false} 
-                            //         precision={2}
-                            //         disabled
-                            //         formatter={val => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                            //         parser={val => val.replace(/\$\s?|(,*)/g, '')}
-                            //         onChange={(val) => handleCellChange(record, "gia_nt2", val)} 
-                            //         style={{ width: '100%' }} 
-                            //     />
-                            // ) : numFmt(v, 2) },
-                            // { title: "Tiền hàng(Trước VAT)", dataIndex: "tien_nt2", width: 110, align: "center", render: (v, record) => isEditMode ? (
-                            //     <InputNumber 
-                            //         size="small" 
-                            //         value={v} 
-                            //         controls={false} 
-                            //         disabled
-                            //         formatter={val => numFmt(val)}
-                            //         parser={val => val.replace(/\$\s?|(,*)/g, '')}
-                            //         onChange={(val) => handleCellChange(record, "tien_nt2", val)} 
-                            //         style={{ width: '100%', textAlign: 'right' }} 
-                            //     />
-                            // ) : numFmt(v) },
                             { 
                                 title: "Tiền hàng sau Thuế", 
                                 key: "tien_hang_sau_thue", 
@@ -353,22 +315,6 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                     style={{ width: '100%', textAlign: 'right' }} 
                                 />
                             ) : (v ? numFmt(v) : "") },
-                            // { title: "Thuế", dataIndex: "thue_nt", width: 90, align: "center", render: (v, record) => isEditMode ? (
-                            //     <InputNumber 
-                            //         size="small" 
-                            //         value={v} 
-                            //         controls={false} 
-                            //         disabled
-                            //         formatter={val => numFmt(val)}
-                            //         parser={val => val.replace(/\$\s?|(,*)/g, '')}
-                            //         onChange={(val) => handleCellChange(record, "thue_nt", val)} 
-                            //         style={{ width: '100%', textAlign: 'right' }} 
-                            //     />
-                            // ) : numFmt(v) },
-                            // { title: "Mã thuế", dataIndex: "ma_thue", width: 80, align: "center", render: (v, record) => isEditMode ? (
-                            //     <Input size="small" value={v} onChange={(e) => handleCellChange(record, "ma_thue", e.target.value)} />
-                            // ) : v },
-
                             { title: "Ghi chú ĐH", dataIndex: "ghi_chu_dh", width: 150, align: "center", render: (v, record) => isEditMode ? (
                                 <Input size="small" value={v} onChange={(e) => handleCellChange(record, "ghi_chu_dh", e.target.value)} />
                             ) : v },
@@ -405,30 +351,23 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                             if (selectedDetailRowKeys && selectedDetailRowKeys.includes(key)) {
                                 classes.push('row-selected-highlight');
                             }
-
-                            // logic tô màu tồn kho
                             const tonl1 = parseFloat(record.tonl1 || 0);
                             const ton13 = parseFloat(record.ton13 || 0);
                             const soluong = parseFloat(record.so_luong || 0);
                             const sl_ck = parseFloat(record.tong_chuyen || 0);
                             const flag = (ton13 + tonl1) - sl_ck;
-
                             if (flag < soluong) {
                                 classes.push('row-stock-warning');
                             }
-
-                            // logic tô màu phạm vi kinh doanh
                             if (record.pvkd_yn === 0) {
                                 classes.push('row-pvkd-red');
                             }
-
                             return classes.join(' ');
                         }}
                     />
                 </div>
             ),
         },
-
         {
             key: "chi_phi",
             label: "Chi phí",
@@ -437,10 +376,10 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                     {isEditMode && (
                         <div style={{ marginBottom: 10, display: "flex", gap: 6 }}>
                             <Button 
-                                icon={<PlusOutlined />} 
+                                icon={<UpOutlined style={{ transform: 'rotate(180deg)' }} />} 
                                 size="small" 
                                 onClick={() => {
-                                    setChiPhiData([...chiPhiData, { ma_cp: "", ten_cp: "", tien_cp: 0, ghi_chu: "", line_nbr: Date.now() }]);
+                                    setChiPhiData([...chiPhiData, { ma_cp: "", ten_cp: "", tien_cp_nt: 0, ghi_chu: "", line_nbr: Date.now() }]);
                                 }}
                             />
                             <Button 
@@ -511,14 +450,12 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                 </Select>
                             </Form.Item>
                         </Col>
-
                         <Col xs={24} md={12}>
                             <Form.Item name="ngay_ct0" label="Ngày hóa đơn">
                                 <DatePicker format={["DD-MM-YYYY", "DD/MM/YYYY", "DDMMYYYY"]} style={{ width: '100%' }} />
                             </Form.Item>
                         </Col>
                         <Col xs={24} md={12}></Col>
-
                         <Col xs={24} md={12}>
                             <Form.Item name="status_soan_hang" label="Soạn hàng">
                                 <Select placeholder="Trạng thái soạn hàng">
@@ -536,7 +473,6 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                 </Select>
                             </Form.Item>
                         </Col>
-
                         <Col xs={24} md={12}>
                             <Form.Item name="ban_dong_goi" label="Bàn đóng gói">
                                 <Input placeholder="Nhập bàn đóng gói" />
@@ -547,7 +483,6 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                 <Input placeholder="Nhân viên đóng hàng" />
                             </Form.Item>
                         </Col>
-
                         <Col xs={24} md={12}>
                             <Form.Item name="bat_dau_dh" label="Thời gian bắt đầu đóng hàng">
                                 <DatePicker showTime format={["DD-MM-YYYY HH:mm", "DDMMYYYY HH:mm", "DD/MM/YYYY HH:mm"]} style={{ width: '100%' }} placeholder="Ngày-Tháng-Năm Giờ:Phút" />
@@ -574,9 +509,68 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
         );
     }
 
+    const fixedFooterActions = (isEditMode || !stt_rec) ? [
+        {
+            key: 'calculate',
+            label: 'Tính CK',
+            icon: <GiftOutlined />,
+            onClick: handleCalculateDiscounts,
+            loading: tinhCKLoading,
+            className: "btn-calculate-discounts-fixed"
+        },
+        {
+            key: 'print',
+            label: 'In',
+            icon: <PrinterOutlined />,
+            onClick: handlePrint,
+            className: "btn-print-fixed"
+        },
+        {
+            key: 'save',
+            label: 'Lưu',
+            type: 'primary',
+            icon: <SaveOutlined />,
+            onClick: handleSubmit,
+            loading: loading,
+            className: "btn-save-fixed"
+        }
+    ] : [
+        {
+            key: 'print-view',
+            label: 'In đơn hàng',
+            icon: <PrinterOutlined />,
+            onClick: handlePrint,
+            className: "btn-print-fixed",
+            style: { minWidth: 160 }
+        }
+    ];
+
     return (
-        <div className="detail-don-hang">
-            <div className="detail-don-hang__card">
+        <FormTemplate
+            form={form}
+            onBack={() => navigate(-1)}
+            badgeText={!stt_rec ? "THÊM ĐƠN HÀNG MỚI" : isEditMode ? "SỬA ĐƠN HÀNG" : "CHI TIẾT ĐƠN HÀNG"}
+            badgeColor={!stt_rec ? "green" : isEditMode ? "orange" : "blue"}
+            metaOrder={stt_rec ? `${watchSoCt || ''}${watchBContractId ? ` (${watchBContractId})` : ''}` : null}
+            metaDate={watchNgayCt ? dayjs(watchNgayCt).format('DD-MM-YYYY') : '.........'}
+            showStatusSelect={true}
+            statusValue={String(watchStatus || "").trim()}
+            statusOptions={statusList.map(s => ({ value: String(s.status).trim(), label: s.statusname }))}
+            fixedFooterActions={fixedFooterActions}
+            headerRightSpan={
+                stt_rec && !isEditMode && !['1', '2', '3', '4', '5', '6'].includes(String(watchStatusSoanHang || "").trim()) ? (
+                    <Button
+                        type="text"
+                        icon={<EditOutlined />}
+                        className="phieu-edit-button-kd"
+                        onClick={handleToggleEdit}
+                        title="Chỉnh sửa"
+                        disabled={stt_rec && !["0", "1", "2"].includes(String(watchStatus).trim())}
+                    />
+                ) : null
+            }
+        >
+            <div className="detail-don-hang">
                 <Form
                     form={form}
                     layout="vertical"
@@ -598,81 +592,8 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                     <Form.Item name="ten_vc" noStyle><Input type="hidden" /></Form.Item>
                     <Form.Item name="tl_ck_voucher" noStyle><Input type="hidden" /></Form.Item>
                     <Form.Item name="ma_ck" noStyle><Input type="hidden" /></Form.Item>
+                    <Form.Item name="status" noStyle><Input type="hidden" /></Form.Item>
                     
-                    <div className="detail-don-hang__header">
-                        <Button
-                            type="text"
-                            icon={<LeftOutlined />}
-                            className="phieu-back-button"
-                            onClick={() => navigate(-1)}
-                            disabled={false}
-                        />
-
-                        <div className="phieu-header-info">
-                            <div className="phieu-header-tags">
-                                <span className={`phieu-header-badge ${!stt_rec ? 'phieu-header-badge--green' : isEditMode ? 'phieu-header-badge--orange' : 'phieu-header-badge--blue'}`}>
-                                    {stt_rec ? (isEditMode ? "SỬA ĐƠN HÀNG" : "CHI TIẾT ĐƠN HÀNG") : "THÊM ĐƠN HÀNG MỚI"}
-                                </span>
-                            </div>
-
-                            <div className="phieu-header-meta-stack">
-                                {stt_rec && (
-                                    <div className="phieu-header-meta-item">
-                                        ĐƠN HÀNG: <span className="phieu-header-meta-value">
-                                            {watchSoCt || '.........'} 
-                                            {watchBContractId && (
-                                                <span className="phieu-header-meta-sequence">
-                                                    ({watchBContractId})
-                                                </span>
-                                            )}
-                                        </span>
-                                    </div>
-                                )}
-                                <div className="phieu-header-meta-item">
-                                    NGÀY: <span className="phieu-header-meta-value">{watchNgayCt ? dayjs(watchNgayCt).format('DD-MM-YYYY') : '.........'}</span>
-                                </div>
-                                <div className="phieu-header-status-row">
-                                    <span className="phieu-header-status-label">TRẠNG THÁI:</span>
-                                    <Form.Item name="status" noStyle>
-                                        <Select 
-                                            size="small"
-                                            className="phieu-header-status-select"
-                                            dropdownMatchSelectWidth={false}
-                                            disabled={!isEditMode || !["0", "1", "2"].includes(String(watchStatus).trim())}
-                                        >
-                                            {(() => {
-                                                const options = statusList.filter(s => 
-                                                    ["0", "1", "2"].includes(String(s.status).trim()) || 
-                                                    String(s.status).trim() === String(watchStatus).trim()
-                                                );
-                                                return options.map((s) => (
-                                                    <Select.Option key={s.status} value={String(s.status).trim()}>
-                                                        {s.statusname}
-                                                    </Select.Option>
-                                                ));
-                                            })()}
-                                        </Select>
-                                    </Form.Item>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="detail-don-hang__header-right">
-                            {stt_rec && !isEditMode && !['1', '2', '3', '4', '5', '6'].includes(String(watchStatusSoanHang || "").trim()) ? (
-                                <Button
-                                    type="text"
-                                    icon={<EditOutlined />}
-                                    className="detail-don-hang__edit-btn"
-                                    onClick={handleToggleEdit}
-                                    title="Chỉnh sửa"
-                                    disabled={stt_rec && !["0", "1", "2"].includes(String(watchStatus).trim())}
-                                />
-                            ) : (
-                                <div style={{ width: 36 }}></div>
-                            )}
-                        </div>
-                    </div>
-
                     <div className="detail-don-hang__body">
                         <div className="detail-don-hang__section" style={{ marginBottom: 16 }}>
                             <div style={{ 
@@ -715,11 +636,14 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                         </div>
                                     ) : (
                                         <Form.Item name="khach_hang_display" noStyle>
-                                            <Input disabled className="customer-display" />
+                                            <Input.TextArea 
+                                                disabled 
+                                                autoSize 
+                                                className="customer-display" 
+                                            />
                                         </Form.Item>
                                     )}
                                 </div>
-
                                 <Button
                                     type="text"
                                     disabled={false}
@@ -772,7 +696,6 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                                 </Form.Item>
                                             </Col>
                                         </Row>
-                                        
                                         <Form.Item name="dien_giai" label="Diễn giải">
                                             <Input.TextArea autoSize={{ minRows: 1, maxRows: 6 }} style={{ borderRadius: '6px' }} />
                                         </Form.Item>
@@ -884,9 +807,6 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                             isEditMode={isEditMode}
                             stt_rec={stt_rec}
                         />
-
-                        {/* Old actions removed from here */}
-
                     </div>
                 </Form>
             </div>
@@ -915,110 +835,57 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                 onScanSuccess={handleQRScanSuccess}
             />
 
-            {/* ========== NEW FIXED FOOTER ========== */}
-            <div className="detail-don-hang__fixed-footer">
-                {isEditMode && selectedDetailRowKeys && selectedDetailRowKeys.length > 0 && (
-                    <div className="fixed-footer__selection-bar">
-                        <div className="selection-bar__left">
-                            <Text type="secondary" className="selection-text">
-                                Đã chọn <Text strong style={{ color: '#ff4d4f' }}>{selectedDetailRowKeys.length}</Text> mặt hàng
-                            </Text>
-                            <Divider type="vertical" />
-                            <Button 
-                                type="link" 
-                                size="small" 
-                                onClick={() => setSelectedDetailRowKeys(chiTietData.map(item => item.stt_rec + "_" + item.line_nbr))}
-                                className="selection-link"
-                            >
-                                Chọn hết
-                            </Button>
-                            <Divider type="vertical" />
-                            <Button 
-                                type="link" 
-                                size="small" 
-                                onClick={() => setSelectedDetailRowKeys([])}
-                                className="selection-link"
-                            >
-                                Bỏ chọn
-                            </Button>
-                        </div>
+            {isEditMode && selectedDetailRowKeys && selectedDetailRowKeys.length > 0 && (
+                <div className="fixed-footer__selection-bar" style={{ position: 'fixed', bottom: 70, left: 24, right: 24, zIndex: 1001 }}>
+                    <div className="selection-bar__left">
+                        <Text type="secondary" className="selection-text">
+                            Đã chọn <Text strong style={{ color: '#ff4d4f' }}>{selectedDetailRowKeys.length}</Text> mặt hàng
+                        </Text>
+                        <Divider type="vertical" />
                         <Button
-                            type="primary"
-                            danger
+                            type="link"
                             size="small"
-                            icon={<DeleteOutlined />}
-                            onClick={handleDeleteSelected}
-                            className="selection-delete-btn"
+                            onClick={() => setSelectedDetailRowKeys(chiTietData.map(item => item.stt_rec + "_" + item.line_nbr))}
+                            className="selection-link"
                         >
-                            Xoá nhiều
+                            Chọn hết
+                        </Button>
+                        <Divider type="vertical" />
+                        <Button
+                            type="link"
+                            size="small"
+                            onClick={() => setSelectedDetailRowKeys([])}
+                            className="selection-link"
+                        >
+                            Bỏ chọn
                         </Button>
                     </div>
-                )}
-                
-                <div className="fixed-footer__actions">
-                    {(isEditMode || !stt_rec) ? (
-                        <>
-                            <Button
-                                className="btn-calculate-discounts-fixed"
-                                icon={<GiftOutlined />}
-                                onClick={handleCalculateDiscounts}
-                                loading={tinhCKLoading}
-                            >
-                                Tính CK
-                            </Button>
-                            <Button
-                                icon={<PrinterOutlined />}
-                                onClick={handlePrint}
-                                className="btn-print-fixed"
-                            >
-                                In
-                            </Button>
-                            <Button 
-                                type="primary" 
-                                icon={<SaveOutlined />} 
-                                onClick={handleSubmit} 
-                                loading={loading}
-                                className="btn-save-fixed"
-                            >
-                                Lưu
-                            </Button>
-                            <Button 
-                                icon={<LeftOutlined />} 
-                                onClick={() => navigate("/kinh-doanh/danh-sach")}
-                                className="btn-cancel-fixed"
-                            >
-                                Quay lại
-                            </Button>
-                        </>
-                    ) : (
-                        <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
-                            <Button
-                                icon={<PrinterOutlined />}
-                                onClick={handlePrint}
-                                className="btn-print-fixed"
-                                style={{ minWidth: 160 }}
-                            >
-                                In đơn hàng
-                            </Button>
-                        </div>
-                    )}
+                    <Button
+                        type="primary"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={handleDeleteSelected}
+                        className="selection-delete-btn"
+                    >
+                        Xoá nhiều
+                    </Button>
                 </div>
-            </div>
+            )}
 
             {createPortal(
-                <div className="print-preview-wrapper">
-                    <PrintOrderTemplate 
-                        ref={printRef} 
-                        data={form.getFieldsValue()} 
-                        details={chiTietData} 
-                        totals={form.getFieldsValue()} 
-                        bankInfo={bankInfo} 
+                <div className="print-preview-wrapper" style={{ display: 'none' }}>
+                    <PrintOrderTemplate
+                        ref={printRef}
+                        data={form.getFieldsValue()}
+                        details={chiTietData}
+                        totals={form.getFieldsValue()}
+                        bankInfo={bankInfo}
                     />
                 </div>,
                 document.body
             )}
-        </div>
-
+        </FormTemplate>
     );
 };
 

@@ -61,7 +61,8 @@ body {
   flex: 1;
   margin-left: 10px;
   gap: 4px;
-  overflow: hidden;
+  overflow: visible;
+  min-width: 0;
 }
 
 .phieu-header-tags {
@@ -256,7 +257,7 @@ body {
 /* FLOATING LABELS - LABELS INSIDE INPUT */
 .phieu-form--floating .ant-form-item {
   position: relative;
-  margin-bottom: 18px;
+  margin-bottom: 24px;
 }
 
 .phieu-form--floating .ant-form-item-label {
@@ -284,6 +285,105 @@ body {
 
 .phieu-form--floating .ant-form-item-label > label::after {
   display: none !important;
+}
+
+/* MODERN FLOATING INPUT STYLES (MATCH BUSINESS ORDER) */
+.phieu-form--floating .ant-input:not(.detail-don-hang__totals .ant-input),
+.phieu-form--floating .ant-input-affix-wrapper:not(.detail-don-hang__totals .ant-input-affix-wrapper),
+.phieu-form--floating .ant-input-number:not(.detail-don-hang__totals .ant-input-number),
+.phieu-form--floating .ant-select-selector:not(.detail-don-hang__totals .ant-select-selector),
+.phieu-form--floating .ant-picker:not(.detail-don-hang__totals .ant-picker),
+.phieu-form--floating .ant-btn:not(.ant-btn-text):not(.ant-btn-sm),
+.phieu-form--floating textarea.ant-input:not(.detail-don-hang__totals textarea.ant-input) {
+  border-radius: 8px !important;
+  border-color: #d1d5db !important;
+  transition: all 0.2s;
+  font-size: 13px !important;
+  min-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Also ensure Business Order totals maintain their custom styling */
+.detail-don-hang__totals .ant-input-disabled,
+.detail-don-hang__totals .ant-input-number-disabled,
+.detail-don-hang__totals .ant-select-disabled .ant-select-selector,
+.detail-don-hang__totals .ant-picker-disabled {
+  background: #f8f9fb !important;
+  border-color: #6366f144 !important;
+  color: #1e293b !important;
+}
+
+.phieu-form--floating .ant-select-selector {
+  height: 36px !important;
+}
+
+.phieu-form--floating .ant-input-number-input-wrap,
+.phieu-form--floating .ant-input-number-input {
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Remove border-radius inside wrappers (e.g. search suffix) */
+.phieu-form--floating .ant-input-affix-wrapper > .ant-input {
+  border-radius: 0 !important;
+  border: none !important;
+  height: 100% !important;
+  padding: 0 !important;
+}
+
+/* Disabled styling (Sleek slate-200 background like Business Order) */
+.phieu-form--floating .ant-input-disabled:not(.detail-don-hang__totals .ant-input-disabled, .customer-display),
+.phieu-form--floating .ant-input-number-disabled:not(.detail-don-hang__totals .ant-input-number-disabled, .detail-don-hang__totals-grand .ant-input-number-disabled),
+.phieu-form--floating .ant-select-disabled .ant-select-selector:not(.detail-don-hang__totals .ant-select-disabled .ant-select-selector),
+.phieu-form--floating .ant-picker-disabled:not(.detail-don-hang__totals .ant-picker-disabled) {
+  background: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+  font-weight: 600;
+}
+
+/* Focus states */
+.phieu-form--floating .ant-input:focus,
+.phieu-form--floating .ant-input-affix-wrapper:focus,
+.phieu-form--floating .ant-input-affix-wrapper-focused,
+.phieu-form--floating .ant-input-number-focused,
+.phieu-form--floating .ant-select-focused .ant-select-selector,
+.phieu-form--floating .ant-picker-focused {
+  border-color: #6c63ff !important;
+  box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.08) !important;
+}
+
+/* Make sure floating label gracefully transitions into the disabled grey background */
+.phieu-form--floating .ant-form-item:has(.ant-input-disabled) .ant-form-item-label,
+.phieu-form--floating .ant-form-item:has(.ant-input-number-disabled) .ant-form-item-label,
+.phieu-form--floating .ant-form-item:has(.ant-select-disabled) .ant-form-item-label,
+.phieu-form--floating .ant-form-item:has(.ant-picker-disabled) .ant-form-item-label {
+  --phieu-floating-label-bg: linear-gradient(to bottom, #ffffff 50%, #e2e8f0 50%);
+}
+
+/* PREMIUM SECTION WRAPPER (Like Business Order's detail-don-hang__section) */
+.phieu-form-section {
+  background: #f8f9fb;
+  border: 1px solid #eef2f7;
+  border-radius: 14px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  --phieu-floating-label-bg: linear-gradient(to bottom, #f8f9fb 50%, #ffffff 50%);
+}
+
+@media (max-width: 768px) {
+  .phieu-form-section {
+    padding: 16px;
+  }
+}
+
+.phieu-form-section .ant-form-item:has(.ant-input-disabled) .ant-form-item-label,
+.phieu-form-section .ant-form-item:has(.ant-input-number-disabled) .ant-form-item-label,
+.phieu-form-section .ant-form-item:has(.ant-select-disabled) .ant-form-item-label,
+.phieu-form-section .ant-form-item:has(.ant-picker-disabled) .ant-form-item-label {
+  --phieu-floating-label-bg: linear-gradient(to bottom, #f8f9fb 50%, #e2e8f0 50%) !important;
 }
 
 /* Reusable inner label prefix if needed */
@@ -1150,6 +1250,35 @@ body {
     to { transform: translateY(0); }
   }
 
+  .phieu-form-rows {
+    padding: 12px 12px !important;
+  }
+
+  /* Let Ant Design handle the Row columns natively to match Desktop proportions accurately */
+  /* Reverting hacky margins that ruined the layout on mobile */
+
+  /* Remove extra vertical space for empty labels on mobile */
+  .phieu-form--floating .ant-col-xs-24 .ant-form-item-label:has(label:empty) {
+    display: none !important;
+  }
+
+  .detail-phieu-nhap-hang__body {
+    padding: 12px !important;
+  }
+
+  .detail-phieu-nhap-hang__tabs {
+    margin-top: 12px !important;
+  }
+
+  .detail-phieu-nhap-hang__section {
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .ant-tabs-nav {
+    padding: 0 12px;
+  }
   .mobile-sticky-actions__header {
     display: flex;
     justify-content: space-between;
@@ -1258,3 +1387,34 @@ body {
 .mobile-phieu-card.row-new-highlight .ant-card-actions {
   background-color: #ffffff !important;
 }
+
+/* Premium Icon-only Edit Button */
+.phieu-edit-button-kd {
+  color: #fa8c16 !important;
+  border: 1px solid #fa8c1633 !important;
+  background: linear-gradient(145deg, #fa8c161a, #ffc1070d) !important;
+  border-radius: 10px !important;
+  height: 36px !important;
+  width: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  transition: all 0.25s !important;
+  box-shadow: 0 4px 12px #fa8c1633 !important;
+}
+
+.phieu-edit-button-kd:hover {
+  background: #feebc8 !important;
+  color: #dd6b20 !important;
+  box-shadow: 0 6px 16px #fa8c1633 !important;
+}
+
+@media (max-width: 768px) {
+  .phieu-edit-button-kd {
+    height: 32px !important;
+    width: 32px !important;
+    border-radius: 8px !important;
+  }
+}
+

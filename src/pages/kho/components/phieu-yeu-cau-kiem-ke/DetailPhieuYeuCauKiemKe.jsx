@@ -8,6 +8,7 @@ import { getLoItem, searchVatTu } from "../../../../api";
 import { useSelector } from "react-redux";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import "../common-phieu.css";
+import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -1189,34 +1190,28 @@ const DetailPhieuYeuCauKiemKe = () => {
 
     // ==================== RENDER ====================
     return (
-        <Layout className="phieu-container" style={{ background: "#f5f6fa", minHeight: "100vh" }} >
-            <Row align="middle" className="phieu-header" style={{ position: "relative" }}>
-                <Col flex={1} style={{ zIndex: 1, textAlign: "left" }}>
-                    <Button type="text" icon={<LeftOutlined />} onClick={() => navigate("/kho/yeu-cau-kiem-ke")} className="phieu-back-button" />
-                </Col>
-
-                <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", zIndex: 0, whiteSpace: "nowrap" }}>
-                    <Title level={5} className="phieu-title">
-                        KIỂM KÊ: {headerProps.so_ct || id}
-                    </Title>
-                </div>
-
-                <Col flex={1} style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", zIndex: 1 }}>
-                    <button
-                        type="button"
-                        className="navbar_fullscreen_btn"
-                        onClick={handleRefreshClick}
-                        title="Làm tươi"
-                        aria-label="Làm tươi"
-                    >
-                        <ReloadOutlined />
-                    </button>
-                </Col>
-            </Row>
-
-            <Content style={{ padding: "0 20px" }}>
+        <FormTemplate
+            form={form}
+            onBack={() => navigate("/kho/yeu-cau-kiem-ke")}
+            badgeText="PHIẾU YÊU CẦU KIỂM KÊ"
+            badgeColor="blue"
+            metaOrder={headerProps.so_ct || id}
+            metaDate={dayjs(headerProps.ngay_ct).format("DD/MM/YYYY")}
+            headerRightSpan={
+                <button
+                    type="button"
+                    className="navbar_fullscreen_btn"
+                    onClick={handleRefreshClick}
+                    title="Làm tươi"
+                    aria-label="Làm tươi"
+                >
+                    <ReloadOutlined />
+                </button>
+            }
+        >
+            <div className="phieu-form-container">
                 {/* Thông tin chung */}
-                <div style={{ background: "white", padding: "20px", borderRadius: "16px", marginBottom: "20px" }}>
+                <div style={{ background: "white", padding: "20px", borderRadius: "16px", marginBottom: "20px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
                     <h3 style={{ marginBottom: "16px", fontSize: "15px", color: "#6c63ff", borderBottom: "1px solid #f0f0f0", paddingBottom: "10px", fontWeight: "bold", textTransform: "uppercase" }}>THÔNG TIN CHUNG YÊU CẦU</h3>
                     <Row gutter={24}>
                         <Col span={8}>
@@ -1306,7 +1301,7 @@ const DetailPhieuYeuCauKiemKe = () => {
                         },
                     ]}
                 />
-            </Content>
+            </div>
 
             {/* ==================== Modal Kiểm tra Vật tư ==================== */}
             < Modal
@@ -1789,7 +1784,7 @@ const DetailPhieuYeuCauKiemKe = () => {
                     />
                 </div>
             </Modal >
-        </Layout >
+        </FormTemplate>
     );
 };
 

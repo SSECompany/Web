@@ -1,10 +1,11 @@
-import { LeftOutlined } from "@ant-design/icons";
+import { SaveOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
+import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuTable from "./components/VatTuTable";
@@ -267,22 +268,38 @@ const AddPhieuXuatKho = () => {
   };
 
   return (
-    <div className="phieu-container">
-      <div className="phieu-header">
-        <Button
-          type="text"
-          icon={<LeftOutlined />}
-          onClick={() => navigate("/kho/xuat-kho")}
-          className="phieu-back-button"
-        />
-        <Title level={5} className="phieu-title">
-          THÊM PHIẾU XUẤT KHO
-        </Title>
-        <div style={{ width: 120 }}></div>
-      </div>
-
-      <div className="phieu-form-container">
-        <Form form={form} layout="vertical" className="phieu-form">
+    <FormTemplate
+      form={form}
+      onFinish={handleSubmit}
+      onBack={() => navigate("/kho/xuat-kho")}
+      badgeText="THÊM PHIẾU XUẤT KHO"
+      badgeColor="green"
+      metaDate={dayjs().format("DD-MM-YYYY")}
+      statusValue="0"
+      statusOptions={[
+        { value: "0", label: "Lập chứng từ" },
+        { value: "1", label: "Xuất kho" },
+        { value: "3", label: "Chuyển sổ cái" },
+        { value: "5", label: "Đề nghị xuất kho" },
+      ]}
+      fixedFooterActions={[
+        {
+          key: "save",
+          label: "Lưu phiếu",
+          icon: <SaveOutlined />,
+          type: "primary",
+          onClick: handleSubmit,
+          loading: loading,
+        },
+        {
+          key: "cancel",
+          label: "Hủy",
+          icon: <CloseCircleOutlined />,
+          onClick: () => navigate("/kho/xuat-kho"),
+        },
+      ]}
+    >
+      <Form form={form} layout="vertical" className="phieu-form phieu-form--floating">
           <PhieuFormInputs
             isEditMode={true}
             maKhachList={maKhachList}
@@ -325,24 +342,8 @@ const AddPhieuXuatKho = () => {
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
             fetchMaKhoList={fetchMaKhoList}
           />
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-start",
-              marginTop: 16,
-            }}
-          >
-            <Space>
-              <Button type="primary" onClick={handleSubmit} loading={loading}>
-                Lưu
-              </Button>
-              <Button onClick={() => navigate("/kho/xuat-kho")}>Hủy</Button>
-            </Space>
-          </div>
-        </Form>
-      </div>
-    </div>
+      </Form>
+    </FormTemplate>
   );
 };
 

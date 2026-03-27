@@ -1,6 +1,5 @@
 import { 
   EditOutlined, 
-  LeftOutlined, 
   LinkOutlined,
   SaveOutlined, 
   CloseCircleOutlined,
@@ -15,6 +14,7 @@ import VatTuSelectFullPOS from "../../../../components/common/ProductSelectFull/
 import https from "../../../../utils/https";
 import "../common-phieu.css";
 import "./DetailPhieuNhapHang.css";
+import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import ModalKeThua from "./components/ModalKeThua";
 import PhieuNhapHangFormInputs from "./components/PhieuNhapHangFormInputs";
@@ -71,6 +71,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
     fetchVatTuDetail,
     fetchDonViTinh,
     setVatTuList,
+    setMaKhachList,
   } = usePhieuNhapHangData();
 
   const {
@@ -143,6 +144,20 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
               ma_nv_mua: phieuInfo.ten_nvmh || "",
               tenGiaoDich: phieuInfo.ten_gd || "",
             };
+
+            if (phieuInfo.ma_kh) {
+              setMaKhachList((prev) => {
+                const alreadyExists = prev.some((o) => o.value === phieuInfo.ma_kh.trim());
+                if (alreadyExists) return prev;
+                return [
+                  ...prev,
+                  {
+                    value: phieuInfo.ma_kh.trim(),
+                    label: `${phieuInfo.ma_kh.trim()} - ${phieuInfo.ten_kh?.trim() || "Nhà cung cấp"}`,
+                  },
+                ];
+              });
+            }
 
             const processedVatTu = vatTuData.map((item, index) => {
               // Đối với phiếu đã hoàn thành (status > 0), nếu không có sl_td3 thì lấy chính so_luong làm số thực nhập
@@ -225,7 +240,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
     };
 
     fetchPhieuDetail();
-  }, [sctRec, apiCalled, token, stt_rec, phieuDetailLoaded, form, setDataSource]);
+  }, [sctRec, apiCalled, token, stt_rec, phieuDetailLoaded, form, setDataSource, setMaKhachList]);
 
   useEffect(() => {
     if (barcodeJustEnabled && vatTuSelectRef.current) {
@@ -336,10 +351,27 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
       const tyGia = form.getFieldValue("tyGia") || 1;
 
       form.setFieldsValue({
-        soDonHang: poNo,
+        soDonHang: poNo,                                          // fcode2 = so_ct
+        ngayDonHang: master.ngay_ct ? dayjs(master.ngay_ct) : null, // fdate1 = ngay_ct
+        ma_nv_mua: master.ma_nv || "",                            // fcode1 = ma_nv
         maKhach: master.ma_kh?.trim() || form.getFieldValue("maKhach"),
         dienGiai: `Nhập hàng theo đơn ${poNo}`,
       });
+
+      if (master.ma_kh) {
+        setMaKhachList((prev) => {
+          const mkh = master.ma_kh.trim();
+          const alreadyExists = prev.some((o) => o.value === mkh);
+          if (alreadyExists) return prev;
+          return [
+            ...prev,
+            {
+              value: mkh,
+              label: `${mkh} - ${master.ten_kh?.trim() || "Nhà cung cấp"}`,
+            },
+          ];
+        });
+      }
 
       const processedDetails = detail.map((item, index) => {
         const soLuong = parseFloat(item.so_luong0 || 0);
@@ -580,190 +612,137 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
     }
   };
 
+  const getBadge = () => {
+    if (!stt_rec) return { text: "THÊM PHIẾU NHẬP HÀNG MỚI", color: "green" };
+    if (isEditMode) return { text: "SỬA PHIẾU NHẬP HÀNG", color: "orange" };
+    return { text: "CHI TIẾT PHIẾU NHẬP HÀNG", color: "blue" };
+  };
+  const badge = getBadge();
+
+  const footerActions = [];
+  if (isEditMode || !stt_rec) {
+    footerActions.push(
+      { key: "save", label: "Lưu phiếu", icon: <SaveOutlined />, type: "primary", onClick: handleSubmit, loading: loading, className: "btn-save-fixed" },
+      { key: "kethua", label: "Kế thừa", icon: <LinkOutlined />, onClick: () => setKeThuaModalOpen(true), disabled: !maKhach, className: "btn-print-fixed" },
+    );
+    if (stt_rec) {
+      footerActions.push({ key: "delete", label: "Xoá phiếu", icon: <DeleteOutlined />, danger: true, onClick: handleDelete, className: "btn-delete-fixed" });
+    }
+  }
+
   return (
     <div className="detail-phieu-nhap-hang">
-      <Form
+      <FormTemplate
         form={form}
-        layout="vertical"
-        className="phieu-form phieu-form--floating"
         onFinish={handleSubmit}
+        onBack={() => navigate("/kho/nhap-hang")}
+        badgeText={badge.text}
+        badgeColor={badge.color}
+        metaDate={form.getFieldValue('ngay') ? dayjs(form.getFieldValue('ngay')).format('DD/MM/YYYY') : '.........'}
+        statusValue={form.getFieldValue('trangThai') || "0"}
+        statusOptions={TRANG_THAI_OPTIONS}
+        showStatusSelect={true}
+        headerRightSpan={
+          !isEditMode && stt_rec ? (
+            <Button type="text" icon={<EditOutlined />} onClick={handleEdit} className="phieu-edit-button-kd" title="Chỉnh sửa" />
+          ) : null
+        }
+        fixedFooterActions={footerActions}
       >
-        <div className="detail-phieu-nhap-hang__card">
-          <div className="detail-phieu-nhap-hang__header">
-            <Button
-              type="text"
-              icon={<LeftOutlined />}
-              onClick={() => navigate("/kho/nhap-hang")}
-              className="phieu-back-button"
-              htmlType="button"
-            />
 
-            <div className="phieu-header-info">
-              <div className="phieu-header-tags">
-                <span className={`phieu-header-badge ${!stt_rec ? 'phieu-header-badge--green' : isEditMode ? 'phieu-header-badge--orange' : 'phieu-header-badge--blue'}`}>
-                  {stt_rec ? (isEditMode ? "SỬA PHIẾU NHẬP HÀNG" : "CHI TIẾT PHIẾU NHẬP HÀNG") : "THÊM PHIẾU NHẬP HÀNG MỚI"}
-                </span>
-              </div>
-
-              <div className="phieu-header-meta-stack">
-                <div className="phieu-header-meta-item">
-                  NGÀY: <span className="phieu-header-meta-value">{form.getFieldValue('ngay') ? dayjs(form.getFieldValue('ngay')).format('DD/MM/YYYY') : '.........'}</span>
-                </div>
-                <div className="phieu-header-status-row">
-                  <span className="phieu-header-status-label">TRẠNG THÁI:</span>
-                  <Form.Item name="trangThai" noStyle>
-                    <Select 
-                      size="small"
-                      className="phieu-header-status-select"
-                      dropdownMatchSelectWidth={false}
-                      disabled={!isEditMode}
-                    >
-                      <Select.Option value="2">Chuyển vào SC</Select.Option>
-                      <Select.Option value="3">Nhập kho</Select.Option>
-                    </Select>
-                  </Form.Item>
-                </div>
-              </div>
+        <Form
+          form={form}
+          layout="vertical"
+          disabled={!isEditMode && !!stt_rec}
+          size="middle"
+          colon={false}
+        >
+          <div className="detail-phieu-nhap-hang__body">
+            <div className="phieu-form-section phieu-form--floating">
+              <PhieuNhapHangFormInputs
+                isEditMode={isEditMode}
+                maKhachList={maKhachList}
+                loadingMaKhach={loadingMaKhach}
+                fetchMaKhachListDebounced={fetchMaKhachListDebounced}
+                fetchMaKhachList={fetchMaKhachList}
+                maGiaoDichList={maGiaoDichList}
+                fetchMaGiaoDichList={fetchMaGiaoDichList}
+                maKhoList={maKhoList}
+                loadingMaKho={loadingMaKho}
+                fetchMaKhoList={fetchMaKhoList}
+                fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+                onPoSearch={handlePoSearch}
+              />
             </div>
 
-            <div className="detail-phieu-nhap-hang__header-right">
-              {stt_rec && !isEditMode ? (
-                <Button
-                  type="text"
-                  icon={<EditOutlined />}
-                  onClick={handleEdit}
-                  className="phieu-edit-button-kd"
-                  title="Chỉnh sửa"
-                />
-              ) : (
-                <div style={{ width: 40 }}></div>
-              )}
-            </div>
-          </div>
+            <Tabs
+              defaultActiveKey="chi_tiet"
+              className="detail-phieu-nhap-hang__tabs"
+              items={[
+                {
+                  key: "chi_tiet",
+                  label: "Chi tiết",
+                  children: (
+                    <div style={{ minHeight: 120 }}>
+                      {isEditMode && (
+                          <div className="detail-phieu-nhap-hang__add-product-section">
+                            <div className="section-title">Tìm quét vật tư nhập hàng</div>
+                            <VatTuSelectFullPOS
+                                isEditMode={isEditMode}
+                                barcodeEnabled={barcodeEnabled}
+                                setBarcodeEnabled={setBarcodeEnabled}
+                                setBarcodeJustEnabled={setBarcodeJustEnabled}
+                                vatTuInput={vatTuInput}
+                                setVatTuInput={setVatTuInput}
+                                vatTuSelectRef={vatTuSelectRef}
+                                loadingVatTu={loadingVatTu}
+                                vatTuList={vatTuList}
+                                searchTimeoutRef={searchTimeoutRef}
+                                fetchVatTuList={fetchVatTuListPaging}
+                                handleVatTuSelect={handleVatTuSelectPNA}
+                                totalPage={totalPage}
+                                pageIndex={pageIndex}
+                                setPageIndex={setPageIndex}
+                                setVatTuList={setVatTuList}
+                                currentKeyword={currentKeyword}
+                            />
+                          </div>
+                      )}
 
-        <div className="detail-phieu-nhap-hang__body">
-          <div className="detail-phieu-nhap-hang__section">
-            <PhieuNhapHangFormInputs
-              isEditMode={isEditMode}
-              maKhachList={maKhachList}
-              loadingMaKhach={loadingMaKhach}
-              fetchMaKhachListDebounced={fetchMaKhachListDebounced}
-              fetchMaKhachList={fetchMaKhachList}
-              maGiaoDichList={maGiaoDichList}
-              fetchMaGiaoDichList={fetchMaGiaoDichList}
-              maKhoList={maKhoList}
-              loadingMaKho={loadingMaKho}
-              fetchMaKhoList={fetchMaKhoList}
-              fetchMaKhoListDebounced={fetchMaKhoListDebounced}
-              onPoSearch={handlePoSearch}
-            />
-          </div>
+                      <VatTuNhapHangTable
+                          dataSource={dataSource}
+                          isEditMode={isEditMode}
+                          handleQuantityChange={handleQuantityChange}
+                          handleSelectChange={handleSelectChange}
+                          handleDeleteItem={handleDeleteItem}
+                          handleDvtChange={handleDvtChange}
+                          maKhoList={maKhoList}
+                          loadingMaKho={loadingMaKho}
+                          fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+                          fetchMaKhoList={fetchMaKhoList}
+                          fetchDonViTinh={fetchDonViTinh}
+                          onDataSourceUpdate={setDataSource}
+                      />
 
-          <Tabs
-            defaultActiveKey="chi_tiet"
-            className="detail-phieu-nhap-hang__tabs"
-            items={[
-              {
-                key: "chi_tiet",
-                label: "Chi tiết",
-                children: (
-                  <div style={{ minHeight: 120 }}>
-                    {isEditMode && (
-                        <div className="detail-phieu-nhap-hang__add-product-section">
-                          <div className="section-title">Tìm quét vật tư nhập hàng</div>
-                          <VatTuSelectFullPOS
-                              isEditMode={isEditMode}
-                              barcodeEnabled={barcodeEnabled}
-                              setBarcodeEnabled={setBarcodeEnabled}
-                              setBarcodeJustEnabled={setBarcodeJustEnabled}
-                              vatTuInput={vatTuInput}
-                              setVatTuInput={setVatTuInput}
-                              vatTuSelectRef={vatTuSelectRef}
-                              loadingVatTu={loadingVatTu}
-                              vatTuList={vatTuList}
-                              searchTimeoutRef={searchTimeoutRef}
-                              fetchVatTuList={fetchVatTuListPaging}
-                              handleVatTuSelect={handleVatTuSelectPNA}
-                              totalPage={totalPage}
-                              pageIndex={pageIndex}
-                              setPageIndex={setPageIndex}
-                              setVatTuList={setVatTuList}
-                              currentKeyword={currentKeyword}
-                          />
-                        </div>
-                    )}
-
-                    <VatTuNhapHangTable
-                        dataSource={dataSource}
-                        isEditMode={isEditMode}
-                        handleQuantityChange={handleQuantityChange}
-                        handleSelectChange={handleSelectChange}
-                        handleDeleteItem={handleDeleteItem}
-                        handleDvtChange={handleDvtChange}
-                        maKhoList={maKhoList}
-                        loadingMaKho={loadingMaKho}
-                        fetchMaKhoListDebounced={fetchMaKhoListDebounced}
-                        fetchMaKhoList={fetchMaKhoList}
-                        fetchDonViTinh={fetchDonViTinh}
-                        onDataSourceUpdate={setDataSource}
-                    />
-
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: 12, padding: '12px 24px', borderTop: '1px solid #f0f0f0' }}>
-                        <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
-                            <div style={{ textAlign: 'right' }}>
-                                <span style={{ color: '#64748b', fontSize: '13px' }}>Tổng SL: </span>
-                                <span style={{ fontWeight: 600, color: '#1e293b' }}>
-                                    {dataSource.reduce((acc, item) => acc + (parseFloat(item.soLuong || item.so_luong) || 0), 0).toLocaleString("vi-VN")}
-                                </span>
-                            </div>
-                        </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: 12, padding: '12px 24px', borderTop: '1px solid #f0f0f0' }}>
+                          <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
+                              <div style={{ textAlign: 'right' }}>
+                                  <span style={{ color: '#64748b', fontSize: '13px' }}>Tổng SL: </span>
+                                  <span style={{ fontWeight: 600, color: '#1e293b' }}>
+                                      {dataSource.reduce((acc, item) => acc + (parseFloat(item.soLuong || item.so_luong) || 0), 0).toLocaleString("vi-VN")}
+                                  </span>
+                              </div>
+                          </div>
+                      </div>
                     </div>
-                  </div>
-                )
-              }
-            ]}
-          />
-        </div>
-
-        {/* FIXED FOOTER ACTIONS - OUTSIDE BODY FOR EDGE-TO-EDGE */}
-        {(isEditMode || !stt_rec) && (
-          <div className="detail-phieu-nhap-hang__fixed-footer">
-            <div className="fixed-footer__actions">
-              <Button 
-                type="primary" 
-                icon={<SaveOutlined />} 
-                onClick={handleSubmit} 
-                loading={loading}
-                className="btn-save-fixed"
-              >
-                Lưu phiếu
-              </Button>
-              
-              <Button
-                icon={<LinkOutlined />}
-                onClick={() => setKeThuaModalOpen(true)}
-                disabled={!maKhach}
-                title={!maKhach ? "Vui lòng chọn Mã khách để kế thừa đơn hàng" : ""}
-                className="btn-print-fixed"
-              >
-                Kế thừa
-              </Button>
-
-              {stt_rec && (
-                <Button 
-                  danger
-                  icon={<DeleteOutlined />} 
-                  onClick={handleDelete}
-                  className="btn-delete-fixed"
-                >
-                  Xoá phiếu
-                </Button>
-              )}
-            </div>
+                  )
+                }
+              ]}
+            />
           </div>
-        )}
-      </div>
-    </Form>
+        </Form>
+
+      </FormTemplate>
 
       <ModalKeThua
         open={keThuaModalOpen}
@@ -771,7 +750,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
         onSelect={handleKeThuaSelect}
         maKhach={form.getFieldValue("maKhach") || ""}
       />
-  </div>
+    </div>
   );
 };
 

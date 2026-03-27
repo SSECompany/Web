@@ -1,4 +1,4 @@
-import { EditOutlined, LeftOutlined } from "@ant-design/icons";
+import { EditOutlined, LeftOutlined, SaveOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Form, message, Space, Typography, Select } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -7,6 +7,7 @@ import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import VatTuSelectFull from "../../../../components/common/ProductSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
+import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuTable from "./components/VatTuTable";
@@ -337,77 +338,47 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
     navigate("/kho/xuat-kho/them-moi");
   }, [navigate]);
 
+  const getBadge = () => {
+    if (!stt_rec) return { text: "THÊM PHIẾU XUẤT MỚI", color: "green" };
+    if (isEditMode) return { text: "SỬA PHIẾU XUẤT", color: "orange" };
+    return { text: "CHI TIẾT PHIẾU XUẤT", color: "blue" };
+  };
+  const badge = getBadge();
+
+  const footerActions = [];
+  if (isEditMode) {
+    footerActions.push(
+      { key: "save", label: "Lưu", icon: <SaveOutlined />, type: "primary", onClick: handleSubmit, loading: loading },
+      { key: "delete", label: "Xóa", icon: <DeleteOutlined />, danger: true, onClick: handleDelete },
+      { key: "new", label: "Mới", icon: <PlusOutlined />, onClick: handleNew }
+    );
+  }
+
   return (
-    <div className="phieu-container">
-      <div className="phieu-header">
-        <Button
-          type="text"
-          icon={<LeftOutlined />}
-          onClick={() => navigate("/kho/xuat-kho")}
-          className="phieu-back-button"
-        />
-
-        <div className="phieu-header-info">
-          <div className="phieu-header-tags">
-            <span className={`phieu-header-badge ${!stt_rec ? 'phieu-header-badge--green' : isEditMode ? 'phieu-header-badge--orange' : 'phieu-header-badge--blue'}`}>
-              {stt_rec ? (isEditMode ? "SỬA PHIẾU XUẤT" : "CHI TIẾT PHIẾU XUẤT") : "THÊM PHIẾU XUẤT MỚI"}
-            </span>
-          </div>
-
-          <div className="phieu-header-meta-stack">
-            <div className="phieu-header-meta-item">
-              ĐƠN HÀNG: <span className="phieu-header-meta-value">
-                {form.getFieldValue('so_ct') || '.........'} 
-                {form.getFieldValue('bcontract_id') && (
-                  <span className="phieu-header-meta-sequence">
-                    ({form.getFieldValue('bcontract_id')})
-                  </span>
-                )}
-              </span>
-            </div>
-            <div className="phieu-header-meta-item">
-              NGÀY: <span className="phieu-header-meta-value">{form.getFieldValue('ngay_ct') ? dayjs(form.getFieldValue('ngay_ct')).format('DD/MM/YYYY') : '.........'}</span>
-            </div>
-            <div className="phieu-header-status-row">
-              <span className="phieu-header-status-label">TRẠNG THÁI:</span>
-              <Form.Item name="status" noStyle>
-                <Select 
-                  size="small"
-                  className="phieu-header-status-select"
-                  dropdownMatchSelectWidth={false}
-                >
-                  <Select.Option value="0">Lập chứng từ</Select.Option>
-                  <Select.Option value="1">Chờ duyệt</Select.Option>
-                  <Select.Option value="2">Duyệt</Select.Option>
-                </Select>
-              </Form.Item>
-            </div>
-          </div>
-        </div>
-
-        <div className="phieu-header-right">
-          {!isEditMode && stt_rec ? (
-            <Button
-              type="primary"
-              icon={<EditOutlined />}
-              onClick={handleEdit}
-              className="phieu-edit-button"
-            >
-              Chỉnh sửa
-            </Button>
-          ) : (
-            <div style={{ width: 120 }}></div>
-          )}
-        </div>
-      </div>
-
+    <FormTemplate
+      form={form}
+      onFinish={handleSubmit}
+      onBack={() => navigate("/kho/xuat-kho")}
+      badgeText={badge.text}
+      badgeColor={badge.color}
+      metaOrder={form.getFieldValue('so_ct')}
+      metaDate={form.getFieldValue('ngay_ct') ? dayjs(form.getFieldValue('ngay_ct')).format('DD/MM/YYYY') : '.........'}
+      statusValue={form.getFieldValue('status') || "0"}
+      statusOptions={[
+        { value: "0", label: "Lập chứng từ" },
+        { value: "1", label: "Chờ duyệt" },
+        { value: "2", label: "Duyệt" },
+      ]}
+      showStatusSelect={true}
+      headerRightSpan={
+        !isEditMode && stt_rec ? (
+          <Button type="text" icon={<EditOutlined />} onClick={handleEdit} className="phieu-edit-button-kd" title="Chỉnh sửa" />
+        ) : null
+      }
+      fixedFooterActions={footerActions}
+    >
       <div className="phieu-form-container">
-        <Form
-          form={form}
-          layout="vertical"
-          className="phieu-form phieu-form--floating"
-          disabled={!isEditMode}
-        >
+        <Form form={form} layout="vertical" className="phieu-form-section phieu-form--floating" disabled={!isEditMode}>
           <PhieuFormInputs
             isEditMode={isEditMode}
             maGiaoDichList={maGiaoDichList}
@@ -448,29 +419,9 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
             fetchDonViTinh={fetchDonViTinh}
             onDataSourceUpdate={setDataSource}
           />
-
-          {isEditMode && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-start",
-                marginTop: 16,
-              }}
-            >
-              <Space>
-                <Button type="primary" onClick={handleSubmit} loading={loading}>
-                  Lưu
-                </Button>
-                <Button danger onClick={handleDelete}>
-                  Xóa
-                </Button>
-                <Button onClick={handleNew}>Mới</Button>
-              </Space>
-            </div>
-          )}
         </Form>
       </div>
-    </div>
+    </FormTemplate>
   );
 };
 

@@ -392,7 +392,7 @@ const VatTuTable = ({
             title: "STT",
             dataIndex: "key",
             key: "key",
-            width: 60,
+            width: 45,
             align: "center",
             fixed: "left",
             ellipsis: true,
@@ -414,27 +414,27 @@ const VatTuTable = ({
           {
             title: "Sản phẩm",
             key: "san_pham",
-            width: 320,
+            width: 240,
             align: "left",
             fixed: "left",
             render: (_, record) => (
-              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: '4px 0' }}>
+              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: '4px 0' }}>
                 {record.image ? (
                   <img 
                     src={record.image} 
                     alt="" 
-                    style={{ width: 64, height: 64, flexShrink: 0, objectFit: "cover", borderRadius: 8, border: '1px solid #f0f0f0' }} 
+                    style={{ width: 48, height: 48, flexShrink: 0, objectFit: "cover", borderRadius: 8, border: '1px solid #f0f0f0' }} 
                   />
                 ) : (
-                  <div style={{ width: 64, height: 64, flexShrink: 0, background: '#f8f9fb', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#94a3b8', border: '1px solid #eef2f7' }}>No Image</div>
+                  <div style={{ width: 48, height: 48, flexShrink: 0, background: '#f8f9fb', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#94a3b8', border: '1px solid #eef2f7' }}>No Image</div>
                 )}
-                <div style={{ flex: 1, textAlign: 'left' }}>
-                  <div style={{ marginBottom: 4 }}>
-                    <span style={{ fontWeight: 700, fontSize: '13px', lineHeight: '1.4', whiteSpace: 'normal', wordBreak: 'break-word', display: 'block', color: '#1e293b' }}>
+                <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+                  <div style={{ marginBottom: 2 }}>
+                    <span style={{ fontWeight: 700, fontSize: '12px', lineHeight: '1.3', whiteSpace: 'normal', wordBreak: 'break-word', display: 'block', color: '#1e293b' }}>
                       {record[columnConfig.tenMatHangField || "ten_mat_hang"]}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', gap: 6, fontSize: '11px', color: '#64748b', background: '#f1f5f9', borderRadius: 4, padding: '2px 8px', width: 'fit-content' }}>
+                  <div style={{ display: 'flex', gap: 4, fontSize: '10px', color: '#64748b', background: '#f1f5f9', borderRadius: 4, padding: '1px 6px', width: 'fit-content' }}>
                     <span style={{ fontWeight: 600 }}>{record.maHang || record.ma_vt}</span>
                     <span style={{ color: '#cbd5e1' }}>|</span>
                     <span style={{ fontWeight: 500 }}>{record.dvt}</span>

@@ -1,10 +1,11 @@
-import { LeftOutlined } from "@ant-design/icons";
+import { SaveOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import { Button, Form, message, Space, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import VatTuSelectFull from "../../../../components/common/ProductSelectFull/VatTuSelectFull";
 import "../common-phieu.css";
+import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import PhieuNhapKhoFormInputs from "./components/PhieuNhapKhoFormInputs";
 import VatTuNhapKhoTable from "./components/VatTuNhapKhoTable";
@@ -199,22 +200,38 @@ const AddPhieuNhapKho = () => {
   };
 
   return (
-    <div className="phieu-container">
-      <div className="phieu-header">
-        <Button
-          type="text"
-          icon={<LeftOutlined />}
-          onClick={() => navigate("/kho/nhap-kho")}
-          className="phieu-back-button"
-        />
-        <Title level={5} className="phieu-title">
-          THÊM PHIẾU NHẬP KHO MỚI
-        </Title>
-        <div style={{ width: "120px" }}></div>
-      </div>
-
-      <div className="phieu-form-container">
-        <Form form={form} layout="vertical" className="phieu-form">
+    <FormTemplate
+      form={form}
+      onFinish={handleSubmit}
+      onBack={() => navigate("/kho/nhap-kho")}
+      badgeText="THÊM PHIẾU NHẬP KHO MỚI"
+      badgeColor="green"
+      metaDate={dayjs().format("DD-MM-YYYY")}
+      statusValue="3"
+      statusOptions={[
+        { value: "0", label: "Lập chứng từ" },
+        { value: "2", label: "Nhập kho" },
+        { value: "3", label: "Chuyển số cài" },
+        { value: "5", label: "Đề nghị nhập kho" },
+      ]}
+      fixedFooterActions={[
+        {
+          key: "save",
+          label: "Lưu phiếu",
+          icon: <SaveOutlined />,
+          type: "primary",
+          onClick: handleSubmit,
+          loading: loading,
+        },
+        {
+          key: "cancel",
+          label: "Hủy",
+          icon: <CloseCircleOutlined />,
+          onClick: () => navigate("/kho/nhap-kho"),
+        },
+      ]}
+    >
+      <Form form={form} layout="vertical" className="phieu-form phieu-form--floating">
           <PhieuNhapKhoFormInputs
             isEditMode={isEditMode}
             maKhachList={maKhachList}
@@ -254,24 +271,8 @@ const AddPhieuNhapKho = () => {
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
             fetchMaKhoList={fetchMaKhoList}
           />
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-start",
-              marginTop: 16,
-            }}
-          >
-            <Space>
-              <Button type="primary" onClick={handleSubmit} loading={loading}>
-                Lưu
-              </Button>
-              <Button onClick={() => navigate("/kho/nhap-kho")}>Hủy</Button>
-            </Space>
-          </div>
-        </Form>
-      </div>
-    </div>
+      </Form>
+    </FormTemplate>
   );
 };
 

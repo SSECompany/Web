@@ -1,4 +1,4 @@
-import { LeftOutlined } from "@ant-design/icons";
+import { SaveOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -7,6 +7,7 @@ import { formatDate } from "../../../../utils/dateUtils";
 import VatTuSelectFull from "../../../../components/common/ProductSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
+import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import { fetchVatTuListDynamicApi } from "../phieu-nhat-hang/utils/phieuNhatHangUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
@@ -270,21 +271,38 @@ const AddPhieuXuatDieuChuyen = () => {
   };
 
   return (
-    <div className="phieu-container">
-      <div className="phieu-header">
-        <Button
-          type="text"
-          icon={<LeftOutlined />}
-          onClick={() => navigate("/kho/xuat-dieu-chuyen")}
-          className="phieu-back-button"
-        />
-        <Title level={5} className="phieu-title">
-          THÊM PHIẾU XUẤT ĐIỀU CHUYỂN
-        </Title>
-        <div style={{ width: 120 }}></div>
-      </div>
-      <div className="phieu-form-container">
-        <Form form={form} layout="vertical" className="phieu-form">
+    <FormTemplate
+      form={form}
+      onFinish={handleSubmit}
+      onBack={() => navigate("/kho/xuat-dieu-chuyen")}
+      badgeText="THÊM PHIẾU XUẤT ĐIỀU CHUYỂN"
+      badgeColor="green"
+      metaDate={dayjs().format("DD-MM-YYYY")}
+      statusValue="3"
+      statusOptions={[
+        { value: "0", label: "Lập chứng từ" },
+        { value: "2", label: "Xuất kho" },
+        { value: "3", label: "Chuyển số cài" },
+        { value: "5", label: "Đề nghị xuất kho" },
+      ]}
+      fixedFooterActions={[
+        {
+          key: "save",
+          label: "Lưu phiếu",
+          icon: <SaveOutlined />,
+          type: "primary",
+          onClick: handleSubmit,
+          loading: loading,
+        },
+        {
+          key: "cancel",
+          label: "Hủy",
+          icon: <CloseCircleOutlined />,
+          onClick: () => navigate("/kho/xuat-dieu-chuyen"),
+        },
+      ]}
+    >
+      <Form form={form} layout="vertical" className="phieu-form phieu-form--floating">
           <PhieuFormInputs
             isEditMode={true}
             maGiaoDichList={maGiaoDichList}
@@ -322,25 +340,8 @@ const AddPhieuXuatDieuChuyen = () => {
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
             fetchMaKhoList={fetchMaKhoList}
           />
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-start",
-              marginTop: 16,
-            }}
-          >
-            <Space>
-              <Button type="primary" onClick={handleSubmit} loading={loading}>
-                Lưu
-              </Button>
-              <Button onClick={() => navigate("/kho/xuat-dieu-chuyen")}>
-                Hủy
-              </Button>
-            </Space>
-          </div>
-        </Form>
-      </div>
-    </div>
+      </Form>
+    </FormTemplate>
   );
 };
 

@@ -27,7 +27,7 @@ const DiscountModal = ({
             title={
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <GiftOutlined style={{ color: '#1890ff' }} />
-                    <span>Danh sách CK áp dụng</span>
+                    <span>CK áp dụng</span>
                 </div>
             }
             open={visible}

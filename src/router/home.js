@@ -37,21 +37,7 @@ const DetailPhieuXuatKho = lazy(() =>
   import("../pages/kho/components/phieu-xuat-kho/DetailPhieuXuatKho")
 );
 
-const ListPhieuXuatKhoBanHang = lazy(() =>
-  import(
-    "../pages/kho/components/phieu-xuat-kho-ban-hang/ListPhieuXuatKhoBanHang"
-  )
-);
-const AddPhieuXuatKhoBanHang = lazy(() =>
-  import(
-    "../pages/kho/components/phieu-xuat-kho-ban-hang/AddPhieuXuatKhoBanHang"
-  )
-);
-const DetailPhieuXuatKhoBanHang = lazy(() =>
-  import(
-    "../pages/kho/components/phieu-xuat-kho-ban-hang/DetailPhieuXuatKhoBanHang"
-  )
-);
+
 
 const ListPhieuXuatDieuChuyen = lazy(() =>
   import(
@@ -92,7 +78,7 @@ const protectedChildrenRoutes = [
     element: <KinhDoanhPage />,
   },
   {
-    label: "Danh sách phiếu kinh doanh",
+    label: "Phiếu kinh doanh",
     path: "kinh-doanh/danh-sach",
     element: <ListPhieuKinhDoanh />,
   },
@@ -114,12 +100,12 @@ const protectedChildrenRoutes = [
 
   // Kho routes - ĐẶT TRƯỚC route kho chính để tránh conflict
   {
-    label: "Danh sách phiếu nhặt hàng",
+    label: "Phiếu nhặt hàng",
     path: "kho/nhat-hang",
     element: <ListPhieuNhatHang />,
   },
   {
-    label: "Danh sách phiếu nhập hàng theo đơn",
+    label: "Phiếu nhập hàng theo đơn",
     path: "kho/nhap-hang",
     element: <ListPhieuNhapHang />,
   },
@@ -144,25 +130,25 @@ const protectedChildrenRoutes = [
     element: <DetailPhieuNhapHang isEditMode={true} />,
   },
   {
-    label: "Danh sách phiếu giao hàng",
+    label: "Phiếu giao hàng",
     path: "kho/giao-hang",
     element: <ListPhieuGiaoHang />,
   },
-  {
-    label: "Danh sách phiếu nhập kho",
-    path: "kho/nhap-kho",
-    element: <ListPhieuNhapKho />,
-  },
-  {
-    label: "Thêm phiếu nhập kho",
-    path: "kho/nhap-kho/them-moi",
-    element: <AddPhieuNhapKho />,
-  },
-  {
-    label: "Chi tiết phiếu nhập kho",
-    path: "kho/nhap-kho/chi-tiet/:stt_rec",
-    element: <DetailPhieuNhapKho />,
-  },
+  // {
+  //   label: "Phiếu nhập kho",
+  //   path: "kho/nhap-kho",
+  //   element: <ListPhieuNhapKho />,
+  // },
+  // {
+  //   label: "Thêm phiếu nhập kho",
+  //   path: "kho/nhap-kho/them-moi",
+  //   element: <AddPhieuNhapKho />,
+  // },
+  // {
+  //   label: "Chi tiết phiếu nhập kho",
+  //   path: "kho/nhap-kho/chi-tiet/:stt_rec",
+  //   element: <DetailPhieuNhapKho />,
+  // },
 
   // Default route - chỉ redirect khi path là "/" (redirect to Kho instead of ban-hang)
   { path: "", element: <Navigate to="kho" replace /> },
@@ -202,38 +188,23 @@ const protectedChildrenRoutes = [
     path: "kho/giao-hang/edit/:id",
     element: <DetailPhieuGiaoHang isEditMode={true} />,
   },
+  // {
+  //   label: "Phiếu xuất kho",
+  //   path: "kho/xuat-kho",
+  //   element: <ListPhieuXuatKho />,
+  // },
+  // {
+  //   label: "Thêm phiếu xuất kho",
+  //   path: "kho/xuat-kho/them-moi",
+  //   element: <AddPhieuXuatKho />,
+  // },
+  // {
+  //   label: "Chi tiết phiếu xuất kho",
+  //   path: "kho/xuat-kho/chi-tiet/:id",
+  //   element: <DetailPhieuXuatKho />,
+  // },
   {
-    label: "Danh sách phiếu xuất kho",
-    path: "kho/xuat-kho",
-    element: <ListPhieuXuatKho />,
-  },
-  {
-    label: "Thêm phiếu xuất kho",
-    path: "kho/xuat-kho/them-moi",
-    element: <AddPhieuXuatKho />,
-  },
-  {
-    label: "Chi tiết phiếu xuất kho",
-    path: "kho/xuat-kho/chi-tiet/:id",
-    element: <DetailPhieuXuatKho />,
-  },
-  {
-    label: "Danh sách phiếu xuất kho bán hàng",
-    path: "kho/xuat-ban",
-    element: <ListPhieuXuatKhoBanHang />,
-  },
-  {
-    label: "Thêm phiếu xuất kho bán hàng",
-    path: "kho/xuat-ban/them-moi",
-    element: <AddPhieuXuatKhoBanHang />,
-  },
-  {
-    label: "Chi tiết phiếu xuất kho bán hàng",
-    path: "kho/xuat-ban/chi-tiet/:id",
-    element: <DetailPhieuXuatKhoBanHang />,
-  },
-  {
-    label: "Danh sách phiếu xuất điều chuyển",
+    label: "Phiếu xuất điều chuyển",
     path: "kho/xuat-dieu-chuyen",
     element: <ListPhieuXuatDieuChuyen />,
   },
@@ -248,7 +219,7 @@ const protectedChildrenRoutes = [
     element: <DetailPhieuXuatDieuChuyen />,
   },
   {
-    label: "Danh sách phiếu yêu cầu kiểm kê",
+    label: "Phiếu yêu cầu kiểm kê",
     path: "kho/yeu-cau-kiem-ke",
     element: <ListPhieuYeuCauKiemKe />,
   },

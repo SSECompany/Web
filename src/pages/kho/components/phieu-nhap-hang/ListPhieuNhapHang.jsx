@@ -22,17 +22,19 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import "../common-phieu.css";
-import CommonPhieuList from "../CommonPhieuList";
+import ListTemplate from "../../../../components/common/PageTemplates/ListTemplate";
 import {
   deletePhieuNhapHang,
   fetchPhieuNhapHangList,
 } from "./utils/phieuNhapHangApi";
+import { useAuth } from "../../../../hooks/useRedux";
 
 const { RangePicker } = DatePicker;
 const { Title } = Typography;
 
 const ListPhieuNhapHang = () => {
   const navigate = useNavigate();
+  const { userInfo } = useAuth();
   const [allData, setAllData] = useState([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -178,47 +180,7 @@ const ListPhieuNhapHang = () => {
     return chips;
   }, [filters]);
 
-  const chipsBar =
-    activeChips.length > 0 ? (
-      <div className="filter-chips-container">
-        <div className="filter-chips-left">
-          <FilterOutlined className="filter-chips-icon" />
-          <span className="filter-chips-title">
-            Bộ lọc đang áp dụng:
-          </span>
-          <div className="filter-chips-list">
-            {activeChips.map((chip) => (
-              <Tag
-                key={chip.key}
-                closable
-                onClose={(e) => {
-                  e.preventDefault();
-                  removeFilter(chip.key);
-                }}
-                className={`filter-chip ${
-                  chip.key === "status"
-                    ? "filter-chip--blue"
-                    : chip.key === "dateRange"
-                    ? "filter-chip--green"
-                    : chip.key === "so_ct" || chip.key === "so_po"
-                    ? "filter-chip--orange"
-                    : chip.key === "ten_kh"
-                    ? "filter-chip--magenta"
-                    : "filter-chip--cyan"
-                }`}
-              >
-                {chip.label}: {chip.value}
-              </Tag>
-            ))}
-          </div>
-        </div>
-        <div className="filter-chips-right">
-          <Button size="small" type="text" onClick={clearAllFilters}>
-            Xóa lọc
-          </Button>
-        </div>
-      </div>
-    ) : null;
+  // Filter chips are handled by ListTemplate
 
   const fetchPhieuNhapHang = useCallback(async (filterParams = filters) => {
     const params = {
@@ -282,7 +244,7 @@ const ListPhieuNhapHang = () => {
             return;
           }
 
-          const result = await deletePhieuNhapHang(sctRec);
+          const result = await deletePhieuNhapHang(sctRec, userInfo);
 
           if (result.success) {
             await fetchPhieuNhapHang();
@@ -297,24 +259,6 @@ const ListPhieuNhapHang = () => {
 
   const getColumns = () => {
     const baseColumns = [
-      {
-        title: "Thời gian",
-        key: "thoi_gian",
-        width: 140,
-        align: "center",
-        render: (_, record) => (
-          <div style={{ fontSize: '11px', lineHeight: '1.4' }}>
-            <div>
-              <Typography.Text type="secondary" style={{ fontSize: '10px' }}>Tạo:</Typography.Text>{" "}
-              {record.datetime0 ? dayjs(record.datetime0).format("HH:mm DD/MM") : "--"}
-            </div>
-            <div>
-              <Typography.Text type="secondary" style={{ fontSize: '10px' }}>Sửa:</Typography.Text>{" "}
-              {record.datetime2 ? dayjs(record.datetime2).format("HH:mm DD/MM") : "--"}
-            </div>
-          </div>
-        )
-      },
       {
         title: "Chứng từ",
         key: "don_hang",
@@ -404,7 +348,7 @@ const ListPhieuNhapHang = () => {
       {
         title: "Khách hàng",
         key: "khach_hang",
-        width: 250,
+        width: 200,
         align: "left",
         render: (_, record) => (
           <div>
@@ -569,29 +513,16 @@ const ListPhieuNhapHang = () => {
   };
 
   return (
-    <CommonPhieuList
-      title="DANH SÁCH PHIẾU NHẬP HÀNG THEO ĐƠN"
+    <ListTemplate
+      title="PHIẾU NHẬP HÀNG THEO ĐƠN"
       columns={getColumns()}
       data={allData}
       onBack={() => navigate("/kho")}
-      extraHeader={chipsBar}
-      extraButtons={
-        <div style={{ display: "flex", gap: "8px", alignItems: 'center' }}>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
-            onClick={() => navigate("them-moi")}
-            style={{ background: '#1d4ed8', borderColor: '#1d4ed8' }}
-            title="Tạo phiếu nhập"
-          />
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={handleRefresh}
-            title="Làm tươi"
-            style={{ color: '#1d4ed8', background: '#f0f9ff', borderColor: '#bae6fd' }}
-          />
-        </div>
-      }
+      onAdd={() => navigate("them-moi")}
+      onRefresh={handleRefresh}
+      activeChips={activeChips}
+      onRemoveFilter={removeFilter}
+      onClearAllFilters={clearAllFilters}
       rowKey="stt_rec"
       pagination={{
         current: currentPage,
@@ -611,7 +542,7 @@ const ListPhieuNhapHang = () => {
           return (
             <Table.Summary fixed>
               <Table.Summary.Row className="table-summary-row">
-                <Table.Summary.Cell index={0} colSpan={3} className="text-right">
+                <Table.Summary.Cell index={0} colSpan={2} className="text-right">
                   <span style={{ fontWeight: "bold", fontSize: "15px" }}>
                     Tổng cộng:
                   </span>

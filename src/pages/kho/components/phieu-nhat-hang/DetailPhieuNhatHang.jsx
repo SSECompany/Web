@@ -1,7 +1,10 @@
 import {
   DownOutlined,
   EditOutlined,
-  LeftOutlined,
+  SaveOutlined,
+  CheckCircleOutlined,
+  DeleteOutlined,
+  PlusOutlined,
   UpOutlined,
 } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
@@ -15,6 +18,7 @@ import VatTuSelectFullPOS from "../../../../components/common/ProductSelectFull/
 import QRScanner from "../../../../components/common/QRScanner/QRScanner";
 import notificationManager from "../../../../utils/notificationManager";
 import "../common-phieu.css";
+import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
 import PhieuNhatHangFormInputs from "./components/PhieuNhatHangFormInputs";
 import VatTuNhatHangTable from "./components/VatTuNhatHangTable";
 import { usePhieuNhatHangData } from "./hooks/usePhieuNhatHangData";
@@ -826,10 +830,6 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           const result = await updatePhieuNhatHang(wrappedPayload, userInfo, { showSuccess: false });
 
           if (result.success) {
-            message.success(
-              "Đã hoàn thành phiếu nhặt hàng, đang chuyển về trang chính..."
-            );
-
             // Delay một chút để user thấy message trước khi navigate
             setTimeout(() => {
               navigate(returnUrl);
@@ -876,42 +876,50 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
     });
   };
 
-  return (
-    <div className="phieu-container">
-      <div className="phieu-header">
-        <Button
-          type="text"
-          icon={<LeftOutlined />}
-          onClick={() => navigate(returnUrl)}
-          className="phieu-back-button"
-        />
-        <Title level={5} className="phieu-title">
-          {isEditMode
-            ? "CHỈNH SỬA PHIẾU NHẶT HÀNG"
-            : "CHI TIẾT PHIẾU NHẶT HÀNG"}
-        </Title>
-        {!isEditMode ? (
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={handleEdit}
-            className="phieu-edit-button"
-            disabled={(form.getFieldValue("trangThai") || phieuData?.status) === "2"}
-          >
-            Chỉnh sửa
-          </Button>
-        ) : (
-          <div style={{ width: 120 }}></div>
-        )}
-      </div>
 
+
+  const getBadgeInfo = () => {
+    const isCompleted = (form.getFieldValue("trangThai") || phieuData?.status) === "2";
+    if (isCompleted) return { text: "CHI TIẾT PHIẾU NHẶT HÀNG", color: "blue" };
+    if (isEditMode) return { text: "SỬA PHIẾU NHẶT HÀNG", color: "orange" };
+    return { text: "CHI TIẾT PHIẾU NHẶT HÀNG", color: "blue" };
+  };
+  const badge = getBadgeInfo();
+
+  const footerActions = [];
+  if (isEditMode) {
+    footerActions.push(
+      { key: "save", label: "Lưu", icon: <SaveOutlined />, type: "primary", onClick: handleSubmit, loading: loading },
+      { key: "complete", label: "Hoàn thành", icon: <CheckCircleOutlined />, type: "primary", onClick: handleComplete, loading: loading, className: "btn-save-fixed" },
+      { key: "delete", label: "Huỷ nhặt", icon: <DeleteOutlined />, danger: true, onClick: handleHuyNhat, loading: loadingHuy },
+    );
+  }
+
+  return (
+    <FormTemplate
+      form={form}
+      onFinish={handleSubmit}
+      onBack={() => navigate(returnUrl)}
+      badgeText={badge.text}
+      badgeColor={badge.color}
+      metaOrder={form.getFieldValue('soPhieu')}
+      metaDate={form.getFieldValue('ngay') ? dayjs(form.getFieldValue('ngay')).format('DD/MM/YYYY') : '.........'}
+      statusValue={form.getFieldValue('trangThai') || "0"}
+      statusOptions={[
+        { value: "0", label: "Lập chứng từ" },
+        { value: "1", label: "Đang nhặt" },
+        { value: "2", label: "Nhặt xong" },
+      ]}
+      showStatusSelect={true}
+      headerRightSpan={
+        !isEditMode && id && (form.getFieldValue("trangThai") !== "2") ? (
+          <Button type="text" icon={<EditOutlined />} onClick={handleEdit} loading={loading} className="phieu-edit-button-kd" title="Chỉnh sửa" />
+        ) : null
+      }
+      fixedFooterActions={footerActions}
+    >
       <div className="phieu-form-container">
-        <Form
-          form={form}
-          layout="vertical"
-          className="phieu-form"
-          disabled={!isEditMode}
-        >
+        <div className="phieu-form phieu-form--floating">
           {/* Thanh tìm kiếm/ chọn vật tư đặt ngay trên bảng */}
           <div style={{ marginTop: 8, marginBottom: 8 }}>
             <div
@@ -966,43 +974,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             focusInvalidRowKey={focusInvalidRowKey}
             onFocusInvalidRowHandled={() => setFocusInvalidRowKey(null)}
           />
-
-          {isEditMode && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                marginTop: 16,
-              }}
-            >
-              <Space>
-                <Button
-                  type="primary"
-                  onClick={handleHuyNhat}
-                  loading={loadingHuy}
-                  style={{ backgroundColor: "#ff4d4f", borderColor: "#ff4d4f" }}
-                >
-                  Huỷ nhặt
-                </Button>
-                <Button
-                  type="primary"
-                  onClick={handleSubmit}
-                  loading={loading}
-                >
-                  Lưu
-                </Button>
-                <Button
-                  type="primary"
-                  onClick={handleComplete}
-                  loading={loading}
-                  style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
-                >
-                  Hoàn thành
-                </Button>
-              </Space>
-            </div>
-          )}
-        </Form>
+        </div>
 
         {/* Divider to separate table and form area */}
         <div
@@ -1012,7 +984,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           }}
         />
 
-        {/* Toggle hiển/ẩn thông tin phiếu - 移到Form外面，不受disabled影响 */}
+        {/* Toggle hiển/ẩn thông tin phiếu */}
         <div style={{ marginBottom: 8 }}>
           <Button
             size="small"
@@ -1032,32 +1004,33 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         </div>
 
         {showFormFields && (
-          <Form
-            form={form}
-            layout="vertical"
-            className="phieu-form"
-            disabled={!isEditMode}
-          >
-            <PhieuNhatHangFormInputs
-              isEditMode={isEditMode}
-              barcodeEnabled={barcodeEnabled}
-              setBarcodeEnabled={setBarcodeEnabled}
-              setBarcodeJustEnabled={setBarcodeJustEnabled}
-              vatTuInput={vatTuInput}
-              setVatTuInput={setVatTuInput}
-              vatTuSelectRef={vatTuSelectRef}
-              loadingVatTu={loadingVatTu}
-              vatTuList={vatTuList}
-              searchTimeoutRef={searchTimeoutRef}
-              fetchVatTuList={fetchVatTuListPaging}
-              totalPage={totalPage}
-              pageIndex={pageIndex}
-              setPageIndex={setPageIndex}
-              setVatTuList={setVatTuList}
-              currentKeyword={currentKeyword}
-              handleVatTuSelect={handleVatTuSelect}
-            />
-          </Form>
+          <div className="phieu-form-section phieu-form--floating">
+            <Form
+              form={form}
+              layout="vertical"
+              disabled={!isEditMode}
+            >
+              <PhieuNhatHangFormInputs
+                isEditMode={isEditMode}
+                barcodeEnabled={barcodeEnabled}
+                setBarcodeEnabled={setBarcodeEnabled}
+                setBarcodeJustEnabled={setBarcodeJustEnabled}
+                vatTuInput={vatTuInput}
+                setVatTuInput={setVatTuInput}
+                vatTuSelectRef={vatTuSelectRef}
+                loadingVatTu={loadingVatTu}
+                vatTuList={vatTuList}
+                searchTimeoutRef={searchTimeoutRef}
+                fetchVatTuList={fetchVatTuListPaging}
+                totalPage={totalPage}
+                pageIndex={pageIndex}
+                setPageIndex={setPageIndex}
+                setVatTuList={setVatTuList}
+                currentKeyword={currentKeyword}
+                handleVatTuSelect={handleVatTuSelect}
+              />
+            </Form>
+          </div>
         )}
       </div>
 
@@ -1069,7 +1042,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         onSwitchToBarcode={handleSwitchToBarcodeMode}
         openWithCamera={true}
       />
-    </div>
+    </FormTemplate>
   );
 };
 

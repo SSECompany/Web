@@ -201,13 +201,15 @@ export const updatePhieuNhapHang = async (payload) => {
 };
 
 // API để xóa phiếu nhập hàng
-export const deletePhieuNhapHang = async (stt_rec) => {
+export const deletePhieuNhapHang = async (stt_rec, userInfo) => {
   const token = localStorage.getItem("access_token");
+  const userId = userInfo?.userId || userInfo?.id || "";
 
   const body = {
-    store: "Api_delete_phieu_nhap_hang_voucher",
+    store: "api_xoa_phieu_nhap_hang_theo_don",
     param: {
       stt_rec: stt_rec,
+      UserId: userId,
     },
     data: {},
     resultSetNames: [],
@@ -306,12 +308,16 @@ export const fetchDonHangKeThua = async (params) => {
 // API để lấy chi tiết đơn hàng mua trong nước kế thừa
 export const fetchDonHangKeThuaDetail = async (stt_rec) => {
   const token = localStorage.getItem("access_token");
+  // Lấy UserId thực từ localStorage
+  const userStr = localStorage.getItem("user");
+  const user = userStr ? JSON.parse(userStr) : {};
+  const userId = user.userId || 1;
 
   const body = {
     store: "api_get_don_hang_mua_trong_nuoc_ke_thua_chi_tiet",
     param: {
       stt_rec: stt_rec,
-      UserId: 1,
+      UserId: userId,
     },
     data: {},
     resultSetNames: ["master", "detail"],
@@ -326,13 +332,12 @@ export const fetchDonHangKeThuaDetail = async (stt_rec) => {
     });
 
     const listObject = response.data?.listObject || [];
-    
-    // Nếu listObject chỉ có 1 mảng thì đó là mảng detail
-    // Nếu có 2 mảng thì [0] là master, [1] là detail
+
     let master = null;
     let detail = [];
 
     if (listObject.length === 1) {
+      // Chỉ có 1 mảng — có thể là detail hoặc master+detail gộp chung
       detail = listObject[0] || [];
     } else if (listObject.length >= 2) {
       master = listObject[0]?.[0] || null;
@@ -340,7 +345,7 @@ export const fetchDonHangKeThuaDetail = async (stt_rec) => {
     }
 
     return {
-      master,
+      master,   // Chứa: so_ct (→ fcode2), ngay_ct (→ fdate1), ma_nv (→ fcode1)
       detail,
       success: true,
     };
@@ -352,5 +357,48 @@ export const fetchDonHangKeThuaDetail = async (stt_rec) => {
       success: false,
       error: error.message,
     };
+  }
+};
+
+// API lấy danh sách kho: api_list_kho
+export const fetchMaKhoApi = async (keyword = "", pageIndex = 1, pageSize = 100) => {
+  const token = localStorage.getItem("access_token");
+  const userStr = localStorage.getItem("user");
+  const unitsStr = localStorage.getItem("unitsResponse");
+  const user = userStr ? JSON.parse(userStr) : {};
+  const units = unitsStr ? JSON.parse(unitsStr) : {};
+  const ma_dvcs = user.unitId || units.unitId || "TAPMED";
+
+  const body = {
+    store: "api_list_kho",
+    param: {
+      ma_kho: "",
+      ten_kho: keyword || "",
+      ma_dvcs: ma_dvcs,
+      PageIndex: pageIndex,
+      PageSize: pageSize,
+    },
+    data: {},
+    resultSetNames: ["data"],
+  };
+
+  try {
+    const response = await https.post("User/AddData", body, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const listObject = response.data?.listObject || [];
+    const data = listObject[0] || [];
+
+    return data.map((item) => ({
+      value: (item.ma_kho || "").trim(),
+      label: `${(item.ma_kho || "").trim()} - ${(item.ten_kho || "").trim()}`,
+    }));
+  } catch (error) {
+    console.error("Lỗi gọi API danh sách kho:", error);
+    return [];
   }
 };

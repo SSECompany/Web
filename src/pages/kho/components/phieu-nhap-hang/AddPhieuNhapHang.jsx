@@ -11,6 +11,7 @@ import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import ModalKeThua from "./components/ModalKeThua";
 import PhieuNhapHangFormInputs from "./components/PhieuNhapHangFormInputs";
 import VatTuNhapHangTable from "./components/VatTuNhapHangTable";
+import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
 import { usePhieuNhapHangData } from "./hooks/usePhieuNhapHangData";
 import { useVatTuManagerNhapHang } from "./hooks/useVatTuManagerNhapHang";
 import {
@@ -385,58 +386,43 @@ const AddPhieuNhapHang = () => {
 
   return (
     <div className="detail-phieu-nhap-hang">
-      <Form 
-        form={form} 
-        layout="vertical" 
-        className="phieu-form phieu-form--floating"
+      <FormTemplate
+        form={form}
         onFinish={handleSubmit}
+        onBack={() => navigate("/kho/nhap-hang")}
+        badgeText="THÊM PHIẾU NHẬP MỚI"
+        badgeColor="green"
+        metaDate={dayjs().format("DD-MM-YYYY")}
+        statusValue="0"
+        statusOptions={[
+          { value: "0", label: "Lập chứng từ" },
+          { value: "1", label: "Chờ duyệt" },
+          { value: "2", label: "Duyệt" },
+        ]}
+        fixedFooterActions={[
+          {
+            key: "save",
+            label: "Lưu phiếu",
+            icon: <SaveOutlined />,
+            type: "primary",
+            onClick: handleSubmit,
+            loading: loading,
+            className: "btn-save-fixed",
+          },
+          {
+            key: "kethua",
+            label: "Kế thừa",
+            icon: <LinkOutlined />,
+            type: "default",
+            onClick: () => setKeThuaModalOpen(true),
+            disabled: !maKhach,
+            className: "btn-print-fixed",
+          }
+        ]}
       >
-        <div className="detail-phieu-nhap-hang__card">
-          <div className="detail-phieu-nhap-hang__header">
-            <Button
-              type="text"
-              icon={<LeftOutlined />}
-              onClick={() => navigate("/kho/nhap-hang")}
-              className="phieu-back-button"
-              htmlType="button"
-            />
-
-            <div className="phieu-header-info">
-              <div className="phieu-header-tags">
-                <span className="phieu-header-badge phieu-header-badge--green">
-                  THÊM PHIẾU NHẬP MỚI
-                </span>
-              </div>
-
-              <div className="phieu-header-meta-stack">
-                <div className="phieu-header-meta-item">
-                  NGÀY: <span className="phieu-header-meta-value">{dayjs().format('DD-MM-YYYY')}</span>
-                </div>
-                <div className="phieu-header-status-row">
-                  <span className="phieu-header-status-label">TRẠNG THÁI:</span>
-                  <Form.Item name="status" noStyle initialValue="0">
-                    <Select 
-                      size="small"
-                      className="phieu-header-status-select"
-                      dropdownMatchSelectWidth={false}
-                    >
-                      <Select.Option value="0">Lập chứng từ</Select.Option>
-                      <Select.Option value="1">Chờ duyệt</Select.Option>
-                      <Select.Option value="2">Duyệt</Select.Option>
-                    </Select>
-                  </Form.Item>
-                </div>
-              </div>
-            </div>
-
-            <div className="detail-phieu-nhap-hang__header-right">
-              {/* No edit button in add mode */}
-              <div style={{ width: 40 }}></div>
-            </div>
-          </div>
 
           <div className="detail-phieu-nhap-hang__body">
-            <div className="detail-phieu-nhap-hang__section">
+            <div className="phieu-form-section phieu-form--floating">
               <PhieuNhapHangFormInputs
                 isEditMode={isEditMode}
                 maKhachList={maKhachList}
@@ -530,31 +516,7 @@ const AddPhieuNhapHang = () => {
             </div>
           </div>
 
-          {/* FIXED FOOTER ACTIONS */}
-          <div className="detail-phieu-nhap-hang__fixed-footer">
-            <div className="fixed-footer__actions">
-              <Button 
-                type="primary" 
-                icon={<SaveOutlined />} 
-                onClick={handleSubmit} 
-                loading={loading}
-                className="btn-save-fixed"
-              >
-                Lưu phiếu
-              </Button>
-              <Button
-                icon={<LinkOutlined />}
-                onClick={() => setKeThuaModalOpen(true)}
-                disabled={!maKhach}
-                title={!maKhach ? "Vui lòng chọn Mã khách để kế thừa đơn hàng" : ""}
-                className="btn-print-fixed"
-              >
-                Kế thừa
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Form>
+      </FormTemplate>
 
       <ModalKeThua
         open={keThuaModalOpen}

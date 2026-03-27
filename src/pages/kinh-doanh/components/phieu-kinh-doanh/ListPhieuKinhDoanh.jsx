@@ -21,7 +21,7 @@ import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import "../../../kho/components/common-phieu.css";
 import "./ListPhieuKinhDoanh.css";
-import CommonPhieuList from "../../../kho/components/CommonPhieuList";
+import ListTemplate from "../../../../components/common/PageTemplates/ListTemplate";
 import { 
     fetchPhieuKinhDoanhList, 
     fetchSplitPhieuKinhDoanhItems,
@@ -242,49 +242,7 @@ const ListPhieuKinhDoanh = () => {
         return chips;
     }, [filters]);
 
-    const chipsBar = activeChips.length > 0 ? (
-        <div className="filter-chips-container">
-            <div className="filter-chips-left">
-                <FilterOutlined className="filter-chips-icon" />
-                <span className="filter-chips-title">Bộ lọc đang áp dụng:</span>
-                <div className="filter-chips-list">
-                    {activeChips.map(chip => (
-                        <Tag 
-                            key={chip.key} 
-                            closable 
-                            onClose={(e) => { 
-                                e.preventDefault(); 
-                                if (chip.key === "status") {
-                                    // Status is now multi-select
-                                    handleFilter("status", []);
-                                } else {
-                                    removeFilter(chip.key); 
-                                }
-                            }}
-                            className={`filter-chip ${
-                                chip.key === "status"
-                                  ? "filter-chip--blue"
-                                  : chip.key === "dateRange"
-                                  ? "filter-chip--green"
-                                  : chip.key === "so_ct"
-                                  ? "filter-chip--orange"
-                                  : chip.key === "ten_kh"
-                                  ? "filter-chip--magenta"
-                                  : chip.key === "ten_nvbh" || chip.key === "kw_nguoi_tao"
-                                  ? "filter-chip--purple"
-                                  : "filter-chip--blue"
-                              }`}
-                        >
-                            {chip.label}: {chip.value}
-                        </Tag>
-                    ))}
-                </div>
-            </div>
-            <div className="filter-chips-right">
-                <Button size="small" type="text" onClick={clearAllFilters}>Xóa lọc</Button>
-            </div>
-        </div>
-    ) : null;
+    // Filter chips moved to ListTemplate
 
     const getStatusColor = (status) => {
         switch (String(status).trim()) {
@@ -996,293 +954,169 @@ const ListPhieuKinhDoanh = () => {
         );
     };
 
-    const mobileFilterHeader = (
-        <div className="mobile-filter-header">
-            <Button
-                icon={<SearchOutlined />}
-                onClick={() => setShowMobileFilter(!showMobileFilter)}
-                type={showMobileFilter ? "primary" : "default"}
-            >
-                Bộ lọc
-            </Button>
-            {showMobileFilter && (
-                <div className="mobile-filter-content" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
-                    <div>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Số đơn hàng:</div>
-                        <Input
-                            placeholder="Nhập số đơn hàng..."
-                            value={filters.so_ct}
-                            onChange={e => handleFilter("so_ct", e.target.value)}
-                            style={{ borderRadius: '8px' }}
-                        />
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khách hàng:</div>
-                        <Input
-                            placeholder="Mã hoặc tên khách hàng"
-                            value={filters.ten_kh}
-                            onChange={e => handleFilter("ten_kh", e.target.value)}
-                            style={{ borderRadius: '8px' }}
-                        />
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>NVKD:</div>
-                        <Input
-                            placeholder="Tên nhân viên (NVKD)"
-                            value={filters.ten_nvbh}
-                            onChange={e => handleFilter("ten_nvbh", e.target.value)}
-                            style={{ borderRadius: '8px' }}
-                        />
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khoảng ngày:</div>
-                        <RangePicker
-                            style={{ width: '100%', borderRadius: '8px' }}
-                            onChange={dates => handleFilter("dateRange", dates)}
-                            placeholder={['Từ ngày', 'Đến ngày']}
-                            inputReadOnly={false}
-                            format={["DD-MM-YYYY", "DD/MM/YYYY", "DDMMYYYY"]}
-                        />
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Trạng thái:</div>
-                        <Select
-                            mode="multiple"
-                            placeholder="Chọn trạng thái"
-                            value={filters.status && filters.status.length > 0 ? filters.status : []}
-                            onChange={value => handleFilter("status", value)}
-                            style={{ width: '100%' }}
-                            allowClear
-                            className="mobile-status-select"
-                        >
-                            <Select.Option value="0">Lập ctừ</Select.Option>
-                            <Select.Option value="1">Chờ duyệt</Select.Option>
-                            <Select.Option value="2">Duyệt</Select.Option>
-                            <Select.Option value="3">Treo</Select.Option>
-                            <Select.Option value="4">Đang xuất</Select.Option>
-                            <Select.Option value="5">Hoàn thành</Select.Option>
-                            <Select.Option value="6">Đóng</Select.Option>
-                            <Select.Option value="9">Hủy</Select.Option>
-                        </Select>
-                    </div>
-                    <Button 
-                        block 
-                        type="dashed" 
-                        onClick={clearAllFilters}
-                        style={{ marginTop: '4px', borderRadius: '8px' }}
-                    >
-                        Xóa tất cả bộ lọc
-                    </Button>
-                </div>
-            )}
-        </div>
-    );
-
     return (
-        <div className={`list-phieu-wrapper ${screenSize === 'mobile' ? 'is-mobile' : ''}`}>
-            {screenSize === 'mobile' ? (
-                <div className="phieu-container mobile-app-layout">
-                    <Row align="middle" className="phieu-header mobile-sticky-header" style={{ position: "relative" }}>
-                        <Col flex={1} style={{ textAlign: "left", zIndex: 1 }}>
-                            <Button type="text" icon={<LeftOutlined />} onClick={() => navigate("/kinh-doanh")} />
-                        </Col>
+        <div className="list-phieu-wrapper">
+            <ListTemplate
+                title="ĐƠN HÀNG KINH DOANH"
+                columns={getColumns()}
+                data={allData}
+                loading={loading}
+                onBack={() => navigate("/kinh-doanh")}
+                onAdd={() => navigate("/kinh-doanh/them-moi")}
+                onRefresh={handleRefresh}
+                rowKey="stt_rec"
+                
+                selectedRowKeys={selectedRowKeys}
+                setSelectedRowKeys={setSelectedRowKeys}
+                setSelectedRowsData={setSelectedRowsData}
 
-                        <div style={{
-                            position: "absolute",
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            zIndex: 0,
-                            whiteSpace: "nowrap"
-                        }}>
-                            <Title level={5} className="phieu-title" style={{ margin: 0 }}>
-                                ĐƠN HÀNG KD
-                            </Title>
-                        </div>
+                activeChips={activeChips}
+                onRemoveFilter={(key) => {
+                    if (key === "status") handleFilter("status", []);
+                    else removeFilter(key);
+                }}
+                onClearAllFilters={clearAllFilters}
 
-                        <Col flex={1} style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", zIndex: 1, gap: 8 }}>
-                            <Button
-                                type="text"
-                                icon={<ReloadOutlined />}
-                                onClick={handleRefresh}
-                                title="Làm tươi"
+                renderMobileItem={renderMobileItem}
+                mobileFilterForm={
+                    <>
+                        <div>
+                            <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Số đơn hàng:</div>
+                            <Input
+                                placeholder="Nhập số đơn hàng..."
+                                value={filters.so_ct}
+                                onChange={e => handleFilter("so_ct", e.target.value)}
+                                style={{ borderRadius: '8px' }}
                             />
-                            <Button type="primary" shape="circle" icon={<PlusOutlined />} onClick={() => navigate("/kinh-doanh/them-moi")} />
-                        </Col>
-                    </Row>
-
-                    {mobileFilterHeader}
-
-                    <div className="mobile-list-content" style={{ paddingBottom: selectedRowKeys.length > 0 ? '120px' : '20px' }}>
-                        {loading ? (
-                            <div className="mobile-loading"><Spin size="large" /></div>
-                        ) : allData.length > 0 ? (
-                            <List
-                                dataSource={allData}
-                                renderItem={renderMobileItem}
-                                pagination={{
-                                    current: currentPage,
-                                    pageSize: pageSize,
-                                    total: totalRecords,
-                                    onChange: (page) => {
-                                        setCurrentPage(page);
-                                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                                    },
-                                    simple: true,
-                                    align: 'center',
-                                    style: { marginTop: 16, marginBottom: 16 }
-                                }}
-                            />
-                        ) : (
-                            <Empty description="Không có đơn hàng nào" style={{ marginTop: 50 }} />
-                        )}
-                    </div>
-
-                    {selectedRowKeys.length > 0 && (
-                        <div className="mobile-sticky-actions">
-                            <div className="mobile-sticky-actions__header">
-                                <Text strong>Đã chọn {selectedRowKeys.length} đơn hàng</Text>
-                                <Button size="small" type="link" onClick={() => { setSelectedRowKeys([]); setSelectedRowsData([]); }}>Bỏ chọn</Button>
-                            </div>
-                            <div className="mobile-sticky-actions__buttons">
-                                <Button 
-                                    icon={<ExportOutlined />} 
-                                    type="primary" 
-                                    size="small"
-                                    onClick={onHandleTransferToWarehouse}
-                                    loading={transferLoading}
-                                >
-                                    Chuyển kho
-                                </Button>
-                                <Button 
-                                    icon={<MergeCellsOutlined />} 
-                                    type="primary" 
-                                    ghost
-                                    size="small"
-                                    disabled={selectedRowKeys.length < 2}
-                                    onClick={onHandleMerge}
-                                    loading={mergeLoading}
-                                >
-                                    Gộp đơn
-                                </Button>
-                                <Button 
-                                    icon={<CloseCircleOutlined />} 
-                                    type="primary" 
-                                    danger 
-                                    size="small"
-                                    onClick={onHandleCancelOrders}
-                                    loading={cancelLoading}
-                                >
-                                    Hủy đơn
-                                </Button>
-                            </div>
                         </div>
-                    )}
-                </div>
-            ) : (
-                <CommonPhieuList
-                    title="DANH SÁCH ĐƠN HÀNG KINH DOANH"
-                    columns={getColumns()}
-                    data={allData}
-                    loading={loading}
-                    onBack={() => navigate("/kinh-doanh")}
-                    rowKey="stt_rec"
-                    extraButtons={null}
-                    extraHeader={
-                        <>
-                            {chipsBar}
-                            <div className={`list-phieu-extra-header-actions ${chipsBar ? 'has-chips' : ''}`}>
-                                <Button
-                                    type="primary"
-                                    icon={<PlusOutlined />}
-                                    onClick={() => navigate("/kinh-doanh/them-moi")}
-                                    style={{ background: '#1d4ed8', borderColor: '#1d4ed8' }}
-                                >
-                                    Tạo đơn hàng
-                                </Button>
-                                <div style={{ borderLeft: '1px solid #e5e7eb', height: '24px', margin: '0 4px' }} />
-                                <Button 
-                                    icon={<ExportOutlined />}
-                                    type="primary" 
-                                    disabled={selectedRowKeys.length === 0}
-                                    onClick={onHandleTransferToWarehouse}
-                                    loading={transferLoading}
-                                >
-                                    Chuyển kho ({selectedRowKeys.length})
-                                </Button>
-                                <Button 
-                                    icon={<CloseCircleOutlined />}
-                                    type="primary" 
-                                    danger
-                                    disabled={selectedRowKeys.length === 0}
-                                    onClick={onHandleCancelOrders}
-                                    loading={cancelLoading}
-                                >
-                                    Hủy đơn ({selectedRowKeys.length})
-                                </Button>
-                                <Button 
-                                    icon={<MergeCellsOutlined />}
-                                    type="primary" 
-                                    ghost
-                                    disabled={selectedRowKeys.length < 2}
-                                    onClick={onHandleMerge}
-                                    loading={mergeLoading}
-                                >
-                                    Gộp đơn ({selectedRowKeys.length})
-                                </Button>
-                                {selectedRowKeys.length > 0 && (
-                                    <Button onClick={() => {
-                                        setSelectedRowKeys([]);
-                                        setSelectedRowsData([]);
-                                    }}>Bỏ chọn</Button>
-                                )}
-                                
-                                <div style={{ flex: 1 }} /> {/* Push refresh button to the end */}
-                                
-                                <Button
-                                    icon={<ReloadOutlined />}
-                                    onClick={handleRefresh}
-                                    title="Làm tươi"
-                                >
-                                    Làm tươi
-                                </Button>
-                            </div>
-                        </>
+                        <div style={{ marginTop: 12 }}>
+                            <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khách hàng:</div>
+                            <Input
+                                placeholder="Mã hoặc tên khách hàng"
+                                value={filters.ten_kh}
+                                onChange={e => handleFilter("ten_kh", e.target.value)}
+                                style={{ borderRadius: '8px' }}
+                            />
+                        </div>
+                        <div style={{ marginTop: 12 }}>
+                            <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>NVKD:</div>
+                            <Input
+                                placeholder="Tên nhân viên (NVKD)"
+                                value={filters.ten_nvbh}
+                                onChange={e => handleFilter("ten_nvbh", e.target.value)}
+                                style={{ borderRadius: '8px' }}
+                            />
+                        </div>
+                        <div style={{ marginTop: 12 }}>
+                            <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khoảng ngày:</div>
+                            <RangePicker
+                                style={{ width: '100%', borderRadius: '8px' }}
+                                onChange={dates => handleFilter("dateRange", dates)}
+                                placeholder={['Từ ngày', 'Đến ngày']}
+                                inputReadOnly={false}
+                                format={["DD-MM-YYYY", "DD/MM/YYYY", "DDMMYYYY"]}
+                            />
+                        </div>
+                        <div style={{ marginTop: 12 }}>
+                            <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Trạng thái:</div>
+                            <Select
+                                mode="multiple"
+                                placeholder="Chọn trạng thái"
+                                value={filters.status && filters.status.length > 0 ? filters.status : []}
+                                onChange={value => handleFilter("status", value)}
+                                style={{ width: '100%' }}
+                                allowClear
+                            >
+                                <Select.Option value="0">Lập ctừ</Select.Option>
+                                <Select.Option value="1">Chờ duyệt</Select.Option>
+                                <Select.Option value="2">Duyệt</Select.Option>
+                                <Select.Option value="3">Treo</Select.Option>
+                                <Select.Option value="4">Đang xuất</Select.Option>
+                                <Select.Option value="5">Hoàn thành</Select.Option>
+                                <Select.Option value="6">Đóng</Select.Option>
+                                <Select.Option value="9">Hủy</Select.Option>
+                            </Select>
+                        </div>
+                    </>
+                }
+
+                desktopActions={[
+                    {
+                        key: 'transfer',
+                        label: `Chuyển kho (${selectedRowKeys.length})`,
+                        icon: <ExportOutlined />,
+                        type: 'primary',
+                        disabled: selectedRowKeys.length === 0,
+                        loading: transferLoading,
+                        onClick: onHandleTransferToWarehouse
+                    },
+                    {
+                        key: 'cancel',
+                        label: `Hủy đơn (${selectedRowKeys.length})`,
+                        icon: <CloseCircleOutlined />,
+                        type: 'primary',
+                        danger: true,
+                        disabled: selectedRowKeys.length === 0,
+                        loading: cancelLoading,
+                        onClick: onHandleCancelOrders
+                    },
+                    {
+                        key: 'merge',
+                        label: `Gộp đơn (${selectedRowKeys.length})`,
+                        icon: <MergeCellsOutlined />,
+                        type: 'primary',
+                        ghost: true,
+                        disabled: selectedRowKeys.length < 2,
+                        loading: mergeLoading,
+                        onClick: onHandleMerge
                     }
-                    tableProps={{
-                        onRow: (record) => ({
-                            className: (record.stt_rec_hightlight !== null && String(record.stt_rec_hightlight).trim() !== '') 
-                                ? 'row-new-highlight' 
-                                : ''
-                        }),
-                        rowSelection: {
-                            selectedRowKeys,
-                            preserveSelectedRowKeys: true,
-                            onChange: (keys, rows) => {
-                                setSelectedRowKeys(keys);
-                                setSelectedRowsData(prev => {
-                                    const nextData = prev.filter(item => keys.includes(item.stt_rec));
-                                    rows.forEach(row => {
-                                        if (row && !nextData.find(f => f.stt_rec === row.stt_rec)) {
-                                            nextData.push(row);
-                                        }
-                                    });
-                                    return nextData;
-                                });
-                            },
-                        },
-                        scroll: { x: 1300 }
-                    }}
-                    pagination={{
-                        current: currentPage,
-                        pageSize: pageSize,
-                        total: totalRecords,
-                        onChange: (page) => {
-                            setCurrentPage(page);
-                        },
-                        showSizeChanger: false,
-                    }}
-                />
-            )}
+                ]}
+
+                mobileActions={[
+                    {
+                        key: 'transfer',
+                        label: 'Chuyển kho',
+                        icon: <ExportOutlined />,
+                        onClick: onHandleTransferToWarehouse,
+                        loading: transferLoading
+                    },
+                    {
+                        key: 'merge',
+                        label: 'Gộp đơn',
+                        icon: <MergeCellsOutlined />,
+                        ghost: true,
+                        disabled: selectedRowKeys.length < 2,
+                        onClick: onHandleMerge,
+                        loading: mergeLoading
+                    },
+                    {
+                        key: 'cancel',
+                        label: 'Hủy đơn',
+                        icon: <CloseCircleOutlined />,
+                        danger: true,
+                        onClick: onHandleCancelOrders,
+                        loading: cancelLoading
+                    }
+                ]}
+
+                tableProps={{
+                    onRow: (record) => ({
+                        className: (record.stt_rec_hightlight !== null && String(record.stt_rec_hightlight).trim() !== '') 
+                            ? 'row-new-highlight' 
+                            : ''
+                    })
+                }}
+                pagination={{
+                    current: currentPage,
+                    pageSize: pageSize,
+                    total: totalRecords,
+                    onChange: (page) => {
+                        setCurrentPage(page);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    },
+                    showSizeChanger: false,
+                }}
+            />
 
             {/* ===== Split Modal ===== */}
             <Modal

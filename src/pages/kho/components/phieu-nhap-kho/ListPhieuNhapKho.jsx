@@ -19,7 +19,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import "../common-phieu.css";
-import CommonPhieuList from "../CommonPhieuList";
+import ListTemplate from "../../../../components/common/PageTemplates/ListTemplate";
 import {
   deletePhieuNhapKho,
   fetchPhieuNhapKhoList,
@@ -171,47 +171,7 @@ const ListPhieuNhapKho = () => {
     return chips;
   }, [filters]);
 
-  const chipsBar =
-    activeChips.length > 0 ? (
-      <div className="filter-chips-container">
-        <div className="filter-chips-left">
-          <FilterOutlined className="filter-chips-icon" />
-          <span className="filter-chips-title">
-            Đang áp dụng {activeChips.length} bộ lọc
-          </span>
-          <div className="filter-chips-list">
-            {activeChips.map((chip) => (
-              <Tag
-                key={chip.key}
-                closable
-                onClose={(e) => {
-                  e.preventDefault();
-                  removeFilter(chip.key);
-                }}
-                className={`filter-chip ${
-                  chip.key === "status"
-                    ? "filter-chip--blue"
-                    : chip.key === "dateRange"
-                    ? "filter-chip--green"
-                    : chip.key === "so_ct"
-                    ? "filter-chip--orange"
-                    : chip.key === "ma_kh" || chip.key === "ten_kh"
-                    ? "filter-chip--magenta"
-                    : "filter-chip--cyan"
-                }`}
-              >
-                {chip.label}: {chip.value}
-              </Tag>
-            ))}
-          </div>
-        </div>
-        <div className="filter-chips-right">
-          <Button size="small" onClick={clearAllFilters}>
-            Xóa lọc
-          </Button>
-        </div>
-      </div>
-    ) : null;
+  // chipsBar removed, handled by ListTemplate
 
   const fetchPhieuNhapKho = useCallback(async (filterParams = filters) => {
     const params = {
@@ -582,31 +542,22 @@ const ListPhieuNhapKho = () => {
   };
 
   return (
-    <CommonPhieuList
-      title="DANH SÁCH PHIẾU NHẬP KHO"
+    <ListTemplate
+      title="PHIẾU NHẬP KHO"
       columns={getColumns()}
       data={allData}
       onAdd={() => navigate("them-moi")}
       onBack={() => navigate("/kho")}
-      addLabel="Thêm mới"
-      extraHeader={chipsBar}
-      extraButtons={
-        <button
-          className="navbar_fullscreen_btn"
-          onClick={handleRefresh}
-          title="Làm tươi"
-        >
-          <ReloadOutlined />
-        </button>
-      }
+      onRefresh={handleRefresh}
+      activeChips={activeChips}
+      onRemoveFilter={removeFilter}
+      onClearAllFilters={clearAllFilters}
       rowKey="stt_rec"
       pagination={{
         current: currentPage,
         pageSize: pageSize,
         total: totalRecords,
         onChange: (page) => setCurrentPage(page),
-        showSizeChanger: false,
-        showQuickJumper: false,
       }}
     />
   );

@@ -8,6 +8,7 @@ import {
   fetchThongTinVatTu,
   fetchKhachHangSelection,
 } from "../../../../kinh-doanh/components/phieu-kinh-doanh/phieuKinhDoanhApi";
+import { fetchMaKhoApi } from "../utils/phieuNhapHangApi";
 
 const masterDataCache = {
   maGiaoDich: null,
@@ -160,26 +161,12 @@ export const usePhieuNhapHangData = () => {
 
       setLoadingMaKho(true);
       try {
-        const response = await https.get(
-          "v1/web/danh-sach-kho",
-          { keyword: keyword },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        if (response.data && response.data.data) {
-          const options = response.data.data.map((item) => ({
-            value: item.ma_kho.trim(),
-            label: `${item.ma_kho.trim()} - ${item.ten_kho.trim()}`,
-          }));
-          setMaKhoList(options);
-          if (!keyword) {
-            masterDataCache.maKho = options;
-            masterDataCache.lastFetch = Date.now();
-          }
+        // Gọi api_list_kho thay vì endpoint cũ
+        const options = await fetchMaKhoApi(keyword);
+        setMaKhoList(options);
+        if (!keyword) {
+          masterDataCache.maKho = options;
+          masterDataCache.lastFetch = Date.now();
         }
       } catch (error) {
         message.error("Không thể tải danh sách kho");
@@ -187,7 +174,7 @@ export const usePhieuNhapHangData = () => {
         setLoadingMaKho(false);
       }
     },
-    [token, maKhoList]
+    [maKhoList]
   );
 
   // ===== REUSE FROM KD MODULE: fetchKhachHangSelection =====
@@ -394,6 +381,7 @@ export const usePhieuNhapHangData = () => {
     fetchVatTuDetail,
     fetchDonViTinh,
     setVatTuList,
+    setMaKhachList,
     clearCache,
   };
 };

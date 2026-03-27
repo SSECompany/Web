@@ -76,7 +76,7 @@ export const phieuNhatHangConfig = {
   useAddButtonInsteadOfDelete: true,
   showThaoTac: true,
   preventDeleteMainRow: true,
-
+  consolidateProduct: true,
 };
 
 // Cấu hình cho phiếu xuất kho

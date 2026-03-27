@@ -156,6 +156,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
+  /* Thêm padding cho safe areas trên mobile (iOS/Notch) */
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
   background: #fff;
   border-bottom: 1px solid #f0f0f0;
   position: sticky;
@@ -166,11 +168,26 @@
   border-top-right-radius: 0;
 }
 
-.detail-don-hang__header-right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: auto;
+
+.phieu-edit-button-kd {
+  width: 40px !important;
+  height: 40px !important;
+  color: #6c63ff !important;
+  background: #f8f9fb !important;
+  border: 1px solid #e0e7ef !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+  transition: all 0.2s !important;
+}
+
+.phieu-edit-button-kd:hover {
+  background: #f0f4ff !important;
+  color: #4f46e5 !important;
+  border-color: #6c63ff !important;
+  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.12) !important;
 }
 
 /* ---- Header Back Button synchronization ---- */
@@ -343,12 +360,16 @@
 /* ---- Khách hàng (Class riêng để !important ăn được) ---- */
 .detail-don-hang__body .customer-display .ant-input,
 .detail-don-hang__body .customer-display.ant-input {
-  font-size: 18px !important;
-  font-weight: 800 !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
   color: #6c63ff !important;
-  height: 32px !important;
-  background: rgba(108, 99, 255, 0.03) !important;
+  height: auto !important;
+  min-height: 32px !important;
+  background: rgba(108, 99, 255, 0.04) !important;
   border: none !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  padding: 4px 12px !important;
 }
 
 /* ---- Tabs ---- */
@@ -863,7 +884,12 @@
   .detail-don-hang__body .customer-display .ant-input,
   .detail-don-hang__body .customer-display.ant-input {
     font-size: 14px !important;
-    height: 36px !important;
+    font-weight: 500 !important;
+    height: auto !important;
+    min-height: 36px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    padding: 6px 12px !important;
   }
 
   /* Center pagination on mobile */
@@ -912,12 +938,12 @@
 .phieu-header-status-row {
   display: flex !important;
   align-items: center !important;
-  height: 24px !important;
-  margin-top: 0 !important;
+  min-height: 24px !important;
+  margin-top: 2px !important;
 }
 
 .phieu-header-meta-item {
-  height: 24px !important;
+  min-height: 24px !important;
   display: flex !important;
   align-items: center !important;
 }

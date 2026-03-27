@@ -906,7 +906,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       <Modal
         open={isOpen}
         width="95%"
-        title="Danh sách đơn hàng"
+        title="Đơn hàng"
         destroyOnHidden
         onCancel={onClose}
         footer={null}
