@@ -40,6 +40,10 @@ const roundNum = (v, decimals = 2) => {
 const toDateVal = (v) => {
   if (!v) return null;
   if (dayjs.isDayjs(v)) return v.toDate();
+  if (typeof v === "string") {
+    const d = dayjs(v);
+    return d.isValid() ? d.toDate() : v;
+  }
   return v;
 };
 
@@ -304,8 +308,9 @@ export const buildPhieuNhapHangPayload = (
 };
 
 /**
- * Gọi stored procedure api_tao_phieu_nhap_hang_theo_don
- * Dùng cho cả thêm mới và sửa phiếu
+ * Gọi stored procedure:
+ *  - api_tao_phieu_nhap_hang_theo_don (thêm mới)
+ *  - api_sua_phieu_nhap_hang_theo_don (cập nhật)
  */
 export const submitPhieuNhapHangDynamic = async (
   payload,
@@ -315,7 +320,7 @@ export const submitPhieuNhapHangDynamic = async (
   const userInfo = getUserInfo();
 
   const body = {
-    store: "api_tao_phieu_nhap_hang_theo_don",
+    store: isUpdate ? "api_sua_phieu_nhap_hang_theo_don" : "api_tao_phieu_nhap_hang_theo_don",
     param: {
       UnitId: userInfo.unitId,
       StoreID: "",

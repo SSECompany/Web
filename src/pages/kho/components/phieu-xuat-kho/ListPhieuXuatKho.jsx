@@ -5,7 +5,7 @@ import {
   FilterOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
-import { Button, DatePicker, Input, message, Tag, Typography } from "antd";
+import { Button, DatePicker, Input, message, Tag, Typography, Select } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -30,6 +30,7 @@ const ListPhieuXuatKho = () => {
     ma_kh: "",
     ten_kh: "",
     dateRange: null,
+    status: [],
   });
 
   const pageSize = 20;
@@ -72,7 +73,7 @@ const ListPhieuXuatKho = () => {
             : dayjs().endOf("month").format("YYYY-MM-DD"),
         PageIndex: currentPage,
         PageSize: pageSize,
-        Status: "",
+        Status: filterParams.status && filterParams.status.length > 0 ? filterParams.status.join(",") : "",
       },
       data: {},
       resultSetNames: ["data", "pagination"],
@@ -120,6 +121,7 @@ const ListPhieuXuatKho = () => {
       ma_kh: "",
       ten_kh: "",
       dateRange: null,
+      status: [],
     };
     setFilters(cleared);
     fetchPhieuXuatKho(cleared);
@@ -138,6 +140,16 @@ const ListPhieuXuatKho = () => {
         "DD/MM/YYYY"
       )} - ${filters.dateRange[1].format("DD/MM/YYYY")}`;
       chips.push({ key: "dateRange", label: "Ngày", value: display });
+    }
+    if (filters.status && filters.status.length > 0) {
+      const statusLabels = {
+        "0": "Lập chứng từ",
+        "1": "Xuất kho",
+        "3": "Chuyển sổ cái",
+        "5": "Đề nghị xuất kho"
+      };
+      const display = filters.status.map(s => statusLabels[s] || s).join(", ");
+      chips.push({ key: "status", label: "Trạng thái", value: display });
     }
     return chips;
   }, [filters]);
@@ -166,6 +178,8 @@ const ListPhieuXuatKho = () => {
                     ? "filter-chip--orange"
                     : chip.key === "ma_kh" || chip.key === "ten_kh"
                     ? "filter-chip--magenta"
+                    : chip.key === "status"
+                    ? "filter-chip--blue"
                     : "filter-chip--cyan"
                 }`}
               >
@@ -520,7 +534,7 @@ const ListPhieuXuatKho = () => {
           return statusMap[status] || "Không xác định";
         };
 
-        const displayText = statusname || getStatusText(record.status);
+        const displayText = (statusname ? statusname.replace(/^\d+\.\s*/, "") : "") || getStatusText(record.status);
         const statusColor = getStatusColor(record.status);
 
         return <Tag color={statusColor}>{displayText}</Tag>;

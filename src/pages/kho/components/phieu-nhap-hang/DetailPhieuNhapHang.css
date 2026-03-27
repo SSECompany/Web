@@ -1,9 +1,13 @@
 /* ========== DETAIL PHIEU NHAP HANG - SYNC WITH KINH DOANH ========== */
 
 .detail-phieu-nhap-hang {
-  padding: 0;
+  padding: 0 !important;
+  margin: 0 !important;
   background: #fff;
-  min-height: 100%;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .detail-phieu-nhap-hang__card {
@@ -11,6 +15,17 @@
   border-radius: 0;
   box-shadow: none;
   position: relative;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-phieu-nhap-hang > form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .detail-phieu-nhap-hang__header {
@@ -25,10 +40,32 @@
   z-index: 1001;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
+ 
+.phieu-edit-button-kd {
+  background: #f0fdfa !important;
+  color: #0d9488 !important;
+  border: 1px solid #99f6e4 !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 8px !important;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+ 
+.phieu-edit-button-kd:hover {
+  background: #0d9488 !important;
+  color: #ffffff !important;
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
+}
 
 .detail-phieu-nhap-hang__body {
   padding: 24px;
-  padding-bottom: 40px;
+  padding-bottom: 0;
+  flex: 1;
 }
 
 .detail-phieu-nhap-hang__section {
@@ -158,24 +195,118 @@
     background: #f1f5f9 !important;
 }
 
-/* Standardized edit button - sync with KD */
-.phieu-edit-button-kd {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 36px !important;
-  height: 36px !important;
-  padding: 0 !important;
-  border-radius: 8px !important;
-  color: #1890ff !important;
-  transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1) !important;
+/* ========== STICKY FOOTER ACTIONS ========== */
+.detail-phieu-nhap-hang__fixed-footer {
+  position: sticky;
+  bottom: 0;
+  margin: 0 !important;
+  width: 100%;
+  background: #ffffff;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.08);
+  padding: 16px 24px;
+  z-index: 1010;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid #f0f0f0;
 }
 
-.phieu-edit-button-kd:hover {
-  background-color: #e6f7ff !important;
-  transform: scale(1.05);
+.fixed-footer__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
 }
 
-.phieu-edit-button-kd .anticon {
-  font-size: 20px !important;
+.fixed-footer__actions .ant-btn {
+  flex: 0 0 auto;
+  min-width: 110px;
+  height: 44px !important;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn-print-fixed {
+  background: #f6ffed !important;
+  border: 1px solid #b7eb8f44 !important;
+  color: #52c41a !important;
+}
+
+.btn-print-fixed:hover {
+  background: #f0f9eb !important;
+  border-color: #52c41a !important;
+  transform: translateY(-2px);
+}
+
+.btn-save-fixed {
+  background: linear-gradient(135deg, #6c63ff, #5145cd) !important;
+  border: none !important;
+  color: #fff !important;
+  box-shadow: 0 4px 15px rgba(108, 99, 255, 0.3) !important;
+}
+
+.btn-save-fixed:hover {
+  box-shadow: 0 8px 25px rgba(108, 99, 255, 0.4) !important;
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.btn-delete-fixed {
+  background: #fff1f0 !important;
+  border: 1px solid #ffccc7 !important;
+  color: #ff4d4f !important;
+}
+
+.btn-delete-fixed:hover {
+  background: #ffccc7 !important;
+  border-color: #ff4d4f !important;
+  transform: translateY(-2px);
+}
+
+.btn-cancel-fixed {
+  background: #f8f9fb !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+.btn-cancel-fixed:hover {
+  background: #fff !important;
+  color: #ef4444 !important;
+  border-color: #ef4444 !important;
+  transform: translateY(-2px);
+}
+
+@keyframes slideUpFooter {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .detail-phieu-nhap-hang__fixed-footer {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+    width: 100%;
+    margin: 20px 0 0 0;
+    border-radius: 20px 20px 0 0;
+    padding: 16px 16px 24px;
+    background: #fff;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.08);
+  }
+  
+  .fixed-footer__actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .fixed-footer__actions .ant-btn {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+    height: 40px !important;
+  }
 }

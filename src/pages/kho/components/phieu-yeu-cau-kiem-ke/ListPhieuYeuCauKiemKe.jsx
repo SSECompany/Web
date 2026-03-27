@@ -1,5 +1,5 @@
 import { AuditOutlined, ReloadOutlined, FilterOutlined } from "@ant-design/icons";
-import { Button, DatePicker, Input, message, Tag, Typography } from "antd";
+import { Button, Checkbox, DatePicker, Input, message, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -33,6 +33,7 @@ const ListPhieuYeuCauKiemKe = () => {
   const [screenSize, setScreenSize] = useState("desktop");
   const [filters, setFilters] = useState({
     so_ct: "",
+    status: [],
     dateRange: null,
   });
 
@@ -76,7 +77,7 @@ const ListPhieuYeuCauKiemKe = () => {
         PageSize: pageSize,
         StoreId: currentStoreId,
         UnitId: currentUnitId,
-        Status: "",
+        Status: filterParams.status && filterParams.status.length > 0 ? filterParams.status.join(",") : "",
         Userid: currentUserId,
       },
       data: {},
@@ -118,6 +119,8 @@ const ListPhieuYeuCauKiemKe = () => {
     const newFilters = { ...filters };
     if (key === "dateRange") {
       newFilters.dateRange = null;
+    } else if (key === "status") {
+      newFilters.status = [];
     } else {
       newFilters[key] = "";
     }
@@ -128,6 +131,7 @@ const ListPhieuYeuCauKiemKe = () => {
   const clearAllFilters = () => {
     const cleared = {
       so_ct: "",
+      status: [],
       dateRange: null,
     };
     setFilters(cleared);
@@ -138,6 +142,15 @@ const ListPhieuYeuCauKiemKe = () => {
     const chips = [];
     if (filters.so_ct)
       chips.push({ key: "so_ct", label: "Số chứng từ", value: filters.so_ct });
+    if (filters.status && filters.status.length > 0) {
+      const statusLabels = {
+        "0": "Lập chứng từ",
+        "1": "Đã tạo số liệu",
+        "5": "Hoàn thành",
+      };
+      const display = filters.status.map(s => statusLabels[s] || s).join(", ");
+      chips.push({ key: "status", label: "Trạng thái", value: display });
+    }
     if (filters.dateRange && filters.dateRange.length === 2) {
       const display = `${filters.dateRange[0].format(
         "DD/MM/YYYY"
@@ -169,6 +182,8 @@ const ListPhieuYeuCauKiemKe = () => {
                     ? "filter-chip--green"
                     : chip.key === "so_ct"
                     ? "filter-chip--orange"
+                    : chip.key === "status"
+                    ? "filter-chip--blue"
                     : "filter-chip--cyan"
                 }`}
               >
@@ -199,15 +214,13 @@ const ListPhieuYeuCauKiemKe = () => {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
+    switch (String(status).trim()) {
       case "0":
         return "orange";
-      case "2":
-        return "blue";
-      case "3":
-        return "green";
+      case "1":
+        return "default";
       case "5":
-        return "purple";
+        return "processing";
       default:
         return "default";
     }
@@ -235,7 +248,8 @@ const ListPhieuYeuCauKiemKe = () => {
         key: "ngay_ct",
         width: 150,
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
+          <div style={{ padding: 12, width: 280 }}>
+            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Khoảng ngày:</div>
             <RangePicker
               inputReadOnly
               value={
@@ -256,32 +270,45 @@ const ListPhieuYeuCauKiemKe = () => {
                   setSelectedKeys([]);
                 }
               }}
-              style={{ marginBottom: 8 }}
+              style={{ width: '100%', marginBottom: 16 }}
               format="DD/MM/YYYY"
               placeholder={["Từ ngày", "Đến ngày"]}
             />
-            <Button
-              className="search_button"
-              type="primary"
-              onClick={() => {
-                confirm();
-                const newFilters = {
-                  ...filters,
-                  dateRange:
-                    selectedKeys.length === 2
-                      ? [
-                        dayjs(selectedKeys[0], "DD/MM/YYYY"),
-                        dayjs(selectedKeys[1], "DD/MM/YYYY"),
-                      ]
-                      : null,
-                };
-                setFilters(newFilters);
-                fetchPhieuYeuCauKiemKe(newFilters);
-              }}
-              size="small"
-            >
-              Tìm kiếm
-            </Button>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <Button
+                onClick={() => {
+                  setSelectedKeys([]);
+                  const newFilters = { ...filters, dateRange: null };
+                  setFilters(newFilters);
+                  fetchPhieuYeuCauKiemKe(newFilters);
+                  confirm();
+                }}
+                style={{ flex: 1, borderRadius: '8px', fontSize: '13px' }}
+              >
+                Xóa lọc
+              </Button>
+              <Button
+                type="primary"
+                onClick={() => {
+                  confirm();
+                  const newFilters = {
+                    ...filters,
+                    dateRange:
+                      selectedKeys.length === 2
+                        ? [
+                          dayjs(selectedKeys[0], "DD/MM/YYYY"),
+                          dayjs(selectedKeys[1], "DD/MM/YYYY"),
+                        ]
+                        : null,
+                  };
+                  setFilters(newFilters);
+                  fetchPhieuYeuCauKiemKe(newFilters);
+                }}
+                style={{ flex: 1, borderRadius: '8px', fontSize: '13px', fontWeight: 600, background: '#6366f1' }}
+              >
+                Tìm kiếm
+              </Button>
+            </div>
           </div>
         ),
         filteredValue:
@@ -300,7 +327,7 @@ const ListPhieuYeuCauKiemKe = () => {
         dataIndex: "dien_giai",
         key: "dien_giai",
         width: 200,
-        align: "left",
+        align: "center",
         ellipsis: true,
         render: (text) => (text ? text.trim() : ""),
       },
@@ -315,9 +342,10 @@ const ListPhieuYeuCauKiemKe = () => {
         align: "center",
         render: (text) => (text ? text.trim() : ""),
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
+          <div style={{ padding: 12, width: 250 }}>
+            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Số chứng từ:</div>
             <Input
-              placeholder="Tìm Số CT"
+              placeholder="Nhập số chứng từ..."
               value={selectedKeys[0]}
               onChange={(e) =>
                 setSelectedKeys(e.target.value ? [e.target.value] : [])
@@ -328,10 +356,9 @@ const ListPhieuYeuCauKiemKe = () => {
                 setFilters(newFilters);
                 fetchPhieuYeuCauKiemKe(newFilters);
               }}
-              style={{ marginBottom: 8, display: "block" }}
+              style={{ marginBottom: 12, display: "block" }}
             />
             <Button
-              className="search_button"
               type="primary"
               onClick={() => {
                 confirm();
@@ -339,7 +366,7 @@ const ListPhieuYeuCauKiemKe = () => {
                 setFilters(newFilters);
                 fetchPhieuYeuCauKiemKe(newFilters);
               }}
-              size="small"
+              style={{ width: '100%', borderRadius: '8px', background: '#6366f1' }}
             >
               Tìm kiếm
             </Button>
@@ -356,24 +383,88 @@ const ListPhieuYeuCauKiemKe = () => {
       width: screenSize === "mobile" ? 80 : 120,
       align: "center",
       render: (statusname, record) => {
-        if (record.status === "*" || record.status === null) {
+        if (!statusname && (!record.status || record.status === "*" || record.status === "null")) {
           return "";
         }
 
         const getStatusText = (status) => {
           const statusMap = {
-            0: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
-            2: screenSize === "mobile" ? "Đã duyệt" : "Đã duyệt",
-            3: screenSize === "mobile" ? "Đã KT" : "Đã kiểm kê",
+            "0": "Lập chứng từ",
+            "1": "Đã tạo số liệu",
+            "5": "Hoàn thành",
           };
-          return statusMap[status] || "Không xác định";
+          return statusMap[status] || (statusname ? statusname.replace(/^\d+\.\s*/, "") : "Không xác định");
         };
 
-        const displayText = statusname || getStatusText(record.status);
-        const statusColor = getStatusColor(record.status);
+        // Trích xuất mã trạng thái hoặc tên trạng thái để map màu
+        const rawStatus = (record.status && record.status !== "*" && record.status !== "null")
+          ? String(record.status).trim()
+          : (statusname ? statusname.replace(/^\d+\.\s*/, "").trim() : "");
 
-        return <Tag color={statusColor}>{displayText}</Tag>;
+        const displayText = (statusname ? statusname.replace(/^\d+\.\s*/, "") : "") || getStatusText(rawStatus);
+        
+        const getStatusColorV2 = (input) => {
+          const val = String(input).toLowerCase();
+          if (val === "0" || val.includes("lập chứng từ") || val.includes("lập ct")) return "orange";
+          if (val === "5" || val.includes("hoàn thành") || val.includes("đã hoàn thành")) return "blue";
+          if (val === "1" || val.includes("tạo số liệu")) return "default";
+          if (val === "2" || val.includes("đã duyệt")) return "blue";
+          if (val === "3" || val.includes("đã kiểm kê")) return "green";
+          return "default";
+        };
+
+        return <Tag color={getStatusColorV2(rawStatus)}>{displayText}</Tag>;
       },
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div style={{ padding: 12, minWidth: 200 }}>
+          <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Trạng thái:</div>
+          <Checkbox.Group
+            style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+            value={selectedKeys}
+            onChange={(value) => setSelectedKeys(value)}
+          >
+            <Checkbox value="0">Lập chứng từ</Checkbox>
+            <Checkbox value="1">Đã tạo số liệu</Checkbox>
+            <Checkbox value="5">Hoàn thành</Checkbox>
+          </Checkbox.Group>
+          <div
+            style={{
+              marginTop: 12,
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "8px",
+            }}
+          >
+            <Button
+              size="small"
+              onClick={() => {
+                setSelectedKeys([]);
+                const newFilters = { ...filters, status: [] };
+                setFilters(newFilters);
+                fetchPhieuYeuCauKiemKe(newFilters);
+                confirm();
+              }}
+              style={{ flex: 1, borderRadius: '8px' }}
+            >
+              Xóa
+            </Button>
+            <Button
+              type="primary"
+              size="small"
+              onClick={() => {
+                confirm();
+                const newFilters = { ...filters, status: selectedKeys };
+                setFilters(newFilters);
+                fetchPhieuYeuCauKiemKe(newFilters);
+              }}
+              style={{ flex: 1, borderRadius: '8px', background: '#6366f1' }}
+            >
+              Tìm kiếm
+            </Button>
+          </div>
+        </div>
+      ),
+      filteredValue: filters.status && filters.status.length > 0 ? filters.status : null,
     });
 
     baseColumns.push({

@@ -505,9 +505,9 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                         <Col xs={24} md={12}>
                             <Form.Item name="u_status" label="Trạng thái">
                                 <Select placeholder="Chọn trạng thái">
-                                    <Select.Option value="0">0. Lập chứng từ</Select.Option>
-                                    <Select.Option value="1">1. Chờ duyệt</Select.Option>
-                                    <Select.Option value="2">2. Duyệt</Select.Option>
+                                    <Select.Option value="0">Lập chứng từ</Select.Option>
+                                    <Select.Option value="1">Chờ duyệt</Select.Option>
+                                    <Select.Option value="2">Duyệt</Select.Option>
                                 </Select>
                             </Form.Item>
                         </Col>
@@ -522,17 +522,17 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                         <Col xs={24} md={12}>
                             <Form.Item name="status_soan_hang" label="Soạn hàng">
                                 <Select placeholder="Trạng thái soạn hàng">
-                                    <Select.Option value="0">0. Chưa soạn</Select.Option>
-                                    <Select.Option value="1">1. Đã soạn</Select.Option>
+                                    <Select.Option value="0">Chưa soạn</Select.Option>
+                                    <Select.Option value="1">Đã soạn</Select.Option>
                                 </Select>
                             </Form.Item>
                         </Col>
                         <Col xs={24} md={12}>
                             <Form.Item name="tt_giao_van" label="Giao vận">
                                 <Select placeholder="Trạng thái giao vận">
-                                    <Select.Option value="0">0. Chờ lấy hàng</Select.Option>
-                                    <Select.Option value="1">1. Đang giao hàng</Select.Option>
-                                    <Select.Option value="2">2. Đã giao hàng</Select.Option>
+                                    <Select.Option value="0">Chờ lấy hàng</Select.Option>
+                                    <Select.Option value="1">Đang giao hàng</Select.Option>
+                                    <Select.Option value="2">Đã giao hàng</Select.Option>
                                 </Select>
                             </Form.Item>
                         </Col>
@@ -647,7 +647,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                                 );
                                                 return options.map((s) => (
                                                     <Select.Option key={s.status} value={String(s.status).trim()}>
-                                                        {String(s.status).trim()}. {s.statusname}
+                                                        {s.statusname}
                                                     </Select.Option>
                                                 ));
                                             })()}
@@ -786,9 +786,9 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                             <Col span={12}>
                                                 <Form.Item name="loai_ct" label="Loại CT" hidden>
                                                     <Select>
-                                                        <Select.Option value="1">1. Bán hàng</Select.Option>
-                                                        <Select.Option value="2">2. Trả hàng</Select.Option>
-                                                        <Select.Option value="3">3. Khác</Select.Option>
+                                                        <Select.Option value="1">Bán hàng</Select.Option>
+                                                        <Select.Option value="2">Trả hàng</Select.Option>
+                                                        <Select.Option value="3">Khác</Select.Option>
                                                     </Select>
                                                 </Form.Item>
                                             </Col>
@@ -802,17 +802,17 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                             <Col span={12}>
                                                 <Form.Item name="hinh_thuc_tt" label="Hình thức">
                                                     <Select>
-                                                        <Select.Option value="1">1. Chuyển khoản</Select.Option>
-                                                        <Select.Option value="2">2. Tiền mặt</Select.Option>
-                                                        <Select.Option value="3">3. COD</Select.Option>
+                                                        <Select.Option value="1">Chuyển khoản</Select.Option>
+                                                        <Select.Option value="2">Tiền mặt</Select.Option>
+                                                        <Select.Option value="3">COD</Select.Option>
                                                     </Select>
                                                 </Form.Item>
                                             </Col>
                                             <Col span={12}>
                                                 <Form.Item name="kh_chiu_cuoc" label="Cước phí">
                                                     <Select>
-                                                        <Select.Option value={0}>0. Công ty chịu cước</Select.Option>
-                                                        <Select.Option value={1}>1. Khách hàng chịu cước</Select.Option>
+                                                        <Select.Option value={0}>Công ty chịu cước</Select.Option>
+                                                        <Select.Option value={1}>Khách hàng chịu cước</Select.Option>
                                                     </Select>
                                                 </Form.Item>
                                             </Col>

@@ -5,7 +5,7 @@ import {
   FilterOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
-import { Button, DatePicker, Input, message, Tag, Typography } from "antd";
+import { Button, DatePicker, Input, message, Tag, Typography, Select } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -30,7 +30,7 @@ const ListPhieuXuatDieuChuyen = () => {
     so_ct: "",
     ma_kho: "",
     ma_khon: "",
-    dateRange: null,
+    status: [],
   });
 
   const pageSize = 20;
@@ -69,7 +69,7 @@ const ListPhieuXuatDieuChuyen = () => {
           : dayjs().endOf("month").format("YYYY-MM-DD"),
       PageIndex: currentPage,
       PageSize: pageSize,
-      Status: "",
+      Status: filterParams.status && filterParams.status.length > 0 ? filterParams.status.join(",") : "",
     };
 
     const result = await fetchPhieuXuatDieuChuyenList(params);
@@ -110,6 +110,7 @@ const ListPhieuXuatDieuChuyen = () => {
       ma_kho: "",
       ma_khon: "",
       dateRange: null,
+      status: [],
     };
     setFilters(cleared);
     fetchPhieuXuatDieuChuyen(cleared);
@@ -128,6 +129,18 @@ const ListPhieuXuatDieuChuyen = () => {
         "DD/MM/YYYY"
       )} - ${filters.dateRange[1].format("DD/MM/YYYY")}`;
       chips.push({ key: "dateRange", label: "Ngày", value: display });
+    }
+    if (filters.status && filters.status.length > 0) {
+      const statusLabels = {
+        "0": "Lập chứng từ",
+        "2": "Xuất kho",
+        "3": "Chuyển số cái",
+        "4": "Hoàn tất",
+        "5": "Đề nghị xuất kho",
+        "6": "Đang xử lý"
+      };
+      const display = filters.status.map(s => statusLabels[s] || s).join(", ");
+      chips.push({ key: "status", label: "Trạng thái", value: display });
     }
     return chips;
   }, [filters]);
@@ -156,6 +169,8 @@ const ListPhieuXuatDieuChuyen = () => {
                     ? "filter-chip--orange"
                     : chip.key === "ma_kho" || chip.key === "ma_khon"
                     ? "filter-chip--magenta"
+                    : chip.key === "status"
+                    ? "filter-chip--blue"
                     : "filter-chip--cyan"
                 }`}
               >
@@ -486,10 +501,43 @@ const ListPhieuXuatDieuChuyen = () => {
           };
           return statusMap[status] || "Không xác định";
         };
-        const displayText = statusname || getStatusText(record.status);
+        const displayText = (statusname ? statusname.replace(/^\d+\.\s*/, "") : "") || getStatusText(record.status);
         const statusColor = getStatusColor(record.status);
         return <Tag color={statusColor}>{displayText}</Tag>;
       },
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div style={{ padding: 8 }}>
+          <Select
+            mode="multiple"
+            placeholder="Chọn trạng thái"
+            value={selectedKeys}
+            onChange={setSelectedKeys}
+            style={{ width: 180, marginBottom: 8, display: 'block' }}
+            allowClear
+          >
+            <Select.Option value="0">Lập chứng từ</Select.Option>
+            <Select.Option value="5">Đề nghị xuất kho</Select.Option>
+            <Select.Option value="2">Xuất kho</Select.Option>
+            <Select.Option value="3">Chuyển số cài</Select.Option>
+            <Select.Option value="4">Hoàn tất</Select.Option>
+            <Select.Option value="6">Đang xử lý</Select.Option>
+          </Select>
+          <Button
+            type="primary"
+            onClick={() => {
+              confirm();
+              const newFilters = { ...filters, status: selectedKeys };
+              setFilters(newFilters);
+              fetchPhieuXuatDieuChuyen(newFilters);
+            }}
+            size="small"
+            style={{ width: '100%' }}
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
+      filteredValue: filters.status && filters.status.length > 0 ? filters.status : null,
     });
 
     baseColumns.push({

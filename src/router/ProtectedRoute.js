@@ -88,7 +88,10 @@ const ProtectedRoute = () => {
 
   const hideNavbar = 
     location.pathname.startsWith("/kho/giao-hang") || 
-    (location.pathname.startsWith("/kinh-doanh") && location.pathname !== "/kinh-doanh");
+    (location.pathname.startsWith("/kinh-doanh") && location.pathname !== "/kinh-doanh") ||
+    location.pathname.startsWith("/kho/nhap-hang/them-moi") ||
+    location.pathname.startsWith("/kho/nhap-hang/chi-tiet") ||
+    location.pathname.startsWith("/kho/nhap-hang/edit");
 
   return (
     <>

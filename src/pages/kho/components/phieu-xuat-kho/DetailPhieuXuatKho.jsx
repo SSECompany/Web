@@ -376,9 +376,9 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
                   className="phieu-header-status-select"
                   dropdownMatchSelectWidth={false}
                 >
-                  <Select.Option value="0">0. Lập chứng từ</Select.Option>
-                  <Select.Option value="1">1. Chờ duyệt</Select.Option>
-                  <Select.Option value="2">2. Duyệt</Select.Option>
+                  <Select.Option value="0">Lập chứng từ</Select.Option>
+                  <Select.Option value="1">Chờ duyệt</Select.Option>
+                  <Select.Option value="2">Duyệt</Select.Option>
                 </Select>
               </Form.Item>
             </div>

@@ -3,8 +3,8 @@ import { Col, DatePicker, Form, Input, Row, Select } from "antd";
 
 // Constants
 const TRANG_THAI_OPTIONS = [
-  { value: "2", label: "2. Chuyển vào SC" },
-  { value: "3", label: "3. Nhập kho" },
+  { value: "2", label: "Chuyển vào SC" },
+  { value: "3", label: "Nhập kho" },
 ];
 
 const PhieuFormInputs = memo(({
@@ -307,19 +307,6 @@ const PhieuFormInputs = memo(({
           </Col>
         </Row>
 
-        {/* Vật tư select component (giữ nguyên ở dưới) */}
-        {isEditMode && VatTuSelectComponent && (
-          <Row gutter={16} style={{ marginTop: 24 }}>
-            <Col span={24}>
-              <Form.Item label="Tìm quét vật tư nhập hàng">
-                <VatTuSelectComponent
-                  isEditMode={isEditMode}
-                  {...vatTuProps}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-        )}
       </div>
     );
   }

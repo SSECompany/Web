@@ -251,3 +251,106 @@ export const deletePhieuNhapHang = async (stt_rec) => {
   }
 };
 
+// API để lấy danh sách đơn hàng mua trong nước kế thừa
+export const fetchDonHangKeThua = async (params) => {
+  const token = localStorage.getItem("access_token");
+
+  const body = {
+    store: "api_list_don_hang_mua_trong_nuoc_ke_thua",
+    param: {
+      ma_dvcs: params.ma_dvcs || "TAPMED",
+      ma_kh: params.ma_kh || "",
+      so_ct: params.so_ct || "",
+      status: params.status || "2,3",
+      DateFrom: params.DateFrom || null,
+      DateTo: params.DateTo || null,
+      PageIndex: params.PageIndex || 1,
+      PageSize: params.PageSize || 20,
+    },
+    data: {},
+    resultSetNames: ["data", "pagination"],
+  };
+
+  try {
+    const response = await https.post("User/AddData", body, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const listObject = response.data?.listObject || [];
+    const responseData = listObject[0] || [];
+    const paginationData = listObject[1]?.[0] || {};
+
+    return {
+      data: responseData,
+      pagination: {
+        totalRecord: paginationData.totalRecord || paginationData.totalrow || responseData.length || 0,
+        pageSize: paginationData.pagesize || params.PageSize || 20,
+        totalPage: paginationData.totalpage || 1,
+      },
+      success: true,
+    };
+  } catch (error) {
+    console.error("Lỗi gọi API danh sách đơn hàng kế thừa:", error);
+    return {
+      data: [],
+      pagination: {},
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
+// API để lấy chi tiết đơn hàng mua trong nước kế thừa
+export const fetchDonHangKeThuaDetail = async (stt_rec) => {
+  const token = localStorage.getItem("access_token");
+
+  const body = {
+    store: "api_get_don_hang_mua_trong_nuoc_ke_thua_chi_tiet",
+    param: {
+      stt_rec: stt_rec,
+      UserId: 1,
+    },
+    data: {},
+    resultSetNames: ["master", "detail"],
+  };
+
+  try {
+    const response = await https.post("User/AddData", body, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const listObject = response.data?.listObject || [];
+    
+    // Nếu listObject chỉ có 1 mảng thì đó là mảng detail
+    // Nếu có 2 mảng thì [0] là master, [1] là detail
+    let master = null;
+    let detail = [];
+
+    if (listObject.length === 1) {
+      detail = listObject[0] || [];
+    } else if (listObject.length >= 2) {
+      master = listObject[0]?.[0] || null;
+      detail = listObject[1] || [];
+    }
+
+    return {
+      master,
+      detail,
+      success: true,
+    };
+  } catch (error) {
+    console.error("Lỗi gọi API chi tiết đơn hàng kế thừa:", error);
+    return {
+      master: null,
+      detail: [],
+      success: false,
+      error: error.message,
+    };
+  }
+};

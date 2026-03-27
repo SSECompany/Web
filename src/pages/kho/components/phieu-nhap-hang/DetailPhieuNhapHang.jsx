@@ -1,9 +1,12 @@
 import { 
   EditOutlined, 
   LeftOutlined, 
+  LinkOutlined,
   SaveOutlined, 
+  CloseCircleOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
-import { Button, Form, message, Select, Tabs, Typography } from "antd";
+import { Button, Form, message, Select, Tabs, Typography, Space } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -13,6 +16,7 @@ import https from "../../../../utils/https";
 import "../common-phieu.css";
 import "./DetailPhieuNhapHang.css";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
+import ModalKeThua from "./components/ModalKeThua";
 import PhieuNhapHangFormInputs from "./components/PhieuNhapHangFormInputs";
 import VatTuNhapHangTable from "./components/VatTuNhapHangTable";
 import { usePhieuNhapHangData } from "./hooks/usePhieuNhapHangData";
@@ -43,6 +47,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
   const [totalPage, setTotalPage] = useState(1);
   const [currentKeyword, setCurrentKeyword] = useState("");
   const [phieuDetailLoaded, setPhieuDetailLoaded] = useState(false);
+  const [keThuaModalOpen, setKeThuaModalOpen] = useState(false);
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
@@ -77,6 +82,8 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
     handleDeleteItem,
     handleDvtChange,
   } = useVatTuManagerNhapHang();
+
+  const maKhach = Form.useWatch("maKhach", form);
 
   const fetchVatTuListPaging = async (
     keyword = "",
@@ -259,21 +266,55 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
     };
   }, []);
 
+  // Tự động tính tổng từ dataSource lên master form
+  useEffect(() => {
+    if (!dataSource || dataSource.length === 0) {
+      form.setFieldsValue({
+        t_so_luong: 0,
+        t_tien_nt0: 0,
+        t_tien0: 0,
+        t_thue_nt: 0,
+        t_thue: 0,
+        t_tt_nt: 0,
+        t_tt: 0,
+        t_cktt_nt: 0,
+      });
+      return;
+    }
+
+    const totals = dataSource.reduce(
+      (acc, item) => {
+        acc.t_so_luong += parseFloat(item.soLuong || item.so_luong || 0);
+        acc.t_tien_nt0 += parseFloat(item.tien_nt0 || 0);
+        acc.t_tien0 += parseFloat(item.tien0 || 0);
+        acc.t_thue_nt += parseFloat(item.thue_nt || 0);
+        acc.t_thue += parseFloat(item.thue || 0);
+        acc.t_cktt_nt += parseFloat(item.cktt || 0);
+        return acc;
+      },
+      { t_so_luong: 0, t_tien_nt0: 0, t_tien0: 0, t_thue_nt: 0, t_thue: 0, t_cktt_nt: 0 }
+    );
+
+    const t_tt_nt = totals.t_tien_nt0 + totals.t_thue_nt;
+    const t_tt = totals.t_tien0 + totals.t_thue;
+
+    form.setFieldsValue({
+      ...totals,
+      t_tt_nt,
+      t_tt,
+    });
+  }, [dataSource, form]);
+
   const TRANG_THAI_OPTIONS = [
-  { value: "2", label: "2. Chuyển vào SC" },
-  { value: "3", label: "3. Nhập kho" },
+  { value: "2", label: "Chuyển vào SC" },
+  { value: "3", label: "Nhập kho" },
 ];
   const handleVatTuSelectPNA = (value, option) => {
     const currentValues = form.getFieldsValue();
     vatTuSelectHandler(
       value,
       isEditMode,
-      (val) => fetchVatTuDetail(
-        val, 
-        currentValues.maKho || "", 
-        currentValues.maKhach || "",
-        currentValues.ngay ? currentValues.ngay.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD")
-      ),
+      fetchVatTuDetail,
       fetchDonViTinh,
       setVatTuInput,
       setVatTuList,
@@ -286,6 +327,81 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
   const handleEdit = () => {
     navigate(`/kho/nhap-hang/chi-tiet/edit/${sctRec}`);
     setIsEditMode(true);
+  };
+
+  const handleKeThuaSelect = (data) => {
+    const { master, detail } = data;
+    if (master) {
+      const poNo = master.so_ct?.trim();
+      const tyGia = form.getFieldValue("tyGia") || 1;
+
+      form.setFieldsValue({
+        soDonHang: poNo,
+        maKhach: master.ma_kh?.trim() || form.getFieldValue("maKhach"),
+        dienGiai: `Nhập hàng theo đơn ${poNo}`,
+      });
+
+      const processedDetails = detail.map((item, index) => {
+        const soLuong = parseFloat(item.so_luong0 || 0);
+        const gia_nt0 = parseFloat(item.gia_nt || 0);
+        const thue_suat = parseFloat(item.thue_suat || 0);
+
+        const gia0 = gia_nt0 * tyGia;
+        const tien_nt0 = soLuong * gia_nt0;
+        const tien0 = tien_nt0 * tyGia;
+        const thue_nt = (tien_nt0 * thue_suat) / 100;
+        const thue = (tien0 * thue_suat) / 100;
+        const tt_nt = tien_nt0 + thue_nt;
+        const tt = tien0 + thue;
+
+        return {
+          key: dataSource.length + index + 1,
+          maHang: (item.ma_vt || "").trim(),
+          ten_mat_hang: item.ten_vt,
+          so_luong: soLuong,
+          soLuong: soLuong,
+          soLuongDeNghi: parseFloat(item.so_luong || 0),
+          dvt: (item.dvt || "").trim(),
+          ma_kho: (item.ma_kho || "").trim(),
+          tk_vt: item.tk_vt || "156",
+          ma_vv: item.ma_vv || "",
+          ma_bp: item.ma_bp || "",
+          so_lsx: item.so_lsx || "",
+          ma_sp: item.ma_sp || "",
+          ma_hd: item.ma_hd || "",
+          ma_phi: item.ma_phi || "",
+          ma_ku: item.ma_ku || "",
+          gia_nt0: gia_nt0,
+          gia_nt: gia_nt0,
+          gia0: gia0,
+          gia: gia0,
+          tien_nt0: tien_nt0,
+          tien_nt: tien_nt0,
+          tien0: tien0,
+          tien: tien0,
+          ma_thue: item.ma_thue || "",
+          thue_suat: thue_suat,
+          thue_nt: thue_nt,
+          thue: thue,
+          tk_thue: item.tk_thue || "1331",
+          tt_nt: tt_nt,
+          tt: tt,
+          stt_rec_dh: item.stt_rec || "",
+          stt_rec0dh: item.stt_rec0 || "",
+          dh_so: (item.dh_so || item.so_ct || poNo).trim(),
+          dh_ln: item.dh_ln || item.line_nbr || 0,
+          fcode2: poNo,
+          he_so: item.he_so || 1,
+          lo_yn: item.lo_yn || false,
+          tao_lo: item.tao_lo || false,
+          isNewlyAdded: true,
+          _lastUpdated: Date.now(),
+        };
+      });
+
+      setDataSource([...dataSource, ...processedDetails]);
+      message.success(`Lấy dữ liệu đơn hàng ${poNo} thành công`);
+    }
   };
 
   const handleNew = () => {
@@ -502,15 +618,15 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                       dropdownMatchSelectWidth={false}
                       disabled={!isEditMode}
                     >
-                      <Select.Option value="2">2. Chuyển vào SC</Select.Option>
-                      <Select.Option value="3">3. Nhập kho</Select.Option>
+                      <Select.Option value="2">Chuyển vào SC</Select.Option>
+                      <Select.Option value="3">Nhập kho</Select.Option>
                     </Select>
                   </Form.Item>
                 </div>
               </div>
             </div>
 
-            <div className="phieu-header-right">
+            <div className="detail-phieu-nhap-hang__header-right">
               {stt_rec && !isEditMode ? (
                 <Button
                   type="text"
@@ -607,25 +723,54 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
               }
             ]}
           />
-          <div className="detail-phieu-nhap-hang__fixed-footer">
-              <div className="fixed-footer__actions">
-                  {(isEditMode || !stt_rec) && (
-                          <Button 
-                              type="primary" 
-                              icon={<SaveOutlined />} 
-                              onClick={handleSubmit} 
-                              loading={loading}
-                              className="btn-save-fixed"
-                              style={{ minWidth: 200 }}
-                          >
-                              Lưu
-                          </Button>
-                  )}
-              </div>
-          </div>
         </div>
+
+        {/* FIXED FOOTER ACTIONS - OUTSIDE BODY FOR EDGE-TO-EDGE */}
+        {(isEditMode || !stt_rec) && (
+          <div className="detail-phieu-nhap-hang__fixed-footer">
+            <div className="fixed-footer__actions">
+              <Button 
+                type="primary" 
+                icon={<SaveOutlined />} 
+                onClick={handleSubmit} 
+                loading={loading}
+                className="btn-save-fixed"
+              >
+                Lưu phiếu
+              </Button>
+              
+              <Button
+                icon={<LinkOutlined />}
+                onClick={() => setKeThuaModalOpen(true)}
+                disabled={!maKhach}
+                title={!maKhach ? "Vui lòng chọn Mã khách để kế thừa đơn hàng" : ""}
+                className="btn-print-fixed"
+              >
+                Kế thừa
+              </Button>
+
+              {stt_rec && (
+                <Button 
+                  danger
+                  icon={<DeleteOutlined />} 
+                  onClick={handleDelete}
+                  className="btn-delete-fixed"
+                >
+                  Xoá phiếu
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </Form>
+
+      <ModalKeThua
+        open={keThuaModalOpen}
+        onCancel={() => setKeThuaModalOpen(false)}
+        onSelect={handleKeThuaSelect}
+        maKhach={form.getFieldValue("maKhach") || ""}
+      />
   </div>
   );
 };

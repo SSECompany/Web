@@ -35,6 +35,7 @@ export const phieuNhapHangConfig = {
   hanSuDungField: "ngay_hh",
   donHangField: "fcode2",
   showThaoTac: false,
+  consolidateProduct: true,
 };
 
 // Cấu hình cho phiếu nhặt hàng

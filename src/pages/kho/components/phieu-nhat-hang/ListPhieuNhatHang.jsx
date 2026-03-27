@@ -1,5 +1,5 @@
 import { EyeOutlined, FilterOutlined, ReloadOutlined } from "@ant-design/icons";
-import { Button, DatePicker, Input, Select, Tag, Typography } from "antd";
+import { Button, Checkbox, DatePicker, Input, Select, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
@@ -817,16 +817,57 @@ const ListPhieuNhatHang = () => {
         width: screenSize === "mobile" ? 90 : 120,
         align: "center",
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <MultiSelectFilterDropdown
-            setSelectedKeys={setSelectedKeys}
-            selectedKeys={selectedKeys}
-            confirm={confirm}
-            filterKey="status"
-            initialValue={filters.status || []}
-            placeholder="Chọn trạng thái"
-            options={STATUS_OPTIONS}
-            onFilter={handleFilter}
-          />
+          <div style={{ padding: 12, minWidth: 200 }}>
+            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Trạng thái:</div>
+            <Checkbox.Group
+              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              value={selectedKeys}
+              onChange={(value) => setSelectedKeys(value)}
+            >
+              {STATUS_OPTIONS.map(opt => (
+                <Checkbox key={opt.value} value={opt.value}>{opt.label}</Checkbox>
+              ))}
+            </Checkbox.Group>
+            <div
+              style={{
+                marginTop: 12,
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "8px",
+              }}
+            >
+              <Button
+                size="small"
+                onClick={() => {
+                  setSelectedKeys([]);
+                  const newFilters = { ...filters, status: [] };
+                  setFilters(newFilters);
+                  setCurrentPage(1);
+                  saveFiltersToStorage(newFilters);
+                  fetchPhieuNhatHang(1, newFilters);
+                  confirm();
+                }}
+                style={{ flex: 1, borderRadius: '8px' }}
+              >
+                Xóa
+              </Button>
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => {
+                  confirm();
+                  const newFilters = { ...filters, status: selectedKeys };
+                  setFilters(newFilters);
+                  setCurrentPage(1);
+                  saveFiltersToStorage(newFilters);
+                  fetchPhieuNhatHang(1, newFilters);
+                }}
+                style={{ flex: 1, borderRadius: '8px', background: '#6366f1' }}
+              >
+                Tìm kiếm
+              </Button>
+            </div>
+          </div>
         ),
         filteredValue: Array.isArray(filters.status) && filters.status.length > 0 ? filters.status : null,
         render: (_, record) => {

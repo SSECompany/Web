@@ -160,10 +160,8 @@ const ListPhieuNhapHang = () => {
       chips.push({ key: "so_ct", label: "Số đơn", value: filters.so_ct });
     if (filters.so_po)
       chips.push({ key: "so_po", label: "Số PO", value: filters.so_po });
-    if (filters.ma_kh)
-      chips.push({ key: "ma_kh", label: "Mã khách", value: filters.ma_kh });
     if (filters.ten_kh)
-      chips.push({ key: "ten_kh", label: "Tên khách", value: filters.ten_kh });
+      chips.push({ key: "ten_kh", label: "Khách hàng", value: filters.ten_kh });
     if (filters.dateRange && filters.dateRange.length === 2) {
       const display = `${filters.dateRange[0].format(
         "DD/MM/YYYY"
@@ -186,7 +184,7 @@ const ListPhieuNhapHang = () => {
         <div className="filter-chips-left">
           <FilterOutlined className="filter-chips-icon" />
           <span className="filter-chips-title">
-            Đang áp dụng {activeChips.length} bộ lọc
+            Bộ lọc đang áp dụng:
           </span>
           <div className="filter-chips-list">
             {activeChips.map((chip) => (
@@ -204,7 +202,7 @@ const ListPhieuNhapHang = () => {
                     ? "filter-chip--green"
                     : chip.key === "so_ct" || chip.key === "so_po"
                     ? "filter-chip--orange"
-                    : chip.key === "ma_kh" || chip.key === "ten_kh"
+                    : chip.key === "ten_kh"
                     ? "filter-chip--magenta"
                     : "filter-chip--cyan"
                 }`}
@@ -215,7 +213,7 @@ const ListPhieuNhapHang = () => {
           </div>
         </div>
         <div className="filter-chips-right">
-          <Button size="small" onClick={clearAllFilters}>
+          <Button size="small" type="text" onClick={clearAllFilters}>
             Xóa lọc
           </Button>
         </div>
@@ -260,24 +258,15 @@ const ListPhieuNhapHang = () => {
 
   const getStatusColor = (status) => {
     switch (String(status).trim()) {
-      case "0":
-        return "orange";
-      case "1":
-        return "magenta";
-      case "2":
-        return "blue";
-      case "3":
-        return "purple";
-      case "4":
-        return "green";
-      case "5":
-        return "cyan";
-      case "6":
-        return "red";
-      case "9":
-        return "green";
-      default:
-        return "default";
+      case "0": return "orange";
+      case "1": return "magenta";
+      case "2": return "blue";
+      case "3": return "purple";
+      case "4": return "green";
+      case "5": return "cyan";
+      case "6": return "red";
+      case "9": return "green";
+      default: return "default";
     }
   };
 
@@ -309,197 +298,146 @@ const ListPhieuNhapHang = () => {
   const getColumns = () => {
     const baseColumns = [
       {
-        title: "STT",
-        key: "stt",
-        render: (_, __, index) => index + 1,
-        width: 60,
+        title: "Thời gian",
+        key: "thoi_gian",
+        width: 140,
         align: "center",
+        render: (_, record) => (
+          <div style={{ fontSize: '11px', lineHeight: '1.4' }}>
+            <div>
+              <Typography.Text type="secondary" style={{ fontSize: '10px' }}>Tạo:</Typography.Text>{" "}
+              {record.datetime0 ? dayjs(record.datetime0).format("HH:mm DD/MM") : "--"}
+            </div>
+            <div>
+              <Typography.Text type="secondary" style={{ fontSize: '10px' }}>Sửa:</Typography.Text>{" "}
+              {record.datetime2 ? dayjs(record.datetime2).format("HH:mm DD/MM") : "--"}
+            </div>
+          </div>
+        )
       },
       {
-        title: "Ngày",
-        dataIndex: "ngay_ct",
-        key: "ngay_ct",
-        width: 120,
+        title: "Chứng từ",
+        key: "don_hang",
+        width: 160,
         align: "center",
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
+        render: (_, record) => (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+              <Typography.Text strong>{record.so_ct}</Typography.Text>
+            </div>
+            <div style={{ fontSize: '11px', color: '#8c8c8c' }}>{dayjs(record.ngay_ct).format("DD/MM/YYYY")}</div>
+            {record.so_po && record.so_po.trim() !== "" && (
+              <div style={{ fontSize: '10px', color: '#6366f1', fontWeight: 600 }}>PO: {record.so_po.trim()}</div>
+            )}
+          </div>
+        ),
+        filterDropdown: ({ confirm }) => (
+          <div style={{ padding: 12, width: 280 }}>
+            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Số phiếu nhập:</div>
+            <Input
+              placeholder="Nhập số phiếu nhập..."
+              value={filters.so_ct}
+              onChange={e => {
+                const val = e.target.value;
+                setFilters(prev => ({ ...prev, so_ct: val }));
+              }}
+              onPressEnter={() => {
+                fetchPhieuNhapHang(filters);
+                confirm();
+              }}
+              style={{ marginBottom: 16, display: 'block' }}
+            />
+
+            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Số PO:</div>
+            <Input
+              placeholder="Nhập số PO..."
+              value={filters.so_po}
+              onChange={e => {
+                const val = e.target.value;
+                setFilters(prev => ({ ...prev, so_po: val }));
+              }}
+              onPressEnter={() => {
+                fetchPhieuNhapHang(filters);
+                confirm();
+              }}
+              style={{ marginBottom: 16, display: 'block' }}
+            />
+
+            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Khoảng ngày:</div>
             <RangePicker
-              inputReadOnly
-              value={
-                selectedKeys[0] && selectedKeys[1]
-                  ? [
-                      dayjs(selectedKeys[0], "DD/MM/YYYY"),
-                      dayjs(selectedKeys[1], "DD/MM/YYYY"),
-                    ]
-                  : null
-              }
+              value={filters.dateRange}
               onChange={(dates) => {
-                if (dates && dates.length === 2) {
-                  setSelectedKeys([
-                    dates[0].format("DD/MM/YYYY"),
-                    dates[1].format("DD/MM/YYYY"),
-                  ]);
-                } else {
-                  setSelectedKeys([]);
-                }
+                setFilters(prev => ({ ...prev, dateRange: dates }));
               }}
-              style={{ marginBottom: 8 }}
               format="DD/MM/YYYY"
-              placeholder={["Từ ngày", "Đến ngày"]}
+              style={{ width: '100%', marginBottom: 16 }}
+              placeholder={['Từ ngày', 'Đến ngày']}
             />
-            <Button
-              className="search_button"
-              type="primary"
-              onClick={() => {
-                confirm();
-                const newFilters = {
-                  ...filters,
-                  dateRange:
-                    selectedKeys.length === 2
-                      ? [
-                          dayjs(selectedKeys[0], "DD/MM/YYYY"),
-                          dayjs(selectedKeys[1], "DD/MM/YYYY"),
-                        ]
-                      : null,
-                };
-                setFilters(newFilters);
-                fetchPhieuNhapHang(newFilters);
-              }}
-              size="small"
-            >
-              Tìm kiếm
-            </Button>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <Button 
+                onClick={() => {
+                  const cleared = { ...filters, so_ct: "", so_po: "", dateRange: null };
+                  setFilters(cleared);
+                  fetchPhieuNhapHang(cleared);
+                  confirm();
+                }}
+                style={{ flex: 1, borderRadius: '8px', fontSize: '13px' }}
+              >
+                Xóa lọc
+              </Button>
+              <Button 
+                type="primary" 
+                onClick={() => {
+                  fetchPhieuNhapHang(filters);
+                  confirm();
+                }}
+                style={{ flex: 1, borderRadius: '8px', fontSize: '13px', fontWeight: 600, background: '#6366f1' }}
+              >
+                Tìm kiếm
+              </Button>
+            </div>
           </div>
         ),
-        filteredValue:
-          filters.dateRange && filters.dateRange.length === 2
-            ? [
-                filters.dateRange[0].format("DD/MM/YYYY"),
-                filters.dateRange[1].format("DD/MM/YYYY"),
-              ]
-            : null,
-        render: (text) =>
-          dayjs(text).format(screenSize === "mobile" ? "DD/MM" : "DD/MM/YYYY"),
+        filteredValue: (filters.so_ct || filters.so_po || filters.dateRange) ? [1] : null,
       },
       {
-        title: "Số",
-        dataIndex: "so_ct",
-        key: "so_ct",
-        width: 100,
-        align: "center",
-        render: (text) => (text ? text.trim() : ""),
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm Số CT"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                confirm();
-                const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
-                setFilters(newFilters);
-                fetchPhieuNhapHang(newFilters);
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              className="search_button"
-              type="primary"
-              onClick={() => {
-                confirm();
-                const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
-                setFilters(newFilters);
-                fetchPhieuNhapHang(newFilters);
-              }}
-              size="small"
-            >
-              Tìm kiếm
-            </Button>
-          </div>
-        ),
-        filteredValue: filters.so_ct ? [filters.so_ct] : null,
-      },
-      {
-        title: "Mã khách",
-        dataIndex: "ma_kh",
-        key: "ma_kh",
-        width: 120,
-        align: "center",
-        render: (text) => (text ? text.trim() : ""),
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm Mã khách"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                confirm();
-                const newFilters = { ...filters, ma_kh: selectedKeys[0] || "" };
-                setFilters(newFilters);
-                fetchPhieuNhapHang(newFilters);
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              className="search_button"
-              type="primary"
-              onClick={() => {
-                confirm();
-                const newFilters = { ...filters, ma_kh: selectedKeys[0] || "" };
-                setFilters(newFilters);
-                fetchPhieuNhapHang(newFilters);
-              }}
-              size="small"
-            >
-              Tìm kiếm
-            </Button>
-          </div>
-        ),
-        filteredValue: filters.ma_kh ? [filters.ma_kh] : null,
-      },
-      {
-        title: "Tên khách",
-        dataIndex: "ten_kh",
-        key: "ten_kh",
+        title: "Khách hàng",
+        key: "khach_hang",
         width: 250,
         align: "left",
-        render: (text) => (text ? text.trim() : ""),
+        render: (_, record) => (
+          <div>
+            <div style={{ fontWeight: 600, color: '#1a1a1a' }}>{record.ten_kh}</div>
+            <div style={{ fontSize: '11px', color: '#8c8c8c' }}>{record.ma_kh}</div>
+            {record.ten_kh2 && <div style={{ fontSize: '10px', color: '#475569', fontStyle: 'italic' }}>{record.ten_kh2}</div>}
+            {record.dien_thoai && <div style={{ fontSize: '11px', color: '#6366f1', fontWeight: 500 }}>{record.dien_thoai}</div>}
+          </div>
+        ),
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
+          <div style={{ padding: 12, width: 250 }}>
+            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Mã hoặc Tên khách:</div>
             <Input
-              placeholder="Tìm Tên khách"
+              placeholder="Nhập mã hoặc tên khách..."
               value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
+              onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
               onPressEnter={() => {
                 confirm();
-                const newFilters = {
-                  ...filters,
-                  ten_kh: selectedKeys[0] || "",
-                };
+                const newFilters = { ...filters, ten_kh: selectedKeys[0] || "" };
                 setFilters(newFilters);
                 fetchPhieuNhapHang(newFilters);
               }}
-              style={{ marginBottom: 8, display: "block" }}
+              style={{ marginBottom: 12, display: "block" }}
             />
             <Button
-              className="search_button"
               type="primary"
               onClick={() => {
                 confirm();
-                const newFilters = {
-                  ...filters,
-                  ten_kh: selectedKeys[0] || "",
-                };
+                const newFilters = { ...filters, ten_kh: selectedKeys[0] || "" };
                 setFilters(newFilters);
                 fetchPhieuNhapHang(newFilters);
               }}
-              size="small"
+              style={{ width: '100%', borderRadius: '8px', background: '#6366f1' }}
             >
               Tìm kiếm
             </Button>
@@ -508,13 +446,12 @@ const ListPhieuNhapHang = () => {
         filteredValue: filters.ten_kh ? [filters.ten_kh] : null,
       },
       {
-        title: "Tiền",
+        title: "Tổng tiền",
         dataIndex: "t_tt_nt",
         key: "t_tt_nt",
-        width: 150,
+        width: 140,
         align: "center",
-        render: (value) =>
-          new Intl.NumberFormat("vi-VN").format(parseFloat(value || 0)),
+        render: (val) => <Typography.Text strong style={{ color: '#52c41a', fontSize: '15px' }}>{new Intl.NumberFormat("vi-VN").format(val || 0)}</Typography.Text>,
       },
       {
         title: "Trạng thái",
@@ -524,7 +461,7 @@ const ListPhieuNhapHang = () => {
         align: "center",
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <div style={{ padding: 12, minWidth: 200 }}>
-            <div style={{ marginBottom: 8, fontWeight: 600 }}>Của hàng:</div>
+            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Trạng thái:</div>
             <Checkbox.Group
               style={{ display: "flex", flexDirection: "column", gap: "8px" }}
               value={selectedKeys}
@@ -550,7 +487,7 @@ const ListPhieuNhapHang = () => {
                   fetchPhieuNhapHang(newFilters);
                   confirm();
                 }}
-                style={{ flex: 1 }}
+                style={{ flex: 1, borderRadius: '8px' }}
               >
                 Xóa
               </Button>
@@ -566,7 +503,7 @@ const ListPhieuNhapHang = () => {
                   setFilters(newFilters);
                   fetchPhieuNhapHang(newFilters);
                 }}
-                style={{ flex: 1 }}
+                style={{ flex: 1, borderRadius: '8px', background: '#6366f1' }}
               >
                 Tìm kiếm
               </Button>
@@ -575,16 +512,17 @@ const ListPhieuNhapHang = () => {
         ),
         filteredValue: filters.status ? filters.status.split(",") : null,
         render: (statusname, record) => {
-          const status = String(record.status).trim();
-          if (status === "*" || status === "null") {
-            return "";
-          }
-          const displayStatus = statusname || "";
-          const statusColor = getStatusColor(status);
+          const statusCode = String(record.status).trim();
+          if (statusCode === "*" || statusCode === "null") return "";
+          
+          const displayStatus = statusname ? statusname.replace(/^\d+\.\s*/, '') : "";
+            
           return (
-            <Tag color={statusColor} style={{ margin: 0, fontSize: "11px" }}>
-              {displayStatus}
-            </Tag>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+              <Tag color={getStatusColor(statusCode)} style={{ margin: 0, textAlign: 'center', fontSize: '11px' }}>
+                {displayStatus}
+              </Tag>
+            </div>
           );
         },
       },
@@ -616,19 +554,8 @@ const ListPhieuNhapHang = () => {
               <FileTextOutlined />
             </button>
             <button
-              className="phieu-action-btn phieu-action-btn--edit"
-              title="Chỉnh sửa"
-              onClick={() =>
-                navigate(`/kho/nhap-hang/chi-tiet/edit/${record.stt_rec}`, {
-                  state: { sctRec: record.stt_rec },
-                })
-              }
-            >
-              <EditOutlined />
-            </button>
-            <button
               className="phieu-action-btn phieu-action-btn--delete"
-              title="Xóa"
+              title="Xóa phiếu"
               onClick={() => handleDelete(record.stt_rec)}
             >
               <DeleteOutlined />
@@ -649,13 +576,21 @@ const ListPhieuNhapHang = () => {
       onBack={() => navigate("/kho")}
       extraHeader={chipsBar}
       extraButtons={
-        <button
-          className="navbar_fullscreen_btn"
-          onClick={handleRefresh}
-          title="Làm tươi"
-        >
-          <ReloadOutlined />
-        </button>
+        <div style={{ display: "flex", gap: "8px", alignItems: 'center' }}>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={() => navigate("them-moi")}
+            style={{ background: '#1d4ed8', borderColor: '#1d4ed8' }}
+            title="Tạo phiếu nhập"
+          />
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={handleRefresh}
+            title="Làm tươi"
+            style={{ color: '#1d4ed8', background: '#f0f9ff', borderColor: '#bae6fd' }}
+          />
+        </div>
       }
       rowKey="stt_rec"
       pagination={{
@@ -667,26 +602,6 @@ const ListPhieuNhapHang = () => {
         showQuickJumper: false,
       }}
       tableProps={{
-        toolbar: (
-          <Button
-            type="primary"
-            onClick={() => navigate("them-moi")}
-            style={{ 
-              borderRadius: "8px", 
-              boxShadow: "0 4px 12px rgba(79, 70, 229, 0.3)",
-              height: "38px",
-              background: "#4f46e5",
-              borderColor: "#4338ca",
-              fontWeight: 600,
-              padding: "0 20px"
-            }}
-          >
-            <span style={{ color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <PlusOutlined style={{ color: '#ffffff' }} />
-              Thêm mới
-            </span>
-          </Button>
-        ),
         summary: (pageData) => {
           let totalTien = 0;
           pageData.forEach(({ t_tt_nt }) => {
@@ -696,12 +611,12 @@ const ListPhieuNhapHang = () => {
           return (
             <Table.Summary fixed>
               <Table.Summary.Row className="table-summary-row">
-                <Table.Summary.Cell index={0} colSpan={5} className="text-right">
+                <Table.Summary.Cell index={0} colSpan={3} className="text-right">
                   <span style={{ fontWeight: "bold", fontSize: "15px" }}>
                     Tổng cộng:
                   </span>
                 </Table.Summary.Cell>
-                <Table.Summary.Cell index={1} align="right">
+                <Table.Summary.Cell index={1} align="center">
                   <span
                     style={{
                       fontWeight: "bold",

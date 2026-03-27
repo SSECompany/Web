@@ -46,14 +46,7 @@ const Kho = () => {
       color: "linear-gradient(135deg, #13c2c2 0%, #36cfc9 100%)",
       path: "/kho/nhap-kho",
     },
-    {
-      title: "Phiếu xuất điều chuyển",
-      subtitle: "Quản lý xuất kho điều chuyển",
-      icon: <SendOutlined style={{ fontSize: "28px" }} />,
-      color: "linear-gradient(135deg, #eb2f96 0%, #f759ab 100%)",
-      path: "/kho/xuat-dieu-chuyen",
-    },
-    {
+     {
       title: "Phiếu xuất kho",
       subtitle: "Quản lý xuất kho",
       icon: <ExportOutlined style={{ fontSize: "28px" }} />,
@@ -61,12 +54,20 @@ const Kho = () => {
       path: "/kho/xuat-kho",
     },
     {
-      title: "Phiếu xuất kho bán hàng",
-      subtitle: "Quản lý xuất kho bán hàng",
-      icon: <ShopOutlined style={{ fontSize: "28px" }} />,
-      color: "linear-gradient(135deg, #fa541c 0%, #ff7a45 100%)",
-      path: "/kho/xuat-ban",
+      title: "Phiếu xuất điều chuyển",
+      subtitle: "Quản lý xuất kho điều chuyển",
+      icon: <SendOutlined style={{ fontSize: "28px" }} />,
+      color: "linear-gradient(135deg, #eb2f96 0%, #f759ab 100%)",
+      path: "/kho/xuat-dieu-chuyen",
     },
+   
+    // {
+    //   title: "Phiếu xuất kho bán hàng",
+    //   subtitle: "Quản lý xuất kho bán hàng",
+    //   icon: <ShopOutlined style={{ fontSize: "28px" }} />,
+    //   color: "linear-gradient(135deg, #fa541c 0%, #ff7a45 100%)",
+    //   path: "/kho/xuat-ban",
+    // },
     {
       title: "Phiếu yêu cầu kiểm kê",
       subtitle: "Quản lý yêu cầu kiểm kê",

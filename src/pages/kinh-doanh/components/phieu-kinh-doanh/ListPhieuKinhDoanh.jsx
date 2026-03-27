@@ -63,7 +63,7 @@ const ListPhieuKinhDoanh = () => {
                     parsed.dateRange = parsed.dateRange.map(d => d ? dayjs(d) : null);
                 }
                 if (!parsed.status) {
-                    parsed.status = ["0", "1", "2", "3", "4", "5", "6", "9"];
+                    parsed.status = ["0", "1", "2"];
                 }
                 return parsed;
             }
@@ -75,7 +75,7 @@ const ListPhieuKinhDoanh = () => {
             ten_nvbh: "",
             kw_nguoi_tao: "",
             dateRange: null,
-            status: ["0", "1", "2", "3", "4", "5", "6", "9"],
+            status: ["0", "1", "2"],
         };
     };
 
@@ -220,14 +220,14 @@ const ListPhieuKinhDoanh = () => {
         if (filters.kw_nguoi_tao) chips.push({ key: "kw_nguoi_tao", label: "Người lập", value: filters.kw_nguoi_tao });
         if (filters.status && Array.isArray(filters.status) && filters.status.length > 0) {
             const statusMap = { 
-                "0": "0. Lập ctừ", 
-                "1": "1. Chờ duyệt", 
-                "2": "2. Duyệt",
-                "3": "3. Treo",
-                "4": "4. Đang xuất",
-                "5": "5. Hoàn thành",
-                "6": "6. Đóng",
-                "9": "9. Hủy"
+                "0": "Lập ctừ", 
+                "1": "Chờ duyệt", 
+                "2": "Duyệt",
+                "3": "Treo",
+                "4": "Đang xuất",
+                "5": "Hoàn thành",
+                "6": "Đóng",
+                "9": "Hủy"
             };
             const labels = filters.status.map(s => statusMap[s] || s);
             chips.push({ key: "status", label: "Trạng thái", value: labels.join(", "), rawValue: filters.status });
@@ -764,9 +764,7 @@ const ListPhieuKinhDoanh = () => {
                 align: "center",
                 render: (statusname, record) => {
                     const status = String(record.status).trim();
-                    const displayStatus = (statusname && statusname.includes('.')) 
-                        ? statusname 
-                        : `${status}. ${statusname || ""}`;
+                    const displayStatus = statusname ? statusname.replace(/^\d+\.\s*/, '') : "";
                         
                     return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
@@ -804,14 +802,14 @@ const ListPhieuKinhDoanh = () => {
                                 }}
                                 className="status-filter-dropdown__checkbox-group"
                             >
-                                <Checkbox value="0">0. Lập ctừ</Checkbox>
-                                <Checkbox value="1">1. Chờ duyệt</Checkbox>
-                                <Checkbox value="2">2. Duyệt</Checkbox>
-                                <Checkbox value="3">3. Treo</Checkbox>
-                                <Checkbox value="4">4. Đang xuất</Checkbox>
-                                <Checkbox value="5">5. Hoàn thành</Checkbox>
-                                <Checkbox value="6">6. Đóng</Checkbox>
-                                <Checkbox value="9">9. Hủy</Checkbox>
+                                <Checkbox value="0">Lập ctừ</Checkbox>
+                                <Checkbox value="1">Chờ duyệt</Checkbox>
+                                <Checkbox value="2">Duyệt</Checkbox>
+                                <Checkbox value="3">Treo</Checkbox>
+                                <Checkbox value="4">Đang xuất</Checkbox>
+                                <Checkbox value="5">Hoàn thành</Checkbox>
+                                <Checkbox value="6">Đóng</Checkbox>
+                                <Checkbox value="9">Hủy</Checkbox>
                             </Checkbox.Group>
                         </div>
                         <div className="status-filter-dropdown__actions">
@@ -922,7 +920,7 @@ const ListPhieuKinhDoanh = () => {
                         <Text type="secondary" style={{ fontSize: '13px' }}> - {dayjs(item.ngay_ct).format("DD-MM-YYYY")}</Text>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                        <Tag color={getStatusColor(item.status)} style={{ margin: 0 }}>{item.statusname}</Tag>
+                        <Tag color={getStatusColor(item.status)} style={{ margin: 0 }}>{item.statusname ? item.statusname.replace(/^\d+\.\s*/, '') : ""}</Tag>
                         <div style={{ fontSize: '10px', color: '#8c8c8c' }}>
                             <Text style={{ 
                                 color: (item.status_soan_hang && String(item.status_soan_hang).trim() !== "0" && String(item.status_soan_hang).trim() !== "") ? '#52c41a' : '#bfbfbf', 
@@ -1057,14 +1055,14 @@ const ListPhieuKinhDoanh = () => {
                             allowClear
                             className="mobile-status-select"
                         >
-                            <Select.Option value="0">0. Lập ctừ</Select.Option>
-                            <Select.Option value="1">1. Chờ duyệt</Select.Option>
-                            <Select.Option value="2">2. Duyệt</Select.Option>
-                            <Select.Option value="3">3. Treo</Select.Option>
-                            <Select.Option value="4">4. Đang xuất</Select.Option>
-                            <Select.Option value="5">5. Hoàn thành</Select.Option>
-                            <Select.Option value="6">6. Đóng</Select.Option>
-                            <Select.Option value="9">9. Hủy</Select.Option>
+                            <Select.Option value="0">Lập ctừ</Select.Option>
+                            <Select.Option value="1">Chờ duyệt</Select.Option>
+                            <Select.Option value="2">Duyệt</Select.Option>
+                            <Select.Option value="3">Treo</Select.Option>
+                            <Select.Option value="4">Đang xuất</Select.Option>
+                            <Select.Option value="5">Hoàn thành</Select.Option>
+                            <Select.Option value="6">Đóng</Select.Option>
+                            <Select.Option value="9">Hủy</Select.Option>
                         </Select>
                     </div>
                     <Button 
