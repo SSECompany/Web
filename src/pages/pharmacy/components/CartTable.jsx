@@ -528,15 +528,14 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
         <InputNumber
           value={listPrice || 0}
           min={0}
-          size="small"
-          className="detail-input-number"
+          className="detail-input-number list-price-input"
           formatter={(value) =>
             `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
           }
           parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
           onChange={(value) => handleListPriceChange(index, record, value)}
           controls={false}
-          style={{ width: "100%", fontWeight: "700", color: "#1890ff" }}
+          style={{ width: "100%" }}
         />
       ),
     },

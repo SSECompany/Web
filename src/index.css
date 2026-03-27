@@ -1340,12 +1340,19 @@ body > iframe {
     padding: 20px;
   }
 
-  /* Removed legacy grid */
 }
+
 .column-title {
   font-weight: 600;
   font-size: 12px;
   color: #475569;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.list-price-input .ant-input-number-input {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #1890ff !important;
+  text-align: right !important;
 }
