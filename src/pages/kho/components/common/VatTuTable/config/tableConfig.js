@@ -92,17 +92,22 @@ export const phieuXuatKhoConfig = {
   showThaoTac: false,
 };
 
-// Cấu hình cho phiếu xuất điều chuyển
-export const phieuXuatDieuChuyenConfig = {
-  tenMatHangField: "maHang", // Lưu ý: phiếu này dùng maHang cho tên
+// Cấu hình cho phiếu nhập điều chuyển
+export const phieuNhapDieuChuyenConfig = {
+  tenMatHangField: "ten_vt",
   soLuongDeNghiField: "so_luong",
   soLuongDeNghiEditable: true,
   showSoLuongDeNghi: true,
+  soLuongDeNghiTitle: "Số lượng",
   soLuongCheatField: "sl_td3",
-  soLuongCheatTitle: "Số lượng cheat",
-  showSoLuongCheat: true,
-  showMaKho: false, // Không có cột mã kho
-  showThaoTac: false,
+  showSoLuongCheat: false,
+  showMaKho: false,
+  showMaLo: true,
+  showMaViTri: true,
+  maLoField: "ma_lo",
+  maViTriField: "ma_vi_tri",
+  showThaoTac: true,
+  consolidateProduct: true,
 };
 
 // Cấu hình cho phiếu xuất kho bán hàng
@@ -129,7 +134,7 @@ export const getTableConfig = (type) => {
     "nhap-hang": phieuNhapHangConfig,
     "nhat-hang": phieuNhatHangConfig,
     "xuat-kho": phieuXuatKhoConfig,
-    "xuat-dieu-chuyen": phieuXuatDieuChuyenConfig,
+    "nhap-dieu-chuyen": phieuNhapDieuChuyenConfig,
     "xuat-kho-ban-hang": phieuXuatKhoBanHangConfig,
   };
 

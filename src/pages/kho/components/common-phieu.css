@@ -23,9 +23,11 @@ body {
   border-radius: 0;
   box-shadow: none;
   position: relative;
-  min-height: auto;
+  min-height: 100vh;
   height: auto;
   overflow: visible;
+  display: flex;
+  flex-direction: column;
 }
 
 .phieu-container::before {
@@ -247,6 +249,7 @@ body {
   position: relative;
   z-index: 2;
   overflow: visible;
+  flex-grow: 1;
 }
 
 .phieu-form .ant-form-item-label {

@@ -12,16 +12,16 @@ import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import { fetchVatTuListDynamicApi } from "../phieu-nhat-hang/utils/phieuNhatHangUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuTable from "./components/VatTuTable";
-import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
+import { usePhieuNhapDieuChuyenData } from "./hooks/usePhieuNhapDieuChuyenData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
 import {
   buildPayload,
   validateDataSource,
-} from "./utils/phieuXuatDieuChuyenUtils";
+} from "./utils/phieuNhapDieuChuyenUtils";
 
 const { Title } = Typography;
 
-const AddPhieuXuatDieuChuyen = () => {
+const AddPhieuNhapDieuChuyen = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
@@ -50,7 +50,7 @@ const AddPhieuXuatDieuChuyen = () => {
     fetchVatTuDetail,
     fetchDonViTinh,
     setVatTuList: setVatTuListFromHook,
-  } = usePhieuXuatKhoData();
+  } = usePhieuNhapDieuChuyenData();
 
   const {
     dataSource,
@@ -123,20 +123,35 @@ const AddPhieuXuatDieuChuyen = () => {
         ? JSON.parse(unitsResponseStr)
         : {};
       const unitCode = user.unitCode || unitsResponse.unitCode;
-      const res = await fetchVatTuListDynamicApi({
-        keyword,
-        unitCode,
-        pageIndex: page,
-        pageSize: 100,
+      const payload = {
+        store: "api_getListItem",
+        data: {},
+        param: {
+          Currency: "VND",
+          searchValue: keyword || "",
+          unitId: unitCode || "TAPMED ",
+          userId: user.id || 0,
+          pageindex: page,
+          pagesize: 100,
+        },
+        resultSetNames: ["data"]
+      };
+      const token = localStorage.getItem("access_token");
+      const res = await https.post("User/AddData", payload, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
       });
-      if (res.success && res.data) {
-        const options = res.data.map((item) => ({
+
+      const listObject = res.data?.listObject || [];
+      const data = listObject[0] || [];
+
+      if (Array.isArray(data)) {
+        const options = data.map((item) => ({
           label: `${item.ma_vt} - ${item.ten_vt}`,
           value: item.ma_vt,
           ...item,
         }));
         setVatTuList((prev) => (append ? [...prev, ...options] : options));
-        if (callback) callback(res.pagination);
+        if (callback) callback({ totalPage: data[0]?.totalPage || 1 });
       } else {
         if (!append) setVatTuList([]);
         if (callback) callback({ totalPage: 1 });
@@ -203,7 +218,7 @@ const AddPhieuXuatDieuChuyen = () => {
 
       validateQuantityForPhieu(
         dataSource,
-        "phieu_xuat_dieu_chuyen",
+        "phieu_nhap_dieu_chuyen",
         currentStatus,
         async () => {
           // Callback khi user xác nhận tiếp tục
@@ -218,7 +233,7 @@ const AddPhieuXuatDieuChuyen = () => {
               return;
             }
 
-            // Gọi API thêm mới phiếu xuất điều chuyển qua User/AddData
+            // Gọi API thêm mới phiếu nhập điều chuyển qua User/AddData
             const response = await https.post("User/AddData", payload, {
               headers: {
                 "Content-Type": "application/json",
@@ -240,12 +255,12 @@ const AddPhieuXuatDieuChuyen = () => {
               : response?.data?.statusCode === 200;
 
             if (isSuccess) {
-              message.success("Tạo phiếu xuất điều chuyển thành công");
-              navigate("/kho/xuat-dieu-chuyen");
+              message.success("Tạo phiếu nhập điều chuyển thành công");
+              navigate("/kho/nhap-dieu-chuyen");
             } else {
               const serverMsg =
                 response.data?.responseModel?.message || response.data?.message;
-              message.error(serverMsg || "Tạo phiếu xuất điều chuyển thất bại");
+              message.error(serverMsg || "Tạo phiếu nhập điều chuyển thất bại");
             }
           } catch (error) {
             console.error("Submit failed:", error);
@@ -264,8 +279,8 @@ const AddPhieuXuatDieuChuyen = () => {
         }
       );
     } catch (error) {
-      console.error("Lỗi khi tạo phiếu xuất điều chuyển:", error);
-      message.error("Có lỗi xảy ra khi tạo phiếu xuất điều chuyển");
+      console.error("Lỗi khi tạo phiếu nhập điều chuyển:", error);
+      message.error("Có lỗi xảy ra khi tạo phiếu nhập điều chuyển");
       setLoading(false);
     }
   };
@@ -274,17 +289,20 @@ const AddPhieuXuatDieuChuyen = () => {
     <FormTemplate
       form={form}
       onFinish={handleSubmit}
-      onBack={() => navigate("/kho/xuat-dieu-chuyen")}
-      badgeText="THÊM PHIẾU XUẤT ĐIỀU CHUYỂN"
+      onBack={() => navigate("/kho/nhap-dieu-chuyen")}
+      badgeText="THÊM PHIẾU NHẬP ĐIỀU CHUYỂN"
       badgeColor="green"
-      metaDate={dayjs().format("DD-MM-YYYY")}
-      statusValue="3"
+      metaOrder={form.getFieldValue('soPhieu')}
+      metaDate={form.getFieldValue('ngay') ? dayjs(form.getFieldValue('ngay')).format('DD/MM/YYYY') : dayjs().format('DD/MM/YYYY')}
+      statusValue={form.getFieldValue('trangThai') || "0"}
       statusOptions={[
         { value: "0", label: "Lập chứng từ" },
-        { value: "2", label: "Xuất kho" },
-        { value: "3", label: "Chuyển số cài" },
-        { value: "5", label: "Đề nghị xuất kho" },
+        { value: "1", label: "Điều chuyển" },
+        { value: "2", label: "Chuyển KTTH" },
+        { value: "3", label: "Chuyển sổ cái" },
+        { value: "9", label: "Tài chính" },
       ]}
+      showStatusSelect={true}
       fixedFooterActions={[
         {
           key: "save",
@@ -298,11 +316,12 @@ const AddPhieuXuatDieuChuyen = () => {
           key: "cancel",
           label: "Hủy",
           icon: <CloseCircleOutlined />,
-          onClick: () => navigate("/kho/xuat-dieu-chuyen"),
+          onClick: () => navigate("/kho/nhap-dieu-chuyen"),
         },
       ]}
     >
-      <Form form={form} layout="vertical" className="phieu-form phieu-form--floating">
+      <div className="phieu-form-container">
+        <Form form={form} layout="vertical" className="phieu-form-section phieu-form--floating">
           <PhieuFormInputs
             isEditMode={true}
             maGiaoDichList={maGiaoDichList}
@@ -338,11 +357,13 @@ const AddPhieuXuatDieuChuyen = () => {
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
-            fetchMaKhoList={fetchMaKhoList}
+            fetchDonViTinh={fetchDonViTinh}
+            onDataSourceUpdate={setDataSource}
           />
-      </Form>
+        </Form>
+      </div>
     </FormTemplate>
   );
 };
 
-export default AddPhieuXuatDieuChuyen;
+export default AddPhieuNhapDieuChuyen;

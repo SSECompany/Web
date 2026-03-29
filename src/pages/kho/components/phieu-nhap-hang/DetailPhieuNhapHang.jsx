@@ -658,21 +658,21 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
           colon={false}
         >
           <div className="detail-phieu-nhap-hang__body">
-            <div className="phieu-form-section phieu-form--floating">
-              <PhieuNhapHangFormInputs
-                isEditMode={isEditMode}
-                maKhachList={maKhachList}
-                loadingMaKhach={loadingMaKhach}
-                fetchMaKhachListDebounced={fetchMaKhachListDebounced}
-                fetchMaKhachList={fetchMaKhachList}
-                maGiaoDichList={maGiaoDichList}
-                fetchMaGiaoDichList={fetchMaGiaoDichList}
-                maKhoList={maKhoList}
-                loadingMaKho={loadingMaKho}
-                fetchMaKhoList={fetchMaKhoList}
-                fetchMaKhoListDebounced={fetchMaKhoListDebounced}
-                onPoSearch={handlePoSearch}
-              />
+            <div className="phieu-form-section phieu-form--floating" style={{ paddingBottom: 0, marginBottom: 24, padding: "24px 28px" }}>
+            <PhieuNhapHangFormInputs
+              isEditMode={isEditMode}
+              maKhachList={maKhachList}
+              loadingMaKhach={loadingMaKhach}
+              fetchMaKhachListDebounced={fetchMaKhachListDebounced}
+              fetchMaKhachList={fetchMaKhachList}
+              maGiaoDichList={maGiaoDichList}
+              fetchMaGiaoDichList={fetchMaGiaoDichList}
+              maKhoList={maKhoList}
+              loadingMaKho={loadingMaKho}
+              fetchMaKhoList={fetchMaKhoList}
+              fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+              onPoSearch={handlePoSearch}
+            />
             </div>
 
             <Tabs
@@ -741,7 +741,6 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
             />
           </div>
         </Form>
-
       </FormTemplate>
 
       <ModalKeThua

@@ -88,6 +88,9 @@ export const useAuth = () => {
 };
 
 // Export default chỉ có useAuth hook
-export default {
+const reduxHooks = {
   useAuth,
 };
+
+export default reduxHooks;
+

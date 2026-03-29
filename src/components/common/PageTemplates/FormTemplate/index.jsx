@@ -42,6 +42,7 @@ const FormTemplate = ({
   fixedFooterActions = [],
 }) => {
   return (
+    <>
     <div className="phieu-container">
       {/* ===== HEADER ===== */}
       <div className="phieu-header">
@@ -117,28 +118,35 @@ const FormTemplate = ({
       {/* ===== BODY ===== */}
       {children}
 
-      {/* ===== FIXED FOOTER ===== */}
+      {/* ===== SPACER cho Fixed Footer ===== */}
       {fixedFooterActions && fixedFooterActions.length > 0 && (
-        <div className="phieu-form-fixed-footer">
-          <div className="phieu-form-fixed-footer__buttons">
-            {fixedFooterActions.map((action, idx) => (
-              <Button
-                key={action.key || idx}
-                type={action.type || "default"}
-                danger={action.danger}
-                icon={action.icon}
-                onClick={action.onClick}
-                loading={action.loading}
-                disabled={action.disabled}
-                className={action.className || ""}
-              >
-                {action.label}
-              </Button>
-            ))}
-          </div>
-        </div>
+        <div className="phieu-form-fixed-footer-spacer" />
       )}
     </div>
+
+    {/* ===== FIXED FOOTER (ngoài container, position fixed) ===== */}
+    {fixedFooterActions && fixedFooterActions.length > 0 && (
+      <div className="phieu-form-fixed-footer">
+        <div className="phieu-form-fixed-footer__buttons">
+          {fixedFooterActions.map((action, idx) => (
+            <Button
+              key={action.key || idx}
+              type={action.type || "default"}
+              danger={action.danger}
+              icon={action.icon}
+              onClick={action.onClick}
+              loading={action.loading}
+              disabled={action.disabled}
+              className={action.className || ""}
+              style={action.style}
+            >
+              {action.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 

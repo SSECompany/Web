@@ -420,9 +420,9 @@ const AddPhieuNhapHang = () => {
           }
         ]}
       >
-
+        <Form form={form} layout="vertical">
           <div className="detail-phieu-nhap-hang__body">
-            <div className="phieu-form-section phieu-form--floating">
+            <div className="phieu-form-section phieu-form--floating" style={{ paddingBottom: 0, marginBottom: 24, padding: "24px 28px" }}>
               <PhieuNhapHangFormInputs
                 isEditMode={isEditMode}
                 maKhachList={maKhachList}
@@ -515,7 +515,7 @@ const AddPhieuNhapHang = () => {
                 </div>
             </div>
           </div>
-
+        </Form>
       </FormTemplate>
 
       <ModalKeThua

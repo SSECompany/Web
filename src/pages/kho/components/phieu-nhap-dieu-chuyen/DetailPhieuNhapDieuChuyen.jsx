@@ -10,7 +10,7 @@ import "../common-phieu.css";
 import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuTable from "./components/VatTuTable";
-import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
+import { usePhieuNhapDieuChuyenData } from "./hooks/usePhieuNhapDieuChuyenData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
 
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
@@ -18,14 +18,23 @@ import { fetchVatTuListDynamicApi } from "../phieu-nhat-hang/utils/phieuNhatHang
 import {
   buildPayload,
   validateDataSource,
-} from "./utils/phieuXuatDieuChuyenUtils";
+} from "./utils/phieuNhapDieuChuyenUtils";
+
+import {
+  fetchPhieuNhapDieuChuyenDetail,
+  updatePhieuNhapDieuChuyen,
+  deletePhieuNhapDieuChuyen,
+} from "./utils/phieuNhapDieuChuyenApi";
+
 
 const { Title } = Typography;
 
-const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
+const DetailPhieuNhapDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const { stt_rec } = useParams();
+  const { stt_rec, id } = useParams();
+  const actualSttRec = stt_rec || id;
+
   const token = localStorage.getItem("access_token");
 
   const [phieuData, setPhieuData] = useState(null);
@@ -60,20 +69,35 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
         ? JSON.parse(unitsResponseStr)
         : {};
       const unitCode = user.unitCode || unitsResponse.unitCode;
-      const res = await fetchVatTuListDynamicApi({
-        keyword,
-        unitCode,
-        pageIndex: page,
-        pageSize: 100,
+      const payload = {
+        store: "api_getListItem",
+        data: {},
+        param: {
+          Currency: "VND",
+          searchValue: keyword || "",
+          unitId: unitCode || "TAPMED ",
+          userId: user.id || 0,
+          pageindex: page,
+          pagesize: 100,
+        },
+        resultSetNames: ["data"]
+      };
+      const token = localStorage.getItem("access_token");
+      const res = await https.post("User/AddData", payload, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
       });
-      if (res.success && res.data) {
-        const options = res.data.map((item) => ({
+
+      const listObject = res.data?.listObject || [];
+      const data = listObject[0] || [];
+
+      if (Array.isArray(data)) {
+        const options = data.map((item) => ({
           label: `${item.ma_vt} - ${item.ten_vt}`,
           value: item.ma_vt,
           ...item,
         }));
         setVatTuList((prev) => (append ? [...prev, ...options] : options));
-        if (callback) callback(res.pagination);
+        if (callback) callback({ totalPage: data[0]?.totalPage || 1 });
       } else {
         if (!append) setVatTuList([]);
         if (callback) callback({ totalPage: 1 });
@@ -109,7 +133,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
     fetchMaKhoList,
     fetchVatTuDetail,
     fetchDonViTinh,
-  } = usePhieuXuatKhoData();
+  } = usePhieuNhapDieuChuyenData();
 
   const {
     dataSource,
@@ -134,59 +158,57 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
   };
 
   useEffect(() => {
+    // Tự động load danh sách kho và mã giao dịch để hiển thị tên thay vì mã khi load chi tiết phiếu
+    if (fetchMaKhoList && fetchMaGiaoDichList) {
+      fetchMaKhoList("");
+      fetchMaGiaoDichList();
+    }
+  }, [fetchMaKhoList, fetchMaGiaoDichList]);
+
+  useEffect(() => {
     const fetchPhieuDetail = async () => {
-      if (stt_rec) {
+      if (actualSttRec) {
         try {
-          const body = {
-            store: "api_get_data_detail_phieu_xuat_dieu_chuyen_voucher",
-            param: {
-              stt_rec: stt_rec,
-            },
-            data: {},
-            resultSetNames: ["master", "detail"],
-          };
+          const result = await fetchPhieuNhapDieuChuyenDetail(actualSttRec);
+          
+          if (result.success && result.master && Object.keys(result.master).length > 0) {
+            const masterData = result.master;
+            const detailData = result.detail;
 
-          const response = await https.post("User/AddData", body, {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          const masterData =
-            response.data?.listObject?.dataLists?.master?.[0] || {};
-          const detailData = response.data?.listObject?.dataLists?.detail || [];
-
-          if (masterData && Object.keys(masterData).length > 0) {
             // Lưu chỉ data gốc từ API để sử dụng khi build payload (không merge với UI data)
             const formattedData = {
               ngay: masterData.ngay_ct ? dayjs(masterData.ngay_ct) : null,
+              ngay_lct: masterData.ngay_lct ? dayjs(masterData.ngay_lct) : null,
               soPhieu: masterData.so_ct?.trim() || "",
-              maKhoXuat: masterData.ma_kho?.trim() || "",
-              maKhoNhap: masterData.ma_khon?.trim() || "",
+              maKhoXuat: masterData.ma_khox?.trim() || "",
+              tenKhoXuat: masterData.ten_kho_x?.trim() || "",
+              maKhoNhap: masterData.ma_kho?.trim() || "",
+              tenKhoNhap: masterData.ten_kho?.trim() || "",
+              ong_ba: masterData.ong_ba?.trim() || "",
+              dien_giai: masterData.dien_giai?.trim() || "",
               maGiaoDich: masterData.ma_gd?.trim() || "",
+              tenGiaoDich: masterData.ten_gd?.trim() || "",
               trangThai: masterData.status || "",
+              ty_gia: masterData.ty_gia || 1,
+              ma_nt: masterData.ma_nt || "VND",
             };
+
 
             setPhieuData(masterData);
             form.setFieldsValue(formattedData);
 
             if (detailData && detailData.length > 0) {
-              // Process vật tư list - DYNAMIC: Giữ nguyên TẤT CẢ trường từ API
               const formattedDetail = detailData.map((item, index) => {
-                const soLuongHienThi = item.sl_td3 ?? 0; // sl_td3 - số lượng thực tế
-                const soLuongDeNghiHienThi = item.so_luong ?? 0; // so_luong - số lượng đề nghị
+                const soLuongHienThi = item.sl_td3 ?? 0;
+                const soLuongDeNghiHienThi = item.so_luong ?? 0;
                 const dvtHienTai = item.dvt ? item.dvt.trim() : "cái";
 
                 return {
-                  // Giữ nguyên TẤT CẢ trường từ API response
                   ...item,
-
-                  // Override với UI-friendly fields
                   key: index + 1,
                   maHang: item.ma_vt || "",
-                  soLuong: Math.round(soLuongHienThi * 1000) / 1000, // sl_td3 - số lượng thực tế
-                  soLuongDeNghi: parseFloat(soLuongDeNghiHienThi) || 0, // so_luong - số lượng đề nghị
+                  soLuong: Math.round(soLuongHienThi * 1000) / 1000,
+                  soLuongDeNghi: parseFloat(soLuongDeNghiHienThi) || 0,
                   ten_mat_hang: item.ten_vt || item.ma_vt || "",
                   dvt: dvtHienTai,
                   ma_kho: item.ma_kho || "",
@@ -200,15 +222,14 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             }
           }
         } catch (error) {
-          console.error(
-            "Lỗi khi fetch chi tiết phiếu xuất điều chuyển:",
-            error
-          );
+          console.error("Lỗi khi fetch chi tiết phiếu nhập điều chuyển:", error);
         }
       }
     };
     fetchPhieuDetail();
-  }, [stt_rec, token, form, setDataSource]);
+  }, [actualSttRec, form, setDataSource]);
+
+
 
   const submitPhieuData = useCallback(async (values) => {
     try {
@@ -220,41 +241,19 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
         return;
       }
 
-      if (phieuData && phieuData.stt_rec) {
-        if (payload.data && payload.data.master && payload.data.master[0]) {
-          payload.data.master[0].stt_rec = phieuData.stt_rec;
-        }
-      }
+      const result = await updatePhieuNhapDieuChuyen(payload.data, phieuData);
 
-      const response = await https.post("User/AddData", payload, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const isSuccess = response?.data?.responseModel?.isSucceded === true;
-
-      if (isSuccess) {
-        message.success("Cập nhật phiếu xuất điều chuyển thành công");
+      if (result.success) {
         setIsEditMode(false);
-        navigate("/kho/xuat-dieu-chuyen");
-      } else {
-        const serverMsg =
-          response.data?.responseModel?.message || response.data?.message;
-        message.error(serverMsg || "Cập nhật phiếu xuất điều chuyển thất bại");
+        navigate("/kho/nhap-dieu-chuyen");
       }
     } catch (error) {
-      console.error("Lỗi khi cập nhật phiếu xuất điều chuyển:", error);
-      const serverMsg =
-        error?.response?.data?.responseModel?.message ||
-        error?.response?.data?.message ||
-        error?.message;
-      if (serverMsg) message.error(serverMsg);
+      console.error("Lỗi khi cập nhật phiếu nhập điều chuyển:", error);
     } finally {
       setLoading(false);
     }
-  }, [dataSource, phieuData, token, navigate, setLoading]);
+  }, [dataSource, phieuData, navigate, setLoading]);
+
 
   const handleSubmit = useCallback(async () => {
     try {
@@ -270,7 +269,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
 
       validateQuantityForPhieu(
         dataSource,
-        "phieu_xuat_dieu_chuyen",
+        "phieu_nhap_dieu_chuyen",
         currentStatus,
         async () => {
           try {
@@ -285,74 +284,51 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
         }
       );
     } catch (error) {
-      console.error("Lỗi khi cập nhật phiếu xuất điều chuyển:", error);
+      console.error("Lỗi khi cập nhật phiếu nhập điều chuyển:", error);
       setLoading(false);
     }
   }, [form, dataSource, submitPhieuData, setLoading]);
 
   const handleEdit = useCallback(() => {
-    navigate(`/kho/xuat-dieu-chuyen/edit/${stt_rec}`);
+    navigate(`/kho/nhap-dieu-chuyen/edit/${actualSttRec}`);
     setIsEditMode(true);
-  }, [navigate, stt_rec]);
+  }, [navigate, actualSttRec]);
+
 
   const handleNew = useCallback(() => {
-    navigate("/kho/xuat-dieu-chuyen/them-moi");
+    navigate("/kho/nhap-dieu-chuyen/them-moi");
   }, [navigate]);
 
   const handleDelete = useCallback(() => {
     showConfirm({
-      title: "Xác nhận xóa phiếu xuất điều chuyển",
-      content: "Bạn có chắc chắn muốn xóa phiếu xuất điều chuyển này không?",
+      title: "Xác nhận xóa phiếu nhập điều chuyển",
+      content: "Bạn có chắc chắn muốn xóa phiếu nhập điều chuyển này không?",
       type: "warning",
       onOk: async () => {
         setLoading(true);
         try {
-          const body = {
-            store: "api_delete_xuat_dieu_chuyen_voucher",
-            param: {
-              stt_rec: stt_rec,
-            },
-            data: {},
-          };
-
-          const response = await https.post("User/AddData", body, {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          const isSuccess = response?.data?.responseModel?.isSucceded === true;
-
-          if (isSuccess) {
-            message.success("Xóa phiếu xuất điều chuyển thành công");
-            navigate("/kho/xuat-dieu-chuyen");
-          } else {
-            const serverMsg =
-              response.data?.responseModel?.message || response.data?.message;
-            message.error(serverMsg || "Xóa phiếu xuất điều chuyển thất bại");
+          const result = await deletePhieuNhapDieuChuyen(actualSttRec);
+          if (result.success) {
+            navigate("/kho/nhap-dieu-chuyen");
           }
         } catch (error) {
-          console.error("Lỗi khi xóa phiếu xuất điều chuyển:", error);
-          const serverMsg =
-            error?.response?.data?.responseModel?.message ||
-            error?.response?.data?.message ||
-            error?.message;
-          message.error(
-            serverMsg || "Có lỗi xảy ra khi xóa phiếu xuất điều chuyển"
-          );
+          console.error("Lỗi khi xóa phiếu nhập điều chuyển:", error);
         } finally {
           setLoading(false);
         }
+
       },
     });
-  }, [stt_rec, navigate, setLoading, token]);
+  }, [actualSttRec, navigate, setLoading]);
+
+
 
   const getBadge = () => {
-    if (!stt_rec) return { text: "THÊM PHIẾU XUẤT MỚI", color: "green" };
-    if (isEditMode) return { text: "SỬA PHIẾU XUẤT", color: "orange" };
-    return { text: "CHI TIẾT PHIẾU XUẤT", color: "blue" };
+    if (!actualSttRec) return { text: "THÊM PHIẾU NHẬP ĐIỀU CHUYỂN MỚI", color: "green" };
+    if (isEditMode) return { text: "SỬA PHIẾU NHẬP ĐIỀU CHUYỂN", color: "orange" };
+    return { text: "CHI TIẾT PHIẾU NHẬP ĐIỀU CHUYỂN", color: "blue" };
   };
+
   const badge = getBadge();
 
   const footerActions = [];
@@ -368,7 +344,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
     <FormTemplate
       form={form}
       onFinish={handleSubmit}
-      onBack={() => navigate("/kho/xuat-dieu-chuyen")}
+      onBack={() => navigate("/kho/nhap-dieu-chuyen")}
       badgeText={badge.text}
       badgeColor={badge.color}
       metaOrder={form.getFieldValue('soPhieu')}
@@ -376,21 +352,26 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
       statusValue={form.getFieldValue('trangThai') || "0"}
       statusOptions={[
         { value: "0", label: "Lập chứng từ" },
-        { value: "1", label: "Chờ duyệt" },
-        { value: "2", label: "Duyệt" },
+        { value: "1", label: "Điều chuyển" },
+        { value: "2", label: "Chuyển KTTH" },
+        { value: "3", label: "Chuyển sổ cái" },
+        { value: "9", label: "Tài chính" },
       ]}
+
       showStatusSelect={true}
       headerRightSpan={
-        !isEditMode && stt_rec ? (
+        !isEditMode && actualSttRec ? (
           <Button type="text" icon={<EditOutlined />} onClick={handleEdit} className="phieu-edit-button-kd" title="Chỉnh sửa" />
         ) : null
       }
+
       fixedFooterActions={footerActions}
     >
       <div className="phieu-form-container">
         <Form form={form} layout="vertical" className="phieu-form-section phieu-form--floating" disabled={!isEditMode}>
           <PhieuFormInputs
             isEditMode={isEditMode}
+            phieuData={phieuData}
             maGiaoDichList={maGiaoDichList}
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
@@ -434,4 +415,4 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
   );
 };
 
-export default DetailPhieuXuatDieuChuyen;
+export default DetailPhieuNhapDieuChuyen;

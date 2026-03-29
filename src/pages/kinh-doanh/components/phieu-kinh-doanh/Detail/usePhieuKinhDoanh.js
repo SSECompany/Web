@@ -391,7 +391,7 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
 
             const results = (listObject[0] || []).map((r, idx) => ({ ...r, key: idx }));
             setDiscountResults(results);
-            setSelectedDiscountResultsKeys(results.map(r => r.key));
+            setSelectedDiscountResultsKeys([]);
             setDiscountModalStage('results');
             setDiscountSearchText('');
             setDiscountModalVisible(true);

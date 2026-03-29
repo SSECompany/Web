@@ -4,9 +4,9 @@ import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 
 // Định nghĩa các status cần kiểm tra cho từng loại phiếu
 const STATUS_CONFIG = {
-  phieu_xuat_dieu_chuyen: {
+  phieu_nhap_dieu_chuyen: {
     statuses: ["2", "3"], // Chuyển KTTH, Chuyển vào SC
-    name: "phiếu xuất điều chuyển",
+    name: "phiếu nhập điều chuyển",
   },
   phieu_xuat_kho: {
     statuses: ["1", "3"], // Xuất kho, Chuyển vào SC

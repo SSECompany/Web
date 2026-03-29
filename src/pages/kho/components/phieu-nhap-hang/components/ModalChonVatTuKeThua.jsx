@@ -164,11 +164,6 @@ const ModalChonVatTuKeThua = ({ open, onCancel, onConfirm, data = [] }) => {
       }}
       destroyOnClose
     >
-      <div style={{ marginBottom: "16px", padding: "10px 16px", background: "#f0fdf4", borderRadius: "8px", border: "1px solid #dcfce7" }}>
-        <span style={{ fontSize: "13px", color: "#166534" }}>
-          💡 <b>Mẹo:</b> Nhập số lượng nhận cho từng món hàng. Hệ thống sẽ tự động tick chọn các hàng có số lượng lớn hơn 0.
-        </span>
-      </div>
       <Table
         dataSource={selectedRows}
         columns={columns}

@@ -63,7 +63,7 @@ export const buildPayload = (
   // MASTER - Chỉ override vài trường theo UI, giữ nguyên tất cả trường từ API
   const master = {
     // Giữ nguyên tất cả trường từ API response (khi update)
-    ...(phieuData || {}),
+    ...phieuData,
 
     // Chỉ override các trường cần thiết từ form
     ma_gd: values.ma_gd || values.maGiaoDich || "2",
@@ -76,7 +76,7 @@ export const buildPayload = (
 
   // Đảm bảo các trường bắt buộc có mặt khi thêm mới
   if (!isUpdate) {
-    // Các trường bắt buộc cho phiếu xuất điều chuyển
+    // Các trường bắt buộc cho phiếu nhập điều chuyển
     if (!master.stt_rec) {
       master.stt_rec = ""; // Sẽ được tạo tự động bởi server
     }

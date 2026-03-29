@@ -2,20 +2,16 @@ import {
   InboxOutlined,
   CarOutlined,
   SendOutlined,
-  ExportOutlined,
   FileTextOutlined,
-  ShopOutlined,
   SolutionOutlined,
 } from "@ant-design/icons";
 import { Card, Col, Row, Typography } from "antd";
-import React from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import "./Kho.css";
 
 const { Title, Text } = Typography;
 
 const Kho = () => {
-  const navigate = useNavigate();
 
   const menuItems = [
     {
@@ -54,20 +50,13 @@ const Kho = () => {
     //   path: "/kho/xuat-kho",
     // },
     {
-      title: "Phiếu xuất điều chuyển",
-      subtitle: "Quản lý xuất kho điều chuyển",
+      title: "Phiếu nhập điều chuyển",
+      subtitle: "Quản lý nhập kho điều chuyển",
       icon: <SendOutlined style={{ fontSize: "28px" }} />,
       color: "linear-gradient(135deg, #eb2f96 0%, #f759ab 100%)",
-      path: "/kho/xuat-dieu-chuyen",
+      path: "/kho/nhap-dieu-chuyen",
     },
    
-    // {
-    //   title: "Phiếu xuất kho bán hàng",
-    //   subtitle: "Quản lý xuất kho bán hàng",
-    //   icon: <ShopOutlined style={{ fontSize: "28px" }} />,
-    //   color: "linear-gradient(135deg, #fa541c 0%, #ff7a45 100%)",
-    //   path: "/kho/xuat-ban",
-    // },
     {
       title: "Phiếu yêu cầu kiểm kê",
       subtitle: "Quản lý yêu cầu kiểm kê",
@@ -77,9 +66,6 @@ const Kho = () => {
     },
   ];
 
-  const handleMenuClick = (path) => {
-    navigate(path);
-  };
 
   return (
     <div className="kho-container">

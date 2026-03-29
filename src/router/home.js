@@ -39,19 +39,19 @@ const DetailPhieuXuatKho = lazy(() =>
 
 
 
-const ListPhieuXuatDieuChuyen = lazy(() =>
+const ListPhieuNhapDieuChuyen = lazy(() =>
   import(
-    "../pages/kho/components/phieu-xuat-dieu-chuyen/ListPhieuXuatDieuChuyen"
+    "../pages/kho/components/phieu-nhap-dieu-chuyen/ListPhieuNhapDieuChuyen"
   )
 );
-const AddPhieuXuatDieuChuyen = lazy(() =>
+const AddPhieuNhapDieuChuyen = lazy(() =>
   import(
-    "../pages/kho/components/phieu-xuat-dieu-chuyen/AddPhieuXuatDieuChuyen"
+    "../pages/kho/components/phieu-nhap-dieu-chuyen/AddPhieuNhapDieuChuyen"
   )
 );
-const DetailPhieuXuatDieuChuyen = lazy(() =>
+const DetailPhieuNhapDieuChuyen = lazy(() =>
   import(
-    "../pages/kho/components/phieu-xuat-dieu-chuyen/DetailPhieuXuatDieuChuyen"
+    "../pages/kho/components/phieu-nhap-dieu-chuyen/DetailPhieuNhapDieuChuyen"
   )
 );
 
@@ -204,20 +204,27 @@ const protectedChildrenRoutes = [
   //   element: <DetailPhieuXuatKho />,
   // },
   {
-    label: "Phiếu xuất điều chuyển",
-    path: "kho/xuat-dieu-chuyen",
-    element: <ListPhieuXuatDieuChuyen />,
+    label: "Phiếu nhập điều chuyển",
+    path: "kho/nhap-dieu-chuyen",
+    element: <ListPhieuNhapDieuChuyen />,
   },
   {
-    label: "Thêm phiếu xuất điều chuyển",
-    path: "kho/xuat-dieu-chuyen/them-moi",
-    element: <AddPhieuXuatDieuChuyen />,
+    label: "Thêm phiếu nhập điều chuyển",
+    path: "kho/nhap-dieu-chuyen/them-moi",
+    element: <AddPhieuNhapDieuChuyen />,
   },
   {
-    label: "Chi tiết phiếu xuất điều chuyển",
-    path: "kho/xuat-dieu-chuyen/chi-tiet/:id",
-    element: <DetailPhieuXuatDieuChuyen />,
+    label: "Chi tiết phiếu nhập điều chuyển",
+    path: "kho/nhap-dieu-chuyen/chi-tiet/:stt_rec",
+    element: <DetailPhieuNhapDieuChuyen />,
   },
+  {
+    label: "Chỉnh sửa phiếu nhập điều chuyển",
+    path: "kho/nhap-dieu-chuyen/edit/:stt_rec",
+    element: <DetailPhieuNhapDieuChuyen isEditMode={true} />,
+  },
+
+
   {
     label: "Phiếu yêu cầu kiểm kê",
     path: "kho/yeu-cau-kiem-ke",

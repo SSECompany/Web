@@ -85,22 +85,18 @@ export const buildPhieuNhapHangPayload = (
     const tt = roundNum(tien + thue);
 
     return {
+      ...item,
       stt_rec: isUpdate ? (phieuData?.stt_rec || "") : "",
       stt_rec0: item.stt_rec0 || String(index + 1).padStart(3, "0"),
       ma_ct: "PNA",
       ngay_ct: orderDate,
-      so_ct: values.soPhieu || phieuData?.so_ct || "",
+      so_ct: values.soPhieu || phieuData?.so_ct || item.so_ct || "",
       ma_vt: (item.maHang || item.ma_vt || "").trim(),
-      ma_sp: item.ma_sp || "",
-      ma_bp: item.ma_bp || "",
-      so_lsx: item.so_lsx || "",
       dvt: (item.dvt || "").trim(),
       he_so: roundNum(item.he_so || 1, 3),
       ma_kho: (item.ma_kho || "").trim(),
       ma_vi_tri: (item.ma_vi_tri || "").trim(),
       ma_lo: (item.ma_lo || "").trim(),
-      ma_vv: item.ma_vv || "",
-      tk_vt: item.tk_vt || "156",
       so_luong: soLuong,
       gia_nt: giaNt,
       gia: gia,
@@ -108,6 +104,8 @@ export const buildPhieuNhapHangPayload = (
       gia0: gia0,
       tien_nt: tienNt,
       tien: tien,
+      tien0: roundNum(item.tien0 || tienNt),
+      tien_nt0: roundNum(item.tien_nt0 || tienNt),
       ma_thue: item.ma_thue || "",
       tk_thue: item.tk_thue || "1331",
       thue_suat: thueSuat,
@@ -115,113 +113,33 @@ export const buildPhieuNhapHangPayload = (
       thue_nt: thueNt,
       tt: tt,
       tt_nt: ttNt,
-      xstatus: item.xstatus || " ",
-      xaction: item.xaction || " ",
-      tien0: roundNum(item.tien0 || tienNt),
-      tien_nt0: roundNum(item.tien_nt0 || tienNt),
-      ma_thue_nk: item.ma_thue_nk || "",
-      thue_suat_nk: roundNum(item.thue_suat_nk || 0),
-      tk_thue_nk: item.tk_thue_nk || "",
-      nk: roundNum(item.nk || 0),
-      nk_nt: roundNum(item.nk_nt || 0),
-      ma_thue_ttdb: item.ma_thue_ttdb || "",
-      thue_suat_ttdb: roundNum(item.thue_suat_ttdb || 0),
-      tk_thue_ttdb: item.tk_thue_ttdb || "",
-      ttdb: roundNum(item.ttdb || 0),
-      ttdb_nt: roundNum(item.ttdb_nt || 0),
-      cp_bh: roundNum(item.cp_bh || 0),
-      cp_bh_nt: roundNum(item.cp_bh_nt || 0),
-      cp_vc: roundNum(item.cp_vc || 0),
-      cp_vc_nt: roundNum(item.cp_vc_nt || 0),
-      cp_khac: roundNum(item.cp_khac || 0),
-      cp_khac_nt: roundNum(item.cp_khac_nt || 0),
-      cp: roundNum(item.cp || 0),
-      cp_nt: roundNum(item.cp_nt || 0),
-      stt_rec_ct: item.stt_rec_ct || "",
-      stt_rec0ct: item.stt_rec0ct || "",
-      ct_so: item.ct_so || "",
-      ct_ln: item.ct_ln || 0,
-      stt_rec_dh: item.stt_rec_dh || "",
-      stt_rec0dh: item.stt_rec0dh || "",
-      dh_so: item.dh_so || "",
-      dh_ln: item.dh_ln || 0,
-      stt_rec_pn: item.stt_rec_pn || "",
-      stt_rec0pn: item.stt_rec0pn || "",
-      pn_so: item.pn_so || "",
-      pn_ln: item.pn_ln || 0,
       tien_hang: roundNum(item.tien_hang || tienNt),
       tien_hang_nt: roundNum(item.tien_hang_nt || tienNt),
       line_nbr: item.line_nbr || index + 1,
-      ma_hd: item.ma_hd || "",
-      ma_ku: item.ma_ku || "",
-      ma_phi: item.ma_phi || "",
-      so_dh_i: item.so_dh_i || "",
-      ma_td1: item.ma_td1 || "",
-      ma_td2: item.ma_td2 || "",
-      ma_td3: item.ma_td3 || "",
-      sl_td1: roundNum(item.sl_td1 || 0, 4),
-      sl_td2: roundNum(item.sl_td2 || 0, 4),
-      sl_td3: roundNum(item.sl_td3 || 0, 4),
       ngay_td1: toDateVal(item.ngay_td1 || item.ngay_hh) || null,
-      ngay_td2: toDateVal(item.ngay_td2) || null,
-      ngay_td3: toDateVal(item.ngay_td3) || null,
-      gc_td1: item.gc_td1 || "",
-      gc_td2: item.gc_td2 || " ",
-      gc_td3: item.gc_td3 || " ",
-      s1: item.s1 || "",
-      s2: item.s2 || "",
-      s3: item.s3 || "",
-      s4: roundNum(item.s4 || 0, 4),
-      s5: roundNum(item.s5 || 0, 4),
-      s6: roundNum(item.s6 || 0, 4),
-      s7: toDateVal(item.s7) || null,
-      s8: toDateVal(item.s8) || null,
-      s9: toDateVal(item.s9) || null,
       ts_cktt: roundNum(item.ts_cktt || tienNt),
       cktt: roundNum(item.cktt || 0),
       tl_ck: roundNum(item.tl_ck || 0),
-      ma_ck: item.ma_ck || "",
     };
   });
 
   // ===== Tính tổng TỪ detail đã build (đảm bảo khớp 100%) =====
-  const totalQuantity = roundNum(
-    detailData.reduce((sum, d) => sum + d.so_luong, 0), 3
-  );
-  const totalTienNt = roundNum(
-    detailData.reduce((sum, d) => sum + d.tien_nt, 0)
-  );
-  const totalTien = roundNum(
-    detailData.reduce((sum, d) => sum + d.tien, 0)
-  );
-  const totalThueNt = roundNum(
-    detailData.reduce((sum, d) => sum + d.thue_nt, 0)
-  );
-  const totalThue = roundNum(
-    detailData.reduce((sum, d) => sum + d.thue, 0)
-  );
-  const totalTtNt = roundNum(
-    detailData.reduce((sum, d) => sum + d.tt_nt, 0)
-  );
-  const totalTt = roundNum(
-    detailData.reduce((sum, d) => sum + d.tt, 0)
-  );
-  const totalTienNt0 = roundNum(
-    detailData.reduce((sum, d) => sum + d.tien_nt0, 0)
-  );
-  const totalTien0 = roundNum(
-    detailData.reduce((sum, d) => sum + d.tien0, 0)
-  );
+  const totalQuantity = roundNum(detailData.reduce((sum, d) => sum + d.so_luong, 0), 3);
+  const totalTienNt = roundNum(detailData.reduce((sum, d) => sum + d.tien_nt, 0));
+  const totalTien = roundNum(detailData.reduce((sum, d) => sum + d.tien, 0));
+  const totalThueNt = roundNum(detailData.reduce((sum, d) => sum + d.thue_nt, 0));
+  const totalThue = roundNum(detailData.reduce((sum, d) => sum + d.thue, 0));
+  const totalTtNt = roundNum(detailData.reduce((sum, d) => sum + d.tt_nt, 0));
+  const totalTt = roundNum(detailData.reduce((sum, d) => sum + d.tt, 0));
+  const totalTienNt0 = roundNum(detailData.reduce((sum, d) => sum + d.tien_nt0, 0));
+  const totalTien0 = roundNum(detailData.reduce((sum, d) => sum + d.tien0, 0));
 
   // ===== MASTER71 - Bảng header =====
   const masterData = {
+    ...(isUpdate ? phieuData : {}),
     stt_rec: isUpdate ? (phieuData?.stt_rec || "") : "",
     ma_dvcs: phieuData?.ma_dvcs || userInfo.unitId || "TAPMED",
     ma_ct: "PNA",
-    loai_ct: phieuData?.loai_ct || "2 ",
-    so_lo: phieuData?.so_lo || "",
-    ngay_lo: toDateVal(phieuData?.ngay_lo) || null,
-    ma_nk: phieuData?.ma_nk || "",
     ma_gd: values.maGiaoDich || phieuData?.ma_gd || "2 ",
     ngay_lct: hachToanDate,
     ngay_ct: orderDate,
@@ -231,79 +149,67 @@ export const buildPhieuNhapHangPayload = (
     ong_ba: values.nguoiGiaoHang || phieuData?.ong_ba || "",
     ma_kh: values.maKhach || phieuData?.ma_kh || "",
     dien_giai: values.dienGiai || phieuData?.dien_giai || "",
-    ma_nx: phieuData?.ma_nx || "",
-    tk: phieuData?.tk || "331",
-    so_ct0: phieuData?.so_ct0 || "",
-    so_seri0: phieuData?.so_seri0 || "",
-    ngay_ct0: toDateVal(phieuData?.ngay_ct0) || null,
     t_so_luong: totalQuantity,
     t_tien_nt: totalTienNt,
     t_tien: totalTien,
     t_thue_nt: totalThueNt,
     t_thue: totalThue,
-    tk_thue_no: phieuData?.tk_thue_no || "",
-    so_hd_gtgt: phieuData?.so_hd_gtgt || 0,
     t_tt_nt: totalTtNt,
     t_tt: totalTt,
-    ma_kh2: phieuData?.ma_kh2 || "",
-    ma_tt: values.trangThai || phieuData?.ma_tt || "03",
     t_tien0: totalTien0,
     t_tien_nt0: totalTienNt0,
-    t_nk: roundNum(phieuData?.t_nk || 0),
-    t_nk_nt: roundNum(phieuData?.t_nk_nt || 0),
-    t_ttdb: roundNum(phieuData?.t_ttdb || 0),
-    t_ttdb_nt: roundNum(phieuData?.t_ttdb_nt || 0),
-    t_cp_bh: roundNum(phieuData?.t_cp_bh || 0),
-    t_cp_bh_nt: roundNum(phieuData?.t_cp_bh_nt || 0),
-    t_cp_vc: roundNum(phieuData?.t_cp_vc || 0),
-    t_cp_vc_nt: roundNum(phieuData?.t_cp_vc_nt || 0),
-    t_cp_khac: roundNum(phieuData?.t_cp_khac || 0),
-    t_cp_khac_nt: roundNum(phieuData?.t_cp_khac_nt || 0),
-    t_cp: roundNum(phieuData?.t_cp || 0),
-    t_cp_nt: roundNum(phieuData?.t_cp_nt || 0),
-    gia_thue_yn: phieuData?.gia_thue_yn || 0,
+    status: values.trangThai || phieuData?.status || "2",
+    datetime2: isUpdate ? phieuData?.datetime2 : new Date(),
+    user_id2: isUpdate ? phieuData?.user_id2 : userInfo.userId,
+    fcode2: values.soDonHang || phieuData?.fcode2 || "",
+    fdate1: toDateVal(values.ngayDonHang) || toDateVal(phieuData?.fdate1) || null,
     nam: new Date(orderDate).getFullYear(),
     ky: new Date(orderDate).getMonth() + 1,
-    xtag: phieuData?.xtag || " ",
-    status: values.trangThai || phieuData?.status || "2",
-    datetime0: isUpdate ? toDateVal(phieuData?.datetime0) : new Date(),
-    datetime2: new Date(),
-    user_id0: isUpdate ? (phieuData?.user_id0 || userInfo.userId) : userInfo.userId,
-    user_id2: userInfo.userId,
-    contract_id: phieuData?.contract_id || "",
-    bcontract_id: phieuData?.bcontract_id || "",
-    fee_id: phieuData?.fee_id || "",
-    so_dh: phieuData?.so_dh || "",
-    job_id: phieuData?.job_id || "",
-    prd_id: phieuData?.prd_id || "",
-    dept_id: phieuData?.dept_id || "",
-    mo_nbr: phieuData?.mo_nbr || "",
-    fcode1: phieuData?.fcode1 || "",
-    fcode2: values.soDonHang || phieuData?.fcode2 || "",
-    fcode3: phieuData?.fcode3 || "",
-    fdate1: toDateVal(values.ngayDonHang) || toDateVal(phieuData?.fdate1) || null,
-    fdate2: toDateVal(phieuData?.fdate2) || null,
-    fdate3: toDateVal(phieuData?.fdate3) || null,
-    fqty1: roundNum(phieuData?.fqty1 || 0, 4),
-    fqty2: roundNum(phieuData?.fqty2 || totalTtNt, 4),
-    fqty3: roundNum(phieuData?.fqty3 || 0, 4),
-    fnote1: phieuData?.fnote1 || "",
-    fnote2: phieuData?.fnote2 || " ",
-    fnote3: phieuData?.fnote3 || " ",
-    s1: phieuData?.s1 || "",
-    s2: phieuData?.s2 || "",
-    s3: phieuData?.s3 || "",
-    s4: roundNum(phieuData?.s4 || 0, 4),
-    s5: roundNum(phieuData?.s5 || 0, 4),
-    s6: roundNum(phieuData?.s6 || 0, 4),
-    s7: toDateVal(phieuData?.s7) || null,
-    s8: toDateVal(phieuData?.s8) || null,
-    s9: toDateVal(phieuData?.s9) || null,
   };
+
+  // Clean up display-only fields that cause "Invalid column name" errors
+  // Prefix-based cleanup (covers ten_kh, sua_tk_vt, nhieu_dvt, etc.)
+  const BAD_PREFIXES = ["ten_", "sua_", "nhieu_"];
+  
+  Object.keys(masterData).forEach(key => {
+    if (
+      BAD_PREFIXES.some(p => key.startsWith(p)) || 
+      key.endsWith("_name") || 
+      ["d71", "cookie", "statusname", "comment", "comment2", "comment3", "dia_chi", "dept_id", "ma_so_thue", "ma_kho"].includes(key)
+    ) {
+      delete masterData[key];
+    }
+  });
+
+  // Clean up detail data as well
+  const EXCLUDED_DETAIL_FIELDS = [
+    "key", "maHang", "soLuong", "soLuongDeNghi", "isNewlyAdded", "_lastUpdated",
+    "lo_yn", "vi_tri_yn", "gia_ton", "tao_lo", "ngay_hh", "fcode2", "fdate1"
+  ];
+
+  const cleanedDetailData = detailData.map(row => {
+    const cleanedRow = { ...row };
+    Object.keys(cleanedRow).forEach(key => {
+      if (
+        BAD_PREFIXES.some(p => key.startsWith(p)) || 
+        key.endsWith("_name") || 
+        EXCLUDED_DETAIL_FIELDS.includes(key)
+      ) {
+        delete cleanedRow[key];
+      }
+    });
+    return cleanedRow;
+  });
+
+  // Nếu là thêm mới, cần gán id và thời gian khởi tạo
+  if (!isUpdate) {
+    masterData.datetime0 = new Date();
+    masterData.user_id0 = userInfo.userId;
+  }
 
   return {
     master: masterData,
-    detail: detailData,
+    detail: cleanedDetailData,
   };
 };
 

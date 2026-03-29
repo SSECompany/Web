@@ -14,7 +14,7 @@ const masterDataCache = {
 
 const CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes - cache data trong 30 phút
 
-export const usePhieuXuatKhoData = () => {
+export const usePhieuNhapDieuChuyenData = () => {
   const [loading, setLoading] = useState(false);
   const [maGiaoDichList, setMaGiaoDichList] = useState([]);
   const [maKhoList, setMaKhoList] = useState([]);
@@ -37,9 +37,20 @@ export const usePhieuXuatKhoData = () => {
     }
 
     try {
-      const response = await https.get(
-        "v1/web/danh-sach-ma-gd",
-        { ma_ct: "PXB" },
+      const response = await https.post(
+        "User/AddData",
+        {
+          store: "api_list_ma_gd",
+          param: {
+            ma_ct: "PXB",
+            ma_gd: "",
+            ten_gd: "",
+            PageIndex: 1,
+            PageSize: 100,
+          },
+          data: {},
+          resultSetNames: ["data"],
+        },
         {
           headers: {
             "Content-Type": "application/json",
@@ -47,13 +58,17 @@ export const usePhieuXuatKhoData = () => {
           },
         }
       );
-      if (response.data && response.data.data) {
-        const data = response.data.data;
+
+      const listObject = response.data?.listObject || [];
+      const data = listObject[0] || [];
+      
+      if (data) {
         setMaGiaoDichList(data);
         masterDataCache.maGiaoDich = data;
         masterDataCache.lastFetch = Date.now();
       }
     } catch (error) {
+      console.error("Error fetching ma giao dich:", error);
       message.error("Không thể tải danh sách mã giao dịch");
     }
   }, [token]);
@@ -93,9 +108,20 @@ export const usePhieuXuatKhoData = () => {
 
       setLoadingMaKho(true);
       try {
-        const response = await https.get(
-          "v1/web/danh-sach-kho",
-          { keyword: keyword },
+        const response = await https.post(
+          "User/AddData",
+          {
+            store: "api_list_kho",
+            param: {
+              ma_kho: keyword || "",
+              ten_kho: "",
+              ma_dvcs: "TAPMED",
+              PageIndex: 1,
+              PageSize: 100,
+            },
+            data: {},
+            resultSetNames: ["data"],
+          },
           {
             headers: {
               "Content-Type": "application/json",
@@ -103,20 +129,25 @@ export const usePhieuXuatKhoData = () => {
             },
           }
         );
-        if (response.data && response.data.data) {
-          const options = response.data.data.map((item) => ({
-            value: item.ma_kho.trim(),
-            label: `${item.ma_kho.trim()} - ${item.ten_kho.trim()}`,
+
+        const listObject = response.data?.listObject || [];
+        const data = listObject[0] || [];
+
+        if (Array.isArray(data)) {
+          const options = data.map((item) => ({
+            value: (item.ma_kho || "").trim(),
+            label: `${(item.ma_kho || "").trim()} - ${(item.ten_kho || "").trim()}`,
+            ...item
           }));
           setMaKhoList(options);
 
-          // Cache only if no search keyword
           if (!keyword) {
             masterDataCache.maKho = options;
             masterDataCache.lastFetch = Date.now();
           }
         }
       } catch (error) {
+        console.error("Error fetching ma kho:", error);
         message.error("Không thể tải danh sách kho");
       } finally {
         setLoadingMaKho(false);
@@ -149,15 +180,29 @@ export const usePhieuXuatKhoData = () => {
           ? JSON.parse(unitsResponseStr)
           : {};
         const unitCode = user.unitCode || unitsResponse.unitCode || "01";
-        // Gọi dynamic API
-        const res = await fetchVatTuListDynamicApi({
-          keyword,
-          unitCode,
-          pageIndex: page,
-          pageSize: 200,
+        const payload = {
+          store: "api_getListItem",
+          data: {},
+          param: {
+            Currency: "VND",
+            searchValue: keyword || "",
+            unitId: unitCode || "TAPMED ",
+            userId: user.id || 0,
+            pageindex: page,
+            pagesize: 200,
+          },
+          resultSetNames: ["data"]
+        };
+        const token = localStorage.getItem("access_token");
+        const res = await https.post("User/AddData", payload, {
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
         });
-        if (res.success && res.data) {
-          const options = res.data.map((item) => ({
+
+        const listObject = res.data?.listObject || [];
+        const data = listObject[0] || [];
+
+        if (Array.isArray(data)) {
+          const options = data.map((item) => ({
             label: `${item.ma_vt} - ${item.ten_vt}`,
             value: item.ma_vt,
             ...item,
@@ -167,7 +212,7 @@ export const usePhieuXuatKhoData = () => {
             masterDataCache.vatTu = options;
             masterDataCache.lastFetch = Date.now();
           }
-          if (callback) callback(res.pagination);
+          if (callback) callback({ totalPage: data[0]?.totalPage || 1 });
         } else {
           if (!append) setVatTuList([]);
           if (callback) callback({ totalPage: 1 });

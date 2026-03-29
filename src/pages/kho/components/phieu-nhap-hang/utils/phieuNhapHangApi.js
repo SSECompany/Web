@@ -361,20 +361,15 @@ export const fetchDonHangKeThuaDetail = async (stt_rec) => {
 };
 
 // API lấy danh sách kho: api_list_kho
-export const fetchMaKhoApi = async (keyword = "", pageIndex = 1, pageSize = 100) => {
+export const fetchMaKhoApi = async (keyword = "", pageIndex = 1, pageSize = 20) => {
   const token = localStorage.getItem("access_token");
-  const userStr = localStorage.getItem("user");
-  const unitsStr = localStorage.getItem("unitsResponse");
-  const user = userStr ? JSON.parse(userStr) : {};
-  const units = unitsStr ? JSON.parse(unitsStr) : {};
-  const ma_dvcs = user.unitId || units.unitId || "TAPMED";
 
   const body = {
     store: "api_list_kho",
     param: {
       ma_kho: "",
       ten_kho: keyword || "",
-      ma_dvcs: ma_dvcs,
+      ma_dvcs: "TAPMED",
       PageIndex: pageIndex,
       PageSize: pageSize,
     },
