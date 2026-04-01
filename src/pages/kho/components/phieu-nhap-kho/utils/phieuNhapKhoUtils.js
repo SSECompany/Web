@@ -1,5 +1,6 @@
 import { message } from "antd";
 import https from "../../../../../utils/https";
+import jwt from "../../../../../utils/jwt";
 
 export const getUserInfo = () => {
   try {
@@ -9,19 +10,22 @@ export const getUserInfo = () => {
     const user = userStr ? JSON.parse(userStr) : {};
     const unitsResponse = unitsResponseStr ? JSON.parse(unitsResponseStr) : {};
 
+    const claims = jwt.getClaims();
+    const userId = (claims && claims.Id) ? parseInt(claims.Id) : (user.id || user.userId || 1);
+
     return {
-      userId: user.userId || 4061,
-      userName: user.userName || "",
-      unitId: user.unitId || unitsResponse.unitId || "VIKOSAN",
-      unitName: user.unitName || unitsResponse.unitName || "VIKOSAN",
+      userId: userId,
+      userName: user.userName || claims?.Name || "",
+      unitId: user.unitCode || user.unitId || claims?.MA_DVCS || unitsResponse.unitId || "TAPMED",
+      unitName: user.unitName || claims?.DVCS || unitsResponse.unitName || "TAPMED",
     };
   } catch (error) {
     console.error("Error parsing localStorage:", error);
     return {
-      userId: 4061,
+      userId: 1,
       userName: "",
-      unitId: "VIKOSAN",
-      unitName: "VIKOSAN",
+      unitId: "TAPMED",
+      unitName: "TAPMED",
     };
   }
 };
@@ -252,36 +256,6 @@ export const buildPhieuNhapKhoPayload = (
   };
 };
 
-// Lấy thông tin phiếu nhập mặc định (số phiếu, ngày, mã GD, khách, diễn giải...)
-export const fetchVoucherInfo = async () => {
-  const token = localStorage.getItem("access_token");
-
-  try {
-    const response = await https.get(
-      "v1/web/thong-tin-phieu-nhap",
-      { voucherCode: "PND" },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (
-      response.data &&
-      response.data.data &&
-      response.data.data.length > 0
-    ) {
-      return response.data.data[0];
-    }
-
-    return null;
-  } catch (error) {
-    console.error("Error fetching voucher info (phieu nhap kho):", error);
-    return null;
-  }
-};
 
 export const submitPhieuNhapKhoDynamic = async (
   payload,

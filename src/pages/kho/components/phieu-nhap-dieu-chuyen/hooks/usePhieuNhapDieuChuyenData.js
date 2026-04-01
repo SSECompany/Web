@@ -2,6 +2,8 @@ import { message } from "antd";
 import { debounce } from "lodash";
 import { useCallback, useMemo, useState } from "react";
 import https from "../../../../../utils/https";
+import dayjs from "dayjs";
+import { fetchThongTinVatTu } from "../../../../kinh-doanh/components/phieu-kinh-doanh/phieuKinhDoanhApi";
 import { fetchVatTuListDynamicApi } from "../../phieu-nhat-hang/utils/phieuNhatHangUtils";
 
 const masterDataCache = {
@@ -229,30 +231,32 @@ export const usePhieuNhapDieuChuyenData = () => {
   );
 
   const fetchVatTuDetail = useCallback(
-    async (maVatTu) => {
+    async (maVatTu, maKho = "", maKh = "", ngayCt = dayjs().format("YYYY-MM-DD")) => {
       try {
-        const response = await https.post(
-          "v1/web/tim-kiem-vat-tu",
-          {
-            key_word: maVatTu,
-          },
-          {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          }
-        );
+        const userStr = localStorage.getItem("user");
+        const unitsResponseStr = localStorage.getItem("unitsResponse");
+        const user = userStr ? JSON.parse(userStr) : {};
+        const unitsResponse = unitsResponseStr ? JSON.parse(unitsResponseStr) : {};
+        const unitId = user.unitCode || unitsResponse.unitCode || "TAPMED";
+        const userId = user.id || 0;
 
-        if (response.data && response.data.data) {
-          return response.data.data;
-        }
-        return null;
+        const data = await fetchThongTinVatTu({
+          ma_vt: maVatTu,
+          ma_kho: maKho,
+          ma_kh: maKh,
+          ngay_ct: ngayCt,
+          ma_nt: "VND",
+          userId: userId,
+          UnitId: unitId,
+        });
+
+        return data; 
       } catch (error) {
         console.error("Error fetching vat tu detail:", error);
-        message.error("Không thể tải thông tin vật tư");
         return null;
       }
     },
-    [token]
+    []
   );
 
   const fetchDonViTinh = useCallback(
@@ -274,12 +278,6 @@ export const usePhieuNhapDieuChuyenData = () => {
           "v1/web/danh-sach-dv",
           {
             ma_vt: maHang,
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
           }
         );
 
@@ -296,7 +294,7 @@ export const usePhieuNhapDieuChuyenData = () => {
         return [];
       }
     },
-    [token]
+    []
   );
 
   const fetchMaKhoListDebounced = useMemo(

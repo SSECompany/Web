@@ -56,12 +56,18 @@ const Kho = () => {
       color: "linear-gradient(135deg, #eb2f96 0%, #f759ab 100%)",
       path: "/kho/nhap-dieu-chuyen",
     },
-   
+    {
+      title: "Phiếu xuất điều chuyển",
+      subtitle: "Quản lý xuất kho điều chuyển",
+      icon: <SendOutlined style={{ fontSize: "28px" }} rotate={180} />,
+      color: "linear-gradient(135deg, #722ed1 0%, #b37feb 100%)",
+      path: "/kho/xuat-dieu-chuyen",
+    },
     {
       title: "Phiếu yêu cầu kiểm kê",
       subtitle: "Quản lý yêu cầu kiểm kê",
       icon: <FileTextOutlined style={{ fontSize: "28px" }} />,
-      color: "linear-gradient(135deg, #722ed1 0%, #b37feb 100%)",
+      color: "linear-gradient(135deg, #13c2c2 0%, #36cfc9 100%)",
       path: "/kho/yeu-cau-kiem-ke",
     },
   ];

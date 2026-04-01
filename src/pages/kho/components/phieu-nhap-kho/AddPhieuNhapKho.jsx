@@ -90,22 +90,17 @@ const AddPhieuNhapKho = () => {
         fetchVatTuList(),
       ]);
 
-      const voucherData = await fetchVoucherInfo();
-      if (voucherData) {
-        const formData = {
-          soPhieu: voucherData.so_phieu_nhap,
-          ngay: voucherData.ngay_lap ? dayjs(voucherData.ngay_lap) : dayjs(),
-          maGiaoDich: voucherData.ma_giao_dich,
-          maCt: voucherData.ma_ct,
-          donViTienTe: voucherData.base_currency,
-          tyGia: 1,
-          trangThai: "3",
-          maKhach: voucherData.ma_khach || "",
-          dienGiai: voucherData.dien_giai || "",
-        };
-        form.setFieldsValue(formData);
-        message.success("Đã tải thông tin phiếu nhập thành công");
-      }
+      const formData = {
+        soPhieu: "",
+        ngay: dayjs(),
+        maGiaoDich: "1",
+        donViTienTe: "VND",
+        tyGia: 1,
+        trangThai: "0",
+        maKhach: "",
+        dienGiai: "",
+      };
+      form.setFieldsValue(formData);
     };
 
     initializeData();
@@ -150,7 +145,7 @@ const AddPhieuNhapKho = () => {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const values = await form.validateFields();
+      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
 
       const validation = validateDataSource(dataSource);
       if (!validation.isValid) {

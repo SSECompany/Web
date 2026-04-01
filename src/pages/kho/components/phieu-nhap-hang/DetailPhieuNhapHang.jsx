@@ -134,7 +134,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
               dienGiai: phieuInfo.dien_giai || "Nhập hàng theo đơn",
               tenKhach: phieuInfo.ten_kh || phieuInfo.ong_ba || "",
               nguoiGiaoHang: phieuInfo.ong_ba || "",
-              maGiaoDich: phieuInfo.ma_gd || "",
+              maGiaoDich: phieuInfo.ma_gd ? phieuInfo.ma_gd.trim() : "1",
               trangThai: statusValue,
               maNT: phieuInfo.ma_nt || "VND",
               tyGia: phieuInfo.ty_gia || 1,
@@ -460,7 +460,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const values = await form.validateFields();
+      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
 
       const validation = validateDataSource(dataSource);
       if (!validation.isValid) {
@@ -623,8 +623,10 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
   if (isEditMode || !stt_rec) {
     footerActions.push(
       { key: "save", label: "Lưu phiếu", icon: <SaveOutlined />, type: "primary", onClick: handleSubmit, loading: loading, className: "btn-save-fixed" },
-      { key: "kethua", label: "Kế thừa", icon: <LinkOutlined />, onClick: () => setKeThuaModalOpen(true), disabled: !maKhach, className: "btn-print-fixed" },
     );
+    if (!stt_rec) {
+      footerActions.push({ key: "kethua", label: "Kế thừa", icon: <LinkOutlined />, onClick: () => setKeThuaModalOpen(true), disabled: !maKhach, className: "btn-print-fixed" });
+    }
     if (stt_rec) {
       footerActions.push({ key: "delete", label: "Xoá phiếu", icon: <DeleteOutlined />, danger: true, onClick: handleDelete, className: "btn-delete-fixed" });
     }
@@ -642,6 +644,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
         statusValue={form.getFieldValue('trangThai') || "0"}
         statusOptions={TRANG_THAI_OPTIONS}
         showStatusSelect={true}
+        statusDisabled={!isEditMode && !!stt_rec}
         headerRightSpan={
           !isEditMode && stt_rec ? (
             <Button type="text" icon={<EditOutlined />} onClick={handleEdit} className="phieu-edit-button-kd" title="Chỉnh sửa" />
@@ -684,7 +687,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                   label: "Chi tiết",
                   children: (
                     <div style={{ minHeight: 120 }}>
-                      {isEditMode && (
+                      {isEditMode && !stt_rec && (
                           <div className="detail-phieu-nhap-hang__add-product-section">
                             <div className="section-title">Tìm quét vật tư nhập hàng</div>
                             <VatTuSelectFullPOS
@@ -711,7 +714,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
 
                       <VatTuNhapHangTable
                           dataSource={dataSource}
-                          isEditMode={isEditMode}
+                          isEditMode={isEditMode && !stt_rec}
                           handleQuantityChange={handleQuantityChange}
                           handleSelectChange={handleSelectChange}
                           handleDeleteItem={handleDeleteItem}

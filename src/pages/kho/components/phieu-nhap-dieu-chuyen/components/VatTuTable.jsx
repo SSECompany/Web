@@ -9,6 +9,7 @@ const VatTuNhapDieuChuyenTable = ({
   handleDvtChange,
   fetchDonViTinh,
   onDataSourceUpdate,
+  columnConfig,
 }) => {
   return (
     <VatTuTable
@@ -18,7 +19,7 @@ const VatTuNhapDieuChuyenTable = ({
       onDeleteItem={handleDeleteItem}
       onDvtChange={handleDvtChange}
       onDataSourceUpdate={onDataSourceUpdate}
-      columnConfig={phieuNhapDieuChuyenConfig}
+      columnConfig={columnConfig || phieuNhapDieuChuyenConfig}
       apiHandlers={{
         fetchDonViTinh,
       }}

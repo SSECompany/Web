@@ -335,7 +335,7 @@ const AddPhieuNhapHang = () => {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const values = await form.validateFields();
+      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
 
       const validation = validateDataSource(dataSource);
       if (!validation.isValid) {

@@ -110,6 +110,12 @@ export const phieuNhapDieuChuyenConfig = {
   consolidateProduct: true,
 };
 
+// Cấu hình cho phiếu xuất điều chuyển
+export const phieuXuatDieuChuyenConfig = {
+  ...phieuNhapDieuChuyenConfig,
+  showThaoTac: true,
+};
+
 // Cấu hình cho phiếu xuất kho bán hàng
 export const phieuXuatKhoBanHangConfig = {
   tenMatHangField: "ten_mat_hang",
@@ -135,6 +141,7 @@ export const getTableConfig = (type) => {
     "nhat-hang": phieuNhatHangConfig,
     "xuat-kho": phieuXuatKhoConfig,
     "nhap-dieu-chuyen": phieuNhapDieuChuyenConfig,
+    "xuat-dieu-chuyen": phieuXuatDieuChuyenConfig,
     "xuat-kho-ban-hang": phieuXuatKhoBanHangConfig,
   };
 

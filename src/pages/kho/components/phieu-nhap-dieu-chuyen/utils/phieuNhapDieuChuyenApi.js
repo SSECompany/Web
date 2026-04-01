@@ -109,14 +109,25 @@ export const fetchPhieuNhapDieuChuyenDetail = async (stt_rec) => {
   }
 };
 
-// API để tạo mới phiếu nhập điều chuyển (Giữ nguyên hoặc cập nhật nếu có procedure mới)
-export const createPhieuNhapDieuChuyen = async (data) => {
+// API để tạo mới phiếu nhập điều chuyển (Sử dụng api_tao_phieu_nhap_dieu_chuyen)
+export const createPhieuNhapDieuChuyen = async (payload) => {
   const token = localStorage.getItem("access_token");
+  const userInfo = getUserInfo();
+
+  // Mapping data master từ buildPayload sang các tham số của procedure
+  const master = payload.data?.master85?.[0] || {};
 
   const body = {
-    store: "Api_create_phieu_xuat_dieu_chuyen_voucher",
-    param: {},
-    data: data,
+    store: "api_tao_phieu_nhap_dieu_chuyen",
+    param: {
+      stt_rec: "", // Tạo mới
+      ong_ba: master.ong_ba || "",
+      ma_gd: master.ma_gd || "2",
+      dien_giai: master.dien_giai || "",
+      status: master.status || "1",
+      UserId: userInfo.userId || 1,
+    },
+    data: payload.data, // detail85 (và master85 dự phòng)
   };
 
   try {
@@ -151,20 +162,19 @@ export const updatePhieuNhapDieuChuyen = async (data, phieuData = {}) => {
   const userInfo = getUserInfo();
 
   // Mapping data master từ buildPayload sang các tham số của procedure
-  const master = data.master?.[0] || {};
+  const master = data.master85?.[0] || {};
   
   const body = {
     store: "api_sua_phieu_nhap_dieu_chuyen",
     param: {
-      stt_rec: master.stt_rec || "",
-      ong_ba: master.ong_ba || "",
-      ma_gd: master.ma_gd || "2",
-      dien_giai: master.dien_giai || "",
-      status: master.status || "1",
-      UserId: userInfo.userId || 1,
-      cookie: master.datetime2 || phieuData.datetime2 || "", // datetime2 của bản ghi cũ
+      UnitId: master.ma_dvcs || "TAPMED",
+      StoreID: "",
+      userId: userInfo.userId || 1,
     },
-    data: {}, // Procedure này có vẻ chỉ cập nhật master fields
+    data: {
+      master85: [master],
+      detail85: [], // Chỉ sửa master theo yêu cầu
+    },
   };
 
   try {
@@ -198,7 +208,7 @@ export const deletePhieuNhapDieuChuyen = async (stt_rec) => {
   const token = localStorage.getItem("access_token");
 
   const body = {
-    store: "api_delete_xuat_dieu_chuyen_voucher",
+    store: "api_delete_nhap_dieu_chuyen_voucher",
     param: {
       stt_rec: stt_rec,
     },
@@ -236,7 +246,7 @@ export const deletePhieuNhapDieuChuyenDirect = async (stt_rec) => {
   const token = localStorage.getItem("access_token");
 
   const body = {
-    store: "api_delete_xuat_dieu_chuyen_voucher",
+    store: "api_delete_nhap_dieu_chuyen_voucher",
     param: {
       stt_rec: stt_rec,
     },

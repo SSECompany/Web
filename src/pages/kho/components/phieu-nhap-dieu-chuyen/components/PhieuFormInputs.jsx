@@ -27,6 +27,7 @@ const PhieuFormInputs = ({
   setVatTuList,
   currentKeyword,
   VatTuSelectComponent,
+  showVatTuSelect = true,
 }) => {
   const commonInputStyle = { width: "100%" };
 
@@ -141,7 +142,7 @@ const PhieuFormInputs = ({
         </Col>
       </Row>
 
-      {isEditMode && VatTuSelectComponent && (
+      {showVatTuSelect && VatTuSelectComponent && (
         <Row style={{ marginTop: 16 }}>
           <Col span={24}>
             <Form.Item label={<span style={{ fontWeight: 500, fontSize: '16px' }}>Chi tiết</span>}>

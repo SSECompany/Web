@@ -259,15 +259,15 @@ const ListPhieuNhapDieuChuyen = () => {
         filteredValue: (filters.so_ct || filters.dateRange) ? [1] : null,
       },
       {
-        title: "Kho Xuất -> Nhập",
+        title: "Kho Nhập -> Xuất",
         key: "kho_transfer",
         width: 180,
         align: "center",
         render: (_, record) => (
           <div>
-            <Tag color="cyan">{record.ma_khox?.trim()}</Tag>
-            <div style={{ fontSize: '12px', margin: '2px 0' }}>→</div>
             <Tag color="blue">{record.ma_kho?.trim()}</Tag>
+            <div style={{ fontSize: '12px', margin: '2px 0' }}>→</div>
+            <Tag color="cyan">{record.ma_khox?.trim()}</Tag>
           </div>
         )
       },
@@ -393,13 +393,6 @@ const ListPhieuNhapDieuChuyen = () => {
             >
               <EditOutlined />
             </button>
-            <button
-              className="phieu-action-btn phieu-action-btn--delete"
-              title="Xóa"
-              onClick={() => handleDelete(record.stt_rec)}
-            >
-              <DeleteOutlined />
-            </button>
           </div>
         ),
       },
@@ -414,7 +407,6 @@ const ListPhieuNhapDieuChuyen = () => {
       title="PHIẾU NHẬP ĐIỀU CHUYỂN"
       columns={getColumns()}
       data={allData}
-      onAdd={() => navigate("them-moi")}
       onBack={() => navigate("/kho")}
       onRefresh={handleRefresh}
       activeChips={activeChips}

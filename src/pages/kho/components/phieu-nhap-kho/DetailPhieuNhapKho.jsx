@@ -137,7 +137,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
               maKhach: phieuInfo.ma_kh || "",
               dienGiai: phieuInfo.dien_giai || "",
               tenKhach: phieuInfo.ong_ba || "",
-              maGiaoDich: phieuInfo.ma_gd || "",
+              maGiaoDich: phieuInfo.ma_gd ? phieuInfo.ma_gd.trim() : "1",
               trangThai: statusValue,
               donViTienTe: "VND",
               tyGia: 1,
@@ -260,7 +260,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const values = await form.validateFields();
+      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
 
       const validation = validateDataSource(dataSource);
       if (!validation.isValid) {
@@ -352,6 +352,7 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
         { value: "2", label: "2. Duyệt" },
       ]}
       showStatusSelect={true}
+      statusDisabled={!isEditMode && !!stt_rec}
       headerRightSpan={
         !isEditMode && stt_rec ? (
           <Button type="text" icon={<EditOutlined />} onClick={handleEdit} className="phieu-edit-button-kd" title="Chỉnh sửa" />

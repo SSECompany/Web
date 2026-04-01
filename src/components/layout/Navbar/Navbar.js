@@ -124,6 +124,8 @@ const Navbar = () => {
       // Các phiếu kho mới
       "kho/nhap-dieu-chuyen",
       "kho/nhap-dieu-chuyen/them-moi",
+      "kho/xuat-dieu-chuyen",
+      "kho/xuat-dieu-chuyen/them-moi",
       "kho/xuat-kho",
       "kho/xuat-kho/them-moi",
       "kho/yeu-cau-kiem-ke",
@@ -172,6 +174,8 @@ const Navbar = () => {
       currentPath.match(/^kho\/xuat-kho\/(chi-tiet|edit)\/[^/]+$/) ||
       // Phiếu nhập điều chuyển: cho phép chi tiết + edit
       currentPath.match(/^kho\/nhap-dieu-chuyen\/(chi-tiet|edit)\/[^/]+$/) ||
+      // Phiếu xuất điều chuyển: cho phép chi tiết + edit
+      currentPath.match(/^kho\/xuat-dieu-chuyen\/(chi-tiet|edit)\/[^/]+$/) ||
       // Phiếu yêu cầu kiểm kê: cho phép chi tiết + edit
       currentPath.match(/^kho\/yeu-cau-kiem-ke\/(chi-tiet|edit)\/[^/]+$/) ||
       // Phiếu kinh doanh: cho phép chi tiết + edit

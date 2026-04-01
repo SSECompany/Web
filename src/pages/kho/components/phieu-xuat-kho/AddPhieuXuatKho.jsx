@@ -61,39 +61,7 @@ const AddPhieuXuatKho = () => {
 
   const token = localStorage.getItem("access_token");
 
-  const fetchVoucherInfo = useCallback(async () => {
-    try {
-      const response = await https.get(
-        "v1/web/thong-tin-phieu-nhap",
-        { voucherCode: "PXA" },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
 
-      if (
-        response.data &&
-        response.data.data &&
-        response.data.data.length > 0
-      ) {
-        const voucherData = response.data.data[0];
-
-        form.setFieldsValue({
-          so_ct: voucherData.so_phieu_nhap,
-          ngay_ct: voucherData.ngay_lap ? dayjs(voucherData.ngay_lap) : dayjs(),
-          ma_gd: "2",
-          ma_kh: voucherData.ma_khach || "",
-          dien_giai: voucherData.dien_giai || "",
-          status: "3",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching voucher info:", error);
-    }
-  }, [form, token]);
 
   // LOCAL fetch vật tư giống PXĐC
   const fetchVatTuList = useCallback(
@@ -177,13 +145,16 @@ const AddPhieuXuatKho = () => {
     fetchMaKhachList();
     fetchMaKhoList();
     fetchVatTuList();
-    fetchVoucherInfo();
 
     form.setFieldsValue({
       ngay: dayjs(),
       trangThai: "0",
+      ma_gd: "1",
+      so_ct: "",
+      ma_kh: "",
+      dien_giai: "",
     });
-  }, [fetchMaGiaoDichList, fetchMaKhachList, fetchMaKhoList, fetchVatTuList, fetchVoucherInfo, form]);
+  }, [fetchMaGiaoDichList, fetchMaKhachList, fetchMaKhoList, fetchVatTuList, form]);
 
   useEffect(() => {
     if (barcodeJustEnabled && vatTuSelectRef.current) {
@@ -206,7 +177,7 @@ const AddPhieuXuatKho = () => {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const values = await form.validateFields();
+      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
 
       if (!validateDataSource(dataSource)) return;
 

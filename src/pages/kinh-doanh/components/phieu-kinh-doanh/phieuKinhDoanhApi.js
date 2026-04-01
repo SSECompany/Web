@@ -1,10 +1,30 @@
 import dayjs from "dayjs";
 import { multipleTablePutApi } from "../../../../api";
+import jwt from "../../../../utils/jwt";
 
 const roundNum = (val, dec = 2) => {
     if (val === undefined || val === null || val === "") return 0;
     const factor = Math.pow(10, dec);
     return Math.round(parseFloat(val) * factor) / factor;
+};
+
+const getCurrentUserId = () => {
+    try {
+        const claims = jwt.getClaims();
+        if (claims && claims.Id) {
+            return parseInt(claims.Id) || 1;
+        }
+        
+        // Fallback to legacy 'user' if it exists (for compatibility)
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+            const user = JSON.parse(userStr);
+            return user.id || user.userId || 1;
+        }
+    } catch (error) {
+        console.error("Error getting user ID:", error);
+    }
+    return 1;
 };
 
 export const fetchPhieuKinhDoanhList = async (params) => {
@@ -32,7 +52,7 @@ export const fetchPhieuKinhDoanhList = async (params) => {
             CKDateTo: params.CKDateTo || null,
             KDDateFrom: params.KDDateFrom || null,
             KDDateTo: params.KDDateTo || null,
-            UserId: params.UserId || 1,
+            UserId: params.UserId || getCurrentUserId(),
             PageIndex: params.PageIndex || 1,
             PageSize: params.PageSize || 20,
         },
@@ -97,7 +117,7 @@ export const fetchPhieuKinhDoanhDetail = async (stt_rec) => {
         store: "api_get_don_hang_ban",
         param: {
             stt_rec: stt_rec,
-            UserId: 1,
+            UserId: getCurrentUserId(),
         },
         data: {},
         resultSetNames: ["header", "chiPhi", "anhWeb", "statusList"],
@@ -131,12 +151,34 @@ export const fetchPhieuKinhDoanhDetail = async (stt_rec) => {
     }
 };
 
+export const fetchPhieuKinhDoanhPrintData = async (stt_rec) => {
+    const body = {
+        store: "api_get_print_data_don_hang",
+        param: {
+            stt_rec: stt_rec,
+            UserId: getCurrentUserId(),
+        },
+        data: {},
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        return {
+            success: true,
+            data: response?.listObject?.[0]?.[0] || null,
+        };
+    } catch (error) {
+        console.error("Lỗi khi gọi API api_get_print_data_don_hang:", error);
+        return { success: false, data: null };
+    }
+};
+
 export const fetchPhieuKinhDoanhChiTiet = async (stt_rec) => {
     const body = {
         store: "api_list_don_hang_ban_chi_tiet",
         param: {
             stt_rec,
-            UserId: 1,
+            UserId: getCurrentUserId(),
         },
         data: {},
         resultSetNames: ["data"],
@@ -178,7 +220,7 @@ export const fetchSplitPhieuKinhDoanhItems = async (stt_rec, pageIndex = 1, page
     }
 };
 
-export const splitPhieuKinhDoanh = async (stt_rec, ma_vt_list, userId = 1) => {
+export const splitPhieuKinhDoanh = async (stt_rec, ma_vt_list, userId = getCurrentUserId()) => {
     const body = {
         store: "api_split_don_hang_ban",
         param: {
@@ -201,7 +243,7 @@ export const splitPhieuKinhDoanh = async (stt_rec, ma_vt_list, userId = 1) => {
     }
 };
 
-export const mergePhieuKinhDoanh = async (stt_rec_list, userId = 1) => {
+export const mergePhieuKinhDoanh = async (stt_rec_list, userId = getCurrentUserId()) => {
     const body = {
         store: "api_merge_don_hang_ban",
         param: {
@@ -222,7 +264,7 @@ export const mergePhieuKinhDoanh = async (stt_rec_list, userId = 1) => {
         return { success: false, message: error.message };
     }
 };
-export const transferDonHangBan = async (stt_rec_list, userId = 1) => {
+export const transferDonHangBan = async (stt_rec_list, userId = getCurrentUserId()) => {
     const body = {
         store: "api_transfer_don_hang_ban",
         param: {
@@ -244,7 +286,7 @@ export const transferDonHangBan = async (stt_rec_list, userId = 1) => {
     }
 };
 
-export const cancelDonHangBan = async (stt_rec_list, userId = 1) => {
+export const cancelDonHangBan = async (stt_rec_list, userId = getCurrentUserId()) => {
     const body = {
         store: "api_cancel_don_hang_ban",
         param: {
@@ -266,7 +308,7 @@ export const cancelDonHangBan = async (stt_rec_list, userId = 1) => {
     }
 };
 
-export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED", storeId = "", userId = "3425") => {
+export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED", storeId = "", userId = getCurrentUserId()) => {
     // Map Master Data
     const masterData = {
         stt_rec: master.stt_rec || "",
@@ -276,7 +318,7 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         so_lo: master.so_lo || "",
         ngay_lo: master.ngay_lo || null,
         ma_nk: master.ma_nk || "",
-        ma_gd: String(master.hinh_thuc_tt || "1"),
+        ma_gd: String(master.hinh_thuc_tt || ""),
         ngay_lct: master.ngay_ct ? master.ngay_ct : new Date(),
         ngay_ct: master.ngay_ct ? master.ngay_ct : new Date(),
         so_ct: master.so_ct || "",
@@ -292,13 +334,13 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         t_tien: roundNum(master.t_tien || 0),
         t_thue_nt: roundNum(master.t_thue_nt || 0),
         t_thue: roundNum(master.t_thue || 0),
-        t_tt_nt: roundNum(master.tong_cong || 0),
-        t_tt: roundNum(master.tong_cong || 0),
+        t_tt_nt: roundNum(master.tong_cong || 0, 0),
+        t_tt: roundNum(master.tong_cong || 0, 0),
         ma_tt: master.ma_tt || "",
-        t_tien2: roundNum(master.t_tien2 || 0),
-        t_tien_nt2: roundNum(master.t_tien2 || 0),
-        t_ck: roundNum(master.t_ck || 0),
-        t_ck_nt: roundNum(master.t_ck || 0),
+        t_tien2: roundNum(master.t_tien2 || 0, 0),
+        t_tien_nt2: roundNum(master.t_tien2 || 0, 0),
+        t_ck: roundNum(master.t_ck || 0, 0),
+        t_ck_nt: roundNum(master.t_ck || 0, 0),
         t_cp: roundNum(master.tien_cp || 0),
         t_cp_nt: roundNum(master.tien_cp || 0),
         ma_nvbh: master.ma_nvbh || "",
@@ -332,7 +374,7 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         t_cp_khac: 0,
         t_cp_khac_nt: 0,
         ngay_hl: null,
-        ma_dc: "",
+        ma_dc: master.ma_dc || "",
         ma_htvc: "",
         so_hd0: master.so_hd0 || "",
         stt_rec_hd0: "",
@@ -418,15 +460,15 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         ma_kho: item.ma_kho || "",
         so_luong: roundNum(item.so_luong || 0),
         gia_nt2: roundNum(item.gia_nt2 || 0),
-        gia2: roundNum(item.gia_nt2 || 0),
-        tien_nt2: roundNum(item.tien_nt2 || 0),
-        tien2: roundNum(item.tien_nt2 || 0),
+        gia2: roundNum(item.gia_nt2 || 0, 0),
+        tien_nt2: roundNum(item.tien_nt2 || 0, 0),
+        tien2: roundNum(item.tien_nt2 || 0, 0),
         ma_thue: item.ma_thue || "",
-        thue_nt: roundNum(item.thue_nt || 0),
-        thue: roundNum(item.thue_nt || 0),
-        ck_nt: roundNum(item.ck_nt || 0),
-        ck: roundNum(item.ck_nt || 0),
-        ck_khac_nt: roundNum(item.ck_khac_nt || 0),
+        thue_nt: roundNum(item.thue_nt || 0, 0),
+        thue: roundNum(item.thue_nt || 0, 0),
+        ck_nt: roundNum(item.ck_nt || 0, 0),
+        ck: roundNum(item.ck_nt || 0, 0),
+        ck_khac_nt: roundNum(item.ck_khac_nt || 0, 0),
         ngay_giao: item.ngay_giao || null,
         km_yn: item.km_yn ? 1 : 0,
         line_nbr: index + 1,
@@ -551,7 +593,7 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
     }
 };
 
-export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED", storeId = "", userId = "3425") => {
+export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED", storeId = "", userId = getCurrentUserId()) => {
     // Map Master Data
     const masterData = {
         ...master,
@@ -559,7 +601,7 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         ma_dvcs: unitId,
         ma_ct: "DXA",
         loai_ct: String(master.loai_ct || "1"),
-        ma_gd: String(master.hinh_thuc_tt || master.ma_gd || "1"),
+        ma_gd: String(master.hinh_thuc_tt || master.ma_gd || ""),
         ngay_lct: master.ngay_ct ? (dayjs.isDayjs(master.ngay_ct) ? master.ngay_ct.toDate() : master.ngay_ct) : (master.ngay_lct || new Date()),
         ngay_ct: master.ngay_ct ? (dayjs.isDayjs(master.ngay_ct) ? master.ngay_ct.toDate() : master.ngay_ct) : (master.ngay_ct || new Date()),
         ty_gia: master.ty_gia || 1,
@@ -574,15 +616,15 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         t_tien: roundNum(master.t_tien || 0),
         t_thue_nt: roundNum(master.t_thue_nt || 0),
         t_thue: roundNum(master.t_thue || 0),
-        t_tt_nt: roundNum(master.tong_cong || master.t_tt_nt || 0),
-        t_tt: roundNum(master.tong_cong || master.t_tt || 0),
-        t_tien2: roundNum(master.t_tien2 || 0),
-        t_tien_nt2: roundNum(master.t_tien2 || 0),
-        t_ck: roundNum(master.t_ck || 0),
-        t_ck_nt: roundNum(master.t_ck || 0),
-        t_cp: roundNum(master.tien_cp || master.t_cp || 0),
-        t_cp_nt: roundNum(master.tien_cp || master.t_cp_nt || 0),
-        status: String(master.status || "0"),
+        t_tt_nt: roundNum(master.tong_cong || master.t_tt_nt || 0, 0),
+        t_tt: roundNum(master.tong_cong || master.t_tt || 0, 0),
+        t_tien2: roundNum(master.t_tien2 || 0, 0),
+        t_tien_nt2: roundNum(master.t_tien2 || 0, 0),
+        t_ck: roundNum(master.t_ck || 0, 0),
+        t_ck_nt: roundNum(master.t_ck || 0, 0),
+        t_cp: roundNum(master.tien_cp || master.t_cp || 0, 0),
+        t_cp_nt: roundNum(master.tien_cp || master.t_cp_nt || 0, 0),
+        status: String(master.status || "0").trim(),
         user_id2: userId,
         kh_chiu_cuoc: master.kh_chiu_cuoc ? 1 : 0,
         t_ck_tt: roundNum(master.t_ck_tt || 0),
@@ -688,14 +730,14 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         ma_kh: item.ma_kh || master.ma_kh || "",
         so_luong: roundNum(item.so_luong || 0),
         gia_nt2: roundNum(item.gia_nt2 || 0),
-        gia2: roundNum(item.gia_nt2 || 0),
-        tien_nt2: roundNum(item.tien_nt2 || 0),
-        tien2: roundNum(item.tien_nt2 || 0),
-        thue_nt: roundNum(item.thue_nt || 0),
-        thue: roundNum(item.thue_nt || 0),
-        ck_nt: roundNum(item.ck_nt || 0),
-        ck: roundNum(item.ck_nt || 0),
-        ck_khac_nt: roundNum(item.ck_khac_nt || 0),
+        gia2: roundNum(item.gia_nt2 || 0, 0),
+        tien_nt2: roundNum(item.tien_nt2 || 0, 0),
+        tien2: roundNum(item.tien_nt2 || 0, 0),
+        thue_nt: roundNum(item.thue_nt || 0, 0),
+        thue: roundNum(item.thue_nt || 0, 0),
+        ck_nt: roundNum(item.ck_nt || 0, 0),
+        ck: roundNum(item.ck_nt || 0, 0),
+        ck_khac_nt: roundNum(item.ck_khac_nt || 0, 0),
         ngay_giao: item.ngay_giao ? (dayjs.isDayjs(item.ngay_giao) ? item.ngay_giao.toDate() : item.ngay_giao) : (item.ngay_giao || null),
         km_yn: item.km_yn ? 1 : 0,
         line_nbr: index + 1,
@@ -825,7 +867,7 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
 
 // ===== HELPER APIs FOR SELECTION =====
 
-export const fetchKhachHangSelection = async (keyword = "", searchField = "ten_kh", pageIndex = 1, pageSize = 20, userId = 0) => {
+export const fetchKhachHangSelection = async (keyword = "", searchField = "ten_kh", pageIndex = 1, pageSize = 20, userId = getCurrentUserId()) => {
     const body = {
         store: "api_list_khach_hang",
         param: {
@@ -847,7 +889,7 @@ export const fetchKhachHangSelection = async (keyword = "", searchField = "ten_k
     }
 };
 
-export const fetchNhanVienKDSelection = async (keyword = "", pageIndex = 1, pageSize = 20, userId = 0) => {
+export const fetchNhanVienKDSelection = async (keyword = "", pageIndex = 1, pageSize = 20, userId = getCurrentUserId()) => {
     const body = {
         store: "api_list_nhan_vien_kinh_doanh",
         param: {
@@ -869,7 +911,7 @@ export const fetchNhanVienKDSelection = async (keyword = "", pageIndex = 1, page
     }
 };
 
-export const fetchVanChuyenSelection = async (keyword = "", pageIndex = 1, pageSize = 20, userId = 0) => {
+export const fetchVanChuyenSelection = async (keyword = "", pageIndex = 1, pageSize = 20, userId = getCurrentUserId()) => {
     const body = {
         store: "api_list_van_chuyen",
         param: {
@@ -891,7 +933,7 @@ export const fetchVanChuyenSelection = async (keyword = "", pageIndex = 1, pageS
     }
 };
 
-export const fetchThanhToanSelection = async (keyword = "", pageIndex = 1, pageSize = 20, userId = 0) => {
+export const fetchThanhToanSelection = async (keyword = "", pageIndex = 1, pageSize = 20, userId = getCurrentUserId()) => {
     const body = {
         store: "api_list_thanh_toan",
         param: {
@@ -913,7 +955,7 @@ export const fetchThanhToanSelection = async (keyword = "", pageIndex = 1, pageS
     }
 };
 
-export const fetchVatTuSelection = async (keyword = "", pageIndex = 1, pageSize = 20, userId = 0) => {
+export const fetchVatTuSelection = async (keyword = "", pageIndex = 1, pageSize = 20, userId = getCurrentUserId()) => {
     const body = {
         store: "api_list_vat_tu",
         param: {
@@ -1005,7 +1047,7 @@ export const fetchThongTinVatTu = async ({
     ma_kh = "",
     ngay_ct = dayjs().format("YYYY-MM-DD"),
     ma_nt = "VND",
-    userId = 0,
+    userId = getCurrentUserId(),
     UnitId = "TAPMED"
 }) => {
     const body = {

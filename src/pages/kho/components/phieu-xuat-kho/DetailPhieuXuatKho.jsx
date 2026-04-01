@@ -135,7 +135,7 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
             so_ct: result.master.so_ct?.trim() || "",
             ma_kh: result.master.ma_kh?.trim() || "",
             ten_kh: result.master.ten_kh?.trim() || "",
-            ma_gd: result.master.ma_gd?.trim() || "",
+            ma_gd: result.master.ma_gd ? result.master.ma_gd.trim() : "1",
             status: result.master.status || "",
           };
 
@@ -192,7 +192,7 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
   const handleSubmit = useCallback(async () => {
     try {
       setLoading(true);
-      const values = await form.validateFields();
+      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
 
       if (!validateDataSource(dataSource)) {
         setLoading(false);
@@ -369,7 +369,9 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
         { value: "1", label: "Chờ duyệt" },
         { value: "2", label: "Duyệt" },
       ]}
+      statusFieldName="status"
       showStatusSelect={true}
+      statusDisabled={!isEditMode && !!stt_rec}
       headerRightSpan={
         !isEditMode && stt_rec ? (
           <Button type="text" icon={<EditOutlined />} onClick={handleEdit} className="phieu-edit-button-kd" title="Chỉnh sửa" />

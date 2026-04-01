@@ -20,16 +20,7 @@ const PrintOrderTemplate = React.forwardRef(({ data, details, totals, bankInfo }
                 <div className="print-header-left">
                     <div className="print-header__logo">
                         <div className="logo-main">
-                            <div className="logo-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="9" y="4" width="6" height="16" rx="1" fill="#00a651"/>
-                                    <rect x="4" y="9" width="16" height="6" rx="1" fill="#00a651"/>
-                                </svg>
-                            </div>
-                            <div className="logo-text-group">
-                                <div className="logo-brand">SIDUOC.VN</div>
-                                <div className="logo-tagline">Giữ trọn niềm tin</div>
-                            </div>
+                            <img src="/logo-siduoc.png" alt="SIDUOC.VN" style={{ height: '40px' }} />
                         </div>
                     </div>
                     <div className="print-header__company">

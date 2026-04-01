@@ -105,11 +105,11 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
         } else {
             form.setFieldsValue({
                 ma_gd: "1",
-                hinh_thuc_tt: "1",
+                hinh_thuc_tt: undefined,
                 ty_gia: 1,
                 ngay_ct: dayjs(),
                 status: "0",
-                kh_chiu_cuoc: 0,
+                kh_chiu_cuoc: 1,
             });
         }
         loadBankInfo();
@@ -147,10 +147,11 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
                     form.setFieldsValue({
                         ...header,
                         status: header.status !== undefined && header.status !== null ? String(header.status).trim() : "0",
-                        hinh_thuc_tt: header.ma_gd ? String(header.ma_gd).trim() : "1",
+                        hinh_thuc_tt: undefined, // Để hiện placeholder
                         kh_chiu_cuoc: header.kh_chiu_cuoc ? 1 : 0,
                         ma_vc: header.ma_vc || "",
-                        dia_chi: header.dia_chi || "",
+                        ma_dc: header.ma_dc || "",
+                        dia_chi: header.ten_dc || header.dia_chi || "",
                         ngay_ct: header.ngay_ct ? dayjs(header.ngay_ct) : null,
                         ngay_ct0: header.ngay_ct0 ? dayjs(header.ngay_ct0) : null,
                         bat_dau_dh: header.bat_dau_dh ? dayjs(header.bat_dau_dh) : null,
@@ -206,7 +207,12 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
                     if (header.ma_nvbh) handleSearchNv("");
                     if (header.ma_tt) handleSearchTt("");
                     if (header.ma_vc) handleSearchVc("");
-                    if (header.ma_kh && header.dia_chi) handleSearchNoiGiao(header.dia_chi);
+                    if (header.ma_kh) {
+                        if (header.ma_dc) {
+                            setNoiGiaoSelectOptions([{ value: header.ma_dc, label: `${header.ma_dc} - ${header.ten_dc || header.dia_chi}`, ten_dc: header.ten_dc, ma_dc: header.ma_dc }]);
+                        }
+                        handleSearchNoiGiao("");
+                    }
                 }
             } else {
                 message.error("Không thể tải dữ liệu phiếu");
@@ -372,11 +378,11 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
                 ngay_ct: values.ngay_ct ? values.ngay_ct.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
                 ds_vt: regularLines.map(i => i.ma_vt).join(","),
                 ds_so_luong: regularLines.map(i => i.so_luong).join(","),
-                ds_gia: regularLines.map(i => i.gia_nt2 || 0).join(","),
-                ds_tien: regularLines.map(i => i.tien_nt2 || 0).join(","),
+                ds_gia: regularLines.map(i => Math.round(i.gia_nt2 || 0)).join(","),
+                ds_tien: regularLines.map(i => Math.round(i.tien_nt2 || 0)).join(","),
                 ds_ma_kho: regularLines.map(i => i.ma_kho || "KOL-T2").join(","),
                 ds_ma_lo: regularLines.map(i => i.ma_lo || "").join(","),
-                t_tien_hang: regularLines.reduce((sum, i) => sum + parseFloat(i.tien_nt2 || 0), 0),
+                t_tien_hang: regularLines.reduce((sum, i) => sum + Math.round(parseFloat(i.tien_nt2 || 0)), 0),
                 stt_rec: stt_rec || "",
                 kh_chiu_cuoc: values.kh_chiu_cuoc || "1",
                 UnitId: "TAPMED"
@@ -585,7 +591,7 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
         setNoiGiaoSearchLoading(true);
         try {
             const list = await fetchNoiGiaoSelection(maKh, val);
-            setNoiGiaoSelectOptions(list.map(i => ({ value: i.ten_dc, label: `${i.ma_dc} - ${i.ten_dc}`, ...i })));
+            setNoiGiaoSelectOptions(list.map(i => ({ value: i.ma_dc, label: `${i.ma_dc} - ${i.ten_dc}`, ...i })));
         } finally {
             setNoiGiaoSearchLoading(false);
         }
@@ -669,6 +675,7 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
                     tonl1: detail.tonl1 || 0,
                     tong_chuyen: detail.tong_chuyen || 0,
                     pvkd_yn: detail.pvkd_yn !== undefined ? detail.pvkd_yn : 1,
+                    out_pv_kd: detail.out_pv_kd !== undefined ? detail.out_pv_kd : 0,
                 };
                 
                 const ty_gia = currentFormValues.ty_gia || 1;
@@ -782,9 +789,10 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
         setIsEditMode(true);
     };
 
+
     const handleSubmit = async () => {
         try {
-            const values = await form.validateFields();
+            const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
             
             const validationErrors = validateKinhDoanh(values, chiTietData, chiPhiData);
             if (validationErrors.length > 0) {
@@ -912,6 +920,7 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
         setSelectedDetailRowKeys,
         handleDeleteSelected,
         handleDeleteRow,
-        handleDeleteChiPhi
+        handleDeleteChiPhi,
+        fetchNoiGiaoSelection
     };
 };

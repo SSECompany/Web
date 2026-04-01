@@ -9,6 +9,7 @@ import {
   fetchKhachHangSelection,
 } from "../../../../kinh-doanh/components/phieu-kinh-doanh/phieuKinhDoanhApi";
 import { fetchMaKhoApi } from "../utils/phieuNhapHangApi";
+import { getUserInfo } from "../utils/phieuNhapHangUtils";
 
 const masterDataCache = {
   maGiaoDich: null,
@@ -282,7 +283,7 @@ export const usePhieuNhapHangData = () => {
           ma_kh: maKh,
           ngay_ct: ngayCt,
           ma_nt: "VND",
-          userId: 0,
+          userId: getUserInfo()?.userId || 0,
           UnitId: "TAPMED",
         });
         return data;

@@ -276,24 +276,6 @@ const VatTuTable = ({
           value
         ),
     },
-    {
-      title: "Thao tác",
-      key: "action",
-      width: 80,
-      align: "center",
-      render: (_, record, index) => (
-        <Button
-          type="text"
-          danger
-          size="small"
-          className="vat-tu-delete-btn"
-          icon={<DeleteOutlined />}
-          onClick={() => handleDeleteItem(index, isEditMode)}
-          title="Xóa dòng"
-          disabled={!isEditMode}
-        />
-      ),
-    },
   ];
 
   const getScrollConfig = () => {

@@ -1,4 +1,5 @@
 import { lazy } from "react";
+import { lazyRetry } from "../utils/lazyRetry";
 import { Navigate } from "react-router-dom";
 import App from "../App";
 import ErrorPage from "../components/common/ErrorPage/ErrorPage";
@@ -15,53 +16,69 @@ import ListPhieuNhapHang from "../pages/kho/components/phieu-nhap-hang/ListPhieu
 import AddPhieuNhapHang from "../pages/kho/components/phieu-nhap-hang/AddPhieuNhapHang";
 import DetailPhieuNhapHang from "../pages/kho/components/phieu-nhap-hang/DetailPhieuNhapHang";
 // Pages
-const Login = lazy(() => import("../pages/Login/Login"));
+const Login = lazyRetry(() => import("../pages/Login/Login"));
 // ===== BÁN HÀNG & TRẢ HÀNG IMPORTS DISABLED IN BRANCH 08012026_kho =====
 // const POSPage = lazy(() => import("../pages/pharmacy/POS"));
 // const ReturnPOSPage = lazy(() => import("../pages/pharmacy/ReturnPOS"));
-const KhoPage = lazy(() => import("../pages/kho/Kho"));
-const KinhDoanhPage = lazy(() => import("../pages/kinh-doanh/KinhDoanh"));
-const ListPhieuKinhDoanh = lazy(() => import("../pages/kinh-doanh/components/phieu-kinh-doanh/ListPhieuKinhDoanh"));
-const DetailPhieuKinhDoanh = lazy(() => import("../pages/kinh-doanh/components/phieu-kinh-doanh/DetailPhieuKinhDoanh"));
-const BaoCaoPhieuBanLe = lazy(() => import("../pages/reports/BaoCaoPhieuBanLe"));
-const BaoCaoTonKho = lazy(() => import("../pages/reports/BaoCaoTonKho"));
-const TongHopNhapXuatTon = lazy(() => import("../pages/reports/TongHopNhapXuatTon"));
+const KhoPage = lazyRetry(() => import("../pages/kho/Kho"));
+const KinhDoanhPage = lazyRetry(() => import("../pages/kinh-doanh/KinhDoanh"));
+const ListPhieuKinhDoanh = lazyRetry(() => import("../pages/kinh-doanh/components/phieu-kinh-doanh/ListPhieuKinhDoanh"));
+const DetailPhieuKinhDoanh = lazyRetry(() => import("../pages/kinh-doanh/components/phieu-kinh-doanh/DetailPhieuKinhDoanh"));
+const BaoCaoPhieuBanLe = lazyRetry(() => import("../pages/reports/BaoCaoPhieuBanLe"));
+const BaoCaoTonKho = lazyRetry(() => import("../pages/reports/BaoCaoTonKho"));
+const TongHopNhapXuatTon = lazyRetry(() => import("../pages/reports/TongHopNhapXuatTon"));
 
-const ListPhieuXuatKho = lazy(() =>
+const ListPhieuXuatKho = lazyRetry(() =>
   import("../pages/kho/components/phieu-xuat-kho/ListPhieuXuatKho")
 );
-const AddPhieuXuatKho = lazy(() =>
+const AddPhieuXuatKho = lazyRetry(() =>
   import("../pages/kho/components/phieu-xuat-kho/AddPhieuXuatKho")
 );
-const DetailPhieuXuatKho = lazy(() =>
+const DetailPhieuXuatKho = lazyRetry(() =>
   import("../pages/kho/components/phieu-xuat-kho/DetailPhieuXuatKho")
 );
 
 
 
-const ListPhieuNhapDieuChuyen = lazy(() =>
+const ListPhieuNhapDieuChuyen = lazyRetry(() =>
   import(
     "../pages/kho/components/phieu-nhap-dieu-chuyen/ListPhieuNhapDieuChuyen"
   )
 );
-const AddPhieuNhapDieuChuyen = lazy(() =>
+const AddPhieuNhapDieuChuyen = lazyRetry(() =>
   import(
     "../pages/kho/components/phieu-nhap-dieu-chuyen/AddPhieuNhapDieuChuyen"
   )
 );
-const DetailPhieuNhapDieuChuyen = lazy(() =>
+const DetailPhieuNhapDieuChuyen = lazyRetry(() =>
   import(
     "../pages/kho/components/phieu-nhap-dieu-chuyen/DetailPhieuNhapDieuChuyen"
   )
 );
 
-const ListPhieuYeuCauKiemKe = lazy(() =>
+const ListPhieuXuatDieuChuyen = lazyRetry(() =>
+  import(
+    "../pages/kho/components/phieu-xuat-dieu-chuyen/ListPhieuXuatDieuChuyen"
+  )
+);
+const AddPhieuXuatDieuChuyen = lazyRetry(() =>
+  import(
+    "../pages/kho/components/phieu-xuat-dieu-chuyen/AddPhieuXuatDieuChuyen"
+  )
+);
+const DetailPhieuXuatDieuChuyen = lazyRetry(() =>
+  import(
+    "../pages/kho/components/phieu-xuat-dieu-chuyen/DetailPhieuXuatDieuChuyen"
+  )
+);
+
+const ListPhieuYeuCauKiemKe = lazyRetry(() =>
   import(
     "../pages/kho/components/phieu-yeu-cau-kiem-ke/ListPhieuYeuCauKiemKe"
   )
 );
 
-const DetailPhieuYeuCauKiemKe = lazy(() =>
+const DetailPhieuYeuCauKiemKe = lazyRetry(() =>
   import(
     "../pages/kho/components/phieu-yeu-cau-kiem-ke/DetailPhieuYeuCauKiemKe"
   )
@@ -224,6 +241,27 @@ const protectedChildrenRoutes = [
     element: <DetailPhieuNhapDieuChuyen isEditMode={true} />,
   },
 
+  {
+    label: "Phiếu xuất điều chuyển",
+    path: "kho/xuat-dieu-chuyen",
+    element: <ListPhieuXuatDieuChuyen />,
+  },
+  {
+    label: "Thêm phiếu xuất điều chuyển",
+    path: "kho/xuat-dieu-chuyen/them-moi",
+    element: <AddPhieuXuatDieuChuyen />,
+  },
+  {
+    label: "Chi tiết phiếu xuất điều chuyển",
+    path: "kho/xuat-dieu-chuyen/chi-tiet/:stt_rec",
+    element: <DetailPhieuXuatDieuChuyen />,
+  },
+  {
+    label: "Chỉnh sửa phiếu xuất điều chuyển",
+    path: "kho/xuat-dieu-chuyen/edit/:stt_rec",
+    element: <DetailPhieuXuatDieuChuyen isEditMode={true} />,
+  },
+
 
   {
     label: "Phiếu yêu cầu kiểm kê",
@@ -290,6 +328,7 @@ const homeRoutes = [
   {
     path: "/",
     element: <App />,
+    errorElement: <ErrorPage />,
     children: mainRoutes,
   },
 ];

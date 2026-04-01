@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { message } from "antd";
 import { multipleTablePutApi } from "../../../../../api";
+import jwt from "../../../../../utils/jwt";
 
 export const getUserInfo = () => {
   try {
@@ -10,16 +11,19 @@ export const getUserInfo = () => {
     const user = userStr ? JSON.parse(userStr) : {};
     const unitsResponse = unitsResponseStr ? JSON.parse(unitsResponseStr) : {};
 
+    const claims = jwt.getClaims();
+    const userId = (claims && claims.Id) ? parseInt(claims.Id) : (user.id || user.userId || 1);
+
     return {
-      userId: user.userId || 4061,
-      userName: user.userName || "",
-      unitId: user.unitId || unitsResponse.unitId || "TAPMED",
-      unitName: user.unitName || unitsResponse.unitName || "TAPMED",
+      userId: userId,
+      userName: user.userName || claims?.Name || "",
+      unitId: user.unitCode || user.unitId || claims?.MA_DVCS || unitsResponse.unitId || "TAPMED",
+      unitName: user.unitName || claims?.DVCS || unitsResponse.unitName || "TAPMED",
     };
   } catch (error) {
     console.error("Error parsing localStorage:", error);
     return {
-      userId: 4061,
+      userId: 1,
       userName: "",
       unitId: "TAPMED",
       unitName: "TAPMED",
@@ -158,7 +162,7 @@ export const buildPhieuNhapHangPayload = (
     t_tt: totalTt,
     t_tien0: totalTien0,
     t_tien_nt0: totalTienNt0,
-    status: values.trangThai || phieuData?.status || "2",
+    status: String(values.trangThai || values.status || phieuData?.status || "2").trim(),
     datetime2: isUpdate ? phieuData?.datetime2 : new Date(),
     user_id2: isUpdate ? phieuData?.user_id2 : userInfo.userId,
     fcode2: values.soDonHang || phieuData?.fcode2 || "",
@@ -323,6 +327,7 @@ export const deletePhieuNhapHangDynamic = async (stt_rec) => {
 };
 
 export const fetchVatTuListDynamicApi = async (params) => {
+  const userInfo = getUserInfo();
   const token = localStorage.getItem("access_token");
   const https = (await import("../../../../../utils/https")).default;
 
@@ -334,7 +339,7 @@ export const fetchVatTuListDynamicApi = async (params) => {
       PageSize: params.pageSize || 100,
       ma_vt: "",
       ten_vt: params.keyword || "",
-      userId: 0, // Default to 0 as in KD module
+      userId: userInfo.userId, // use dynamic userId
     },
     data: {},
     resultSetNames: ["data"], // api_list_vat_tu usually returns only data table

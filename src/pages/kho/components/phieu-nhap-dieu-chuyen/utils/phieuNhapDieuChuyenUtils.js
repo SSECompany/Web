@@ -41,280 +41,128 @@ export const buildPayload = (
   phieuData = null,
   isUpdate = false
 ) => {
-  const userInfo = getUserInfo();
+  const userStr = localStorage.getItem("user");
+  const unitsResponseStr = localStorage.getItem("unitsResponse");
+  const user = userStr ? JSON.parse(userStr) : {};
+  const unitsResponse = unitsResponseStr ? JSON.parse(unitsResponseStr) : {};
+  
+  const unitId = user.unitCode || unitsResponse.unitCode || "TAPMED";
+  const userId = String(user.id || "1");
 
-  if (!userInfo) {
-    message.error("Không thể lấy thông tin người dùng");
-    return null;
-  }
-
-  // Format ngày theo yyyy-MM-dd
   const formatDate = (date) => {
     if (!date) return "";
-    if (typeof date === "string" && date.length === 10 && date.includes("-"))
-      return date;
     return dayjs(date).format("YYYY-MM-DD");
   };
 
-  const orderDate = formatDate(values.ngay_ct || values.ngay);
-  // Chỉ giữ lại những trường thực sự có trong data từ API response
-  // Không gắn mặc định bất kỳ trường nào
+  const ngay_ct = formatDate(values.ngay_ct || values.ngay);
 
-  // MASTER - Chỉ override vài trường theo UI, giữ nguyên tất cả trường từ API
+  // MASTER - 13 fields exactly as requested
   const master = {
-    // Giữ nguyên tất cả trường từ API response (khi update)
-    ...phieuData,
-
-    // Chỉ override các trường cần thiết từ form
-    ma_gd: values.ma_gd || values.maGiaoDich || "2",
-    ngay_ct: orderDate,
-    so_ct: values.so_ct || values.soPhieu || "",
-    ma_kho: values.ma_kho || values.maKhoXuat || "",
-    ma_khon: values.ma_khon || values.maKhoNhap || "",
-    status: values.status || values.trangThai || "1",
+    ma_gd: String(values.ma_gd || values.maGiaoDich || "3").trim(),
+    ngay_ct: ngay_ct,
+    so_ct: (values.so_ct || values.soPhieu || "").trim(),
+    ma_kho: (values.ma_kho || values.maKhoNhap || "").trim(),
+    ma_khon: (values.ma_khon || values.maKhoXuat || "").trim(),
+    status: String(values.status || values.trangThai || "3").trim(),
+    stt_rec: (phieuData?.stt_rec || "").trim(),
+    ma_dvcs: unitId,
+    ma_ct: "PXB",
+    loai_ct: "2",
+    so_lo: (values.so_lo || "").trim(),
+    ngay_lo: values.ngay_lo ? formatDate(values.ngay_lo) : "",
+    ma_nk: (values.ma_nk || "").trim(),
   };
 
-  // Đảm bảo các trường bắt buộc có mặt khi thêm mới
-  if (!isUpdate) {
-    // Các trường bắt buộc cho phiếu nhập điều chuyển
-    if (!master.stt_rec) {
-      master.stt_rec = ""; // Sẽ được tạo tự động bởi server
-    }
-    if (!master.ma_dvcs) {
-      master.ma_dvcs = userInfo.ma_dvcs || "";
-    }
-    if (!master.ma_ct) {
-      master.ma_ct = "PXB";
-    }
-    if (!master.loai_ct) {
-      master.loai_ct = "2";
-    }
-    if (!master.so_lo) {
-      master.so_lo = "";
-    }
-    if (!master.ngay_lo) {
-      master.ngay_lo = null;
-    }
-    if (!master.ma_nk) {
-      master.ma_nk = "";
-    }
-  }
-
-  // Clean up UI-only fields từ master trước khi gửi API
-  const uiOnlyMasterFields = [
-    "ngay",
-    "soPhieu",
-    "maKhoXuat",
-    "maKhoNhap",
-    "trangThai",
-    "maGiaoDich",
-  ];
-
-  uiOnlyMasterFields.forEach((field) => {
-    if (field in master) {
-      delete master[field];
-    }
-  });
-
-  // Xử lý tự động các loại trường master - chỉ xử lý những trường thực sự có
-  Object.keys(master).forEach((key) => {
-    const value = master[key];
-
-    // Các trường số - parse float (chỉ nếu có giá trị và là số)
-    if (
-      typeof value === "number" ||
-      (!isNaN(parseFloat(value)) && value !== null && value !== undefined)
-    ) {
-      master[key] = parseFloat(value || 0);
-    }
-
-    // Các trường string - đảm bảo không null/undefined (chỉ nếu có giá trị)
-    if (typeof value === "string") {
-      master[key] = value.trim();
-    } else if (value === null || value === undefined) {
-      // Chỉ set empty string cho những trường string đã được định nghĩa
-      if (
-        [
-          "stt_rec",
-          "ma_dvcs",
-          "ma_ct",
-          "loai_ct",
-          "so_lo",
-          "ngay_lo",
-          "ma_nk",
-          "ma_gd",
-          "ngay_lct",
-          "ngay_ct",
-          "so_ct",
-          "ma_nt",
-          "ong_ba",
-          "ma_kh",
-          "dien_giai",
-          "status",
-          "datetime0",
-          "datetime2",
-          "user_id0",
-          "user_id2",
-        ].includes(key)
-      ) {
-        master[key] = "";
-      }
-    }
-  });
-
-  // DETAIL - DYNAMIC: Tự động lấy TẤT CẢ trường từ API response
+  // DETAIL - 72 fields exactly as requested
   const detail = dataSource.map((item, index) => {
-    const dynamicItem = { ...item }; // Giữ nguyên tất cả trường từ API
-
-    // Chỉ override các trường cần thiết từ form
-    dynamicItem.ngay_ct = orderDate;
-    dynamicItem.so_ct = values.so_ct || values.soPhieu || "";
-
-    // Mapping từ UI fields sang API fields
-    if (item.maHang) dynamicItem.ma_vt = item.maHang.trim();
-    if (item.soLuongDeNghi !== undefined)
-      dynamicItem.so_luong = parseFloat(item.soLuongDeNghi || 0);
-    if (item.sl_td3 !== undefined)
-      dynamicItem.sl_td3 = parseFloat(item.sl_td3 || 0);
-
-    // Đảm bảo các trường bắt buộc có mặt (chỉ nếu không có trong API response)
-    if (!dynamicItem.stt_rec && phieuData?.stt_rec) {
-      dynamicItem.stt_rec = phieuData.stt_rec;
-    }
-    if (!dynamicItem.stt_rec0) {
-      dynamicItem.stt_rec0 = String(index + 1).padStart(3, "0");
-    }
-    if (!dynamicItem.ma_ct) {
-      dynamicItem.ma_ct = "PXB";
-    }
-    if (!dynamicItem.gia_nt) {
-      dynamicItem.gia_nt = 0;
-    }
-    if (!dynamicItem.gia) {
-      dynamicItem.gia = 0;
-    }
-    if (!dynamicItem.tien_nt) {
-      dynamicItem.tien_nt = 0;
-    }
-    if (!dynamicItem.tien) {
-      dynamicItem.tien = 0;
-    }
-
-    // Đảm bảo các trường bắt buộc khác khi thêm mới
-    if (!isUpdate) {
-      if (!dynamicItem.ngay_ct) {
-        dynamicItem.ngay_ct = orderDate;
-      }
-      if (!dynamicItem.so_ct) {
-        dynamicItem.so_ct = values.so_ct || values.soPhieu || "";
-      }
-      if (!dynamicItem.ma_dvcs) {
-        dynamicItem.ma_dvcs = userInfo.ma_dvcs || "";
-      }
-      if (!dynamicItem.loai_ct) {
-        dynamicItem.loai_ct = "2";
-      }
-    }
-
-    // Chỉ xử lý line_nbr nếu có trong data
-    if (item.line_nbr !== undefined) {
-      dynamicItem.line_nbr = parseFloat(item.line_nbr);
-    }
-
-    // Không gắn mặc định bất kỳ trường nào - chỉ giữ trường thực sự có trong data
-
-    // Xử lý tự động các loại trường - chỉ xử lý những trường thực sự có
-    Object.keys(dynamicItem).forEach((key) => {
-      const value = dynamicItem[key];
-
-      // Các trường số - parse float (chỉ nếu có giá trị và là số)
-      if (
-        typeof value === "number" ||
-        (!isNaN(parseFloat(value)) && value !== null && value !== undefined)
-      ) {
-        dynamicItem[key] = parseFloat(value || 0);
-      }
-
-      // Các trường boolean - handle boolean và number (chỉ nếu có giá trị)
-      if (typeof value === "boolean" && value !== undefined) {
-        dynamicItem[key] = value ? 1 : 0;
-      }
-
-      // Các trường string - đảm bảo không null/undefined (chỉ nếu có giá trị)
-      if (typeof value === "string") {
-        dynamicItem[key] = value.trim();
-      } else if (value === null || value === undefined) {
-        // Chỉ set empty string cho những trường string đã được định nghĩa
-        if (
-          [
-            "ma_vt",
-            "ma_sp",
-            "ma_bp",
-            "so_lsx",
-            "dvt",
-            "ma_kho",
-            "ma_vi_tri",
-            "ma_lo",
-            "ma_vv",
-            "ma_nx",
-            "tk_du",
-            "tk_vt",
-            "tk_gv",
-            "tk_dt",
-            "ma_thue",
-            "tk_thue",
-            "tk_ck",
-            "tk_cpbh",
-            "stt_rec_px",
-            "stt_rec0px",
-            "ma_kh2",
-            "ma_td1",
-            "dh_so",
-            "px_so",
-            "stt_rec_dh",
-            "stt_rec0dh",
-            "stt_rec0",
-          ].includes(key)
-        ) {
-          dynamicItem[key] = "";
-        }
-      }
-    });
-
-    // Clean up UI-only fields trước khi gửi API
-    const uiOnlyFields = [
-      "key",
-      "maHang",
-      "soLuong",
-      "ten_mat_hang",
-      "soLuongDeNghi",
-      "soLuong_goc",
-      "soLuongDeNghi_goc",
-      "he_so_goc",
-      "dvt_goc",
-      "donViTinhList",
-      "isNewlyAdded",
-      "_lastUpdated",
-    ];
-
-    uiOnlyFields.forEach((field) => {
-      if (field in dynamicItem) {
-        delete dynamicItem[field];
-      }
-    });
-
-    return dynamicItem;
+    return {
+      so_luong: parseFloat(item.so_luong || item.soLuongDeNghi || 0),
+      so_luong_goc: parseFloat(item.so_luong_goc || 0),
+      sl_td3: parseFloat(item.sl_td3 || 0),
+      sl_td3_goc: parseFloat(item.sl_td3_goc || 0),
+      he_so: parseFloat(item.he_so || 1),
+      dvt: (item.dvt || "").trim(),
+      tk_vt: (item.tk_vt || "156").trim(),
+      ma_kho: (item.ma_kho || "").trim(),
+      stt_rec: (phieuData?.stt_rec || "").trim(),
+      stt_rec0: String(index + 1).padStart(3, "0"),
+      ma_ct: "PXB",
+      ngay_ct: ngay_ct,
+      so_ct: (values.so_ct || values.soPhieu || "").trim(),
+      ma_vt: (item.ma_vt || item.maHang || "").trim(),
+      gia_nt2: parseFloat(item.gia_nt2 || 0),
+      gia2: parseFloat(item.gia2 || 0),
+      thue: parseFloat(item.thue || 0),
+      thue_nt: parseFloat(item.thue_nt || 0),
+      tien2: parseFloat(item.tien2 || 0),
+      tien_nt2: parseFloat(item.tien_nt2 || 0),
+      tl_ck: parseFloat(item.tl_ck || 0),
+      ck: parseFloat(item.ck || 0),
+      ck_nt: parseFloat(item.ck_nt || 0),
+      tl_ck_khac: parseFloat(item.tl_ck_khac || 0),
+      gia_ck: parseFloat(item.gia_ck || 0),
+      tien_ck_khac: parseFloat(item.tien_ck_khac || 0),
+      tk_gv: (item.tk_gv || "").trim(),
+      tk_dt: (item.tk_dt || "").trim(),
+      ma_thue: (item.ma_thue || "").trim(),
+      thue_suat: parseFloat(item.thue_suat || 0),
+      tk_thue: (item.tk_thue || "").trim(),
+      tk_ck: (item.tk_ck || "").trim(),
+      tk_cpbh: (item.tk_cpbh || "").trim(),
+      sl_td1: parseFloat(item.sl_td1 || 0),
+      sl_td2: parseFloat(item.sl_td2 || 0),
+      sl_dh: parseFloat(item.sl_dh || 0),
+      sl_giao: parseFloat(item.sl_giao || 0),
+      dh_ln: parseFloat(item.dh_ln || 0),
+      px_ln: parseFloat(item.px_ln || 0),
+      stt_rec_dh: (item.stt_rec_dh || "").trim(),
+      stt_rec0dh: (item.stt_rec0dh || "").trim(),
+      stt_rec_px: (item.stt_rec_px || "").trim(),
+      stt_rec0px: (item.stt_rec0px || "").trim(),
+      dh_so: (item.dh_so || "").trim(),
+      px_so: (item.px_so || "").trim(),
+      taoma_yn: item.taoma_yn ? 1 : 0,
+      km_yn: item.km_yn ? 1 : 0,
+      px_gia_dd: item.px_gia_dd ? 1 : 0,
+      ma_sp: (item.ma_sp || "").trim(),
+      ma_bp: (item.ma_bp || "").trim(),
+      so_lsx: (item.so_lsx || "").trim(),
+      ma_vi_tri: (item.ma_vi_tri || "").trim(),
+      ma_lo: (item.ma_lo || "").trim(),
+      ma_vv: (item.ma_vv || "").trim(),
+      ma_nx: (item.ma_nx || "").trim(),
+      tk_du: (item.tk_du || "").trim(),
+      ten_vt: (item.ten_vt || item.ma_vt || item.maHang || "").trim(),
+      gia_nt: parseFloat(item.gia_nt || 0),
+      gia: parseFloat(item.gia || 0),
+      tien_nt: parseFloat(item.tien_nt || 0),
+      tien: parseFloat(item.tien || 0),
+      line_nbr: parseFloat(item.line_nbr || index + 1),
+      ma_kh2: (item.ma_kh2 || "").trim(),
+      ma_td1: (item.ma_td1 || "").trim(),
+      datetime0: "",
+      datetime2: "",
+      user_id0: "",
+      user_id2: "",
+      nam: parseInt(dayjs(ngay_ct).format("YYYY")) || 0,
+      ky: parseInt(dayjs(ngay_ct).format("MM")) || 0,
+      ma_dvcs: unitId,
+      loai_ct: "2",
+    };
   });
 
-  // FINAL PAYLOAD
   return {
     store: isUpdate
-      ? "Api_update_phieu_xuat_dieu_chuyen_voucher"
-      : "Api_create_phieu_xuat_dieu_chuyen_voucher",
-    param: {},
+      ? "api_sua_phieu_nhap_dieu_chuyen" // Đã standardize lại tên store cho chuẩn bộ API mới
+      : "api_tao_phieu_nhap_dieu_chuyen",
+    param: {
+      UnitId: unitId,
+      StoreID: "",
+      userId: userId,
+    },
     data: {
-      master: [master],
-      detail: detail,
+      master85: [master],
+      detail85: detail,
     },
   };
 };
@@ -353,7 +201,7 @@ export const deletePhieu = async (stt_rec) => {
 
   try {
     const response = await https.post(
-      "v1/web/xoa-ct-xuat-dieu-chuyen",
+      "v1/web/xoa-ct-nhap-dieu-chuyen",
       {},
       {
         headers: {

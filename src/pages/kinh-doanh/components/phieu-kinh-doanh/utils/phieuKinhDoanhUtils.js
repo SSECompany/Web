@@ -40,7 +40,7 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
 
     switch (field) {
         case 'so_luong':
-            updatedRow.tien_nt2 = so_luong * gia_nt2;
+            updatedRow.tien_nt2 = Math.round(so_luong * gia_nt2);
             updatedRow.tien2_tg = updatedRow.tien_nt2 * ty_gia;
             updatedRow.tien2 = updatedRow.tien2_tg; // tien2 is derived heavily from tien2_tg usually
             updatedRow.s4 = gia_ban_nt * so_luong * tl_ck / 100;
@@ -55,7 +55,7 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.gia_ban = gia_ban_nt * ty_gia;
             updatedRow.gia_nt2_from_tax = gia_ban_nt / (1 + thue_suat / 100);
             updatedRow.gia2_from_tax = gia_nt2 * ty_gia;
-            updatedRow.tien_nt2 = so_luong * gia_nt2;
+            updatedRow.tien_nt2 = Math.round(so_luong * gia_nt2);
             updatedRow.tien2_tg = updatedRow.tien_nt2 * ty_gia;
             updatedRow.tien2 = updatedRow.tien2_tg;
             updatedRow.s4 = gia_ban_nt * so_luong * tl_ck / 100;
@@ -68,7 +68,7 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
 
         case 'gia_nt2':
             updatedRow.gia2 = gia_nt2 * ty_gia;
-            updatedRow.tien_nt2 = so_luong * gia_nt2;
+            updatedRow.tien_nt2 = Math.round(so_luong * gia_nt2);
             updatedRow.tien2_tg = updatedRow.tien_nt2 * ty_gia;
             updatedRow.tien2 = updatedRow.tien2_tg;
             updatedRow.s4 = gia_ban_nt * so_luong * tl_ck / 100; // Not strictly dependent on gia_nt2 but in formulas
@@ -144,7 +144,7 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
         case 'ma_thue':
             updatedRow.gia_nt2_from_tax = gia_ban_nt / (1 + thue_suat / 100);
             updatedRow.gia2_from_tax = gia_nt2 * ty_gia;
-            updatedRow.tien_nt2 = so_luong * gia_nt2;
+            updatedRow.tien_nt2 = Math.round(so_luong * gia_nt2);
             updatedRow.tien2_sl = so_luong * gia2;
             updatedRow.tien2_tg = updatedRow.tien_nt2 * ty_gia;
             updatedRow.tien2 = updatedRow.tien2_tg; // Tie to tien2

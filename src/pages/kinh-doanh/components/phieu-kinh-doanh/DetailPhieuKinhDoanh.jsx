@@ -23,6 +23,8 @@ import DiscountModal from "./Detail/DiscountModal";
 import TotalsSection from "./Detail/TotalsSection";
 import { numFmt } from "./Detail/constants";
 import PrintOrderTemplate from "./Detail/PrintOrderPreview";
+import PrintLabelTemplate from "./Detail/PrintLabelTemplate";
+import { fetchPhieuKinhDoanhPrintData } from "./phieuKinhDoanhApi";
 import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate/index.jsx";
 import "../../../kho/components/common-phieu.css";
 import "./DetailPhieuKinhDoanh.css";
@@ -110,13 +112,60 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
         setSelectedDetailRowKeys,
         handleDeleteSelected,
         handleDeleteRow,
-        handleDeleteChiPhi
+        handleDeleteChiPhi,
+        fetchNoiGiaoSelection
     } = usePhieuKinhDoanh(initialEditMode);
 
+    const [labelPrintData, setLabelPrintData] = React.useState(null);
     const printRef = useRef();
+    const labelRef = useRef();
+
     const handlePrint = useReactToPrint({
         content: () => printRef.current,
     });
+
+    const handlePrintLabelInternal = useReactToPrint({
+        content: () => labelRef.current,
+    });
+
+    const handlePrintLabel = async () => {
+        if (!stt_rec) {
+            // If new record, use form data
+            setLabelPrintData({
+                ...form.getFieldsValue(),
+                ten_dvcs: "Công ty CP XNK DP TAPMED (DP HẢ THANH)",
+                dien_thoai_dvcs: "0963.74.4567",
+                dia_chi_dvcs: "Q441, TT Thuốc Hapulico, 85 Vũ Trọng Phụng, Thanh Xuân, Hà Nội"
+            });
+            setTimeout(() => {
+                handlePrintLabelInternal();
+            }, 500);
+            return;
+        }
+
+        try {
+            const res = await fetchPhieuKinhDoanhPrintData(stt_rec);
+            if (res.success && res.data) {
+                setLabelPrintData(res.data);
+                setTimeout(() => {
+                    handlePrintLabelInternal();
+                }, 500);
+            } else {
+                // Fallback to form data
+                setLabelPrintData({
+                    ...form.getFieldsValue(),
+                    ten_dvcs: "Công ty CP XNK DP TAPMED (DP HẢ THANH)",
+                    dien_thoai_dvcs: "0963.74.4567",
+                    dia_chi_dvcs: "Q441, TT Thuốc Hapulico, 85 Vũ Trọng Phụng, Thanh Xuân, Hà Nội"
+                });
+                setTimeout(() => {
+                    handlePrintLabelInternal();
+                }, 500);
+            }
+        } catch (error) {
+            console.error("Lỗi khi tải dữ liệu in bìa:", error);
+        }
+    };
 
     const chiPhiColumns = [
         { title: "Mã chi phí", dataIndex: "ma_cp", key: "ma_cp", width: 120, align: "center" },
@@ -246,7 +295,14 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                         )}
                                         <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
                                             <div style={{ marginBottom: 4 }}>
-                                                <Text strong style={{ fontSize: '13px', lineHeight: '1.4', whiteSpace: 'normal', wordBreak: 'break-word', display: 'block', color: 'red' }}>
+                                                <Text strong style={{ 
+                                                    fontSize: '13px', 
+                                                    lineHeight: '1.4', 
+                                                    whiteSpace: 'normal', 
+                                                    wordBreak: 'break-word', 
+                                                    display: 'block', 
+                                                    color: (record.out_pv_kd !== 99 && (record.pvkd_yn === 0 || record.out_pv_kd === 1)) ? 'red' : '#1e293b' 
+                                                }}>
                                                     {record.ten_vt}
                                                 </Text>
                                             </div>
@@ -359,8 +415,10 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                             if (flag < soluong) {
                                 classes.push('row-stock-warning');
                             }
-                            if (record.pvkd_yn === 0) {
+                            if (record.out_pv_kd !== 99 && (record.pvkd_yn === 0 || record.out_pv_kd === 1)) {
                                 classes.push('row-pvkd-red');
+                            } else if (record.out_pv_kd === 99) {
+                                classes.push('row-pvkd-black');
                             }
                             return classes.join(' ');
                         }}
@@ -520,10 +578,17 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
         },
         {
             key: 'print',
-            label: 'In',
+            label: 'In ĐH',
             icon: <PrinterOutlined />,
             onClick: handlePrint,
             className: "btn-print-fixed"
+        },
+        {
+            key: 'print-label',
+            label: 'In bìa',
+            icon: <PrinterOutlined />,
+            onClick: handlePrintLabel,
+            className: "btn-print-label-fixed"
         },
         {
             key: 'save',
@@ -537,10 +602,18 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
     ] : [
         {
             key: 'print-view',
-            label: 'In đơn hàng',
+            label: 'In ĐH',
             icon: <PrinterOutlined />,
             onClick: handlePrint,
             className: "btn-print-fixed",
+            style: { minWidth: 160 }
+        },
+        {
+            key: 'print-label-view',
+            label: 'In bìa',
+            icon: <PrinterOutlined />,
+            onClick: handlePrintLabel,
+            className: "btn-print-label-fixed",
             style: { minWidth: 160 }
         }
     ];
@@ -554,8 +627,12 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
             metaOrder={stt_rec ? `${watchSoCt || ''}${watchBContractId ? ` (${watchBContractId})` : ''}` : null}
             metaDate={watchNgayCt ? dayjs(watchNgayCt).format('DD-MM-YYYY') : '.........'}
             showStatusSelect={true}
+            statusDisabled={!isEditMode && !!stt_rec}
+            statusFieldName="status"
             statusValue={String(watchStatus || "").trim()}
-            statusOptions={statusList.map(s => ({ value: String(s.status).trim(), label: s.statusname }))}
+            statusOptions={statusList
+                .filter(s => ["0", "1", "2"].includes(String(s.status).trim()) || String(s.status).trim() === String(watchStatus || "").trim())
+                .map(s => ({ value: String(s.status).trim(), label: s.statusname }))}
             fixedFooterActions={fixedFooterActions}
             headerRightSpan={
                 stt_rec && !isEditMode && !['1', '2', '3', '4', '5', '6'].includes(String(watchStatusSoanHang || "").trim()) ? (
@@ -625,6 +702,21 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                                                     so_dien_thoai: opt.so_dien_thoai || opt.dien_thoai,
                                                                     sdt: opt.sdt || opt.dien_thoai,
                                                                     phone: opt.phone || opt.dien_thoai
+                                                                });
+                                                                // Auto fill address
+                                                                fetchNoiGiaoSelection(opt.ma_kh, "").then(addresses => {
+                                                                    if (addresses && addresses.length > 0) {
+                                                                        const addr = addresses[0];
+                                                                        form.setFieldsValue({
+                                                                            ma_dc: addr.ma_dc,
+                                                                            dia_chi: addr.ten_dc
+                                                                        });
+                                                                    } else {
+                                                                        form.setFieldsValue({
+                                                                            ma_dc: "",
+                                                                            dia_chi: opt.dia_chi || ""
+                                                                        });
+                                                                    }
                                                                 });
                                                             }
                                                         }}
@@ -723,8 +815,8 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                         </Row>
                                         <Row gutter={16}>
                                             <Col span={12}>
-                                                <Form.Item name="hinh_thuc_tt" label="Hình thức">
-                                                    <Select>
+                                                <Form.Item name="hinh_thuc_tt" label="Hình thức" rules={[{ required: true, message: 'Vui lòng chọn hình thức thanh toán' }]}>
+                                                    <Select placeholder="Chọn hình thức thanh toán" allowClear>
                                                         <Select.Option value="1">Chuyển khoản</Select.Option>
                                                         <Select.Option value="2">Tiền mặt</Select.Option>
                                                         <Select.Option value="3">COD</Select.Option>
@@ -752,10 +844,13 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                                         filterOption={false}
                                                         options={vcSelectOptions}
                                                         style={{ borderRadius: '6px' }}
+                                                        allowClear
                                                         onChange={(val) => {
                                                             const opt = vcSelectOptions.find(o => o.value === val);
                                                             if (opt) {
                                                                 form.setFieldsValue({ ten_vc: opt.ten_vc });
+                                                            } else {
+                                                                form.setFieldsValue({ ten_vc: "" });
                                                             }
                                                         }}
                                                     />
@@ -763,19 +858,14 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                             </Col>
                                         </Row>
                                         <Form.Item name="dia_chi" label="Nơi giao">
-                                            <Select
-                                                showSearch
-                                                placeholder="Chọn nơi giao"
-                                                loading={noiGiaoSearchLoading}
-                                                onSearch={handleSearchNoiGiao}
-                                                onFocus={() => !noiGiaoSelectOptions.length && handleSearchNoiGiao("")}
-                                                filterOption={false}
-                                                options={noiGiaoSelectOptions}
-                                                style={{ borderRadius: '6px' }}
-                                                allowClear
-                                                disabled={(!isEditMode && !!stt_rec) || !watchMaKh}
+                                            <Input.TextArea 
+                                                autoSize={{ minRows: 1, maxRows: 3 }} 
+                                                style={{ borderRadius: '6px' }} 
+                                                placeholder="Nơi giao hàng"
+                                                disabled={!isEditMode && !!stt_rec}
                                             />
                                         </Form.Item>
+                                        <Form.Item name="ma_dc" noStyle><Input type="hidden" /></Form.Item>
                                         <Form.Item name="ghi_chu_giao_hang" label="Ghi chú ĐH">
                                             <Input.TextArea 
                                                 autoSize={{ minRows: 1, maxRows: 6 }} 
@@ -874,15 +964,23 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
             )}
 
             {createPortal(
-                <div className="print-preview-wrapper" style={{ display: 'none' }}>
-                    <PrintOrderTemplate
-                        ref={printRef}
-                        data={form.getFieldsValue()}
-                        details={chiTietData}
-                        totals={form.getFieldsValue()}
-                        bankInfo={bankInfo}
-                    />
-                </div>,
+                <>
+                    <div className="print-preview-wrapper" style={{ display: 'none' }}>
+                        <PrintOrderTemplate
+                            ref={printRef}
+                            data={form.getFieldsValue()}
+                            details={chiTietData}
+                            totals={form.getFieldsValue()}
+                            bankInfo={bankInfo}
+                        />
+                    </div>
+                    <div className="print-label-wrapper" style={{ display: 'none' }}>
+                        <PrintLabelTemplate
+                            ref={labelRef}
+                            data={labelPrintData}
+                        />
+                    </div>
+                </>,
                 document.body
             )}
         </FormTemplate>

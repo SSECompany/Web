@@ -14,7 +14,8 @@ export const useVatTuManager = () => {
     setVatTuInput,
     setVatTuList,
     fetchVatTuList,
-    vatTuSelectRef
+    vatTuSelectRef,
+    selectedOption = null
   ) => {
     if (!isEditMode) {
       message.warning("Bạn cần bật chế độ chỉnh sửa");
@@ -47,10 +48,11 @@ export const useVatTuManager = () => {
     };
 
     try {
-      const vatTuDetail = await fetchVatTuDetail(value.trim());
+      // Luôn fetch detail để lấy đủ thông tin theo kho, giá và hệ số quy đổi
+      let vatTuDetail = await fetchVatTuDetail(value.trim());
 
       if (!vatTuDetail) {
-        message.error("Thông tin vật tư không hợp lệ!");
+        message.error("Không tìm thấy thông tin chi tiết vật tư!");
         if (setVatTuInput) setTimeout(() => setVatTuInput(""), 2000);
         return false;
       }
@@ -60,7 +62,7 @@ export const useVatTuManager = () => {
         : vatTuDetail;
 
       if (!vatTuInfo) {
-        message.error("Thông tin vật tư không hợp lệ!");
+        message.error("Thông tin vật tư rỗng!");
         if (setVatTuInput) setTimeout(() => setVatTuInput(""), 2000);
         return false;
       }
@@ -68,7 +70,7 @@ export const useVatTuManager = () => {
       const donViTinhList = await fetchDonViTinh(value.trim());
 
       if (!Array.isArray(donViTinhList)) {
-        message.error("Thông tin vật tư không hợp lệ!");
+        message.error("Lỗi khi tải danh sách đơn vị tính!");
         if (setVatTuInput) setTimeout(() => setVatTuInput(""), 2000);
         return false;
       }
@@ -335,7 +337,7 @@ export const useVatTuManager = () => {
       return true;
     } catch (error) {
       console.error("Error adding vat tu:", error);
-      message.error("Thông tin vật tư không hợp lệ!");
+      message.error("Lỗi khi thêm vật tư: " + error.message);
       return false;
     } finally {
       // Reset processing flag after a delay

@@ -32,7 +32,9 @@ const FormTemplate = ({
     { value: "1", label: "Chờ duyệt" },
     { value: "2", label: "Duyệt" },
   ],
+  statusFieldName = "trangThai",
   showStatusSelect = false,
+  statusDisabled = false,
   headerRightSpan = null,
 
   // Content
@@ -83,7 +85,7 @@ const FormTemplate = ({
                 {form ? (
                   <Form form={form} component={false}>
                     <Form.Item
-                      name="trangThai"
+                      name={statusFieldName}
                       noStyle
                       initialValue={statusValue || "0"}
                     >
@@ -92,6 +94,7 @@ const FormTemplate = ({
                         className="phieu-header-status-select"
                         popupMatchSelectWidth={false}
                         options={statusOptions}
+                        disabled={statusDisabled}
                       />
                     </Form.Item>
                   </Form>

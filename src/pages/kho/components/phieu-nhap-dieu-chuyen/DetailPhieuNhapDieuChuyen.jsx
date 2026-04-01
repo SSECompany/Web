@@ -144,16 +144,26 @@ const DetailPhieuNhapDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
     handleDvtChange,
   } = useVatTuManager();
 
-  const handleVatTuSelect = async (value) => {
+  const handleVatTuSelect = async (value, option) => {
+    // Lấy ngữ cảnh hiện tại từ form
+    const maKhoNhap = form.getFieldValue("maKhoNhap") || "";
+    const ngayLap = form.getFieldValue("ngay");
+    const formattedNgayLap = ngayLap && dayjs.isDayjs(ngayLap) ? ngayLap.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD");
+
+    const contextualFetchVatTuDetail = async (maVatTu) => {
+      return await fetchVatTuDetail(maVatTu, maKhoNhap, "", formattedNgayLap);
+    };
+
     const result = await vatTuSelectHandler(
       value,
       isEditMode,
-      fetchVatTuDetail,
+      contextualFetchVatTuDetail, // Sử dụng hàm đã wrap ngữ cảnh
       fetchDonViTinh,
       setVatTuInput,
       setVatTuList,
       fetchVatTuList,
-      vatTuSelectRef
+      vatTuSelectRef,
+      option
     );
   };
 
@@ -186,7 +196,7 @@ const DetailPhieuNhapDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
               tenKhoNhap: masterData.ten_kho?.trim() || "",
               ong_ba: masterData.ong_ba?.trim() || "",
               dien_giai: masterData.dien_giai?.trim() || "",
-              maGiaoDich: masterData.ma_gd?.trim() || "",
+              maGiaoDich: masterData.ma_gd ? masterData.ma_gd.trim() : "1",
               tenGiaoDich: masterData.ten_gd?.trim() || "",
               trangThai: masterData.status || "",
               ty_gia: masterData.ty_gia || 1,
@@ -258,7 +268,7 @@ const DetailPhieuNhapDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
   const handleSubmit = useCallback(async () => {
     try {
       setLoading(true);
-      const values = await form.validateFields();
+      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
 
       if (!validateDataSource(dataSource)) {
         setLoading(false);
@@ -335,8 +345,7 @@ const DetailPhieuNhapDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
   if (isEditMode) {
     footerActions.push(
       { key: "save", label: "Lưu", icon: <SaveOutlined />, type: "primary", onClick: handleSubmit, loading: loading },
-      { key: "delete", label: "Xóa", icon: <DeleteOutlined />, danger: true, onClick: handleDelete },
-      { key: "new", label: "Mới", icon: <PlusOutlined />, onClick: handleNew }
+      { key: "delete", label: "Xóa", icon: <DeleteOutlined />, danger: true, onClick: handleDelete }
     );
   }
 
@@ -359,6 +368,7 @@ const DetailPhieuNhapDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
       ]}
 
       showStatusSelect={true}
+      statusDisabled={!isEditMode && !!actualSttRec}
       headerRightSpan={
         !isEditMode && actualSttRec ? (
           <Button type="text" icon={<EditOutlined />} onClick={handleEdit} className="phieu-edit-button-kd" title="Chỉnh sửa" />
@@ -395,11 +405,12 @@ const DetailPhieuNhapDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             currentKeyword={currentKeyword}
             VatTuSelectComponent={VatTuSelectFull}
             handleVatTuSelect={handleVatTuSelect}
+            showVatTuSelect={isEditMode && !actualSttRec}
           />
 
           <VatTuTable
             dataSource={dataSource}
-            isEditMode={isEditMode}
+            isEditMode={isEditMode && !actualSttRec}
             handleQuantityChange={handleQuantityChange}
             handleDeleteItem={handleDeleteItem}
             handleDvtChange={handleDvtChange}

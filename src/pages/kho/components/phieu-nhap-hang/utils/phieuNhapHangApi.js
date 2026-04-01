@@ -1,5 +1,25 @@
 import { message } from "antd";
 import https from "../../../../../utils/https";
+import jwt from "../../../../../utils/jwt";
+
+const getCurrentUserId = () => {
+  try {
+    const claims = jwt.getClaims();
+    if (claims && claims.Id) {
+      return parseInt(claims.Id) || 1;
+    }
+    
+    // Fallback to legacy 'user'
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      return user.id || user.userId || 1;
+    }
+  } catch (error) {
+    console.error("Error getting user ID:", error);
+  }
+  return 1;
+};
 
 // API để lấy danh sách phiếu nhập hàng
 export const fetchPhieuNhapHangList = async (params) => {
@@ -64,7 +84,7 @@ export const fetchPhieuNhapHangDetail = async (stt_rec) => {
     store: "api_list_phieu_nhap_hang_theo_don_chi_tiet",
     param: {
       stt_rec: stt_rec,
-      UserId: 1,
+      UserId: getCurrentUserId(),
     },
     data: {},
     resultSetNames: ["master", "detail"],
@@ -153,13 +173,21 @@ export const createPhieuNhapHang = async (payload) => {
 export const updatePhieuNhapHang = async (payload) => {
   const token = localStorage.getItem("access_token");
 
+  const master = payload.Data.master || {};
+  const userInfo = JSON.parse(localStorage.getItem("user") || "{}");
+
   const body = {
-    store: "Api_update_phieu_nhap_hang_voucher",
-    param: {},
-    data: {
-      master: [payload.Data.master],
-      detail: payload.Data.detail,
+    store: "api_sua_phieu_nhap_hang_theo_don",
+    param: {
+      stt_rec: master.stt_rec || "",
+      ma_kh: master.ma_kh || "",
+      ong_ba: master.ong_ba || "",
+      dien_giai: master.dien_giai || "",
+      ma_gd: master.ma_gd || "1",
+      status: master.status || "0",
+      UserId: getCurrentUserId(),
     },
+    data: {}, // Chỉ cập nhật thông tin master
   };
 
   try {

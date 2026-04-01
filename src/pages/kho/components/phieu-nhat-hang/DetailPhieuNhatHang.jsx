@@ -170,7 +170,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               maKhach: phieuInfo.ma_kh || "",
               tenKhach: phieuInfo.ten_kh || "",
               dienGiai: phieuInfo.ghi_chu || "",
-              maGiaoDich: phieuInfo.ma_gd || "",
+              maGiaoDich: phieuInfo.ma_gd ? phieuInfo.ma_gd.trim() : "1",
               soDonHang: (phieuInfo.so_don_hang || "").trim(),
               vung: phieuInfo.ma_nhomvitri || "",
               nhanVien: phieuInfo.ma_nvbh || "",
@@ -630,7 +630,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const values = await form.validateFields();
+      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
 
       // Validate data source — chặn Lưu nếu không hợp lệ
       const validation = validateDataSource(dataSource, "nhat-hang");
@@ -712,7 +712,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       onOk: async () => {
         try {
           setLoading(true);
-          const values = await form.validateFields();
+          const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
 
           // Validate data source — chặn Hoàn thành nếu không hợp lệ
           const validation = validateDataSource(dataSource, "nhat-hang");
@@ -911,6 +911,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         { value: "2", label: "Nhặt xong" },
       ]}
       showStatusSelect={true}
+      statusDisabled={!isEditMode && !!id}
       headerRightSpan={
         !isEditMode && id && (form.getFieldValue("trangThai") !== "2") ? (
           <Button type="text" icon={<EditOutlined />} onClick={handleEdit} loading={loading} className="phieu-edit-button-kd" title="Chỉnh sửa" />

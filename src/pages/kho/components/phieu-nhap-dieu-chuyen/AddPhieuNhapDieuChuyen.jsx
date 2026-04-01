@@ -18,6 +18,9 @@ import {
   buildPayload,
   validateDataSource,
 } from "./utils/phieuNhapDieuChuyenUtils";
+import {
+  createPhieuNhapDieuChuyen,
+} from "./utils/phieuNhapDieuChuyenApi";
 
 const { Title } = Typography;
 
@@ -63,48 +66,28 @@ const AddPhieuNhapDieuChuyen = () => {
 
   const token = localStorage.getItem("access_token");
 
-  const fetchVoucherInfo = useCallback(async () => {
-    try {
-      const response = await https.get(
-        "v1/web/thong-tin-phieu-nhap",
-        { voucherCode: "PXB" },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
 
-      if (
-        response.data &&
-        response.data.data &&
-        response.data.data.length > 0
-      ) {
-        const voucherData = response.data.data[0];
 
-        form.setFieldsValue({
-          soPhieu: voucherData.so_phieu_nhap,
-          ngay: voucherData.ngay_lap ? dayjs(voucherData.ngay_lap) : dayjs(),
-          maGiaoDich: "3",
-          trangThai: "3",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching voucher info:", error);
-    }
-  }, [form, token]);
+  const handleVatTuSelect = async (value, option) => {
+    // Lấy ngữ cảnh hiện tại từ form
+    const maKhoNhap = form.getFieldValue("maKhoNhap") || "";
+    const ngayLap = form.getFieldValue("ngay");
+    const formattedNgayLap = ngayLap && dayjs.isDayjs(ngayLap) ? ngayLap.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD");
 
-  const handleVatTuSelect = async (value) => {
+    const contextualFetchVatTuDetail = async (maVatTu) => {
+      return await fetchVatTuDetail(maVatTu, maKhoNhap, "", formattedNgayLap);
+    };
+
     await vatTuSelectHandler(
       value,
-      true,
-      fetchVatTuDetail,
+      true, // isEditMode
+      contextualFetchVatTuDetail, // Sử dụng hàm đã wrap ngữ cảnh
       fetchDonViTinh,
       setVatTuInput,
       setVatTuList,
       fetchVatTuList,
-      vatTuSelectRef
+      vatTuSelectRef,
+      option
     );
   };
 
@@ -168,14 +151,14 @@ const AddPhieuNhapDieuChuyen = () => {
     fetchMaGiaoDichList();
     fetchMaKhoList();
     fetchVatTuList();
-    fetchVoucherInfo();
 
     form.setFieldsValue({
       ngay: dayjs(),
-      trangThai: "3",
-      maGiaoDich: "3",
+      trangThai: "2",
+      maGiaoDich: "1",
+      soPhieu: "",
     });
-  }, [fetchMaGiaoDichList, fetchMaKhoList, fetchVatTuList, fetchVoucherInfo, form]);
+  }, [fetchMaGiaoDichList, fetchMaKhoList, fetchVatTuList, form]);
 
   useEffect(() => {
     if (barcodeJustEnabled && vatTuSelectRef.current) {
@@ -209,7 +192,7 @@ const AddPhieuNhapDieuChuyen = () => {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const values = await form.validateFields();
+      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
 
       if (!validateDataSource(dataSource)) return;
 
@@ -233,42 +216,18 @@ const AddPhieuNhapDieuChuyen = () => {
               return;
             }
 
-            // Gọi API thêm mới phiếu nhập điều chuyển qua User/AddData
-            const response = await https.post("User/AddData", payload, {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            });
-
-            if (!response) {
-              message.error("Không nhận được phản hồi từ server");
-              setLoading(false);
-              return;
-            }
-
-            const hasResponseModel =
-              response?.data &&
-              typeof response.data.responseModel !== "undefined";
-            const isSuccess = hasResponseModel
-              ? response.data.responseModel.isSucceded === true
-              : response?.data?.statusCode === 200;
-
-            if (isSuccess) {
+            // Gọi API thêm mới phiếu nhập điều chuyển qua function chuẩn đã map param
+            const result = await createPhieuNhapDieuChuyen(payload);
+            
+            if (result.success) {
               message.success("Tạo phiếu nhập điều chuyển thành công");
               navigate("/kho/nhap-dieu-chuyen");
             } else {
-              const serverMsg =
-                response.data?.responseModel?.message || response.data?.message;
-              message.error(serverMsg || "Tạo phiếu nhập điều chuyển thất bại");
+              message.error(result.message || "Tạo phiếu nhập điều chuyển thất bại");
             }
           } catch (error) {
             console.error("Submit failed:", error);
-            const serverMsg =
-              error?.response?.data?.responseModel?.message ||
-              error?.response?.data?.message ||
-              error?.message;
-            if (serverMsg) message.error(serverMsg);
+            message.error(error.message || "Có lỗi xảy ra khi tạo phiếu");
           } finally {
             setLoading(false);
           }

@@ -499,7 +499,7 @@ const DetailPhieuYeuCauKiemKe = () => {
             confirmLoading: true,
             onOk: async () => {
                 try {
-                    const values = await form.validateFields();
+                    const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
                     setLoading(true);
                     const body = {
                         store: "api_update_kkct",
