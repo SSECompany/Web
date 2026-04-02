@@ -291,13 +291,14 @@ body {
 }
 
 /* MODERN FLOATING INPUT STYLES (MATCH BUSINESS ORDER) */
-.phieu-form--floating .ant-input:not(.detail-don-hang__totals .ant-input),
-.phieu-form--floating .ant-input-affix-wrapper:not(.detail-don-hang__totals .ant-input-affix-wrapper),
-.phieu-form--floating .ant-input-number:not(.detail-don-hang__totals .ant-input-number),
-.phieu-form--floating .ant-select-selector:not(.detail-don-hang__totals .ant-select-selector),
+/* Exclude elements inside .phieu-table-input-container to prevent double-border/height conflicts */
+.phieu-form--floating .ant-input:not(.detail-don-hang__totals .ant-input):not(.phieu-table-input-container .ant-input),
+.phieu-form--floating .ant-input-affix-wrapper:not(.detail-don-hang__totals .ant-input-affix-wrapper):not(.phieu-table-input-container .ant-input-affix-wrapper),
+.phieu-form--floating .ant-input-number:not(.detail-don-hang__totals .ant-input-number):not(.phieu-table-input-container .ant-input-number),
+.phieu-form--floating .ant-select-selector:not(.detail-don-hang__totals .ant-select-selector):not(.phieu-table-input-container .ant-select-selector),
 .phieu-form--floating .ant-picker:not(.detail-don-hang__totals .ant-picker),
 .phieu-form--floating .ant-btn:not(.ant-btn-text):not(.ant-btn-sm),
-.phieu-form--floating textarea.ant-input:not(.detail-don-hang__totals textarea.ant-input) {
+.phieu-form--floating textarea.ant-input:not(.detail-don-hang__totals textarea.ant-input):not(.phieu-table-input-container textarea.ant-input) {
   border-radius: 8px !important;
   border-color: #d1d5db !important;
   transition: all 0.2s;
@@ -513,8 +514,7 @@ body {
   border-bottom: 1px solid #f0f0f0;
   background: #fff;
   transition: background 0.2s;
-  text-align: center;
-  font-size: 14px;
+  color: #1e293b;
   vertical-align: middle;
 }
 
@@ -868,8 +868,9 @@ body {
   }
 
   .phieu-data-table .ant-table-tbody>tr:not(.ant-table-measure-row)>td {
-    padding: 10px 8px;
     font-size: 13px;
+    color: #1e293b;
+    padding: 8px 10px !important;
   }
 
   .phieu-action-btn {
@@ -1420,4 +1421,108 @@ body {
     border-radius: 8px !important;
   }
 }
+
+/* UNIFORM TABLE INPUTS (WRAPPER APPROACH) */
+.phieu-table-input-container {
+  display: flex !important;
+  align-items: center !important; /* This is key for vertical centering */
+  justify-content: center !important;
+  height: 28px !important;
+  border: 1px solid #d9d9d9 !important;
+  border-radius: 6px !important;
+  background-color: #fff !important;
+  padding: 0 !important;
+  transition: all 0.2s;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.phieu-table-input-container:focus-within {
+  border-color: #4096ff !important;
+  box-shadow: 0 0 0 2px rgba(5, 145, 255, 0.1) !important;
+  z-index: 10 !important;
+}
+
+.phieu-table-input-container:hover {
+  border-color: #4096ff !important;
+}
+
+/* KILL ALL INTERNAL ANT DESIGN STYLES AGGRESSIVELY */
+.phieu-table-input-container input,
+.phieu-table-input-container .ant-select-selection-search-input,
+.phieu-table-input-container .ant-input,
+.phieu-table-input-container .ant-input-number-input,
+.phieu-table-input-container .ant-input-affix-wrapper {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: transparent !important;
+  padding: 0 10px !important; /* UNIFIED HORIZONTAL PADDING */
+  height: 20px !important;
+  width: 100% !important;
+  font-size: 13px !important;
+  line-height: normal !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Wrapper components should fill container to maintain structure */
+.phieu-table-input-container .ant-select,
+.phieu-table-input-container .ant-select-selector {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  height: 26px !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Special handling for AutoComplete's search container */
+.phieu-table-input-container .ant-select-selection-search {
+  height: 26px !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* UNIFIED PADDING FOR PLACEHOLDER AND SELECTION ITEM */
+.phieu-table-input-container .ant-select-selection-item,
+.phieu-table-input-container .ant-select-selection-placeholder {
+  height: 26px !important;
+  line-height: 26px !important;
+  align-items: center !important;
+}
+
+/* PERFECT CENTERING FOR CLEAR BUTTON */
+.phieu-table-input-container .ant-select-clear {
+  position: absolute !important;
+  top: 50% !important;
+  right: 10px !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 14px !important;
+  width: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 5 !important;
+  background-color: #fff !important;
+}
+
+.phieu-table-input-container .ant-input-number-handler-wrap {
+  display: none !important;
+}
+
+
+
+
 

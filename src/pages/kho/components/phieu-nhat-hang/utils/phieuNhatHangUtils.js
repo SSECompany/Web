@@ -1,5 +1,6 @@
-import { message } from "antd";
+import { staticMessage as message } from "../../../../../utils/antdStatic";
 import https from "../../../../../utils/https";
+import dayjs from "dayjs";
 
 export const getUserInfo = () => {
   try {
@@ -27,8 +28,9 @@ export const getUserInfo = () => {
 };
 
 export const formatDate = (date) => {
-  const d = date ? new Date(date) : new Date();
-  return d.toISOString().split(".")[0];
+  if (!date) return dayjs().format("YYYY-MM-DDTHH:mm:ss");
+  const d = dayjs(date);
+  return d.isValid() ? d.format("YYYY-MM-DDTHH:mm:ss") : date;
 };
 
 export const validateDataSource = (dataSource, formType = "default") => {
@@ -51,11 +53,16 @@ export const validateDataSource = (dataSource, formType = "default") => {
   if (missingData.length > 0) {
     message.error({
       content: (
-        <div>
-          <div>Vui lòng bổ sung thông tin bắt buộc:</div>
-          {missingData.map((msg, idx) => (
-            <div key={idx}>• {msg}</div>
-          ))}
+        <div style={{ marginTop: '4px' }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '10px', color: '#ff4d4f', borderBottom: '1px solid #ffccc7', paddingBottom: '6px' }}>Vui lòng bổ sung thông tin bắt buộc:</div>
+          <div style={{ maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' }}>
+            {missingData.map((msg, idx) => (
+              <div key={idx} style={{ marginBottom: '8px', fontSize: '13px', display: 'flex', alignItems: 'flex-start' }}>
+                <span style={{ marginRight: '8px', color: '#ff4d4f', fontWeight: 'bold' }}>•</span>
+                <span style={{ lineHeight: '1.4' }}>{msg}</span>
+              </div>
+            ))}
+          </div>
         </div>
       ),
       duration: 6,

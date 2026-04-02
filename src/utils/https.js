@@ -1,4 +1,4 @@
-import { notification } from "antd";
+import { staticNotification as notification } from "./antdStatic";
 import axios from "./axiosInstance";
 
 class HttpService {

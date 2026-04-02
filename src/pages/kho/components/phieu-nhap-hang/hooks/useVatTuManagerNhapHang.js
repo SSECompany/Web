@@ -1,4 +1,4 @@
-import { message } from "antd";
+import { staticMessage as message } from "../../../../../utils/antdStatic";
 import { useRef, useState } from "react";
 
 export const useVatTuManagerNhapHang = () => {
@@ -18,6 +18,7 @@ export const useVatTuManagerNhapHang = () => {
         key: index + 1,
         maHang: item.ma_vt || "",
         ten_mat_hang: item.ten_vt || item.ma_vt || "",
+        image: item.image || item.hinh_anh || null,
         so_luong: qty, // Sync lowercase field
         soLuong: qty,
         soLuong_goc: parseFloat(item.so_luong_goc) || 0,
@@ -214,6 +215,7 @@ export const useVatTuManagerNhapHang = () => {
                   dvtHienTai || (vatTuInfo.dvt ? vatTuInfo.dvt.trim() : "cái"),
                 dvt_goc: dvtAPI,
                 ma_kho: (vatTuInfo.ma_kho || item.ma_kho || "").trim(),
+                image: vatTuInfo.image || item.image || null,
                 donViTinhList: donViTinhList,
                 isNewlyAdded: item.isNewlyAdded,
                 _lastUpdated: Date.now(),
@@ -291,6 +293,7 @@ export const useVatTuManagerNhapHang = () => {
               vatTuInfo.ten_mat_hang || 
               searchItem?.label?.split(" - ")[1] || 
               value,
+            image: vatTuInfo.image || searchItem?.image || null,
             dvt: dvtHienTai,
             dvt_goc: dvtGocFromAPI,
             tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "156",

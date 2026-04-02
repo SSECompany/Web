@@ -1,4 +1,5 @@
-import { Button, Checkbox, Col, Empty, Form, Input, InputNumber, Layout, Modal, Row, Select, Space, Table, Spin, notification, Popconfirm, Tabs, Tag, Descriptions, Divider, DatePicker, Typography } from "antd";
+import { Button, Checkbox, Col, Empty, Form, Input, InputNumber, Layout, Modal, Row, Select, Space, Table, Spin, Popconfirm, Tabs, Tag, Descriptions, Divider, DatePicker, Typography } from "antd";
+import { staticNotification as notification, staticMessage as message } from "../../../../utils/antdStatic";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { LeftOutlined, PlusOutlined, DeleteOutlined, EditOutlined, SaveOutlined, CloseOutlined, CheckCircleOutlined, SearchOutlined, CheckOutlined, FilterOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";

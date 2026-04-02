@@ -22,12 +22,14 @@ import Loading from "./components/common/Loading/Loading";
 import reportWebVitals from "./reportWebVitals";
 import themeComponents from "./utils/theme";
 
+import AntdStaticHelper from "./utils/antdStatic";
+
 dayjs.extend(updateLocale);
 dayjs.updateLocale("vi", {});
 
-// Cấu hình message: chỉ hiển thị 1 message tại một thời điểm
+// Cấu hình message: chỉ hiển thị 3 message tại một thời điểm
 message.config({
-  maxCount: 1,
+  maxCount: 3,
   duration: 3,
   top: 24,
 });
@@ -51,6 +53,7 @@ root.render(
         }}
       >
         <AntdApp>
+          <AntdStaticHelper />
           <RouterProvider
             router={router}
             future={{ v7_startTransition: true }}

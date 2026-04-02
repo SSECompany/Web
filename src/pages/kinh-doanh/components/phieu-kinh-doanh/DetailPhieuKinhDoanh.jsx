@@ -9,9 +9,10 @@ import {
     UpOutlined,
     GiftOutlined,
     PrinterOutlined,
+    PlusOutlined,
 } from "@ant-design/icons";
 import {
-    Button, Form, Input, Select, Typography,
+    Button, Form, Input, Select, AutoComplete, Typography,
     Checkbox, Tabs, Row, Col, DatePicker,
     Table, Spin, InputNumber, Divider
 } from "antd";
@@ -113,7 +114,11 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
         handleDeleteSelected,
         handleDeleteRow,
         handleDeleteChiPhi,
-        fetchNoiGiaoSelection
+        fetchNoiGiaoSelection,
+        setNoiGiaoSelectOptions,
+        chiPhiSelectOptions,
+        chiPhiSearchLoading,
+        handleSearchChiPhi
     } = usePhieuKinhDoanh(initialEditMode);
 
     const [labelPrintData, setLabelPrintData] = React.useState(null);
@@ -168,24 +173,65 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
     };
 
     const chiPhiColumns = [
-        { title: "Mã chi phí", dataIndex: "ma_cp", key: "ma_cp", width: 120, align: "center" },
-        { title: "Tên chi phí", dataIndex: "ten_cp", key: "ten_cp", align: "center" },
+        { 
+            title: "Mã loại", 
+            dataIndex: "ma_cp", 
+            key: "ma_cp", 
+            width: 130, 
+            align: "left",
+            render: (v, record) => isEditMode ? (
+                <div className="phieu-table-input-container">
+                    <AutoComplete
+                        size="small"
+                        value={v}
+                        placeholder="Mã"
+                        onFocus={() => !chiPhiSelectOptions.length && handleSearchChiPhi("")}
+                        onSearch={handleSearchChiPhi}
+                        onSelect={(val, opt) => handleChiPhiChange(record, "ma_cp", val, opt)}
+                        onChange={(val) => handleChiPhiChange(record, "ma_cp", val)}
+                        options={chiPhiSelectOptions.map(opt => ({ ...opt, label: opt.label, value: opt.value }))}
+                        variant="borderless"
+                        style={{ width: '100%' }}
+                        popupMatchSelectWidth={false}
+                        allowClear
+                    />
+                </div>
+            ) : v
+        },
+        { 
+            title: "Diễn giải", 
+            dataIndex: "ten_cp", 
+            key: "ten_cp", 
+            align: "left",
+            render: (v, record) => isEditMode ? (
+                <div className="phieu-table-input-container">
+                    <Input 
+                        size="small" 
+                        variant="borderless" 
+                        value={v} 
+                        onChange={(e) => handleChiPhiChange(record, "ten_cp", e.target.value)} 
+                    />
+                </div>
+            ) : v
+        },
         {
             title: "Tiền (NT)",
             dataIndex: "tien_cp_nt",
             key: "tien_cp_nt",
-            align: "center",
-            width: 140,
+            align: "right",
+            width: 150,
             render: (v, record) => isEditMode ? (
-                <InputNumber
-                    size="small"
-                    value={v}
-                    controls={false}
-                    className="phieu-table-input"
-                    formatter={v => numFmt(v)}
-                    style={{ width: '100%' }}
-                    onChange={(val) => handleChiPhiChange(record, "tien_cp_nt", val)}
-                />
+                <div className="phieu-table-input-container">
+                    <InputNumber
+                        size="small"
+                        variant="borderless"
+                        value={v}
+                        controls={false}
+                        formatter={v => numFmt(v)}
+                        style={{ width: '100%', textAlign: 'right' }}
+                        onChange={(val) => handleChiPhiChange(record, "tien_cp_nt", val)}
+                    />
+                </div>
             ) : (v ? v.toLocaleString() : "0"),
         },
         { 
@@ -195,16 +241,18 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
             align: "center", 
             width: 200,
             render: (v, record) => isEditMode ? (
-                <Input
-                    size="small"
-                    value={v}
-                    className="phieu-table-input"
-                    onChange={(e) => {
-                        setChiPhiData(prev => prev.map(item => 
-                            (item.ma_cp === record.ma_cp && item.line_nbr === record.line_nbr) ? { ...item, ghi_chu: e.target.value } : item
-                        ));
-                    }}
-                />
+                <div className="phieu-table-input-container">
+                    <Input
+                        size="small"
+                        variant="borderless"
+                        value={v}
+                        onChange={(e) => {
+                            setChiPhiData(prev => prev.map(item => 
+                                (item.ma_cp === record.ma_cp && item.line_nbr === record.line_nbr) ? { ...item, ghi_chu: e.target.value } : item
+                            ));
+                        }}
+                    />
+                </div>
             ) : v
         },
         {
@@ -346,6 +394,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                     value={v} 
                                     controls={false} 
                                     precision={2}
+                                    disabled={!!record.km_yn}
                                     formatter={val => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                                     parser={val => val.replace(/\$\s?|(,*)/g, '')}
                                     onChange={(val) => handleCellChange(record, "gia_ban_nt", val)} 
@@ -428,26 +477,29 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
         },
         {
             key: "chi_phi",
-            label: "Chi phí",
+            label: "Giảm trừ / Phụ thu",
             children: (
                 <div>
                     {isEditMode && (
-                        <div style={{ marginBottom: 10, display: "flex", gap: 6 }}>
+                        <div style={{ marginBottom: 12, display: "flex", gap: 8 }}>
                             <Button 
-                                icon={<UpOutlined style={{ transform: 'rotate(180deg)' }} />} 
-                                size="small" 
+                                type="dashed"
+                                icon={<PlusOutlined />} 
                                 onClick={() => {
                                     setChiPhiData([...chiPhiData, { ma_cp: "", ten_cp: "", tien_cp_nt: 0, ghi_chu: "", line_nbr: Date.now() }]);
                                 }}
-                            />
+                            >
+                                Thêm dòng
+                            </Button>
                             <Button 
                                 icon={<DeleteOutlined />} 
-                                size="small" 
                                 danger 
                                 onClick={() => {
-                                    setChiPhiData(prev => prev.slice(0, -1));
+                                    setChiPhiData(prev => prev.length > 0 ? prev.slice(0, -1) : prev);
                                 }}
-                            />
+                            >
+                                Xoá dòng cuối
+                            </Button>
                         </div>
                     )}
                     <Table
@@ -711,6 +763,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                                                             ma_dc: addr.ma_dc,
                                                                             dia_chi: addr.ten_dc
                                                                         });
+                                                                        setNoiGiaoSelectOptions(addresses.map(i => ({ value: i.ma_dc, label: `${i.ma_dc} - ${i.ten_dc}`, ...i })));
                                                                     } else {
                                                                         form.setFieldsValue({
                                                                             ma_dc: "",
@@ -857,15 +910,29 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                                 </Form.Item>
                                             </Col>
                                         </Row>
-                                        <Form.Item name="dia_chi" label="Nơi giao">
-                                            <Input.TextArea 
-                                                autoSize={{ minRows: 1, maxRows: 3 }} 
-                                                style={{ borderRadius: '6px' }} 
-                                                placeholder="Nơi giao hàng"
+                                        <Form.Item name="ma_dc" label="Nơi giao">
+                                            <Select
+                                                showSearch
+                                                placeholder="Chọn nơi giao hàng"
+                                                loading={noiGiaoSearchLoading}
+                                                onSearch={handleSearchNoiGiao}
+                                                onFocus={() => handleSearchNoiGiao("")}
+                                                filterOption={false}
+                                                options={noiGiaoSelectOptions}
+                                                style={{ borderRadius: '6px' }}
+                                                allowClear
                                                 disabled={!isEditMode && !!stt_rec}
+                                                onChange={(val) => {
+                                                    const opt = noiGiaoSelectOptions.find(o => o.value === val);
+                                                    if (opt) {
+                                                        form.setFieldsValue({ dia_chi: opt.ten_dc || opt.label.split(' - ')[1] });
+                                                    } else {
+                                                        form.setFieldsValue({ dia_chi: "" });
+                                                    }
+                                                }}
                                             />
                                         </Form.Item>
-                                        <Form.Item name="ma_dc" noStyle><Input type="hidden" /></Form.Item>
+                                        <Form.Item name="dia_chi" noStyle><Input type="hidden" /></Form.Item>
                                         <Form.Item name="ghi_chu_giao_hang" label="Ghi chú ĐH">
                                             <Input.TextArea 
                                                 autoSize={{ minRows: 1, maxRows: 6 }} 

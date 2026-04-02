@@ -1,4 +1,4 @@
-import { message } from "antd";
+import { staticMessage as message } from "../../../../../utils/antdStatic";
 import dayjs from "dayjs";
 import https from "../../../../../utils/https";
 

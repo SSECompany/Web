@@ -221,6 +221,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
                   soLuong: Math.round(soLuongHienThi * 1000) / 1000,
                   soLuongDeNghi: parseFloat(soLuongDeNghiHienThi) || 0,
                   ten_mat_hang: item.ten_vt || item.ma_vt || "",
+                  image: item.image || item.hinh_anh || null,
                   dvt: dvtHienTai,
                   ma_kho: item.ma_kho || "",
                   tk_vt: item.tk_vt || "",

@@ -1,4 +1,4 @@
-import { message } from "antd";
+import { staticMessage as message } from "../../../../../utils/antdStatic";
 import https from "../../../../../utils/https";
 
 // API để lấy danh sách phiếu nhập kho

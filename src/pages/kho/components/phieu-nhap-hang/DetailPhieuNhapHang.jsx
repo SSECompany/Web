@@ -173,6 +173,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                 soLuong: Math.round(soLuongHienThi * 1000) / 1000,
                 soLuongDeNghi: parseFloat(soLuongDeNghiHienThi) || 0,
                 ten_mat_hang: item.ten_vt || item.ma_vt || "",
+                image: item.image || item.hinh_anh || null,
                 dvt: dvtHienTai,
                 he_so: item.he_so || 1,
                 ma_kho: (item.ma_kho || "").trim(),

@@ -1,4 +1,4 @@
-import { message } from "antd";
+import { staticMessage as message } from "../../../../../utils/antdStatic";
 import { multipleTablePutApi } from "../../../../../api";
 
 // Thời gian hiển thị thông báo lỗi khi lưu/hoàn thành phiếu nhặt hàng (giây)
@@ -233,18 +233,11 @@ export const startPhieuNhatHang = async (stt_rec, userId) => {
       // Không hiển thị message ở đây, để component tự hiển thị message cụ thể
       return { success: true };
     } else {
-      // Kiểm tra nếu message liên quan đến "đã hoàn thành" thì không hiển thị
       const errorMessage =
         response?.responseModel?.message ||
         response?.message ||
         "Có lỗi xảy ra";
-      const lowerMessage = errorMessage.toLowerCase();
-      if (
-        !lowerMessage.includes("đã hoàn thành") &&
-        !lowerMessage.includes("hoàn thành")
-      ) {
-        message.error(errorMessage);
-      }
+      message.error(errorMessage);
       return { success: false };
     }
   } catch (error) {
@@ -260,13 +253,7 @@ export const startPhieuNhatHang = async (stt_rec, userId) => {
       errorMessage = "Vui lòng kiểm tra lại thông tin";
     }
 
-    const lowerMessage = errorMessage.toLowerCase();
-    if (
-      !lowerMessage.includes("đã hoàn thành") &&
-      !lowerMessage.includes("hoàn thành")
-    ) {
-      message.error(errorMessage);
-    }
+    message.error(errorMessage);
     return { success: false };
   }
 };

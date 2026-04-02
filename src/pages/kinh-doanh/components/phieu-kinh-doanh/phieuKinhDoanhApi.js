@@ -27,6 +27,12 @@ const getCurrentUserId = () => {
     return 1;
 };
 
+const formatApiDate = (val) => {
+    if (!val) return null;
+    const d = dayjs(val);
+    return d.isValid() ? d.format("YYYY-MM-DDTHH:mm:ss") : val;
+};
+
 export const fetchPhieuKinhDoanhList = async (params) => {
     const body = {
         store: "api_list_don_hang_ban",
@@ -319,8 +325,8 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         ngay_lo: master.ngay_lo || null,
         ma_nk: master.ma_nk || "",
         ma_gd: String(master.hinh_thuc_tt || ""),
-        ngay_lct: master.ngay_ct ? master.ngay_ct : new Date(),
-        ngay_ct: master.ngay_ct ? master.ngay_ct : new Date(),
+        ngay_lct: formatApiDate(master.ngay_lct || master.ngay_ct || new Date()),
+        ngay_ct: formatApiDate(master.ngay_ct || new Date()),
         so_ct: master.so_ct || "",
         ma_nt: master.ma_nt || "VND",
         ty_gia: master.ty_gia || 1,
@@ -363,10 +369,10 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         hdgkb_yn: master.hang_date_gan ? 1 : 0,
         vcc_yn: master.van_chuyen_cham ? 1 : 0,
         vdk_yn: master.van_de_khac ? 1 : 0,
-        yk_kh: master.y_kien_kh || "",
+        yk_kh: master.yk_kh || "",
         ph_kn: master.phan_hoi || "",
-        fdate3: master.ngay_khieu_nai ? master.ngay_khieu_nai : null,
-        fdate4: master.ngay_phan_hoi ? master.ngay_phan_hoi : null,
+        fdate3: formatApiDate(master.ngay_khieu_nai || master.fdate3),
+        fdate4: formatApiDate(master.ngay_phan_hoi || master.fdate4),
         t_cp_bh: 0,
         t_cp_bh_nt: 0,
         t_cp_vc: 0,
@@ -379,9 +385,9 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         so_hd0: master.so_hd0 || "",
         stt_rec_hd0: "",
         so_ct0: "",
-        ngay_ct0: master.ngay_ct0 ? master.ngay_ct0 : null,
-        bat_dau_dh: master.bat_dau_dh ? master.bat_dau_dh : null,
-        ket_thuc_dh: master.ket_thuc_dh ? master.ket_thuc_dh : null,
+        ngay_ct0: formatApiDate(master.ngay_ct0),
+        bat_dau_dh: formatApiDate(master.bat_dau_dh),
+        ket_thuc_dh: formatApiDate(master.ket_thuc_dh),
         u_status: master.u_status || "0",
         ban_dong_goi: master.ban_dong_goi || "",
         ma_nv_dh: master.ma_nv_dh || "",
@@ -407,8 +413,8 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         fcode1: "",
         fcode2: "",
         fcode3: "",
-        fdate1: null,
-        fdate2: null,
+        fdate1: formatApiDate(master.fdate1),
+        fdate2: formatApiDate(master.fdate2),
         fqty1: 0,
         fqty2: 0,
         fqty3: 0,
@@ -435,6 +441,7 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         tt_soan_hang: master.tt_soan_hang || 0,
         tt_giao_van: master.tt_giao_van || 0,
         ma_vc: master.ma_vc || "",
+        ten_vc: master.ten_vc || "",
         first_stt_rec_NDH: "",
         stt_rec_DX2: "",
         stt_rec_HDA: "",
@@ -453,7 +460,7 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         stt_rec: item.stt_rec || "",
         stt_rec0: String(index + 1).padStart(3, '0'),
         ma_ct: "DXA",
-        ngay_ct: master.ngay_ct ? master.ngay_ct : new Date(),
+        ngay_ct: formatApiDate(master.ngay_ct || new Date()),
         ma_kh: master.ma_kh || "",
         ma_vt: item.ma_vt || "",
         dvt: item.dvt || "",
@@ -469,7 +476,7 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         ck_nt: roundNum(item.ck_nt || 0, 0),
         ck: roundNum(item.ck_nt || 0, 0),
         ck_khac_nt: roundNum(item.ck_khac_nt || 0, 0),
-        ngay_giao: item.ngay_giao || null,
+        ngay_giao: formatApiDate(item.ngay_giao),
         km_yn: item.km_yn ? 1 : 0,
         line_nbr: index + 1,
         gia_ban: roundNum(item.gia_ban || item.gia_ban_nt || 0),
@@ -602,15 +609,22 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         ma_ct: "DXA",
         loai_ct: String(master.loai_ct || "1"),
         ma_gd: String(master.hinh_thuc_tt || master.ma_gd || ""),
-        ngay_lct: master.ngay_ct ? (dayjs.isDayjs(master.ngay_ct) ? master.ngay_ct.toDate() : master.ngay_ct) : (master.ngay_lct || new Date()),
-        ngay_ct: master.ngay_ct ? (dayjs.isDayjs(master.ngay_ct) ? master.ngay_ct.toDate() : master.ngay_ct) : (master.ngay_ct || new Date()),
+        ngay_lct: formatApiDate(master.ngay_lct || master.ngay_ct || new Date()),
+        ngay_ct: formatApiDate(master.ngay_ct || new Date()),
         ty_gia: master.ty_gia || 1,
         so_lo: master.so_lo || "",
-        ngay_lo: master.ngay_lo || null,
+        ngay_lo: formatApiDate(master.ngay_lo),
         ma_nk: master.ma_nk || "",
         ong_ba: master.ong_ba || "",
         ma_nx: master.ma_nx || "",
         tk: master.tk || "",
+        ma_tt: master.ma_tt || "",
+        ma_nvbh: master.ma_nvbh || "",
+        ma_vc: master.ma_vc || "",
+        ten_vc: master.ten_vc || "",
+        dien_giai: master.dien_giai || "",
+        ghi_chu_kh: master.ghi_chu_kh || "",
+        ghi_chu_giao_hang: master.ghi_chu_giao_hang || "",
         t_so_luong: roundNum(master.t_so_luong || 0),
         t_tien_nt: roundNum(master.t_tien_nt || 0),
         t_tien: roundNum(master.t_tien || 0),
@@ -640,36 +654,36 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         hdgkb_yn: master.hang_date_gan ? 1 : (master.hdgkb_yn || 0),
         vcc_yn: master.van_chuyen_cham ? 1 : (master.vcc_yn || 0),
         vdk_yn: master.van_de_khac ? 1 : (master.vdk_yn || 0),
-        fdate3: master.ngay_khieu_nai ? (dayjs.isDayjs(master.ngay_khieu_nai) ? master.ngay_khieu_nai.toDate() : master.ngay_khieu_nai) : (master.fdate3 || null),
-        fdate4: master.ngay_phan_hoi ? (dayjs.isDayjs(master.ngay_phan_hoi) ? master.ngay_phan_hoi.toDate() : master.ngay_phan_hoi) : (master.fdate4 || null),
+        fdate3: formatApiDate(master.ngay_khieu_nai || master.fdate3),
+        fdate4: formatApiDate(master.ngay_phan_hoi || master.fdate4),
         t_cp_bh: master.t_cp_bh || 0,
         t_cp_bh_nt: master.t_cp_bh_nt || 0,
         t_cp_vc: master.t_cp_vc || 0,
         t_cp_vc_nt: master.t_cp_vc_nt || 0,
         t_cp_khac: master.t_cp_khac || 0,
         t_cp_khac_nt: master.t_cp_khac_nt || 0,
-        ngay_hl: master.ngay_hl ? (dayjs.isDayjs(master.ngay_hl) ? master.ngay_hl.toDate() : master.ngay_hl) : (master.ngay_hl || null),
+        ngay_hl: formatApiDate(master.ngay_hl),
         ma_dc: master.ma_dc || "",
         ma_htvc: master.ma_htvc || "",
         so_hd0: master.so_hd0 || "",
         u_status: master.u_status || "0",
         ban_dong_goi: master.ban_dong_goi || "",
         ma_nv_dh: master.ma_nv_dh || "",
-        bat_dau_dh: master.bat_dau_dh ? (dayjs.isDayjs(master.bat_dau_dh) ? master.bat_dau_dh.toDate() : master.bat_dau_dh) : (master.bat_dau_dh || null),
-        ket_thuc_dh: master.ket_thuc_dh ? (dayjs.isDayjs(master.ket_thuc_dh) ? master.ket_thuc_dh.toDate() : master.ket_thuc_dh) : (master.ket_thuc_dh || null),
+        bat_dau_dh: formatApiDate(master.bat_dau_dh),
+        ket_thuc_dh: formatApiDate(master.ket_thuc_dh),
         stt_rec_hd0: master.stt_rec_hd0 || "",
         so_ct0: master.so_ct0 || "",
-        ngay_ct0: master.ngay_ct0 ? (dayjs.isDayjs(master.ngay_ct0) ? master.ngay_ct0.toDate() : master.ngay_ct0) : (master.ngay_ct0 || null),
-        ngay_ct2: master.ngay_ct2 ? (dayjs.isDayjs(master.ngay_ct2) ? master.ngay_ct2.toDate() : master.ngay_ct2) : (master.ngay_ct2 || null),
-        ngay_ct3: master.ngay_ct3 ? (dayjs.isDayjs(master.ngay_ct3) ? master.ngay_ct3.toDate() : master.ngay_ct3) : (master.ngay_ct3 || null),
+        ngay_ct0: formatApiDate(master.ngay_ct0),
+        ngay_ct2: formatApiDate(master.ngay_ct2),
+        ngay_ct3: formatApiDate(master.ngay_ct3),
         ck_thue_yn: master.ck_thue_yn || 0,
         ma_gia: master.ma_gia || "",
         tien_hd: master.tien_hd || 0,
         nam: master.nam || new Date().getFullYear(),
         ky: master.ky || new Date().getMonth() + 1,
         xtag: master.xtag || "",
-        datetime0: master.datetime0 ? (dayjs.isDayjs(master.datetime0) ? master.datetime0.toDate() : master.datetime0) : (master.datetime0 || null),
-        datetime2: master.datetime2 ? (dayjs.isDayjs(master.datetime2) ? master.datetime2.toDate() : master.datetime2) : (master.datetime2 || null),
+        datetime0: formatApiDate(master.datetime0),
+        datetime2: formatApiDate(master.datetime2),
         user_id0: master.user_id0 || 0,
         contract_id: master.contract_id || "",
         bcontract_id: master.bcontract_id || "",
@@ -682,8 +696,8 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         fcode1: master.fcode1 || "",
         fcode2: master.fcode2 || "",
         fcode3: master.fcode3 || "",
-        fdate1: master.fdate1 ? (dayjs.isDayjs(master.fdate1) ? master.fdate1.toDate() : master.fdate1) : (master.fdate1 || null),
-        fdate2: master.fdate2 ? (dayjs.isDayjs(master.fdate2) ? master.fdate2.toDate() : master.fdate2) : (master.fdate2 || null),
+        fdate1: formatApiDate(master.fdate1),
+        fdate2: formatApiDate(master.fdate2),
         fqty1: master.fqty1 || 0,
         fqty2: master.fqty2 || 0,
         fqty3: master.fqty3 || 0,
@@ -696,9 +710,9 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         s4: master.s4 || 0,
         s5: master.s5 || 0,
         s6: master.s6 || 0,
-        s7: master.s7 ? (dayjs.isDayjs(master.s7) ? master.s7.toDate() : master.s7) : (master.s7 || null),
-        s8: master.s8 ? (dayjs.isDayjs(master.s8) ? master.s8.toDate() : master.s8) : (master.s8 || null),
-        s9: master.s9 ? (dayjs.isDayjs(master.s9) ? master.s9.toDate() : master.s9) : (master.s9 || null),
+        s7: formatApiDate(master.s7),
+        s8: formatApiDate(master.s8),
+        s9: formatApiDate(master.s9),
         so_dt: master.so_dt || "",
         u_status0: master.u_status0 || "0",
         kieu_duyet: master.kieu_duyet || "",
@@ -715,9 +729,9 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         tl_ck_voucher: master.tl_ck_voucher || 0,
         t_ck_khac: master.t_ck_khac || 0,
         t_ck_khac_nt: master.t_ck_khac_nt || 0,
-        thoi_gian_chuyen_kho: master.thoi_gian_chuyen_kho ? (dayjs.isDayjs(master.thoi_gian_chuyen_kho) ? master.thoi_gian_chuyen_kho.toDate() : master.thoi_gian_chuyen_kho) : (master.thoi_gian_chuyen_kho || null),
-        thoi_gian_chuyen_kinh_doanh: master.thoi_gian_chuyen_kinh_doanh ? (dayjs.isDayjs(master.thoi_gian_chuyen_kinh_doanh) ? master.thoi_gian_chuyen_kinh_doanh.toDate() : master.thoi_gian_chuyen_kinh_doanh) : (master.thoi_gian_chuyen_kinh_doanh || null),
-        thoi_gian_chia_don: master.thoi_gian_chia_don ? (dayjs.isDayjs(master.thoi_gian_chia_don) ? master.thoi_gian_chia_don.toDate() : master.thoi_gian_chia_don) : (master.thoi_gian_chia_don || null),
+        thoi_gian_chuyen_kho: formatApiDate(master.thoi_gian_chuyen_kho),
+        thoi_gian_chuyen_kinh_doanh: formatApiDate(master.thoi_gian_chuyen_kinh_doanh),
+        thoi_gian_chia_don: formatApiDate(master.thoi_gian_chia_don),
         tra_lai_yn: master.tra_lai_yn || 0,
     };
 
@@ -726,7 +740,7 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         stt_rec: item.stt_rec || master.stt_rec || "",
         stt_rec0: item.stt_rec0 || String(index + 1).padStart(3, '0'),
         ma_ct: "DXA",
-        ngay_ct: master.ngay_ct ? (dayjs.isDayjs(master.ngay_ct) ? master.ngay_ct.toDate() : master.ngay_ct) : new Date(),
+        ngay_ct: formatApiDate(master.ngay_ct || new Date()),
         ma_kh: item.ma_kh || master.ma_kh || "",
         so_luong: roundNum(item.so_luong || 0),
         gia_nt2: roundNum(item.gia_nt2 || 0),
@@ -738,7 +752,7 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         ck_nt: roundNum(item.ck_nt || 0, 0),
         ck: roundNum(item.ck_nt || 0, 0),
         ck_khac_nt: roundNum(item.ck_khac_nt || 0, 0),
-        ngay_giao: item.ngay_giao ? (dayjs.isDayjs(item.ngay_giao) ? item.ngay_giao.toDate() : item.ngay_giao) : (item.ngay_giao || null),
+        ngay_giao: formatApiDate(item.ngay_giao),
         km_yn: item.km_yn ? 1 : 0,
         line_nbr: index + 1,
         gia_ban: roundNum(item.gia_ban || item.gia_ban_nt || 0),
@@ -895,7 +909,7 @@ export const fetchNhanVienKDSelection = async (keyword = "", pageIndex = 1, page
         param: {
             PageIndex: pageIndex,
             PageSize: pageSize,
-            ma_nvbh: keyword,
+            ma_nvbh: "",
             ten_nvbh: keyword,
             userId: userId,
         },
@@ -917,7 +931,7 @@ export const fetchVanChuyenSelection = async (keyword = "", pageIndex = 1, pageS
         param: {
             PageIndex: pageIndex,
             PageSize: pageSize,
-            ma_vc: keyword,
+            ma_vc: "",
             ten_vc: keyword,
             userId: userId,
         },
@@ -939,7 +953,7 @@ export const fetchThanhToanSelection = async (keyword = "", pageIndex = 1, pageS
         param: {
             PageIndex: pageIndex,
             PageSize: pageSize,
-            ma_tt: keyword,
+            ma_tt: "",
             ten_tt: keyword,
             userId: userId,
         },
@@ -1041,6 +1055,14 @@ export const calculateDiscounts = async ({
     }
 };
 
+// Global cache for product metadata (units) to avoid redundant requests across modules
+const vatTuUnitsCache = {};
+
+export const getCachedUnits = (maVatTu) => {
+    if (!maVatTu) return null;
+    return vatTuUnitsCache[maVatTu.trim()] || null;
+};
+
 export const fetchThongTinVatTu = async ({
     ma_vt,
     ma_kho,
@@ -1066,8 +1088,42 @@ export const fetchThongTinVatTu = async ({
 
     try {
         const response = await multipleTablePutApi(body);
-        const list = response?.listObject?.[0] || [];
-        return list;
+        const listObject = response?.listObject || [];
+        const table0 = listObject[0] || [];
+        
+        let imageFound = null;
+        let unitsFound = null;
+
+        // Scan all tables for image and units
+        listObject.forEach((tbl, idx) => {
+            if (!Array.isArray(tbl)) return;
+            tbl.forEach(row => {
+                if (row?.image && !imageFound) imageFound = row.image;
+                // Tables other than table0 often contain auxiliary data like units
+                if (idx > 0 && row?.ma_vt && row?.dvt && !row.image) {
+                   if (!unitsFound) unitsFound = [];
+                   unitsFound.push(row);
+                }
+            });
+        });
+
+        if (table0.length > 0) {
+            const maVt = table0[0]?.ma_vt || ma_vt;
+            
+            // Populate global metadata cache
+            if (unitsFound && maVt) {
+                vatTuUnitsCache[maVt.trim()] = unitsFound;
+            }
+
+            // Enrich the first row with common metadata
+            table0[0] = { 
+                ...table0[0], 
+                image: imageFound || table0[0].image || null,
+                units: unitsFound || null 
+            };
+        }
+
+        return table0; 
     } catch (error) {
         console.error("Error fetchThongTinVatTu:", error);
         return null;
@@ -1110,6 +1166,34 @@ export const fetchThongTinNganHang = async (ma_dvcs = "TAPMED") => {
         return response?.listObject?.[0] || [];
     } catch (error) {
         console.error("Error fetchThongTinNganHang:", error);
+        return [];
+    }
+};
+
+export const fetchChiPhiSelection = async (keyword = "", pageIndex = 1, pageSize = 20) => {
+    const body = {
+        store: "api_list_chi_phi",
+        param: {
+            ma_ct: "DXA",
+            ma_loai: keyword,
+            ten_cp: keyword,
+            PageIndex: pageIndex,
+            PageSize: pageSize,
+        },
+        data: {},
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        const list = response?.listObject?.[0] || [];
+        return list.map(i => ({
+            ...i,
+            ma_cp: i.ma_loai, // Map ma_loai to ma_cp for consistency with our data model
+            value: i.ma_loai,
+            label: `${i.ma_loai} - ${i.ten_cp}`
+        }));
+    } catch (error) {
+        console.error("Lỗi khi gọi API api_list_chi_phi:", error);
         return [];
     }
 };

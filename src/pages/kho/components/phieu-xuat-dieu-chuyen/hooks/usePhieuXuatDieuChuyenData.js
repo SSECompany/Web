@@ -3,7 +3,7 @@ import { debounce } from "lodash";
 import { useCallback, useMemo, useState } from "react";
 import https from "../../../../../utils/https";
 import dayjs from "dayjs";
-import { fetchThongTinVatTu } from "../../../../kinh-doanh/components/phieu-kinh-doanh/phieuKinhDoanhApi";
+import { fetchThongTinVatTu, getCachedUnits } from "../../../../kinh-doanh/components/phieu-kinh-doanh/phieuKinhDoanhApi";
 import { fetchVatTuListDynamicApi } from "../../phieu-nhat-hang/utils/phieuNhatHangUtils";
 
 const masterDataCache = {
@@ -264,28 +264,34 @@ export const usePhieuXuatDieuChuyenData = () => {
     async (maHang, forceRefresh = false) => {
       if (!maHang) return [];
 
+      const cleanMaHang = maHang.trim();
+
+      // NEW: Prioritize global cache from fetchThongTinVatTu
+      const cached = getCachedUnits(cleanMaHang);
+      if (cached && !forceRefresh) return cached;
+
       // Kiểm tra cache trước khi gọi API
       if (
         !forceRefresh &&
         masterDataCache.lastFetch &&
         Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
-        masterDataCache.donViTinh[maHang]
+        masterDataCache.donViTinh[cleanMaHang]
       ) {
-        return masterDataCache.donViTinh[maHang];
+        return masterDataCache.donViTinh[cleanMaHang];
       }
 
       try {
         const response = await https.get(
           "v1/web/danh-sach-dv",
           {
-            ma_vt: maHang,
+            ma_vt: cleanMaHang,
           }
         );
 
         if (response.data && response.data.data) {
           const data = response.data.data;
           // Cache kết quả theo maHang
-          masterDataCache.donViTinh[maHang] = data;
+          masterDataCache.donViTinh[cleanMaHang] = data;
           masterDataCache.lastFetch = Date.now();
           return data;
         }

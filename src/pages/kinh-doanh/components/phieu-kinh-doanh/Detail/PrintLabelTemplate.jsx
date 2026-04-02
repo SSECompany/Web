@@ -17,8 +17,11 @@ const PrintLabelTemplate = React.forwardRef(({ data }, ref) => {
     const transportInfo = data.ten_vc || data.ma_vc || "";
     const transportPhone = data.sdt_nha_xe || "";
     const transportTime = data.gio_xe_chay || "";
-    const collectionAmount = data.t_tt_nt || data.t_tt || 0;
-    const paymentStatus = data.phuong_thuc_thanh_toan || data.ten_tt || "CHƯA THANH TOÁN CƯỚC";
+    const isCod = String(data.hinh_thuc_tt) === '3';
+    const collectionAmount = isCod ? (data.t_tt_nt || data.t_tt || 0) : 0;
+    
+    // kh_chiu_cuoc: 0: Công ty chịu cước, 1: Khách hàng chịu cước
+    const paymentStatus = parseInt(data.kh_chiu_cuoc) === 0 ? "ĐÃ THANH TOÁN CƯỚC" : "CHƯA THANH TOÁN CƯỚC";
 
     const transportDisplay = [
         transportInfo,
@@ -76,12 +79,14 @@ const PrintLabelTemplate = React.forwardRef(({ data }, ref) => {
                     <div className="payment-status">
                         {paymentStatus.toUpperCase()}
                     </div>
-                    <div className="payment-collection">
-                        <span className="collection-title">Thu hộ:</span>
-                        <span className="collection-value">
-                            {collectionAmount.toLocaleString()}
-                        </span>
-                    </div>
+                    {isCod && (
+                        <div className="payment-collection">
+                            <span className="collection-title">Thu hộ:</span>
+                            <span className="collection-value">
+                                {collectionAmount.toLocaleString()}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Transport Info */}

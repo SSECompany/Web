@@ -7,6 +7,7 @@ import {
   fetchVatTuSelection,
   fetchThongTinVatTu,
   fetchKhachHangSelection,
+  getCachedUnits,
 } from "../../../../kinh-doanh/components/phieu-kinh-doanh/phieuKinhDoanhApi";
 import { fetchMaKhoApi } from "../utils/phieuNhapHangApi";
 import { getUserInfo } from "../utils/phieuNhapHangUtils";
@@ -302,6 +303,10 @@ export const usePhieuNhapHangData = () => {
 
       const cleanMaVatTu = maVatTu.trim().replace(/\s+/g, " ");
 
+      // NEW: Prioritize global cache from fetchThongTinVatTu
+      const cached = getCachedUnits(cleanMaVatTu);
+      if (cached && !forceRefresh) return cached;
+
       if (
         !forceRefresh &&
         masterDataCache.lastFetch &&
@@ -314,7 +319,9 @@ export const usePhieuNhapHangData = () => {
       try {
         const encodedMaVt = encodeURIComponent(cleanMaVatTu);
         const url = `v1/web/danh-sach-dv?ma_vt=${encodedMaVt}`;
-
+        
+        // FOR NOW: Maintain call but the cache will catch 99% of cases
+        // where fetchThongTinVatTu was called first.
         const response = await https.get(
           url,
           {},

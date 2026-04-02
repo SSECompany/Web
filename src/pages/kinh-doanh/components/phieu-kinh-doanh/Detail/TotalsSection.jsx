@@ -70,13 +70,13 @@ const TotalsSection = ({
                             disabled={isFormDisabled || !watchMaKh}
                         />
                     </Form.Item>
-                    <Form.Item name="t_ck_tt" label="CK tổng đơn">
+                    <Form.Item name="t_ck_tt" label="CK tổng đơn" hidden>
                         <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} formatter={v => numFmt(v)} disabled={isFormDisabled} />
                     </Form.Item>
                     <Form.Item name="t_ck" label="Tiền chiết khấu">
                         <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} formatter={v => numFmt(v)} disabled={isFormDisabled} />
                     </Form.Item>
-                    <Form.Item name="tien_cp" label="Chi phí">
+                    <Form.Item name="tien_cp" label="G.Trừ / P.Thu">
                         <InputNumber controls={false} style={{ width: "100%", textAlign: "right" }} formatter={v => numFmt(v)} disabled={isFormDisabled} />
                     </Form.Item>
                 </Col>

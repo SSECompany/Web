@@ -1,4 +1,4 @@
-import { message, notification } from "antd";
+import { staticMessage as message, staticNotification as notification } from "./antdStatic";
 
 /**
  * NotificationManager - Quản lý tập trung tất cả notification và message
@@ -34,7 +34,6 @@ class NotificationManager {
    */
   _isAlreadyDisplayed(type, code) {
     const now = Date.now();
-    const roundedNow = Math.floor(now / 1000);
     
     // Kiểm tra tất cả các key có cùng type và code
     for (const [key, value] of this.displayedMap.entries()) {
@@ -90,14 +89,14 @@ class NotificationManager {
   /**
    * Hiển thị notification chỉ 1 lần
    * @param {string} code - Mã quét
-   * @param {string} message - Nội dung notification
+   * @param {string} messageContent - Nội dung notification
    * @param {string} description - Mô tả chi tiết
    * @returns {boolean} true nếu đã hiển thị, false nếu bỏ qua
    */
-  showNotificationOnce(code, message, description) {
+  showNotificationOnce(code, messageContent, description) {
     return this.showOnce("notification", code, () => {
       notification.success({
-        message,
+        message: messageContent,
         description,
         duration: 2,
         key: `qr-scan-${code}-${Date.now()}`,

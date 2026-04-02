@@ -8,9 +8,11 @@ export const parseMaThue = (ma_thue) => {
 
 // Replaces calculateDetailRow to apply specific formula cascading
 export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
-    const updatedRow = { ...row, [field]: value };
+    let updatedRow = { ...row, [field]: value };
+    ty_gia = parseFloat(ty_gia || 1);
     
-    // Convert all dependent variables to number before calculation
+    // Variables used for computation
+    // Read them freshly to ensure we operate on the updated values within the switch cases
     let so_luong = parseFloat(updatedRow.so_luong || 0);
     let gia_ban_nt = parseFloat(updatedRow.gia_ban_nt || 0);
     let gia_nt2 = parseFloat(updatedRow.gia_nt2 || 0);
@@ -34,8 +36,13 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
         ck_nt = parseFloat(updatedRow.ck_nt || 0);
         ck_khac_nt = parseFloat(updatedRow.ck_khac_nt || 0);
         tl_ck = parseFloat(updatedRow.tl_ck || 0);
-        thue_nt = parseFloat(updatedRow.thue_nt || 0);
         s4 = parseFloat(updatedRow.s4 || 0);
+        
+        // Cập nhật lại thue_nt theo đúng logic: thue_nt = gia_ban_nt*so_luong - s4 - tien_nt2 + ck_nt
+        // Đối với trường hợp không VAT hoặc logic cũ: (tien_nt2 - ck_nt)*thue_suat/100
+        // Theo user code: [thue_nt]:= [gia_ban_nt]*[so_luong] - [s4] - [tien_nt2] + [ck_nt]
+        updatedRow.thue_nt = Math.round(gia_ban_nt * so_luong - s4 - tien_nt2 + ck_nt + ck_khac_nt);
+        thue_nt = updatedRow.thue_nt;
     };
 
     switch (field) {
@@ -47,7 +54,6 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.ck_nt = updatedRow.tien_nt2 * tl_ck / 100;
             updatedRow.ck = updatedRow.ck_nt * ty_gia;
             recomputeDeps();
-            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
@@ -62,7 +68,6 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.ck_nt = updatedRow.tien_nt2 * tl_ck / 100;
             updatedRow.ck = updatedRow.ck_nt * ty_gia;
             recomputeDeps();
-            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
@@ -75,7 +80,6 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.ck_nt = updatedRow.tien_nt2 * tl_ck / 100;
             updatedRow.ck = updatedRow.ck_nt * ty_gia;
             recomputeDeps();
-            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
@@ -90,7 +94,6 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.tien2_tg = tien_nt2 * ty_gia;
             updatedRow.tien2 = updatedRow.tien2_tg;
             recomputeDeps();
-            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
@@ -103,7 +106,6 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.ck = ck_nt * ty_gia;
             updatedRow.s4 = gia_ban_nt * so_luong * tl_ck / 100;
             recomputeDeps();
-            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
@@ -111,14 +113,12 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.ck_nt = tien_nt2 * tl_ck / 100;
             updatedRow.ck_tl = tien2 * tl_ck / 100;
             recomputeDeps();
-            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
         case 'ck_khac_nt':
             updatedRow.ck_khac = ck_khac_nt * ty_gia;
             recomputeDeps();
-            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
@@ -137,7 +137,6 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.ck_tl = tien2 * tl_ck / 100;
             updatedRow.s4 = gia_ban_nt * so_luong * tl_ck / 100;
             recomputeDeps();
-            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 
@@ -149,7 +148,6 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.tien2_tg = updatedRow.tien_nt2 * ty_gia;
             updatedRow.tien2 = updatedRow.tien2_tg; // Tie to tien2
             recomputeDeps();
-            updatedRow.thue_nt = Math.round((tien_nt2 - ck_nt - ck_khac_nt) * thue_suat / 100);
             updatedRow.thue = updatedRow.thue_nt * ty_gia;
             break;
 

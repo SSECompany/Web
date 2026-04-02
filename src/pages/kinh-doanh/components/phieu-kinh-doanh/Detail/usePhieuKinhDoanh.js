@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Form, message } from 'antd';
+import { Form } from 'antd';
+import { staticMessage as message } from '../../../../../utils/antdStatic';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import dayjs from 'dayjs';
 import _ from 'lodash';
@@ -17,7 +18,8 @@ import {
     fetchVoucherSelection,
     calculateDiscounts,
     fetchNoiGiaoSelection,
-    fetchThongTinNganHang
+    fetchThongTinNganHang,
+    fetchChiPhiSelection
 } from '../phieuKinhDoanhApi';
 import showConfirm from '../../../../../components/common/Modal/ModalConfirm';
 import { calculateRowOnChange, calculateMasterTotals, validateKinhDoanh } from '../utils/phieuKinhDoanhUtils';
@@ -147,7 +149,7 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
                     form.setFieldsValue({
                         ...header,
                         status: header.status !== undefined && header.status !== null ? String(header.status).trim() : "0",
-                        hinh_thuc_tt: undefined, // Để hiện placeholder
+                        hinh_thuc_tt: header.ma_gd ? String(header.ma_gd).trim() : undefined,
                         kh_chiu_cuoc: header.kh_chiu_cuoc ? 1 : 0,
                         ma_vc: header.ma_vc || "",
                         ma_dc: header.ma_dc || "",
@@ -316,6 +318,7 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
                             if (item.line_nbr === record.line_nbr) {
                                 const updated = { 
                                     ...item, 
+                                    image: info.image || item.image,
                                     gia_ban_nt: info.gia_ban_nt || item.gia_ban_nt,
                                     gia_nt2: info.gia_nt2 || info.gia_ban_nt || item.gia_nt2,
                                     ma_thue: info.ma_thue || item.ma_thue,
@@ -342,13 +345,16 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
         updateTotals(newData, chiPhiData);
     };
 
-    const handleChiPhiChange = (record, field, value) => {
+    const handleChiPhiChange = (record, field, value, extraData) => {
         const ty_gia = form.getFieldValue("ty_gia") || 1;
         const newData = chiPhiData.map(item => {
-            if (item.line_nbr === record.line_nbr || (item.ma_cp === record.ma_cp && item.ma_cp)) {
-                const updatedItem = { ...item, [field]: value };
+            if (item.line_nbr === record.line_nbr) {
+                let updatedItem = { ...item, [field]: value };
+                if (field === "ma_cp" && extraData) {
+                    updatedItem.ten_cp = extraData.ten_cp || updatedItem.ten_cp;
+                }
                 if (field === "tien_cp_nt") {
-                    updatedItem.tien_cp = value * ty_gia;
+                    updatedItem.tien_cp = (value || 0) * ty_gia;
                 }
                 return updatedItem;
             }
@@ -412,120 +418,137 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
 
     const applySelectedDiscounts = () => {
         const resultsToApply = discountResults.filter(r => selectedDiscountResultsKeys.includes(r.key));
-        if (resultsToApply.length === 0) {
-            message.warning("Chưa chọn chiết khấu nào để áp dụng");
-            return;
-        }
 
         const values = form.getFieldsValue();
-        let updatedDetails = [...chiTietData];
-        let updatedChiPhi = [...chiPhiData];
-        
-        let current_t_ck_tt = 0;
-        let last_ma_ck = values.ma_ck || "";
         const ty_gia = values.ty_gia || 1;
 
-        resultsToApply.forEach(res => {
-            const kieu_ck = String(res.kieu_ck || "").trim();
-            const ma_ck = String(res.ma_ck || "").trim();
-            
-            if (kieu_ck === 'H') {
-                const ma_vts = res.ma_vt ? String(res.ma_vt).split(',') : [];
-                const ten_vts = res.ten_vt ? String(res.ten_vt).split(',') : [];
-                const dvts = res.dvt ? String(res.dvt).split(',') : [];
-                const sls = res.so_luong_tang ? String(res.so_luong_tang).split(',') : (res.so_luong ? String(res.so_luong).split(',') : []);
-                
-                ma_vts.forEach((mvt, idx) => {
-                    const newRow = {
-                        line_nbr: Date.now() + Math.round(Math.random() * 1000000),
-                        stt_rec: "",
-                        stt_rec0: "",
-                        ma_vt: mvt.trim(),
-                        ten_vt: (ten_vts[idx] || "").trim(),
-                        dvt: (dvts[idx] || "").trim(),
-                        ma_kho: String(res.ma_kho || "KOL-T2").trim(),
-                        so_luong: parseFloat(sls[idx] || 1),
-                        gia_ban_nt: 0,
-                        gia_nt2: 0,
-                        tien_nt2: 0,
-                        ma_thue: "08",
-                        thue_suat: 0,
-                        km_yn: 1,
-                        ma_ck: ma_ck,
-                        tl_ck: parseFloat(res.tl_ck || 0),
-                        ck_nt: parseFloat(res.ck_nt || res.ck || 0)
-                    };
-                    updatedDetails.push(calculateRowOnChange(newRow, "so_luong", newRow.so_luong, ty_gia));
-                    last_ma_ck = ma_ck;
-                });
-            } else if (kieu_ck === 'D') {
-                const ma_vt_mua = String(res.ma_vt_mua || res.ma_vt || "").trim();
-                updatedDetails = updatedDetails.map(row => {
-                    if (String(row.ma_vt || "").trim() === ma_vt_mua && !row.km_yn) {
-                        let updatedRow = { ...row, ma_ck: ma_ck || row.ma_ck };
-                        if (res.gia_nt && parseFloat(res.gia_nt) !== 0) {
-                            updatedRow = calculateRowOnChange(updatedRow, "gia_nt2", parseFloat(res.gia_nt), ty_gia);
-                        } else if (res.tl_ck && parseFloat(res.tl_ck) !== 0) {
-                            updatedRow = calculateRowOnChange(updatedRow, "tl_ck", parseFloat(res.tl_ck), ty_gia);
-                            if (res.tien_ck_toi_da > 0 && updatedRow.ck_nt > res.tien_ck_toi_da) {
-                                updatedRow = calculateRowOnChange(updatedRow, "ck_nt", parseFloat(res.tien_ck_toi_da), ty_gia);
-                            }
-                        } else if (res.ck_nt || res.ck) {
-                            updatedRow = calculateRowOnChange(updatedRow, "ck_nt", parseFloat(res.ck_nt || res.ck), ty_gia);
-                        }
-                        last_ma_ck = ma_ck;
-                        return updatedRow;
-                    }
-                    return row;
-                });
-            } else if (kieu_ck === 'M') {
-                let disc_val = 0;
-                if ((res.ck_nt && parseFloat(res.ck_nt) !== 0) || (res.ck && parseFloat(res.ck) !== 0)) {
-                    disc_val = parseFloat(res.ck_nt || res.ck);
-                } else if (res.tl_ck && parseFloat(res.tl_ck) !== 0) {
-                    const tl = parseFloat(res.tl_ck);
-                    const t_tien_nt2 = updatedDetails.reduce((sum, row) => sum + parseFloat(row.tien_nt2 || 0), 0);
-                    const t_ck_nt = updatedDetails.filter(r => !r.km_yn).reduce((sum, row) => sum + parseFloat(row.ck_nt || 0) + parseFloat(row.ck_khac_nt || 0), 0);
-
-                    const stt_ut = parseInt(res.stt_ut || 0);
-                    if (stt_ut <= 1) {
-                        disc_val = (tl * t_tien_nt2) / 100;
-                    } else {
-                        disc_val = (tl * (t_tien_nt2 - t_ck_nt - current_t_ck_tt)) / 100;
-                    }
-
-                    if (res.tien_ck_toi_da > 0 && disc_val > res.tien_ck_toi_da) {
-                        disc_val = res.tien_ck_toi_da;
-                    }
-                    disc_val = Math.round(disc_val);
+        // Clear old auto discounts
+        let updatedDetails = chiTietData.filter(row => !(row.km_yn === 1 && row.ma_ck));
+        updatedDetails = updatedDetails.map(row => {
+            if (row.ma_ck && !row.km_yn) {
+                let updatedRow = { ...row, ma_ck: "" };
+                if (row.gia_nt2_old) {
+                    updatedRow = calculateRowOnChange(updatedRow, "gia_nt2", parseFloat(row.gia_nt2_old), ty_gia);
                 }
-
-                if (disc_val !== 0) {
-                    current_t_ck_tt += disc_val;
-                    last_ma_ck = ma_ck;
-                    updatedChiPhi.push({
-                        line_nbr: Date.now() + Math.round(Math.random() * 1000000),
-                        ma_cp: '21',
-                        ten_cp: 'Chiết khấu tổng đơn (' + ma_ck + ')',
-                        tien_cp: disc_val,
-                        tien_cp_nt: disc_val,
-                        ma_td1: ma_ck
-                    });
-                }
+                updatedRow = calculateRowOnChange(updatedRow, "tl_ck", 0, ty_gia);
+                updatedRow = calculateRowOnChange(updatedRow, "ck_nt", 0, ty_gia);
+                return updatedRow;
             }
+            return row;
         });
+
+        let updatedChiPhi = chiPhiData.filter(cp => !(cp.ma_cp === '21' && String(cp.ten_cp || '').includes('Chiết khấu tổng đơn')));
+        
+        let current_t_ck_tt = 0;
+        let last_ma_ck = "";
+
+        if (resultsToApply.length > 0) {
+            resultsToApply.forEach(res => {
+                const kieu_ck = String(res.kieu_ck || "").trim();
+                const ma_ck = String(res.ma_ck || "").trim();
+                
+                if (kieu_ck === 'H') {
+                    const ma_vts = res.ma_vt ? String(res.ma_vt).split(',') : [];
+                    const ten_vts = res.ten_vt ? String(res.ten_vt).split(',') : [];
+                    const dvts = res.dvt ? String(res.dvt).split(',') : [];
+                    const sls = res.so_luong_tang ? String(res.so_luong_tang).split(',') : (res.so_luong ? String(res.so_luong).split(',') : []);
+                    
+                    ma_vts.forEach((mvt, idx) => {
+                        const newRow = {
+                            line_nbr: Date.now() + Math.round(Math.random() * 1000000),
+                            stt_rec: "",
+                            stt_rec0: "",
+                            ma_vt: mvt.trim(),
+                            ten_vt: (ten_vts[idx] || "").trim(),
+                            dvt: (dvts[idx] || "").trim(),
+                            ma_kho: String(res.ma_kho || "KOL-T2").trim(),
+                            so_luong: parseFloat(sls[idx] || 1),
+                            gia_ban_nt: 0,
+                            gia_nt2: 0,
+                            tien_nt2: 0,
+                            ma_thue: "08",
+                            thue_suat: 0,
+                            km_yn: 1,
+                            ma_ck: ma_ck,
+                            tl_ck: parseFloat(res.tl_ck || 0),
+                            ck_nt: parseFloat(res.ck_nt || res.ck || 0)
+                        };
+                        updatedDetails.push(calculateRowOnChange(newRow, "so_luong", newRow.so_luong, ty_gia));
+                        last_ma_ck = ma_ck;
+                    });
+                } else if (kieu_ck === 'D') {
+                    const ma_vt_mua = String(res.ma_vt_mua || res.ma_vt || "").trim();
+                    updatedDetails = updatedDetails.map(row => {
+                        if (String(row.ma_vt || "").trim() === ma_vt_mua && !row.km_yn) {
+                            let updatedRow = { ...row, ma_ck: ma_ck || row.ma_ck };
+                            if (res.gia_nt && parseFloat(res.gia_nt) !== 0) {
+                                updatedRow = calculateRowOnChange(updatedRow, "gia_nt2", parseFloat(res.gia_nt), ty_gia);
+                            } else if (res.tl_ck && parseFloat(res.tl_ck) !== 0) {
+                                updatedRow = calculateRowOnChange(updatedRow, "tl_ck", parseFloat(res.tl_ck), ty_gia);
+                                if (res.tien_ck_toi_da > 0 && updatedRow.ck_nt > res.tien_ck_toi_da) {
+                                    updatedRow = calculateRowOnChange(updatedRow, "ck_nt", parseFloat(res.tien_ck_toi_da), ty_gia);
+                                }
+                            } else if (res.ck_nt || res.ck) {
+                                updatedRow = calculateRowOnChange(updatedRow, "ck_nt", parseFloat(res.ck_nt || res.ck), ty_gia);
+                            }
+                            last_ma_ck = ma_ck;
+                            return updatedRow;
+                        }
+                        return row;
+                    });
+                } else if (kieu_ck === 'M') {
+                    let disc_val = 0;
+                    if ((res.ck_nt && parseFloat(res.ck_nt) !== 0) || (res.ck && parseFloat(res.ck) !== 0)) {
+                        disc_val = parseFloat(res.ck_nt || res.ck);
+                    } else if (res.tl_ck && parseFloat(res.tl_ck) !== 0) {
+                        const tl = parseFloat(res.tl_ck);
+                        const t_tien_nt2 = updatedDetails.reduce((sum, row) => sum + parseFloat(row.tien_nt2 || 0), 0);
+                        const t_ck_nt = updatedDetails.filter(r => !r.km_yn).reduce((sum, row) => sum + parseFloat(row.ck_nt || 0) + parseFloat(row.ck_khac_nt || 0), 0);
+
+                        const stt_ut = parseInt(res.stt_ut || 0);
+                        if (stt_ut <= 1) {
+                            disc_val = (tl * t_tien_nt2) / 100;
+                        } else {
+                            disc_val = (tl * (t_tien_nt2 - t_ck_nt - current_t_ck_tt)) / 100;
+                        }
+
+                        if (res.tien_ck_toi_da > 0 && disc_val > res.tien_ck_toi_da) {
+                            disc_val = res.tien_ck_toi_da;
+                        }
+                        disc_val = Math.round(disc_val);
+                    }
+
+                    if (disc_val !== 0) {
+                        const negativeDisc = -Math.abs(disc_val);
+                        current_t_ck_tt += disc_val; // For form hidden field tracking
+                        last_ma_ck = ma_ck;
+                        updatedChiPhi.push({
+                            line_nbr: Date.now() + Math.round(Math.random() * 1000000),
+                            ma_cp: '21',
+                            ten_cp: 'Chiết khấu tổng đơn (' + ma_ck + ')',
+                            tien_cp: negativeDisc,
+                            tien_cp_nt: negativeDisc,
+                            ma_td1: ma_ck
+                        });
+                    }
+                }
+            });
+        }
 
         setChiTietData(updatedDetails);
         setChiPhiData(updatedChiPhi);
         
         form.setFieldsValue({
-            ma_ck: last_ma_ck,
-            t_ck_tt: current_t_ck_tt
+            ma_ck: last_ma_ck
         });
 
         updateTotals(updatedDetails, updatedChiPhi);
         setDiscountModalVisible(false);
-        message.success("Đã áp dụng các chiết khấu/khuyến mại đã chọn");
+        if (resultsToApply.length > 0) {
+            message.success("Đã áp dụng các chiết khấu/khuyến mại đã chọn");
+        } else {
+            message.success("Đã hoàn tác các chiết khấu/khuyến mại");
+        }
     };
 
     const handleSearchKh = useMemo(() => _.debounce(async (val, searchField = "ten_kh") => {
@@ -796,7 +819,22 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
             
             const validationErrors = validateKinhDoanh(values, chiTietData, chiPhiData);
             if (validationErrors.length > 0) {
-                validationErrors.forEach(err => message.error(err));
+                message.error({
+                    content: (
+                        <div style={{ marginTop: '4px' }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: '10px', color: '#ff4d4f', borderBottom: '1px solid #ffccc7', paddingBottom: '6px' }}>Vui lòng kiểm tra lại thông tin:</div>
+                            <div style={{ maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' }}>
+                                {validationErrors.map((err, idx) => (
+                                    <div key={idx} style={{ marginBottom: '8px', fontSize: '13px', display: 'flex', alignItems: 'flex-start' }}>
+                                        <span style={{ marginRight: '8px', color: '#ff4d4f', fontWeight: 'bold' }}>•</span>
+                                        <span style={{ lineHeight: '1.4' }}>{err}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ),
+                    duration: 6,
+                });
                 return;
             }
 
@@ -833,6 +871,19 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
             message.error("Vui lòng kiểm tra lại thông tin");
         }
     };
+
+    const [chiPhiSelectOptions, setChiPhiSelectOptions] = useState([]);
+    const [chiPhiSearchLoading, setChiPhiSearchLoading] = useState(false);
+
+    const handleSearchChiPhi = useMemo(() => _.debounce(async (val) => {
+        setChiPhiSearchLoading(true);
+        try {
+            const list = await fetchChiPhiSelection(val);
+            setChiPhiSelectOptions(list);
+        } finally {
+            setChiPhiSearchLoading(false);
+        }
+    }, 300), []);
 
     return {
         form,
@@ -874,12 +925,14 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
         vcSelectOptions,
         voucherSelectOptions,
         noiGiaoSelectOptions,
+        chiPhiSelectOptions,
         khSearchLoading,
         nvSearchLoading,
         ttSearchLoading,
         vcSearchLoading,
         voucherSearchLoading,
         noiGiaoSearchLoading,
+        chiPhiSearchLoading,
         vatTuInput,
         setVatTuInput,
         barcodeEnabled,
@@ -907,6 +960,7 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
         handleSearchVc,
         handleSearchVoucher,
         handleSearchNoiGiao,
+        handleSearchChiPhi,
         handleSearchVt,
         fetchVatTuListWrapper,
         handleVatTuSelect,
@@ -921,6 +975,7 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
         handleDeleteSelected,
         handleDeleteRow,
         handleDeleteChiPhi,
-        fetchNoiGiaoSelection
+        fetchNoiGiaoSelection,
+        setNoiGiaoSelectOptions
     };
 };

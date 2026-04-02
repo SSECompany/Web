@@ -1,4 +1,4 @@
-import { message } from "antd";
+import { staticMessage as message } from "../../../../../utils/antdStatic";
 import { useRef, useState } from "react";
 
 export const useVatTuManager = () => {
@@ -139,6 +139,7 @@ export const useVatTuManager = () => {
                 dvt: dvtHienTai || dvtAPI,
                 dvt_goc: dvtAPI,
                 ma_kho: (vatTuInfo.ma_kho || item.ma_kho || "").trim(), // Cập nhật ma_kho từ API, fallback về giá trị cũ
+                image: vatTuInfo.image || item.image || null,
                 donViTinhList: donViTinhList,
                 isNewlyAdded: item.isNewlyAdded,
                 _lastUpdated: Date.now(),
@@ -201,6 +202,7 @@ export const useVatTuManager = () => {
             he_so: heSoHienTai,
             he_so_goc: heSoGocFromAPI,
             ten_mat_hang: vatTuInfo.ten_vt || value,
+            image: vatTuInfo.image || null,
             dvt: dvtHienTai,
             dvt_goc: dvtGocFromAPI,
             tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",

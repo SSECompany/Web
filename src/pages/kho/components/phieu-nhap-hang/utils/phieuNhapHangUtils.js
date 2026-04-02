@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import { message } from "antd";
+import { staticMessage as message } from "../../../../../utils/antdStatic";
 import { multipleTablePutApi } from "../../../../../api";
 import jwt from "../../../../../utils/jwt";
 
