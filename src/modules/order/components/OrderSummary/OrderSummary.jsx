@@ -128,34 +128,49 @@ const callPrintOrderApi = async (sttRec, userId) => {
   }
 };
 
-// Helper function để chạy song song print-order và InvoiceReceipt
+// Helper function để chạy song song print-order và InvoiceReceipt (syncFast)
 const runParallelTasks = async (
   sttRec,
   userId,
-  sync = true
+  sync = true,
+  isPrepaidStudent = false,
+  isPostpaidStudent = false
 ) => {
   const parallelTasks = [];
 
-  // Bỏ qua việc gọi InvoiceReceipt (đồng bộ) theo yêu cầu
-
-  // Thêm task in order
-  const printTask = callPrintOrderApi(sttRec, userId)
-    .then((result) => {
-      return {
-        type: "print",
-        success: result.success,
-        result: result.result,
-      };
-    })
-    .catch((printError) => {
-      notification.error({
-        message: "Có lỗi xảy ra khi in đơn hàng!",
-        description: printError.message,
+  // Task đồng bộ InvoiceReceipt (nếu bật sync)
+  if (sync) {
+    const syncTask = callSyncFastApi(sttRec, userId)
+      .then((result) => {
+        return { type: "sync", success: result.success, result: result.result };
+      })
+      .catch((syncError) => {
+        return { type: "sync", success: false, error: syncError };
       });
-      return { type: "print", success: false, error: printError };
-    });
 
-  parallelTasks.push(printTask);
+    parallelTasks.push(syncTask);
+  }
+
+  // Task print-order (bỏ qua nếu là sinh viên trả trước/trả sau)
+  if (!isPrepaidStudent && !isPostpaidStudent) {
+    const printTask = callPrintOrderApi(sttRec, userId)
+      .then((result) => {
+        return {
+          type: "print",
+          success: result.success,
+          result: result.result,
+        };
+      })
+      .catch((printError) => {
+        notification.error({
+          message: "Có lỗi xảy ra khi in đơn hàng!",
+          description: printError.message,
+        });
+        return { type: "print", success: false, error: printError };
+      });
+
+    parallelTasks.push(printTask);
+  }
 
   // Chạy tất cả tasks SONG SONG
   return Promise.allSettled(parallelTasks)
@@ -421,17 +436,23 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
       const response = await multipleTablePutApi(payload);
       if (response?.responseModel?.isSucceded) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
+        const orderNumber = response?.listObject[0][0]?.so_ct;
 
         if (sttRec) {
           // BƯỚC 2: Bật hộp thoại in NGAY LẬP TỨC
           if (!isSaveOnly) {
-            const masterWithDvcs = { ...orderData.masterData, ten_dvcs: unitName || "" };
+            const masterWithDvcs = {
+              ...orderData.masterData,
+              ten_dvcs: unitName || "",
+              ...(orderNumber ? { so_ct: orderNumber } : {}),
+            };
             setPrintMaster(masterWithDvcs);
             setPrintDetail(orderData.detailData);
             setCurrentPrintData({
               master: masterWithDvcs,
               detail: orderData.detailData,
               sttRec,
+              orderNumber,
               sync: true,
             });
             setHasReprinted(false);
@@ -440,11 +461,12 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
           }
 
           if (!isSaveOnly) {
-            runParallelTasks(
-              sttRec,
-              id,
-              true
-            )
+            const typeStudent =
+              activeTab?.metadata?.typeStudent || activeTab?.master?.typeStudent;
+            const isPrepaidStudent = typeStudent === "prepaid_student";
+            const isPostpaidStudent = typeStudent === "postpaid_student";
+
+            runParallelTasks(sttRec, id, true, isPrepaidStudent, isPostpaidStudent)
               .then((results) => {
                 // Silent success - chạy background
               })
@@ -519,7 +541,10 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
         ...currentPrintData.master,
         so_ct: currentPrintData.orderNumber ?? currentPrintData.master?.so_ct ?? "Chưa có",
       };
-      if (!printerService.isSimulationMode) {
+      const hasRealPrinter = printerService.isInitialized && printerService.printerInstance;
+      const isAndroid = /Android/i.test(navigator?.userAgent || "");
+      
+      if (hasRealPrinter) {
         await printerService.printReceipt(
           masterForPrint,
           currentPrintData.detail,
@@ -533,15 +558,25 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
         });
         setReceiptPreviewVisible(false);
       } else {
-        setPrintMaster(masterForPrint);
-        setPrintDetail(currentPrintData.detail);
-        setReceiptPreviewVisible(false);
-        setTimeout(() => handlePrint(), 300);
-        notification.info({
-          message: "In lại hóa đơn",
-          description: "Chế độ simulation - in qua trình duyệt.",
-          duration: 3,
-        });
+        if (isAndroid) {
+          notification.error({
+            message: "Không thể in lại",
+            description: "Máy in POS chưa sẵn sàng.",
+            duration: 3,
+          });
+          setReceiptPreviewVisible(false);
+        } else {
+          // PC: dùng react-to-print
+          setPrintMaster(masterForPrint);
+          setPrintDetail(currentPrintData.detail);
+          setReceiptPreviewVisible(false);
+          setTimeout(() => handlePrint(), 300);
+          notification.info({
+            message: "In lại hóa đơn",
+            description: "In qua trình duyệt (PC/dev).",
+            duration: 3,
+          });
+        }
       }
     } catch (err) {
       notification.error({
@@ -624,7 +659,12 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
           // Nếu retry thành công, tiếp tục in như bình thường
         }
 
-        if (!printerService.isSimulationMode) {
+        // Kiểm tra xem có máy in thật không
+        const hasRealPrinter = printerService.isInitialized && printerService.printerInstance;
+        const isAndroid = /Android/i.test(navigator?.userAgent || "");
+        
+        if (hasRealPrinter) {
+          // Có máy in thật → in qua máy in nhiệt
           try {
             // Mở két tiền khi thanh toán (trước khi in hóa đơn)
             try {
@@ -653,11 +693,9 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
             setTimeout(() => handleSaveOrder(), 100);
           }
         } else {
-          const isAndroid = /Android/i.test(navigator?.userAgent || "");
-          // Chế độ simulation:
-          // - Android POS: coi là lỗi, KHÔNG in giả lập qua trình duyệt (để tránh case “báo thành công nhưng không in”)
-          // - PC dev: cho phép fallback react-to-print như hiện tại
+          // Không có máy in thật
           if (isAndroid) {
+            // Android POS: báo lỗi, không in giả
             notification.error({
               message: "Máy in POS chưa sẵn sàng",
               description:
@@ -668,7 +706,7 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
             setIsPrinting(false);
             setTimeout(() => handleSaveOrder(), 100);
           } else {
-            // Mở dialog in trình duyệt (timer 10s đã đặt ở trên)
+            // PC/dev: dùng react-to-print để test
             handlePrint();
           }
         }
@@ -850,11 +888,12 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
           setIsPrinting(true);
           setIsPrinted(false);
 
-          runParallelTasks(
-            sttRec,
-            id,
-            sync
-          )
+          const typeStudent =
+            activeTab?.metadata?.typeStudent || activeTab?.master?.typeStudent;
+          const isPrepaidStudent = typeStudent === "prepaid_student";
+          const isPostpaidStudent = typeStudent === "postpaid_student";
+
+          runParallelTasks(sttRec, id, sync, isPrepaidStudent, isPostpaidStudent)
             .then(() => {
               // Silent success - chạy background
             })

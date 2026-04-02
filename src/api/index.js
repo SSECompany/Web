@@ -7,8 +7,9 @@ import { APP_CONFIG } from "../utils/constants";
 // Use simple logger
 const logger = simpleLogger;
 
-// Tắt tạm API Print/print-order (chưa sử dụng). Bật lại: đổi thành false
-const PRINT_ORDER_API_DISABLED = true;
+// API Print/print-order: dự án Phenika đang bật để server xử lý job in sau thanh toán.
+// Nếu cần tắt tạm (debug/triển khai), đổi thành true.
+const PRINT_ORDER_API_DISABLED = false;
 
 export const refreshToken = async () => {
   return await https

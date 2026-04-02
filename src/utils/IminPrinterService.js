@@ -17,6 +17,17 @@
  * - Cắt giấy tự động (partialCut/fullCut)
  * - Kiểm soát căn chỉnh, font, kích thước
  */
+// EMVCo/VietQR raw payload dùng cho QR thanh toán in trên hóa đơn.
+// Cần đồng bộ với QR hiển thị trong PaymentModal (PAYMENT_EMV_PAYLOAD).
+const PAYMENT_EMV_PAYLOAD =
+  "00020101021138560010A0000007270126000697041201121090034978650208QRIBFTTA53037045802VN6304C4F0";
+
+// Footer cấu hình (để setup mẫu in giống hình tham chiếu: hotline/email/website...)
+// Có thể override bằng biến môi trường khi build.
+const PRINT_FOOTER_BRAND = process.env.REACT_APP_PRINT_FOOTER_BRAND || "";
+const PRINT_FOOTER_WEBSITE = process.env.REACT_APP_PRINT_FOOTER_WEBSITE || "";
+const PRINT_FOOTER_HOTLINE = process.env.REACT_APP_PRINT_FOOTER_HOTLINE || "";
+const PRINT_FOOTER_EMAIL = process.env.REACT_APP_PRINT_FOOTER_EMAIL || "";
 
 class IminPrinterService {
   constructor() {
@@ -36,6 +47,25 @@ class IminPrinterService {
       cut: 0,
       betweenCopies: 0,
     };
+  }
+
+  /**
+   * Nhãn hình thức thanh toán rút gọn để in 1 dòng (tránh bị wrap).
+   * Ví dụ:
+   * - "tien_mat" -> "Tiền mặt"
+   * - "chuyen_khoan" -> "Chuyển khoản"
+   * - "tien_mat,chuyen_khoan" -> "CK + TM"
+   */
+  formatPaymentMethodShort(method) {
+    if (!method) return 'Tiền mặt';
+    const methods = String(method).split(',').map((m) => m.trim()).filter(Boolean);
+    const hasCash = methods.includes('tien_mat');
+    const hasTransfer = methods.includes('chuyen_khoan');
+    const hasDebt = methods.includes('cong_no');
+    if (hasDebt) return 'Công nợ';
+    if (hasCash && hasTransfer) return 'CK + TM';
+    if (hasTransfer) return 'Chuyển khoản';
+    return 'Tiền mặt';
   }
 
   sleep(ms = 0) {
@@ -133,8 +163,8 @@ class IminPrinterService {
             // Bước 1: Kết nối WebSocket tới print service (chạy trên D4-504, ws://127.0.0.1:8081/websocket)
             await this.printerInstance.connect();
             // Bước 2: Khởi tạo máy in - D4-504 dùng SPI (built-in printer)
-            // Theo tài liệu iMin JS Printer SDK: initPrinter(connectType) trả về Promise → cần await.
-            await this.printerInstance.initPrinter('SPI');
+            // Theo SDK imin-printer v1.4.0: initPrinter(connectType) là hàm sync, chỉ cần gọi.
+            this.printerInstance.initPrinter('SPI');
             this.isInitialized = true;
             this.isSimulationMode = false;
             this.applyAutoDelays();
@@ -163,27 +193,16 @@ class IminPrinterService {
           }
         }
 
-        // Sau khi thử nhiều lần mà vẫn không được → fallback simulation như cũ
+        // Sau khi thử nhiều lần mà vẫn không được → không set simulation, để rơi vào nhánh else
         if (!this.isInitialized) {
           console.warn(
             '⚠️ Không thể kết nối print service sau nhiều lần thử:',
             lastError?.message || lastError
           );
-          console.warn(
-            '💡 Chạy ở chế độ simulation. Trên D4-504 khi print service sẵn sàng, lần in sau sẽ tự kết nối lại.'
-          );
           this.printerInstance = null;
-          this.isSimulationMode = true;
-          this.isInitialized = true;
-          this.sdkVersion = 'simulation';
-          if (typeof window !== "undefined") {
-            window.__IMIN_PRINTER_STATUS__ = {
-              mode: "simulation",
-              sdkVersion: this.sdkVersion,
-              isSimulation: true,
-              timestamp: Date.now(),
-            };
-          }
+          this.isInitialized = false;
+          this.sdkVersion = null;
+          // Không set simulation, để rơi vào nhánh else ở dưới (pending/error)
         }
       }
       // 2. Thử SDK V2.0 (Android 13+)
@@ -295,29 +314,35 @@ class IminPrinterService {
           };
         }
 
-        // PC/dev: cho phép chạy simulation để test in qua trình duyệt
-        console.warn('⚠️ iMin SDK không tìm thấy. Chạy ở chế độ simulation (PC/dev).');
-        console.warn('💡 Cần import imin-printer (src/utils/imin-printer.js) trong entry.');
-        this.isSimulationMode = true;
-        this.isInitialized = true;
-        this.sdkVersion = 'simulation';
+        // PC/dev: không có SDK → trả về error (component sẽ tự quyết định dùng react-to-print)
+        console.warn('⚠️ iMin SDK không tìm thấy. Không thể in trên môi trường này.');
+        this.isSimulationMode = false;
+        this.isInitialized = false;
+        this.sdkVersion = null;
         if (typeof window !== "undefined") {
           window.__IMIN_PRINTER_STATUS__ = {
-            mode: "simulation",
-            sdkVersion: this.sdkVersion,
-            isSimulation: true,
+            mode: "error",
+            sdkVersion: null,
+            isSimulation: false,
             timestamp: Date.now(),
+            message: "iMin SDK không tìm thấy. Không thể in trên môi trường này.",
           };
         }
+        return {
+          success: false,
+          mode: "error",
+          sdkVersion: null,
+          message: "iMin SDK không tìm thấy. Không thể in.",
+        };
       }
       
       return { 
-        success: true, 
-        mode: this.isSimulationMode ? 'simulation' : 'real',
+        success: this.isInitialized, 
+        mode: this.isInitialized ? 'real' : 'error',
         sdkVersion: this.sdkVersion,
-        message: this.isSimulationMode 
-          ? 'Chế độ simulation - iMin SDK chưa sẵn sàng' 
-          : `Đã kết nối ${this.sdkVersion === 'v1.0-js' ? 'iMin JavaScript SDK v1.4.0' : 'SDK ' + this.sdkVersion}`
+        message: this.isInitialized
+          ? `Đã kết nối ${this.sdkVersion === 'v1.0-js' ? 'iMin JavaScript SDK v1.4.0' : 'SDK ' + this.sdkVersion}`
+          : 'Máy in chưa được khởi tạo'
       };
     } catch (error) {
       console.error('❌ Lỗi khởi tạo máy in:', error);
@@ -353,11 +378,7 @@ class IminPrinterService {
    * @param {number} space - Khoảng cách (0-255, mặc định ~30)
    */
   async setTextLineSpacing(space = 0) {
-    if (this.isSimulationMode) {
-      return { success: true };
-    }
-
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.printerInstance) {
       throw new Error('Máy in chưa được khởi tạo');
     }
 
@@ -375,8 +396,7 @@ class IminPrinterService {
    * Set kiểu chữ (0=normal, 1=bold, 2=italic, 3=boldItalic) cho các lệnh in tiếp theo
    */
   async setTextStyle(styleValue) {
-    if (this.isSimulationMode) return;
-    if (!this.isInitialized) return;
+    if (!this.isInitialized || !this.printerInstance) return;
     try {
       this.printerInstance.setTextStyle(styleValue);
       await this.sleep(this.delays.style);
@@ -397,11 +417,7 @@ class IminPrinterService {
       align = 'left', // 'left', 'center', 'right'
     } = options;
 
-    if (this.isSimulationMode) {
-      return { success: true };
-    }
-
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.printerInstance) {
       throw new Error('Máy in chưa được khởi tạo');
     }
 
@@ -429,11 +445,7 @@ class IminPrinterService {
    * @param {array} columns - Mảng các cột: [{ text, width, align }]
    */
   async printColumnsText(columns) {
-    if (this.isSimulationMode) {
-      return { success: true };
-    }
-
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.printerInstance) {
       throw new Error('Máy in chưa được khởi tạo');
     }
 
@@ -463,16 +475,13 @@ class IminPrinterService {
    */
   async printQrCode(data, options = {}) {
     const {
-      qrSize = 6,
+      // Giảm mặc định từ 6 → 4 để QR nhỏ hơn, phù hợp khổ giấy
+      qrSize = 1,
       align = 'center',
       errorCorrectionLevel = 'levelM', // levelL, levelM, levelQ, levelH
     } = options;
 
-    if (this.isSimulationMode) {
-      return { success: true };
-    }
-
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.printerInstance) {
       throw new Error('Máy in chưa được khởi tạo');
     }
 
@@ -511,11 +520,7 @@ class IminPrinterService {
       align = 'center',
     } = options;
 
-    if (this.isSimulationMode) {
-      return { success: true };
-    }
-
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.printerInstance) {
       throw new Error('Máy in chưa được khởi tạo');
     }
 
@@ -556,11 +561,7 @@ class IminPrinterService {
    * @param {number} units - Số đơn vị đẩy giấy (0-255)
    */
   async printAndFeedPaper(units = 50) {
-    if (this.isSimulationMode) {
-      return { success: true };
-    }
-
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.printerInstance) {
       throw new Error('Máy in chưa được khởi tạo');
     }
 
@@ -583,11 +584,7 @@ class IminPrinterService {
    * Cắt giấy một phần (giữ giấy không rơi hẳn)
    */
   async partialCut() {
-    if (this.isSimulationMode) {
-      return { success: true };
-    }
-
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.printerInstance) {
       throw new Error('Máy in chưa được khởi tạo');
     }
 
@@ -606,11 +603,7 @@ class IminPrinterService {
    * Cắt giấy hoàn toàn
    */
   async fullCut() {
-    if (this.isSimulationMode) {
-      return { success: true };
-    }
-
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.printerInstance) {
       throw new Error('Máy in chưa được khởi tạo');
     }
 
@@ -633,11 +626,7 @@ class IminPrinterService {
    * Mở ngăn kéo tiền (nếu có)
    */
   async openCashBox() {
-    if (this.isSimulationMode) {
-      return { success: true };
-    }
-
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.printerInstance) {
       throw new Error('Máy in chưa được khởi tạo');
     }
 
@@ -687,23 +676,30 @@ class IminPrinterService {
         } else if (numberOfCopies > 1) {
           hoaDonTitle = `HÓA ĐƠN(${copy}/${numberOfCopies})`;
         }
-        // Header gộp 4 dòng: tên trường, địa chỉ, tiêu đề hóa đơn, ngày giờ
-        const headerBlock = `ĐẠI HỌC PHENIKAA\nĐịa chỉ: Nguyễn Văn Trác, Dương Nội, Hà Nội\n${hoaDonTitle}\n${dateStr}`;
+        // Header (giống mẫu tham chiếu): tên trường, địa chỉ, tiêu đề hóa đơn
+        // (Ngày giờ sẽ in ở phần dưới, gần "Số thẻ")
+        const headerBlock = `ĐẠI HỌC PHENIKAA\nĐịa chỉ: Nguyễn Văn Trác, Dương Nội, Hà Nội\n${hoaDonTitle}`;
         await this.printText(headerBlock, {
           fontSize: 24,
           fontStyle: 'bold',
           align: 'center',
         });
 
-        // Số thẻ: chỉ hiển thị khi có nhập (ẩn nếu rỗng hoặc placeholder "POS")
-        const soThe = (master?.so_the && master.so_the.trim()) || (master?.ma_ban && master.ma_ban.trim()) || '';
-        const soTheHienThi = soThe && soThe.toUpperCase() !== 'POS' ? soThe : '';
-        if (soTheHienThi) {
-          await this.printText(`Số thẻ: ${soTheHienThi}`, {
-            fontSize: 29,
-            fontStyle: 'bold',
-            align: 'center',
-          });
+        // Dòng thể hiện hình thức thanh toán + Liên: x/y (gần giống mẫu tham chiếu)
+        try {
+          // Dùng nhãn ngắn để đảm bảo nằm 1 dòng, không bị QR/độ rộng đẩy xuống dòng
+          const paymentLabel = this.formatPaymentMethodShort(master?.httt || '');
+          const lienText =
+            numberOfCopies > 1 ? `Liên: ${copy}/${numberOfCopies}` : '';
+          await this.setTextStyle(1); // bold
+          await this.printColumnsText([
+            // Tổng width 8 giống bảng món (3+1+2+2) để canh lề ổn định
+            { text: `[${paymentLabel}]`, width: 6, align: 'left', fontSize: 22 },
+            { text: lienText, width: 2, align: 'right', fontSize: 22 },
+          ]);
+          await this.setTextStyle(0); // normal
+        } catch (e) {
+          console.warn('⚠️ Không thể in dòng hình thức thanh toán:', e);
         }
 
         await this.setTextLineSpacing(0);
@@ -713,24 +709,7 @@ class IminPrinterService {
         const infoLines = [];
         const tenKhach = (master?.ong_ba || master?.ten_kh || '').toString().trim();
         infoLines.push(`Tên khách: ${tenKhach || 'Khách hàng căng tin'}`);
-        if (master?.ma_so_thue_kh && master.ma_so_thue_kh.trim()) {
-          infoLines.push(`Mã số thuế: ${master.ma_so_thue_kh}`);
-        }
-        const isXuatHoaDonOrKhachTraSau = master?.xuat_hoa_don_yn === '1' || master?.kh_ts_yn === '1';
-        if (!isXuatHoaDonOrKhachTraSau) {
-          const chuyenKhoan = Number(master?.chuyen_khoan || 0);
-          const tienMat = Number(master?.tien_mat || 0);
-          const isDaPhuongThuc = chuyenKhoan > 0 && tienMat > 0;
-          if (isDaPhuongThuc) {
-            if (chuyenKhoan > 0) infoLines.push(`  • Chuyển khoản: ${this.formatNumber(chuyenKhoan)}đ`);
-            if (tienMat > 0) infoLines.push(`  • Tiền mặt: ${this.formatNumber(tienMat)}đ`);
-          }
-        }
         infoLines.push(`Số CT: ${master?.so_ct || 'Chưa có'}`);
-        const tenDvcs = (master?.ten_dvcs || master?.unitName || master?.DVCS || '').toString().trim();
-        if (tenDvcs) {
-          infoLines.push(`Tên DVCS: ${tenDvcs}`);
-        }
         if (infoLines.length > 0) {
           await this.printText(infoLines.join('\n'), { fontSize: 22, fontStyle: 'bold' });
         }
@@ -803,10 +782,43 @@ class IminPrinterService {
           align: 'right',
         });
 
-        await this.printText('CẢM ƠN QUÝ KHÁCH, HẸN GẶP LẠI!', {
+        // Khối footer (giống mẫu tham chiếu): Số thẻ + ngày giờ + nhân viên/DVCS + hotline/email
+        const soThe = (master?.so_the && master.so_the.trim()) || (master?.ma_ban && master.ma_ban.trim()) || '';
+        const soTheHienThi = soThe && soThe.toUpperCase() !== 'POS' ? soThe : '';
+        const tenNvbh = (master?.ten_nvbh || '').toString().trim();
+        const tenDvcs = (master?.ten_dvcs || master?.unitName || master?.DVCS || '').toString().trim();
+        const footerLines = [];
+        if (soTheHienThi) footerLines.push(`Số thẻ: ${soTheHienThi}`);
+        footerLines.push(dateStr);
+        const staffLine = [tenNvbh, tenDvcs].filter(Boolean).join(' - ');
+        if (staffLine) footerLines.push(staffLine);
+        if (PRINT_FOOTER_HOTLINE) footerLines.push(`Hotline: ${PRINT_FOOTER_HOTLINE}`);
+        if (PRINT_FOOTER_EMAIL) footerLines.push(`Email: ${PRINT_FOOTER_EMAIL}`);
+        if (footerLines.length) {
+          await this.printText(footerLines.join('\n'), { fontSize: 22, fontStyle: 'bold', align: 'left' });
+        }
+
+        // QR thanh toán (gần cuối, canh phải)
+        try {
+          const httt = String(master?.httt || '').split(',').map((m) => m.trim());
+          const hasTransfer = httt.includes('chuyen_khoan');
+          if (hasTransfer && PAYMENT_EMV_PAYLOAD) {
+            await this.printQrCode(PAYMENT_EMV_PAYLOAD, { qrSize: 4, align: 'right' });
+            await this.printAndFeedPaper(10);
+          }
+        } catch (e) {
+          console.warn('⚠️ Không thể in QR thanh toán:', e?.message || e);
+        }
+
+        // Brand/website (center) nếu có cấu hình
+        const brandWebsite = [PRINT_FOOTER_BRAND, PRINT_FOOTER_WEBSITE].filter(Boolean).join(' - ');
+        if (brandWebsite) {
+          await this.printText(brandWebsite, { fontSize: 20, align: 'center' });
+        }
+
+        await this.printText('CẢM ƠN QUÝ KHÁCH', {
           fontSize: 22,
           align: 'center',
-          fontStyle: 'italic',
         });
 
         await this.printAndFeedPaper(60);
@@ -851,11 +863,6 @@ class IminPrinterService {
    * Reset và đóng kết nối máy in
    */
   async disconnect() {
-    if (this.isSimulationMode) {
-      this.isInitialized = false;
-      return { success: true };
-    }
-
     if (this.printerInstance) {
       try {
         if (this.printerInstance.resetDevice) {

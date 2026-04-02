@@ -1,5 +1,6 @@
 import React from "react";
 import { formatNumber } from "../../../../../app/hook/dataFormatHelper";
+import VietQR from "../../../../../components/common/GenerateQR/VietQR";
 import "./ReceiptThermalPreview.css";
 
 const formatPaymentMethod = (method) => {
@@ -19,6 +20,10 @@ const formatPaymentMethod = (method) => {
  * Preview hóa đơn giống mẫu in thermal của IminPrinterService.printReceipt
  * (ĐẠI HỌC PHENIKAA, địa chỉ Nguyễn Văn Trác, Số thẻ, bảng món, chiết khấu, tổng tiền)
  */
+// EMVCo/VietQR raw payload – cần đồng bộ với PAYMENT_EMV_PAYLOAD trong PaymentModal & IminPrinterService
+const PAYMENT_EMV_PAYLOAD =
+  "00020101021138560010A0000007270126000697041201121090034978650208QRIBFTTA53037045802VN6304C4F0";
+
 const ReceiptThermalPreview = ({
   master = {},
   detail = [],
@@ -39,47 +44,70 @@ const ReceiptThermalPreview = ({
 
   return (
     <div className="receipt-thermal-preview">
-      {/* Header - căn giữa */}
-      <div className="rtep-header">
-        <div className="rtep-title rtep-center rtep-bold">ĐẠI HỌC PHENIKAA</div>
-        <div className="rtep-subtitle rtep-center">Địa chỉ: Nguyễn Văn Trác, Dương Nội, Hà Nội</div>
-        <div className="rtep-title rtep-center rtep-bold">{receiptTitle}</div>
-        <div className="rtep-date rtep-center">{dateStr}</div>
-      </div>
-
-
-      {/* Thông tin đơn - căn trái */}
-      <div className="rtep-info">
-        {soTheHienThi ? (
-          <div className="rtep-bold">Số thẻ: {soTheHienThi}</div>
-        ) : null}
-        <div>
-          Tên khách:{" "}
-          {(master?.ong_ba && master.ong_ba.trim()) ||
-            (master?.ten_kh && master.ten_kh.trim()) ||
-            "Khách hàng căng tin"}
+      {/* Khu vực header + QR + thông tin đơn */}
+      <div className="rtep-header-wrapper">
+        {/* Header - căn giữa */}
+        <div className="rtep-header">
+          <div className="rtep-title rtep-center rtep-bold">ĐẠI HỌC PHENIKAA</div>
+          <div className="rtep-subtitle rtep-center">
+            Địa chỉ: Nguyễn Văn Trác, Dương Nội, Hà Nội
+          </div>
+          <div className="rtep-title rtep-center rtep-bold">{receiptTitle}</div>
+          <div className="rtep-date rtep-center">{dateStr}</div>
+          {soTheHienThi ? (
+            <div className="rtep-bold rtep-center rtep-card-number">
+              Số thẻ: {soTheHienThi}
+            </div>
+          ) : null}
         </div>
-        {master?.ma_so_thue_kh && master.ma_so_thue_kh.trim() ? (
-          <div>Mã số thuế: {master.ma_so_thue_kh}</div>
-        ) : null}
-        {!isXuatHoaDonOrKhachTraSau && (
-          <>
-            {Number(master?.chuyen_khoan || 0) > 0 && Number(master?.tien_mat || 0) > 0 && (
-              <>
-                {Number(master?.chuyen_khoan || 0) > 0 && (
-                  <div>• Chuyển khoản: {formatNumber(master.chuyen_khoan)}đ</div>
+
+        {/* QR thanh toán ở ô bên trái (giống vị trí trên hóa đơn thật) */}
+        <div className="rtep-qr-box">
+          {/* Chỉ hiển thị QR nếu có chuyển khoản */}
+          {String(master?.httt || "")
+            .split(",")
+            .map((m) => m.trim())
+            .includes("chuyen_khoan") && (
+            <VietQR payload={PAYMENT_EMV_PAYLOAD} size={64} />
+          )}
+        </div>
+
+        {/* Thông tin đơn - căn trái */}
+        <div className="rtep-info">
+          {(master?.ten_nvbh || "").toString().trim() ? (
+            <div>Nhân viên: {master.ten_nvbh}</div>
+          ) : null}
+          <div>
+            Tên khách:{" "}
+            {(master?.ong_ba && master.ong_ba.trim()) ||
+              (master?.ten_kh && master.ten_kh.trim()) ||
+              "Khách hàng căng tin"}
+          </div>
+          {master?.ma_so_thue_kh && master.ma_so_thue_kh.trim() ? (
+            <div>Mã số thuế: {master.ma_so_thue_kh}</div>
+          ) : null}
+          {!isXuatHoaDonOrKhachTraSau && (
+            <>
+              {Number(master?.chuyen_khoan || 0) > 0 &&
+                Number(master?.tien_mat || 0) > 0 && (
+                  <>
+                    {Number(master?.chuyen_khoan || 0) > 0 && (
+                      <div>• Chuyển khoản: {formatNumber(master.chuyen_khoan)}đ</div>
+                    )}
+                    {Number(master?.tien_mat || 0) > 0 && (
+                      <div>• Tiền mặt: {formatNumber(master.tien_mat)}đ</div>
+                    )}
+                  </>
                 )}
-                {Number(master?.tien_mat || 0) > 0 && (
-                  <div>• Tiền mặt: {formatNumber(master.tien_mat)}đ</div>
-                )}
-              </>
-            )}
-          </>
-        )}
-        <div>Số CT: {master?.so_ct || "Chưa có"}</div>
-        {(master?.ten_dvcs || master?.unitName || master?.DVCS || "").toString().trim() ? (
-          <div>Tên DVCS: {master?.ten_dvcs || master?.unitName || master?.DVCS}</div>
-        ) : null}
+            </>
+          )}
+          <div>Số CT: {master?.so_ct || "Chưa có"}</div>
+          {(master?.ten_dvcs || master?.unitName || master?.DVCS || "")
+            .toString()
+            .trim() ? (
+            <div>Tên DVCS: {master?.ten_dvcs || master?.unitName || master?.DVCS}</div>
+          ) : null}
+        </div>
       </div>
 
 

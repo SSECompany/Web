@@ -574,7 +574,10 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       const printerService = new IminPrinterService();
       await printerService.initPrinter();
 
-      if (!printerService.isSimulationMode) {
+      const hasRealPrinter = printerService.isInitialized && printerService.printerInstance;
+      const isAndroid = /Android/i.test(navigator?.userAgent || "");
+      
+      if (hasRealPrinter) {
         await printerService.printReceipt(
           previewMaster,
           previewDetailFlat,
@@ -588,16 +591,26 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         });
         setPreviewVisible(false);
       } else {
-        usedSimulation = true;
-        setPrintMaster(previewMaster);
-        setPrintDetail(previewDetailGrouped);
-        setPreviewVisible(false);
-        setTimeout(() => handlePrint(), 300);
-        notification.info({
-          message: "In lại hóa đơn",
-          description: "Chế độ simulation - in qua trình duyệt.",
-          duration: 3,
-        });
+        if (isAndroid) {
+          notification.error({
+            message: "Không thể in lại",
+            description: "Máy in POS chưa sẵn sàng.",
+            duration: 3,
+          });
+          setPreviewVisible(false);
+        } else {
+          // PC: dùng react-to-print
+          usedSimulation = true;
+          setPrintMaster(previewMaster);
+          setPrintDetail(previewDetailGrouped);
+          setPreviewVisible(false);
+          setTimeout(() => handlePrint(), 300);
+          notification.info({
+            message: "In lại hóa đơn",
+            description: "In qua trình duyệt (PC/dev).",
+            duration: 3,
+          });
+        }
       }
     } catch (error) {
       console.error("Lỗi khi in lại hóa đơn:", error);
