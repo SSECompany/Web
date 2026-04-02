@@ -81,9 +81,9 @@ const CustomerPaymentModal = ({
       customerInfo: localCustomerInfo,
       selectedStaff: selectedStaff
         ? {
-            ma_nvbh: selectedStaff.ma_nvbh || selectedStaff.value || selectedStaff.id,
-            ten_nvbh: selectedStaff.ten_nvbh || selectedStaff.label || selectedStaff.name,
-          }
+          ma_nvbh: selectedStaff.ma_nvbh || selectedStaff.value || selectedStaff.id,
+          ten_nvbh: selectedStaff.ten_nvbh || selectedStaff.label || selectedStaff.name,
+        }
         : null,
     });
   };
@@ -105,13 +105,8 @@ const CustomerPaymentModal = ({
       return;
     }
 
-    // Bắt buộc chọn nhân viên nếu có danh sách
-    if (salesStaff.length > 0 && !selectedStaff) {
-      message.error("Vui lòng chọn nhân viên bán hàng");
-      return;
-    }
 
-    onConfirm(localCustomerInfo);
+    onConfirm(localCustomerInfo, selectedStaff);
   };
 
   return (
@@ -134,8 +129,8 @@ const CustomerPaymentModal = ({
               value={
                 selectedStaff
                   ? selectedStaff.ma_nvbh ||
-                    selectedStaff.value ||
-                    selectedStaff.id
+                  selectedStaff.value ||
+                  selectedStaff.id
                   : undefined
               }
               onChange={(value) => {

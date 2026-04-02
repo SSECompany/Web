@@ -1,8 +1,7 @@
 import {
   doReadNumber,
-  InvalidFormatError,
   InvalidNumberError,
-  NotEnoughUnitError,
+  ReadVietnameseNumberError,
   ReadingConfig,
 } from "read-vietnamese-number";
 
@@ -17,21 +16,21 @@ config.unit = [""];
 
 function num2words(num) {
   try {
-    var result = doReadNumber(config, num.toString());
+    var result = doReadNumber(num.toString(), config);
     var first = result.charAt(0);
     first = first.toUpperCase();
     result = result.slice(1);
     result = first + result;
     return result;
   } catch (err) {
-    // Handle errors
-    if (err instanceof InvalidFormatError) {
-      return "Định dạng input không hợp lệ";
-    } else if (err instanceof InvalidNumberError) {
+    // Handle errors (read-vietnamese-number chỉ export InvalidNumberError & ReadVietnameseNumberError)
+    if (err instanceof InvalidNumberError) {
       return "Số không hợp lệ";
-    } else if (err instanceof NotEnoughUnitError) {
-      return "Không đủ đơn vị đọc số";
     }
+    if (err instanceof ReadVietnameseNumberError) {
+      return "Không thể đọc số";
+    }
+    return "Không thể đọc số";
   }
 }
 

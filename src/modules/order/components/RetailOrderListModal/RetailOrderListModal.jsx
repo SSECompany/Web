@@ -18,7 +18,6 @@ import {
 } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../../api";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import IminPrinterService from "../../../../utils/IminPrinterService";
@@ -26,8 +25,9 @@ import jwt from "../../../../utils/jwt";
 import { addTab, setListOrderInfo, switchTab } from "../../store/order";
 import "../OrderSummary/PaymentModal/PaymentModal.css";
 import ReceiptPreviewModal from "../OrderSummary/ReceiptPreviewModal/ReceiptPreviewModal";
-import PrintComponent from "./PrintComponent/PrintComponent";
 import "./RetailOrderListModal.css";
+import { useReactToPrint } from "react-to-print";
+import PrintComponent from "../OrderSummary/PrintComponent/PrintComponent";
 
 const RetailOrderListModal = ({ isOpen, onClose }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -50,6 +50,9 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const [printMaster, setPrintMaster] = useState({});
   const [printDetail, setPrintDetail] = useState([]);
   const printContent = useRef();
+  const handlePrint = useReactToPrint({
+    content: () => printContent.current,
+  });
   const lastApiCall = useRef({ pageIndex: 0, filters: {} });
 
   const rawToken = localStorage.getItem("access_token");
@@ -78,7 +81,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       if (
         lastApiCall.current.pageIndex === pageIndex &&
         JSON.stringify(lastApiCall.current.filters) ===
-          JSON.stringify(filtersToUse)
+        JSON.stringify(filtersToUse)
       ) {
         return; // Bỏ qua nếu là duplicate call
       }
@@ -233,6 +236,57 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       title: "Nhân viên",
       dataIndex: "username",
       key: "username",
+    },
+    {
+      title: () => (
+        <div className="column-title-with-tag">
+          Số thẻ {filters.ma_ban && <Tag color="blue">{filters.ma_ban}</Tag>}
+        </div>
+      ),
+      dataIndex: "ma_ban",
+      key: "ma_ban",
+      width: 150,
+      filterDropdown: ({ setSelectedKeys, selectedKeys = [], confirm }) => {
+        const currentValue = selectedKeys?.[0] || "";
+        return (
+          <div className="retail-order_filterDropdown">
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Input
+                allowClear
+                placeholder="Tìm kiếm Số thẻ"
+                value={currentValue}
+                onChange={(e) => {
+                  const { value } = e.target;
+                  setSelectedKeys(value ? [value] : []);
+                }}
+                onPressEnter={() =>
+                  handleFilter("ma_ban", currentValue, confirm)
+                }
+              />
+              <div className="retail-order_filterActions">
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() =>
+                    handleFilter("ma_ban", currentValue, confirm)
+                  }
+                >
+                  Tìm kiếm
+                </Button>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setSelectedKeys([]);
+                    handleFilter("ma_ban", "", confirm);
+                  }}
+                >
+                  Làm mới
+                </Button>
+              </div>
+            </Space>
+          </div>
+        );
+      },
     },
     {
       title: () => (
@@ -576,7 +630,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
 
       const hasRealPrinter = printerService.isInitialized && printerService.printerInstance;
       const isAndroid = /Android/i.test(navigator?.userAgent || "");
-      
+
       if (hasRealPrinter) {
         await printerService.printReceipt(
           previewMaster,
@@ -705,14 +759,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
     });
   };
 
-  const handlePrint = useReactToPrint({
-    content: () => printContent.current,
-    documentTitle: "Print This Document",
-    copyStyles: false,
-    onAfterPrint: () => setReprintingSttRec(null),
-  });
-
-  return (
+    return (
     <>
       <Modal
         open={isOpen}

@@ -125,7 +125,7 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
           marginBottom: "6px",
         }}
       >
-        <thead>
+        <thead style={{ display: "table-row-group" }}>
           <tr
             style={{
               fontSize: "10px",

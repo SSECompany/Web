@@ -182,34 +182,6 @@ const POSPage = () => {
   const claims =
     rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
 
-  // Warmup máy in sớm để tránh bill đầu tiên rơi vào simulation (SDK iMin inject/service lên chậm)
-  const printerWarmupRef = useRef({ started: false });
-  useEffect(() => {
-    if (!isOrderPage) return;
-    if (printerWarmupRef.current.started) return;
-    printerWarmupRef.current.started = true;
-
-    let canceled = false;
-    const t = setTimeout(async () => {
-      try {
-        const printerService = new IminPrinterService();
-        const res = await printerService.initPrinter();
-        if (!canceled) {
-          // Không spam UI; chỉ log để debug khi cần
-          console.log("🖨️ Printer warmup:", res?.message || res);
-        }
-      } catch (err) {
-        if (!canceled) {
-          console.warn("🖨️ Printer warmup failed:", err?.message || err);
-        }
-      }
-    }, 300);
-
-    return () => {
-      canceled = true;
-      clearTimeout(t);
-    };
-  }, [isOrderPage]);
 
   const listOrderTable = useSelector(
     (state) => state.orders.listOrderTable || []
@@ -387,6 +359,18 @@ const POSPage = () => {
             ten_nh: item.ten_nh,
           })) || [];
         dispatch(setListCategory(categoryData));
+
+        // Kiểm tra in test theo session để đảm bảo máy in hoạt động
+        const hasPrinted = sessionStorage.getItem("hasPrintedStatus");
+        if (!hasPrinted) {
+          try {
+            const printerService = new IminPrinterService();
+            await printerService.printTest();
+            sessionStorage.setItem("hasPrintedStatus", "true");
+          } catch (printErr) {
+            console.warn("⚠️ Máy in chưa sẵn sàng hoặc mất kết nối:", printErr);
+          }
+        }
       } catch (err) {
         console.error("❌ Lỗi khi lấy dữ liệu:", err);
         fetchedKeyRef.current = null;

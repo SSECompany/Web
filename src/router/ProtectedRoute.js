@@ -2,14 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import { notification } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { multipleTablePutApi } from "../api";
+import { apiGetQRCodeData, multipleTablePutApi } from "../api";
 import jwt from "../utils/jwt";
 import { setListOrderTable } from "../modules/order/store/order";
+import {
+  setQRCodeData,
+  setQRPayload,
+  setQRCodeLoading,
+  setQRCodeError,
+} from "../store/reducers/qrCodeSlice";
 
 const ProtectedRoute = () => {
   const dispatch = useDispatch();
   const location = useLocation();
   const roleWarningShownRef = useRef(false);
+  const qrCodeFetchedKeyRef = useRef(null);
   const { unitId, id } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
   );
@@ -24,6 +31,80 @@ const ProtectedRoute = () => {
     location.pathname
   );
   const tablesFetchedKeyRef = useRef(null);
+
+  // Xử lý query param để set QR payload trực tiếp (nếu có)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const qrCodeParam = params.get("qrCode") || params.get("qr");
+    if (qrCodeParam) {
+      dispatch(setQRPayload(qrCodeParam));
+    }
+  }, [location.search, dispatch]);
+
+  // Helper function để parse QR code data từ API response - chỉ lấy stringQrCode
+  const parseQRCodeResponse = (res) => {
+    let qrCodeData = res;
+    let qrPayload = null;
+
+    // Nếu response có cấu trúc listObject
+    if (res?.listObject?.[0]?.[0]) {
+      qrCodeData = res.listObject[0];
+      // Chỉ lấy field stringQrCode (thử cả camelCase và PascalCase)
+      const firstItem = res.listObject[0][0];
+      qrPayload = firstItem.stringQrCode || null;
+    } else if (res?.listObject?.[0]) {
+      // Nếu là array trực tiếp
+      qrCodeData = res.listObject[0];
+      if (Array.isArray(qrCodeData) && qrCodeData.length > 0) {
+        const firstItem = qrCodeData[0];
+        qrPayload = firstItem?.stringQrCode || firstItem?.StringQrCode || null;
+      }
+    } else if (res?.stringQrCode || res?.StringQrCode) {
+      // Nếu response là object có field stringQrCode
+      qrPayload = res.stringQrCode || res.StringQrCode;
+      qrCodeData = res;
+    }
+
+    return { qrCodeData, qrPayload };
+  };
+
+  // Call QRCode data API mỗi khi reload trang - luôn gọi lại để lấy data mới nhất
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token || !unitId) return;
+
+    const key = `qrcode-data-${unitId}`;
+    
+    // Reset ref để luôn gọi API mỗi khi reload trang
+    qrCodeFetchedKeyRef.current = null;
+
+    const fetchQRCodeData = async () => {
+      dispatch(setQRCodeLoading(true));
+      try {
+        const res = await apiGetQRCodeData({ unitId });
+        const { qrCodeData, qrPayload } = parseQRCodeResponse(res);
+
+        // Dispatch vào Redux
+        dispatch(
+          setQRCodeData({
+            qrCodeData,
+            qrPayload,
+            unitId,
+          })
+        );
+
+        // Cache vào sessionStorage để các component khác có thể dùng (nhưng không dùng để skip API call)
+        sessionStorage.setItem(key, JSON.stringify({ qrCodeData, qrPayload }));
+      } catch (e) {
+        console.error("Error fetching QR code data:", e);
+        dispatch(setQRCodeError(e.message || "Failed to fetch QR code data"));
+      } finally {
+        dispatch(setQRCodeLoading(false));
+      }
+    };
+
+    fetchQRCodeData();
+  }, [unitId, dispatch]);
 
   useEffect(() => {
     if (!needsTableValidation) {

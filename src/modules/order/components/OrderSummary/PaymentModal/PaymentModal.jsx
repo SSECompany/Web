@@ -1,6 +1,7 @@
 import { DownOutlined, UpOutlined } from "@ant-design/icons";
 import { Button, Checkbox, Input, InputNumber, Modal, Select, message } from "antd";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { useSelector } from "react-redux";
 import { num2words } from "../../../../../app/Options/DataFomater";
 import {
   formatCurrency,
@@ -11,8 +12,8 @@ import VietQR from "../../../../../components/common/GenerateQR/VietQR";
 import { apiGetCustomerByTaxCode } from "../../../../../api";
 import "./PaymentModal.css";
 
-// EMVCo/VietQR raw payload (provided by user) – dùng để thay thế QR hiện tại
-const PAYMENT_EMV_PAYLOAD =
+// Fallback QR payload nếu Redux chưa có data
+const FALLBACK_QR_PAYLOAD =
   "00020101021138560010A0000007270126000697041201121090034978650208QRIBFTTA53037045802VN6304C4F0";
 
 const PaymentModal = ({
@@ -66,6 +67,28 @@ const PaymentModal = ({
     khach_tra_sau: false,
   });
   const [selectedStaff, setSelectedStaff] = useState(null);
+  const [isQRCodeManualVisible, setIsQRCodeManualVisible] = useState(false);
+  const [useDynamicQR, setUseDynamicQR] = useState(false);
+
+  // Lấy QR data/payload từ Redux (hoặc fallback)
+  const qrPayload = useSelector(
+    (state) => state.qrCode?.qrPayload || FALLBACK_QR_PAYLOAD
+  );
+  const qrCodeData = useSelector((state) => state.qrCode?.qrCodeData);
+
+  const qrInfo = useMemo(() => {
+    const first = Array.isArray(qrCodeData) ? qrCodeData[0] : qrCodeData;
+    if (!first || typeof first !== "object") return null;
+
+    return {
+      hiddenQrcode: first.hiddenQrcode,
+      stringQrCode: first.stringQrCode || first.StringQrCode || "",
+      HotlineBill: first.HotlineBill || "",
+      EmailBill: first.EmailBill || "",
+      TenTaiKhoanBill: first.TenTaiKhoanBill || "",
+      SoTaiKhoanBill: first.SoTaiKhoanBill || "",
+    };
+  }, [qrCodeData]);
 
   const handleToggleCustomerInfo = useCallback(
     () => setShowCustomerInfo((prev) => !prev),
@@ -86,20 +109,22 @@ const PaymentModal = ({
     []
   );
 
-  // Reset lựa chọn nhân viên mỗi khi mở modal (logic auto-select được xử lý trong useEffect khởi tạo)
+  // Reset hoặc tự động chọn nhân viên khi mở modal
   useEffect(() => {
     if (visible && !initialSelectedStaff) {
-      // Chỉ reset nếu không có initialSelectedStaff
-      // Nếu có SalesManDefault (salesStaff.length === 1), sẽ được auto-select trong useEffect khởi tạo
-      if (salesStaff.length !== 1) {
+      if (salesStaff && salesStaff.length > 0) {
+        setSelectedStaff(salesStaff[0]);
+      } else {
         setSelectedStaff(null);
       }
     }
-  }, [visible, salesStaff.length, initialSelectedStaff]);
+  }, [visible, initialSelectedStaff, salesStaff]);
 
   const handlePaymentSelection = (method) => {
+    setIsQRCodeManualVisible(false);
+    setUseDynamicQR(false);
     const numTotal = Number(total) || 0;
-    
+
     if (method === "cong_no") {
       // Chọn công nợ - tự động tick xuất hóa đơn
       setSelectedPayments(["cong_no"]);
@@ -138,7 +163,7 @@ const PaymentModal = ({
 
   const handleOrderStatusChange = (statusType, checked) => {
     const numTotal = Number(total) || 0;
-    
+
     if (statusType === "xuat_hoa_don") {
       setOrderStatus((prev) => ({
         xuat_hoa_don: checked,
@@ -178,6 +203,15 @@ const PaymentModal = ({
     // Đảm bảo value là số hợp lệ
     const numValue = Number(value) || 0;
     const newAmounts = { ...paymentAmounts, [method]: numValue };
+
+    if (selectedPayments.length === 2) {
+      const otherMethod = selectedPayments.find((m) => m !== method);
+      if (otherMethod) {
+        const numTotal = Number(total) || 0;
+        newAmounts[otherMethod] = Math.max(0, numTotal - numValue);
+      }
+    }
+
     setPaymentAmounts(newAmounts);
 
     const totalAmount = Object.values(newAmounts).reduce(
@@ -308,9 +342,9 @@ const PaymentModal = ({
       orderStatus,
       selectedStaff: selectedStaff
         ? {
-            ma_nvbh: selectedStaff.ma_nvbh || selectedStaff.value || selectedStaff.id,
-            ten_nvbh: selectedStaff.ten_nvbh || selectedStaff.label || selectedStaff.name,
-          }
+          ma_nvbh: selectedStaff.ma_nvbh || selectedStaff.value || selectedStaff.id,
+          ten_nvbh: selectedStaff.ten_nvbh || selectedStaff.label || selectedStaff.name,
+        }
         : null,
       showCustomerInfo,
     });
@@ -318,15 +352,17 @@ const PaymentModal = ({
 
   useEffect(() => {
     if (visible) {
+      setIsQRCodeManualVisible(false);
+      setUseDynamicQR(false);
       // Khởi tạo orderStatus từ props trước
       const initialStatus = initialOrderStatus || {
         xuat_hoa_don: false,
         khach_tra_sau: false,
       };
-      
+
       // Nếu có xuat_hoa_don_yn hoặc kh_ts_yn từ API, ép payment method = "cong_no"
       const isCreditFromApi = initialStatus.xuat_hoa_don || initialStatus.khach_tra_sau;
-      
+
       // Parse initialPaymentMethod - có thể là "chuyen_khoan" hoặc "tien_mat,chuyen_khoan"
       let defaultPayments = ["chuyen_khoan"];
       if (isCreditFromApi) {
@@ -426,7 +462,6 @@ const PaymentModal = ({
           khach_tra_sau: false,
         }
       );
-      // Khởi tạo selectedStaff từ initialSelectedStaff nếu có
       if (initialSelectedStaff && salesStaff.length > 0) {
         const staff = salesStaff.find(
           (x) =>
@@ -434,12 +469,10 @@ const PaymentModal = ({
             x.value === initialSelectedStaff ||
             x.id === initialSelectedStaff
         );
-        setSelectedStaff(staff || null);
-      } else if (salesStaff.length === 1) {
-        // Nếu không có initialSelectedStaff nhưng có SalesManDefault (chỉ 1 nhân viên), auto-select
-        setSelectedStaff(salesStaff[0]);
+        setSelectedStaff(staff || (salesStaff.length > 0 ? salesStaff[0] : null));
       } else {
-        setSelectedStaff(null);
+        // Tự fill index đầu tiên trong mảng vào value
+        setSelectedStaff(salesStaff && salesStaff.length > 0 ? salesStaff[0] : null);
       }
     }
   }, [
@@ -477,18 +510,18 @@ const PaymentModal = ({
           <div style={{ flex: 1 }} id="staff-select-wrapper">
             <p className="payment-text">
               <strong>Nhân viên:</strong>
-              <span style={{ color: "red" }}> *</span>
             </p>
             <Select
               ref={staffSelectRef}
               style={{ width: "100%" }}
               placeholder="Chọn nhân viên"
               id="staff-select"
+              status={errors.staff ? "error" : ""}
               value={
                 selectedStaff
                   ? selectedStaff.ma_nvbh ||
-                    selectedStaff.value ||
-                    selectedStaff.id
+                  selectedStaff.value ||
+                  selectedStaff.id
                   : undefined
               }
               onChange={(value) => {
@@ -509,8 +542,6 @@ const PaymentModal = ({
                 value: item.ma_nvbh || item.value || item.id,
                 label: item.ten_nvbh || item.label || item.name,
               }))}
-              allowClear
-              status={errors.staff ? "error" : ""}
             />
             {errors.staff && (
               <div style={{ color: "red", fontSize: 12, marginTop: 4 }}>
@@ -736,21 +767,20 @@ const PaymentModal = ({
             {["chuyen_khoan", "tien_mat", "ca_hai"].map((method) => (
               <div
                 key={method}
-                className={`payment-option ${
-                  (method === "ca_hai" && selectedPayments.length === 2) ||
+                className={`payment-option ${(method === "ca_hai" && selectedPayments.length === 2) ||
                   (method !== "ca_hai" &&
                     selectedPayments.includes(method) &&
                     selectedPayments.length === 1)
-                    ? "selected"
-                    : ""
-                }`}
+                  ? "selected"
+                  : ""
+                  }`}
                 onClick={() => handlePaymentSelection(method)}
               >
                 {method === "tien_mat"
                   ? "Tiền mặt"
                   : method === "chuyen_khoan"
-                  ? "Chuyển khoản"
-                  : "Đa phương thức"}
+                    ? "Chuyển khoản"
+                    : "Đa phương thức"}
               </div>
             ))}
           </>
@@ -773,15 +803,71 @@ const PaymentModal = ({
                   gap: 8,
                 }}
               >
-                {/* Thay QR hiện tại bằng QR sinh từ chuỗi EMV được cung cấp */}
-                <VietQR payload={PAYMENT_EMV_PAYLOAD} size={200} />
-                <div className="qr-info">
-                  {accountName?.split(" - ").map((line, index) => (
-                    <div key={index} className="qr-info-line">
-                      {line.trim()}
+                {!isQRCodeManualVisible ? (
+                  <div style={{ display: "flex", gap: 12, padding: "10px 0" }}>
+                    <Button
+                      type="primary"
+                      onClick={() => {
+                        setIsQRCodeManualVisible(true);
+                        setUseDynamicQR(false);
+                      }}
+                      style={{ background: "#1890ff" }}
+                    >
+                      Mã QR Loa
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setIsQRCodeManualVisible(true);
+                        setUseDynamicQR(true);
+                      }}
+                    >
+                      Mã QR động (Số tiền)
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+                      <Button
+                        size="small"
+                        type={!useDynamicQR ? "primary" : "default"}
+                        onClick={() => setUseDynamicQR(false)}
+                      >
+                        Mã QR Loa
+                      </Button>
+                      <Button
+                        size="small"
+                        type={useDynamicQR ? "primary" : "default"}
+                        onClick={() => setUseDynamicQR(true)}
+                      >
+                        Mã QR Động
+                      </Button>
                     </div>
-                  ))}
-                  <div className="qr-info-line">{account}</div>
+                    {/* QR payload lấy từ Redux hoặc gen động theo amount */}
+                    <VietQR
+                      payload={useDynamicQR ? undefined : qrPayload}
+                      amount={total}
+                      account={qrInfo?.SoTaiKhoanBill}
+                      size={200}
+                    />
+                    <Button
+                      type="link"
+                      onClick={() => setIsQRCodeManualVisible(false)}
+                      size="small"
+                      style={{ marginTop: -8 }}
+                    >
+                      Ẩn mã QR
+                    </Button>
+                  </>
+                )}
+
+                <div className="qr-info">
+                  {qrInfo?.TenTaiKhoanBill && (
+                    <div className="qr-info-line">{qrInfo.TenTaiKhoanBill}</div>
+                  )}
+                  {qrInfo?.SoTaiKhoanBill && (
+                    <div className="qr-info-line">{qrInfo.SoTaiKhoanBill}</div>
+                  )}
+
                   <div className="qr-info-line">
                     Số tiền: {formatCurrency(Math.max(0, total))}đ
                   </div>
@@ -802,8 +888,8 @@ const PaymentModal = ({
                     {selectedPayments[0] === "tien_mat"
                       ? "Tiền mặt"
                       : selectedPayments[0] === "cong_no"
-                      ? "Công nợ"
-                      : "Chuyển khoản"}
+                        ? "Công nợ"
+                        : "Chuyển khoản"}
                   </span>
                   <InputNumber
                     value={paymentAmounts[selectedPayments[0]] || 0}
@@ -814,6 +900,8 @@ const PaymentModal = ({
                     style={{ width: 120 }}
                     controls={false}
                     min="0"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     formatter={(value) => (value ? formatNumber(value) : "")}
                     parser={(value) => (value ? parserNumber(value) : 0)}
                     onKeyDownCapture={(event) => {
@@ -840,6 +928,8 @@ const PaymentModal = ({
                       style={{ width: 120 }}
                       controls={false}
                       min="0"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       formatter={(value) => (value ? formatNumber(value) : "")}
                       parser={(value) => (value ? parserNumber(value) : 0)}
                       onKeyDownCapture={(event) => {
@@ -885,6 +975,19 @@ const PaymentModal = ({
           key="pay"
           type="primary"
           onClick={() => {
+            // Bắt buộc chọn nhân viên
+            if (!selectedStaff && salesStaff && salesStaff.length > 0) {
+              setErrors((prev) => ({
+                ...prev,
+                staff: "Vui lòng chọn nhân viên",
+              }));
+              message.error("Vui lòng chọn nhân viên");
+              if (staffSelectRef.current) {
+                staffSelectRef.current.focus();
+              }
+              return;
+            }
+
             // Kiểm tra lỗi trước khi thanh toán
             const hasErrors = Object.values(errors).some((error) => error);
             if (hasErrors) {
@@ -904,26 +1007,6 @@ const PaymentModal = ({
               return;
             }
 
-            // Bắt buộc chọn nhân viên
-            if (salesStaff.length > 0 && !selectedStaff) {
-              setErrors((prev) => ({
-                ...prev,
-                staff: "Vui lòng chọn nhân viên bán hàng",
-              }));
-              message.error("Vui lòng chọn nhân viên bán hàng");
-              // Scroll và highlight Select nhân viên
-              setTimeout(() => {
-                const wrapper = document.getElementById('staff-select-wrapper');
-                if (wrapper) {
-                  wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  const selectElement = wrapper.querySelector('.ant-select-selector');
-                  if (selectElement) {
-                    selectElement.focus();
-                  }
-                }
-              }, 100);
-              return;
-            }
 
             // Bắt buộc nhập mã số thuế nếu chọn xuất hóa đơn (không bắt buộc với khách trả sau)
             if (
@@ -960,7 +1043,8 @@ const PaymentModal = ({
                 finalCustomerInfo,
                 sync,
                 orderStatus,
-                selectedStaff
+                selectedStaff,
+                useDynamicQR
               );
               return;
             }
@@ -981,7 +1065,8 @@ const PaymentModal = ({
               finalCustomerInfo,
               sync,
               orderStatus,
-              selectedStaff
+              selectedStaff,
+              useDynamicQR
             );
           }}
           className="payment-button primary"
@@ -993,13 +1078,13 @@ const PaymentModal = ({
               (selectedPayments.length === 0 ||
                 (selectedPayments.length === 2
                   ? Object.values(paymentAmounts).reduce(
-                      (sum, val) => sum + val,
-                      0
-                    ) !== total
+                    (sum, val) => sum + val,
+                    0
+                  ) !== total
                   : Object.values(paymentAmounts).reduce(
-                      (sum, val) => sum + val,
-                      0
-                    ) < total)))
+                    (sum, val) => sum + val,
+                    0
+                  ) < total)))
           }
           loading={isCreatingOrder || isSubmitting}
         >

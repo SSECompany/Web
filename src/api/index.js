@@ -9,7 +9,10 @@ const logger = simpleLogger;
 
 // API Print/print-order: dự án Phenika đang bật để server xử lý job in sau thanh toán.
 // Nếu cần tắt tạm (debug/triển khai), đổi thành true.
-const PRINT_ORDER_API_DISABLED = false;
+const PRINT_ORDER_API_DISABLED = true; // Tạm thời comment lại không sử dụng
+
+// API SynchronousFAST/InvoiceReceipt: tắt tạm tương tự
+const SYNC_FAST_API_DISABLED = true;
 
 export const refreshToken = async () => {
   return await https
@@ -47,6 +50,26 @@ export const apiGetStoreByUser = async (payload) => {
   return await https.get(`User/GetStore`, payload).then((res) => {
     return res.data;
   });
+};
+
+// API lấy dữ liệu QRCode theo đơn vị (store: api_GetQRCodeData)
+// SQL tương ứng: exec api_GetQRCodeData '<unitId>'
+export const apiGetQRCodeData = async ({ unitId } = {}) => {
+  const normalizedUnitId = String(unitId ?? "").trim();
+  if (!normalizedUnitId) return [];
+  try {
+    const response = await multipleTablePutApi({
+      store: "api_GetQRCodeData",
+      // Chỉ truyền 1 key `unitId` để đúng yêu cầu (tránh gửi trùng).
+      // Nếu backend cần `UnitId` (hoa) thì đổi key tại đây.
+      param: { unitId: normalizedUnitId },
+      data: {},
+    });
+    return response;
+  } catch (error) {
+    console.error("Error calling api_GetQRCodeData:", error);
+    throw error;
+  }
 };
 
 export const multipleTablePutApi = async (payload) => {
@@ -164,7 +187,7 @@ export const printOrderApi = async (sttRec, userId) => {
       // HTTP 200 nhưng business logic fail → coi như lỗi và retry
       const businessError = new Error(
         response?.data?.responseModel?.message ||
-          "API business logic failed (isSucceded: false)"
+        "API business logic failed (isSucceded: false)"
       );
 
       // Attach response data để có thể analyze
@@ -290,6 +313,11 @@ const getCachedToken = () => {
 };
 
 export const syncFastApi = async (sttRec, userId) => {
+  // API SynchronousFAST/InvoiceReceipt tắt tạm - không gọi server, trả về [] để luồng gọi vẫn chạy
+  if (SYNC_FAST_API_DISABLED) {
+    return [];
+  }
+
   const token = getCachedToken();
   const startTime = Date.now();
 
@@ -356,7 +384,7 @@ export const syncFastApi = async (sttRec, userId) => {
       // HTTP 200 nhưng business logic fail → coi như lỗi và retry
       const businessError = new Error(
         response?.data?.responseModel?.message ||
-          "API business logic failed (isSucceded: false)"
+        "API business logic failed (isSucceded: false)"
       );
 
       // Attach response data để có thể analyze
@@ -839,7 +867,7 @@ export const apiConfirmPrepaidStudentOrder = async ({
 export const apiGetCustomerByTaxCode = async (ma_so_thue) => {
   try {
     const token = localStorage.getItem("access_token");
-    const taxApiUrl = APP_CONFIG.taxApiUrl ;
+    const taxApiUrl = APP_CONFIG.taxApiUrl;
     const response = await axios.get(
       `${taxApiUrl}Tax/Lookup`,
       {
@@ -856,7 +884,7 @@ export const apiGetCustomerByTaxCode = async (ma_so_thue) => {
 
     // Kiểm tra response structure mới
     const responseData = response?.data || {};
-    
+
     // Kiểm tra nếu API trả về lỗi
     if (!responseData.isSucceeded) {
       throw new Error(responseData.message || "Tra cứu mã số thuế thất bại");

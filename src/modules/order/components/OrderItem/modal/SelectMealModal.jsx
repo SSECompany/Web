@@ -1,10 +1,18 @@
-import { Modal, Radio, Space, Spin, Tabs } from "antd";
+import { Input, Modal, Radio, Space, Spin, Tabs } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { multipleTablePutApi } from "../../../../../api";
 import { updateProductMeal } from "../../../store/order";
 import "./SelectMealModal.css";
+
+// Định nghĩa các ca bọc ngoài component để tránh re-render
+const mealShifts = [
+  { key: "sang", label: "Ca Sáng", code: "CA1" },
+  { key: "trua", label: "Ca Trưa", code: "CA2" },
+  { key: "toi", label: "Ca Tối", code: "CA3" },
+];
 
 export default function SelectMealModal({
   isVisible,
@@ -16,14 +24,8 @@ export default function SelectMealModal({
   const [selectedShift, setSelectedShift] = useState("sang");
   const [mealOptions, setMealOptions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const dispatch = useDispatch();
-
-  // Định nghĩa các ca bọc
-  const mealShifts = [
-    { key: "sang", label: "Ca Sáng", code: "CA1" },
-    { key: "trua", label: "Ca Trưa", code: "CA2" },
-    { key: "toi", label: "Ca Tối", code: "CA3" },
-  ];
 
   // Kiểm tra món ăn có ca cố định không
   const getFixedShift = (itemCode) => {
@@ -48,6 +50,7 @@ export default function SelectMealModal({
       }
     } else if (isVisible) {
       setSelectedMeal("");
+      setSearchTerm("");
       // Nếu là món có ca cố định, tự động set ca đó
       if (isFixedShiftItem) {
         setSelectedShift(fixedShift);
@@ -57,13 +60,7 @@ export default function SelectMealModal({
     }
   }, [isVisible, item?.selected_meal, isFixedShiftItem, fixedShift]);
 
-  useEffect(() => {
-    if (isVisible) {
-      fetchMealOptions();
-    }
-  }, [isVisible, selectedShift]);
-
-  const fetchMealOptions = async () => {
+  const fetchMealOptions = useCallback(async () => {
     setLoading(true);
     try {
       // Tạo thời gian dựa trên ca bọc được chọn
@@ -116,7 +113,25 @@ export default function SelectMealModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedShift]);
+
+  useEffect(() => {
+    if (isVisible) {
+      fetchMealOptions();
+    }
+  }, [isVisible, fetchMealOptions]);
+
+
+  const filteredOptions = useMemo(() => {
+    if (!searchTerm) return mealOptions;
+    const lowerSearch = searchTerm.toLowerCase();
+    return mealOptions.filter(
+      (option) =>
+        option.label.toLowerCase().includes(lowerSearch) ||
+        (option.description &&
+          option.description.toLowerCase().includes(lowerSearch))
+    );
+  }, [mealOptions, searchTerm]);
 
   const handleOk = () => {
     if (selectedMeal) {
@@ -139,11 +154,13 @@ export default function SelectMealModal({
     }
     onClose();
     setSelectedMeal("");
+    setSearchTerm("");
   };
 
   const handleCancel = () => {
     onClose();
     setSelectedMeal("");
+    setSearchTerm("");
   };
 
   const handleShiftChange = (key) => {
@@ -153,6 +170,7 @@ export default function SelectMealModal({
     }
     setSelectedShift(key);
     setSelectedMeal(""); // Reset món ăn khi chuyển ca bọc
+    setSearchTerm("");
   };
 
   const tabItems = mealShifts.map((shift) => ({
@@ -174,24 +192,30 @@ export default function SelectMealModal({
             className="meal-options"
           >
             <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-              {mealOptions.map((option) => (
-                <Radio
-                  key={option.value}
-                  value={option.value}
-                  className="meal-option"
-                >
-                  <div className="meal-option-content">
-                    <div className="meal-info">
-                      <span className="meal-label">{option.label}</span>
-                      {option.description && (
-                        <span className="meal-description">
-                          {option.description}
-                        </span>
-                      )}
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map((option) => (
+                  <Radio
+                    key={option.value}
+                    value={option.value}
+                    className="meal-option"
+                  >
+                    <div className="meal-option-content">
+                      <div className="meal-info">
+                        <span className="meal-label">{option.label}</span>
+                        {option.description && (
+                          <span className="meal-description">
+                            {option.description}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Radio>
-              ))}
+                  </Radio>
+                ))
+              ) : (
+                <div style={{ textAlign: "center", padding: "20px", color: "#999" }}>
+                  Không tìm thấy món ăn nào phù hợp
+                </div>
+              )}
             </Space>
           </Radio.Group>
         )}
@@ -211,11 +235,23 @@ export default function SelectMealModal({
       width={600}
     >
       <div className="select-meal-content">
-        <p>
-          {isFixedShiftItem
-            ? `Vui lòng chọn món suất cho ${item?.ten_vt}:`
-            : `Vui lòng chọn ca bọc và món suất cho ${item?.ten_vt}:`}
-        </p>
+        <div className="meal-selection-header">
+          <p>
+            {isFixedShiftItem
+              ? `Vui lòng chọn món suất cho ${item?.ten_vt}:`
+              : `Vui lòng chọn ca bọc và món suất cho ${item?.ten_vt}:`}
+          </p>
+          <div className="meal-search-wrapper" style={{ marginBottom: "15px" }}>
+            <Input
+              placeholder="Tìm món ăn nhanh..."
+              prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              allowClear
+              className="meal-search-input"
+            />
+          </div>
+        </div>
 
         {isFixedShiftItem ? (
           // Hiển thị trực tiếp nội dung ca cố định mà không có tabs và badge
@@ -234,3 +270,4 @@ export default function SelectMealModal({
     </Modal>
   );
 }
+

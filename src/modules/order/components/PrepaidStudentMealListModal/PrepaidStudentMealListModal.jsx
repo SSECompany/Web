@@ -12,7 +12,6 @@ import {
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useReactToPrint } from "react-to-print";
 import {
   apiConfirmStudentOrder,
   apiGetRetailOrderStudentOrders,
@@ -20,7 +19,6 @@ import {
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import jwt from "../../../../utils/jwt";
 import { addTab, setListOrderInfo, switchTab } from "../../store/order";
-import PrintComponent from "../RetailOrderListModal/PrintComponent/PrintComponent";
 import "./PrepaidStudentMealListModal.css";
 
 const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
@@ -716,13 +714,7 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
     }
   };
 
-  const handlePrint = useReactToPrint({
-    content: () => printContent.current,
-    documentTitle: "Print Prepaid Student Meal",
-    copyStyles: false,
-  });
-
-  const handleReprint = async (record) => {
+    const handleReprint = async (record) => {
     if (record.so_luong_da_nhan <= 0) {
       notification.warning({
         message: "Chỉ có thể in lại đơn hàng đã xác nhận",

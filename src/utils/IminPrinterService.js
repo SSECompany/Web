@@ -1,652 +1,174 @@
-/**
- * iMin Printer Service - Wrapper cho iMin SDK V1.0 & V2.0
- * 
- * QUAN TRỌNG:
- * - Android 11 và thấp hơn: Dùng SDK V1.0 (USB/Bluetooth "BluetoothPrinter")
- * - Android 13 trở lên: Dùng SDK V2.0 (AIDL/Bluetooth "InnerPrinter")
- * 
- * Máy POS D4-504 (Android 11): SỬ DỤNG SDK V1.0
- * 
- * Documentation: https://oss-sg.imin.sg/docs/en/Printer.html
- * SDK V1.0: https://imin-sg-resources.oss-ap-southeast-1.aliyuncs.com/docs/demo/iMinPrinterSDK-v1.3.1.zip
- * SDK V2.0: https://github.com/iminsoftware/IminPrinterLibrary
- * 
- * Hỗ trợ:
- * - In text, hình ảnh, QR code, barcode
- * - In nhiều liên liên tục
- * - Cắt giấy tự động (partialCut/fullCut)
- * - Kiểm soát căn chỉnh, font, kích thước
- */
-// EMVCo/VietQR raw payload dùng cho QR thanh toán in trên hóa đơn.
-// Cần đồng bộ với QR hiển thị trong PaymentModal (PAYMENT_EMV_PAYLOAD).
-const PAYMENT_EMV_PAYLOAD =
-  "00020101021138560010A0000007270126000697041201121090034978650208QRIBFTTA53037045802VN6304C4F0";
+import IminPrinter from "./imin-printer";
 
-// Footer cấu hình (để setup mẫu in giống hình tham chiếu: hotline/email/website...)
-// Có thể override bằng biến môi trường khi build.
-const PRINT_FOOTER_BRAND = process.env.REACT_APP_PRINT_FOOTER_BRAND || "";
-const PRINT_FOOTER_WEBSITE = process.env.REACT_APP_PRINT_FOOTER_WEBSITE || "";
+// Fallback QR payload nếu Redux chưa có data
+const FALLBACK_QR_PAYLOAD = "";
+
+// Helper function để lấy QR payload từ Redux store
+const getQRPayloadFromStore = () => {
+  try {
+    const store = require("../store").default;
+    const state = store.getState();
+    return state.qrCode?.qrPayload || FALLBACK_QR_PAYLOAD;
+  } catch (error) {
+    console.warn("⚠️ Không thể lấy QR payload từ Redux, dùng fallback:", error);
+    return FALLBACK_QR_PAYLOAD;
+  }
+};
+
+// Helper function để lấy QR info từ Redux store
+const getQRInfoFromStore = () => {
+  try {
+    const store = require("../store").default;
+    const state = store.getState();
+    const qrCodeData = state.qrCode?.qrCodeData;
+    return Array.isArray(qrCodeData) ? qrCodeData[0] || {} : qrCodeData || {};
+  } catch (error) {
+    console.warn("⚠️ Không thể lấy QR info từ Redux:", error);
+    return {};
+  }
+};
+
+const PRINT_FOOTER_BRAND = process.env.REACT_APP_PRINT_FOOTER_BRAND || "PHX SMART SCHOOL";
+const PRINT_FOOTER_WEBSITE = process.env.REACT_APP_PRINT_FOOTER_WEBSITE || "https://phx-smartschool.com";
 const PRINT_FOOTER_HOTLINE = process.env.REACT_APP_PRINT_FOOTER_HOTLINE || "";
 const PRINT_FOOTER_EMAIL = process.env.REACT_APP_PRINT_FOOTER_EMAIL || "";
 
 class IminPrinterService {
   constructor() {
-    this.isInitialized = false;
     this.printerInstance = null;
-    this.isSimulationMode = false;
-    this.sdkVersion = null; // 'v1.0' hoặc 'v2.0'
-
-    // Mặc định theo iMin JS SDK demo: gửi lệnh trực tiếp, không delay thủ công.
-    this.delays = {
-      text: 0,
-      columns: 0,
-      style: 0,
-      qr: 0,
-      barcode: 0,
-      feed: 0,
-      cut: 0,
-      betweenCopies: 0,
-    };
+    this.isInitialized = false;
   }
 
   /**
-   * Nhãn hình thức thanh toán rút gọn để in 1 dòng (tránh bị wrap).
-   * Ví dụ:
-   * - "tien_mat" -> "Tiền mặt"
-   * - "chuyen_khoan" -> "Chuyển khoản"
-   * - "tien_mat,chuyen_khoan" -> "CK + TM"
+   * Khởi tạo máy in (Logic theo SDK chuẩn)
    */
+  async initPrinter() {
+    // Nếu đã init và socket vẫn đang mở (nếu thư viện có cơ chế check), ta có thể skip
+    // Nhưng để chắc chắn "tuần tự", ta có thể reset lại printerInstance nếu cần
+    try {
+      if (!this.printerInstance) {
+        this.printerInstance = new IminPrinter();
+      }
+
+      console.log("⏳ Đang kết nối máy in tuần tự...");
+      const connected = await this.printerInstance.connect();
+      
+      if (!connected) {
+        throw new Error("Không thể thiết lập kết nối tuần tự với máy in");
+      }
+
+      // Đợi thêm một chút để đảm bảo luồng tin nhắn WebSocket đã ổn định
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      this.printerInstance.initPrinter("SPI");
+      
+      // Thêm thời gian đợi sau khi khởi tạo (chống mất lệnh in ở hóa đơn đầu tiên)
+      await new Promise(resolve => setTimeout(resolve, 1200));
+
+      this.isInitialized = true;
+      console.log("✅ Máy in đã sẵn sàng (Tuần tự)");
+      return { success: true };
+    } catch (error) {
+      this.isInitialized = false;
+      this.printerInstance = null;
+      console.error("❌ Lỗi khởi tạo máy in tuần tự:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Khởi động máy in và in dòng chữ test
+   */
+  async printTest() {
+    try {
+      if (!this.isInitialized) {
+        await this.initPrinter(); // Gọi khởi tạo và kết nối
+      }
+
+      if (!this.printerInstance) return { success: false };
+
+      // In dòng chữ thông báo
+      await this.printText('MÁY IN ĐÃ SẴN SÀNG', {
+        fontSize: 24,
+        fontStyle: 'bold',
+        align: 'center',
+      });
+
+      // In thêm ngày giờ hiện tại
+      const now = new Date();
+      await this.printText(`Thời gian: ${now.toLocaleTimeString()} ${now.toLocaleDateString()}`, {
+        fontSize: 20,
+        align: 'center',
+      });
+
+      // In ra thêm 1 chút giấy và cắt
+      await this.printerInstance.printAndFeedPaper(60);
+      await this.printerInstance.partialCut();
+
+      return { success: true };
+    } catch (error) {
+      console.error("❌ Lỗi in test:", error);
+      throw error;
+    }
+  }
+
+  formatNumber(value) {
+    if (!value) return "0";
+    return new Intl.NumberFormat("vi-VN").format(value);
+  }
+
   formatPaymentMethodShort(method) {
-    if (!method) return 'Tiền mặt';
-    const methods = String(method).split(',').map((m) => m.trim()).filter(Boolean);
+    if (!method) return 'TM';
+    const methods = String(method).split(',').map((m) => m.trim().toLowerCase());
     const hasCash = methods.includes('tien_mat');
     const hasTransfer = methods.includes('chuyen_khoan');
     const hasDebt = methods.includes('cong_no');
-    if (hasDebt) return 'Công nợ';
-    if (hasCash && hasTransfer) return 'CK + TM';
-    if (hasTransfer) return 'Chuyển khoản';
-    return 'Tiền mặt';
-  }
-
-  sleep(ms = 0) {
-    if (!ms || ms <= 0) return Promise.resolve();
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  isLikelyAndroidPos() {
-    try {
-      const ua = navigator?.userAgent || "";
-      return /Android/i.test(ua) || !!window.Android;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  hasAnyIminSdk() {
-    try {
-      return (
-        (window.IminPrinter && typeof window.IminPrinter === "function") ||
-        !!window.iMinPrinter ||
-        !!window.IminPrintHelper ||
-        !!window.InnerPrinterManager ||
-        (window.Android && window.Android.initPrinter)
-      );
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /**
-   * Chờ SDK iMin inject vào WebView (thường xảy ra ngay sau khi mở app/đầu ca).
-   * Trên Android POS: chờ lâu hơn (10s) để đảm bảo SDK kịp inject.
-   * @returns {Promise<boolean>} true nếu SDK xuất hiện trong thời gian chờ
-   */
-  async waitForIminSdk({ timeoutMs = null, intervalMs = 100 } = {}) {
-    // Trên Android POS: chờ lâu hơn (10s) để SDK kịp inject
-    // PC/dev: chờ ngắn hơn (2.5s) vì không có SDK thật
-    const defaultTimeout = this.isLikelyAndroidPos() ? 10000 : 2500;
-    const finalTimeout = timeoutMs !== null ? timeoutMs : defaultTimeout;
     
-    const start = Date.now();
-    while (Date.now() - start < finalTimeout) {
-      if (this.hasAnyIminSdk()) return true;
-      await this.sleep(intervalMs);
-    }
-    return this.hasAnyIminSdk();
+    let label;
+    if (hasDebt) label = 'CÔNG NỢ';
+    else if (hasCash && hasTransfer) label = 'CK + TM';
+    else if (hasTransfer) label = 'CK';
+    else label = 'TM';
+    
+    return label.toUpperCase();
   }
 
-  /**
-   * Override delays runtime.
-   * @param {object} partial - ví dụ { text: 0, cut: 20 }
-   */
-  setDelays(partial = {}) {
-    this.delays = { ...this.delays, ...(partial || {}) };
-  }
-
-  /**
-   * Giữ mặc định theo iMin JS SDK demo: không chèn delay thủ công theo môi trường.
-   */
-  applyAutoDelays() {
-    this.setDelays({
-      text: 0,
-      columns: 0,
-      style: 0,
-      qr: 0,
-      barcode: 0,
-      feed: 0,
-      cut: 0,
-      betweenCopies: 0,
-    });
-  }
-
-  /**
-   * Khởi tạo kết nối với máy in
-   * Tự động detect SDK V1.0 hoặc V2.0
-   */
-  async initPrinter(options = {}) {
-    const { allowWaitForSdk = true } = options || {};
-    try {
-      // Kiểm tra các cách khác nhau để truy cập iMin SDK
-      // 1. Thử JavaScript SDK (iMin Printer v1.4.0) - TỐT NHẤT cho D4-504
-      if (window.IminPrinter && typeof window.IminPrinter === 'function') {
-        // SDK cần URL/address: mặc định 127.0.0.1:8081 (print service trên máy POS)
-        this.printerInstance = new window.IminPrinter();
-        this.sdkVersion = 'v1.0-js';
-
-        // JS SDK cần: 1) connect() WebSocket trước, 2) initPrinter(connectType)
-        // Trường hợp POS vừa khởi động, service có thể lên chậm → thử lại vài lần
-        const maxAttempts = 3;
-        let lastError = null;
-
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-          try {
-            // Bước 1: Kết nối WebSocket tới print service (chạy trên D4-504, ws://127.0.0.1:8081/websocket)
-            await this.printerInstance.connect();
-            // Bước 2: Khởi tạo máy in - D4-504 dùng SPI (built-in printer)
-            // Theo SDK imin-printer v1.4.0: initPrinter(connectType) là hàm sync, chỉ cần gọi.
-            this.printerInstance.initPrinter('SPI');
-            this.isInitialized = true;
-            this.isSimulationMode = false;
-            this.applyAutoDelays();
-            if (typeof window !== "undefined") {
-              window.__IMIN_PRINTER_STATUS__ = {
-                mode: "real",
-                sdkVersion: this.sdkVersion,
-                isSimulation: false,
-                timestamp: Date.now(),
-              };
-            }
-            lastError = null;
-            break;
-          } catch (initError) {
-            lastError = initError;
-            console.warn(
-              `⚠️ Không kết nối được print service (lần ${attempt}/${maxAttempts}):`,
-              initError?.message || initError
-            );
-
-            // Nếu chưa hết số lần thử thì chờ một chút rồi kết nối lại
-            if (attempt < maxAttempts) {
-              // Backoff nhẹ: 500ms, 1000ms...
-              await this.sleep(500 * attempt);
-            }
-          }
-        }
-
-        // Sau khi thử nhiều lần mà vẫn không được → không set simulation, để rơi vào nhánh else
-        if (!this.isInitialized) {
-          console.warn(
-            '⚠️ Không thể kết nối print service sau nhiều lần thử:',
-            lastError?.message || lastError
-          );
-          this.printerInstance = null;
-          this.isInitialized = false;
-          this.sdkVersion = null;
-          // Không set simulation, để rơi vào nhánh else ở dưới (pending/error)
-        }
-      }
-      // 2. Thử SDK V2.0 (Android 13+)
-      else if (window.iMinPrinter) {
-        this.printerInstance = window.iMinPrinter;
-        this.sdkVersion = 'v2.0';
-        await this.printerInstance.initPrinter();
-        this.isInitialized = true;
-        this.isSimulationMode = false;
-        this.applyAutoDelays();
-        if (typeof window !== "undefined") {
-          window.__IMIN_PRINTER_STATUS__ = {
-            mode: "real",
-            sdkVersion: this.sdkVersion,
-            isSimulation: false,
-            timestamp: Date.now(),
-          };
-        }
-      }
-      // 3. Thử SDK V1.0 Native (Android 11 và thấp hơn)
-      else if (window.IminPrintHelper || window.InnerPrinterManager) {
-        this.printerInstance = window.IminPrintHelper || window.InnerPrinterManager;
-        this.sdkVersion = 'v1.0-native';
-        
-        if (this.printerInstance.initPrinter) {
-          await this.printerInstance.initPrinter();
-        } else if (this.printerInstance.init) {
-          await this.printerInstance.init();
-        }
-        
-        this.isInitialized = true;
-        this.isSimulationMode = false;
-        this.applyAutoDelays();
-        if (typeof window !== "undefined") {
-          window.__IMIN_PRINTER_STATUS__ = {
-            mode: "real",
-            sdkVersion: this.sdkVersion,
-            isSimulation: false,
-            timestamp: Date.now(),
-          };
-        }
-      }
-      // 4. Thử qua Android WebView Interface
-      else if (window.Android && window.Android.initPrinter) {
-        this.printerInstance = window.Android;
-        this.sdkVersion = 'v1.0-webview';
-        
-        if (this.printerInstance.initPrinter) {
-          await this.printerInstance.initPrinter();
-        }
-        
-        this.isInitialized = true;
-        this.isSimulationMode = false;
-        this.applyAutoDelays();
-        if (typeof window !== "undefined") {
-          window.__IMIN_PRINTER_STATUS__ = {
-            mode: "real",
-            sdkVersion: this.sdkVersion,
-            isSimulation: false,
-            timestamp: Date.now(),
-          };
-        }
-      }
-      // 5. Chế độ simulation hoặc pending (Android POS chưa có SDK)
-      else {
-        const isAndroidPos = this.isLikelyAndroidPos();
-        // POS Android: SDK có thể inject chậm sau khi vừa mở app/đầu ca → chờ lâu hơn (10s)
-        // Nếu đang retry (allowWaitForSdk = true nhưng đã gọi lần 2) → dùng timeout ngắn hơn (3s)
-        if (allowWaitForSdk && isAndroidPos) {
-          // Kiểm tra xem có phải retry không (dựa vào status hiện tại)
-          const isRetry = typeof window !== "undefined" && 
-            window.__IMIN_PRINTER_STATUS__?.mode === "pending";
-          const timeoutMs = isRetry ? 3000 : 10000; // Retry: 3s, lần đầu: 10s
-          
-          const appeared = await this.waitForIminSdk({
-            timeoutMs,
-            intervalMs: 100,
-          });
-          if (appeared) {
-            // gọi lại init, nhưng không wait lần nữa để tránh loop
-            return await this.initPrinter({ allowWaitForSdk: false });
-          }
-        }
-
-        // Nếu đang chạy trên POS Android mà không có SDK sau khi chờ → set pending, KHÔNG throw lỗi
-        // Khi nào cần in sẽ retry lại với timeout ngắn hơn
-        if (isAndroidPos) {
-          this.isSimulationMode = false;
-          this.isInitialized = false;
-          this.sdkVersion = null;
-          if (typeof window !== "undefined") {
-            window.__IMIN_PRINTER_STATUS__ = {
-              mode: "pending",
-              sdkVersion: null,
-              isSimulation: false,
-              timestamp: Date.now(),
-              message: "iMin SDK chưa sẵn sàng trên POS Android. Sẽ retry khi cần in.",
-            };
-          }
-          // KHÔNG throw lỗi - chỉ log warning và return pending state
-          console.warn(
-            "⚠️ iMin SDK chưa sẵn sàng trên POS Android. Sẽ retry khi cần in."
-          );
-          return {
-            success: false,
-            mode: "pending",
-            sdkVersion: null,
-            message: "iMin SDK chưa sẵn sàng. Sẽ retry khi cần in.",
-          };
-        }
-
-        // PC/dev: không có SDK → trả về error (component sẽ tự quyết định dùng react-to-print)
-        console.warn('⚠️ iMin SDK không tìm thấy. Không thể in trên môi trường này.');
-        this.isSimulationMode = false;
-        this.isInitialized = false;
-        this.sdkVersion = null;
-        if (typeof window !== "undefined") {
-          window.__IMIN_PRINTER_STATUS__ = {
-            mode: "error",
-            sdkVersion: null,
-            isSimulation: false,
-            timestamp: Date.now(),
-            message: "iMin SDK không tìm thấy. Không thể in trên môi trường này.",
-          };
-        }
-        return {
-          success: false,
-          mode: "error",
-          sdkVersion: null,
-          message: "iMin SDK không tìm thấy. Không thể in.",
-        };
-      }
-      
-      return { 
-        success: this.isInitialized, 
-        mode: this.isInitialized ? 'real' : 'error',
-        sdkVersion: this.sdkVersion,
-        message: this.isInitialized
-          ? `Đã kết nối ${this.sdkVersion === 'v1.0-js' ? 'iMin JavaScript SDK v1.4.0' : 'SDK ' + this.sdkVersion}`
-          : 'Máy in chưa được khởi tạo'
-      };
-    } catch (error) {
-      console.error('❌ Lỗi khởi tạo máy in:', error);
-      throw new Error(`Không thể khởi tạo máy in: ${error.message}`);
-    }
-  }
-
-  /**
-   * Kiểm tra trạng thái máy in
-   */
-  async getPrinterStatus(connectType = 'SPI') {
-    if (this.isSimulationMode) {
-      return { code: '0', msg: 'Printer ready (simulation mode)', value: '0' };
-    }
-
-    if (!this.isInitialized || !this.printerInstance) {
-      throw new Error('Máy in chưa được khởi tạo. Gọi initPrinter() trước.');
-    }
-
-    try {
-      const status = await this.printerInstance.getPrinterStatus(connectType);
-      return status;
-    } catch (error) {
-      console.error('❌ [DEBUG] Lỗi kiểm tra trạng thái máy in:', error);
-      // Không throw error, trả về status mặc định để tiếp tục in
-      console.warn('⚠️ [DEBUG] Bỏ qua lỗi getPrinterStatus, giả định máy in OK');
-      return { code: '0', msg: 'Assumed ready (status check failed)', value: '0' };
-    }
-  }
-
-  /**
-   * Set khoảng cách giữa các dòng text (line spacing)
-   * @param {number} space - Khoảng cách (0-255, mặc định ~30)
-   */
-  async setTextLineSpacing(space = 0) {
-    if (!this.isInitialized || !this.printerInstance) {
-      throw new Error('Máy in chưa được khởi tạo');
-    }
-
-    try {
-      this.printerInstance.setTextLineSpacing(space);
-      await this.sleep(this.delays.style);
-      return { success: true };
-    } catch (error) {
-      console.error('❌ Lỗi set line spacing:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Set kiểu chữ (0=normal, 1=bold, 2=italic, 3=boldItalic) cho các lệnh in tiếp theo
-   */
-  async setTextStyle(styleValue) {
-    if (!this.isInitialized || !this.printerInstance) return;
-    try {
-      this.printerInstance.setTextStyle(styleValue);
-      await this.sleep(this.delays.style);
-    } catch (e) {
-      console.warn('setTextStyle:', e);
-    }
-  }
-
-  /**
-   * In văn bản với style tùy chỉnh
-   * @param {string} text - Nội dung cần in
-   * @param {object} options - Tùy chọn: { fontSize, fontStyle, align }
-   */
   async printText(text, options = {}) {
-    const {
-      fontSize = 24,
-      fontStyle = 'normal', // 'normal', 'bold', 'italic', 'boldItalic'
-      align = 'left', // 'left', 'center', 'right'
-    } = options;
+    if (!this.printerInstance) return;
+    const { fontSize = 24, fontStyle = 'normal', align = 'left' } = options;
 
-    if (!this.isInitialized || !this.printerInstance) {
-      throw new Error('Máy in chưa được khởi tạo');
-    }
-
-    try {
-      this.printerInstance.setTextSize(fontSize);
-      const alignValue = align === 'center' ? 1 : align === 'right' ? 2 : 0;
-      this.printerInstance.setAlignment(alignValue);
-      const styleMap = { normal: 0, bold: 1, italic: 2, boldItalic: 3 };
-      const styleValue = styleMap[fontStyle] ?? 0;
-      this.printerInstance.setTextStyle(styleValue);
-      const textToPrint = text.endsWith('\n') ? text : text + '\n';
-      this.printerInstance.printText(textToPrint);
-      // Delay rất nhỏ (hoặc 0) để tránh mất lệnh trên WebSocket
-      await this.sleep(this.delays.text);
-      
-      return { success: true };
-    } catch (error) {
-      console.error('❌ [DEBUG] Lỗi in text:', error);
-      throw error;
-    }
+    const alignValue = align === 'center' ? 1 : align === 'right' ? 2 : 0;
+    this.printerInstance.setAlignment(alignValue);
+    this.printerInstance.setTextSize(fontSize);
+    
+    const styleMap = { normal: 0, bold: 1, italic: 2, boldItalic: 3 };
+    this.printerInstance.setTextStyle(styleMap[fontStyle] || 0);
+    
+    const textToPrint = text.endsWith('\n') ? text : text + '\n';
+    this.printerInstance.printText(textToPrint);
   }
 
-  /**
-   * In bảng nhiều cột
-   * @param {array} columns - Mảng các cột: [{ text, width, align }]
-   */
   async printColumnsText(columns) {
-    if (!this.isInitialized || !this.printerInstance) {
-      throw new Error('Máy in chưa được khởi tạo');
-    }
-
-    try {
-      const colTextArr = columns.map(c => c.text || '');
-      const colWidthArr = columns.map(c => c.width || 1);
-      const colAlignArr = columns.map(c => {
-        const a = c.align || 'left';
-        return a === 'center' ? 1 : a === 'right' ? 2 : 0;
-      });
-      const size = columns.map(c => c.fontSize || 24);
-      const width = 576;
-      this.printerInstance.printColumnsText(colTextArr, colWidthArr, colAlignArr, size, width);
-      await this.sleep(this.delays.columns);
-      
-      return { success: true };
-    } catch (error) {
-      console.error('❌ Lỗi in bảng:', error);
-      throw error;
-    }
+    if (!this.printerInstance) return;
+    const colTextArr = columns.map(c => (c.text || '').toString());
+    const colWidthArr = columns.map(c => c.width || 1);
+    const colAlignArr = columns.map(c => {
+      return c.align === 'center' ? 1 : c.align === 'right' ? 2 : 0;
+    });
+    const size = columns.map(c => c.fontSize || 24);
+    this.printerInstance.printColumnsText(colTextArr, colWidthArr, colAlignArr, size, 576);
   }
 
-  /**
-   * In QR code
-   * @param {string} data - Dữ liệu QR code
-   * @param {object} options - { qrSize, align, errorCorrectionLevel }
-   */
   async printQrCode(data, options = {}) {
-    const {
-      // Giảm mặc định từ 6 → 4 để QR nhỏ hơn, phù hợp khổ giấy
-      qrSize = 1,
-      align = 'center',
-      errorCorrectionLevel = 'levelM', // levelL, levelM, levelQ, levelH
-    } = options;
-
-    if (!this.isInitialized || !this.printerInstance) {
-      throw new Error('Máy in chưa được khởi tạo');
-    }
-
-    try {
-      // iMin SDK: SET trước → PRINT
-      
-      // 1. Set QR code size (1-9)
-      this.printerInstance.setQrCodeSize(qrSize);
-      
-      // 2. Set error correction level (48=L, 49=M, 50=Q, 51=H)
-      const levelMap = { levelL: 48, levelM: 49, levelQ: 50, levelH: 51 };
-      this.printerInstance.setQrCodeErrorCorrectionLev(levelMap[errorCorrectionLevel] ?? 49);
-      
-      // 3. Print QR code (qrStr, alignmentMode)
-      const alignValue = align === 'center' ? 1 : align === 'right' ? 2 : 0;
-      this.printerInstance.printQrCode(data, alignValue);
-      await this.sleep(this.delays.qr);
-      
-      return { success: true };
-    } catch (error) {
-      console.error('❌ Lỗi in QR code:', error);
-      throw error;
-    }
+    if (!this.printerInstance) return;
+    const { size = 4, align = 'center' } = options;
+    this.printerInstance.setQrCodeSize(size);
+    const alignValue = align === 'center' ? 1 : align === 'right' ? 2 : 0;
+    this.printerInstance.printQrCode(data, alignValue);
   }
 
   /**
-   * In barcode
-   * @param {string} data - Dữ liệu barcode
-   * @param {object} options - { barcodeType, width, height, align }
-   */
-  async printBarCode(data, options = {}) {
-    const {
-      barcodeType = 'CODE128',
-      width = 2,
-      height = 100,
-      align = 'center',
-    } = options;
-
-    if (!this.isInitialized || !this.printerInstance) {
-      throw new Error('Máy in chưa được khởi tạo');
-    }
-
-    try {
-      // 1. Set barcode width (1-6)
-      this.printerInstance.setBarCodeWidth(width);
-      
-      // 2. Set barcode height (1-255)
-      this.printerInstance.setBarCodeHeight(height);
-      
-      // 3. Map barcode type string sang number
-      const typeMap = {
-        'UPC_A': 0,
-        'UPC_E': 1,
-        'EAN13': 2,
-        'EAN8': 3,
-        'CODE39': 4,
-        'ITF': 5,
-        'CODABAR': 6,
-        'CODE128': 8,
-      };
-      const barCodeTypeNum = typeMap[barcodeType] ?? 8;
-      
-      // 4. Print barcode (type, content, alignment)
-      const alignValue = align === 'center' ? 1 : align === 'right' ? 2 : 0;
-      this.printerInstance.printBarCode(barCodeTypeNum, data, alignValue);
-      await this.sleep(this.delays.barcode);
-      
-      return { success: true };
-    } catch (error) {
-      console.error('❌ Lỗi in barcode:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Feed giấy (đẩy giấy ra)
-   * @param {number} units - Số đơn vị đẩy giấy (0-255)
-   */
-  async printAndFeedPaper(units = 50) {
-    if (!this.isInitialized || !this.printerInstance) {
-      throw new Error('Máy in chưa được khởi tạo');
-    }
-
-    try {
-      // Tối ưu: nếu units = 0 thì bỏ qua hẳn (tránh tốn thời gian/overhead gọi xuống SDK)
-      if (!units || Number(units) <= 0) {
-        return { success: true };
-      }
-      this.printerInstance.printAndFeedPaper(units);
-      await this.sleep(this.delays.feed);
-      
-      return { success: true };
-    } catch (error) {
-      console.error('❌ Lỗi feed giấy:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Cắt giấy một phần (giữ giấy không rơi hẳn)
-   */
-  async partialCut() {
-    if (!this.isInitialized || !this.printerInstance) {
-      throw new Error('Máy in chưa được khởi tạo');
-    }
-
-    try {
-      this.printerInstance.partialCut();
-      await this.sleep(this.delays.cut);
-      
-      return { success: true };
-    } catch (error) {
-      console.error('❌ Lỗi cắt giấy:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Cắt giấy hoàn toàn
-   */
-  async fullCut() {
-    if (!this.isInitialized || !this.printerInstance) {
-      throw new Error('Máy in chưa được khởi tạo');
-    }
-
-    try {
-      if (this.printerInstance.fullCut) {
-        this.printerInstance.fullCut();
-      } else {
-        this.printerInstance.partialCut();
-      }
-      await this.sleep(this.delays.cut);
-      
-      return { success: true };
-    } catch (error) {
-      console.error('❌ Lỗi cắt giấy:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Mở ngăn kéo tiền (nếu có)
-   */
-  async openCashBox() {
-    if (!this.isInitialized || !this.printerInstance) {
-      throw new Error('Máy in chưa được khởi tạo');
-    }
-
-    try {
-      this.printerInstance.openCashBox();
-      await this.sleep(this.delays.feed);
-      
-      return { success: true };
-    } catch (error) {
-      console.error('❌ Lỗi mở ngăn kéo:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * In hóa đơn hoàn chỉnh
-   * @param {object} master - Thông tin master đơn hàng
-   * @param {array} detail - Chi tiết đơn hàng
-   * @param {number} numberOfCopies - Số liên cần in
-   * @param {object} options - { isReprint: boolean } - true thì header hiển thị "(in lại)"
+   * In hóa đơn hoàn chỉnh (Mẫu in gốc)
    */
   async printReceipt(master, detail, numberOfCopies = 1, options = {}) {
     const isReprint = options.isReprint === true;
@@ -655,225 +177,140 @@ class IminPrinterService {
         await this.initPrinter();
       }
 
-      // NOTE: getPrinterStatus() có thể làm chậm (timeout) và hiện không dùng kết quả.
-      // Nếu cần kiểm tra trạng thái thật, hãy bật lại theo nhu cầu.
-      // const status = await this.getPrinterStatus('SPI');
+      const LINE_FULL_WIDTH = '─────────────────────────────────────────';
 
-      // Dòng phân cách full width (80mm ~ 48 ký tự)
-      const LINE_FULL_WIDTH = '────────────────────────────────';
-
-      // In nhiều liên - mẫu in giống PrintComponent (OrderSummary)
       for (let copy = 1; copy <= numberOfCopies; copy++) {
-
-        await this.setTextLineSpacing(0);
+        await this.printerInstance.setTextLineSpacing(0);
 
         const now = new Date();
-        const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+        const dateOnly = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+        const timeOnly = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
 
-        let hoaDonTitle = 'HÓA ĐƠN';
-        if (isReprint) {
-          hoaDonTitle = numberOfCopies > 1 ? `HÓA ĐƠN (IN LẠI) (${copy}/${numberOfCopies})` : 'HÓA ĐƠN (IN LẠI)';
-        } else if (numberOfCopies > 1) {
-          hoaDonTitle = `HÓA ĐƠN(${copy}/${numberOfCopies})`;
-        }
-        // Header (giống mẫu tham chiếu): tên trường, địa chỉ, tiêu đề hóa đơn
-        // (Ngày giờ sẽ in ở phần dưới, gần "Số thẻ")
-        const headerBlock = `ĐẠI HỌC PHENIKAA\nĐịa chỉ: Nguyễn Văn Trác, Dương Nội, Hà Nội\n${hoaDonTitle}`;
+        const headerBlock = `ĐẠI HỌC PHENIKAA\nĐịa chỉ: Nguyễn Văn Trác, Dương Nội, Hà Nội`;
         await this.printText(headerBlock, {
           fontSize: 24,
           fontStyle: 'bold',
           align: 'center',
         });
 
-        // Dòng thể hiện hình thức thanh toán + Liên: x/y (gần giống mẫu tham chiếu)
-        try {
-          // Dùng nhãn ngắn để đảm bảo nằm 1 dòng, không bị QR/độ rộng đẩy xuống dòng
-          const paymentLabel = this.formatPaymentMethodShort(master?.httt || '');
-          const lienText =
-            numberOfCopies > 1 ? `Liên: ${copy}/${numberOfCopies}` : '';
-          await this.setTextStyle(1); // bold
-          await this.printColumnsText([
-            // Tổng width 8 giống bảng món (3+1+2+2) để canh lề ổn định
-            { text: `[${paymentLabel}]`, width: 6, align: 'left', fontSize: 22 },
-            { text: lienText, width: 2, align: 'right', fontSize: 22 },
-          ]);
-          await this.setTextStyle(0); // normal
-        } catch (e) {
-          console.warn('⚠️ Không thể in dòng hình thức thanh toán:', e);
-        }
+        const paymentLabel = this.formatPaymentMethodShort(master?.httt || '');
+        const copyLabel = isReprint ? 'IN LẠI' : (numberOfCopies > 1 ? `Liên: ${copy}/${numberOfCopies}` : '');
+        const soTheRaw = (master?.so_the || master?.ma_ban || "").toString().trim().toUpperCase();
+        const soThe = soTheRaw !== "POS" ? soTheRaw : "";
 
-        await this.setTextLineSpacing(0);
-        await this.printText('', { fontSize: 0 });
-
-        // Thông tin hóa đơn: gộp nhiều dòng vào 1 lệnh in để thu hẹp khoảng cách
-        const infoLines = [];
-        const tenKhach = (master?.ong_ba || master?.ten_kh || '').toString().trim();
-        infoLines.push(`Tên khách: ${tenKhach || 'Khách hàng căng tin'}`);
-        infoLines.push(`Số CT: ${master?.so_ct || 'Chưa có'}`);
-        if (infoLines.length > 0) {
-          await this.printText(infoLines.join('\n'), { fontSize: 22, fontStyle: 'bold' });
-        }
-
-        await this.printText('', { fontSize: 0 });
-
-        // Bảng: Tên món | SL | Giá | Thành tiền — tên cột in đậm
-        await this.setTextStyle(1); // bold
-        await this.printColumnsText([
-          { text: 'Tên món', width: 3, align: 'left' },
-          { text: 'SL', width: 1, align: 'center' },
-          { text: 'Giá', width: 2, align: 'center' },
-          { text: 'Thành tiền', width: 2, align: 'right' },
-        ]);
-        await this.setTextStyle(0); // normal
-        await this.printText(LINE_FULL_WIDTH, { align: 'center' });
-
-        // Chi tiết món (chỉ parent, có sub-items và ghi chú giống PrintComponent)
-        const mainItems = detail.filter((d) => !d?.ma_vt_root);
-        for (const item of mainItems) {
-          const displayName = item?.selected_meal?.label || item?.ten_vt || '';
-          const thanhTien = item?.thanh_tien_print ?? item?.thanh_tien ?? (Number(item?.don_gia || 0) * Number(item?.so_luong || 1));
-          await this.printColumnsText([
-            { text: displayName, width: 3, align: 'left' },
-            { text: String(item?.so_luong || 1), width: 1, align: 'center' },
-            { text: this.formatNumber(item?.don_gia || 0) + 'đ', width: 2, align: 'right' },
-            { text: this.formatNumber(thanhTien) + 'đ', width: 2, align: 'right' },
-          ]);
-
-          // Sub-items (ma_vt_root === item.ma_vt, uniqueid === item.uniqueid)
-          const subItems = detail.filter(
-            (sub) => sub?.ma_vt_root === item?.ma_vt && sub?.uniqueid === item?.uniqueid
-          );
-          for (const sub of subItems) {
-            const subThanhTien = sub?.thanh_tien_print ?? sub?.thanh_tien ?? (Number(sub?.don_gia || 0) * Number(sub?.so_luong || 1));
+        await this.printerInstance.setTextStyle(1);
+        if (soThe) {
             await this.printColumnsText([
-              { text: '+ ' + (sub?.ten_vt || ''), width: 3, align: 'left' },
-              { text: String(sub?.so_luong || 1), width: 1, align: 'center' },
-              { text: this.formatNumber(sub?.don_gia || 0) + 'đ', width: 2, align: 'right' },
-              { text: this.formatNumber(subThanhTien) + 'đ', width: 2, align: 'right' },
+                { text: `[${paymentLabel}]`, width: 3, align: 'left', fontSize: 30 },
+                { text: soThe, width: 3, align: 'center', fontSize: 30 },
+                { text: copyLabel, width: 2, align: 'right', fontSize: 30 },
             ]);
-          }
+        } else {
+            await this.printColumnsText([
+                { text: `[${paymentLabel}]`, width: 6, align: 'left', fontSize: 22 },
+                { text: copyLabel, width: 2, align: 'right', fontSize: 22 },
+            ]);
+        }
+        await this.printerInstance.setTextStyle(0);
+        await this.printText('', { fontSize: 0 });
 
-          if (item?.ghi_chu) {
-            await this.printText(`  Ghi chú: ${item.ghi_chu}`, { fontSize: 0, fontStyle: 'italic' });
-          }
-          // TỐI ƯU TỐC ĐỘ: giảm feed giữa từng món (feed vật lý thường chậm).
-          // Có thể tăng lên 2-6 nếu bạn muốn tách dòng rõ hơn.
-          await this.printAndFeedPaper(0);
+        const tenKhach = (master?.ong_ba || master?.ten_kh || "Khách hàng").toString().trim();
+        const soCt = String(master?.so_ct || 'Chưa có');
+        const infoBlock = `Tên khách: ${tenKhach}\nSố CT: ${soCt}`;
+        await this.printText(infoBlock, { fontSize: 22, fontStyle: 'bold', align: 'left' });
+
+        await this.printerInstance.setTextStyle(1);
+        await this.printColumnsText([
+          { text: 'Tên món', width: 3, align: 'left', fontSize: 20 },
+          { text: 'SL', width: 1, align: 'center', fontSize: 20 },
+          { text: 'Giá', width: 2, align: 'center', fontSize: 20 },
+          { text: 'Thành tiền', width: 2, align: 'right', fontSize: 20 },
+        ]);
+        await this.printerInstance.setTextStyle(0);
+        await this.printText(LINE_FULL_WIDTH, { align: 'center', fontSize: 18 });
+
+        const mainItems = detail.filter(d => !d.ma_vt_root);
+        for (const item of mainItems) {
+            const tenMon = item?.selected_meal?.label || item?.ten_vt || "Món ăn";
+            const sl = String(item?.so_luong || 1);
+            const gia = this.formatNumber(item?.don_gia || 0) + 'đ';
+            const tt = this.formatNumber(item?.thanh_tien_print || item?.thanh_tien || (Number(sl) * Number(item?.don_gia || 0))) + 'đ';
+
+            await this.printColumnsText([
+                { text: tenMon, width: 3, align: 'left', fontSize: 22 },
+                { text: sl, width: 1, align: 'center', fontSize: 22 },
+                { text: gia, width: 2, align: 'center', fontSize: 22 },
+                { text: tt, width: 2, align: 'right', fontSize: 22 },
+            ]);
+
+            const subItems = detail.filter(s => s.ma_vt_root === item.ma_vt && s.uniqueid === item.uniqueid);
+            for (const sub of subItems) {
+                const subTT = this.formatNumber(sub?.thanh_tien_print || sub?.thanh_tien || (Number(sub?.so_luong || 1) * Number(sub?.don_gia || 0))) + 'đ';
+                await this.printColumnsText([
+                    { text: `+ ${sub.ten_vt}`, width: 3, align: 'left', fontSize: 19 },
+                    { text: String(sub.so_luong || 1), width: 1, align: 'center', fontSize: 19 },
+                    { text: this.formatNumber(sub.don_gia || 0) + 'đ', width: 2, align: 'center', fontSize: 19 },
+                    { text: subTT, width: 2, align: 'right', fontSize: 19 },
+                ]);
+            }
+
+            if (item.ghi_chu && item.ghi_chu.trim()) {
+                await this.printText(` - Ghi chú: ${item.ghi_chu}`, { fontSize: 19, align: 'left' });
+            }
         }
 
-        await this.printText(LINE_FULL_WIDTH, { align: 'center' });
+        await this.printText(LINE_FULL_WIDTH, { align: 'center', fontSize: 18 });
 
-        // Chiết khấu (tổng từ detail chiet_khau_print)
-        const totalDiscount = (detail || []).reduce((sum, d) => {
-          const val = parseFloat(d?.chiet_khau_print || 0);
-          return sum + (isNaN(val) ? 0 : val);
-        }, 0);
+        const totalDiscount = (detail || []).reduce((sum, d) => sum + parseFloat(d.chiet_khau_print || 0), 0);
         if (totalDiscount > 0) {
-          await this.printText(`Chiết khấu: ${this.formatNumber(totalDiscount)}đ`, {
-            fontSize: 22,
-            align: 'right',
-          });
+            await this.printText(`Chiết khấu: ${this.formatNumber(totalDiscount)}đ`, { fontSize: 22, align: 'right' });
         }
 
-        // Tổng tiền
-        await this.printText(`Tổng tiền: ${this.formatNumber(master?.tong_tien || 0)}đ`, {
-          fontSize: 26,
-          fontStyle: 'bold',
-          align: 'right',
-        });
+        const totalLine = `TỔNG TIỀN: ${this.formatNumber(master?.tong_tien || 0)}đ`;
+        const paddedTotalLine = totalLine.length < 87 ? totalLine.padStart(87) : totalLine;
+        await this.printText(paddedTotalLine, { fontSize: 22, fontStyle: 'bold', align: 'left' });
 
-        // Khối footer (giống mẫu tham chiếu): Số thẻ + ngày giờ + nhân viên/DVCS + hotline/email
-        const soThe = (master?.so_the && master.so_the.trim()) || (master?.ma_ban && master.ma_ban.trim()) || '';
-        const soTheHienThi = soThe && soThe.toUpperCase() !== 'POS' ? soThe : '';
-        const tenNvbh = (master?.ten_nvbh || '').toString().trim();
-        const tenDvcs = (master?.ten_dvcs || master?.unitName || master?.DVCS || '').toString().trim();
+        await this.printText('', { fontSize: 10 });
+        const tenNvbh = (master?.ten_nvbh || "").trim();
+        const tenDvcs = (master?.ten_dvcs || master?.unitName || master?.DVCS || "").toString().trim();
+        const qrInfo = getQRInfoFromStore();
+        
         const footerLines = [];
-        if (soTheHienThi) footerLines.push(`Số thẻ: ${soTheHienThi}`);
-        footerLines.push(dateStr);
-        const staffLine = [tenNvbh, tenDvcs].filter(Boolean).join(' - ');
-        if (staffLine) footerLines.push(staffLine);
-        if (PRINT_FOOTER_HOTLINE) footerLines.push(`Hotline: ${PRINT_FOOTER_HOTLINE}`);
-        if (PRINT_FOOTER_EMAIL) footerLines.push(`Email: ${PRINT_FOOTER_EMAIL}`);
-        if (footerLines.length) {
-          await this.printText(footerLines.join('\n'), { fontSize: 22, fontStyle: 'bold', align: 'left' });
-        }
-
-        // QR thanh toán (gần cuối, canh phải)
-        try {
-          const httt = String(master?.httt || '').split(',').map((m) => m.trim());
-          const hasTransfer = httt.includes('chuyen_khoan');
-          if (hasTransfer && PAYMENT_EMV_PAYLOAD) {
-            await this.printQrCode(PAYMENT_EMV_PAYLOAD, { qrSize: 4, align: 'right' });
-            await this.printAndFeedPaper(10);
-          }
-        } catch (e) {
-          console.warn('⚠️ Không thể in QR thanh toán:', e?.message || e);
-        }
-
-        // Brand/website (center) nếu có cấu hình
+        footerLines.push(`${dateOnly}   ${timeOnly}`);
+        if (tenNvbh || tenDvcs) footerLines.push([tenNvbh, tenDvcs].filter(Boolean).join(" - "));
+        
+        const hotline = master?.HotlineBill || qrInfo?.HotlineBill || PRINT_FOOTER_HOTLINE;
+        const email = master?.EmailBill || qrInfo?.EmailBill || PRINT_FOOTER_EMAIL;
+        if (hotline) footerLines.push(`Hotline: ${hotline}`);
+        if (email) footerLines.push(`Email: ${email}`);
+        
         const brandWebsite = [PRINT_FOOTER_BRAND, PRINT_FOOTER_WEBSITE].filter(Boolean).join(' - ');
-        if (brandWebsite) {
-          await this.printText(brandWebsite, { fontSize: 20, align: 'center' });
+        if (brandWebsite) footerLines.push(brandWebsite.length < 25 ? brandWebsite.padStart(25) : brandWebsite);
+
+        if (footerLines.length) {
+            await this.printText(footerLines.join('\n'), { fontSize: 22, fontStyle: 'bold', align: 'left' });
         }
 
-        await this.printText('CẢM ƠN QUÝ KHÁCH', {
-          fontSize: 22,
-          align: 'center',
-        });
-
-        await this.printAndFeedPaper(60);
-        await this.partialCut();
-
-        if (copy < numberOfCopies) {
-          await this.sleep(this.delays.betweenCopies);
+        const qrPayloadToPrint = options.qrPayload !== undefined ? options.qrPayload : getQRPayloadFromStore();
+        if (qrPayloadToPrint) {
+            await this.printQrCode(qrPayloadToPrint, { size: 3, align: 'center' });
         }
+
+        await this.printText('CẢM ƠN QUÝ KHÁCH, HẸN GẶP LẠI!', { fontSize: 22, align: 'center' });
+
+        await this.printerInstance.printAndFeedPaper(60);
+        await this.printerInstance.partialCut();
       }
-
-      return { success: true, copies: numberOfCopies };
+      return { success: true };
     } catch (error) {
-      console.error('❌ [DEBUG] Lỗi in hóa đơn:', error);
-      console.error('❌ [DEBUG] Error stack:', error.stack);
+      console.error("❌ Lỗi in hóa đơn:", error);
       throw error;
     }
   }
 
-  /**
-   * Format số thành định dạng tiền tệ
-   */
-  formatNumber(value) {
-    if (!value) return '0';
-    return new Intl.NumberFormat('vi-VN').format(value);
-  }
-
-  /**
-   * Format hình thức thanh toán (giống PrintComponent)
-   */
-  formatPaymentMethod(method) {
-    if (!method) return 'Tiền mặt';
-    const methods = String(method).split(',').map((m) => m.trim());
-    const formatted = methods.map((m) => {
-      if (m === 'chuyen_khoan') return 'Chuyển khoản';
-      if (m === 'tien_mat') return 'Tiền mặt';
-      return 'Tiền mặt';
-    });
-    return formatted.join(' + ');
-  }
-
-  /**
-   * Reset và đóng kết nối máy in
-   */
-  async disconnect() {
+  async openCashBox() {
     if (this.printerInstance) {
-      try {
-        if (this.printerInstance.resetDevice) {
-          await this.printerInstance.resetDevice();
-        }
-        this.isInitialized = false;
-        return { success: true };
-      } catch (error) {
-        console.error('❌ Lỗi ngắt kết nối:', error);
-        throw error;
-      }
+        this.printerInstance.openCashBox();
     }
   }
 }

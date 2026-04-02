@@ -68,7 +68,7 @@ function buildMerchantAccountInfo({ bankId, account }) {
   return accInfoValue;
 }
 
-function buildVietQR({ account, bankId, amount, content }) {
+export function buildVietQR({ account, bankId, amount, content }) {
   // Static QR: Point of Initiation = "11" (not "12" for dynamic)
   const payloadFormat = "00" + "02" + "01";
   const pointOfInit = "01" + "02" + "11"; // "11" = Static QR Code
@@ -102,8 +102,8 @@ function buildVietQR({ account, bankId, amount, content }) {
   return qrString + crcValue;
 }
 
-export default function VietQR({ amount, soChungTu, size = 100, payload }) {
-  const account = process.env.REACT_APP_VIETQR_ACCOUNT;
+export default function VietQR({ amount, soChungTu, size = 100, payload, account: accountProp }) {
+  const account = accountProp || process.env.REACT_APP_VIETQR_ACCOUNT;
   const bankId = process.env.REACT_APP_VIETQR_BANK_ID;
 
   // Allow overriding QR payload (EMVCo/VietQR raw string) from caller.

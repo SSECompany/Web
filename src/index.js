@@ -21,7 +21,14 @@ import App from "./App";
 import Loading from "./components/common/Loading/Loading";
 import reportWebVitals from './reportWebVitals';
 import themeComponents from "./utils/theme";
+import VConsole from "vconsole";
 import IminPrinter from "./utils/imin-printer.js";
+
+console.log("vConsole Toggle:", process.env.REACT_APP_ENABLE_VCONSOLE);
+if (process.env.REACT_APP_ENABLE_VCONSOLE === "true") {
+  console.log("Initializing vConsole...");
+  new VConsole();
+}
 
 if (typeof window !== "undefined") {
   window.IminPrinter = IminPrinter;

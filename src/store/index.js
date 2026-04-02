@@ -3,6 +3,7 @@ import orders from "./../modules/order/store/order";
 import claimsReducer from './reducers/claimsSlice';
 import loadingReducer from "./reducers/loadingSlice";
 import meals from "./../modules/meal/store/meal";
+import qrCodeReducer from "./reducers/qrCodeSlice";
 
 //store
 const store = configureStore({
@@ -10,7 +11,8 @@ const store = configureStore({
     orders: orders,
     loadingReducer,
     claimsReducer,
-    meals: meals
+    meals: meals,
+    qrCode: qrCodeReducer,
 
   },
   middleware: (getDefaultMiddleware) =>

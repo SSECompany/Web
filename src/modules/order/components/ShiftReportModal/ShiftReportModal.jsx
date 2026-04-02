@@ -1,4 +1,4 @@
-import { PrinterOutlined } from "@ant-design/icons";
+import { PrinterOutlined, ReloadOutlined } from "@ant-design/icons";
 import {
   Button,
   DatePicker,
@@ -357,6 +357,7 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
               placeholder="Chọn ngày"
             />
             <InputNumber
+              disabled
               min={0}
               addonBefore="Số dư đầu"
               value={openingBalance}
@@ -377,6 +378,13 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
               disabled={!summaryData && categoryData.length === 0}
             >
               In báo cáo chốt ca
+            </Button>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => fetchReportData()}
+              loading={isLoading}
+            >
+              Làm mới
             </Button>
           </Space>
         </div>

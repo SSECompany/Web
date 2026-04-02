@@ -160,7 +160,7 @@ const ShiftReportPrintComponent = forwardRef(
             fontSize: "11px",
           }}
         >
-          <thead>
+          <thead style={{ display: "table-row-group" }}>
             <tr>
               <th
                 style={{

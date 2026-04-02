@@ -47,7 +47,9 @@ const ReceiptPreviewModal = ({
           <ReceiptThermalPreview
             master={{ ...master, so_ct: orderNumber || master?.so_ct }}
             detail={detail}
-            receiptTitle={isReprint ? "HÓA ĐƠN (IN LẠI)" : "HÓA ĐƠN"}
+            isReprint={isReprint}
+            numberOfCopies={1}
+            copyIndex={1}
           />
         </div>
       </div>

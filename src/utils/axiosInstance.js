@@ -30,6 +30,14 @@ const instance = axios.create({
 
 instance.interceptors.request.use((req) => {
   req.headers.Authorization = `Bearer ${jwt.getAccessToken()}`;
+
+  // TỐI ƯU HÓA: NẾU API ĐANG RẢNH (< 3 request) THÌ FIRE LUÔN, KHÔNG BỊ DELAY 300ms!
+  if (PENDING_REQUESTS < MAX_REQUESTS_COUNT) {
+    PENDING_REQUESTS++;
+    return req;
+  }
+
+  // NẾU FULL QUEUE THÌ MỚI ĐỢI
   return new Promise((resolve, reject) => {
     let interval = setInterval(() => {
       if (PENDING_REQUESTS < MAX_REQUESTS_COUNT) {
@@ -65,12 +73,14 @@ instance.interceptors.response.use(
           return await axios.request(config);
         } catch (innerError) {
           // if original req failed with 401 again - it means server returned not valid token for refresh request
-          if (error.response.status === 401) {
-            throw innerError;
+          if (innerError?.response?.status === 401 || error?.response?.status === 401) {
             jwt.resetAccessToken();
             router.navigate("/login");
-            Promise.reject(error);
-          } else controller.abort();
+            return Promise.reject(innerError);
+          } else {
+            controller.abort();
+            return Promise.reject(innerError);
+          }
         }
       } catch (error) {
         jwt.resetAccessToken();

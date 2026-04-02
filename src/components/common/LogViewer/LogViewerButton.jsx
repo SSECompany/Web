@@ -92,6 +92,9 @@ const LogViewerButton = ({ isInNavbar = false }) => {
   // Kiểm tra xem có phải tài khoản pos-mini không
   const roleWeb = claims?.RoleWeb;
 
+  // Tạm thời ẩn "Trung tâm quản lý in" theo yêu cầu
+  return null;
+
   // Ẩn monitor in nếu là pos-mini
   if (roleWeb === "isPosMini") {
     return null;
@@ -112,33 +115,32 @@ const LogViewerButton = ({ isInNavbar = false }) => {
     <>
       {/* Chỉ giữ lại nút máy in */}
       <button
-        className={`print-orders-fab${
-          totalFailed > 0 || totalPending > 0 ? " blink" : ""
-        }`}
+        className={`print-orders-fab${totalFailed > 0 || totalPending > 0 ? " blink" : ""
+          }`}
         onClick={handleOpenPrintOrders}
         title="Monitor In đơn"
         style={
           isInNavbar
             ? {
-                position: "static",
-                top: "auto",
-                right: "auto",
-                transform: "none",
-                margin: "0 0 0 8px",
-                width: "auto",
-                minWidth: "60px",
-                height: "28px",
-                fontSize: "12px",
-                zIndex: "auto",
-                padding: "0 8px",
-              }
+              position: "static",
+              top: "auto",
+              right: "auto",
+              transform: "none",
+              margin: "0 0 0 8px",
+              width: "auto",
+              minWidth: "60px",
+              height: "28px",
+              fontSize: "12px",
+              zIndex: "auto",
+              padding: "0 8px",
+            }
             : {
-                position: "fixed",
-                top: "15px",
-                right: "220px",
-                width: "80px",
-                height: "32px",
-              }
+              position: "fixed",
+              top: "15px",
+              right: "220px",
+              width: "80px",
+              height: "32px",
+            }
         }
       >
         <div

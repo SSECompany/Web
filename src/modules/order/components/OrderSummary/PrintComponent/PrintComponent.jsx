@@ -12,19 +12,19 @@ const PrintComponent = forwardRef(
     const fullName = claims?.FullName;
 
     const formatPaymentMethod = (method) => {
-      if (!method) return "Tiền mặt";
+      if (!method) return "TM";
 
       // Xử lý trường hợp có nhiều hình thức thanh toán
       const methods = method.split(",").map((m) => m.trim());
       const formattedMethods = methods.map((m) => {
-      switch (m) {
-        case "chuyen_khoan":
-          return "Chuyển khoản";
-        case "tien_mat":
-          return "Tiền mặt";
-        default:
-          return "Tiền mặt";
-      }
+        switch (m) {
+          case "chuyen_khoan":
+            return "CK";
+          case "tien_mat":
+            return "TM";
+          default:
+            return "TM";
+        }
       });
 
       return formattedMethods.join(" + ");
@@ -75,28 +75,31 @@ const PrintComponent = forwardRef(
             )
               .toString()
               .padStart(2, "0")}/${now.getFullYear()} ${now
-              .getHours()
-              .toString()
-              .padStart(2, "0")}:${now
-              .getMinutes()
-              .toString()
-              .padStart(2, "0")}:${now
-              .getSeconds()
-              .toString()
-              .padStart(2, "0")}`}
+                .getHours()
+                .toString()
+                .padStart(2, "0")}:${now
+                  .getMinutes()
+                  .toString()
+                  .padStart(2, "0")}:${now
+                    .getSeconds()
+                    .toString()
+                    .padStart(2, "0")}`}
           </span>
-          {(() => {
-            const soThe = master?.so_the?.trim() || master?.ma_ban?.trim() || "";
-            const hienThi = soThe && soThe.toUpperCase() !== "POS" ? soThe : "";
-            return hienThi ? (
-              <>
-                <br />
-                <span style={{ fontSize: "14px", fontWeight: "bold", color: "#000" }}>
-                  Số thẻ: {hienThi}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', marginBottom: '8px' }}>
+            <span style={{ fontSize: "14px", fontWeight: "bold", color: "#000" }}>
+              [{formatPaymentMethod(master?.httt)}]
+            </span>
+            {(() => {
+              const soThe = master?.so_the?.trim() || master?.ma_ban?.trim() || "";
+              const hienThi = soThe && soThe.toUpperCase() !== "POS" ? soThe : "";
+              return hienThi ? (
+                <span style={{ fontSize: "24px", fontWeight: "bold", color: "#000" }}>
+                  [{hienThi}]
                 </span>
-              </>
-            ) : null;
-          })()}
+              ) : null;
+            })()}
+            <span style={{ fontSize: "14px", fontWeight: "bold", color: "#000" }}></span>
+          </div>
         </div>
         {/* Thông tin khách hàng */}
         <div style={{ color: "#000", marginBottom: "6px" }}>
@@ -110,7 +113,7 @@ const PrintComponent = forwardRef(
             <strong>Mã số thuế:</strong> {master.ma_so_thue_kh}
           </div>
         )}
-        
+
         {/* Chi tiết thanh toán — chỉ hiển thị khi đa phương thức */}
         {!(master?.xuat_hoa_don_yn === "1" || master?.kh_ts_yn === "1") &&
           Number(master?.chuyen_khoan || 0) > 0 &&
@@ -118,8 +121,8 @@ const PrintComponent = forwardRef(
             <div
               style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}
             >
-              <div>• Chuyển khoản: {formatNumber(master.chuyen_khoan)}đ</div>
-              <div>• Tiền mặt: {formatNumber(master.tien_mat)}đ</div>
+              <div>• CK: {formatNumber(master.chuyen_khoan)}đ</div>
+              <div>• TM: {formatNumber(master.tien_mat)}đ</div>
             </div>
           )}
         {/* Thông tin đơn hàng */}
@@ -134,7 +137,7 @@ const PrintComponent = forwardRef(
             marginBottom: "6px",
           }}
         >
-          <thead>
+          <thead style={{ display: "table-row-group" }}>
             <tr style={{ fontSize: "10px", borderBottom: "1px solid black" }}>
               <th
                 style={{
@@ -230,8 +233,8 @@ const PrintComponent = forwardRef(
                         }}
                       >
                         {formatNumber(
-                          item?.thanh_tien_print || 
-                          item?.thanh_tien || 
+                          item?.thanh_tien_print ||
+                          item?.thanh_tien ||
                           (Number(item?.don_gia || 0) * Number(item?.so_luong || 1))
                         )}đ
                       </td>
@@ -282,8 +285,8 @@ const PrintComponent = forwardRef(
                           }}
                         >
                           {formatNumber(
-                            sub?.thanh_tien_print || 
-                            sub?.thanh_tien || 
+                            sub?.thanh_tien_print ||
+                            sub?.thanh_tien ||
                             (Number(sub?.don_gia || 0) * Number(sub?.so_luong || 1))
                           )}đ
                         </td>
@@ -369,6 +372,16 @@ const PrintComponent = forwardRef(
             paddingTop: "10px",
           }}
         >
+          {master?.HotlineBill && (
+            <div style={{ textAlign: "center", fontSize: "12px", color: "#000" }}>
+              Hotline: {master.HotlineBill}
+            </div>
+          )}
+          {master?.EmailBill && (
+            <div style={{ textAlign: "center", fontSize: "12px", color: "#000" }}>
+              Email: {master.EmailBill}
+            </div>
+          )}
           <div
             style={{
               textAlign: "center",

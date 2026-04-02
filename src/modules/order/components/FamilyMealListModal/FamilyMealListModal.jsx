@@ -17,7 +17,6 @@ import {
 } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useReactToPrint } from "react-to-print";
 import {
   apiGetRetailOrderPatientIsFamily,
   multipleTablePutApi,
@@ -28,7 +27,6 @@ import jwt from "../../../../utils/jwt";
 import { addTab, setListOrderInfo, switchTab } from "../../store/order";
 import ReceiptPreviewModal from "../OrderSummary/ReceiptPreviewModal/ReceiptPreviewModal";
 import "../OrderSummary/PaymentModal/PaymentModal.css";
-import PrintComponent from "../RetailOrderListModal/PrintComponent/PrintComponent";
 import "./FamilyMealListModal.css";
 
 const FamilyMealListModal = ({ isOpen, onClose }) => {
@@ -894,14 +892,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
     }
   };
 
-  const handlePrint = useReactToPrint({
-    content: () => printContent.current,
-    documentTitle: "Print Family Meal",
-    copyStyles: false,
-    onAfterPrint: () => setReprintingSttRec(null),
-  });
-
-  const handleApprove = async (record) => {
+    const handleApprove = async (record) => {
     showConfirm({
       title: `Bạn có chắc chắn muốn thanh toán đơn hàng có số chứng từ: ${record.so_ct}?`,
       onOk: async () => {
