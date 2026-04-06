@@ -5,7 +5,7 @@ const ShiftReportPrintComponent = forwardRef(
   (
     {
       summaryData = null,
-      categoryData = [],
+      itemData = [],
       openingBalance = 0,
       selectedDate = "",
       printTimestamp = "",
@@ -24,21 +24,6 @@ const ShiftReportPrintComponent = forwardRef(
     const voucherCount = Number(summaryData?.t_ap_voucher) || 0;
     const congNoKhTs = Number(summaryData?.cong_no_kh_ts) || 0;
     const congNoXuatHd = Number(summaryData?.cong_no_xuat_hd) || 0;
-
-    // Tổng cộng doanh thu theo nhóm món
-    // Chỉ tính tổng các dòng detail (systotal === 1), bỏ qua dòng tổng (systotal === 0)
-    const totalCategoryRevenue = Array.isArray(categoryData)
-      ? categoryData.reduce(
-          (sum, item) => {
-            // Chỉ cộng các dòng detail (systotal === 1), bỏ qua dòng tổng (systotal === 0)
-            if (item.systotal === 0) {
-              return sum; // Bỏ qua dòng tổng (như QUẦY BAR)
-            }
-            return sum + (Number(item.t_tt) || 0);
-          },
-          0
-        )
-      : 0;
 
     return (
       <div
@@ -141,6 +126,7 @@ const ShiftReportPrintComponent = forwardRef(
           <strong>Tiền trong két:</strong> {formatNumber(cashInTill)}
         </div>
 
+        {/* Chi tiết món */}
         <div
           style={{
             color: "#000",
@@ -150,7 +136,7 @@ const ShiftReportPrintComponent = forwardRef(
             textTransform: "uppercase",
           }}
         >
-          Nhóm món
+          Chi tiết món
         </div>
         <table
           style={{
@@ -170,7 +156,7 @@ const ShiftReportPrintComponent = forwardRef(
                   fontWeight: "bold",
                 }}
               >
-                Tên
+                Tên món
               </th>
               <th
                 style={{
@@ -180,7 +166,7 @@ const ShiftReportPrintComponent = forwardRef(
                   fontWeight: "bold",
                 }}
               >
-                Số món
+                Số lượng
               </th>
               <th
                 style={{
@@ -190,12 +176,12 @@ const ShiftReportPrintComponent = forwardRef(
                   fontWeight: "bold",
                 }}
               >
-                Doanh thu
+                Thành tiền
               </th>
             </tr>
           </thead>
           <tbody>
-            {categoryData.length === 0 ? (
+            {itemData.length === 0 ? (
               <tr>
                 <td
                   colSpan={3}
@@ -209,8 +195,7 @@ const ShiftReportPrintComponent = forwardRef(
                 </td>
               </tr>
             ) : (
-              categoryData.map((item, index) => {
-                // Dòng có systotal === 0 là dòng tổng (như QUẦY BAR) - cần in đậm
+              itemData.map((item, index) => {
                 const isTotalRow = item.systotal === 0;
                 return (
                   <tr key={index}>
@@ -222,7 +207,7 @@ const ShiftReportPrintComponent = forwardRef(
                         fontWeight: isTotalRow ? "bold" : "normal",
                       }}
                     >
-                      {item.ten_nh?.trim() || item.nh_vt1?.trim() || "Khác"}
+                      {item.ten_nh?.trim() || item.nh_vt1?.trim() || "N/A"}
                     </td>
                     <td
                       style={{
@@ -251,16 +236,16 @@ const ShiftReportPrintComponent = forwardRef(
           </tbody>
         </table>
 
-        {/* Tổng cộng doanh thu (theo bảng nhóm món) */}
+        {/* Tổng cộng từ Chi tiết món */}
         <div
           style={{
-            marginTop: "4px",
+            marginTop: "8px",
             textAlign: "right",
             fontWeight: "bold",
             color: "#000",
           }}
         >
-          Tổng cộng doanh thu: {formatNumber(totalCategoryRevenue)}
+          Tổng cộng: {formatNumber(itemData.filter(item => item.systotal === 0).reduce((sum, item) => sum + (Number(item.t_tt) || 0), 0))}
         </div>
       </div>
     );

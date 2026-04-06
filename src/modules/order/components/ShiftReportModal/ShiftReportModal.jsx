@@ -45,6 +45,7 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
   const [openingBalance, setOpeningBalance] = useState(500000);
   const [summaryData, setSummaryData] = useState(null);
   const [categoryData, setCategoryData] = useState([]);
+  const [itemData, setItemData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [printTimestamp, setPrintTimestamp] = useState(
     dayjs().format("DD/MM/YYYY HH:mm:ss")
@@ -181,6 +182,45 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
 
   const handlePrint = useReactToPrint({
     content: () => printContent.current,
+    onBeforeGetContent: async () => {
+      if (!unitId || !userId) return;
+      setIsLoading(true);
+      try {
+        const itemsRes = await multipleTablePutApi({
+          store: "api_get_pos_print_order_manv_by_group_item",
+          param: {
+            so_ct: "",
+            ma_kh: "",
+            ten_kh: "",
+            dien_thoai: "",
+            ngay_ct: selectedDate,
+            PageIndex: 1,
+            PageSize: 1000,
+            StoreId: "",
+            UnitId: unitId,
+            Status: "",
+            Userid: userId,
+            username: "",
+            ma_ban: "",
+            ten_vt: "",
+            nh_vt1: "",
+          },
+          data: {},
+        });
+
+        const items = Array.isArray(itemsRes?.listObject?.[1])
+          ? itemsRes.listObject[1]
+          : [];
+        setItemData(items);
+        setPrintTimestamp(dayjs().format("DD/MM/YYYY HH:mm:ss"));
+        // Đợi một chút để React cập nhật state và re-render component in
+        return new Promise((resolve) => setTimeout(resolve, 500));
+      } catch (error) {
+        console.error("❌ Lỗi khi lấy chi tiết món để in:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
     documentTitle: `bao-cao-chot-ca-${selectedDate}`,
     copyStyles: false,
   });
@@ -226,10 +266,13 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
     });
 
     return data;
-  }, [groupedCategories, groupedItems, categoryData.length]);
+  }, [groupedCategories, groupedItems]);
 
-  const CELL_STYLE = { textAlign: "center" };
-  const BOLD_CELL_STYLE = { fontWeight: "bold", textAlign: "center" };
+  const CELL_STYLE = useMemo(() => ({ textAlign: "center" }), []);
+  const BOLD_CELL_STYLE = useMemo(
+    () => ({ fontWeight: "bold", textAlign: "center" }),
+    []
+  );
 
   const renderCellContent = useCallback((text, record, col) => {
     const { dataIndex } = col;
@@ -292,7 +335,7 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
       );
     }
     return null;
-  }, []);
+  }, [BOLD_CELL_STYLE, CELL_STYLE]);
 
   const columns = useMemo(
     () => [
@@ -525,6 +568,7 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
               ref={printContent}
               summaryData={summaryData}
               categoryData={categoryData}
+              itemData={itemData}
               openingBalance={openingBalance}
               selectedDate={selectedDate}
               printTimestamp={printTimestamp}
