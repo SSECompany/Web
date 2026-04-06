@@ -131,3 +131,45 @@
   margin: 0;
 }
 
+@media screen and (max-width: 768px) {
+  .category-header {
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  /* Search bar on top */
+  .category-search {
+    order: -1;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .search-input {
+    height: 36px;
+    font-size: 14px;
+  }
+
+  /* Filter buttons below, smaller */
+  .category-filter {
+    width: 100%;
+    justify-content: center;
+    padding: 4px 8px;
+    gap: 6px;
+  }
+
+  .category-filter .category {
+    padding: 5px 12px;
+    font-size: 13px;
+  }
+
+  /* Sub-categories row */
+  .category-container {
+    margin-top: 2px;
+  }
+
+  .categories {
+    padding: 6px 10px;
+  }
+}
+

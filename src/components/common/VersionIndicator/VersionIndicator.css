@@ -77,12 +77,8 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .version-indicator,
   .version-update-badge {
-    top: 10px;
-    right: 10px;
-  }
-
-  .version-icon {
-    font-size: 16px;
+    display: none !important;
   }
 }

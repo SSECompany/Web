@@ -20,8 +20,8 @@
   display: flex;
   gap: 10px;
   margin-bottom: 15px;
-  flex-wrap: nowrap;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  justify-content: flex-start;
 }
 
 .payment-option {
@@ -139,8 +139,7 @@
   /* Tối ưu render */
   image-rendering: crisp-edges;
   image-rendering: -webkit-optimize-contrast;
-  /* Preload hint */
-  loading: lazy;
+  /* Preload hint handled via HTML attribute elsewhere if needed */
 }
 
 .qr-code-container {
@@ -227,4 +226,46 @@
 .order-status-checkbox .ant-checkbox-checked .ant-checkbox-inner {
   background-color: #1890ff;
   border-color: #1890ff;
+}
+
+.payment-staff-table-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.payment-customer-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.qr-type-selector {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.qr-type-selector.small {
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+@media screen and (max-width: 768px) {
+  .payment-staff-table-row,
+  .payment-customer-row {
+    flex-direction: column;
+  }
+
+  .payment-option {
+    min-width: calc(50% - 10px);
+    flex: 1;
+  }
+
+  .qr-type-selector button {
+    flex: 1;
+    min-width: 140px;
+  }
 }

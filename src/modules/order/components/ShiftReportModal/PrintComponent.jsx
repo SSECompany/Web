@@ -245,7 +245,7 @@ const ShiftReportPrintComponent = forwardRef(
             color: "#000",
           }}
         >
-          Tổng cộng: {formatNumber(itemData.filter(item => item.systotal === 0).reduce((sum, item) => sum + (Number(item.t_tt) || 0), 0))}
+          Tổng cộng: {formatNumber(net)}
         </div>
       </div>
     );

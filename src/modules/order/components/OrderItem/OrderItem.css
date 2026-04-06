@@ -103,6 +103,7 @@
 .quantity-input::-webkit-outer-spin-button,
 .quantity-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
+  appearance: none;
   margin: 0;
 }
 
@@ -201,6 +202,7 @@
 .order-header-name {
   text-align: left;
   margin-left: 10px;
+  white-space: nowrap;
 }
 
 .order-header-quantity {
@@ -286,6 +288,7 @@
 .order-item-price-input::-webkit-outer-spin-button,
 .order-item-price-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
+  appearance: none;
   margin: 0;
 }
 

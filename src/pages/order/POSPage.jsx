@@ -628,7 +628,7 @@ const POSPage = () => {
               {claims?.RoleWeb !== "isPosMini" && (
                 <Tooltip placement="topRight" title="Bảng kê hóa đơn">
                   <Button
-                    className="default_button"
+                    className="default_button hide-on-mobile"
                     onClick={handleReportModal}
                   >
                     <i className="pi pi-chart-line sub_text_color"></i>
@@ -645,7 +645,7 @@ const POSPage = () => {
               </Tooltip>
               <Tooltip placement="topRight" title="Mở két tiền">
                 <Button
-                  className="default_button"
+                  className="default_button hide-on-mobile"
                   loading={isOpeningDrawer}
                   onClick={handleOpenCashDrawer}
                   icon={<DollarOutlined />}

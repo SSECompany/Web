@@ -166,8 +166,7 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
         quantity: Number(item.t_so_luong) || 0,
         revenue: Number(item.t_tt) || 0,
         systotal: item.systotal, // Giữ lại thông tin systotal để xác định dòng tổng
-      }))
-      .sort((a, b) => b.revenue - a.revenue || b.quantity - a.quantity);
+      }));
   }, [categoryData]);
 
   // API mới không có detail items, chỉ có nhóm món
@@ -230,10 +229,8 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
     const data = [];
     let stt = 1;
 
-    // Sắp xếp nhóm món theo thứ tự
-    const sortedGroups = [...groupedCategories].sort(
-      (a, b) => b.revenue - a.revenue || b.quantity - a.quantity
-    );
+    // Sử dụng nhóm món theo thứ tự gốc (theo index từ API)
+    const sortedGroups = [...groupedCategories];
 
     sortedGroups.forEach((group, groupIndex) => {
       // Thêm nhóm món (group row)

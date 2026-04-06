@@ -223,7 +223,7 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .order-item-main {
+  .order-item-main, .order-header {
     grid-template-columns: 20px 1fr 130px 65px 20px;
   }
   .order-item {
@@ -276,6 +276,10 @@
   .tool-tip button {
     min-width: 40px;
     height: 40px;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
   }
 }
 

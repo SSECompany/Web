@@ -505,7 +505,7 @@ const PaymentModal = ({
       className="payment-modal"
       width={600}
     >
-      <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+      <div className="payment-staff-table-row">
         {salesStaff && salesStaff.length > 0 && (
           <div style={{ flex: 1 }} id="staff-select-wrapper">
             <p className="payment-text">
@@ -578,7 +578,7 @@ const PaymentModal = ({
       {showCustomerInfo && (
         <div className="customer-info-section" style={{ margin: "16px 0" }}>
           <div style={{ marginBottom: 12 }}>
-            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            <div className="payment-customer-row">
               <div style={{ flex: 1 }}>
                 <label style={{ fontWeight: 500 }}>Tên khách:</label>
                 <Input
@@ -617,7 +617,7 @@ const PaymentModal = ({
                 )}
               </div>
             </div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            <div className="payment-customer-row">
               <div style={{ flex: 1 }}>
                 <label style={{ fontWeight: 500 }}>Số điện thoại:</label>
                 <Input
@@ -804,7 +804,7 @@ const PaymentModal = ({
                 }}
               >
                 {!isQRCodeManualVisible ? (
-                  <div style={{ display: "flex", gap: 12, padding: "10px 0" }}>
+                  <div className="qr-type-selector">
                     <Button
                       type="primary"
                       onClick={() => {
@@ -826,7 +826,7 @@ const PaymentModal = ({
                   </div>
                 ) : (
                   <>
-                    <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+                    <div className="qr-type-selector small">
                       <Button
                         size="small"
                         type={!useDynamicQR ? "primary" : "default"}
