@@ -315,7 +315,7 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
       return <div style={CELL_STYLE}>{record.stt}</div>;
     }
     if (dataIndex === "ten_truong") {
-      return <div style={{ paddingLeft: 20, textAlign: "center" }}>{text}</div>;
+      return <div style={{ paddingLeft: 20, textAlign: "left" }}>{text}</div>;
     }
     if (dataIndex === "so_luong") {
       return (
@@ -341,7 +341,7 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
         dataIndex: "stt",
         key: "stt",
         align: "center",
-        width: 80,
+        width: 50,
       },
       {
         title: "Tên",
@@ -380,15 +380,15 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
       open={isOpen}
       onCancel={onClose}
       footer={null}
-      width="95%"
+      width={900}
       centered
-      title="Báo cáo chốt ca"
+      title={<div style={{ width: "100%", textAlign: "center" }}>Báo cáo chốt ca</div>}
       destroyOnClose
     >
       <div className="shift-report-modal__container">
         {/* Phần Filter */}
         <div className="shift-report-modal__filter-section">
-          <Space wrap size="middle">
+          <Space wrap size="small" style={{ width: "100%", justifyContent: "center" }}>
             <DatePicker
               inputReadOnly
               format={DEFAULT_DATE_FORMAT}
@@ -557,7 +557,7 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
                 // Zebra striping: dòng lẻ đậm, dòng chẵn nhạt
                 return index % 2 === 0 ? "table-row-odd" : "table-row-even";
               }}
-              scroll={{ y: 450 }}
+              scroll={{ y: 300 }}
             />
           </div>
           <div style={{ display: "none" }}>

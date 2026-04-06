@@ -1,11 +1,11 @@
 .shift-report-modal__container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
 }
 
 .shift-report-modal__filter-section {
-  padding: 16px;
+  padding: 8px;
   background-color: #fafafa;
   border-radius: 6px;
   border: 1px solid #e8e8e8;
@@ -13,8 +13,8 @@
 
 .shift-report-modal__master-section {
   width: 100%;
-  margin-bottom: 16px;
-  padding: 16px;
+  margin-bottom: 8px;
+  padding: 8px;
   background-color: #fafafa;
   border-radius: 6px;
   border: 1px solid #e8e8e8;
@@ -22,8 +22,20 @@
 
 .shift-report-modal__master-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .shift-report-modal__master-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .shift-report-modal__master-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .shift-report-modal__master-item {
@@ -47,13 +59,13 @@
 }
 
 .shift-report-modal__master-label {
-  font-size: 12px;
+  font-size: 11px;
   color: #666;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .shift-report-modal__master-value {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #000;
   text-align: right;
@@ -98,9 +110,24 @@
 
 .shift-report-modal-table .ant-table-thead > tr > th:first-child,
 .shift-report-modal-table .ant-table-tbody > tr > td:first-child {
-  width: 80px !important;
-  min-width: 80px;
-  max-width: 80px;
+  width: 50px !important;
+  min-width: 50px;
+  max-width: 50px;
+}
+
+@media (max-width: 480px) {
+  .shift-report-modal-table .ant-table-thead > tr > th:first-child,
+  .shift-report-modal-table .ant-table-tbody > tr > td:first-child {
+    width: 35px !important;
+    min-width: 35px;
+    max-width: 35px;
+  }
+
+  .shift-report-modal-table .ant-table-thead > tr > th,
+  .shift-report-modal-table .ant-table-tbody > tr > td {
+    padding: 8px 4px !important;
+    font-size: 11px !important;
+  }
 }
 
 /* Zebra striping: dòng lẻ đậm, dòng chẵn nhạt */
@@ -139,6 +166,26 @@
 
 .shift-report-modal__actions .ant-input-number {
   width: 220px;
+}
+
+@media (max-width: 576px) {
+  .shift-report-modal__filter-section {
+    padding: 4px;
+  }
+  
+  .shift-report-modal__filter-section .ant-space {
+    gap: 4px !important;
+  }
+
+  .shift-report-modal__filter-section .ant-space-item {
+    width: 100%;
+  }
+
+  .shift-report-modal__filter-section .ant-picker,
+  .shift-report-modal__filter-section .ant-input-number,
+  .shift-report-modal__filter-section .ant-btn {
+    width: 100% !important;
+  }
 }
 
 .shift-report-modal__print-area {
@@ -243,6 +290,29 @@
 
 .group-row td {
   background-color: #f2f2f2 !important;
+}
+
+@media (max-width: 480px) {
+  .shift-report-modal__master-label {
+    font-size: 10px;
+  }
+  .shift-report-modal__master-value {
+    font-size: 11px;
+  }
+  .shift-report-modal__detail-header {
+    padding: 8px;
+    font-size: 12px;
+  }
+  .shift-report-modal-table .ant-table-thead > tr > th,
+  .shift-report-modal-table .ant-table-tbody > tr > td {
+    padding: 6px 4px !important;
+  }
+  .shift-report-modal__master-item {
+    padding: 4px;
+  }
+  .shift-report-modal__container {
+    gap: 4px;
+  }
 }
 
 @media print {

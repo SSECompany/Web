@@ -201,7 +201,7 @@
   .main-container {
     flex-direction: column;
     overflow: scroll;
-    padding-bottom: 80px;
+    padding-bottom: 120px;
   }
   .left-middle-panel {
     width: 100%;
@@ -210,6 +210,7 @@
   .right-panel {
     width: 100%;
     margin-top: 30px;
+    padding-bottom: 80px;
   }
   .menu-section {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -319,6 +320,6 @@
     grid-template-columns: 1fr 20px 120px;
   }
   .main-container {
-    padding-bottom: 110px;
+    padding-bottom: 140px;
   }
 }
