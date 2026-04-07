@@ -2,12 +2,13 @@ import {
   Button,
   Card,
   DatePicker,
-  Input,
   Select,
   Spin,
   Table,
   Typography,
 } from "antd";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
@@ -47,9 +48,21 @@ const getDefaultFilters = () => ({
 });
 
 const TongHopNhapXuatTon = () => {
-  const { id: userId, unitId } = useSelector(
-    (state) => state.claimsReducer.userInfo || {}
-  );
+  const {
+    id: userId,
+    unitId,
+    MA_DVCS,
+    DVCS,
+  } = useSelector((state) => state.claimsReducer.userInfo || {});
+
+  // Default unit from login (trimmed)
+  const defaultUnitCode = useMemo(() => {
+    return (unitId || MA_DVCS || "").trim();
+  }, [unitId, MA_DVCS]);
+
+  const defaultUnitName = useMemo(() => {
+    return (DVCS || defaultUnitCode || "").trim();
+  }, [DVCS, defaultUnitCode]);
 
   const [dataSource, setDataSource] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -63,7 +76,9 @@ const TongHopNhapXuatTon = () => {
   const [khoOptions, setKhoOptions] = useState([]);
   const [nhomVatTuOptions, setNhomVatTuOptions] = useState([]);
   const [loaiVatTuOptions, setLoaiVatTuOptions] = useState([]);
-  const [dvcsOptions, setDvcsOptions] = useState([]);
+  const [dvcsOptions, setDvcsOptions] = useState(() =>
+    defaultUnitCode ? [{ value: defaultUnitCode, label: defaultUnitName }] : []
+  );
   const [vatTuOptions, setVatTuOptions] = useState([]);
 
   // Loading states
@@ -82,11 +97,17 @@ const TongHopNhapXuatTon = () => {
 
   const [filters, setFilters] = useState(getDefaultFilters);
 
-  const [tableFilters, setTableFilters] = useState({
-    ma_vt: "",
-    ten_vt: "",
-    dvt: "",
-  });
+  // Auto-fill Unit when defaultUnitCode is available
+  useEffect(() => {
+    if (defaultUnitCode) {
+      setFilters((prev) => ({
+        ...prev,
+        Unit: prev.Unit && prev.Unit.length > 0 ? prev.Unit : [defaultUnitCode],
+      }));
+    }
+  }, [defaultUnitCode]);
+
+
 
   const fetchKhoOptions = useCallback(
     async (searchValue = "") => {
@@ -325,9 +346,10 @@ const TongHopNhapXuatTon = () => {
       });
 
       const fetchedData = res?.listObject?.[0] || [];
+      const paginationInfo = res?.listObject?.[1]?.[0] || {};
 
-      // Lấy total từ response nếu có
-      const total = res?.total || res?.totalRecords || fetchedData.length;
+      // Lấy total từ pagination info
+      const total = paginationInfo.totalRecord || paginationInfo.total_rows || fetchedData.length;
       setTotalRecords(total);
 
       const formattedData = fetchedData
@@ -370,7 +392,180 @@ const TongHopNhapXuatTon = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters, unitId, userId, currentPage, pageSize]);
+  }, [filters, userId, currentPage, pageSize]);
+
+  const [exportLoading, setExportLoading] = useState(false);
+
+  const handleExportExcel = useCallback(async () => {
+    if (!userId) return;
+
+    setExportLoading(true);
+    try {
+      let allData = [];
+      let currentPageIdx = 1;
+      let totalPages = 1;
+
+      // Vòng lặp lấy dữ liệu từng trang cho đến khi đủ
+      while (currentPageIdx <= totalPages) {
+        const res = await multipleTablePutApi({
+          store: "api_rs_rptStockSummary",
+          param: {
+            DateFrom: filters.DateFrom,
+            DateTo: filters.DateTo,
+            Site: filters.Site || "",
+            Item: filters.Item || "",
+            Unit:
+              Array.isArray(filters.Unit) && filters.Unit.length
+                ? filters.Unit.join(",")
+                : "",
+            ItemType: filters.ItemType || "",
+            ItemGroup1: filters.ItemGroup1 || "",
+            ItemGroup2: filters.ItemGroup2 || "",
+            ItemGroup3: filters.ItemGroup3 || "",
+            CalculateTransfer: filters.CalculateTransfer || "1",
+            nh_theo: filters.nh_theo || "",
+            tt_sx1: filters.tt_sx1 || 0,
+            tt_sx2: filters.tt_sx2 || 0,
+            tt_sx3: filters.tt_sx3 || 0,
+            Order: filters.Order || "ma_vt",
+            ShowItem: filters.ShowItem || "3",
+            DataType: filters.DataType || "2",
+            Language: filters.Language || "V",
+            UserID: userId,
+            Admin: filters.Admin || 1,
+            pageIndex: currentPageIdx,
+            pageSize: 1000, // Lấy tối đa cho mỗi trang
+          },
+          data: {},
+        });
+
+        const pageData = res?.listObject?.[0] || [];
+        allData = [...allData, ...pageData];
+
+        const paginationInfo = res?.listObject?.[1]?.[0] || {};
+        totalPages = paginationInfo.totalPage || 1;
+        currentPageIdx++;
+
+        // Nếu có nhiều trang, có thể thông báo tiến trình ở đây nếu cần
+      }
+
+      if (allData.length === 0) {
+        setExportLoading(false);
+        return;
+      }
+
+      // Format data - tương tự login trong Table
+      const formattedAllData = allData
+        .map((item, index) => {
+          const ma = (item.ma_vt || "").trim();
+          const ten = (item.ten_vt || "").trim();
+          const dvt = (item.dvt || "").trim();
+          const isSummaryRow =
+            item.systotal === 0 && !ma && ten.toLowerCase().includes("tổng");
+
+          return {
+            ...item,
+            stt: isSummaryRow ? "" : index + 1,
+            ma_vt: ma,
+            ten_vt: ten,
+            dvt: dvt,
+            isSummary: isSummaryRow,
+            ton_dau: Number(item.ton_dau || 0),
+            du_dau: Number(item.du_dau || 0),
+            sl_nhap: Number(item.sl_nhap || 0),
+            tien_nhap: Number(item.tien_nhap || 0),
+            sl_xuat: Number(item.sl_xuat || 0),
+            tien_xuat: Number(item.tien_xuat || 0),
+            ton_cuoi: Number(item.ton_cuoi || 0),
+            du_cuoi: Number(item.du_cuoi || 0),
+          };
+        })
+        .filter((item) => item.ma_vt || item.ten_vt);
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Báo cáo");
+
+      // Định nghĩa các cột
+      const columnsConfig = [
+        { header: "STT", key: "stt", width: 8 },
+        { header: "Mã vật tư", key: "ma_vt", width: 15 },
+        { header: "Tên vật tư", key: "ten_vt", width: 50 },
+        { header: "Đvt", key: "dvt", width: 10 },
+        { header: "Tồn đầu", key: "ton_dau", width: 15 },
+        { header: "Dư đầu", key: "du_dau", width: 15 },
+        { header: "SL nhập", key: "sl_nhap", width: 15 },
+        { header: "Tiền nhập", key: "tien_nhap", width: 15 },
+        { header: "SL xuất", key: "sl_xuat", width: 15 },
+        { header: "Tiền xuất", key: "tien_xuat", width: 15 },
+        { header: "Tồn cuối", key: "ton_cuoi", width: 15 },
+        { header: "Dư cuối", key: "du_cuoi", width: 15 },
+      ];
+
+      worksheet.columns = columnsConfig;
+
+      // Header style
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      headerRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF217346" },
+      };
+      headerRow.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+
+      // Add data
+      formattedAllData.forEach((item) => {
+        const rowData = {
+          stt: item.stt,
+          ma_vt: item.ma_vt,
+          ten_vt: item.ten_vt,
+          dvt: item.dvt,
+          ton_dau: item.ton_dau,
+          du_dau: item.du_dau,
+          sl_nhap: item.sl_nhap,
+          tien_nhap: item.tien_nhap,
+          sl_xuat: item.sl_xuat,
+          tien_xuat: item.tien_xuat,
+          ton_cuoi: item.ton_cuoi,
+          du_cuoi: item.du_cuoi,
+        };
+        const row = worksheet.addRow(rowData);
+        row.alignment = { vertical: "middle", wrapText: true };
+
+        row.eachCell((cell, colNumber) => {
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
+
+          const colKey = columnsConfig[colNumber - 1].key;
+          const numberCols = ["ton_dau", "du_dau", "sl_nhap", "tien_nhap", "sl_xuat", "tien_xuat", "ton_cuoi", "du_cuoi"];
+
+          if (numberCols.includes(colKey)) {
+            cell.alignment = { horizontal: "right", vertical: "middle" };
+            cell.numFmt = "#,##0";
+          } else if (["stt", "ma_vt", "dvt"].includes(colKey)) {
+            cell.alignment = { horizontal: "center", vertical: "middle" };
+          } else {
+            cell.alignment = { horizontal: "left", vertical: "middle", wrapText: true };
+          }
+          cell.font = { size: 10 };
+        });
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      saveAs(blob, `TongHopNhapXuatTon_${dayjs().format("YYYYMMDD_HHmmss")}.xlsx`);
+    } catch (error) {
+      console.error("❌ Lỗi khi xuất Excel:", error);
+    } finally {
+      setExportLoading(false);
+    }
+  }, [filters, userId]);
 
   const columns = useMemo(
     () => [
@@ -385,126 +580,18 @@ const TongHopNhapXuatTon = () => {
         dataIndex: "ma_vt",
         key: "ma_vt",
         width: 120,
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm mã vật tư"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ma_vt: selectedKeys[0] || "",
-                }));
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              type="primary"
-              onClick={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ma_vt: selectedKeys[0] || "",
-                }));
-              }}
-              size="small"
-              style={{ width: "100%" }}
-            >
-              Tìm kiếm
-            </Button>
-          </div>
-        ),
-        filteredValue: tableFilters.ma_vt ? [tableFilters.ma_vt] : null,
-        onFilter: (value, record) =>
-          record.ma_vt?.toLowerCase().includes(value.toLowerCase()),
       },
       {
         title: "Tên vật tư",
         dataIndex: "ten_vt",
         key: "ten_vt",
         width: 300,
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm tên vật tư"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ten_vt: selectedKeys[0] || "",
-                }));
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              type="primary"
-              onClick={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ten_vt: selectedKeys[0] || "",
-                }));
-              }}
-              size="small"
-              style={{ width: "100%" }}
-            >
-              Tìm kiếm
-            </Button>
-          </div>
-        ),
-        filteredValue: tableFilters.ten_vt ? [tableFilters.ten_vt] : null,
-        onFilter: (value, record) =>
-          record.ten_vt?.toLowerCase().includes(value.toLowerCase()),
       },
       {
         title: "Đvt",
         dataIndex: "dvt",
         key: "dvt",
         width: 100,
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm ĐVT"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  dvt: selectedKeys[0] || "",
-                }));
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              type="primary"
-              onClick={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  dvt: selectedKeys[0] || "",
-                }));
-              }}
-              size="small"
-              style={{ width: "100%" }}
-            >
-              Tìm kiếm
-            </Button>
-          </div>
-        ),
-        filteredValue: tableFilters.dvt ? [tableFilters.dvt] : null,
-        onFilter: (value, record) =>
-          record.dvt?.toLowerCase().includes(value.toLowerCase()),
       },
       createNumberColumn("Tồn đầu", "ton_dau"),
       createNumberColumn("Dư đầu", "du_dau"),
@@ -515,7 +602,7 @@ const TongHopNhapXuatTon = () => {
       createNumberColumn("Tồn cuối", "ton_cuoi"),
       createNumberColumn("Dư cuối", "du_cuoi"),
     ],
-    [tableFilters]
+    []
   );
 
   function createNumberColumn(title, dataIndex) {
@@ -647,9 +734,12 @@ const TongHopNhapXuatTon = () => {
   };
 
   const handleClearFilters = useCallback(() => {
-    setFilters(getDefaultFilters());
+    setFilters({
+      ...getDefaultFilters(),
+      Unit: defaultUnitCode ? [defaultUnitCode] : [],
+    });
     setCurrentPage(1);
-  }, [setCurrentPage]);
+  }, [setCurrentPage, defaultUnitCode]);
 
   // Load danh sách filter ban đầu
   useEffect(() => {
@@ -659,11 +749,13 @@ const TongHopNhapXuatTon = () => {
     fetchNhomVatTuOptions(3);
     fetchLoaiVatTuOptions();
     fetchDvcsOptions();
+    fetchVatTuOptions();
   }, [
     fetchKhoOptions,
     fetchNhomVatTuOptions,
     fetchLoaiVatTuOptions,
     fetchDvcsOptions,
+    fetchVatTuOptions,
   ]);
 
   // Tự động gọi API khi vào trang hoặc khi pagination thay đổi
@@ -888,8 +980,30 @@ const TongHopNhapXuatTon = () => {
               />
             </div>
             <div className="filter-item button-item">
-              <Button type="primary" onClick={handleClearFilters} loading={loading}>
+              <Button
+                type="primary"
+                onClick={() => {
+                  setCurrentPage(1);
+                  fetchData();
+                }}
+                loading={loading}
+              >
+                Tìm kiếm
+              </Button>
+              <Button
+                onClick={handleClearFilters}
+                style={{ backgroundColor: "#f0f0f0", color: "#000" }}
+              >
                 Xoá bộ lọc
+              </Button>
+              <Button
+                type="primary"
+                style={{ backgroundColor: "#217346", borderColor: "#217346" }}
+                onClick={handleExportExcel}
+                loading={exportLoading}
+                disabled={dataSource.length === 0}
+              >
+                Xuất Excel
               </Button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 {
   "name": "phenika",
-  "version": "0.1.26",
+  "version": "0.1.32",
   "private": true,
   "dependencies": {
     "@ant-design/charts": "^2.1.1",
@@ -36,6 +36,7 @@
     "echarts": "^5.5.0",
     "echarts-for-react": "^3.0.2",
     "encrypt-rsa": "^2.1.5",
+    "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
     "firebase": "^9.19.1",
     "google-map-react": "^2.2.1",

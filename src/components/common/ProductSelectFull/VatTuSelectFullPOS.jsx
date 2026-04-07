@@ -1,6 +1,6 @@
 import { BarcodeOutlined } from "@ant-design/icons";
 import { Button, Col, Input, Row, Select, Space, message, Spin } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const VatTuSelectFullPOS = ({
   isEditMode = true,
@@ -56,7 +56,7 @@ const VatTuSelectFullPOS = ({
         clearTimeout(focusTimeoutRef.current);
       }
     };
-  }, [fetchVatTuList]);
+  }, [fetchVatTuList, searchTimeoutRef]);
 
   // Auto focus khi chuyển sang chế độ barcode
   useEffect(() => {
@@ -74,7 +74,7 @@ const VatTuSelectFullPOS = ({
         clearTimeout(focusTimeoutRef.current);
       }
     };
-  }, [barcodeEnabled]);
+  }, [barcodeEnabled, vatTuSelectRef]);
 
   const handleSearch = (value, immediate = false) => {
     const trimmedValue = value?.trim() || "";
@@ -214,7 +214,7 @@ const VatTuSelectFullPOS = ({
     }
   };
 
-  const processBarcode = async (barcodeValue) => {
+  const processBarcode = useCallback(async (barcodeValue) => {
     // Prevent double processing
     if (isProcessingRef.current) {
       return;
@@ -253,7 +253,7 @@ const VatTuSelectFullPOS = ({
         isProcessingRef.current = false;
       }, 1000);
     }
-  };
+  }, [handleVatTuSelect, setVatTuInput]);
 
   const handleBarcodeInputKeyPress = (e) => {
     if (e.key === "Enter") {
@@ -303,7 +303,7 @@ const VatTuSelectFullPOS = ({
         return () => clearTimeout(timer);
       }
     }
-  }, [vatTuInput, barcodeEnabled]);
+  }, [vatTuInput, barcodeEnabled, processBarcode]);
 
   // Xử lý scroll phân trang
   const handlePopupScroll = (e) => {

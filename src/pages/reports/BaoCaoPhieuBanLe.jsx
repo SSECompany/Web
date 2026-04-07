@@ -8,6 +8,8 @@ import {
   Table,
   Typography,
 } from "antd";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
@@ -342,7 +344,7 @@ const BaoCaoPhieuBanLe = () => {
       const paginationInfo = res?.listObject?.[1]?.[0] || {};
 
       // Lấy total từ pagination info
-      const total = paginationInfo.totalRecord || fetchedData.length;
+      const total = paginationInfo.totalRecord || paginationInfo.total_rows || fetchedData.length;
       setTotalRecords(total);
 
       // Format data - chỉ lấy các trường cần thiết
@@ -385,6 +387,165 @@ const BaoCaoPhieuBanLe = () => {
       setLoading(false);
     }
   }, [filters, userId, currentPage, pageSize]);
+
+  const [exportLoading, setExportLoading] = useState(false);
+
+  const handleExportExcel = useCallback(async () => {
+    if (!userId) return;
+
+    setExportLoading(true);
+    try {
+      let allData = [];
+      let currentPageIdx = 1;
+      let totalPages = 1;
+
+      while (currentPageIdx <= totalPages) {
+        const res = await multipleTablePutApi({
+          store: "api_scrs_rptSalesInvoiceList",
+          param: {
+            DateFrom: filters.DateFrom,
+            DateTo: filters.DateTo,
+            InvoiceFrom: filters.InvoiceFrom || "",
+            InvoiceTo: filters.InvoiceTo || "",
+            Salesman: filters.Salesman || "",
+            Customer: filters.Customer || "",
+            Site: filters.Site || "",
+            Item: filters.Item || "",
+            Group1: filters.Group1 || "",
+            Group2: filters.Group2 || "",
+            Group3: filters.Group3 || "",
+            Unit:
+              Array.isArray(filters.Unit) && filters.Unit.length
+                ? filters.Unit.join(",")
+                : "",
+            DataType: filters.DataType || "2",
+            Language: filters.Language || "V",
+            UserID: userId,
+            Admin: filters.Admin || 1,
+            pageIndex: currentPageIdx,
+            pageSize: 1000,
+          },
+          data: {},
+        });
+
+        const pageData = res?.listObject?.[0] || [];
+        allData = [...allData, ...pageData];
+
+        const paginationInfo = res?.listObject?.[1]?.[0] || {};
+        totalPages = paginationInfo.totalPage || 1;
+        currentPageIdx++;
+      }
+
+      if (allData.length === 0) {
+        setExportLoading(false);
+        return;
+      }
+
+      // Format data - tương tự logic trong Table
+      const formattedAllData = allData.map((item, index) => {
+        return {
+          stt: index + 1,
+          ngay_ct: item.ngay_ct ? dayjs(item.ngay_ct).format("DD/MM/YYYY") : "",
+          so_ct: (item.so_ct || "").trim(),
+          dien_giai: (item.dien_giai || "").trim(),
+          ma_vt: (item.ma_vt || "").trim(),
+          ten_vt: (item.ten_vt || "").trim(),
+          dvt: (item.dvt || "").trim(),
+          ma_kho: (item.ma_kho || "").trim(),
+          so_luong_tl: item.so_luong_tl || 0,
+          dt_tra_lai:
+            item.so_luong_tl > 0 && item.ngay_ct
+              ? dayjs(item.ngay_ct).format("DD/MM/YYYY")
+              : "",
+          so_luong: item.so_luong || 0,
+          gia2: item.gia2 || 0,
+          tien2: item.tien2 || 0,
+          thue: item.thue || 0,
+          ck: item.ck || 0,
+          pt: item.pt || 0,
+          tt_tien_mat: item.tt_tien_mat || 0,
+          tt_chyen_khoan: item.tt_chyen_khoan || 0,
+          tt_cn: item.tt_cn || 0,
+        };
+      });
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Báo cáo");
+
+      // Định nghĩa các cột
+      const columnsConfig = [
+        { header: "STT", key: "stt", width: 8 },
+        { header: "Ngày ct", key: "ngay_ct", width: 12 },
+        { header: "Số ct", key: "so_ct", width: 15 },
+        { header: "Diễn giải", key: "dien_giai", width: 40 },
+        { header: "Mã hàng", key: "ma_vt", width: 15 },
+        { header: "Tên mặt hàng", key: "ten_vt", width: 50 },
+        { header: "Dvt", key: "dvt", width: 10 },
+        { header: "Mã kho", key: "ma_kho", width: 10 },
+        { header: "SL. trả lại", key: "so_luong_tl", width: 12 },
+        { header: "Dt trả lại", key: "dt_tra_lai", width: 12 },
+        { header: "Số lượng", key: "so_luong", width: 12 },
+        { header: "Giá bán", key: "gia2", width: 15 },
+        { header: "Doanh thu", key: "tien2", width: 15 },
+        { header: "Thuế", key: "thue", width: 15 },
+        { header: "Chiết khấu", key: "ck", width: 15 },
+        { header: "Phải thu", key: "pt", width: 15 },
+        { header: "Tiền mặt", key: "tt_tien_mat", width: 15 },
+        { header: "Chuyển khoản", key: "tt_chyen_khoan", width: 15 },
+        { header: "Công nợ", key: "tt_cn", width: 15 },
+      ];
+
+      worksheet.columns = columnsConfig;
+
+      // Header style
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      headerRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF217346" },
+      };
+      headerRow.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+
+      // Add data
+      formattedAllData.forEach((item) => {
+        const row = worksheet.addRow(item);
+        row.alignment = { vertical: "middle", wrapText: true };
+
+        row.eachCell((cell, colNumber) => {
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
+
+          const colKey = columnsConfig[colNumber - 1].key;
+          const numberCols = ["so_luong_tl", "so_luong", "gia2", "tien2", "thue", "ck", "pt", "tt_tien_mat", "tt_chyen_khoan", "tt_cn"];
+
+          if (numberCols.includes(colKey)) {
+            cell.alignment = { horizontal: "right", vertical: "middle" };
+            cell.numFmt = "#,##0";
+          } else if (["stt", "ngay_ct", "so_ct", "ma_vt", "dvt", "ma_kho", "dt_tra_lai"].includes(colKey)) {
+            cell.alignment = { horizontal: "center", vertical: "middle" };
+          } else {
+            cell.alignment = { horizontal: "left", vertical: "middle", wrapText: true };
+          }
+          cell.font = { size: 10 };
+        });
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      saveAs(blob, `BaoCaoPhieuBanLe_${dayjs().format("YYYYMMDD_HHmmss")}.xlsx`);
+    } catch (err) {
+      console.error("❌ Lỗi khi xuất Excel:", err);
+    } finally {
+      setExportLoading(false);
+    }
+  }, [filters, userId]);
 
   const [tableFilters, setTableFilters] = useState({});
 
@@ -582,8 +743,9 @@ const BaoCaoPhieuBanLe = () => {
           fetchNhomVatTuOptions(2),
           fetchNhomVatTuOptions(3),
           fetchDvcsOptions(),
-          fetchNhanVienOptions(),
           fetchKhachHangOptions(),
+          fetchKhoOptions(),
+          fetchNhanVienOptions(),
           fetchVatTuOptions(),
         ]);
         setNhanVienLoaded(true);
@@ -593,7 +755,14 @@ const BaoCaoPhieuBanLe = () => {
     };
 
     loadInitialOptions();
-  }, []);
+  }, [
+    fetchDvcsOptions,
+    fetchKhachHangOptions,
+    fetchKhoOptions,
+    fetchNhanVienOptions,
+    fetchNhomVatTuOptions,
+    fetchVatTuOptions,
+  ]);
 
   useEffect(() => {
     if (userId) {
@@ -898,6 +1067,15 @@ const BaoCaoPhieuBanLe = () => {
             <div className="filter-item button-item">
               <Button type="primary" onClick={handleClearFilters} loading={loading}>
                 Xoá bộ lọc
+              </Button>
+              <Button
+                type="primary"
+                style={{ backgroundColor: "#217346", borderColor: "#217346" }}
+                onClick={handleExportExcel}
+                loading={exportLoading}
+                disabled={dataSource.length === 0}
+              >
+                Xuất Excel
               </Button>
             </div>
           </div>

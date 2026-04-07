@@ -1,5 +1,5 @@
 import { notification } from "antd";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setClaims } from "../store/reducers/claimsSlice";
 import jwt from "../utils/jwt";
@@ -24,7 +24,7 @@ const useTokenExpiryChecker = () => {
   const hasNotifiedRef = useRef(false);
   const currentIntervalRef = useRef(null);
 
-  const performLogout = () => {
+  const performLogout = useCallback(() => {
     clearAllTokenData();
     
     // Clear claimsReducer state
@@ -41,9 +41,9 @@ const useTokenExpiryChecker = () => {
     setTimeout(() => {
       window.location.href = "/login";
     }, 500); // Delay nhỏ để notification hiển thị
-  };
+  }, [dispatch]);
 
-  const checkTokenExpiry = () => {
+  const checkTokenExpiry = useCallback(() => {
     if (!isAuthenticated || !tokenExpiry) return false;
 
     // Kiểm tra nếu là session token (không phải JWT thực sự)
@@ -97,7 +97,7 @@ const useTokenExpiryChecker = () => {
     }
 
     return false;
-  };
+  }, [isAuthenticated, tokenExpiry, performLogout]);
 
   const getCheckInterval = (timeLeft) => {
     // Session token - check ít thường xuyên hơn
@@ -115,7 +115,7 @@ const useTokenExpiryChecker = () => {
     return 900000; // Còn lại: 15 phút
   };
 
-  const setupDynamicInterval = () => {
+  const setupDynamicInterval = useCallback(() => {
     if (!isAuthenticated || !tokenExpiry) return;
 
     // Clear existing interval
@@ -153,7 +153,7 @@ const useTokenExpiryChecker = () => {
     };
 
     updateInterval();
-  };
+  }, [isAuthenticated, tokenExpiry, checkTokenExpiry]);
 
   useEffect(() => {
     if (!isAuthenticated || !tokenExpiry) {
@@ -178,7 +178,7 @@ const useTokenExpiryChecker = () => {
       }
       currentIntervalRef.current = null;
     };
-  }, [isAuthenticated, tokenExpiry]);
+  }, [isAuthenticated, tokenExpiry, setupDynamicInterval]);
 
   return { checkTokenExpiry };
 };

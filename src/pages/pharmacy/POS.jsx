@@ -18,7 +18,7 @@ import PrescriptionModal from "./components/PrescriptionModal";
 
 const POS = () => {
   // Lấy dữ liệu từ Redux store
-  const { id: userId, unitId } = useSelector(
+  const { id: userId, unitId, unitName } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
   );
 
@@ -271,25 +271,54 @@ const POS = () => {
     const existingIndex = cart.findIndex((x) => x.sku === item.sku);
     if (existingIndex >= 0) {
       setCart((prev) =>
-        prev.map((x, i) =>
-          i === existingIndex ? { ...x, qty: (x.qty || 1) + 1 } : x
-        )
+        prev.map((x, i) => {
+          if (i === existingIndex) {
+            const nextQty = (x.qty || 1) + 1;
+            const totalAfterVAT = Math.round(x.listPrice * nextQty);
+            const totalBeforeVAT = Math.round(totalAfterVAT / (1 + x.thue_suat / 100));
+            const vatAmountTotal = totalAfterVAT - totalBeforeVAT;
+            const remaining = totalAfterVAT - (x.discountAmount || 0);
+
+            return {
+              ...x,
+              qty: nextQty,
+              thanh_tien: totalBeforeVAT,
+              thue_nt: vatAmountTotal,
+              thanh_tien_sau_vat: totalAfterVAT,
+              remaining: remaining,
+            };
+          }
+          return x;
+        })
       );
     } else {
+      const listPrice = item.price || 0;
+      const qty = 1;
+      const thue_suat = Number(item.thue_suat) || 0;
+      
+      // Calculations matching CartTable.jsx logic
+      const totalAfterVAT = Math.round(listPrice * qty);
+      const totalBeforeVAT = Math.round(totalAfterVAT / (1 + thue_suat / 100));
+      const vatAmountTotal = totalAfterVAT - totalBeforeVAT;
+      const priceBeforeVAT = Math.round(listPrice / (1 + thue_suat / 100));
+
       setCart((prev) => [
         ...prev,
         {
           ...item,
-          listPrice: item.price || 0,
-          price: Number(((item.price || 0) / (1 + (Number(item.thue_suat) || 0) / 100)).toFixed(2)),
-          qty: 1,
+          listPrice: listPrice,
+          price: priceBeforeVAT,
+          qty: qty,
           batchExpiry: "",
-          vatPercent: Number(item.thue_suat) || 0,
+          vatPercent: thue_suat,
           ma_thue: (item.ma_thue || "").trim(),
-          thue_suat: Number(item.thue_suat) || 0,
+          thue_suat: thue_suat,
           discountPercent: 0,
           discountAmount: 0,
-          remaining: 0,
+          thanh_tien: totalBeforeVAT,
+          thue_nt: vatAmountTotal,
+          thanh_tien_sau_vat: totalAfterVAT,
+          remaining: totalAfterVAT,
           instructions: (item.instructions || item.ghi_chu || "").trim(),
           ghi_chu: (item.ghi_chu || item.instructions || "").trim(),
           ma_gd: ma_gd !== null ? ma_gd : (item.ma_gd || null),
@@ -481,25 +510,40 @@ const POS = () => {
       setCurrentOrderSttRec((master?.stt_rec || "").trim());
 
       // Map detail lines to cart structure
-      const mappedCart = (detail || []).map((d) => ({
-        sku: d.ma_vt || "",
-        name: d.ten_vt || "",
-        price: Number(d.don_gia) || 0,
-        unit: (d.dvt || "").trim(),
-        qty: Number(d.so_luong) || 1,
-        listPrice: Number(d.listPrice) || Number(d.don_gia) || 0,
-        batchExpiry: (d.ma_lo || "").trim(),
-        vatPercent: Number(d.thue_suat) || 0,
-        ma_thue: (d.ma_thue || "").trim(),
-        thue_suat: Number(d.thue_suat) || 0,
-        thue_nt: Number(d.thue_nt) || 0,
-        discountPercent: Number(d.tl_ck) || 0,
-        discountAmount: Number(d.ck_nt) || 0,
-        remaining: 0,
-        instructions: (d.ghi_chu || "").trim(),
-        ghi_chu: (d.ghi_chu || "").trim(),
-        ma_gd: d.ma_gd !== undefined ? Number(d.ma_gd) : null,
-      }));
+      const mappedCart = (detail || []).map((d) => {
+        const qty = Number(d.so_luong) || 1;
+        const listPrice = Number(d.listPrice) || Number(d.don_gia) || 0;
+        const thue_suat = Number(d.thue_suat) || 0;
+        
+        // Recompute standard fields for POS UI consistency
+        const totalAfterVAT = Math.round(listPrice * qty);
+        const totalBeforeVAT = Math.round(totalAfterVAT / (1 + thue_suat / 100));
+        const vatAmountTotal = totalAfterVAT - totalBeforeVAT;
+        const discountAmount = Number(d.ck_nt || d.ck || 0);
+        const remaining = totalAfterVAT - discountAmount;
+
+        return {
+          sku: (d.ma_vt || "").trim(),
+          name: (d.ten_vt || "").trim(),
+          price: Number(d.don_gia_nt || d.don_gia) || 0, // Giá trước v
+          unit: (d.dvt || "").trim(),
+          qty: qty,
+          listPrice: listPrice,
+          batchExpiry: (d.ma_lo || "").trim(),
+          vatPercent: thue_suat,
+          ma_thue: (d.ma_thue || "").trim(),
+          thue_suat: thue_suat,
+          thue_nt: vatAmountTotal, // Ưu tiên recompute hoặc dùng d.thue_nt? Recompute tốt hơn cho đồng bộ UI
+          discountPercent: Number(d.tl_ck) || 0,
+          discountAmount: discountAmount,
+          thanh_tien: totalBeforeVAT,
+          thanh_tien_sau_vat: totalAfterVAT,
+          remaining: remaining,
+          instructions: (d.ghi_chu || "").trim(),
+          ghi_chu: (d.ghi_chu || "").trim(),
+          ma_gd: d.ma_gd !== undefined ? Number(d.ma_gd) : null,
+        };
+      });
 
       setCart(mappedCart);
 
@@ -541,6 +585,11 @@ const POS = () => {
           title={
             <div className="search-title">
               <span>Tìm kiếm & Quét mã</span>
+              {unitName && (
+                <div className="pos-unit-indicator">
+                  <strong>{unitName}</strong>
+                </div>
+              )}
             </div>
           }
           className="search-card"

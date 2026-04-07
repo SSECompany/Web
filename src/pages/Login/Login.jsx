@@ -14,7 +14,7 @@ import {
   Space,
   notification,
 } from "antd";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router-dom"; // Import useLocation
 import { useDebouncedCallback } from "use-debounce";
@@ -94,7 +94,7 @@ const Login = () => {
     });
   }, 300);
 
-  const fetchStoreData = async () => {
+  const fetchStoreData = useCallback(async () => {
     setLoginLoading(true);
     await apiGetStoreByUser({
       unitId: unitSelected?.value.trim() || "",
@@ -110,13 +110,13 @@ const Login = () => {
         }),
       ]);
     });
-  };
+  }, [unitSelected, userName]);
 
   useEffect(() => {
     if (unitSelected?.value) {
       fetchStoreData();
     }
-  }, [unitSelected]);
+  }, [unitSelected, fetchStoreData]);
 
   useEffect(() => {
     setUnits([{ value: "", label: "Không" }]);
@@ -151,7 +151,7 @@ const Login = () => {
       setUnits([{ value: "", label: "Không" }]);
       setUnitSelected({ value: "", label: "Không" });
     }
-  }, [JSON.stringify(userName)]);
+  }, [userName]);
 
   useEffect(() => {
     if (jwt.checkExistToken()) {

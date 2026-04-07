@@ -2,12 +2,13 @@ import {
   Button,
   Card,
   DatePicker,
-  Input,
   Select,
   Spin,
   Table,
   Typography,
 } from "antd";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
@@ -45,9 +46,21 @@ const getDefaultFilters = () => ({
 });
 
 const BaoCaoTonKho = () => {
-  const { id: userId, unitId } = useSelector(
-    (state) => state.claimsReducer.userInfo || {}
-  );
+  const {
+    id: userId,
+    unitId,
+    MA_DVCS,
+    DVCS,
+  } = useSelector((state) => state.claimsReducer.userInfo || {});
+
+  // Default unit from login (trimmed)
+  const defaultUnitCode = useMemo(() => {
+    return (unitId || MA_DVCS || "").trim();
+  }, [unitId, MA_DVCS]);
+
+  const defaultUnitName = useMemo(() => {
+    return (DVCS || defaultUnitCode || "").trim();
+  }, [DVCS, defaultUnitCode]);
 
   const [dataSource, setDataSource] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -64,7 +77,11 @@ const BaoCaoTonKho = () => {
     2: [],
     3: [],
   });
-  const [dvcsOptions, setDvcsOptions] = useState([]);
+  const [dvcsOptions, setDvcsOptions] = useState(() =>
+    defaultUnitCode
+      ? [{ value: defaultUnitCode, label: defaultUnitName }]
+      : []
+  );
   const [vatTuOptions, setVatTuOptions] = useState([]);
 
   // Loading states for selectboxes
@@ -83,6 +100,17 @@ const BaoCaoTonKho = () => {
   const loaiNhomVatTu = 1;
 
   const [filters, setFilters] = useState(getDefaultFilters);
+
+  // Auto-fill Unit when defaultUnitCode is available
+  useEffect(() => {
+    if (defaultUnitCode) {
+      setFilters((prev) => ({
+        ...prev,
+        Unit:
+          prev.Unit && prev.Unit.length > 0 ? prev.Unit : [defaultUnitCode],
+      }));
+    }
+  }, [defaultUnitCode]);
 
   // Fetch danh sách kho
   const fetchKhoOptions = useCallback(
@@ -181,10 +209,11 @@ const BaoCaoTonKho = () => {
         data: {},
       });
       const data = res?.listObject?.[0] || [];
-      const options = data.map((item) => ({
-        value: item.ma_dvcs || item.value || "",
-        label: item.ten_dvcs || item.label || item.ma_dvcs || "",
-      }));
+      const options = data.map((item) => {
+        const val = (item.ma_dvcs || item.value || "").trim();
+        const lab = (item.ten_dvcs || item.label || item.ma_dvcs || "").trim() || val;
+        return { value: val, label: lab };
+      });
       setDvcsOptions(options);
     } catch (err) {
       console.error("❌ Lỗi khi lấy danh sách đơn vị cơ sở:", err);
@@ -274,9 +303,10 @@ const BaoCaoTonKho = () => {
       });
 
       const fetchedData = res?.listObject?.[0] || [];
+      const paginationInfo = res?.listObject?.[1]?.[0] || {};
 
-      // Lấy total từ response nếu có
-      const total = res?.total || res?.totalRecords || fetchedData.length;
+      // Lấy total từ pagination info (field có thể là totalRecord hoặc total_rows tùy API)
+      const total = paginationInfo.totalRecord || paginationInfo.total_rows || fetchedData.length;
       setTotalRecords(total);
 
       // Loại bỏ các dòng hoàn toàn trống (không có mã và tên)
@@ -326,13 +356,162 @@ const BaoCaoTonKho = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters, userId, unitId, currentPage, pageSize]);
+  }, [filters, userId, currentPage, pageSize]);
 
-  const [tableFilters, setTableFilters] = useState({
-    ma_vt: "",
-    ten_vt: "",
-    dvt: "",
-  });
+  const [exportLoading, setExportLoading] = useState(false);
+
+  const handleExportExcel = useCallback(async () => {
+    if (!userId) return;
+
+    setExportLoading(true);
+    try {
+      let allData = [];
+      let currentPageIdx = 1;
+      let totalPages = 1;
+
+      while (currentPageIdx <= totalPages) {
+        const res = await multipleTablePutApi({
+          store: "api_rs_rptStockReport",
+          param: {
+            DateTo: filters.DateTo,
+            Site: filters.Site || "",
+            Item: filters.Item || "",
+            ItemGroup1: filters.ItemGroup1 || "",
+            ItemGroup2: filters.ItemGroup2 || "",
+            ItemGroup3: filters.ItemGroup3 || "",
+            nh_theo: filters.nh_theo || 0,
+            tt_sx1: filters.tt_sx1 || 0,
+            tt_sx2: filters.tt_sx2 || 0,
+            tt_sx3: filters.tt_sx3 || 0,
+            Unit:
+              Array.isArray(filters.Unit) && filters.Unit.length
+                ? filters.Unit.join(",")
+                : "",
+            BalanceType: filters.BalanceType || 2,
+            Order: filters.Order || "ma_vt",
+            DataType: filters.DataType || 2,
+            Language: filters.Language || "V",
+            UserID: userId,
+            Admin: filters.Admin || 1,
+            pageIndex: currentPageIdx,
+            pageSize: 1000,
+          },
+          data: {},
+        });
+
+        const pageData = res?.listObject?.[0] || [];
+        allData = [...allData, ...pageData];
+
+        const paginationInfo = res?.listObject?.[1]?.[0] || {};
+        totalPages = paginationInfo.totalPage || 1;
+        currentPageIdx++;
+      }
+
+      if (allData.length === 0) {
+        setExportLoading(false);
+        return;
+      }
+
+      // Lọc và format dữ liệu tương tự như trong Table
+      const cleanedData = allData.filter((item) => {
+        const ma = (item.ma_vt || "").trim();
+        const ten = (item.ten_vt || "").trim();
+        return (ma || ten) && item.sysorder !== 1; // Bỏ dòng trống sysorder: 1
+      });
+
+      const formattedAllData = cleanedData.map((item, index) => {
+        const ma = (item.ma_vt || "").trim();
+        const ten = (item.ten_vt || "").trim();
+        const isSummaryRow =
+          item.systotal === 0 && !ma && ten.toLowerCase().includes("tổng");
+
+        return {
+          ...item,
+          stt: isSummaryRow ? "" : index + 1,
+          ma_vt: ma,
+          ten_vt: ten,
+          dvt: (item.dvt || "").trim(),
+          gia_tri: Number(item.tien || item.gia_tri || (Number(item.so_luong) || 0) * (Number(item.don_gia) || 0)),
+          so_luong: Number(item.so_luong) || 0,
+        };
+      });
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Báo cáo");
+
+      // Định nghĩa các cột
+      const columnsConfig = [
+        { header: "STT", key: "stt", width: 8 },
+        { header: "Mã vật tư", key: "ma_vt", width: 15 },
+        { header: "Tên vật tư", key: "ten_vt", width: 50 },
+        { header: "Đvt", key: "dvt", width: 10 },
+        { header: "Số lượng", key: "so_luong", width: 15 },
+        { header: "Giá trị", key: "gia_tri", width: 15 },
+      ];
+
+      worksheet.columns = columnsConfig;
+
+      // Định dạng tiêu đề
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      headerRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF217346" },
+      };
+      headerRow.alignment = {
+        vertical: "middle",
+        horizontal: "center",
+        wrapText: true,
+      };
+
+      // Thêm toàn bộ dữ liệu vào worksheet
+      formattedAllData.forEach((item) => {
+        const rowData = {
+          stt: item.stt,
+          ma_vt: item.ma_vt,
+          ten_vt: item.ten_vt,
+          dvt: item.dvt,
+          so_luong: item.so_luong,
+          gia_tri: item.gia_tri,
+        };
+        const row = worksheet.addRow(rowData);
+
+        row.alignment = { vertical: "middle", wrapText: true };
+        row.eachCell((cell, colNumber) => {
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
+
+          const colKey = columnsConfig[colNumber - 1].key;
+          if (["so_luong", "gia_tri"].includes(colKey)) {
+            cell.alignment = { horizontal: "right", vertical: "middle" };
+            cell.numFmt = "#,##0";
+          } else if (["stt", "ma_vt", "dvt"].includes(colKey)) {
+            cell.alignment = { horizontal: "center", vertical: "middle" };
+          } else {
+            cell.alignment = { horizontal: "left", vertical: "middle", wrapText: true };
+          }
+          cell.font = { size: 10 };
+        });
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      saveAs(blob, `BaoCaoTonKho_${dayjs().format("YYYYMMDD_HHmmss")}.xlsx`);
+    } catch (err) {
+      console.error("❌ Lỗi khi xuất Excel:", err);
+    } finally {
+      setExportLoading(false);
+    }
+  }, [filters, userId]);
+
+
 
   const columns = useMemo(
     () => [
@@ -347,126 +526,18 @@ const BaoCaoTonKho = () => {
         dataIndex: "ma_vt",
         key: "ma_vt",
         width: 120,
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm mã vật tư"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ma_vt: selectedKeys[0] || "",
-                }));
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              type="primary"
-              onClick={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ma_vt: selectedKeys[0] || "",
-                }));
-              }}
-              size="small"
-              style={{ width: "100%" }}
-            >
-              Tìm kiếm
-            </Button>
-          </div>
-        ),
-        filteredValue: tableFilters.ma_vt ? [tableFilters.ma_vt] : null,
-        onFilter: (value, record) =>
-          record.ma_vt?.toString().toLowerCase().includes(value.toLowerCase()),
       },
       {
         title: "Tên vật tư",
         dataIndex: "ten_vt",
         key: "ten_vt",
         width: 300,
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm tên vật tư"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ten_vt: selectedKeys[0] || "",
-                }));
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              type="primary"
-              onClick={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ten_vt: selectedKeys[0] || "",
-                }));
-              }}
-              size="small"
-              style={{ width: "100%" }}
-            >
-              Tìm kiếm
-            </Button>
-          </div>
-        ),
-        filteredValue: tableFilters.ten_vt ? [tableFilters.ten_vt] : null,
-        onFilter: (value, record) =>
-          record.ten_vt?.toString().toLowerCase().includes(value.toLowerCase()),
       },
       {
         title: "Đvt",
         dataIndex: "dvt",
         key: "dvt",
         width: 100,
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm đơn vị"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  dvt: selectedKeys[0] || "",
-                }));
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              type="primary"
-              onClick={() => {
-                confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  dvt: selectedKeys[0] || "",
-                }));
-              }}
-              size="small"
-              style={{ width: "100%" }}
-            >
-              Tìm kiếm
-            </Button>
-          </div>
-        ),
-        filteredValue: tableFilters.dvt ? [tableFilters.dvt] : null,
-        onFilter: (value, record) =>
-          record.dvt?.toString().toLowerCase().includes(value.toLowerCase()),
       },
       {
         title: "Số lượng",
@@ -481,7 +552,7 @@ const BaoCaoTonKho = () => {
         width: 150,
       },
     ],
-    [tableFilters]
+    []
   );
 
   const renderCellContent = useCallback((text, record, col) => {
@@ -618,9 +689,12 @@ const BaoCaoTonKho = () => {
   };
 
   const handleClearFilters = useCallback(() => {
-    setFilters(getDefaultFilters());
+    setFilters({
+      ...getDefaultFilters(),
+      Unit: defaultUnitCode ? [defaultUnitCode] : [],
+    });
     setCurrentPage(1);
-  }, [setCurrentPage]);
+  }, [setCurrentPage, defaultUnitCode]);
 
   const handleDateChange = (date) => {
     if (date) {
@@ -807,8 +881,30 @@ const BaoCaoTonKho = () => {
               />
             </div>
             <div className="filter-item button-item">
-              <Button type="primary" onClick={handleClearFilters} loading={loading}>
+              <Button
+                type="primary"
+                onClick={() => {
+                  setCurrentPage(1);
+                  fetchData();
+                }}
+                loading={loading}
+              >
+                Tìm kiếm
+              </Button>
+              <Button
+                onClick={handleClearFilters}
+                style={{ backgroundColor: "#f0f0f0", color: "#000" }}
+              >
                 Xoá bộ lọc
+              </Button>
+              <Button
+                type="primary"
+                style={{ backgroundColor: "#217346", borderColor: "#217346" }}
+                onClick={handleExportExcel}
+                loading={exportLoading}
+                disabled={dataSource.length === 0}
+              >
+                Xuất Excel
               </Button>
             </div>
           </div>

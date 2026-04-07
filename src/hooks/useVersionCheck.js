@@ -1,5 +1,5 @@
 import { notification } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // Mặc định 60 giây - kiểm tra định kỳ khi user giữ nguyên trang
 const COUNTDOWN_SECONDS = 30;
@@ -77,7 +77,7 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
     }
   };
 
-  const getCurrentVersion = async () => {
+  const getCurrentVersion = useCallback(async () => {
     try {
       const url = getVersionUrl();
       const response = await fetch(url, { cache: "no-cache" });
@@ -87,9 +87,9 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
       console.warn("Không thể lấy thông tin version:", error);
       return null;
     }
-  };
+  }, []);
 
-  const checkForNewVersion = async (forceShow = false) => {
+  const checkForNewVersion = useCallback(async (forceShow = false) => {
     if (isCheckingRef.current) return;
     if (!forceShow) {
       const now = Date.now();
@@ -197,7 +197,7 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
       isCheckingRef.current = false;
       if (forceShow) setIsChecking(false);
     }
-  };
+  }, [getCurrentVersion]);
 
   const checkVersionNow = () => {
     checkForNewVersion(true);
@@ -222,7 +222,7 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       clearTimeout(initialCheck);
     };
-  }, [checkInterval]);
+  }, [checkInterval, checkForNewVersion]);
 
   useEffect(() => {
     const handleFocus = () => {
@@ -232,7 +232,7 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
     };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, []);
+  }, [checkForNewVersion]);
 
   return {
     hasNewVersion,

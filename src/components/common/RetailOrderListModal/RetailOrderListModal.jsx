@@ -26,22 +26,55 @@ import showConfirm from "../Modal/ModalConfirm";
 import PrintComponent from "./PrintComponent/PrintComponent";
 import "./RetailOrderListModal.css";
 
+const isSyncRequested = (value) => {
+  if (value === null || value === undefined) return false;
+  const normalized =
+    typeof value === "string" ? value.trim().toLowerCase() : value;
+  if (normalized === "*" || normalized === "0") return false;
+  if (normalized === true || normalized === 1) return true;
+  if (typeof normalized === "string") {
+    return ["synchronize", "sync", "đồng bộ", "dong bo"].includes(normalized);
+  }
+  return Boolean(normalized);
+};
+
+const getSyncResultStatus = (value) => {
+  if (value === null || value === undefined || value === "") return "pending";
+  if (value === true || value === 1) return "success";
+  if (value === false || value === 0) return "failed";
+  const normalized =
+    typeof value === "string" ? value.trim().toLowerCase() : value;
+  if (
+    ["1", "true", "success", "thành công", "synchronized"].includes(normalized)
+  ) {
+    return "success";
+  }
+  if (
+    ["0", "false", "failed", "thất bại", "error", "fail"].includes(normalized)
+  ) {
+    return "failed";
+  }
+  return "pending";
+};
+
+const EMPTY_FILTERS = {
+  so_ct: "",
+  dateRange: null,
+  status: "",
+  s2: "",
+  s3: "",
+};
+
 const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
   const [totalRecords, setTotalRecords] = useState(0);
   const [allData, setAllData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const EMPTY_FILTERS = {
-    so_ct: "",
-    dateRange: null,
-    status: "",
-    s2: "",
-    s3: "",
-  };
   const [filters, setFilters] = useState(EMPTY_FILTERS);
 
-  const stableFilters = useMemo(() => filters, [JSON.stringify(filters)]);
+  const filtersStr = JSON.stringify(filters);
+  const stableFilters = useMemo(() => JSON.parse(filtersStr), [filtersStr]);
   const dispatch = useDispatch();
 
   const { id, storeId, unitId } = useSelector(
@@ -57,6 +90,18 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
   const claims =
     rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
   const fullName = claims?.FullName;
+
+  const getSyncRequestLabel = useCallback(
+    (value) => (isSyncRequested(value) ? "Phát hành HĐĐT" : "Không phát hành"),
+    []
+  );
+
+  const getSyncResultLabel = useCallback((value) => {
+    const status = getSyncResultStatus(value);
+    if (status === "success") return "Thành công";
+    if (status === "failed") return "Thất bại";
+    return "Chưa phát hành";
+  }, []);
 
   const [isEditingOrder, setIsEditingOrder] = useState(false);
 
@@ -152,7 +197,15 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
         setIsLoading(false);
       }
     },
-    [stableFilters, id, unitId, storeId, dispatch, isOpen, isLoading]
+    [
+      stableFilters,
+      id,
+      unitId,
+      storeId,
+      isOpen,
+      isLoading,
+      currentPage,
+    ]
   );
 
   useEffect(() => {
@@ -162,7 +215,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
         setFilters(loaded);
         fetchListOrderData(1, loaded);
       } else {
-        fetchListOrderData(1, filters);
+        fetchListOrderData(1, stableFilters);
       }
     } else {
       setCurrentPage(1);
@@ -171,7 +224,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       setTotalRecords(0);
       lastApiCall.current = { pageIndex: 0, filters: {} };
     }
-  }, [isOpen]);
+  }, [isOpen, fetchListOrderData, stableFilters]);
 
   const currentData = allData;
 
@@ -216,11 +269,11 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
 
   const activeChips = useMemo(() => {
     const chips = [];
-    if (filters.so_ct)
-      chips.push({ key: "so_ct", label: "Số CT", value: filters.so_ct });
-    if (filters.dateRange && filters.dateRange.from && filters.dateRange.to) {
-      const [mm1, dd1, y1] = String(filters.dateRange.from).split("/");
-      const [mm2, dd2, y2] = String(filters.dateRange.to).split("/");
+    if (stableFilters.so_ct)
+      chips.push({ key: "so_ct", label: "Số CT", value: stableFilters.so_ct });
+    if (stableFilters.dateRange && stableFilters.dateRange.from && stableFilters.dateRange.to) {
+      const [mm1, dd1, y1] = String(stableFilters.dateRange.from).split("/");
+      const [mm2, dd2, y2] = String(stableFilters.dateRange.to).split("/");
       const display = `${String(dd1).padStart(2, "0")}/${String(mm1).padStart(
         2,
         "0"
@@ -231,33 +284,33 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       chips.push({ key: "dateRange", label: "Ngày CT", value: display });
     }
     if (
-      filters.status !== "" &&
-      filters.status !== null &&
-      filters.status !== undefined
+      stableFilters.status !== "" &&
+      stableFilters.status !== null &&
+      stableFilters.status !== undefined
     ) {
       const statusMap = { 2: "Hoàn thành", 0: "Chưa hoàn thành" };
       chips.push({
         key: "status",
         label: "Trạng thái",
-        value: statusMap[String(filters.status)] || String(filters.status),
+        value: statusMap[String(stableFilters.status)] || String(stableFilters.status),
       });
     }
-    if (filters.s2) {
+    if (stableFilters.s2) {
       chips.push({
         key: "s2",
         label: "Yêu cầu đồng bộ",
-        value: getSyncRequestLabel(filters.s2),
+        value: getSyncRequestLabel(stableFilters.s2),
       });
     }
-    if (filters.s3 !== "" && filters.s3 !== null && filters.s3 !== undefined) {
+    if (stableFilters.s3 !== "" && stableFilters.s3 !== null && stableFilters.s3 !== undefined) {
       chips.push({
         key: "s3",
         label: "Phát hành HĐĐT",
-        value: getSyncResultLabel(filters.s3),
+        value: getSyncResultLabel(stableFilters.s3),
       });
     }
     return chips;
-  }, [filters]);
+  }, [stableFilters, getSyncRequestLabel, getSyncResultLabel]);
 
   const removeChip = (key) => {
     const newFilters = { ...filters };
@@ -399,23 +452,6 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
     return dateStr;
   };
 
-  const isSyncRequested = (value) => {
-    if (value === null || value === undefined) return false;
-    const normalized =
-      typeof value === "string" ? value.trim().toLowerCase() : value;
-    if (normalized === "*" || normalized === "0") return false;
-    if (normalized === true || normalized === 1) return true;
-    if (typeof normalized === "string") {
-      return ["synchronize", "sync", "đồng bộ", "dong bo"].includes(
-        normalized
-      );
-    }
-    return Boolean(normalized);
-  };
-
-  const getSyncRequestLabel = (value) =>
-    isSyncRequested(value) ? "Phát hành HĐĐT" : "Không phát hành";
-
   const renderSyncRequestTag = (value) => {
     const requested = isSyncRequested(value);
     return (
@@ -423,34 +459,6 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
         {requested ? "Phát hành HĐĐT" : "Không phát hành"}
       </Tag>
     );
-  };
-
-  const getSyncResultStatus = (value) => {
-    if (value === null || value === undefined || value === "") return "pending";
-    if (value === true || value === 1) return "success";
-    if (value === false || value === 0) return "failed";
-    const normalized =
-      typeof value === "string" ? value.trim().toLowerCase() : value;
-    if (["1", "true", "success", "thành công", "synchronized"].includes(
-      normalized
-    )) {
-      return "success";
-    }
-    if (
-      ["0", "false", "failed", "thất bại", "error", "fail"].includes(
-        normalized
-      )
-    ) {
-      return "failed";
-    }
-    return "pending";
-  };
-
-  const getSyncResultLabel = (value) => {
-    const status = getSyncResultStatus(value);
-    if (status === "success") return "Thành công";
-    if (status === "failed") return "Thất bại";
-    return "Chưa phát hành";
   };
 
   const renderSyncResultTag = (value) => {

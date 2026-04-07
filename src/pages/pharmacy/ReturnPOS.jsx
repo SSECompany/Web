@@ -165,32 +165,32 @@ const ReturnPOS = () => {
     [payment.cash, total]
   );
 
-  const addToCart = (item) => {
-    const existingIndex = cart.findIndex((x) => x.sku === item.sku);
-    if (existingIndex >= 0) {
-      setCart((prev) =>
-        prev.map((x, i) =>
+  const addToCart = useCallback((item) => {
+    setCart((prev) => {
+      const existingIndex = prev.findIndex((x) => x.sku === item.sku);
+      if (existingIndex >= 0) {
+        return prev.map((x, i) =>
           i === existingIndex ? { ...x, qty: (x.qty || 1) + 1 } : x
-        )
-      );
-    } else {
-      setCart((prev) => [
-        ...prev,
-        {
-          ...item,
-          qty: 1,
-          batchExpiry: "",
-          vatPercent: Number(item.thue_suat) || 0,
-          ma_thue: (item.ma_thue || "").trim(),
-          thue_suat: Number(item.thue_suat) || 0,
-          discountPercent: 0,
-          discountAmount: 0,
-          remaining: 0,
-          instructions: "",
-        },
-      ]);
-    }
-  };
+        );
+      } else {
+        return [
+          ...prev,
+          {
+            ...item,
+            qty: 1,
+            batchExpiry: "",
+            vatPercent: Number(item.thue_suat) || 0,
+            ma_thue: (item.ma_thue || "").trim(),
+            thue_suat: Number(item.thue_suat) || 0,
+            discountPercent: 0,
+            discountAmount: 0,
+            remaining: 0,
+            instructions: "",
+          },
+        ];
+      }
+    });
+  }, []);
 
   const removeAt = (index) => {
     setCart((prev) => prev.filter((_, i) => i !== index));

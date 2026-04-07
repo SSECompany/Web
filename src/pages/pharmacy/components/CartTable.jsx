@@ -142,7 +142,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
     const listPrice = Number(overrides.listPrice !== undefined ? overrides.listPrice : record.listPrice || 0);
     const qty = Number(overrides.qty !== undefined ? overrides.qty : record.qty || 1);
     
-    // 1. TIỀN SAU VAT (TỔNG TIỀN TRÊN UI) = Số lượng * Giá niêm yết
+    // 1. TIỀN SAU VAT = Số lượng * Giá niêm yết
     const totalAfterVAT = Math.round(listPrice * qty);
     
     // 2. Get VAT %
@@ -174,18 +174,19 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       }
     }
 
-    // 3. TIỀN TRƯỚC V (TÍNH NHƯ ERP) = round(Tiền sau VAT / (1 + VAT%), 0)
-    const totalBeforeVAT = Math.round(totalAfterVAT / (1 + effectiveVatPercent / 100));
-    
-    // 4. TIỀN VAT = Tiền sau VAT - Tiền trước V
-    const vatAmountTotal = totalAfterVAT - totalBeforeVAT;
-    
-    // 5. GIÁ trước V = round(Giá niêm yết / (1 + VAT%), 0)
+    // 3. GIÁ TRƯỚC V = Giá niêm yết / (1 + VAT%)
+    // Làm tròn số nguyên
     const priceBeforeVAT = Math.round(listPrice / (1 + effectiveVatPercent / 100));
+
+    // 4. TIỀN TRƯỚC V = sl * giá trước v
+    const totalBeforeVAT = Math.round(qty * priceBeforeVAT);
+    
+    // 5. TIỀN VAT = Tiền sau V - Tiền trước V
+    const vatAmountTotal = Math.round(totalAfterVAT - totalBeforeVAT);
 
     // Update record with these ERP-calculated values
     updateLine(index, "price", priceBeforeVAT);
-    updateLine(index, "thanh_tien", totalBeforeVAT); // Lưu lại Tiền trước V để ERP ko tính lại sai
+    updateLine(index, "thanh_tien", totalBeforeVAT); // Lưu lại Tiền trước V
     updateLine(index, "thue_nt", vatAmountTotal);
     updateLine(index, "thanh_tien_sau_vat", totalAfterVAT); // Cột ảo cần view
 
@@ -407,11 +408,11 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
               const opt = (unitOptions[index] || []).find(
                 (o) => o.value === val
               );
-              const newPrice =
-                typeof opt?.price === "number" ? opt.price : record.price;
+              const newListPrice =
+                typeof opt?.price === "number" ? opt.price : record.listPrice;
               updateLine(index, "unit", val);
-              updateLine(index, "price", newPrice);
-              recomputeLineTotals(index, record, { price: newPrice });
+              updateLine(index, "listPrice", newListPrice);
+              recomputeLineTotals(index, record, { listPrice: newListPrice });
             }}
             options={options.map((o) => ({ value: o.value, label: o.label }))}
             popupMatchSelectWidth={false}

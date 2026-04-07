@@ -51,6 +51,7 @@
   justify-content: flex-end;
   align-items: flex-end;
   margin-top: auto;
+  gap: 10px;
 }
 
 .filter-item.button-item .ant-btn {
@@ -87,6 +88,35 @@
 
 .filter-item .ant-select-multiple .ant-select-selection-overflow-item {
   margin: 2px 4px 2px 0;
+  max-width: 98%;
+}
+
+.filter-item .ant-select-selection-item {
+  white-space: normal !important;
+  height: auto !important;
+  padding: 4px 24px 4px 8px !important;
+  max-width: 100% !important;
+  display: block !important;
+  position: relative !important;
+}
+
+.filter-item .ant-select-selection-item-content {
+  white-space: normal !important;
+  word-break: break-all !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  line-height: 1.4 !important;
+  display: block !important;
+}
+
+/* Ensure the close icon is correctly positioned when multi-line */
+.filter-item .ant-select-selection-item-remove {
+  position: absolute !important;
+  top: 50% !important;
+  right: 4px !important;
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
 @media (max-width: 1024px) {
