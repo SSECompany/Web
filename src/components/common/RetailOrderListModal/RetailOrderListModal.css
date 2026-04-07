@@ -157,6 +157,18 @@
   pointer-events: none;
 }
 
+.retail-order-table .issue_button {
+  background-color: #52c41a;
+  border-color: #52c41a;
+  color: white;
+}
+
+.retail-order-table .issue_button:hover {
+  background-color: #73d13d;
+  border-color: #73d13d;
+  color: white;
+}
+
 /* Filter dropdown styles */
 .filter-dropdown {
   padding: 8px;

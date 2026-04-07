@@ -1,6 +1,6 @@
 {
-  "name": "phenika",
-  "version": "0.1.32",
+  "name": "tapmed",
+  "version": "0.1.34",
   "private": true,
   "dependencies": {
     "@ant-design/charts": "^2.1.1",
@@ -130,6 +130,8 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.18.6",
+    "ajv": "^8.8.2",
+    "ajv-keywords": "^5.0.0",
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "mkcert": "^3.2.0"
   }
