@@ -179,50 +179,80 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
     [openingBalance, totals.cash]
   );
 
-  const handlePrint = useReactToPrint({
+  const reactToPrintHandler = useReactToPrint({
     content: () => printContent.current,
-    onBeforeGetContent: async () => {
-      if (!unitId || !userId) return;
-      setIsLoading(true);
-      try {
-        const itemsRes = await multipleTablePutApi({
-          store: "api_get_pos_print_order_manv_by_group_item",
-          param: {
-            so_ct: "",
-            ma_kh: "",
-            ten_kh: "",
-            dien_thoai: "",
-            ngay_ct: selectedDate,
-            PageIndex: 1,
-            PageSize: 1000,
-            StoreId: "",
-            UnitId: unitId,
-            Status: "",
-            Userid: userId,
-            username: "",
-            ma_ban: "",
-            ten_vt: "",
-            nh_vt1: "",
-          },
-          data: {},
-        });
-
-        const items = Array.isArray(itemsRes?.listObject?.[1])
-          ? itemsRes.listObject[1]
-          : [];
-        setItemData(items);
-        setPrintTimestamp(dayjs().format("DD/MM/YYYY HH:mm:ss"));
-        // Đợi một chút để React cập nhật state và re-render component in
-        return new Promise((resolve) => setTimeout(resolve, 500));
-      } catch (error) {
-        console.error("❌ Lỗi khi lấy chi tiết món để in:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    },
     documentTitle: `bao-cao-chot-ca-${selectedDate}`,
     copyStyles: false,
   });
+
+  const handlePrint = async () => {
+    if (!unitId || !userId) return;
+    setIsLoading(true);
+    try {
+      // 1. Lấy dữ liệu chi tiết
+      const itemsRes = await multipleTablePutApi({
+        store: "api_get_pos_print_order_manv_by_group_item",
+        param: {
+          so_ct: "",
+          ma_kh: "",
+          ten_kh: "",
+          dien_thoai: "",
+          ngay_ct: selectedDate,
+          PageIndex: 1,
+          PageSize: 1000,
+          StoreId: "",
+          UnitId: unitId,
+          Status: "",
+          Userid: userId,
+          username: "",
+          ma_ban: "",
+          ten_vt: "",
+          nh_vt1: "",
+        },
+        data: {},
+      });
+
+      const items = Array.isArray(itemsRes?.listObject?.[1])
+        ? itemsRes.listObject[1]
+        : [];
+      setItemData(items);
+      const timestamp = dayjs().format("DD/MM/YYYY HH:mm:ss");
+      setPrintTimestamp(timestamp);
+
+      // 2. Thử in bằng SDK (iMin/Iposmini)
+      try {
+        const { default: IminPrinterService } = await import("../../../../utils/IminPrinterService");
+        const printerService = new IminPrinterService();
+        await printerService.initPrinter();
+        
+        if (printerService.isInitialized && printerService.printerInstance) {
+          await printerService.printShiftReport(
+            summaryData,
+            items,
+            openingBalance,
+            selectedDate,
+            timestamp,
+            cashierName
+          );
+          setIsLoading(false);
+          return;
+        }
+      } catch (sdkErr) {
+        console.warn("SDK Printer not available, falling back to browser print:", sdkErr);
+      }
+
+      // 3. Fallback: In bằng trình duyệt
+      // Đợi render state mới
+      setTimeout(() => {
+        reactToPrintHandler();
+        setIsLoading(false);
+      }, 500);
+
+    } catch (error) {
+      console.error("❌ Lỗi khi in báo cáo:", error);
+      setIsLoading(false);
+    }
+  };
 
   // Tạo dữ liệu cho bảng hiển thị - chỉ phần detail (nhóm món)
   const tableData = useMemo(() => {
@@ -341,7 +371,7 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
         dataIndex: "stt",
         key: "stt",
         align: "center",
-        width: 50,
+        width: 70,
       },
       {
         title: "Tên",

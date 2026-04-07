@@ -40,6 +40,22 @@ class IminPrinterService {
   }
 
   /**
+   * Detect if paper size is K58 (58mm) or K80 (80mm)
+   * iPOS mini / iMin Swift / iMin M2 are handheld devices with 58mm paper.
+   * They usually have small screen widths (portrait) or specific User Agent strings.
+   */
+  isK58() {
+    try {
+      const isMobile = window.innerWidth <= 480;
+      const userAgent = navigator.userAgent || "";
+      const isIminHandheld = userAgent.includes("iMin") || userAgent.includes("M2-203") || userAgent.includes("Iposmini");
+      return isMobile || isIminHandheld;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Khởi tạo máy in (Logic theo SDK chuẩn)
    */
   async initPrinter() {
@@ -156,7 +172,10 @@ class IminPrinterService {
       return c.align === 'center' ? 1 : c.align === 'right' ? 2 : 0;
     });
     const size = columns.map(c => c.fontSize || 24);
-    this.printerInstance.printColumnsText(colTextArr, colWidthArr, colAlignArr, size, 576);
+    
+    // Tự động điều chỉnh độ RỘNG tổng theo loại giấy (576 cho K80, 384 cho K58/Iposmini)
+    const totalDots = this.isK58() ? 384 : 576;
+    this.printerInstance.printColumnsText(colTextArr, colWidthArr, colAlignArr, size, totalDots);
   }
 
   async printQrCode(data, options = {}) {
@@ -168,16 +187,27 @@ class IminPrinterService {
   }
 
   /**
-   * In hóa đơn hoàn chỉnh (Mẫu in gốc)
+   * In hóa đơn hoàn chỉnh (Hỗ trợ Iposmini / K58)
    */
   async printReceipt(master, detail, numberOfCopies = 1, options = {}) {
     const isReprint = options.isReprint === true;
+    const isK58 = this.isK58();
+    
+    // Điều chỉnh Font size cho K58 (nhỏ hơn K80)
+    const fsBase = isK58 ? 18 : 24;      // Font chính
+    const fsTableHead = isK58 ? 16 : 20; // Font tiêu đề bảng
+    const fsTableItem = isK58 ? 17 : 22; // Font nội dung món
+    const fsSubItem = isK58 ? 15 : 19;   // Font món phụ
+    const fsFooter = isK58 ? 17 : 22;    // Font footer
+    const fsTitle = isK58 ? 20 : 24;     // Font tiêu đề đơn vị
+    
+    // Điều chỉnh độ rộng đường kẻ
+    const LINE_FULL_WIDTH = isK58 ? '----------------------------' : '─────────────────────────────────────────';
+
     try {
       if (!this.isInitialized) {
         await this.initPrinter();
       }
-
-      const LINE_FULL_WIDTH = '─────────────────────────────────────────';
 
       for (let copy = 1; copy <= numberOfCopies; copy++) {
         await this.printerInstance.setTextLineSpacing(0);
@@ -188,7 +218,7 @@ class IminPrinterService {
 
         const headerBlock = `ĐẠI HỌC PHENIKAA\nĐịa chỉ: Nguyễn Văn Trác, Dương Nội, Hà Nội`;
         await this.printText(headerBlock, {
-          fontSize: 24,
+          fontSize: fsTitle,
           fontStyle: 'bold',
           align: 'center',
         });
@@ -201,14 +231,14 @@ class IminPrinterService {
         await this.printerInstance.setTextStyle(1);
         if (soThe) {
             await this.printColumnsText([
-                { text: `[${paymentLabel}]`, width: 3, align: 'left', fontSize: 30 },
-                { text: soThe, width: 3, align: 'center', fontSize: 30 },
-                { text: copyLabel, width: 2, align: 'right', fontSize: 30 },
+                { text: `[${paymentLabel}]`, width: 3, align: 'left', fontSize: isK58 ? 22 : 30 },
+                { text: soThe, width: 3, align: 'center', fontSize: isK58 ? 22 : 30 },
+                { text: copyLabel, width: 2, align: 'right', fontSize: isK58 ? 22 : 30 },
             ]);
         } else {
             await this.printColumnsText([
-                { text: `[${paymentLabel}]`, width: 6, align: 'left', fontSize: 22 },
-                { text: copyLabel, width: 2, align: 'right', fontSize: 22 },
+                { text: `[${paymentLabel}]`, width: 6, align: 'left', fontSize: isK58 ? 19 : 22 },
+                { text: copyLabel, width: 2, align: 'right', fontSize: isK58 ? 19 : 22 },
             ]);
         }
         await this.printerInstance.setTextStyle(0);
@@ -217,15 +247,25 @@ class IminPrinterService {
         const tenKhach = (master?.ong_ba || master?.ten_kh || "Khách hàng").toString().trim();
         const soCt = String(master?.so_ct || 'Chưa có');
         const infoBlock = `Tên khách: ${tenKhach}\nSố CT: ${soCt}`;
-        await this.printText(infoBlock, { fontSize: 22, fontStyle: 'bold', align: 'left' });
+        await this.printText(infoBlock, { fontSize: fsBase, fontStyle: 'bold', align: 'left' });
 
         await this.printerInstance.setTextStyle(1);
-        await this.printColumnsText([
-          { text: 'Tên món', width: 3, align: 'left', fontSize: 20 },
-          { text: 'SL', width: 1, align: 'center', fontSize: 20 },
-          { text: 'Giá', width: 2, align: 'center', fontSize: 20 },
-          { text: 'Thành tiền', width: 2, align: 'right', fontSize: 20 },
-        ]);
+        // Tỷ lệ cột bảng cho K58 ưu tiên tên món dài
+        const tableCols = isK58 
+            ? [
+                { text: 'Tên món', width: 4, align: 'left', fontSize: fsTableHead },
+                { text: 'SL', width: 1, align: 'center', fontSize: fsTableHead },
+                { text: 'Giá', width: 2, align: 'center', fontSize: fsTableHead },
+                { text: 'T.Tiền', width: 2, align: 'right', fontSize: fsTableHead },
+              ]
+            : [
+                { text: 'Tên món', width: 3, align: 'left', fontSize: fsTableHead },
+                { text: 'SL', width: 1, align: 'center', fontSize: fsTableHead },
+                { text: 'Giá', width: 2, align: 'center', fontSize: fsTableHead },
+                { text: 'Thành tiền', width: 2, align: 'right', fontSize: fsTableHead },
+              ];
+
+        await this.printColumnsText(tableCols);
         await this.printerInstance.setTextStyle(0);
         await this.printText(LINE_FULL_WIDTH, { align: 'center', fontSize: 18 });
 
@@ -233,29 +273,32 @@ class IminPrinterService {
         for (const item of mainItems) {
             const tenMon = item?.selected_meal?.label || item?.ten_vt || "Món ăn";
             const sl = String(item?.so_luong || 1);
-            const gia = this.formatNumber(item?.don_gia || 0) + 'đ';
-            const tt = this.formatNumber(item?.thanh_tien_print || item?.thanh_tien || (Number(sl) * Number(item?.don_gia || 0))) + 'đ';
+            const giaVal = item?.don_gia || 0;
+            const ttVal = item?.thanh_tien_print || item?.thanh_tien || (Number(sl) * Number(giaVal));
+            
+            const gia = this.formatNumber(giaVal) + 'đ';
+            const tt = this.formatNumber(ttVal) + 'đ';
 
             await this.printColumnsText([
-                { text: tenMon, width: 3, align: 'left', fontSize: 22 },
-                { text: sl, width: 1, align: 'center', fontSize: 22 },
-                { text: gia, width: 2, align: 'center', fontSize: 22 },
-                { text: tt, width: 2, align: 'right', fontSize: 22 },
+                { text: tenMon, width: isK58 ? 4 : 3, align: 'left', fontSize: fsTableItem },
+                { text: sl, width: 1, align: 'center', fontSize: fsTableItem },
+                { text: gia, width: 2, align: 'center', fontSize: fsTableItem },
+                { text: tt, width: 2, align: 'right', fontSize: fsTableItem },
             ]);
 
             const subItems = detail.filter(s => s.ma_vt_root === item.ma_vt && s.uniqueid === item.uniqueid);
             for (const sub of subItems) {
                 const subTT = this.formatNumber(sub?.thanh_tien_print || sub?.thanh_tien || (Number(sub?.so_luong || 1) * Number(sub?.don_gia || 0))) + 'đ';
                 await this.printColumnsText([
-                    { text: `+ ${sub.ten_vt}`, width: 3, align: 'left', fontSize: 19 },
-                    { text: String(sub.so_luong || 1), width: 1, align: 'center', fontSize: 19 },
-                    { text: this.formatNumber(sub.don_gia || 0) + 'đ', width: 2, align: 'center', fontSize: 19 },
-                    { text: subTT, width: 2, align: 'right', fontSize: 19 },
+                    { text: `+ ${sub.ten_vt}`, width: isK58 ? 4 : 3, align: 'left', fontSize: fsSubItem },
+                    { text: String(sub.so_luong || 1), width: 1, align: 'center', fontSize: fsSubItem },
+                    { text: this.formatNumber(sub.don_gia || 0) + 'đ', width: 2, align: 'center', fontSize: fsSubItem },
+                    { text: subTT, width: 2, align: 'right', fontSize: fsSubItem },
                 ]);
             }
 
             if (item.ghi_chu && item.ghi_chu.trim()) {
-                await this.printText(` - Ghi chú: ${item.ghi_chu}`, { fontSize: 19, align: 'left' });
+                await this.printText(` - Ghi chú: ${item.ghi_chu}`, { fontSize: fsSubItem, align: 'left' });
             }
         }
 
@@ -263,12 +306,14 @@ class IminPrinterService {
 
         const totalDiscount = (detail || []).reduce((sum, d) => sum + parseFloat(d.chiet_khau_print || 0), 0);
         if (totalDiscount > 0) {
-            await this.printText(`Chiết khấu: ${this.formatNumber(totalDiscount)}đ`, { fontSize: 22, align: 'right' });
+            await this.printText(`Chiết khấu: ${this.formatNumber(totalDiscount)}đ`, { fontSize: fsBase, align: 'right' });
         }
 
         const totalLine = `TỔNG TIỀN: ${this.formatNumber(master?.tong_tien || 0)}đ`;
-        const paddedTotalLine = totalLine.length < 87 ? totalLine.padStart(87) : totalLine;
-        await this.printText(paddedTotalLine, { fontSize: 22, fontStyle: 'bold', align: 'left' });
+        // Điều chỉnh padding cho TỔNG TIỀN tùy theo khổ giấy
+        const totalPadding = isK58 ? 32 : 87;
+        const paddedTotalLine = totalLine.length < totalPadding ? totalLine.padStart(totalPadding) : totalLine;
+        await this.printText(paddedTotalLine, { fontSize: fsBase, fontStyle: 'bold', align: 'left' });
 
         await this.printText('', { fontSize: 10 });
         const tenNvbh = (master?.ten_nvbh || "").trim();
@@ -285,18 +330,20 @@ class IminPrinterService {
         if (email) footerLines.push(`Email: ${email}`);
         
         const brandWebsite = [PRINT_FOOTER_BRAND, PRINT_FOOTER_WEBSITE].filter(Boolean).join(' - ');
-        if (brandWebsite) footerLines.push(brandWebsite.length < 25 ? brandWebsite.padStart(25) : brandWebsite);
+        // Padding brandWebsite cho footer
+        const brandPadding = isK58 ? 20 : 25;
+        if (brandWebsite) footerLines.push(brandWebsite.length < brandPadding ? brandWebsite.padStart(brandPadding) : brandWebsite);
 
         if (footerLines.length) {
-            await this.printText(footerLines.join('\n'), { fontSize: 22, fontStyle: 'bold', align: 'left' });
+            await this.printText(footerLines.join('\n'), { fontSize: fsFooter, fontStyle: 'bold', align: 'left' });
         }
 
         const qrPayloadToPrint = options.qrPayload !== undefined ? options.qrPayload : getQRPayloadFromStore();
         if (qrPayloadToPrint) {
-            await this.printQrCode(qrPayloadToPrint, { size: 3, align: 'center' });
+            await this.printQrCode(qrPayloadToPrint, { size: isK58 ? 2 : 3, align: 'center' });
         }
 
-        await this.printText('CẢM ƠN QUÝ KHÁCH, HẸN GẶP LẠI!', { fontSize: 22, align: 'center' });
+        await this.printText('CẢM ƠN QUÝ KHÁCH, HẸN GẶP LẠI!', { fontSize: fsFooter, align: 'center' });
 
         await this.printerInstance.printAndFeedPaper(60);
         await this.printerInstance.partialCut();
@@ -304,6 +351,113 @@ class IminPrinterService {
       return { success: true };
     } catch (error) {
       console.error("❌ Lỗi in hóa đơn:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * In báo cáo chốt ca (Hỗ trợ Iposmini / K58)
+   */
+  async printShiftReport(summaryData, itemData, openingBalance, selectedDate, printTimestamp, cashierName) {
+    const isK58 = this.isK58();
+    const fsBase = isK58 ? 18 : 24;
+    const fsTableHead = isK58 ? 16 : 20;
+    const fsTableItem = isK58 ? 17 : 22;
+    const fsTitle = isK58 ? 20 : 24;
+    const LINE_FULL_WIDTH = isK58 ? '----------------------------' : '─────────────────────────────────────────';
+
+    try {
+      if (!this.isInitialized) {
+        await this.initPrinter();
+      }
+
+      await this.printerInstance.setTextLineSpacing(0);
+
+      // Header
+      await this.printText('BÁO CÁO CHỐT CA', {
+        fontSize: fsTitle,
+        fontStyle: 'bold',
+        align: 'center',
+      });
+      await this.printText('Trường đại học Phenikaa', {
+        fontSize: fsBase,
+        align: 'center',
+      });
+      await this.printText('', { fontSize: 10 });
+
+      // Info
+      await this.printText(`Ngày: ${summaryData?.ngay_ct || selectedDate}`, { fontSize: fsBase });
+      await this.printText(`Giờ in: ${printTimestamp}`, { fontSize: fsBase });
+      await this.printText(`Thu ngân: ${summaryData?.user_thu_ngan || cashierName || '--'}`, { fontSize: fsBase });
+      await this.printText(`Số dư đầu: ${this.formatNumber(openingBalance)}`, { fontSize: fsBase });
+
+      const discount = Number(summaryData?.t_ck_nt) || 0;
+      if (discount > 0) {
+        await this.printText(`Tổng chiết khấu: ${this.formatNumber(discount)}`, { fontSize: fsBase });
+      }
+
+      const voucherCount = Number(summaryData?.t_ap_voucher) || 0;
+      if (voucherCount > 0) {
+        await this.printText(`Áp dụng voucher: ${voucherCount}`, { fontSize: fsBase });
+      }
+
+      // Công nợ
+      const congNoKhTs = Number(summaryData?.cong_no_kh_ts) || 0;
+      const congNoXuatHd = Number(summaryData?.cong_no_xuat_hd) || 0;
+      if (congNoKhTs > 0 || congNoXuatHd > 0) {
+        await this.printText('CÔNG NỢ', { fontSize: fsBase, fontStyle: 'bold' });
+        if (congNoKhTs > 0) await this.printText(`- CN KH trả sau: ${this.formatNumber(congNoKhTs)}`, { fontSize: fsBase });
+        if (congNoXuatHd > 0) await this.printText(`- CN xuất h.đơn: ${this.formatNumber(congNoXuatHd)}`, { fontSize: fsBase });
+      }
+
+      // Thanh toán
+      await this.printText('PHƯƠNG THỨC THANH TOÁN', { fontSize: fsBase, fontStyle: 'bold' });
+      await this.printText(`- Tiền mặt: ${this.formatNumber(Number(summaryData?.t_tien_mat) || 0)}`, { fontSize: fsBase });
+      await this.printText(`- Chuyển khoản: ${this.formatNumber(Number(summaryData?.tien_ck) || 0)}`, { fontSize: fsBase });
+
+      // Chi tiết món
+      await this.printText('CHI TIẾT NHÓM MÓN', { fontSize: fsBase, fontStyle: 'bold' });
+      await this.printerInstance.setTextStyle(1);
+      const tableHead = isK58 
+        ? [
+            { text: 'Tên nhóm', width: 4, align: 'left', fontSize: fsTableHead },
+            { text: 'SL', width: 2, align: 'center', fontSize: fsTableHead },
+            { text: 'Thành tiền', width: 3, align: 'right', fontSize: fsTableHead },
+          ]
+        : [
+            { text: 'Tên nhóm', width: 4, align: 'left', fontSize: fsTableHead },
+            { text: 'Số lượng', width: 2, align: 'center', fontSize: fsTableHead },
+            { text: 'Thành tiền', width: 3, align: 'right', fontSize: fsTableHead },
+          ];
+      await this.printColumnsText(tableHead);
+      await this.printerInstance.setTextStyle(0);
+      await this.printText(LINE_FULL_WIDTH, { align: 'center', fontSize: 18 });
+
+      if (itemData.length === 0) {
+        await this.printText('Không có dữ liệu', { fontSize: fsBase, align: 'center' });
+      } else {
+        for (const item of itemData) {
+          const isTotalRow = item.systotal === 0;
+          await this.printerInstance.setTextStyle(isTotalRow ? 1 : 0);
+          await this.printColumnsText([
+            { text: item.ten_nh?.trim() || item.nh_vt1?.trim() || "N/A", width: 4, align: 'left', fontSize: fsTableItem },
+            { text: this.formatNumber(item.t_so_luong || 0), width: 2, align: 'center', fontSize: fsTableItem },
+            { text: this.formatNumber(item.t_tt || 0), width: 3, align: 'right', fontSize: fsTableItem },
+          ]);
+        }
+      }
+
+      await this.printText(LINE_FULL_WIDTH, { align: 'center', fontSize: 18 });
+      const net = Number(summaryData?.t_tt) || 0;
+      await this.printText(`Tổng cộng: ${this.formatNumber(net)}`, { fontSize: fsBase, fontStyle: 'bold', align: 'right' });
+
+      await this.printText('\nCẢM ƠN QUÝ KHÁCH, HẸN GẶP LẠI!', { fontSize: fsBase, align: 'center' });
+      await this.printerInstance.printAndFeedPaper(60);
+      await this.printerInstance.partialCut();
+
+      return { success: true };
+    } catch (error) {
+      console.error("❌ Lỗi in báo cáo chốt ca:", error);
       throw error;
     }
   }

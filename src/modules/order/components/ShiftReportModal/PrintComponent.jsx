@@ -65,45 +65,48 @@ const ShiftReportPrintComponent = forwardRef(
         <div style={{ color: "#000", marginBottom: "4px" }}>
           <strong>Giờ in:</strong> {printTimestamp}
         </div>
-        <div style={{ color: "#000", marginBottom: "4px" }}>
-          <strong>Thu ngân:</strong>{" "}
-          {summaryData?.user_thu_ngan?.trim() || cashierName || "--"}
-        </div>
+
         <div style={{ color: "#000", marginBottom: "4px" }}>
           <strong>Số dư đầu:</strong> {formatNumber(openingBalance)}
         </div>
-        <div style={{ color: "#000", marginBottom: "4px" }}>
-          <strong>Doanh thu Gross:</strong> {formatNumber(gross)}
-        </div>
-        <div style={{ color: "#000", marginBottom: "4px" }}>
-          <strong>Tổng chiết khấu:</strong> {formatNumber(discount)}
-        </div>
-        <div style={{ color: "#000", marginBottom: "4px" }}>
-          <strong>Doanh thu NET:</strong> {formatNumber(net)}
-        </div>
-        <div style={{ color: "#000", marginBottom: "4px" }}>
-          <strong>Áp dụng voucher:</strong> {voucherCount}
-        </div>
 
-        <div
-          style={{
-            color: "#000",
-            marginTop: "8px",
-            marginBottom: "4px",
-            fontWeight: "bold",
-            textTransform: "uppercase",
-          }}
-        >
-          Công nợ
-        </div>
-        <div style={{ color: "#000", marginLeft: "12px", marginBottom: "4px" }}>
-          <strong>- Công nợ KH trả sau:</strong>{" "}
-          {formatNumber(congNoKhTs)}
-        </div>
-        <div style={{ color: "#000", marginLeft: "12px", marginBottom: "4px" }}>
-          <strong>- Công nợ xuất hóa đơn:</strong>{" "}
-          {formatNumber(congNoXuatHd)}
-        </div>
+        {discount > 0 && (
+          <div style={{ color: "#000", marginBottom: "4px" }}>
+            <strong>Tổng chiết khấu:</strong> {formatNumber(discount)}
+          </div>
+        )}
+
+        {voucherCount > 0 && (
+          <div style={{ color: "#000", marginBottom: "4px" }}>
+            <strong>Áp dụng voucher:</strong> {voucherCount}
+          </div>
+        )}
+
+        {(congNoKhTs > 0 || congNoXuatHd > 0) && (
+          <>
+            <div
+              style={{
+                color: "#000",
+                marginTop: "8px",
+                marginBottom: "4px",
+                fontWeight: "bold",
+                textTransform: "uppercase",
+              }}
+            >
+              Công nợ
+            </div>
+            {congNoKhTs > 0 && (
+              <div style={{ color: "#000", marginLeft: "12px", marginBottom: "4px" }}>
+                <strong>- Công nợ KH trả sau:</strong> {formatNumber(congNoKhTs)}
+              </div>
+            )}
+            {congNoXuatHd > 0 && (
+              <div style={{ color: "#000", marginLeft: "12px", marginBottom: "4px" }}>
+                <strong>- Công nợ xuất hóa đơn:</strong> {formatNumber(congNoXuatHd)}
+              </div>
+            )}
+          </>
+        )}
 
         <div
           style={{
@@ -122,9 +125,7 @@ const ShiftReportPrintComponent = forwardRef(
         <div style={{ color: "#000", marginLeft: "12px", marginBottom: "4px" }}>
           <strong>- Chuyển khoản:</strong> {formatNumber(transfer)}
         </div>
-        <div style={{ color: "#000", marginBottom: "4px" }}>
-          <strong>Tiền trong két:</strong> {formatNumber(cashInTill)}
-        </div>
+
 
         {/* Chi tiết món */}
         <div
