@@ -4,10 +4,12 @@ import {
   DatePicker,
   Input,
   Select,
+  Space,
   Spin,
   Table,
   Typography,
 } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import dayjs from "dayjs";
@@ -15,8 +17,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../api";
 import { formatNumber } from "../../pharmacy-utils/hook/dataFormatHelper";
+import FilterChips from "../../components/common/PageTemplates/ListTemplate/FilterChips";
+import "../../components/common/PageTemplates/ListTemplate/ListTemplate.css";
+import "./BaoCaoTonKho.css";
 
 const { Title } = Typography;
+const { RangePicker } = DatePicker;
 
 const CELL_STYLE = { textAlign: "center" };
 const BOLD_CELL_STYLE = { fontWeight: "bold", textAlign: "center" };
@@ -88,6 +94,12 @@ const BaoCaoPhieuBanLe = () => {
   const vatTuSearchRef = useRef(null);
 
   const [filters, setFilters] = useState(getDefaultFilters);
+  const [tableFilters, setTableFilters] = useState({
+    so_ct: "",
+    dien_giai: "",
+    ma_vt: "",
+    ten_vt: "",
+  });
 
   // Fetch danh sách kho
   const fetchKhoOptions = useCallback(
@@ -546,7 +558,6 @@ const BaoCaoPhieuBanLe = () => {
     }
   }, [filters, userId]);
 
-  const [tableFilters, setTableFilters] = useState({});
 
   // Render cell content với xử lý summary row
   const renderCellContent = useCallback((text, record, col) => {
@@ -592,25 +603,61 @@ const BaoCaoPhieuBanLe = () => {
     () =>
       [
         {
-          title: "Stt",
+          title: "STT",
           dataIndex: "stt",
           key: "stt",
           width: 70,
           align: "center",
         },
         {
-          title: "Ngày ct",
+          title: "Ngày CT",
           dataIndex: "ngay_ct",
           key: "ngay_ct",
           width: 100,
           align: "center",
         },
         {
-          title: "Số ct",
+          title: "Số CT",
           dataIndex: "so_ct",
           key: "so_ct",
-          width: 150,
+          width: 140,
           align: "center",
+          filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+            <div style={{ padding: 8 }}>
+              <Input
+                placeholder="Tìm số chứng từ"
+                value={selectedKeys[0]}
+                onChange={(e) =>
+                  setSelectedKeys(e.target.value ? [e.target.value] : [])
+                }
+                onPressEnter={() => {
+                  confirm();
+                  setTableFilters((prev) => ({
+                    ...prev,
+                    so_ct: selectedKeys[0] || "",
+                  }));
+                }}
+                style={{ marginBottom: 8, display: "block" }}
+              />
+              <Button
+                type="primary"
+                onClick={() => {
+                  confirm();
+                  setTableFilters((prev) => ({
+                    ...prev,
+                    so_ct: selectedKeys[0] || "",
+                  }));
+                }}
+                size="small"
+                style={{ width: "100%" }}
+              >
+                Tìm kiếm
+              </Button>
+            </div>
+          ),
+          filteredValue: tableFilters.so_ct ? [tableFilters.so_ct] : null,
+          onFilter: (value, record) =>
+            record.so_ct?.toString().toLowerCase().includes(value.toLowerCase()),
         },
         {
           title: "Diễn giải",
@@ -618,6 +665,42 @@ const BaoCaoPhieuBanLe = () => {
           key: "dien_giai",
           width: 200,
           align: "left",
+          filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+            <div style={{ padding: 8 }}>
+              <Input
+                placeholder="Tìm diễn giải"
+                value={selectedKeys[0]}
+                onChange={(e) =>
+                  setSelectedKeys(e.target.value ? [e.target.value] : [])
+                }
+                onPressEnter={() => {
+                  confirm();
+                  setTableFilters((prev) => ({
+                    ...prev,
+                    dien_giai: selectedKeys[0] || "",
+                  }));
+                }}
+                style={{ marginBottom: 8, display: "block" }}
+              />
+              <Button
+                type="primary"
+                onClick={() => {
+                  confirm();
+                  setTableFilters((prev) => ({
+                    ...prev,
+                    dien_giai: selectedKeys[0] || "",
+                  }));
+                }}
+                size="small"
+                style={{ width: "100%" }}
+              >
+                Tìm kiếm
+              </Button>
+            </div>
+          ),
+          filteredValue: tableFilters.dien_giai ? [tableFilters.dien_giai] : null,
+          onFilter: (value, record) =>
+            record.dien_giai?.toString().toLowerCase().includes(value.toLowerCase()),
         },
         {
           title: "Mã hàng",
@@ -625,6 +708,42 @@ const BaoCaoPhieuBanLe = () => {
           key: "ma_vt",
           width: 120,
           align: "center",
+          filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+            <div style={{ padding: 8 }}>
+              <Input
+                placeholder="Tìm mã hàng"
+                value={selectedKeys[0]}
+                onChange={(e) =>
+                  setSelectedKeys(e.target.value ? [e.target.value] : [])
+                }
+                onPressEnter={() => {
+                  confirm();
+                  setTableFilters((prev) => ({
+                    ...prev,
+                    ma_vt: selectedKeys[0] || "",
+                  }));
+                }}
+                style={{ marginBottom: 8, display: "block" }}
+              />
+              <Button
+                type="primary"
+                onClick={() => {
+                  confirm();
+                  setTableFilters((prev) => ({
+                    ...prev,
+                    ma_vt: selectedKeys[0] || "",
+                  }));
+                }}
+                size="small"
+                style={{ width: "100%" }}
+              >
+                Tìm kiếm
+              </Button>
+            </div>
+          ),
+          filteredValue: tableFilters.ma_vt ? [tableFilters.ma_vt] : null,
+          onFilter: (value, record) =>
+            record.ma_vt?.toString().toLowerCase().includes(value.toLowerCase()),
         },
         {
           title: "Tên mặt hàng",
@@ -632,12 +751,48 @@ const BaoCaoPhieuBanLe = () => {
           key: "ten_vt",
           width: 300,
           align: "left",
+          filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+            <div style={{ padding: 8 }}>
+              <Input
+                placeholder="Tìm tên mặt hàng"
+                value={selectedKeys[0]}
+                onChange={(e) =>
+                  setSelectedKeys(e.target.value ? [e.target.value] : [])
+                }
+                onPressEnter={() => {
+                  confirm();
+                  setTableFilters((prev) => ({
+                    ...prev,
+                    ten_vt: selectedKeys[0] || "",
+                  }));
+                }}
+                style={{ marginBottom: 8, display: "block" }}
+              />
+              <Button
+                type="primary"
+                onClick={() => {
+                  confirm();
+                  setTableFilters((prev) => ({
+                    ...prev,
+                    ten_vt: selectedKeys[0] || "",
+                  }));
+                }}
+                size="small"
+                style={{ width: "100%" }}
+              >
+                Tìm kiếm
+              </Button>
+            </div>
+          ),
+          filteredValue: tableFilters.ten_vt ? [tableFilters.ten_vt] : null,
+          onFilter: (value, record) =>
+            record.ten_vt?.toString().toLowerCase().includes(value.toLowerCase()),
         },
         {
-          title: "Dvt",
+          title: "ĐVT",
           dataIndex: "dvt",
           key: "dvt",
-          width: 80,
+          width: 100,
           align: "center",
         },
         {
@@ -729,7 +884,7 @@ const BaoCaoPhieuBanLe = () => {
         onCell: (record) => ({ record }),
         render: (text, record) => renderCellContent(text, record, col),
       })),
-    [renderCellContent]
+    [renderCellContent, tableFilters]
   );
 
   // Load options on mount
@@ -769,18 +924,164 @@ const BaoCaoPhieuBanLe = () => {
     }
   }, [fetchData, userId, currentPage, pageSize]);
 
-  const handleFilterChange = (key, value) => {
+  const handleFilterChange = useCallback((key, value) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value,
     }));
     setCurrentPage(1);
-  };
+  }, []);
 
   const handleClearFilters = useCallback(() => {
     setFilters(getDefaultFilters());
+    setTableFilters({
+      so_ct: "",
+      dien_giai: "",
+      ma_vt: "",
+      ten_vt: "",
+    });
     setCurrentPage(1);
   }, [setCurrentPage]);
+
+  const activeChips = useMemo(() => {
+    const chips = [];
+    if (filters.Unit && filters.Unit.length > 0) {
+      const selectedDvcs = dvcsOptions
+        .filter((opt) => filters.Unit.includes(opt.value))
+        .map((opt) => opt.label)
+        .join(", ");
+      chips.push({
+        key: "Unit",
+        label: "ĐVCS",
+        value: selectedDvcs || filters.Unit.join(", "),
+        color: "volcano",
+      });
+    }
+
+    if (filters.DateFrom && filters.DateTo) {
+      chips.push({
+        key: "DateRange",
+        label: "Thời gian",
+        value: `${dayjs(filters.DateFrom).format("DD/MM/YYYY")} - ${dayjs(
+          filters.DateTo
+        ).format("DD/MM/YYYY")}`,
+        color: "blue",
+      });
+    }
+
+    if (filters.InvoiceFrom) {
+      chips.push({
+        key: "InvoiceFrom",
+        label: "Từ số CT",
+        value: filters.InvoiceFrom,
+        color: "orange",
+      });
+    }
+    if (filters.InvoiceTo) {
+      chips.push({
+        key: "InvoiceTo",
+        label: "Đến số CT",
+        value: filters.InvoiceTo,
+        color: "orange",
+      });
+    }
+    if (filters.Salesman) {
+      const option = nhanVienOptions.find((opt) => opt.value === filters.Salesman);
+      chips.push({
+        key: "Salesman",
+        label: "Nhân viên",
+        value: option ? option.label : filters.Salesman,
+        color: "geekblue",
+      });
+    }
+    if (filters.Customer) {
+      const option = khachHangOptions.find((opt) => opt.value === filters.Customer);
+      chips.push({
+        key: "Customer",
+        label: "Khách hàng",
+        value: option ? option.label : filters.Customer,
+        color: "purple",
+      });
+    }
+    if (filters.Site) {
+      const option = khoOptions.find((opt) => opt.value === filters.Site);
+      chips.push({
+        key: "Site",
+        label: "Kho",
+        value: option ? option.label : filters.Site,
+        color: "cyan",
+      });
+    }
+    if (filters.Item) {
+      const option = vatTuOptions.find((opt) => opt.value === filters.Item);
+      chips.push({
+        key: "Item",
+        label: "Vật tư",
+        value: option ? option.label : filters.Item,
+        color: "green",
+      });
+    }
+
+    // Add table filters to chips
+    if (tableFilters.so_ct) {
+      chips.push({
+        key: "so_ct",
+        label: "Số CT",
+        value: tableFilters.so_ct,
+        color: "gold",
+      });
+    }
+    if (tableFilters.dien_giai) {
+      chips.push({
+        key: "dien_giai",
+        label: "Diễn giải",
+        value: tableFilters.dien_giai,
+        color: "gold",
+      });
+    }
+    if (tableFilters.ma_vt) {
+      chips.push({
+        key: "ma_vt",
+        label: "Mã hàng",
+        value: tableFilters.ma_vt,
+        color: "gold",
+      });
+    }
+    if (tableFilters.ten_vt) {
+      chips.push({
+        key: "ten_vt",
+        label: "Tên hàng",
+        value: tableFilters.ten_vt,
+        color: "gold",
+      });
+    }
+
+    return chips;
+  }, [
+    filters,
+    tableFilters,
+    khoOptions,
+    nhanVienOptions,
+    khachHangOptions,
+    vatTuOptions,
+    dvcsOptions,
+  ]);
+
+  const handleRemoveFilter = useCallback((key) => {
+    if (key === "Unit") {
+      handleFilterChange("Unit", []);
+    } else if (key === "DateRange") {
+      handleFilterChange("DateFrom", formatDate(dayjs().startOf("day")));
+      handleFilterChange("DateTo", formatDate(dayjs().endOf("day")));
+    } else if (["so_ct", "dien_giai", "ma_vt", "ten_vt"].includes(key)) {
+      setTableFilters((prev) => ({
+        ...prev,
+        [key]: "",
+      }));
+    } else {
+      handleFilterChange(key, "");
+    }
+  }, [handleFilterChange, formatDate]);
 
   const handleDateChange = (key, date) => {
     if (date) {
@@ -804,19 +1105,17 @@ const BaoCaoPhieuBanLe = () => {
         <div className="bao-cao-filters">
           <div className="filters-grid">
             <div className="filter-item">
-              <label>Từ ngày:</label>
-              <DatePicker
-                value={dayjs(filters.DateFrom)}
-                onChange={(value) => handleDateChange("DateFrom", value)}
+              <label>Từ ngày - Đến ngày:</label>
+              <RangePicker
+                value={[dayjs(filters.DateFrom), dayjs(filters.DateTo)]}
+                onChange={(dates) => {
+                  if (dates) {
+                    handleFilterChange("DateFrom", formatDate(dates[0]));
+                    handleFilterChange("DateTo", formatDate(dates[1]));
+                  }
+                }}
                 format="DD/MM/YYYY"
-              />
-            </div>
-            <div className="filter-item">
-              <label>Đến ngày:</label>
-              <DatePicker
-                value={dayjs(filters.DateTo)}
-                onChange={(value) => handleDateChange("DateTo", value)}
-                format="DD/MM/YYYY"
+                style={{ width: "100%" }}
               />
             </div>
             <div className="filter-item">
@@ -921,32 +1220,7 @@ const BaoCaoPhieuBanLe = () => {
                 }
               />
             </div>
-            <div className="filter-item">
-              <label>Tên vật tư:</label>
-              <Select
-                value={filters.Item || undefined}
-                onChange={(value) => handleFilterChange("Item", value)}
-                placeholder="Chọn vật tư"
-                showSearch
-                allowClear
-                loading={loadingVatTu}
-                filterOption={false}
-                onSearch={(value) => {
-                  if (vatTuSearchRef.current)
-                    clearTimeout(vatTuSearchRef.current);
-                  vatTuSearchRef.current = setTimeout(() => {
-                    fetchVatTuOptions(value);
-                  }, 300);
-                }}
-                onOpenChange={(open) => {
-                  if (open) fetchVatTuOptions();
-                }}
-                options={vatTuOptions}
-                notFoundContent={
-                  loadingVatTu ? <Spin size="small" /> : "Không tìm thấy"
-                }
-              />
-            </div>
+
             <div className="filter-item">
               <label>Đơn vị cơ sở:</label>
               <Select
@@ -1063,16 +1337,14 @@ const BaoCaoPhieuBanLe = () => {
                 ]}
               />
             </div> */}
-            <div className="filter-item button-item">
-              <Button type="primary" onClick={handleClearFilters} loading={loading}>
-                Xoá bộ lọc
-              </Button>
+            <div className="button-item-row" style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "12px" }}>
               <Button
                 type="primary"
-                style={{ backgroundColor: "#217346", borderColor: "#217346" }}
+                style={{ backgroundColor: "#217346", borderColor: "#217346", minWidth: "120px" }}
                 onClick={handleExportExcel}
                 loading={exportLoading}
                 disabled={dataSource.length === 0}
+                className="btn-export-excel"
               >
                 Xuất Excel
               </Button>
@@ -1080,7 +1352,13 @@ const BaoCaoPhieuBanLe = () => {
           </div>
         </div>
 
-        <div className="report-modal_Container">
+        <FilterChips
+          activeChips={activeChips}
+          onRemoveFilter={handleRemoveFilter}
+          onClearAllFilters={handleClearFilters}
+        />
+
+        <div className="report-modal_Container" style={{ marginTop: "16px" }}>
           <Table
             className="report-modal-table"
             columns={columns}
