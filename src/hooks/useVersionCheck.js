@@ -139,14 +139,8 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
           globalCountdownActive = false;
           if (countdownInterval) clearInterval(countdownInterval);
           notification.destroy(NOTIF_KEY);
-          // Preserve app_version across clearing browser data
-          const vToKeep = localStorage.getItem("app_version");
           await clearAllBrowserData();
-          if (vToKeep) {
-            localStorage.setItem("app_version", vToKeep);
-          } else {
-            localStorage.setItem("app_version", JSON.stringify(newVersion));
-          }
+          localStorage.setItem("app_version", JSON.stringify(newVersion));
           const base =
             window.location.origin + (process.env.PUBLIC_URL || "");
           const loginPath = base.endsWith("/")

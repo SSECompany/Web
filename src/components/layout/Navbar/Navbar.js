@@ -86,6 +86,8 @@ const Navbar = () => {
       "ban-hang", // Bán hàng
       "tra-hang", // Trả hàng
       "bao-cao/phieu-ban-le", // Báo cáo
+      "bao-cao/ton-kho",
+      "bao-cao/tong-hop-nhap-xuat-ton",
     ];
 
     const currentPath = data?.pathname?.substring(1);
@@ -145,6 +147,14 @@ const Navbar = () => {
                   {
                     key: "phieu-ban-le",
                     label: <Link to="/bao-cao/phieu-ban-le">Báo cáo phiếu bán lẻ</Link>,
+                  },
+                  {
+                    key: "ton-kho",
+                    label: <Link to="/bao-cao/ton-kho">Báo cáo tồn kho</Link>,
+                  },
+                  {
+                    key: "tong-hop-nhap-xuat-ton",
+                    label: <Link to="/bao-cao/tong-hop-nhap-xuat-ton">Tổng hợp nhập xuất tồn</Link>,
                   },
                 ],
               },
