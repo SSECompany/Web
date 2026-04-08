@@ -4,6 +4,8 @@ import {
   FilterOutlined,
   PrinterOutlined,
   SendOutlined,
+  LoadingOutlined,
+  CloudUploadOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -16,12 +18,13 @@ import {
   Table,
   Tag,
   notification,
+  Tooltip,
 } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
-import { multipleTablePutApi } from "../../../api";
+import { multipleTablePutApi, exportToEInvoice } from "../../../api";
 import jwt from "../../../utils/jwt";
 import showConfirm from "../Modal/ModalConfirm";
 import PrintComponent from "./PrintComponent/PrintComponent";
@@ -89,6 +92,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
   }, []);
 
   const [isEditingOrder, setIsEditingOrder] = useState(false);
+  const [isIssuing, setIsIssuing] = useState(null);
 
   // Persist and show active filters like picking list
   const FILTERS_STORAGE_KEY = "retailOrder_filters";
@@ -644,44 +648,61 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       align: "center",
       render: (_, record) => (
         <div className="action-buttons">
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            type="danger"
-            size="small"
-            className="edit_button"
-            disabled={
-              isEditingOrder || (record.status === "2" && record.s3 === true)
-            }
-          />
-          <Button
-            icon={<PrinterOutlined />}
-            onClick={() => handleReprint(record)}
-            size="small"
-            type="primary"
-            className="print_button"
-          />
-          <Button
-            icon={<CheckOutlined />}
-            onClick={() => handleApprove(record)}
-            size="small"
-            type="primary"
-            className="approve_button"
-            disabled={record.status !== "0"}
-          />
-          {getSyncResultStatus(record.s3) !== "success" && (
+          <Tooltip title="Chỉnh sửa">
             <Button
-              icon={<SendOutlined />}
-              onClick={() => {
-                notification.info({
-                  message: "Phát hành hóa đơn",
-                  description: "Chức năng đang được phát triển (Pending)",
-                });
-              }}
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+              type="danger"
+              size="small"
+              className="edit_button"
+              disabled={
+                isEditingOrder || (record.status === "2" && record.s3 === true)
+              }
+            />
+          </Tooltip>
+          <Tooltip title="In lại hóa đơn">
+            <Button
+              icon={<PrinterOutlined />}
+              onClick={() => handleReprint(record)}
+              size="small"
+              type="primary"
+              className="print_button"
+            />
+          </Tooltip>
+          <Tooltip title="Thanh toán / Duyệt">
+            <Button
+              icon={<CheckOutlined />}
+              onClick={() => handleApprove(record)}
+              size="small"
+              type="primary"
+              className="approve_button"
+              disabled={record.status !== "0"}
+            />
+          </Tooltip>
+          <Tooltip
+            title={
+              getSyncResultStatus(record.s3) === "success"
+                ? "Đơn hàng đã phát hành hóa đơn"
+                : "Phát hành hóa đơn điện tử"
+            }
+          >
+            <Button
+              icon={
+                isIssuing === record.stt_rec ? (
+                  <LoadingOutlined />
+                ) : (
+                  <CloudUploadOutlined />
+                )
+              }
+              onClick={() => handleIssueInvoice(record)}
               size="small"
               className="issue_button"
+              disabled={
+                isIssuing !== null ||
+                getSyncResultStatus(record.s3) === "success"
+              }
             />
-          )}
+          </Tooltip>
         </div>
       ),
     },
@@ -866,6 +887,46 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
         }
       },
     });
+  };
+
+  const handleIssueInvoice = async (record) => {
+    if (isIssuing) return;
+    setIsIssuing(record.stt_rec);
+    try {
+      const res = await exportToEInvoice(record.stt_rec);
+      // Actual API response uses isSucceeded or isSuccess
+      if (
+        res?.isSucceeded === true ||
+        res?.isSuccess === true ||
+        res?.data?.isSuccess === true ||
+        res?.responseModel?.isSucceded === true
+      ) {
+        notification.success({
+          message: "Phát hành hóa đơn thành công",
+          description:
+            res?.message ||
+            res?.data?.message ||
+            `Đơn hàng ${record.so_ct} đã được phát hành hóa đơn điện tử.`,
+        });
+        // Refresh data to update status (s3)
+        fetchListOrderData(currentPage, stableFilters);
+      } else {
+        notification.error({
+          message: "Phát hành hóa đơn thất bại",
+          description:
+            res?.responseModel?.message ||
+            "Lỗi không xác định khi phát hành hóa đơn",
+        });
+      }
+    } catch (error) {
+      console.error("Lỗi khi phát hành hóa đơn:", error);
+      notification.error({
+        message: "Lỗi phát hành hóa đơn",
+        description: "Không thể kết nối đến máy chủ phát hành hóa đơn.",
+      });
+    } finally {
+      setIsIssuing(null);
+    }
   };
 
   const handlePrint = useReactToPrint({
