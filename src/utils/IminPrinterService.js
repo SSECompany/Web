@@ -213,7 +213,7 @@ class IminPrinterService {
         await this.printerInstance.setTextLineSpacing(0);
 
         const now = new Date();
-        const dateOnly = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+        const dateOnly = master?.ngay_ct || `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
         const timeOnly = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
 
         const headerBlock = `ĐẠI HỌC PHENIKAA\nĐịa chỉ: Nguyễn Văn Trác, Dương Nội, Hà Nội`;

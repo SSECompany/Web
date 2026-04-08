@@ -61,9 +61,11 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
         </label>
         <br />
         <span>
-          {`${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1)
+          {master?.ngay_ct || `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1)
             .toString()
-            .padStart(2, "0")}/${now.getFullYear()} ${now
+            .padStart(2, "0")}/${now.getFullYear()}`}
+          {" "}
+          {`${now
             .getHours()
             .toString()
             .padStart(2, "0")}:${now
