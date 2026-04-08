@@ -53,7 +53,7 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
           })
         );
       }
-      const paths = ["/", "/login", "/kho", "/bao-cao", "/pharmacy"];
+      const paths = ["/", "/login", "/bao-cao", "/pharmacy"];
       const domains = [
         window.location.hostname,
         "." + window.location.hostname,
@@ -114,6 +114,17 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
           currentVersionRef.current.buildHash !== newVersion.buildHash);
 
       if (isDifferent) {
+        // First check: if current version is missing, adopt server version silently
+        if (
+          !currentVersionRef.current.version &&
+          !currentVersionRef.current.buildHash
+        ) {
+          currentVersionRef.current = newVersion;
+          setCurrentVersion(newVersion);
+          localStorage.setItem("app_version", JSON.stringify(newVersion));
+          return;
+        }
+
         // Đã có countdown đang chạy (từ instance khác, vd: login → sau đăng nhập) → không tạo thêm
         if (globalCountdownActive) return;
 

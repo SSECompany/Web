@@ -285,54 +285,6 @@ export const api_getTaxInfo = async (ten_thue = "") => {
 };
 
 // === Warehouse helpers for Mã lô / Vị trí ===
-export const getViTriByKho = async ({
-  ma_kho = "ST",
-  ten_vi_tri = "",
-  pageIndex = 1,
-  pageSize = 10,
-} = {}) => {
-  const token = localStorage.getItem("access_token");
-
-  const payload = {
-    store: "api_getViTriByKho",
-    param: {
-      ma_kho,
-      ten_vi_tri,
-      pageIndex,
-      pageSize,
-    },
-    data: {},
-  };
-
-  return await https
-    .post(`User/AddData`, payload, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-        "Content-Type": "application/json",
-      },
-    })
-    .then((res) => {
-      const data = res?.data || {};
-      const responseModel = data?.responseModel || { isSucceded: true };
-      const list = data?.listObject;
-      let listObject;
-      if (Array.isArray(list)) {
-        listObject = Array.isArray(list[0]) ? list : [list];
-      } else {
-        const fallback = Array.isArray(data?.data) ? data.data : [];
-        listObject = [fallback];
-      }
-      return { responseModel, listObject };
-    })
-    .catch((error) => {
-      console.error("Error getViTriByKho:", error);
-      return {
-        responseModel: { isSucceded: false, message: "Lỗi kết nối mạng" },
-        listObject: [[]],
-      };
-    });
-};
-
 export const getLoItem = async ({
   ma_vt = "",
   ma_lo = "",
@@ -424,109 +376,6 @@ export const getItemPriceAndUnit = async (ma_vt = "") => {
       return {
         responseModel: { isSucceded: false, message: "Lỗi kết nối mạng" },
         listObject: [[]],
-      };
-    });
-};
-
-export const getKhoInfo = async (unitId = null, userId = null) => {
-  const token = localStorage.getItem("access_token");
-
-  const payload = {
-    store: "api_getKhoInfo",
-    param: {
-      unitId: unitId,
-      userId: userId,
-    },
-    data: {},
-  };
-
-  return await https
-    .post(`User/AddData`, payload, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-        "Content-Type": "application/json",
-      },
-    })
-    .then((res) => {
-      if (res?.data?.responseModel?.isSucceded === true) {
-        return {
-          success: true,
-          data: res?.data?.listObject || res?.data || null,
-          message: null,
-        };
-      } else {
-        const errorMessage =
-          res?.data?.responseModel?.message || "Lỗi không xác định";
-        return {
-          success: false,
-          data: null,
-          message: errorMessage,
-        };
-      }
-    })
-    .catch((error) => {
-      console.error("Error getting kho info:", error);
-      return {
-        success: false,
-        data: null,
-        message: "Lỗi kết nối mạng",
-      };
-    });
-};
-
-export const createKhoOrder = async (
-  orderData,
-  unitId = null,
-  userId = null
-) => {
-  const token = localStorage.getItem("access_token");
-
-  const payload = {
-    store: "api_createKhoOrder",
-    param: {
-      unitId: unitId,
-      userId: userId,
-      customer: orderData.customer,
-      items: orderData.items,
-      totals: orderData.totals,
-      payment: orderData.payment,
-      Currency: "VND",
-    },
-    data: {},
-  };
-
-  return await https
-    .post(`User/AddData`, payload, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-        "Content-Type": "application/json",
-      },
-    })
-    .then((res) => {
-      // Kiểm tra responseModel.isSucceded
-      if (res?.data?.responseModel?.isSucceded === true) {
-        return {
-          success: true,
-          data: res?.data?.listObject || res?.data || null,
-          message: null,
-        };
-      } else {
-        // Response có lỗi
-        const errorMessage =
-          res?.data?.responseModel?.message || "Lỗi không xác định";
-        return {
-          success: false,
-          data: null,
-          message: errorMessage,
-        };
-      }
-    })
-    .catch((error) => {
-      console.error("Error creating kho order:", error);
-      return {
-        success: false,
-        data: null,
-        message: "Lỗi kết nối mạng",
       };
     });
 };
@@ -951,6 +800,48 @@ export const uploadPrescriptionImage = async ({
     const errorMessage = error?.response?.data?.message || error?.message || "Tải ảnh thất bại";
     return { success: false, message: errorMessage };
   }
+};
+
+// === Bank Info API ===
+export const api_get_thong_tin_ngan_hang = async (ma_dvcs = "TAPMED") => {
+  const token = localStorage.getItem("access_token");
+
+  const payload = {
+    store: "api_get_thong_tin_ngan_hang",
+    param: {
+      ma_dvcs: ma_dvcs,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => {
+      return (
+        res?.data || {
+          responseModel: {
+            isSucceded: false,
+            message: "Không có dữ liệu",
+          },
+          listObject: [],
+        }
+      );
+    })
+    .catch((error) => {
+      console.error("Error getting bank info:", error);
+      return {
+        responseModel: {
+          isSucceded: false,
+          message: "Lỗi kết nối mạng",
+        },
+        listObject: [],
+      };
+    });
 };
 
 // Optional: execute linking procedure after upload

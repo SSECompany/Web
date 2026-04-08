@@ -49,10 +49,10 @@ function buildMerchantAccountInfo({ bankId, account }) {
   const accountValue = sanitizeDigits(account);
 
   if (!bankValue) {
-    throw new Error("VietQR missing bank BIN");
+    return null;
   }
   if (!accountValue) {
-    throw new Error("VietQR missing account number");
+    return null;
   }
 
   // Sub-fields inside template (tag 01 of Merchant Account Info) only include bank + account.
@@ -76,6 +76,7 @@ function buildVietQR({ account, bankId, amount, content }) {
   const pointOfInit = "010211"; // "11" = Static QR Code
 
   const accInfoValue = buildMerchantAccountInfo({ bankId, account });
+  if (!accInfoValue) return "";
   const accInfo = buildField("38", accInfoValue);
   const currency = "5303704";
   const amountField = buildAmountField(amount);
@@ -104,9 +105,38 @@ function buildVietQR({ account, bankId, amount, content }) {
   return qrString + crcValue;
 }
 
-export default function VietQR({ amount, soChungTu, size = 100 }) {
-  const account = process.env.REACT_APP_VIETQR_ACCOUNT;
-  const bankId = process.env.REACT_APP_VIETQR_BANK_ID;
+export default function VietQR({
+  amount,
+  soChungTu,
+  size = 100,
+  BankAccount,
+  BinBank,
+}) {
+  const account = BankAccount || process.env.REACT_APP_VIETQR_ACCOUNT;
+  const bankId = BinBank || process.env.REACT_APP_VIETQR_BANK_ID;
+
+  if (!account || !bankId) {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#f5f5f5",
+          borderRadius: 8,
+          fontSize: 12,
+          color: "#999",
+          textAlign: "center",
+          border: "1px dashed #ccc",
+          padding: 10
+        }}
+      >
+        Chưa có cấu hình ngân hàng
+      </div>
+    );
+  }
 
   const qrData = buildVietQR({
     account,
@@ -114,6 +144,10 @@ export default function VietQR({ amount, soChungTu, size = 100 }) {
     amount,
     content: soChungTu || "",
   });
+
+  if (!qrData || qrData.includes("6304undefined")) {
+    return null;
+  }
 
   return (
     <div>

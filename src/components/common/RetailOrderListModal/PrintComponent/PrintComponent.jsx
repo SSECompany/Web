@@ -2,9 +2,10 @@ import React, { forwardRef } from "react";
 import { formatNumber } from "../../../../pharmacy-utils/hook/dataFormatHelper";
 import VietQR from "../../GenerateQR/VietQR";
 
-const account = process.env.REACT_APP_VIETQR_ACCOUNT;
+// const account = process.env.REACT_APP_VIETQR_ACCOUNT;
 
-const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
+const PrintComponent = forwardRef(
+  ({ master = {}, detail = [], bankInfo = null }, ref) => {
   const formatPaymentMethod = (method) => {
     if (!method) return "Tiền mặt";
 
@@ -339,6 +340,8 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
                 : grandTotal
             }vnd`}
             size={80}
+            BankAccount={bankInfo?.BankAccount}
+            BinBank={bankInfo?.BinBank}
           />
         </div>
       </div>

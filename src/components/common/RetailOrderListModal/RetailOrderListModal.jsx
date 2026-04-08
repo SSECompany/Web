@@ -72,6 +72,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
   // const tabs = useSelector((state) => state.orders.orders); // Commented out for Tapmed
   const [printMaster, setPrintMaster] = useState({});
   const [printDetail, setPrintDetail] = useState([]);
+  const [bankInfo, setBankInfo] = useState(null);
   const printContent = useRef();
   const lastApiCall = useRef({ pageIndex: 0, filters: {} });
 
@@ -187,6 +188,27 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       currentPage,
     ]
   );
+
+  // Fetch bank info for printing
+  useEffect(() => {
+    if (isOpen && unitId) {
+      const fetchBankInfo = async () => {
+        try {
+          const { api_get_thong_tin_ngan_hang } = await import("../../../api");
+          const res = await api_get_thong_tin_ngan_hang(unitId);
+          if (res?.responseModel?.isSucceded && res?.listObject?.[0]?.[0]) {
+            setBankInfo(res.listObject[0][0]);
+          }
+        } catch (error) {
+          console.error(
+            "Failed to fetch bank info in RetailOrderListModal:",
+            error
+          );
+        }
+      };
+      fetchBankInfo();
+    }
+  }, [isOpen, unitId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -931,6 +953,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
           ref={printContent}
           master={printMaster}
           detail={printDetail}
+          bankInfo={bankInfo}
           fullName={fullName}
         />
       </div>

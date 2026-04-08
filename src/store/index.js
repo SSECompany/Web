@@ -1,5 +1,4 @@
 import { configureStore } from "@reduxjs/toolkit";
-import kho from "./../pages/kho/store/kho";
 import orders from "./../pages/pharmacy/store/order";
 import returnOrders from "./../pages/pharmacy/store/returnOrder";
 import claimsReducer from "./reducers/claimsSlice";
@@ -11,7 +10,6 @@ export const store = configureStore({
     claimsReducer,
     orders: orders,
     returnOrders: returnOrders,
-    kho: kho,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

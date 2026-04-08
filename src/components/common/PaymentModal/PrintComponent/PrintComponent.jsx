@@ -3,10 +3,10 @@ import { formatNumber } from "../../../../pharmacy-utils/hook/dataFormatHelper";
 import jwt from "../../../../utils/jwt";
 import VietQR from "../../GenerateQR/VietQR";
 
-const account = process.env.REACT_APP_VIETQR_ACCOUNT;
+// const account = process.env.REACT_APP_VIETQR_ACCOUNT;
 
 const PrintComponent = forwardRef(
-  ({ master = {}, detail = [], orderNumber = "" }, ref) => {
+  ({ master = {}, detail = [], orderNumber = "", bankInfo = null }, ref) => {
     const rawToken = localStorage.getItem("access_token");
     const claims =
       rawToken && rawToken.split(".").length === 3
@@ -437,6 +437,8 @@ const PrintComponent = forwardRef(
                   : master?.tong_tien
               }vnd`}
               size={80}
+              BankAccount={bankInfo?.BankAccount}
+              BinBank={bankInfo?.BinBank}
             />
           </div>
         </div>
