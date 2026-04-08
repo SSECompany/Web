@@ -138,6 +138,25 @@ const PaymentSummary = ({
   const [currentPrintData, setCurrentPrintData] = useState(null);
   const [hasReprinted, setHasReprinted] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [bankInfo, setBankInfo] = useState(null);
+
+  // Fetch bank info for printing
+  useEffect(() => {
+    if (unitId) {
+      const fetchBankInfo = async () => {
+        try {
+          const { api_get_thong_tin_ngan_hang } = await import("../../../api");
+          const res = await api_get_thong_tin_ngan_hang(unitId);
+          if (res?.responseModel?.isSucceded && res?.listObject?.[0]?.[0]) {
+            setBankInfo(res.listObject[0][0]);
+          }
+        } catch (error) {
+          console.error("Failed to fetch bank info in PaymentSummary:", error);
+        }
+      };
+      fetchBankInfo();
+    }
+  }, [unitId]);
 
   const updateNationalPrescriptionSale = async (sttRecValue) => {
     if (!prescriptionCode || !sttRecValue) {
@@ -793,6 +812,7 @@ const PaymentSummary = ({
           master={printMaster}
           detail={printDetail}
           orderNumber={currentPrintData?.orderNumber || ""}
+          bankInfo={bankInfo}
         />
       </div>
 

@@ -13,6 +13,8 @@ import { useReactToPrint } from "react-to-print";
 // import VietQR from "../../../../../components/common/GenerateQR/VietQR";
 import { formatCurrency } from "../../../pharmacy-utils/hook/dataFormatHelper";
 import { num2words } from "../../../pharmacy-utils/Options/DataFomater";
+import { useSelector } from "react-redux";
+import { api_get_thong_tin_ngan_hang } from "../../../api";
 import VietQR from "../GenerateQR/VietQR";
 import PrintComponent from "./PrintComponent/PrintComponent";
 
@@ -98,6 +100,33 @@ const PaymentModal = ({
   const prevPaymentMethodRef = useRef(paymentMethod);
   const prevVisibleRef = useRef(visible);
 
+  const { unitId } = useSelector(
+    (state) => state.claimsReducer.userInfo || {}
+  );
+
+  const [bankInfo, setBankInfo] = useState(null);
+
+  // Fetch bank info when modal opens
+  React.useEffect(() => {
+    if (visible && unitId) {
+      const fetchBankInfo = async () => {
+        try {
+          const res = await api_get_thong_tin_ngan_hang(unitId);
+          if (res?.responseModel?.isSucceded && res?.listObject?.[0]?.[0]) {
+            setBankInfo(res.listObject[0][0]);
+          } else {
+            // Fallback to merchant prop or env
+            setBankInfo(null);
+          }
+        } catch (error) {
+          console.error("Failed to fetch bank info:", error);
+          setBankInfo(null);
+        }
+      };
+      fetchBankInfo();
+    }
+  }, [visible, unitId]);
+
   // Reset data when modal closes
   React.useEffect(() => {
     if (!visible) {
@@ -108,6 +137,7 @@ const PaymentModal = ({
       setMultiCash(0);
       setMultiTransfer(0);
       setMultiDriver(null);
+      setBankInfo(null);
     }
   }, [visible]);
 
@@ -326,7 +356,13 @@ const PaymentModal = ({
                   flexShrink: 0,
                 }}
               >
-                <VietQR amount={total} soChungTu={""} size={160} />
+                <VietQR
+                  amount={total}
+                  soChungTu={""}
+                  size={160}
+                  BankAccount={bankInfo?.BankAccount || merchant?.account}
+                  BinBank={bankInfo?.BinBank || merchant?.bankBin}
+                />
               </div>
 
               {/* Right Section - Payment Info */}
@@ -361,8 +397,21 @@ const PaymentModal = ({
                       textAlign: "center",
                     }}
                   >
-                    {process.env.REACT_APP_VIETQR_ACCOUNT_NAME ||
+                    {bankInfo?.NameAccount ||
+                      merchant?.name ||
+                      process.env.REACT_APP_VIETQR_ACCOUNT_NAME ||
                       ""}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: "#666",
+                      marginBottom: 4,
+                      lineHeight: 1.4,
+                      textAlign: "center",
+                    }}
+                  >
+                    Ngân hàng: {bankInfo?.BankName || ""}
                   </div>
                   <div
                     style={{
@@ -373,7 +422,7 @@ const PaymentModal = ({
                       textAlign: "center",
                     }}
                   >
-                    STK: {process.env.REACT_APP_VIETQR_ACCOUNT || ""}
+                    STK: {bankInfo?.BankAccount || merchant?.account || process.env.REACT_APP_VIETQR_ACCOUNT || ""}
                   </div>
 
                   <Divider
@@ -744,6 +793,7 @@ const PaymentModal = ({
           master={preparePrintData().master}
           detail={preparePrintData().detail}
           orderNumber={preparePrintData().orderNumber}
+          bankInfo={bankInfo}
         />
       </div>
     </>

@@ -15,7 +15,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { multipleTablePutApi } from "../../api";
 import { formatNumber } from "../../pharmacy-utils/hook/dataFormatHelper";
-import "./BaoCaoTonKho.css";
 
 const { Title } = Typography;
 

@@ -58,10 +58,17 @@ const Navbar = () => {
   }, [dispatch]);
 
   const handleLogout = async () => {
+    const appVersion = localStorage.getItem("app_version");
     await jwt.resetAccessToken();
     localStorage.removeItem("ban_hang_activeTabId");
     localStorage.removeItem("ban_hang_orders");
     localStorage.clear();
+    
+    // Restore app version after clear to avoid "new version" alert on login
+    if (appVersion) {
+      localStorage.setItem("app_version", appVersion);
+    }
+    
     router.navigate("/login");
     dispatch(setClaims([]));
   };
@@ -78,19 +85,10 @@ const Navbar = () => {
       "login",
       "ban-hang", // Bán hàng
       "tra-hang", // Trả hàng
-      // Kho routes removed - not allowed in this branch
       "bao-cao/phieu-ban-le", // Báo cáo
-      "bao-cao/ton-kho",
-      "bao-cao/tong-hop-nhap-xuat-ton",
     ];
 
     const currentPath = data?.pathname?.substring(1);
-
-    // Block any kho routes
-    if (currentPath && currentPath.startsWith("kho")) {
-      router.navigate("/ban-hang");
-      return;
-    }
 
     // Check if current path matches any valid route
     const isValidRoute = validRoutes.includes(currentPath);
@@ -140,7 +138,6 @@ const Navbar = () => {
                 key: "tra-hang",
                 label: <Link to="/tra-hang">Trả hàng</Link>,
               },
-              // Kho module removed - not available in this branch
               {
                 key: "bao-cao",
                 label: "Báo cáo",
@@ -148,14 +145,6 @@ const Navbar = () => {
                   {
                     key: "phieu-ban-le",
                     label: <Link to="/bao-cao/phieu-ban-le">Báo cáo phiếu bán lẻ</Link>,
-                  },
-                  {
-                    key: "ton-kho",
-                    label: <Link to="/bao-cao/ton-kho">Báo cáo tồn kho</Link>,
-                  },
-                  {
-                    key: "tong-hop-nhap-xuat-ton",
-                    label: <Link to="/bao-cao/tong-hop-nhap-xuat-ton">Tổng hợp nhập xuất tồn</Link>,
                   },
                 ],
               },
