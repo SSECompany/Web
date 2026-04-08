@@ -1,0 +1,65 @@
+/* ===== FormTemplate Footer ===== */
+
+/* Footer CỐ ĐỊNH — luôn dính dưới cùng viewport */
+.phieu-form-fixed-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: #ffffff;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+  padding: 12px 24px;
+  z-index: 1010;
+  border-top: 1px solid #f0f0f0;
+}
+
+.phieu-form-fixed-footer__buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+}
+
+.phieu-form-fixed-footer__buttons .ant-btn {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+/* Spacer để nội dung không bị footer fixed che mất */
+.phieu-form-fixed-footer-spacer {
+  height: 70px;
+  flex-shrink: 0;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .phieu-form-fixed-footer {
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 12px));
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .phieu-form-fixed-footer__buttons {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .phieu-form-fixed-footer__buttons .ant-btn {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+    padding: 0 8px;
+    font-size: 13px;
+    height: 40px;
+    border-radius: 10px;
+  }
+}
