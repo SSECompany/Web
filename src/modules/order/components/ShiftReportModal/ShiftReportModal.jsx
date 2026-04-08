@@ -219,29 +219,7 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
       const timestamp = dayjs().format("DD/MM/YYYY HH:mm:ss");
       setPrintTimestamp(timestamp);
 
-      // 2. Thử in bằng SDK (iMin/Iposmini)
-      try {
-        const { default: IminPrinterService } = await import("../../../../utils/IminPrinterService");
-        const printerService = new IminPrinterService();
-        await printerService.initPrinter();
-        
-        if (printerService.isInitialized && printerService.printerInstance) {
-          await printerService.printShiftReport(
-            summaryData,
-            items,
-            openingBalance,
-            selectedDate,
-            timestamp,
-            cashierName
-          );
-          setIsLoading(false);
-          return;
-        }
-      } catch (sdkErr) {
-        console.warn("SDK Printer not available, falling back to browser print:", sdkErr);
-      }
-
-      // 3. Fallback: In bằng trình duyệt
+      // 2. In bằng trình duyệt (react-to-print)
       // Đợi render state mới
       setTimeout(() => {
         reactToPrintHandler();
@@ -256,44 +234,19 @@ const ShiftReportModal = ({ isOpen, onClose, unitId, userId, cashierName }) => {
 
   // Tạo dữ liệu cho bảng hiển thị - chỉ phần detail (nhóm món)
   const tableData = useMemo(() => {
-    const data = [];
-    let stt = 1;
-
-    // Sử dụng nhóm món theo thứ tự gốc (theo index từ API)
-    const sortedGroups = [...groupedCategories];
-
-    sortedGroups.forEach((group, groupIndex) => {
-      // Thêm nhóm món (group row)
-      const items = groupedItems.get(group.name) || [];
-
-      // Nếu không có items, thêm STT cho group row
-      const groupStt = items.length === 0 ? stt++ : null;
-
-      data.push({
-        key: `group-${groupIndex}`,
-        stt: groupStt,
-        type: "group",
-        ten_truong: group.name,
-        so_luong: formatNumber(group.quantity),
-        doanh_thu: formatNumber(group.revenue),
-        systotal: group.systotal, // Giữ lại thông tin systotal
-      });
-
-      // Thêm các món ăn chi tiết trong nhóm (detail rows)
-      items.forEach((item, itemIndex) => {
-        data.push({
-          key: `item-${groupIndex}-${itemIndex}`,
-          stt: stt++,
-          type: "item",
-          ten_truong: item.name,
-          so_luong: formatNumber(item.quantity),
-          doanh_thu: formatNumber(item.revenue),
-        });
-      });
+    return categoryData.map((item, index) => {
+      const isTotalRow = item.systotal === 0;
+      return {
+        key: `item-${index}`,
+        stt: index + 1,
+        type: isTotalRow ? "group" : "item",
+        ten_truong: item.ten_nh?.trim() || item.nh_vt1?.trim() || "N/A",
+        so_luong: formatNumber(item.t_so_luong || 0),
+        doanh_thu: formatNumber(item.t_tt || 0),
+        systotal: item.systotal,
+      };
     });
-
-    return data;
-  }, [groupedCategories, groupedItems]);
+  }, [categoryData]);
 
   const CELL_STYLE = useMemo(() => ({ textAlign: "center" }), []);
   const BOLD_CELL_STYLE = useMemo(

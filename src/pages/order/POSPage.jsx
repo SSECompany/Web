@@ -635,16 +635,14 @@ const POSPage = () => {
                   </Button>
                 </Tooltip>
               )}
-              {claims?.RoleWeb !== "isPosMini" && (
-                <Tooltip placement="topRight" title="Báo cáo chốt ca">
-                  <Button
-                    className="default_button"
-                    onClick={handleShiftReportModal}
-                  >
-                    <i className="pi pi-print sub_text_color"></i>
-                  </Button>
-                </Tooltip>
-              )}
+              <Tooltip placement="topRight" title="Báo cáo chốt ca">
+                <Button
+                  className="default_button"
+                  onClick={handleShiftReportModal}
+                >
+                  <i className="pi pi-print sub_text_color"></i>
+                </Button>
+              </Tooltip>
               <Tooltip placement="topRight" title="Mở két tiền">
                 <Button
                   className="default_button hide-on-mobile"
