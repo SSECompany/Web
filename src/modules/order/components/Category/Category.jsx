@@ -8,17 +8,34 @@ import { setLoading } from "../../../../store/reducers/loadingSlice";
 import { setCurrentCategory, setMenuItems } from "../../store/order";
 import "./Category.css";
 
+let globalMenuCache = {};
+let currentCacheUserId = null;
+let currentCacheUnitId = null;
+
 export default function Category({ drinkFilter, setDrinkFilter }) {
     const dispatch = useDispatch();
     const categories = useSelector((state) => state.orders.listCategory);
     const selectedCategory = useSelector((state) => state.orders.selectedCategory);
     const { id, unitId } = useSelector((state) => state.claimsReducer.userInfo || {});
+
+    // Nếu ID người dùng hoặc ID Đơn vị cơ sở thay đổi, xoá toàn bộ cache cũ
+    if (id && unitId && (currentCacheUserId !== id || currentCacheUnitId !== unitId)) {
+        globalMenuCache = {};
+        currentCacheUserId = id;
+        currentCacheUnitId = unitId;
+    }
     const scrollRef = useRef(null);
     const [showLeftArrow, setShowLeftArrow] = useState(false);
     const [showRightArrow, setShowRightArrow] = useState(true);
     const [searchValue, setSearchValue] = useState("");
 
     const fetchMenuItems = useCallback(async (category, search = "") => {
+        const cacheKey = `${category?.ma_nh || "all"}_${search}`;
+        if (globalMenuCache[cacheKey]) {
+            dispatch(setMenuItems(globalMenuCache[cacheKey]));
+            return;
+        }
+
         dispatch(setLoading(true));
         try {
             const res = await multipleTablePutApi({
@@ -36,6 +53,7 @@ export default function Category({ drinkFilter, setDrinkFilter }) {
                 data: {},
             });
             const data = res?.listObject[0] || [];
+            globalMenuCache[cacheKey] = data;
             dispatch(setMenuItems(data));
             dispatch(setLoading(false));
         } catch (error) {
