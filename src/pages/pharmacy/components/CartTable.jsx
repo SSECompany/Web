@@ -604,8 +604,8 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       render: (vatPercent, record, index) => {
         const currentThueSuat =
           record.thue_suat !== undefined
-            ? Number(record.thue_suat)
-            : vatPercent || 0;
+            ? record.thue_suat
+            : record.vatPercent;
         const currentMaThue = (record.ma_thue || "").trim();
 
         let currentValue = null;
@@ -618,9 +618,9 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
           }
         }
 
-        if (!currentValue && currentThueSuat !== undefined) {
+        if (currentValue === null && currentThueSuat !== undefined && currentThueSuat !== null) {
           const optionByThueSuat = taxOptions.find(
-            (opt) => opt.thue_suat === currentThueSuat
+            (opt) => Number(opt.thue_suat) === Number(currentThueSuat)
           );
           if (optionByThueSuat) {
             currentValue = optionByThueSuat.value;

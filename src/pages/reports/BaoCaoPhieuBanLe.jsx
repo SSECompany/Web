@@ -1081,7 +1081,7 @@ const BaoCaoPhieuBanLe = () => {
     } else {
       handleFilterChange(key, "");
     }
-  }, [handleFilterChange, formatDate]);
+  }, [handleFilterChange]);
 
   const handleDateChange = (key, date) => {
     if (date) {

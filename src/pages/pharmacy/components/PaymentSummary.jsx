@@ -677,109 +677,123 @@ const PaymentSummary = ({
 
       {/* Payment Summary */}
       <Card size="small" title="Tổng quan thanh toán" className="summary-card">
-        <div className="summary-content">
-          {/* Order Summary - Compact */}
-          <div className="order-summary">
-            <div className="summary-row">
-              <Text>Tạm tính:</Text>
-              <Text strong>
-                {new Intl.NumberFormat("vi-VN").format(subtotal)}đ
-              </Text>
-            </div>
-            <div className="summary-row">
-              <Text>Tiền chiết khấu:</Text>
-              <Text style={{ color: "#f59e0b" }}>
-                -{new Intl.NumberFormat("vi-VN").format(discount || 0)}đ
-              </Text>
-            </div>
-            <div className="summary-row">
-              <Text>VAT:</Text>
-              <Text>{new Intl.NumberFormat("vi-VN").format(vat)}đ</Text>
-            </div>
-            <div className="summary-row total-row">
-              <Text strong>Tổng cộng:</Text>
-              <Text strong style={{ color: "#059669", fontSize: "13px" }}>
-                {new Intl.NumberFormat("vi-VN").format(total)}đ
-              </Text>
-            </div>
-          </div>
+        {(() => {
+          const isVatMissing = cart.some(
+            (item) =>
+              (item.thue_suat === undefined || item.thue_suat === null) &&
+              (!item.ma_thue || item.ma_thue === "")
+          );
+          return (
+            <div className="summary-content">
+              {/* Order Summary - Compact */}
+              <div className="order-summary">
+                <div className="summary-row">
+                  <Text>Tạm tính:</Text>
+                  <Text strong>
+                    {new Intl.NumberFormat("vi-VN").format(subtotal)}đ
+                  </Text>
+                </div>
+                <div className="summary-row">
+                  <Text>Tiền chiết khấu:</Text>
+                  <Text style={{ color: "#f59e0b" }}>
+                    -{new Intl.NumberFormat("vi-VN").format(discount || 0)}đ
+                  </Text>
+                </div>
+                <div className="summary-row">
+                  <Text>VAT:</Text>
+                  <Text>{new Intl.NumberFormat("vi-VN").format(vat)}đ</Text>
+                </div>
+                <div className="summary-row total-row">
+                  <Text strong>Tổng cộng:</Text>
+                  <Text strong style={{ color: "#059669", fontSize: "13px" }}>
+                    {new Intl.NumberFormat("vi-VN").format(total)}đ
+                  </Text>
+                </div>
+              </div>
 
-          {/* Payment Method - Compact */}
-          <div className="payment-method-section">
-            <Text
-              strong
-              style={{
-                fontSize: "13px",
-                color: "#262626",
-                marginBottom: "6px",
-                display: "block",
-              }}
-            >
-              Phương thức:
-            </Text>
-            <Select
-              value={payment.method}
-              onChange={(value) =>
-                setPayment({ ...payment, method: value, cash: 0 })
-              }
-              className="payment-method-select"
-            >
-              <Select.Option value="cash">Tiền mặt</Select.Option>
-              <Select.Option value="transfer">Chuyển khoản</Select.Option>
-              <Select.Option value="multi">Đa phương thức</Select.Option>
-            </Select>
-          </div>
-        </div>
+              {/* Payment Method - Compact */}
+              <div className="payment-method-section">
+                <Text
+                  strong
+                  style={{
+                    fontSize: "13px",
+                    color: "#262626",
+                    marginBottom: "6px",
+                    display: "block",
+                  }}
+                >
+                  Phương thức:
+                </Text>
+                <Select
+                  value={payment.method}
+                  onChange={(value) =>
+                    setPayment({ ...payment, method: value, cash: 0 })
+                  }
+                  className="payment-method-select"
+                >
+                  <Select.Option value="cash">Tiền mặt</Select.Option>
+                  <Select.Option value="transfer">Chuyển khoản</Select.Option>
+                  <Select.Option value="multi">Đa phương thức</Select.Option>
+                </Select>
+              </div>
 
-        {/* Action Buttons - Compact */}
-        <div className="action-buttons">
-          <Button
-            onClick={onClearCart}
-            disabled={cart.length === 0}
-            className="clear-cart-btn"
-          >
-            Xóa giỏ hàng
-          </Button>
-          <Button
-            onClick={() => handleSendOrderDirectly(true)}
-            disabled={
-              isCreatingOrder || isPrinting || cart.length === 0 || !isOnline
-            }
-            className="save-order-btn"
-          >
-            Lưu lại
-          </Button>
-          <Button
-            onClick={
-              isMobile
-                ? () => handleSendOrderDirectly(false)
-                : handleOpenPaymentModal
-            }
-            disabled={
-              isCreatingOrder ||
-              isPrinting ||
-              !isOnline ||
-              isProcessingPayment ||
-              cart.length === 0
-            }
-            className="checkout-btn"
-          >
-            {isProcessingPayment && (
-              <LoadingOutlined
-                className="payment-spinner"
-                style={{
-                  marginRight: "8px",
-                  fontSize: "16px",
-                }}
-              />
-            )}
-            {isProcessingPayment
-              ? "Đang gửi..."
-              : isMobile
-              ? "Xác nhận"
-              : "Thanh toán"}
-          </Button>
-        </div>
+              {/* Action Buttons - Compact */}
+              <div className="action-buttons">
+                <Button
+                  onClick={onClearCart}
+                  disabled={cart.length === 0}
+                  className="clear-cart-btn"
+                >
+                  Xóa giỏ hàng
+                </Button>
+                <Button
+                  onClick={() => handleSendOrderDirectly(true)}
+                  disabled={
+                    isCreatingOrder ||
+                    isPrinting ||
+                    cart.length === 0 ||
+                    !isOnline ||
+                    isVatMissing
+                  }
+                  className="save-order-btn"
+                >
+                  Lưu lại
+                </Button>
+                <Button
+                  onClick={
+                    isMobile
+                      ? () => handleSendOrderDirectly(false)
+                      : handleOpenPaymentModal
+                  }
+                  disabled={
+                    isCreatingOrder ||
+                    isPrinting ||
+                    !isOnline ||
+                    isProcessingPayment ||
+                    cart.length === 0 ||
+                    isVatMissing
+                  }
+                  className="checkout-btn"
+                >
+                  {isProcessingPayment && (
+                    <LoadingOutlined
+                      className="payment-spinner"
+                      style={{
+                        marginRight: "8px",
+                        fontSize: "16px",
+                      }}
+                    />
+                  )}
+                  {isProcessingPayment
+                    ? "Đang gửi..."
+                    : isMobile
+                    ? "Xác nhận"
+                    : "Thanh toán"}
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
       </Card>
 
       <PaymentModal

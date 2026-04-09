@@ -950,7 +950,7 @@ const TongHopNhapXuatTon = () => {
     } else {
       handleFilterChange(key, "");
     }
-  }, [handleFilterChange, formatDate]);
+  }, [handleFilterChange]);
 
   // Load danh sách filter ban đầu
   useEffect(() => {

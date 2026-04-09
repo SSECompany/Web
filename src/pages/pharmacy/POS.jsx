@@ -309,7 +309,7 @@ const POS = () => {
     } else {
       const listPrice = item.price || 0;
       const qty = 1;
-      const thue_suat = Number(item.thue_suat) || 0;
+      const thue_suat = (item.thue_suat !== null && item.thue_suat !== undefined && item.thue_suat !== "") ? Number(item.thue_suat) : undefined;
       
       // Calculations matching CartTable.jsx logic
       const totalAfterVAT = Math.round(listPrice * qty);
@@ -326,7 +326,7 @@ const POS = () => {
           qty: qty,
           batchExpiry: "",
           vatPercent: thue_suat,
-          ma_thue: (item.ma_thue || "").trim(),
+          ma_thue: (item.ma_thue || "").trim() || undefined,
           thue_suat: thue_suat,
           discountPercent: 0,
           discountAmount: 0,
@@ -379,8 +379,8 @@ const POS = () => {
               price: item.gia || 0,
               unit: item.dvt || "viên",
               stock: item.ton13 || 0,
-              ma_thue: (item.ma_thue || "").trim(),
-              thue_suat: Number(item.thue_suat) || 0,
+              ma_thue: (item.ma_thue || "").trim() || undefined,
+              thue_suat: (item.thue_suat !== null && item.thue_suat !== undefined && item.thue_suat !== "") ? Number(item.thue_suat) : undefined,
               image: item.image || "",
               ma_kho: item.ma_kho || "",
               ton13: item.ton13,
@@ -459,8 +459,8 @@ const POS = () => {
                 price: foundItem.gia || 0,
                 unit: foundItem.dvt || "cái",
                 stock: foundItem.ton13 || 0,
-                ma_thue: (foundItem.ma_thue || "").trim(),
-                thue_suat: Number(foundItem.thue_suat) || 0,
+                ma_thue: (foundItem.ma_thue || "").trim() || undefined,
+                thue_suat: (foundItem.thue_suat !== null && foundItem.thue_suat !== undefined && foundItem.thue_suat !== "") ? Number(foundItem.thue_suat) : undefined,
                 ma_kho: foundItem.ma_kho || "",
                 ton13: foundItem.ton13,
               };
@@ -528,7 +528,7 @@ const POS = () => {
       const mappedCart = (detail || []).map((d) => {
         const qty = Number(d.so_luong) || 1;
         const listPrice = Number(d.listPrice) || Number(d.don_gia) || 0;
-        const thue_suat = Number(d.thue_suat) || 0;
+        const thue_suat = (d.thue_suat !== null && d.thue_suat !== undefined && d.thue_suat !== "") ? Number(d.thue_suat) : undefined;
         
         // Recompute standard fields for POS UI consistency
         const totalAfterVAT = Math.round(listPrice * qty);
@@ -546,7 +546,7 @@ const POS = () => {
           listPrice: listPrice,
           batchExpiry: (d.ma_lo || "").trim(),
           vatPercent: thue_suat,
-          ma_thue: (d.ma_thue || "").trim(),
+          ma_thue: (d.ma_thue || "").trim() || undefined,
           thue_suat: thue_suat,
           thue_nt: vatAmountTotal, // Ưu tiên recompute hoặc dùng d.thue_nt? Recompute tốt hơn cho đồng bộ UI
           discountPercent: Number(d.tl_ck) || 0,
@@ -786,9 +786,9 @@ const POS = () => {
               unit: unit,
               qty: item.slDuocBan || 1, // Sử dụng SL được bán
               batchExpiry: "",
-              vatPercent: Number(item.thue_suat) || 0,
-              ma_thue: (item.ma_thue || "").trim(),
-              thue_suat: Number(item.thue_suat) || 0,
+              vatPercent: (item.thue_suat !== null && item.thue_suat !== undefined && item.thue_suat !== "") ? Number(item.thue_suat) : undefined,
+              ma_thue: (item.ma_thue || "").trim() || undefined,
+              thue_suat: (item.thue_suat !== null && item.thue_suat !== undefined && item.thue_suat !== "") ? Number(item.thue_suat) : undefined,
               remaining: 0,
               instructions: note,
               ghi_chu: note,

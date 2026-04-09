@@ -43,7 +43,9 @@ const CustomerInfo = ({
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
 
   const isPhoneValid = useMemo(() => {
-    return /^\d{10}$/.test((tempCustomer.phone || "").trim());
+    const phone = (tempCustomer.phone || "").trim();
+    if (!phone) return true;
+    return /^\d{10}$/.test(phone);
   }, [tempCustomer.phone]);
 
   const isCreateDisabled = useMemo(() => {
@@ -496,7 +498,7 @@ const CustomerInfo = ({
             onChange={handlePhoneChange}
             size="middle"
             prefix={<PhoneOutlined style={{ fontSize: "12px" }} />}
-            status={!isPhoneValid || phoneExistsError ? "error" : ""}
+            status={(tempCustomer.phone?.trim() && !isPhoneValid) || phoneExistsError ? "error" : ""}
           />
           <Input
             placeholder="Tên khách hàng"
@@ -568,7 +570,7 @@ const CustomerInfo = ({
             onChange={handlePhoneChange}
             size="middle"
             prefix={<PhoneOutlined style={{ fontSize: "12px" }} />}
-            status={!isPhoneValid ? "error" : ""}
+            status={tempCustomer.phone?.trim() && !isPhoneValid ? "error" : ""}
           />
           <Input
             placeholder="Tên khách hàng"
