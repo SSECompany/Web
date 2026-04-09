@@ -310,7 +310,10 @@ class IminPrinterService {
         }
 
         const totalLine = `TỔNG TIỀN: ${this.formatNumber(master?.tong_tien || 0)}đ`;
-        await this.printText(totalLine, { fontSize: fsBase, fontStyle: 'bold', align: 'right' });
+        // Điều chỉnh padding cho TỔNG TIỀN tùy theo khổ giấy (giảm số kí tự trắng để không bị tràn dòng)
+        const totalPadding = isK58 ? 26 : 40;
+        const paddedTotalLine = totalLine.length < totalPadding ? totalLine.padStart(totalPadding) : totalLine;
+        await this.printText(paddedTotalLine, { fontSize: fsBase, fontStyle: 'bold', align: 'left' });
 
         await this.printText('', { fontSize: 10 });
         const tenNvbh = (master?.ten_nvbh || "").trim();
