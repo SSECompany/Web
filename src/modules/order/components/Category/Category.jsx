@@ -53,9 +53,20 @@ export default function Category({ drinkFilter, setDrinkFilter }) {
                 data: {},
             });
             const data = res?.listObject[0] || [];
-            globalMenuCache[cacheKey] = data;
-            dispatch(setMenuItems(data));
-            dispatch(setLoading(false));
+            
+            // Nén ảnh sang WebP để giảm bộ nhớ
+            import("../../../../utils/imageUtils").then(async ({ processMenuItemsImages }) => {
+                const processedData = await processMenuItemsImages(data);
+                globalMenuCache[cacheKey] = processedData;
+                dispatch(setMenuItems(processedData));
+                dispatch(setLoading(false));
+            }).catch(err => {
+                console.error("Lỗi nén ảnh", err);
+                globalMenuCache[cacheKey] = data;
+                dispatch(setMenuItems(data));
+                dispatch(setLoading(false));
+            });
+            
         } catch (error) {
             console.error("Error fetching menu items:", error);
             dispatch(setLoading(false));
