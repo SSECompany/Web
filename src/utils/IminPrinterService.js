@@ -46,9 +46,10 @@ class IminPrinterService {
    */
   isK58() {
     try {
-      const isMobile = window.innerWidth <= 480;
+      // Tăng ngưỡng chiều rộng lên 600px và thêm check UA rộng hơn để nhận diện đúng Iposmini/iMin
+      const isMobile = window.innerWidth <= 600;
       const userAgent = navigator.userAgent || "";
-      const isIminHandheld = userAgent.includes("iMin") || userAgent.includes("M2-203") || userAgent.includes("Iposmini");
+      const isIminHandheld = userAgent.includes("iMin") || userAgent.includes("M2-203") || userAgent.includes("Iposmini") || userAgent.includes("M2-202");
       return isMobile || isIminHandheld;
     } catch (e) {
       return false;
@@ -309,11 +310,14 @@ class IminPrinterService {
             await this.printText(`Chiết khấu: ${this.formatNumber(totalDiscount)}đ`, { fontSize: fsBase, align: 'right' });
         }
 
-        const totalLine = `TỔNG TIỀN: ${this.formatNumber(master?.tong_tien || 0)}đ`;
-        // Điều chỉnh padding cho TỔNG TIỀN tùy theo khổ giấy (giảm số kí tự trắng để không bị tràn dòng)
-        const totalPadding = isK58 ? 26 : 40;
-        const paddedTotalLine = totalLine.length < totalPadding ? totalLine.padStart(totalPadding) : totalLine;
-        await this.printText(paddedTotalLine, { fontSize: fsBase, fontStyle: 'bold', align: 'left' });
+        await this.printerInstance.setTextStyle(1);
+        const totalLineText = `TỔNG TIỀN: ${this.formatNumber(master?.tong_tien || 0)}đ`;
+        // Dùng 2 cột: Cột 1 trống để đẩy nội dung ở Cột 2 về phía bên phải hoàn toàn
+        await this.printColumnsText([
+            { text: "", width: 1, align: 'right', fontSize: fsBase },
+            { text: totalLineText, width: 3, align: 'right', fontSize: fsBase },
+        ]);
+        await this.printerInstance.setTextStyle(0);
 
         await this.printText('', { fontSize: 10 });
         const tenNvbh = (master?.ten_nvbh || "").trim();
