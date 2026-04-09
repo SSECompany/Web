@@ -1,11 +1,12 @@
 /**
- * Compress image file using canvas
+ * Compress image file using canvas and optionally convert to WebP
  * @param {File} file - Original image file
  * @param {Object} options - Compression options
  * @param {number} options.maxWidth - Maximum width in pixels
  * @param {number} options.maxHeight - Maximum height in pixels
  * @param {number} options.quality - Image quality (0-1)
  * @param {number} options.maxSizeMB - Maximum file size in MB
+ * @param {string} options.format - Target format ('image/webp', 'image/jpeg', 'image/png')
  * @returns {Promise<File>} - Compressed image file
  */
 export const compressImage = async (file, options = {}) => {
@@ -13,7 +14,9 @@ export const compressImage = async (file, options = {}) => {
     maxWidth = 1920,
     maxHeight = 1920,
     quality = 0.8,
+
     maxSizeMB = 2,
+    format = "image/webp", // Default to webp as requested
   } = options;
 
   return new Promise((resolve, reject) => {
@@ -39,10 +42,18 @@ export const compressImage = async (file, options = {}) => {
 
         // Draw image on canvas
         const ctx = canvas.getContext("2d");
+        
+        // Fill white background for JPEGs if needed, but for WebP it's fine
+        if (format === "image/jpeg") {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, width, height);
+        }
+        
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Get file type
-        const fileType = file.type || "image/jpeg";
+        // Get target file type
+        const targetType = format;
+        const fileName = file.name.replace(/\.[^/.]+$/, "") + (format === "image/webp" ? ".webp" : ".jpg");
 
         // Convert to blob
         canvas.toBlob(
@@ -56,8 +67,8 @@ export const compressImage = async (file, options = {}) => {
             const sizeMB = blob.size / (1024 * 1024);
             if (sizeMB <= maxSizeMB) {
               // Create new file from blob
-              const compressedFile = new File([blob], file.name, {
-                type: blob.type || fileType,
+              const compressedFile = new File([blob], fileName, {
+                type: blob.type || targetType,
                 lastModified: Date.now(),
               });
               resolve(compressedFile);
@@ -74,8 +85,8 @@ export const compressImage = async (file, options = {}) => {
                     }
                     const newSizeMB = newBlob.size / (1024 * 1024);
                     if (newSizeMB <= maxSizeMB || currentQuality <= 0.1) {
-                      const compressedFile = new File([newBlob], file.name, {
-                        type: newBlob.type || fileType,
+                      const compressedFile = new File([newBlob], fileName, {
+                        type: newBlob.type || targetType,
                         lastModified: Date.now(),
                       });
                       resolve(compressedFile);
@@ -83,14 +94,14 @@ export const compressImage = async (file, options = {}) => {
                       reduceQuality();
                     }
                   },
-                  fileType,
+                  targetType,
                   currentQuality
                 );
               };
               reduceQuality();
             }
           },
-          fileType,
+          targetType,
           quality
         );
       };
@@ -109,4 +120,5 @@ export const compressImage = async (file, options = {}) => {
     reader.readAsDataURL(file);
   });
 };
+
 

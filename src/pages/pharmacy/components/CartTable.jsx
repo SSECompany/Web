@@ -11,6 +11,7 @@ import {
 } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { api_getTaxInfo, getItemPriceAndUnit, getLoItem } from "../../../api";
+import CachedImage from "../../../components/common/CachedImage/CachedImage";
 import DiscountModal from "./DiscountModal";
 
 const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
@@ -326,38 +327,57 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
               gap: 8,
             }}
           >
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div className="product-name">{text}</div>
-              <div
-                className="product-code"
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-start",
-                  alignItems: "center",
-                  marginTop: "4px",
-                }}
-              >
-                <span
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {record.image && (
+                <CachedImage 
+                  src={record.image} 
+                  alt={text} 
+                  style={{ 
+                    width: '40px', 
+                    height: '40px', 
+                    objectFit: 'cover', 
+                    borderRadius: '4px',
+                    border: '1px solid #f0f0f0'
+                  }} 
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div className="product-name">{text}</div>
+                <div
+                  className="product-code"
                   style={{
-                    color: "#1890ff",
-                    fontWeight: "bold",
-                    fontSize: "13px",
+                    display: "flex",
+                    justifyContent: "flex-start",
+                    alignItems: "center",
+                    marginTop: "4px",
                   }}
                 >
-                  {record.sku}
-                </span>
-                {record.ma_kho && (
-                  <Tag color="cyan" style={{ marginLeft: "8px", fontSize: "12px", border: "none" }}>
-                    {record.ma_kho}
-                  </Tag>
-                )}
-                {record.ton13 !== undefined && (
-                  <Tag color="orange" style={{ marginLeft: "4px", fontSize: "12px", border: "none", fontWeight: "600" }}>
-                    Tồn: {record.ton13}
-                  </Tag>
-                )}
+                  <span
+                    style={{
+                      color: "#1890ff",
+                      fontWeight: "bold",
+                      fontSize: "13px",
+                    }}
+                  >
+                    {record.sku}
+                  </span>
+                  {record.ma_kho && (
+                    <Tag color="cyan" style={{ marginLeft: "8px", fontSize: "12px", border: "none" }}>
+                      {record.ma_kho}
+                    </Tag>
+                  )}
+                  {record.ton13 !== undefined && (
+                    <Tag color="orange" style={{ marginLeft: "4px", fontSize: "12px", border: "none", fontWeight: "600" }}>
+                      Tồn: {record.ton13}
+                    </Tag>
+                  )}
+                </div>
               </div>
             </div>
+
           </div>
         );
       },

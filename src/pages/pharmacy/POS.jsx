@@ -8,7 +8,9 @@ import React, {
 } from "react";
 import { useSelector } from "react-redux";
 import { searchVatTu, uploadPrescriptionImage } from "../../api";
+import { compressImage } from "../../utils/imageCompression";
 import VatTuSelectFullPOS from "../../components/common/ProductSelectFull/VatTuSelectFullPOS";
+
 import ReportModal from "../../components/common/ReportModal/ReportModal";
 import RetailOrderListModal from "../../components/common/RetailOrderListModal/RetailOrderListModal";
 import "./POS.css";
@@ -109,16 +111,29 @@ const POS = () => {
     setUploadedImageUrl("");
     setIsUploadPreviewOpen(false);
 
-    notification.open({
-      message: "Đang tải ảnh lên server...",
-      description: "Vui lòng đợi",
-      duration: 0,
-      key: loadingKey,
-    });
-
     try {
-      // Upload file directly without compression
-      const fileToUpload = selectedFile;
+      notification.open({
+        message: "Đang nén ảnh...",
+        description: "Vui lòng đợi trong giây lát",
+        key: loadingKey,
+      });
+
+      // Compress and convert to WebP
+      const compressedFile = await compressImage(selectedFile, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.7,
+        format: "image/webp",
+      });
+
+      notification.open({
+        message: "Đang tải ảnh lên server...",
+        description: "Vui lòng đợi",
+        duration: 0,
+        key: loadingKey,
+      });
+
+      const fileToUpload = compressedFile || selectedFile;
 
       // Ensure we have a file to upload
       if (!fileToUpload) {

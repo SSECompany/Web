@@ -1,6 +1,8 @@
 import { BarcodeOutlined } from "@ant-design/icons";
 import { Button, Col, Input, Row, Select, Space, message, Spin } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
+import CachedImage from "../CachedImage/CachedImage";
+
 
 const VatTuSelectFullPOS = ({
   isEditMode = true,
@@ -477,13 +479,34 @@ const VatTuSelectFullPOS = ({
                   {vatTuList.map((item) => (
                     <Select.Option key={item.value} value={item.value}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                        <div style={{ flex: 1, paddingRight: '16px', overflow: 'hidden' }}>
-                          <div style={{ fontWeight: "bold" }}>{item.value}</div>
-                          <div style={{ fontSize: "12px", color: "#666", whiteSpace: "normal" }}>
-                            {item.label}
+                        <div style={{ display: 'flex', alignItems: 'center', flex: 1, paddingRight: '16px', overflow: 'hidden' }}>
+                          {item.image && (
+                            <div style={{ marginRight: '10px', flexShrink: 0 }}>
+                              <CachedImage 
+                                src={item.image} 
+                                alt={item.label}
+                                style={{ 
+                                  width: '40px', 
+                                  height: '40px', 
+                                  objectFit: 'cover', 
+                                  borderRadius: '4px',
+                                  border: '1px solid #f0f0f0'
+                                }} 
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
+                          <div style={{ overflow: 'hidden' }}>
+                            <div style={{ fontWeight: "bold" }}>{item.value}</div>
+                            <div style={{ fontSize: "12px", color: "#666", whiteSpace: "normal" }}>
+                              {item.label}
+                            </div>
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', minWidth: 'max-content' }}>
+
                           {item.ma_kho && (
                             <div style={{ fontSize: "13px", color: "#1890ff" }}>
                               Kho: <strong>{item.ma_kho}</strong>
