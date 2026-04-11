@@ -686,7 +686,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
                 : "Phát hành hóa đơn điện tử"
             }
           >
-            <Button
+            {/* <Button
               icon={
                 isIssuing === record.stt_rec ? (
                   <LoadingOutlined />
@@ -701,7 +701,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
                 isIssuing !== null ||
                 getSyncResultStatus(record.s3) === "success"
               }
-            />
+            /> */}
           </Tooltip>
         </div>
       ),
