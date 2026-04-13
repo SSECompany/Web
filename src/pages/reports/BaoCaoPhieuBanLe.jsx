@@ -337,10 +337,7 @@ const BaoCaoPhieuBanLe = () => {
           Group1: filters.Group1 || "",
           Group2: filters.Group2 || "",
           Group3: filters.Group3 || "",
-          Unit:
-            Array.isArray(filters.Unit) && filters.Unit.length
-              ? filters.Unit.join(",")
-              : "",
+          Unit: "",
           DataType: filters.DataType || "2",
           Language: filters.Language || "V",
           UserID: userId,
@@ -425,10 +422,7 @@ const BaoCaoPhieuBanLe = () => {
             Group1: filters.Group1 || "",
             Group2: filters.Group2 || "",
             Group3: filters.Group3 || "",
-            Unit:
-              Array.isArray(filters.Unit) && filters.Unit.length
-                ? filters.Unit.join(",")
-                : "",
+            Unit: "",
             DataType: filters.DataType || "2",
             Language: filters.Language || "V",
             UserID: userId,
@@ -945,18 +939,18 @@ const BaoCaoPhieuBanLe = () => {
 
   const activeChips = useMemo(() => {
     const chips = [];
-    if (filters.Unit && filters.Unit.length > 0) {
-      const selectedDvcs = dvcsOptions
-        .filter((opt) => filters.Unit.includes(opt.value))
-        .map((opt) => opt.label)
-        .join(", ");
-      chips.push({
-        key: "Unit",
-        label: "ĐVCS",
-        value: selectedDvcs || filters.Unit.join(", "),
-        color: "volcano",
-      });
-    }
+    // if (filters.Unit && filters.Unit.length > 0) {
+    //   const selectedDvcs = dvcsOptions
+    //     .filter((opt) => filters.Unit.includes(opt.value))
+    //     .map((opt) => opt.label)
+    //     .join(", ");
+    //   chips.push({
+    //     key: "Unit",
+    //     label: "ĐVCS",
+    //     value: selectedDvcs || filters.Unit.join(", "),
+    //     color: "volcano",
+    //   });
+    // }
 
     if (filters.DateFrom && filters.DateTo) {
       chips.push({
@@ -1069,7 +1063,7 @@ const BaoCaoPhieuBanLe = () => {
 
   const handleRemoveFilter = useCallback((key) => {
     if (key === "Unit") {
-      handleFilterChange("Unit", []);
+      // handleFilterChange("Unit", []);
     } else if (key === "DateRange") {
       handleFilterChange("DateFrom", formatDate(dayjs().startOf("day")));
       handleFilterChange("DateTo", formatDate(dayjs().endOf("day")));
@@ -1221,7 +1215,7 @@ const BaoCaoPhieuBanLe = () => {
               />
             </div>
 
-            <div className="filter-item">
+            {/* <div className="filter-item">
               <label>Đơn vị cơ sở:</label>
               <Select
                 mode="multiple"
@@ -1246,7 +1240,7 @@ const BaoCaoPhieuBanLe = () => {
                   loadingDvcs ? <Spin size="small" /> : "Không tìm thấy"
                 }
               />
-            </div>
+            </div> */}
             <div className="filter-item">
               <label>Nhóm vật tư 1:</label>
               <Select

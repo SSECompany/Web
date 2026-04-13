@@ -112,15 +112,15 @@ const BaoCaoTonKho = () => {
   });
 
   // Auto-fill Unit when defaultUnitCode is available
-  useEffect(() => {
-    if (defaultUnitCode) {
-      setFilters((prev) => ({
-        ...prev,
-        Unit:
-          prev.Unit && prev.Unit.length > 0 ? prev.Unit : [defaultUnitCode],
-      }));
-    }
-  }, [defaultUnitCode]);
+  // useEffect(() => {
+  //   if (defaultUnitCode) {
+  //     setFilters((prev) => ({
+  //       ...prev,
+  //       Unit:
+  //         prev.Unit && prev.Unit.length > 0 ? prev.Unit : [defaultUnitCode],
+  //     }));
+  //   }
+  // }, [defaultUnitCode]);
 
   // Fetch danh sách kho
   const fetchKhoOptions = useCallback(
@@ -296,10 +296,7 @@ const BaoCaoTonKho = () => {
           tt_sx1: filters.tt_sx1 || 0,
           tt_sx2: filters.tt_sx2 || 0,
           tt_sx3: filters.tt_sx3 || 0,
-          Unit:
-            Array.isArray(filters.Unit) && filters.Unit.length
-              ? filters.Unit.join(",")
-              : "",
+          Unit: "",
           BalanceType: filters.BalanceType || 2,
           Order: filters.Order || "ma_vt",
           DataType: filters.DataType || 2,
@@ -394,10 +391,7 @@ const BaoCaoTonKho = () => {
             tt_sx1: filters.tt_sx1 || 0,
             tt_sx2: filters.tt_sx2 || 0,
             tt_sx3: filters.tt_sx3 || 0,
-            Unit:
-              Array.isArray(filters.Unit) && filters.Unit.length
-                ? filters.Unit.join(",")
-                : "",
+            Unit: "",
             BalanceType: filters.BalanceType || 2,
             Order: filters.Order || "ma_vt",
             DataType: filters.DataType || 2,
@@ -772,7 +766,7 @@ const BaoCaoTonKho = () => {
   const handleClearFilters = useCallback(() => {
     setFilters({
       ...getDefaultFilters(),
-      Unit: defaultUnitCode ? [defaultUnitCode] : [],
+      // Unit: defaultUnitCode ? [defaultUnitCode] : [],
     });
     setTableFilters({
       ma_vt: "",
@@ -792,18 +786,18 @@ const BaoCaoTonKho = () => {
 
   const activeChips = useMemo(() => {
     const chips = [];
-    if (filters.Unit && filters.Unit.length > 0) {
-      const selectedDvcs = dvcsOptions
-        .filter((opt) => filters.Unit.includes(opt.value))
-        .map((opt) => opt.label)
-        .join(", ");
-      chips.push({
-        key: "Unit",
-        label: "ĐVCS",
-        value: selectedDvcs || filters.Unit.join(", "),
-        color: "volcano",
-      });
-    }
+    // if (filters.Unit && filters.Unit.length > 0) {
+    //   const selectedDvcs = dvcsOptions
+    //     .filter((opt) => filters.Unit.includes(opt.value))
+    //     .map((opt) => opt.label)
+    //     .join(", ");
+    //   chips.push({
+    //     key: "Unit",
+    //     label: "ĐVCS",
+    //     value: selectedDvcs || filters.Unit.join(", "),
+    //     color: "volcano",
+    //   });
+    // }
     if (filters.DateTo) {
       chips.push({
         key: "DateTo",
@@ -894,7 +888,7 @@ const BaoCaoTonKho = () => {
 
   const handleRemoveFilter = useCallback((key) => {
     if (key === "Unit") {
-      handleFilterChange("Unit", []);
+      // handleFilterChange("Unit", []);
     } else if (["ma_vt", "ten_vt", "dvt"].includes(key)) {
       setTableFilters((prev) => ({
         ...prev,
@@ -1027,7 +1021,7 @@ const BaoCaoTonKho = () => {
                 }
               />
             </div>
-            <div className="filter-item">
+            {/* <div className="filter-item">
               <label>Đơn vị cơ sở:</label>
               <Select
                 mode="multiple"
@@ -1052,7 +1046,7 @@ const BaoCaoTonKho = () => {
                   loadingDvcs ? <Spin size="small" /> : "Không tìm thấy"
                 }
               />
-            </div>
+            </div> */}
             <div className="button-item-row" style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end", marginTop: "12px" }}>
               <div style={{ display: "flex", gap: "12px" }}>
                 <Button

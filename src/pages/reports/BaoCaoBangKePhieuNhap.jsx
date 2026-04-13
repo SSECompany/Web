@@ -115,14 +115,14 @@ const BaoCaoBangKePhieuNhap = () => {
   });
 
   // Auto-fill Unit
-  useEffect(() => {
-    if (defaultUnitCode) {
-      setFilters((prev) => ({
-        ...prev,
-        Unit: prev.Unit && prev.Unit.length > 0 ? prev.Unit : [defaultUnitCode],
-      }));
-    }
-  }, [defaultUnitCode]);
+  // useEffect(() => {
+  //   if (defaultUnitCode) {
+  //     setFilters((prev) => ({
+  //       ...prev,
+  //       Unit: prev.Unit && prev.Unit.length > 0 ? prev.Unit : [defaultUnitCode],
+  //     }));
+  //   }
+  // }, [defaultUnitCode]);
 
   const fetchKhoOptions = useCallback(async (searchValue = "") => {
     if (!unitId) return;
@@ -270,7 +270,7 @@ const BaoCaoBangKePhieuNhap = () => {
           Department: filters.Department || "",
           MONumber: filters.MONumber || "",
           Product: filters.Product || "",
-          Unit: Array.isArray(filters.Unit) ? filters.Unit.join(",") : filters.Unit,
+          Unit: "",
           Size: filters.Size,
           Size_lsx: filters.Size_lsx,
           Form: filters.Form,
@@ -327,7 +327,7 @@ const BaoCaoBangKePhieuNhap = () => {
             ...filters,
             DateFrom: formatDateToAPI(filters.DateFrom),
             DateTo: formatDateToAPI(filters.DateTo),
-            Unit: Array.isArray(filters.Unit) ? filters.Unit.join(",") : filters.Unit,
+            Unit: "",
             UserID: userId,
             pageIndex: pageIdx,
             pageSize: 1000,
@@ -400,14 +400,14 @@ const BaoCaoBangKePhieuNhap = () => {
   };
 
   const handleClearFilters = () => {
-    setFilters({ ...getDefaultFilters(), Unit: defaultUnitCode ? [defaultUnitCode] : [] });
+    setFilters({ ...getDefaultFilters(), /* Unit: defaultUnitCode ? [defaultUnitCode] : [] */ });
     setTableFilters({ so_ct: "", ma_vt: "", ten_kh: "", ma_kh: "", ngay_ct: "" });
     setCurrentPage(1);
   };
 
   const handleRemoveFilter = (filterKey) => {
     if (filterKey === "Unit") {
-      handleFilterChange("Unit", []);
+      // handleFilterChange("Unit", []);
     } else if (filterKey === "DateRange") {
       handleFilterChange("DateFrom", "");
       handleFilterChange("DateTo", "");
@@ -429,13 +429,13 @@ const BaoCaoBangKePhieuNhap = () => {
       });
     }
 
-    if (filters.Unit && filters.Unit.length > 0) {
-      const selectedDvcs = dvcsOptions
-        .filter((opt) => filters.Unit.includes(opt.value))
-        .map((opt) => opt.label)
-        .join(", ");
-      if (selectedDvcs) chips.push({ key: "Unit", label: "Đơn vị", value: selectedDvcs, color: "volcano" });
-    }
+    // if (filters.Unit && filters.Unit.length > 0) {
+    //   const selectedDvcs = dvcsOptions
+    //     .filter((opt) => filters.Unit.includes(opt.value))
+    //     .map((opt) => opt.label)
+    //     .join(", ");
+    //   if (selectedDvcs) chips.push({ key: "Unit", label: "Đơn vị", value: selectedDvcs, color: "volcano" });
+    // }
     if (filters.Site) {
       const label = khoOptions.find(o => o.value === filters.Site)?.label || filters.Site;
       chips.push({ key: "Site", label: "Kho", value: label, color: "cyan" });
@@ -641,7 +641,7 @@ const BaoCaoBangKePhieuNhap = () => {
           <div className="filters-grid">
 
 
-            <div className="filter-item">
+            {/* <div className="filter-item">
               <label>Đơn vị cơ sở:</label>
               <Select
                 mode="multiple"
@@ -657,7 +657,7 @@ const BaoCaoBangKePhieuNhap = () => {
                 maxTagCount="responsive"
                 loading={loadingDvcs}
               />
-            </div>
+            </div> */}
 
             <div className="filter-item">
               <label>Kho:</label>

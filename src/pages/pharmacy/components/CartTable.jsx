@@ -56,10 +56,12 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
     }
   };
 
-  const loadUnitOptions = async (index, record) => {
+  const loadUnitOptions = async (record) => {
+    const sku = (record?.sku || "").toString();
+    if (!sku) return;
     try {
-      setUnitLoading((prev) => ({ ...prev, [index]: true }));
-      const res = await getItemPriceAndUnit((record?.sku || "").toString());
+      setUnitLoading((prev) => ({ ...prev, [sku]: true }));
+      const res = await getItemPriceAndUnit(sku);
       const data = res?.listObject?.[0] || [];
       const options = data.map((x) => {
         const dvt = (x?.dvt || x?.unit || x?.value || "").toString();
@@ -70,11 +72,11 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
           price: gia,
         };
       });
-      setUnitOptions((prev) => ({ ...prev, [index]: options }));
+      setUnitOptions((prev) => ({ ...prev, [sku]: options }));
     } catch (e) {
-      setUnitOptions((prev) => ({ ...prev, [index]: [] }));
+      setUnitOptions((prev) => ({ ...prev, [sku]: [] }));
     } finally {
-      setUnitLoading((prev) => ({ ...prev, [index]: false }));
+      setUnitLoading((prev) => ({ ...prev, [sku]: false }));
     }
   };
 
@@ -392,8 +394,9 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       key: "unit",
       width: 120,
       render: (text, record, index) => {
-        const loading = !!unitLoading[index];
-        const options = unitOptions[index] || [];
+        const sku = (record?.sku || "").toString();
+        const loading = !!unitLoading[sku];
+        const options = unitOptions[sku] || [];
         const isOpen = !!unitOpen[index];
         const hasOptions = options.length > 0;
         if (isOpen && loading && !hasOptions) {
@@ -421,11 +424,11 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
             onOpenChange={(visible) => {
               setUnitOpen((prev) => ({ ...prev, [index]: visible }));
               if (visible && options.length === 0) {
-                loadUnitOptions(index, record);
+                loadUnitOptions(record);
               }
             }}
             onChange={(val) => {
-              const opt = (unitOptions[index] || []).find(
+              const opt = (unitOptions[sku] || []).find(
                 (o) => o.value === val
               );
               const newListPrice =
