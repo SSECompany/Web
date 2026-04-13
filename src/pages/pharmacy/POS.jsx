@@ -638,6 +638,7 @@ const POS = () => {
                 onClick={handlePrescriptionModal}
                 className="prescription-search-btn"
                 size="large"
+                disabled={true}
               >
                 Tìm đơn thuốc
               </Button>

@@ -590,27 +590,27 @@ const PaymentSummary = ({
         });
 
         // Tự động xuất hóa đơn điện tử khi thanh toán thành công (status=2) và người dùng có chọn tích "Phát hành HĐĐT"
-        // if (sttRec && sync) {
-        //   try {
-        //     const eInvoiceResult = await exportToEInvoice(sttRec);
-        //     if (eInvoiceResult?.success || eInvoiceResult?.isSucceeded || eInvoiceResult?.isSucceded) {
-        //       notification.success({
-        //         message: "Xuất hóa đơn điện tử thành công!",
-        //         duration: 3,
-        //       });
-        //     } else {
-        //       if (eInvoiceResult?.message) {
-        //         notification.warning({
-        //           message: "Lỗi xuất hóa đơn điện tử",
-        //           description: eInvoiceResult.message,
-        //           duration: 5,
-        //         });
-        //       }
-        //     }
-        //   } catch (eInvError) {
-        //     console.error("Lỗi khi call api exportToEInvoice:", eInvError);
-        //   }
-        // }
+        if (sttRec && sync) {
+          try {
+            const eInvoiceResult = await exportToEInvoice(sttRec);
+            if (eInvoiceResult?.success || eInvoiceResult?.isSucceeded || eInvoiceResult?.isSucceded) {
+              notification.success({
+                message: "Xuất hóa đơn điện tử thành công!",
+                duration: 3,
+              });
+            } else {
+              if (eInvoiceResult?.message) {
+                notification.warning({
+                  message: "Lỗi xuất hóa đơn điện tử",
+                  description: eInvoiceResult.message,
+                  duration: 5,
+                });
+              }
+            }
+          } catch (eInvError) {
+            console.error("Lỗi khi call api exportToEInvoice:", eInvError);
+          }
+        }
 
         await updateNationalPrescriptionSale(sttRec);
       } else {

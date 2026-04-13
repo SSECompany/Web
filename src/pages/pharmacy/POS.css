@@ -1636,6 +1636,15 @@
   transform: translateY(0);
 }
 
+.prescription-search-btn:disabled {
+  background: #9ca3af !important;
+  border-color: #9ca3af !important;
+  opacity: 0.7;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 /* Responsive for search row */
 @media (max-width: 768px) {
   .search-row {
