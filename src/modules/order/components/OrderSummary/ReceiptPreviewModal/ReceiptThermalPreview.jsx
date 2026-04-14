@@ -84,7 +84,7 @@ const ReceiptThermalPreview = ({
         <div className="rtep-header">
           <div className="rtep-title rtep-center rtep-bold">ĐẠI HỌC PHENIKAA</div>
           <div className="rtep-subtitle rtep-center">
-            Địa chỉ: Nguyễn Văn Trác, Dương Nội, Hà Nội
+            Nguyễn Văn Trác, Dương Nội, Hà Nội
           </div>
         </div>
 

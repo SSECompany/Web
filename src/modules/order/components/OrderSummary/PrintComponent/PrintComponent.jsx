@@ -70,22 +70,29 @@ const PrintComponent = forwardRef(
           </label>
           <br />
           <span>
-            {master?.ngay_ct || `${now.getDate().toString().padStart(2, "0")}/${(
+            {(() => {
+              const rawDate = master?.ngay_ct || "";
+              if (rawDate && rawDate.includes("-")) {
+                const parts = rawDate.split('T')[0].split('-');
+                if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+              }
+              return rawDate;
+            })() || `${now.getDate().toString().padStart(2, "0")}/${(
               now.getMonth() + 1
             )
               .toString()
               .padStart(2, "0")}/${now.getFullYear()}`}
             {" "}
             {`${now
-                .getHours()
+              .getHours()
+              .toString()
+              .padStart(2, "0")}:${now
+                .getMinutes()
                 .toString()
                 .padStart(2, "0")}:${now
-                  .getMinutes()
+                  .getSeconds()
                   .toString()
-                  .padStart(2, "0")}:${now
-                    .getSeconds()
-                    .toString()
-                    .padStart(2, "0")}`}
+                  .padStart(2, "0")}`}
           </span>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', marginBottom: '8px' }}>
             <span style={{ fontSize: "14px", fontWeight: "bold", color: "#000" }}>

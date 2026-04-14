@@ -162,7 +162,7 @@ class IminPrinterService {
     this.printerInstance.setTextStyle(styleMap[fontStyle] || 0);
     
     const textToPrint = text.endsWith('\n') ? text : text + '\n';
-    this.printerInstance.printText(textToPrint);
+    this.printerInstance.printText(textToPrint, alignValue);
   }
 
   async printColumnsText(columns) {
@@ -194,16 +194,17 @@ class IminPrinterService {
     const isReprint = options.isReprint === true;
     const isK58 = this.isK58();
     
-    // Điều chỉnh Font size cho K58 (nhỏ hơn K80)
-    const fsBase = isK58 ? 18 : 24;      // Font chính
-    const fsTableHead = isK58 ? 16 : 20; // Font tiêu đề bảng
-    const fsTableItem = isK58 ? 17 : 22; // Font nội dung món
-    const fsSubItem = isK58 ? 15 : 19;   // Font món phụ
-    const fsFooter = isK58 ? 17 : 22;    // Font footer
-    const fsTitle = isK58 ? 20 : 24;     // Font tiêu đề đơn vị
+    // Giảm mạnh font size cho K58 để cực kỳ gọn
+    const fsBase = isK58 ? 19 : 24;      
+    const fsTableHead = isK58 ? 17 : 20; 
+    const fsTableItem = isK58 ? 18 : 22; 
+    const fsSubItem = isK58 ? 16 : 19;   
+    const fsFooter = isK58 ? 17 : 22;    
+    const fsTitle = isK58 ? 21 : 28; 
+    const fsAddress = isK58 ? 16 : 20;
     
-    // Điều chỉnh độ rộng đường kẻ
-    const LINE_FULL_WIDTH = isK58 ? '----------------------------' : '─────────────────────────────────────────';
+    // Đường kẻ cần giữ tỉ lệ độ dài theo khổ giấy để không bị rớt dòng
+    const LINE_FULL_WIDTH = isK58 ? '──────────────────────────────────────────' : '─────────────────────────────────────────';
 
     try {
       if (!this.isInitialized) {
@@ -211,13 +212,22 @@ class IminPrinterService {
       }
 
       for (let copy = 1; copy <= numberOfCopies; copy++) {
-        await this.printerInstance.setTextLineSpacing(0);
+        // Thiết lập khoảng cách dòng cực nhỏ
+        await this.printerInstance.setTextLineSpacing(1);
 
         const now = new Date();
-        const dateOnly = master?.ngay_ct || `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+        const rawDate = master?.ngay_ct || "";
+        let formattedDate = rawDate;
+        if (rawDate && rawDate.includes("-")) {
+            const parts = rawDate.split('T')[0].split('-');
+            if (parts.length === 3) formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        const dateOnly = formattedDate || `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
         const timeOnly = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
 
-        const headerBlock = `ĐẠI HỌC PHENIKAA\nĐịa chỉ: Nguyễn Văn Trác, Dương Nội, Hà Nội`;
+        // Header: Ghép khối để nén dòng tối đa giống K80 (bỏ tiền tố Địa chỉ)
+        const headerBlock = `ĐẠI HỌC PHENIKAA\nNguyễn Văn Trác, Dương Nội, Hà Nội`;
         await this.printText(headerBlock, {
           fontSize: fsTitle,
           fontStyle: 'bold',
@@ -230,45 +240,37 @@ class IminPrinterService {
         const soThe = soTheRaw !== "POS" ? soTheRaw : "";
 
         await this.printerInstance.setTextStyle(1);
+        // Cấu trúc 3 cột giống K80: [THANH TOÁN]   [SỐ]   LIÊN
         if (soThe) {
             await this.printColumnsText([
-                { text: `[${paymentLabel}]`, width: 3, align: 'left', fontSize: isK58 ? 22 : 30 },
-                { text: soThe, width: 3, align: 'center', fontSize: isK58 ? 22 : 30 },
-                { text: copyLabel, width: 2, align: 'right', fontSize: isK58 ? 22 : 30 },
+                { text: `[${paymentLabel}]`, width: 3, align: 'left', fontSize: 28 },
+                { text: `[${soThe}]`, width: 2, align: 'center', fontSize: 36 }, // Số thẻ to và ở giữa
+                { text: copyLabel, width: 3, align: 'right', fontSize: 20 },
             ]);
         } else {
             await this.printColumnsText([
-                { text: `[${paymentLabel}]`, width: 6, align: 'left', fontSize: isK58 ? 19 : 22 },
-                { text: copyLabel, width: 2, align: 'right', fontSize: isK58 ? 19 : 22 },
+                { text: `[${paymentLabel}]`, width: 5, align: 'left', fontSize: 28 },
+                { text: copyLabel, width: 3, align: 'right', fontSize: 24 },
             ]);
         }
         await this.printerInstance.setTextStyle(0);
-        await this.printText('', { fontSize: 0 });
 
         const tenKhach = (master?.ong_ba || master?.ten_kh || "Khách hàng").toString().trim();
         const soCt = String(master?.so_ct || 'Chưa có');
-        const infoBlock = `Tên khách: ${tenKhach}\nSố CT: ${soCt}`;
-        await this.printText(infoBlock, { fontSize: fsBase, fontStyle: 'bold', align: 'left' });
 
+        // Xuống hàng từng dòng - Gộp vào 1 khối để nén dòng giống K80
+        await this.printText(`Tên khách: ${tenKhach}\nSố CT: ${soCt}`, { fontSize: fsBase, fontStyle: 'bold', align: 'left' });
+
+        // Cột tiêu đề bảng - Giống K80 (đã bỏ kẻ trên, chỉ giữ kẻ dưới)
         await this.printerInstance.setTextStyle(1);
-        // Tỷ lệ cột bảng cho K58 ưu tiên tên món dài
-        const tableCols = isK58 
-            ? [
-                { text: 'Tên món', width: 4, align: 'left', fontSize: fsTableHead },
-                { text: 'SL', width: 1, align: 'center', fontSize: fsTableHead },
-                { text: 'Giá', width: 2, align: 'center', fontSize: fsTableHead },
-                { text: 'T.Tiền', width: 2, align: 'right', fontSize: fsTableHead },
-              ]
-            : [
-                { text: 'Tên món', width: 3, align: 'left', fontSize: fsTableHead },
-                { text: 'SL', width: 1, align: 'center', fontSize: fsTableHead },
-                { text: 'Giá', width: 2, align: 'center', fontSize: fsTableHead },
-                { text: 'Thành tiền', width: 2, align: 'right', fontSize: fsTableHead },
-              ];
-
-        await this.printColumnsText(tableCols);
+        await this.printColumnsText([
+            { text: 'Tên món', width: 3, align: 'left', fontSize: fsTableHead },
+            { text: 'SL', width: 1, align: 'center', fontSize: fsTableHead },
+            { text: 'Giá', width: 2, align: 'center', fontSize: fsTableHead },
+            { text: 'Thành tiền', width: 2, align: 'right', fontSize: fsTableHead },
+        ]);
+        await this.printText(LINE_FULL_WIDTH, { align: 'center', fontSize: 10 });
         await this.printerInstance.setTextStyle(0);
-        await this.printText(LINE_FULL_WIDTH, { align: 'center', fontSize: 18 });
 
         const mainItems = detail.filter(d => !d.ma_vt_root);
         for (const item of mainItems) {
@@ -281,7 +283,7 @@ class IminPrinterService {
             const tt = this.formatNumber(ttVal) + 'đ';
 
             await this.printColumnsText([
-                { text: tenMon, width: isK58 ? 4 : 3, align: 'left', fontSize: fsTableItem },
+                { text: tenMon, width: 3, align: 'left', fontSize: fsTableItem },
                 { text: sl, width: 1, align: 'center', fontSize: fsTableItem },
                 { text: gia, width: 2, align: 'center', fontSize: fsTableItem },
                 { text: tt, width: 2, align: 'right', fontSize: fsTableItem },
@@ -291,7 +293,7 @@ class IminPrinterService {
             for (const sub of subItems) {
                 const subTT = this.formatNumber(sub?.thanh_tien_print || sub?.thanh_tien || (Number(sub?.so_luong || 1) * Number(sub?.don_gia || 0))) + 'đ';
                 await this.printColumnsText([
-                    { text: `+ ${sub.ten_vt}`, width: isK58 ? 4 : 3, align: 'left', fontSize: fsSubItem },
+                    { text: `+ ${sub.ten_vt}`, width: 3, align: 'left', fontSize: fsSubItem },
                     { text: String(sub.so_luong || 1), width: 1, align: 'center', fontSize: fsSubItem },
                     { text: this.formatNumber(sub.don_gia || 0) + 'đ', width: 2, align: 'center', fontSize: fsSubItem },
                     { text: subTT, width: 2, align: 'right', fontSize: fsSubItem },
@@ -303,7 +305,8 @@ class IminPrinterService {
             }
         }
 
-        await this.printText(LINE_FULL_WIDTH, { align: 'center', fontSize: 18 });
+        // Kẽ đường sau bảng
+        await this.printText(LINE_FULL_WIDTH, { align: 'center', fontSize: 10 });
 
         const totalDiscount = (detail || []).reduce((sum, d) => sum + parseFloat(d.chiet_khau_print || 0), 0);
         if (totalDiscount > 0) {
@@ -311,43 +314,48 @@ class IminPrinterService {
         }
 
         await this.printerInstance.setTextStyle(1);
-        const totalLineText = `TỔNG TIỀN: ${this.formatNumber(master?.tong_tien || 0)}đ`;
-        // Dùng 2 cột: Cột 1 trống để đẩy nội dung ở Cột 2 về phía bên phải hoàn toàn
+        const totalLineText = `Tổng tiền: ${this.formatNumber(master?.tong_tien || 0)}đ`;
         await this.printColumnsText([
             { text: "", width: 1, align: 'right', fontSize: fsBase },
             { text: totalLineText, width: 3, align: 'right', fontSize: fsBase },
         ]);
         await this.printerInstance.setTextStyle(0);
 
-        await this.printText('', { fontSize: 10 });
         const tenNvbh = (master?.ten_nvbh || "").trim();
         const tenDvcs = (master?.ten_dvcs || master?.unitName || master?.DVCS || "").toString().trim();
         const qrInfo = getQRInfoFromStore();
         
         const footerLines = [];
-        footerLines.push(`${dateOnly}   ${timeOnly}`);
+        // Trả lại cấu trúc footer từng dòng giống K80
+        footerLines.push(`${dateOnly} ${timeOnly}`);
         if (tenNvbh || tenDvcs) footerLines.push([tenNvbh, tenDvcs].filter(Boolean).join(" - "));
         
         const hotline = master?.HotlineBill || qrInfo?.HotlineBill || PRINT_FOOTER_HOTLINE;
         const email = master?.EmailBill || qrInfo?.EmailBill || PRINT_FOOTER_EMAIL;
+        
         if (hotline) footerLines.push(`Hotline: ${hotline}`);
         if (email) footerLines.push(`Email: ${email}`);
-        
-        const brandWebsite = [PRINT_FOOTER_BRAND, PRINT_FOOTER_WEBSITE].filter(Boolean).join(' - ');
-        // Padding brandWebsite cho footer
-        const brandPadding = isK58 ? 20 : 25;
-        if (brandWebsite) footerLines.push(brandWebsite.length < brandPadding ? brandWebsite.padStart(brandPadding) : brandWebsite);
 
+        // Brand và website - Cho vào chung mảng footer để nén dòng và căn trái giống K80
+        const brand = PRINT_FOOTER_BRAND || "";
+        const website = PRINT_FOOTER_WEBSITE || "";
+        const brandWebsiteCombined = [brand, website].filter(Boolean).join(' - ');
+        if (brandWebsiteCombined) footerLines.push(brandWebsiteCombined);
+
+        const fsFooterSmall = isK58 ? 18 : 20;
+
+        // In khối footer chính (Ngày giờ, NV, Hotline, Email, Brand) - Căn trái toàn bộ như K80
         if (footerLines.length) {
-            await this.printText(footerLines.join('\n'), { fontSize: fsFooter, fontStyle: 'bold', align: 'left' });
+          await this.printText(footerLines.join('\n'), { fontSize: fsFooterSmall, align: 'left' });
         }
 
         const qrPayloadToPrint = options.qrPayload !== undefined ? options.qrPayload : getQRPayloadFromStore();
         if (qrPayloadToPrint) {
-            await this.printQrCode(qrPayloadToPrint, { size: isK58 ? 2 : 3, align: 'center' });
+            await this.printQrCode(qrPayloadToPrint, { size: 3, align: 'center' });
         }
 
-        await this.printText('CẢM ƠN QUÝ KHÁCH, HẸN GẶP LẠI!', { fontSize: fsFooter, align: 'center' });
+        await this.printText('CẢM ƠN QUÝ KHÁCH, HẸN GẶP LẠI!', { fontSize: fsFooterSmall, align: 'center' });
+
 
         await this.printerInstance.printAndFeedPaper(60);
         await this.printerInstance.partialCut();
@@ -368,7 +376,7 @@ class IminPrinterService {
     const fsTableHead = isK58 ? 16 : 20;
     const fsTableItem = isK58 ? 17 : 22;
     const fsTitle = isK58 ? 20 : 24;
-    const LINE_FULL_WIDTH = isK58 ? '----------------------------' : '─────────────────────────────────────────';
+    const LINE_FULL_WIDTH = isK58 ? '──────────────────────────────────────────' : '─────────────────────────────────────────';
 
     try {
       if (!this.isInitialized) {
