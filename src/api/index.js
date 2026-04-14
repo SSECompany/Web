@@ -1,3 +1,4 @@
+import axios from "axios";
 import axiosInstance from "../utils/axiosInstance";
 import { APP_CONFIG } from "../utils/constants";
 import https from "../utils/https";
@@ -185,6 +186,33 @@ export const exportToEInvoice = async (sttRec) => {
     .then((res) => {
       return res?.data || [];
     });
+};
+
+// ===== INVOICE PRINT API =====
+export const fetchInvoicePrintData = async (sttRec) => {
+  try {
+    const res = await axios.post(
+      `https://api-tapmed-invoice.sse.net.vn/api/invoices/print`,
+      { sttRec },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 15000,
+      }
+    );
+    return {
+      success: true,
+      data: res?.data,
+    };
+  } catch (error) {
+    console.error("❌ Error fetching invoice print data:", error);
+    return {
+      success: false,
+      data: null,
+      message: error?.response?.data?.message || error?.message || "Không thể tải dữ liệu hóa đơn",
+    };
+  }
 };
 
 // ===== TAPMED PHARMACY APIs =====

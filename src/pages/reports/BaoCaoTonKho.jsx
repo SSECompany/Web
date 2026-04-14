@@ -68,6 +68,7 @@ const BaoCaoTonKho = () => {
   }, [DVCS, defaultUnitCode]);
 
   const [dataSource, setDataSource] = useState([]);
+  const [summaryData, setSummaryData] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // Pagination state
@@ -324,6 +325,26 @@ const BaoCaoTonKho = () => {
         return ma || ten;
       });
 
+      const summaryRow = cleanedData.find((item) => {
+        const ma = (item.ma_vt || "").trim();
+        const ten = (item.ten_vt || "").trim();
+        return item.systotal === 0 && !ma && ten.toLowerCase().includes("tổng");
+      });
+
+      if (summaryRow) {
+        setSummaryData({
+          so_luong: Number(summaryRow.so_luong) || 0,
+          gia_tri:
+            summaryRow.tien !== undefined && summaryRow.tien !== null
+              ? Number(summaryRow.tien)
+              : summaryRow.gia_tri !== undefined && summaryRow.gia_tri !== null
+              ? Number(summaryRow.gia_tri)
+              : (Number(summaryRow.so_luong) || 0) * (Number(summaryRow.don_gia) || 0),
+        });
+      } else if (currentPage === 1) {
+        setSummaryData(null);
+      }
+
       // Format data với key và tính toán giá trị
       // API có thể trả về các field: ma_vt, ten_vt, dvt, so_luong, don_gia, gia_tri, etc.
       const formattedData = cleanedData.map((item, index) => {
@@ -355,7 +376,7 @@ const BaoCaoTonKho = () => {
               : (Number(item.so_luong) || 0) * (Number(item.don_gia) || 0),
           so_luong: Number(item.so_luong) || 0,
         };
-      });
+      }).filter((item) => !item.isSummary);
 
       setDataSource(formattedData);
     } catch (err) {
@@ -1094,29 +1115,21 @@ const BaoCaoTonKho = () => {
             }}
             rowKey="key"
             scroll={{ y: 450 }}
-            summary={(pageData) => {
+            summary={() => {
               const summarySoLuong =
-                totals.apiTotalSoLuong || totals.totalSoLuong;
-              const summaryGiaTri = totals.apiTotalGiaTri || totals.totalGiaTri;
+                summaryData?.so_luong ?? totals.apiTotalSoLuong ?? totals.totalSoLuong;
+              const summaryGiaTri = summaryData?.gia_tri ?? totals.apiTotalGiaTri ?? totals.totalGiaTri;
               return (
                 <Table.Summary.Row>
-                  {columns.map((col, idx) => {
-                    const { dataIndex } = col;
-
-                    const cellValueMap = {
-                      stt: <strong>Tổng cộng</strong>,
-                      so_luong: <strong>{formatNumber(summarySoLuong)}</strong>,
-                      gia_tri: <strong>{formatNumber(summaryGiaTri)}</strong>,
-                    };
-
-                    const cellValue = cellValueMap[dataIndex];
-
-                    return (
-                      <Table.Summary.Cell key={idx}>
-                        {cellValue || null}
-                      </Table.Summary.Cell>
-                    );
-                  })}
+                  <Table.Summary.Cell index={0} colSpan={4} align="center">
+                    <strong style={{ whiteSpace: "nowrap" }}>Tổng cộng</strong>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={4} align="center">
+                    <strong>{formatNumber(summarySoLuong)}</strong>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={5} align="center">
+                    <strong>{formatNumber(summaryGiaTri)}</strong>
+                  </Table.Summary.Cell>
                 </Table.Summary.Row>
               );
             }}

@@ -71,6 +71,7 @@ const TongHopNhapXuatTon = () => {
   }, [DVCS, defaultUnitCode]);
 
   const [dataSource, setDataSource] = useState([]);
+  const [summaryData, setSummaryData] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // Pagination state
@@ -361,6 +362,27 @@ const TongHopNhapXuatTon = () => {
       const total = paginationInfo.totalRecord || paginationInfo.total_rows || fetchedData.length;
       setTotalRecords(total);
 
+      const summaryRow = fetchedData.find((item) => {
+        const ma = (item.ma_vt || "").trim();
+        const ten = (item.ten_vt || "").trim();
+        return item.systotal === 0 && !ma && ten.toLowerCase().includes("tổng");
+      });
+
+      if (summaryRow) {
+        setSummaryData({
+          ton_dau: Number(summaryRow.ton_dau || 0),
+          du_dau: Number(summaryRow.du_dau || 0),
+          sl_nhap: Number(summaryRow.sl_nhap || 0),
+          tien_nhap: Number(summaryRow.tien_nhap || 0),
+          sl_xuat: Number(summaryRow.sl_xuat || 0),
+          tien_xuat: Number(summaryRow.tien_xuat || 0),
+          ton_cuoi: Number(summaryRow.ton_cuoi || 0),
+          du_cuoi: Number(summaryRow.du_cuoi || 0),
+        });
+      } else if (currentPage === 1) {
+        setSummaryData(null);
+      }
+
       const formattedData = fetchedData
         .map((item, index) => {
           const ma = (item.ma_vt || "").trim();
@@ -392,7 +414,7 @@ const TongHopNhapXuatTon = () => {
             du_cuoi: Number(item.du_cuoi || 0),
           };
         })
-        .filter((item) => item.ma_vt || item.ten_vt);
+        .filter((item) => (item.ma_vt || item.ten_vt) && !item.isSummary);
 
       setDataSource(formattedData);
     } catch (err) {
@@ -797,6 +819,9 @@ const TongHopNhapXuatTon = () => {
   }, [dataSource]);
 
   const getTotalValue = (field) => {
+    if (summaryData && summaryData[field] !== undefined) {
+      return summaryData[field];
+    }
     if (totals.summary && totals.summary[field] !== undefined) {
       return totals.summary[field];
     }
@@ -1198,45 +1223,33 @@ const TongHopNhapXuatTon = () => {
             sticky={{ offsetHeader: 0 }}
             summary={() => (
               <Table.Summary.Row>
-                {columns.map((col, idx) => {
-                  const { dataIndex } = col;
-                  const cellValueMap = {
-                    ten_vt: <strong>Tổng cộng</strong>,
-                    ton_dau: (
-                      <strong>{formatNumber(getTotalValue("ton_dau"))}</strong>
-                    ),
-                    du_dau: (
-                      <strong>{formatNumber(getTotalValue("du_dau"))}</strong>
-                    ),
-                    sl_nhap: (
-                      <strong>{formatNumber(getTotalValue("sl_nhap"))}</strong>
-                    ),
-                    tien_nhap: (
-                      <strong>
-                        {formatNumber(getTotalValue("tien_nhap"))}
-                      </strong>
-                    ),
-                    sl_xuat: (
-                      <strong>{formatNumber(getTotalValue("sl_xuat"))}</strong>
-                    ),
-                    tien_xuat: (
-                      <strong>
-                        {formatNumber(getTotalValue("tien_xuat"))}
-                      </strong>
-                    ),
-                    ton_cuoi: (
-                      <strong>{formatNumber(getTotalValue("ton_cuoi"))}</strong>
-                    ),
-                    du_cuoi: (
-                      <strong>{formatNumber(getTotalValue("du_cuoi"))}</strong>
-                    ),
-                  };
-                  return (
-                    <Table.Summary.Cell key={idx}>
-                      {cellValueMap[dataIndex] || null}
-                    </Table.Summary.Cell>
-                  );
-                })}
+                <Table.Summary.Cell index={0} colSpan={4} align="center">
+                  <strong style={{ whiteSpace: "nowrap" }}>Tổng cộng</strong>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={4} align="right">
+                  <strong>{formatNumber(getTotalValue("ton_dau"))}</strong>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={5} align="right">
+                  <strong>{formatNumber(getTotalValue("du_dau"))}</strong>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={6} align="right">
+                  <strong>{formatNumber(getTotalValue("sl_nhap"))}</strong>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={7} align="right">
+                  <strong>{formatNumber(getTotalValue("tien_nhap"))}</strong>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={8} align="right">
+                  <strong>{formatNumber(getTotalValue("sl_xuat"))}</strong>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={9} align="right">
+                  <strong>{formatNumber(getTotalValue("tien_xuat"))}</strong>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={10} align="right">
+                  <strong>{formatNumber(getTotalValue("ton_cuoi"))}</strong>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={11} align="right">
+                  <strong>{formatNumber(getTotalValue("du_cuoi"))}</strong>
+                </Table.Summary.Cell>
               </Table.Summary.Row>
             )}
           />

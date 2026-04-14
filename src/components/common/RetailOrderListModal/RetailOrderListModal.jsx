@@ -24,7 +24,7 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
-import { multipleTablePutApi, exportToEInvoice } from "../../../api";
+import { multipleTablePutApi, exportToEInvoice, fetchInvoicePrintData } from "../../../api";
 import jwt from "../../../utils/jwt";
 import showConfirm from "../Modal/ModalConfirm";
 import PrintComponent from "./PrintComponent/PrintComponent";
@@ -93,6 +93,11 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
 
   const [isEditingOrder, setIsEditingOrder] = useState(false);
   const [isIssuing, setIsIssuing] = useState(null);
+
+  // Invoice view modal state
+  const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
+  const [invoiceData, setInvoiceData] = useState(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
 
   // Persist and show active filters like picking list
   const FILTERS_STORAGE_KEY = "retailOrder_filters";
@@ -443,10 +448,48 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
   };
 
 
-  const renderSyncResultTag = (value) => {
+  const handleViewInvoice = useCallback(async (sttRec) => {
+    setInvoiceLoading(true);
+    setInvoiceModalVisible(true);
+    setInvoiceData(null);
+    try {
+      const res = await fetchInvoicePrintData(sttRec);
+      if (res?.success && res?.data) {
+        setInvoiceData(res.data);
+      } else {
+        notification.error({
+          message: "Lỗi tải dữ liệu hóa đơn",
+          description: res?.message || "Không thể tải dữ liệu hóa đơn điện tử.",
+        });
+        setInvoiceModalVisible(false);
+      }
+    } catch (error) {
+      console.error("Error fetching invoice data:", error);
+      notification.error({
+        message: "Lỗi tải dữ liệu hóa đơn",
+        description: "Không thể kết nối đến máy chủ hóa đơn.",
+      });
+      setInvoiceModalVisible(false);
+    } finally {
+      setInvoiceLoading(false);
+    }
+  }, []);
+
+  const renderSyncResultTag = (value, record) => {
     const status = getSyncResultStatus(value);
     if (status === "success") {
-      return <Tag color="green">Đã phát hành</Tag>;
+      return (
+        <Tag
+          color="green"
+          style={{ cursor: "pointer" }}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleViewInvoice(record.stt_rec);
+          }}
+        >
+          Đã phát hành
+        </Tag>
+      );
     }
     return <Tag color={status === "failed" ? "red" : ""}>Chưa phát hành</Tag>;
   };
@@ -583,7 +626,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       dataIndex: "s3",
       key: "syncStatus",
       align: "center",
-      render: (value) => renderSyncResultTag(value),
+      render: (value, record) => renderSyncResultTag(value, record),
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
         <div className="filter-dropdown">
           <Select
@@ -1008,6 +1051,69 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
             </div>
           )}
         </div>
+      </Modal>
+      {/* Invoice View Modal */}
+      <Modal
+        open={invoiceModalVisible}
+        title="Thông tin hóa đơn điện tử"
+        onCancel={() => {
+          setInvoiceModalVisible(false);
+          setInvoiceData(null);
+        }}
+        footer={[
+          <Button
+            key="close"
+            onClick={() => {
+              setInvoiceModalVisible(false);
+              setInvoiceData(null);
+            }}
+          >
+            Đóng
+          </Button>,
+        ]}
+        width={800}
+        centered
+        destroyOnClose
+      >
+        {invoiceLoading ? (
+          <div style={{ textAlign: "center", padding: "40px 0" }}>
+            <Spin size="large" tip="Đang tải dữ liệu hóa đơn..." />
+          </div>
+        ) : invoiceData ? (
+          <div className="invoice-preview-container">
+            {typeof invoiceData === "string" ? (
+              <div
+                dangerouslySetInnerHTML={{ __html: invoiceData }}
+                style={{ width: "100%", minHeight: 400 }}
+              />
+            ) : invoiceData?.fileUrl || invoiceData?.url || invoiceData?.pdfUrl ? (
+              <iframe
+                src={invoiceData.fileUrl || invoiceData.url || invoiceData.pdfUrl}
+                title="Hóa đơn điện tử"
+                style={{ width: "100%", height: "600px", border: "none" }}
+              />
+            ) : (
+              <pre
+                style={{
+                  background: "#f5f5f5",
+                  padding: 16,
+                  borderRadius: 8,
+                  maxHeight: 500,
+                  overflow: "auto",
+                  fontSize: 13,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                }}
+              >
+                {JSON.stringify(invoiceData, null, 2)}
+              </pre>
+            )}
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", padding: "40px 0", color: "#999" }}>
+            Không có dữ liệu hóa đơn.
+          </div>
+        )}
       </Modal>
       <div style={{ display: "none" }}>
         <PrintComponent
