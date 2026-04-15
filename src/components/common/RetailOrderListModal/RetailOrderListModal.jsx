@@ -1057,6 +1057,10 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
         open={invoiceModalVisible}
         title="Thông tin hóa đơn điện tử"
         onCancel={() => {
+          // Revoke blob URL to free memory
+          if (invoiceData && typeof invoiceData === "string" && invoiceData.startsWith("blob:")) {
+            URL.revokeObjectURL(invoiceData);
+          }
           setInvoiceModalVisible(false);
           setInvoiceData(null);
         }}
@@ -1064,6 +1068,9 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
           <Button
             key="close"
             onClick={() => {
+              if (invoiceData && typeof invoiceData === "string" && invoiceData.startsWith("blob:")) {
+                URL.revokeObjectURL(invoiceData);
+              }
               setInvoiceModalVisible(false);
               setInvoiceData(null);
             }}
@@ -1081,7 +1088,13 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
           </div>
         ) : invoiceData ? (
           <div className="invoice-preview-container">
-            {typeof invoiceData === "string" ? (
+            {typeof invoiceData === "string" && invoiceData.startsWith("blob:") ? (
+              <iframe
+                src={invoiceData}
+                title="Hóa đơn điện tử"
+                style={{ width: "100%", height: "600px", border: "none" }}
+              />
+            ) : typeof invoiceData === "string" ? (
               <div
                 dangerouslySetInnerHTML={{ __html: invoiceData }}
                 style={{ width: "100%", minHeight: 400 }}

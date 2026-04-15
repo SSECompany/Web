@@ -200,12 +200,16 @@ export const fetchInvoicePrintData = async (sttRec) => {
           Authorization: token ? `Bearer ${token}` : "",
           "Content-Type": "application/json",
         },
+        responseType: "blob", // Server trả về PDF binary, cần nhận dạng blob
       }
     )
     .then((res) => {
+      // Tạo blob URL từ PDF data để hiển thị trong iframe hoặc tab mới
+      const pdfBlob = new Blob([res?.data], { type: "application/pdf" });
+      const pdfUrl = URL.createObjectURL(pdfBlob) + "#toolbar=0&navpanes=0&view=Fit";
       return {
         success: true,
-        data: res?.data,
+        data: pdfUrl,
       };
     })
     .catch((err) => {
