@@ -279,7 +279,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         ngay_hhsd_tu: null,
         ngay_hhsd_den: null,
         pageIndex: page,
-        pageSize: 10,
+        pageSize: 50,
       });
 
       const data = response?.listObject?.[0] || [];
@@ -308,7 +308,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         ma_kho: (record?.ma_kho || "ST").toString(),
         ten_vi_tri: keyword,
         pageIndex: page,
-        pageSize: 10,
+        pageSize: 50,
       });
 
       const data = response?.listObject?.[0] || [];
