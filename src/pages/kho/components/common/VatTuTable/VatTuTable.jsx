@@ -118,15 +118,9 @@ const VatTuTable = ({
   }, [focusInvalidRowKey, onFocusInvalidRowHandled]);
 
   // Prefetch danh sách mã lô cho một dòng cụ thể, luôn dùng dataSource mới nhất
-<<<<<<< HEAD
-  const loadLoOptions = useCallback(
-    async (keyword = "", record, openAfter = false, page = 1) => {
-      if (!apiHandlers.fetchLoList || !record?.key) return;
-=======
   const loLoadingRef = useRef({});
   const loPageRef = useRef({});
   const loTotalPageRef = useRef({});
->>>>>>> 02032026_kho_v2
 
   const loadLoOptions = useCallback(
     async (keyword = "", record, openAfter = false, page = 1) => {
@@ -612,20 +606,6 @@ const VatTuTable = ({
                     currentRecord?.loOptions && currentRecord.loOptions.length > 0;
                   if (!hasOptions) {
                     loadLoOptions("", currentRecord, true, 1);
-                  }
-                }}
-                listHeight={150} // Giới hạn chiều cao popup để luôn hiện scrollbar khi có 5 items
-                onPopupScroll={(e) => {
-                  const { scrollTop, scrollHeight, clientHeight } = e.target;
-                  if (
-                    scrollTop + clientHeight >= scrollHeight - 20
-                  ) {
-                    const currentPage = loPageRef.current[record.key] || 1;
-                    const defaultTotalPage = record._loTotalPage || 1;
-                    const totalPage = loTotalPageRef.current[record.key] || defaultTotalPage;
-                    if (currentPage < totalPage && !isLoLoading) {
-                      loadLoOptions("", record, false, currentPage + 1);
-                    }
                   }
                 }}
                 onChange={(val) => {
