@@ -39,7 +39,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
         ngay_hhsd_tu: null,
         ngay_hhsd_den: null,
         pageIndex: 1,
-        pageSize: 10,
+        pageSize: 100,
       });
       const data = res?.listObject?.[0] || [];
       const options = data.map((x) => {
@@ -482,23 +482,7 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
       align: "center",
       render: (text, record, index) => {
         const isLoading = !!batchLoading[index];
-        const hasOptions = (batchOptions[index] || []).length > 0;
         const isOpen = !!batchOpen[index];
-        if (isOpen && isLoading && !hasOptions) {
-          return (
-            <div
-              style={{
-                width: "100%",
-                height: 28,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Spin size="small" />
-            </div>
-          );
-        }
         return (
           <Select
             value={text || undefined}
@@ -509,7 +493,22 @@ const CartTable = ({ cart, removeAt, updateLine, currentOrderSttRec = "" }) => {
             style={{ width: "100%" }}
             filterOption={false}
             loading={isLoading}
-            notFoundContent={isLoading ? <Spin size="small" /> : null}
+            notFoundContent={
+              isLoading ? (
+                <div
+                  style={{
+                    padding: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Spin size="small" />
+                </div>
+              ) : (
+                "Không có dữ liệu"
+              )
+            }
             open={isOpen}
             onOpenChange={(visible) => {
               setBatchOpen((prev) => ({ ...prev, [index]: visible }));

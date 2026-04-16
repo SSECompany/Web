@@ -118,32 +118,57 @@ const VatTuTable = ({
   }, [focusInvalidRowKey, onFocusInvalidRowHandled]);
 
   // Prefetch danh sách mã lô cho một dòng cụ thể, luôn dùng dataSource mới nhất
+<<<<<<< HEAD
   const loadLoOptions = useCallback(
     async (keyword = "", record, openAfter = false, page = 1) => {
       if (!apiHandlers.fetchLoList || !record?.key) return;
+=======
+  const loLoadingRef = useRef({});
+  const loPageRef = useRef({});
+  const loTotalPageRef = useRef({});
+>>>>>>> 02032026_kho_v2
 
+  const loadLoOptions = useCallback(
+    async (keyword = "", record, openAfter = false, page = 1) => {
+      if (!apiHandlers.fetchLoList || !record?.key || loLoadingRef.current[record.key]) return;
+
+      loLoadingRef.current[record.key] = true;
       setLoadingLo((prev) => ({ ...prev, [record.key]: true }));
       try {
         const currentDataSource = dataSourceRef.current;
         const currentRecord =
           currentDataSource.find((item) => item.key === record.key) || record;
 
-        const options = await apiHandlers.fetchLoList(
+        const result = await apiHandlers.fetchLoList(
           keyword,
           currentRecord,
           page
         );
+
+        // Hỗ trợ cả array (cũ) và object { options, totalPage } (mới)
+        const fetchedOptions = Array.isArray(result) ? result : (result?.options || []);
+        const totalPage = !Array.isArray(result) ? (result?.totalPage || 1) : 1;
+
+        loPageRef.current[record.key] = page;
+        loTotalPageRef.current[record.key] = totalPage;
 
         const latestDataSource = dataSourceRef.current;
         const latestRecord =
           latestDataSource.find((item) => item.key === record.key) ||
           currentRecord;
 
+<<<<<<< HEAD
         const updatedRecord = { 
           ...latestRecord, 
           loOptions: page === 1 ? options : [...(latestRecord.loOptions || []), ...options],
           loPage: page 
         };
+=======
+        const existingOptions = page === 1 ? [] : (latestRecord.loOptions || []);
+        const mergedOptions = [...existingOptions, ...fetchedOptions];
+
+        const updatedRecord = { ...latestRecord, loOptions: mergedOptions };
+>>>>>>> 02032026_kho_v2
         const updatedDataSource = latestDataSource.map((item) =>
           item.key === record.key ? updatedRecord : item
         );
@@ -156,6 +181,7 @@ const VatTuTable = ({
       } catch (error) {
         console.error("Error loading lot options:", error);
       } finally {
+        loLoadingRef.current[record.key] = false;
         setLoadingLo((prev) => ({ ...prev, [record.key]: false }));
       }
     },
@@ -163,10 +189,17 @@ const VatTuTable = ({
   );
 
   // Prefetch danh sách vị trí cho một dòng cụ thể, quản lý state riêng như POS số lô
+  const viTriLoadingRef = useRef({});
   const loadViTriOptions = useCallback(
+<<<<<<< HEAD
     async (keyword = "", record, openAfter = false, page = 1) => {
       if (!apiHandlers.fetchViTriList || !record?.key) return;
+=======
+    async (keyword = "", record, openAfter = false) => {
+      if (!apiHandlers.fetchViTriList || !record?.key || viTriLoadingRef.current[record.key]) return;
+>>>>>>> 02032026_kho_v2
 
+      viTriLoadingRef.current[record.key] = true;
       setLoadingViTri((prev) => ({ ...prev, [record.key]: true }));
       try {
         const currentDataSource = dataSourceRef.current;
@@ -205,6 +238,7 @@ const VatTuTable = ({
       } catch (error) {
         console.error("Error loading vi tri options:", error);
       } finally {
+        viTriLoadingRef.current[record.key] = false;
         setLoadingViTri((prev) => ({ ...prev, [record.key]: false }));
       }
     },
@@ -560,17 +594,6 @@ const VatTuTable = ({
                 size="small"
                 style={{ width: 140 }}
                 loading={isLoLoading}
-                onFocus={() => {
-                  const currentDataSource = dataSourceRef.current;
-                  const currentRecord =
-                    currentDataSource.find((item) => item.key === record.key) ||
-                    record;
-                  const hasOptions =
-                    currentRecord?.loOptions && currentRecord.loOptions.length > 0;
-                  if (!hasOptions) {
-                    loadLoOptions("", currentRecord, true);
-                  }
-                }}
                 onOpenChange={(visible) => {
                   setOpenLo((prev) => {
                     if (visible) {
@@ -588,7 +611,21 @@ const VatTuTable = ({
                   const hasOptions =
                     currentRecord?.loOptions && currentRecord.loOptions.length > 0;
                   if (!hasOptions) {
-                    loadLoOptions("", currentRecord, true);
+                    loadLoOptions("", currentRecord, true, 1);
+                  }
+                }}
+                listHeight={150} // Giới hạn chiều cao popup để luôn hiện scrollbar khi có 5 items
+                onPopupScroll={(e) => {
+                  const { scrollTop, scrollHeight, clientHeight } = e.target;
+                  if (
+                    scrollTop + clientHeight >= scrollHeight - 20
+                  ) {
+                    const currentPage = loPageRef.current[record.key] || 1;
+                    const defaultTotalPage = record._loTotalPage || 1;
+                    const totalPage = loTotalPageRef.current[record.key] || defaultTotalPage;
+                    if (currentPage < totalPage && !isLoLoading) {
+                      loadLoOptions("", record, false, currentPage + 1);
+                    }
                   }
                 }}
                 onChange={(val) => {
