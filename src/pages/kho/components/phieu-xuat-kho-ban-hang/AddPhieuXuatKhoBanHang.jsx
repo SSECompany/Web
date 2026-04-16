@@ -1,7 +1,7 @@
 import { LeftOutlined } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import VatTuSelectFull from "../../../../components/common/ProductSelectFull/VatTuSelectFull";
@@ -66,38 +66,7 @@ const AddPhieuXuatKhoBanHang = () => {
   const token = localStorage.getItem("access_token");
 
   // Effects
-  useEffect(() => {
-    // Tải danh sách mã giao dịch và mã khách
-    fetchMaGiaoDichList();
-    fetchMaKhachList();
-    fetchVatTuList();
-    fetchVoucherInfo();
-
-    // Thiết lập giá trị mặc định cho ngày
-    form.setFieldsValue({
-      ngay: dayjs(),
-      trangThai: "0",
-    });
-  }, [fetchMaGiaoDichList, fetchMaKhachList, fetchVatTuList, fetchVoucherInfo, form]);
-
-  useEffect(() => {
-    if (barcodeJustEnabled && vatTuSelectRef.current) {
-      vatTuSelectRef.current.focus();
-      setBarcodeJustEnabled(false);
-    }
-  }, [barcodeJustEnabled]);
-
-  useEffect(() => {
-    const searchTimeout = searchTimeoutRef.current;
-    return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
-    };
-  }, []);
-
-  // Functions
-  const fetchVoucherInfo = async () => {
+  const fetchVoucherInfo = useCallback(async () => {
     try {
       const response = await https.get(
         "v1/web/thong-tin-phieu-nhap",
@@ -129,7 +98,82 @@ const AddPhieuXuatKhoBanHang = () => {
     } catch (error) {
       console.error("Error fetching voucher info:", error);
     }
-  };
+  }, [token, form]);
+
+  const fetchVatTuList = useCallback(
+    async (keyword = "", page = 1, append = false, callback) => {
+      setLoadingVatTu(true);
+      try {
+        const userStr = localStorage.getItem("user");
+        const unitsResponseStr = localStorage.getItem("unitsResponse");
+        const user = userStr ? JSON.parse(userStr) : {};
+        const unitsResponse = unitsResponseStr
+          ? JSON.parse(unitsResponseStr)
+          : {};
+        const unitCode = user.unitCode || unitsResponse.unitCode;
+        const res = await fetchVatTuListDynamicApi({
+          keyword,
+          unitCode,
+          pageIndex: page,
+          pageSize: 100,
+        });
+        if (res.success && res.data) {
+          const options = res.data.map((item) => ({
+            label: `${item.ma_vt} - ${item.ten_vt}`,
+            value: item.ma_vt,
+            ...item,
+          }));
+          setVatTuList((prev) => (append ? [...prev, ...options] : options));
+          if (callback) callback(res.pagination);
+        } else {
+          if (!append) setVatTuList([]);
+          if (callback) callback({ totalPage: 1 });
+        }
+      } catch (error) {
+        setVatTuList([]);
+        if (callback) callback({ totalPage: 1 });
+      } finally {
+        setLoadingVatTu(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    // Tải danh sách mã giao dịch và mã khách
+    fetchMaGiaoDichList();
+    fetchMaKhachList();
+    fetchVatTuList();
+    fetchVoucherInfo();
+
+    // Thiết lập giá trị mặc định cho ngày
+    form.setFieldsValue({
+      ngay: dayjs(),
+      trangThai: "0",
+    });
+  }, [
+    fetchMaGiaoDichList,
+    fetchMaKhachList,
+    fetchVatTuList,
+    fetchVoucherInfo,
+    form,
+  ]);
+
+  useEffect(() => {
+    if (barcodeJustEnabled && vatTuSelectRef.current) {
+      vatTuSelectRef.current.focus();
+      setBarcodeJustEnabled(false);
+    }
+  }, [barcodeJustEnabled]);
+
+  useEffect(() => {
+    const searchTimeout = searchTimeoutRef.current;
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, []);
 
   const handleVatTuSelect = async (value) => {
     await vatTuSelectHandler(
@@ -143,6 +187,35 @@ const AddPhieuXuatKhoBanHang = () => {
       vatTuSelectRef
     );
   };
+
+  const submitPhieuData = useCallback(
+    async (values) => {
+      try {
+        const payload = buildPayload(values, dataSource, null, false);
+
+        if (!payload) {
+          message.error("Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu.");
+          setLoading(false);
+          return;
+        }
+
+        const result = await submitPhieuDynamic(
+          payload,
+          "Thêm phiếu xuất kho bán hàng thành công",
+          false
+        );
+
+        if (result.success) {
+          navigate("/kho/xuat-ban");
+        }
+      } catch (error) {
+        console.error("Lỗi khi tạo phiếu xuất kho:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dataSource, navigate, setLoading]
+  );
 
   const handleSubmit = async () => {
     try {
@@ -204,74 +277,6 @@ const AddPhieuXuatKhoBanHang = () => {
     } catch (error) {
       console.error("Lỗi khi tạo phiếu xuất kho:", error);
       setLoading(false);
-    }
-  };
-
-  const submitPhieuData = async (values) => {
-    try {
-      const payload = buildPayload(values, dataSource, null, false);
-
-      if (!payload) {
-        message.error("Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu.");
-        setLoading(false);
-        return;
-      }
-
-      const result = await submitPhieuDynamic(
-        payload,
-        "Thêm phiếu xuất kho bán hàng thành công",
-        false
-      );
-
-      if (result.success) {
-        navigate("/kho/xuat-ban");
-      }
-    } catch (error) {
-      console.error("Lỗi khi tạo phiếu xuất kho:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Phân trang vật tư
-  const fetchVatTuList = async (
-    keyword = "",
-    page = 1,
-    append = false,
-    callback
-  ) => {
-    setLoadingVatTu(true);
-    try {
-      const userStr = localStorage.getItem("user");
-      const unitsResponseStr = localStorage.getItem("unitsResponse");
-      const user = userStr ? JSON.parse(userStr) : {};
-      const unitsResponse = unitsResponseStr
-        ? JSON.parse(unitsResponseStr)
-        : {};
-      const unitCode = user.unitCode || unitsResponse.unitCode;
-      const res = await fetchVatTuListDynamicApi({
-        keyword,
-        unitCode,
-        pageIndex: page,
-        pageSize: 100,
-      });
-      if (res.success && res.data) {
-        const options = res.data.map((item) => ({
-          label: `${item.ma_vt} - ${item.ten_vt}`,
-          value: item.ma_vt,
-          ...item,
-        }));
-        setVatTuList((prev) => (append ? [...prev, ...options] : options));
-        if (callback) callback(res.pagination);
-      } else {
-        if (!append) setVatTuList([]);
-        if (callback) callback({ totalPage: 1 });
-      }
-    } catch (error) {
-      setVatTuList([]);
-      if (callback) callback({ totalPage: 1 });
-    } finally {
-      setLoadingVatTu(false);
     }
   };
 

@@ -267,6 +267,47 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
     ]
   );
 
+  const submitPhieuData = useCallback(
+    async (values) => {
+      try {
+        // Sử dụng buildPayload với dynamic logic đã được implement
+        const payload = buildPayload(values, dataSource, phieuData, true);
+
+        if (!payload) {
+          message.error(
+            "Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu."
+          );
+          setLoading(false);
+          return;
+        }
+        const result = await submitPhieuDynamic(
+          payload,
+          isEditMode
+            ? "Cập nhật phiếu xuất kho bán hàng thành công"
+            : "Lưu phiếu xuất kho bán hàng thành công",
+          true
+        );
+
+        if (result.success) {
+          message.success(
+            "Đã cập nhật thành công, đang chuyển về trang chính..."
+          );
+
+          // Delay một chút để user thấy message trước khi navigate
+          setTimeout(() => {
+            navigate("/kho/xuat-kho-ban-hang");
+          }, 1000);
+        } else {
+        }
+      } catch (error) {
+        console.error("Lỗi khi cập nhật phiếu xuất kho:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dataSource, phieuData, isEditMode, navigate, setLoading]
+  );
+
   const handleSubmit = useCallback(async () => {
     try {
       setLoading(true);
@@ -329,47 +370,6 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
       setLoading(false);
     }
   }, [form, dataSource, submitPhieuData, setLoading]);
-
-  const submitPhieuData = useCallback(
-    async (values) => {
-      try {
-        // Sử dụng buildPayload với dynamic logic đã được implement
-        const payload = buildPayload(values, dataSource, phieuData, true);
-
-        if (!payload) {
-          message.error(
-            "Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu."
-          );
-          setLoading(false);
-          return;
-        }
-        const result = await submitPhieuDynamic(
-          payload,
-          isEditMode
-            ? "Cập nhật phiếu xuất kho bán hàng thành công"
-            : "Lưu phiếu xuất kho bán hàng thành công",
-          true
-        );
-
-        if (result.success) {
-          message.success(
-            "Đã cập nhật thành công, đang chuyển về trang chính..."
-          );
-
-          // Delay một chút để user thấy message trước khi navigate
-          setTimeout(() => {
-            navigate("/kho/xuat-kho-ban-hang");
-          }, 1000);
-        } else {
-        }
-      } catch (error) {
-        console.error("Lỗi khi cập nhật phiếu xuất kho:", error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [dataSource, phieuData, isEditMode, navigate, setLoading]
-  );
 
   const handleEdit = useCallback(() => {
     navigate(`/kho/xuat-kho-ban-hang/edit/${stt_rec}`);

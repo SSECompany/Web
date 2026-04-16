@@ -279,10 +279,12 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         ngay_hhsd_tu: null,
         ngay_hhsd_den: null,
         pageIndex: page,
-        pageSize: 50,
+        pageSize: 10,
       });
 
       const data = response?.listObject?.[0] || [];
+      const totalPage = response?.listObject?.[1]?.[0]?.totalPage ?? 1;
+
       const options = data.map((x) => {
         const value = (x?.ma_lo || x?.value || x?.ten_lo || "").toString();
         // Format label: ma_lo-ngay_hhsd nếu có ngay_hhsd
@@ -295,7 +297,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         }
         return { value, label };
       });
-      return options;
+      return { options, totalPage };
     } catch (e) {
       console.error("fetchLoList (detail) error", e);
       return [];
@@ -398,7 +400,8 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           if (newRecord) {
             // Tự động query mã lô để lấy options, không tự động điền giá trị
             fetchLoList("", newRecord, 1)
-              .then((loOptions) => {
+              .then((result) => {
+                const loOptions = Array.isArray(result) ? result : (result?.options || []);
                 if (!loOptions || loOptions.length === 0) {
                   return;
                 }
@@ -407,7 +410,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 setDataSource((currentDataSource) =>
                   currentDataSource.map((item) =>
                     item.key === newRecord.key
-                      ? { ...item, loOptions: loOptions }
+                      ? { ...item, loOptions: loOptions, _loTotalPage: result?.totalPage || 1 }
                       : item
                   )
                 );

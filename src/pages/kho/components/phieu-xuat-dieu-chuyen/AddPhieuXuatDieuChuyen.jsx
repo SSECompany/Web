@@ -1,7 +1,7 @@
 import { LeftOutlined } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import VatTuSelectFull from "../../../../components/common/ProductSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
@@ -61,36 +61,7 @@ const AddPhieuXuatDieuChuyen = () => {
 
   const token = localStorage.getItem("access_token");
 
-  useEffect(() => {
-    fetchMaGiaoDichList();
-    fetchMaKhoList();
-    fetchVatTuList();
-    fetchVoucherInfo();
-
-    form.setFieldsValue({
-      ngay: dayjs(),
-      trangThai: "3",
-      maGiaoDich: "3",
-    });
-  }, [fetchMaGiaoDichList, fetchMaKhoList, fetchVatTuList, fetchVoucherInfo, form]);
-
-  useEffect(() => {
-    if (barcodeJustEnabled && vatTuSelectRef.current) {
-      vatTuSelectRef.current.focus();
-      setBarcodeJustEnabled(false);
-    }
-  }, [barcodeJustEnabled]);
-
-  useEffect(() => {
-    const searchTimeout = searchTimeoutRef.current;
-    return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
-    };
-  }, []);
-
-  const fetchVoucherInfo = async () => {
+  const fetchVoucherInfo = useCallback(async () => {
     try {
       const response = await https.get(
         "v1/web/thong-tin-phieu-nhap",
@@ -120,7 +91,81 @@ const AddPhieuXuatDieuChuyen = () => {
     } catch (error) {
       console.error("Error fetching voucher info:", error);
     }
-  };
+  }, [token, form]);
+
+  const fetchVatTuList = useCallback(
+    async (keyword = "", page = 1, append = false, callback) => {
+      setLoadingVatTu(true);
+      try {
+        const userStr = localStorage.getItem("user");
+        const unitsResponseStr = localStorage.getItem("unitsResponse");
+        const user = userStr ? JSON.parse(userStr) : {};
+        const unitsResponse = unitsResponseStr
+          ? JSON.parse(unitsResponseStr)
+          : {};
+        const unitCode = user.unitCode || unitsResponse.unitCode;
+        const res = await fetchVatTuListDynamicApi({
+          keyword,
+          unitCode,
+          pageIndex: page,
+          pageSize: 100,
+        });
+        if (res.success && res.data) {
+          const options = res.data.map((item) => ({
+            label: `${item.ma_vt} - ${item.ten_vt}`,
+            value: item.ma_vt,
+            ...item,
+          }));
+          setVatTuList((prev) => (append ? [...prev, ...options] : options));
+          if (callback) callback(res.pagination);
+        } else {
+          if (!append) setVatTuList([]);
+          if (callback) callback({ totalPage: 1 });
+        }
+      } catch (error) {
+        setVatTuList([]);
+        if (callback) callback({ totalPage: 1 });
+      } finally {
+        setLoadingVatTu(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    fetchMaGiaoDichList();
+    fetchMaKhoList();
+    fetchVatTuList();
+    fetchVoucherInfo();
+
+    form.setFieldsValue({
+      ngay: dayjs(),
+      trangThai: "3",
+      maGiaoDich: "3",
+    });
+  }, [
+    fetchMaGiaoDichList,
+    fetchMaKhoList,
+    fetchVatTuList,
+    fetchVoucherInfo,
+    form,
+  ]);
+
+  useEffect(() => {
+    if (barcodeJustEnabled && vatTuSelectRef.current) {
+      vatTuSelectRef.current.focus();
+      setBarcodeJustEnabled(false);
+    }
+  }, [barcodeJustEnabled]);
+
+  useEffect(() => {
+    const searchTimeout = searchTimeoutRef.current;
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, []);
 
   const handleVatTuSelect = async (value) => {
     await vatTuSelectHandler(
@@ -133,47 +178,6 @@ const AddPhieuXuatDieuChuyen = () => {
       fetchVatTuList,
       vatTuSelectRef
     );
-  };
-
-  const fetchVatTuList = async (
-    keyword = "",
-    page = 1,
-    append = false,
-    callback
-  ) => {
-    setLoadingVatTu(true);
-    try {
-      const userStr = localStorage.getItem("user");
-      const unitsResponseStr = localStorage.getItem("unitsResponse");
-      const user = userStr ? JSON.parse(userStr) : {};
-      const unitsResponse = unitsResponseStr
-        ? JSON.parse(unitsResponseStr)
-        : {};
-      const unitCode = user.unitCode || unitsResponse.unitCode;
-      const res = await fetchVatTuListDynamicApi({
-        keyword,
-        unitCode,
-        pageIndex: page,
-        pageSize: 100,
-      });
-      if (res.success && res.data) {
-        const options = res.data.map((item) => ({
-          label: `${item.ma_vt} - ${item.ten_vt}`,
-          value: item.ma_vt,
-          ...item,
-        }));
-        setVatTuList((prev) => (append ? [...prev, ...options] : options));
-        if (callback) callback(res.pagination);
-      } else {
-        if (!append) setVatTuList([]);
-        if (callback) callback({ totalPage: 1 });
-      }
-    } catch (error) {
-      setVatTuList([]);
-      if (callback) callback({ totalPage: 1 });
-    } finally {
-      setLoadingVatTu(false);
-    }
   };
 
   // Phân trang vật tư
