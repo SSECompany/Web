@@ -151,18 +151,15 @@ const VatTuTable = ({
           latestDataSource.find((item) => item.key === record.key) ||
           currentRecord;
 
-<<<<<<< HEAD
-        const updatedRecord = { 
-          ...latestRecord, 
-          loOptions: page === 1 ? options : [...(latestRecord.loOptions || []), ...options],
-          loPage: page 
-        };
-=======
         const existingOptions = page === 1 ? [] : (latestRecord.loOptions || []);
         const mergedOptions = [...existingOptions, ...fetchedOptions];
 
-        const updatedRecord = { ...latestRecord, loOptions: mergedOptions };
->>>>>>> 02032026_kho_v2
+        const updatedRecord = { 
+          ...latestRecord, 
+          loOptions: mergedOptions,
+          loPage: page,
+          _loTotalPage: totalPage
+        };
         const updatedDataSource = latestDataSource.map((item) =>
           item.key === record.key ? updatedRecord : item
         );
@@ -185,13 +182,8 @@ const VatTuTable = ({
   // Prefetch danh sách vị trí cho một dòng cụ thể, quản lý state riêng như POS số lô
   const viTriLoadingRef = useRef({});
   const loadViTriOptions = useCallback(
-<<<<<<< HEAD
     async (keyword = "", record, openAfter = false, page = 1) => {
-      if (!apiHandlers.fetchViTriList || !record?.key) return;
-=======
-    async (keyword = "", record, openAfter = false) => {
       if (!apiHandlers.fetchViTriList || !record?.key || viTriLoadingRef.current[record.key]) return;
->>>>>>> 02032026_kho_v2
 
       viTriLoadingRef.current[record.key] = true;
       setLoadingViTri((prev) => ({ ...prev, [record.key]: true }));
