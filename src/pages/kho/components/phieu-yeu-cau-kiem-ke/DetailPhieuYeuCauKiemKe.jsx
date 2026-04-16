@@ -7,6 +7,7 @@ import https from "../../../../utils/https";
 import { getLoItem, searchVatTu } from "../../../../api";
 import { useSelector } from "react-redux";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
+import { debounce } from "lodash";
 import "../common-phieu.css";
 
 const { Content } = Layout;
@@ -23,6 +24,41 @@ const DetailPhieuYeuCauKiemKe = () => {
 
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
+
+    // Tìm kiếm lô debounce helper
+    const debounceSearchLo = useMemo(() => {
+        return debounce(async (keyword, maVt) => {
+            setLoSearchLoading(true);
+            try {
+                const res = await getLoItem({
+                    ma_vt: maVt?.trim() || "",
+                    ten_lo: keyword,
+                    pageIndex: 1,
+                    pageSize: 20,
+                });
+                const data = res?.listObject?.[0] || [];
+                const newCachedHsd = {};
+                const opts = data.map(x => {
+                    const val = (x?.ma_lo || x?.value || x?.ten_lo || "").toString();
+                    let label = val;
+                    if (x?.ngay_hhsd || x?.hanLo) {
+                        const dateVal = x?.ngay_hhsd || x?.hanLo;
+                        const hsdStr = dayjs(dateVal).format("DD/MM/YYYY");
+                        label = `${val} - HSD: ${hsdStr}`;
+                        newCachedHsd[val] = hsdStr;
+                    }
+                    return { value: val, label };
+                });
+                setLoSearchOptions(opts);
+                setCachedLoHsd(prev => ({ ...prev, ...newCachedHsd }));
+            } catch (e) {
+                console.error("Search lo error:", e);
+                setLoSearchOptions([]);
+            } finally {
+                setLoSearchLoading(false);
+            }
+        }, 500);
+    }, []);
 
     // Ngăn chặn gọi API double khi thay đổi bộ lọc
     const filterChangeFromSearchRefKKSS = React.useRef(false);
@@ -1456,7 +1492,6 @@ const DetailPhieuYeuCauKiemKe = () => {
                                         }
                                     }}
                                     onFocus={async () => {
-                                        if (loSearchOptions.length > 0) return;
                                         setLoSearchLoading(true);
                                         try {
                                             const res = await getLoItem({
@@ -1486,37 +1521,7 @@ const DetailPhieuYeuCauKiemKe = () => {
                                             setLoSearchLoading(false);
                                         }
                                     }}
-                                    onSearch={async (keyword) => {
-                                        setLoSearchLoading(true);
-                                        try {
-                                            const res = await getLoItem({
-                                                ma_vt: vtCheckInfo?.ma_vt?.trim() || "",
-                                                ten_lo: keyword,
-                                                pageIndex: 1,
-                                                pageSize: 20,
-                                            });
-                                            const data = res?.listObject?.[0] || [];
-                                            const newCachedHsd = {};
-                                            const opts = data.map(x => {
-                                                const val = (x?.ma_lo || x?.value || x?.ten_lo || "").toString();
-                                                let label = val;
-                                                if (x?.ngay_hhsd || x?.hanLo) {
-                                                    const dateVal = x?.ngay_hhsd || x?.hanLo;
-                                                    const hsdStr = dayjs(dateVal).format("DD/MM/YYYY");
-                                                    label = `${val} - HSD: ${hsdStr}`;
-                                                    newCachedHsd[val] = hsdStr;
-                                                }
-                                                return { value: val, label };
-                                            });
-                                            setLoSearchOptions(opts);
-                                            setCachedLoHsd(prev => ({ ...prev, ...newCachedHsd }));
-                                        } catch (e) {
-                                            console.error("Search lo error:", e);
-                                            setLoSearchOptions([]);
-                                        } finally {
-                                            setLoSearchLoading(false);
-                                        }
-                                    }}
+                                    onSearch={(keyword) => debounceSearchLo(keyword, vtCheckInfo?.ma_vt)}
                                     options={loSearchOptions}
                                     notFoundContent={loSearchLoading ? <Spin size="small" /> : "Không tìm thấy"}
                                     dropdownRender={(menu) => (
