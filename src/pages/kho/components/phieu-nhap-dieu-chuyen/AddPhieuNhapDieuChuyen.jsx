@@ -1,58 +1,59 @@
-import { LeftOutlined } from "@ant-design/icons";
+import { SaveOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import showConfirm from "../../../../components/common/Modal/ModalConfirm";
+import { formatDate } from "../../../../utils/dateUtils";
 import VatTuSelectFull from "../../../../components/common/ProductSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
+import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import { fetchVatTuListDynamicApi } from "../phieu-nhat-hang/utils/phieuNhatHangUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuTable from "./components/VatTuTable";
-import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
+import { usePhieuNhapDieuChuyenData } from "./hooks/usePhieuNhapDieuChuyenData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
 import {
   buildPayload,
-  submitPhieuDynamic,
   validateDataSource,
-  validateQuantityAndShowConfirm,
-} from "./utils/phieuXuatKhoBanHangUtils";
+} from "./utils/phieuNhapDieuChuyenUtils";
+import {
+  createPhieuNhapDieuChuyen,
+} from "./utils/phieuNhapDieuChuyenApi";
 
 const { Title } = Typography;
 
-const AddPhieuXuatKhoBanHang = () => {
+const AddPhieuNhapDieuChuyen = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
-  // State
   const [vatTuInput, setVatTuInput] = useState(undefined);
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
   const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
   const [pageIndex, setPageIndex] = useState(1);
   const [totalPage, setTotalPage] = useState(1);
   const [currentKeyword, setCurrentKeyword] = useState("");
-  const [vatTuList, setVatTuList] = useState([]);
-  const [loadingVatTu, setLoadingVatTu] = useState(false);
 
-  // Refs
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
 
-  // Custom hooks
+  const [vatTuList, setVatTuList] = useState([]);
+  const [loadingVatTu, setLoadingVatTu] = useState(false);
+
   const {
     loading,
     setLoading,
     maGiaoDichList,
-    maKhachList,
-    loadingMaKhach,
-    fetchMaKhachListDebounced,
+    maKhoList,
+    loadingMaKho,
+    fetchMaKhoListDebounced,
     fetchMaGiaoDichList,
-    fetchMaKhachList,
+    fetchMaKhoList,
     fetchVatTuDetail,
     fetchDonViTinh,
-  } = usePhieuXuatKhoData();
+    setVatTuList: setVatTuListFromHook,
+  } = usePhieuNhapDieuChuyenData();
 
   const {
     dataSource,
@@ -65,99 +66,99 @@ const AddPhieuXuatKhoBanHang = () => {
 
   const token = localStorage.getItem("access_token");
 
-  // Effects
-  const fetchVoucherInfo = useCallback(async () => {
+
+
+  const handleVatTuSelect = async (value, option) => {
+    // Lấy ngữ cảnh hiện tại từ form
+    const maKhoNhap = form.getFieldValue("maKhoNhap") || "";
+    const ngayLap = form.getFieldValue("ngay");
+    const formattedNgayLap = ngayLap && dayjs.isDayjs(ngayLap) ? ngayLap.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD");
+
+    const contextualFetchVatTuDetail = async (maVatTu) => {
+      return await fetchVatTuDetail(maVatTu, maKhoNhap, "", formattedNgayLap);
+    };
+
+    await vatTuSelectHandler(
+      value,
+      true, // isEditMode
+      contextualFetchVatTuDetail, // Sử dụng hàm đã wrap ngữ cảnh
+      fetchDonViTinh,
+      setVatTuInput,
+      setVatTuList,
+      fetchVatTuList,
+      vatTuSelectRef,
+      option
+    );
+  };
+
+  const fetchVatTuList = useCallback(async (
+    keyword = "",
+    page = 1,
+    append = false,
+    callback
+  ) => {
+    setLoadingVatTu(true);
     try {
-      const response = await https.get(
-        "v1/web/thong-tin-phieu-nhap",
-        { voucherCode: "HDA" },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const userStr = localStorage.getItem("user");
+      const unitsResponseStr = localStorage.getItem("unitsResponse");
+      const user = userStr ? JSON.parse(userStr) : {};
+      const unitsResponse = unitsResponseStr
+        ? JSON.parse(unitsResponseStr)
+        : {};
+      const unitCode = user.unitCode || unitsResponse.unitCode;
+      const payload = {
+        store: "api_getListItem",
+        data: {},
+        param: {
+          Currency: "VND",
+          searchValue: keyword || "",
+          unitId: unitCode || "TAPMED ",
+          userId: user.id || 0,
+          pageindex: page,
+          pagesize: 100,
+        },
+        resultSetNames: ["data"]
+      };
+      const token = localStorage.getItem("access_token");
+      const res = await https.post("User/AddData", payload, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+      });
 
-      if (
-        response.data &&
-        response.data.data &&
-        response.data.data.length > 0
-      ) {
-        const voucherData = response.data.data[0];
+      const listObject = res.data?.listObject || [];
+      const data = listObject[0] || [];
 
-        form.setFieldsValue({
-          soPhieu: voucherData.so_phieu_nhap,
-          ngay: voucherData.ngay_lap ? dayjs(voucherData.ngay_lap) : dayjs(),
-          maGiaoDich: voucherData.ma_giao_dich || "1",
-          maKhach: voucherData.ma_khach || "",
-          dienGiai: voucherData.dien_giai || "",
-          trangThai: voucherData.status || "0",
-        });
+      if (Array.isArray(data)) {
+        const options = data.map((item) => ({
+          label: `${item.ma_vt} - ${item.ten_vt}`,
+          value: item.ma_vt,
+          ...item,
+        }));
+        setVatTuList((prev) => (append ? [...prev, ...options] : options));
+        if (callback) callback({ totalPage: data[0]?.totalPage || 1 });
+      } else {
+        if (!append) setVatTuList([]);
+        if (callback) callback({ totalPage: 1 });
       }
     } catch (error) {
-      console.error("Error fetching voucher info:", error);
+      setVatTuList([]);
+      if (callback) callback({ totalPage: 1 });
+    } finally {
+      setLoadingVatTu(false);
     }
-  }, [token, form]);
-
-  const fetchVatTuList = useCallback(
-    async (keyword = "", page = 1, append = false, callback) => {
-      setLoadingVatTu(true);
-      try {
-        const userStr = localStorage.getItem("user");
-        const unitsResponseStr = localStorage.getItem("unitsResponse");
-        const user = userStr ? JSON.parse(userStr) : {};
-        const unitsResponse = unitsResponseStr
-          ? JSON.parse(unitsResponseStr)
-          : {};
-        const unitCode = user.unitCode || unitsResponse.unitCode;
-        const res = await fetchVatTuListDynamicApi({
-          keyword,
-          unitCode,
-          pageIndex: page,
-          pageSize: 100,
-        });
-        if (res.success && res.data) {
-          const options = res.data.map((item) => ({
-            label: `${item.ma_vt} - ${item.ten_vt}`,
-            value: item.ma_vt,
-            ...item,
-          }));
-          setVatTuList((prev) => (append ? [...prev, ...options] : options));
-          if (callback) callback(res.pagination);
-        } else {
-          if (!append) setVatTuList([]);
-          if (callback) callback({ totalPage: 1 });
-        }
-      } catch (error) {
-        setVatTuList([]);
-        if (callback) callback({ totalPage: 1 });
-      } finally {
-        setLoadingVatTu(false);
-      }
-    },
-    []
-  );
+  }, []);
 
   useEffect(() => {
-    // Tải danh sách mã giao dịch và mã khách
     fetchMaGiaoDichList();
-    fetchMaKhachList();
+    fetchMaKhoList();
     fetchVatTuList();
-    fetchVoucherInfo();
 
-    // Thiết lập giá trị mặc định cho ngày
     form.setFieldsValue({
       ngay: dayjs(),
-      trangThai: "0",
+      trangThai: "2",
+      maGiaoDich: "1",
+      soPhieu: "",
     });
-  }, [
-    fetchMaGiaoDichList,
-    fetchMaKhachList,
-    fetchVatTuList,
-    fetchVoucherInfo,
-    form,
-  ]);
+  }, [fetchMaGiaoDichList, fetchMaKhoList, fetchVatTuList, form]);
 
   useEffect(() => {
     if (barcodeJustEnabled && vatTuSelectRef.current) {
@@ -175,111 +176,7 @@ const AddPhieuXuatKhoBanHang = () => {
     };
   }, []);
 
-  const handleVatTuSelect = async (value) => {
-    await vatTuSelectHandler(
-      value,
-      true,
-      fetchVatTuDetail,
-      fetchDonViTinh,
-      setVatTuInput,
-      setVatTuList,
-      fetchVatTuList,
-      vatTuSelectRef
-    );
-  };
-
-  const submitPhieuData = useCallback(
-    async (values) => {
-      try {
-        const payload = buildPayload(values, dataSource, null, false);
-
-        if (!payload) {
-          message.error("Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu.");
-          setLoading(false);
-          return;
-        }
-
-        const result = await submitPhieuDynamic(
-          payload,
-          "Thêm phiếu xuất kho bán hàng thành công",
-          false
-        );
-
-        if (result.success) {
-          navigate("/kho/xuat-ban");
-        }
-      } catch (error) {
-        console.error("Lỗi khi tạo phiếu xuất kho:", error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [dataSource, navigate, setLoading]
-  );
-
-  const handleSubmit = async () => {
-    try {
-      setLoading(true);
-      const values = await form.validateFields();
-
-      if (!validateDataSource(dataSource)) {
-        setLoading(false);
-        return;
-      }
-
-      // Kiểm tra số lượng lệch nhau trước khi submit
-      const currentStatus = values.trangThai || "0";
-
-      validateQuantityForPhieu(
-        dataSource,
-        "phieu_xuat_kho_ban_hang",
-        currentStatus,
-        async () => {
-          // Callback khi user xác nhận tiếp tục
-          try {
-            // Kiểm tra số lượng xuất = 0 và hiển thị cảnh báo
-            const quantityValidation = validateQuantityAndShowConfirm(
-              dataSource,
-              () => {
-                showConfirm({
-                  title: "Cảnh báo số lượng xuất",
-                  content: quantityValidation.getContentJSX(),
-                  type: "info",
-                  className: "centered-buttons fixed-height wide-modal",
-                  onOk: async () => {
-                    // Xác nhận tiếp tục submit
-                    await submitPhieuData(values);
-                  },
-                  onCancel: () => {
-                    setLoading(false);
-                  },
-                });
-              }
-            );
-
-            if (quantityValidation.hasZeroQuantity) {
-              quantityValidation.proceed();
-              return;
-            }
-
-            // Không có vấn đề với số lượng, tiếp tục submit
-            await submitPhieuData(values);
-          } catch (error) {
-            console.error("Submit failed:", error);
-            setLoading(false);
-          }
-        },
-        () => {
-          // Callback khi user hủy
-          setLoading(false);
-        }
-      );
-    } catch (error) {
-      console.error("Lỗi khi tạo phiếu xuất kho:", error);
-      setLoading(false);
-    }
-  };
-
+  // Phân trang vật tư
   const fetchVatTuListPaging = async (
     keyword = "",
     page = 1,
@@ -292,29 +189,105 @@ const AddPhieuXuatKhoBanHang = () => {
     });
   };
 
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
+
+      if (!validateDataSource(dataSource)) return;
+
+      // Kiểm tra số lượng lệch nhau trước khi submit
+      const currentStatus = values.trangThai || "0";
+
+      validateQuantityForPhieu(
+        dataSource,
+        "phieu_nhap_dieu_chuyen",
+        currentStatus,
+        async () => {
+          // Callback khi user xác nhận tiếp tục
+          try {
+            const payload = buildPayload(values, dataSource, null, false);
+
+            if (!payload) {
+              message.error(
+                "Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu."
+              );
+              setLoading(false);
+              return;
+            }
+
+            // Gọi API thêm mới phiếu nhập điều chuyển qua function chuẩn đã map param
+            const result = await createPhieuNhapDieuChuyen(payload);
+            
+            if (result.success) {
+              message.success("Tạo phiếu nhập điều chuyển thành công");
+              navigate("/kho/nhap-dieu-chuyen");
+            } else {
+              message.error(result.message || "Tạo phiếu nhập điều chuyển thất bại");
+            }
+          } catch (error) {
+            console.error("Submit failed:", error);
+            message.error(error.message || "Có lỗi xảy ra khi tạo phiếu");
+          } finally {
+            setLoading(false);
+          }
+        },
+        () => {
+          // Callback khi user hủy
+          setLoading(false);
+        }
+      );
+    } catch (error) {
+      console.error("Lỗi khi tạo phiếu nhập điều chuyển:", error);
+      message.error("Có lỗi xảy ra khi tạo phiếu nhập điều chuyển");
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="phieu-container">
-      <div className="phieu-header">
-        <Button
-          type="text"
-          icon={<LeftOutlined />}
-          onClick={() => navigate("/kho/xuat-kho-ban-hang")}
-          className="phieu-back-button"
-        />
-        <Title level={5} className="phieu-title">
-          THÊM PHIẾU XUẤT KHO BÁN HÀNG
-        </Title>
-        <div style={{ width: 120 }}></div>
-      </div>
+    <FormTemplate
+      form={form}
+      onFinish={handleSubmit}
+      onBack={() => navigate("/kho/nhap-dieu-chuyen")}
+      badgeText="THÊM PHIẾU NHẬP ĐIỀU CHUYỂN"
+      badgeColor="green"
+      metaOrder={form.getFieldValue('soPhieu')}
+      metaDate={form.getFieldValue('ngay') ? dayjs(form.getFieldValue('ngay')).format('DD/MM/YYYY') : dayjs().format('DD/MM/YYYY')}
+      statusValue={form.getFieldValue('trangThai') || "0"}
+      statusOptions={[
+        { value: "0", label: "Lập chứng từ" },
+        { value: "1", label: "Điều chuyển" },
+        { value: "2", label: "Chuyển KTTH" },
+        { value: "3", label: "Chuyển sổ cái" },
+        { value: "9", label: "Tài chính" },
+      ]}
+      showStatusSelect={true}
+      fixedFooterActions={[
+        {
+          key: "save",
+          label: "Lưu phiếu",
+          icon: <SaveOutlined />,
+          type: "primary",
+          onClick: handleSubmit,
+          loading: loading,
+        },
+        {
+          key: "cancel",
+          label: "Hủy",
+          icon: <CloseCircleOutlined />,
+          onClick: () => navigate("/kho/nhap-dieu-chuyen"),
+        },
+      ]}
+    >
       <div className="phieu-form-container">
-        <Form form={form} layout="vertical" className="phieu-form">
+        <Form form={form} layout="vertical" className="phieu-form-section phieu-form--floating">
           <PhieuFormInputs
             isEditMode={true}
             maGiaoDichList={maGiaoDichList}
-            maKhachList={maKhachList}
-            loadingMaKhach={loadingMaKhach}
-            fetchMaKhachListDebounced={fetchMaKhachListDebounced}
-            fetchMaKhachList={fetchMaKhachList}
+            maKhoList={maKhoList}
+            loadingMaKho={loadingMaKho}
+            fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchMaKhoList={fetchMaKhoList}
             fetchMaGiaoDichList={fetchMaGiaoDichList}
             barcodeEnabled={barcodeEnabled}
             setBarcodeEnabled={setBarcodeEnabled}
@@ -340,30 +313,16 @@ const AddPhieuXuatKhoBanHang = () => {
             handleQuantityChange={handleQuantityChange}
             handleDeleteItem={handleDeleteItem}
             handleDvtChange={handleDvtChange}
-            maKhachList={maKhachList}
-            loadingMaKhach={loadingMaKhach}
-            fetchMaKhachListDebounced={fetchMaKhachListDebounced}
+            maKhoList={maKhoList}
+            loadingMaKho={loadingMaKho}
+            fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchDonViTinh={fetchDonViTinh}
+            onDataSourceUpdate={setDataSource}
           />
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-start",
-              marginTop: 16,
-            }}
-          >
-            <Space>
-              <Button type="primary" onClick={handleSubmit} loading={loading}>
-                Lưu
-              </Button>
-              <Button onClick={() => navigate("/kho/xuat-kho-ban-hang")}>
-                Hủy
-              </Button>
-            </Space>
-          </div>
         </Form>
       </div>
-    </div>
+    </FormTemplate>
   );
 };
 
-export default AddPhieuXuatKhoBanHang;
+export default AddPhieuNhapDieuChuyen;
