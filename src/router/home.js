@@ -151,21 +151,6 @@ const protectedChildrenRoutes = [
     path: "kho/giao-hang",
     element: <ListPhieuGiaoHang />,
   },
-  // {
-  //   label: "Phiếu nhập kho",
-  //   path: "kho/nhap-kho",
-  //   element: <ListPhieuNhapKho />,
-  // },
-  // {
-  //   label: "Thêm phiếu nhập kho",
-  //   path: "kho/nhap-kho/them-moi",
-  //   element: <AddPhieuNhapKho />,
-  // },
-  // {
-  //   label: "Chi tiết phiếu nhập kho",
-  //   path: "kho/nhap-kho/chi-tiet/:stt_rec",
-  //   element: <DetailPhieuNhapKho />,
-  // },
 
   // Default route - chỉ redirect khi path là "/" (redirect to Kho instead of ban-hang)
   { path: "", element: <Navigate to="kho" replace /> },
@@ -205,21 +190,7 @@ const protectedChildrenRoutes = [
     path: "kho/giao-hang/edit/:id",
     element: <DetailPhieuGiaoHang isEditMode={true} />,
   },
-  // {
-  //   label: "Phiếu xuất kho",
-  //   path: "kho/xuat-kho",
-  //   element: <ListPhieuXuatKho />,
-  // },
-  // {
-  //   label: "Thêm phiếu xuất kho",
-  //   path: "kho/xuat-kho/them-moi",
-  //   element: <AddPhieuXuatKho />,
-  // },
-  // {
-  //   label: "Chi tiết phiếu xuất kho",
-  //   path: "kho/xuat-kho/chi-tiet/:id",
-  //   element: <DetailPhieuXuatKho />,
-  // },
+
   {
     label: "Phiếu nhập điều chuyển",
     path: "kho/nhap-dieu-chuyen",
