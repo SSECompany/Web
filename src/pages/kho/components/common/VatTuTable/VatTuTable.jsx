@@ -119,7 +119,7 @@ const VatTuTable = ({
 
   // Prefetch danh sách mã lô cho một dòng cụ thể, luôn dùng dataSource mới nhất
   const loadLoOptions = useCallback(
-    async (keyword = "", record, openAfter = false) => {
+    async (keyword = "", record, openAfter = false, page = 1) => {
       if (!apiHandlers.fetchLoList || !record?.key) return;
 
       setLoadingLo((prev) => ({ ...prev, [record.key]: true }));
@@ -131,7 +131,7 @@ const VatTuTable = ({
         const options = await apiHandlers.fetchLoList(
           keyword,
           currentRecord,
-          1
+          page
         );
 
         const latestDataSource = dataSourceRef.current;
@@ -139,7 +139,11 @@ const VatTuTable = ({
           latestDataSource.find((item) => item.key === record.key) ||
           currentRecord;
 
-        const updatedRecord = { ...latestRecord, loOptions: options };
+        const updatedRecord = { 
+          ...latestRecord, 
+          loOptions: page === 1 ? options : [...(latestRecord.loOptions || []), ...options],
+          loPage: page 
+        };
         const updatedDataSource = latestDataSource.map((item) =>
           item.key === record.key ? updatedRecord : item
         );
@@ -160,7 +164,7 @@ const VatTuTable = ({
 
   // Prefetch danh sách vị trí cho một dòng cụ thể, quản lý state riêng như POS số lô
   const loadViTriOptions = useCallback(
-    async (keyword = "", record, openAfter = false) => {
+    async (keyword = "", record, openAfter = false, page = 1) => {
       if (!apiHandlers.fetchViTriList || !record?.key) return;
 
       setLoadingViTri((prev) => ({ ...prev, [record.key]: true }));
@@ -172,17 +176,24 @@ const VatTuTable = ({
         const options = await apiHandlers.fetchViTriList(
           keyword,
           currentRecord,
-          1
+          page
         );
 
-        setViTriOptions((prev) => ({ ...prev, [record.key]: options }));
+        setViTriOptions((prev) => ({ 
+          ...prev, 
+          [record.key]: page === 1 ? options : [...(prev[record.key] || []), ...options] 
+        }));
 
         // Giữ nguyên dataSource nhưng vẫn cập nhật viTriOptions nếu đã lưu trên record (để các nơi khác dùng)
         const latestDataSource = dataSourceRef.current;
         const latestRecord =
           latestDataSource.find((item) => item.key === record.key) ||
           currentRecord;
-        const updatedRecord = { ...latestRecord, viTriOptions: options };
+        const updatedRecord = { 
+          ...latestRecord, 
+          viTriOptions: page === 1 ? options : [...(latestRecord.viTriOptions || []), ...options],
+          viTriPage: page
+        };
         const updatedDataSource = latestDataSource.map((item) =>
           item.key === record.key ? updatedRecord : item
         );
@@ -590,6 +601,19 @@ const VatTuTable = ({
                 // Cho phép antd tự điều khiển nếu chưa set state; nếu đã có state thì control
                 open={openLo[record.key]}
                 options={loOpts}
+                listHeight={250}
+                onPopupScroll={(e) => {
+                  const { target } = e;
+                  if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !isLoLoading) {
+                    const currentDataSource = dataSourceRef.current;
+                    const r = currentDataSource.find(it => it.key === record.key);
+                    const nextPage = (r?.loPage || 1) + 1;
+                    // Chỉ load tiếp khi thực sự có options từ page trước (giả định pageSize=10)
+                    if (loOpts.length >= (nextPage - 1) * 10) {
+                      loadLoOptions("", record, false, nextPage);
+                    }
+                  }
+                }}
                 classNames={{ popup: { root: "vat-tu-dropdown" } }}
                 popupMatchSelectWidth={false}
                 notFoundContent={
