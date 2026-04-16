@@ -307,7 +307,6 @@ const PrintComponent = forwardRef(({ master = {}, detail = [] }, ref) => {
         style={{
           borderTop: "1px solid black",
           paddingTop: "6px",
-          marginRight: 10,
         }}
       />
 

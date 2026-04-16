@@ -334,7 +334,6 @@ const PrintComponent = forwardRef(
           style={{
             borderTop: "1px solid black",
             paddingTop: "6px",
-            marginRight: 10,
           }}
         />
 
@@ -351,7 +350,6 @@ const PrintComponent = forwardRef(
                   paddingTop: "4px",
                   textAlign: "right",
                   fontSize: "11px",
-                  marginRight: 10,
                   color: "#000",
                 }}
               >
@@ -368,7 +366,6 @@ const PrintComponent = forwardRef(
             fontWeight: "bold",
             textAlign: "right",
             fontSize: "13px",
-            marginRight: 10,
             color: "#000",
           }}
         >

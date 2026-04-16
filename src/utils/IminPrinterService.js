@@ -204,7 +204,7 @@ class IminPrinterService {
     const fsAddress = isK58 ? 16 : 20;
     
     // Đường kẻ cần giữ tỉ lệ độ dài theo khổ giấy để không bị rớt dòng
-    const LINE_FULL_WIDTH = isK58 ? '──────────────────────────────────────────' : '─────────────────────────────────────────';
+    const LINE_FULL_WIDTH = isK58 ? '──────────────────────────────────────────────────' : '─────────────────────────────────────────';
 
     try {
       if (!this.isInitialized) {
@@ -269,7 +269,7 @@ class IminPrinterService {
             { text: 'Giá', width: 2, align: 'center', fontSize: fsTableHead },
             { text: 'Thành tiền', width: 2, align: 'right', fontSize: fsTableHead },
         ]);
-        await this.printText(LINE_FULL_WIDTH, { align: 'center', fontSize: 10 });
+        await this.printColumnsText([{ text: LINE_FULL_WIDTH, width: 1, align: 'center', fontSize: 10 }]);
         await this.printerInstance.setTextStyle(0);
 
         const mainItems = detail.filter(d => !d.ma_vt_root);
@@ -306,7 +306,7 @@ class IminPrinterService {
         }
 
         // Kẽ đường sau bảng
-        await this.printText(LINE_FULL_WIDTH, { align: 'center', fontSize: 10 });
+        await this.printColumnsText([{ text: LINE_FULL_WIDTH, width: 1, align: 'center', fontSize: 10 }]);
 
         const totalDiscount = (detail || []).reduce((sum, d) => sum + parseFloat(d.chiet_khau_print || 0), 0);
         if (totalDiscount > 0) {
@@ -376,7 +376,7 @@ class IminPrinterService {
     const fsTableHead = isK58 ? 16 : 20;
     const fsTableItem = isK58 ? 17 : 22;
     const fsTitle = isK58 ? 20 : 24;
-    const LINE_FULL_WIDTH = isK58 ? '──────────────────────────────────────────' : '─────────────────────────────────────────';
+    const LINE_FULL_WIDTH = isK58 ? '──────────────────────────────────────────────────' : '─────────────────────────────────────────';
 
     try {
       if (!this.isInitialized) {
@@ -443,7 +443,7 @@ class IminPrinterService {
           ];
       await this.printColumnsText(tableHead);
       await this.printerInstance.setTextStyle(0);
-      await this.printText(LINE_FULL_WIDTH, { align: 'center', fontSize: 18 });
+      await this.printColumnsText([{ text: LINE_FULL_WIDTH, width: 1, align: 'center', fontSize: 18 }]);
 
       if (itemData.length === 0) {
         await this.printText('Không có dữ liệu', { fontSize: fsBase, align: 'center' });
@@ -459,7 +459,7 @@ class IminPrinterService {
         }
       }
 
-      await this.printText(LINE_FULL_WIDTH, { align: 'center', fontSize: 18 });
+      await this.printColumnsText([{ text: LINE_FULL_WIDTH, width: 1, align: 'center', fontSize: 18 }]);
       const net = Number(summaryData?.t_tt) || 0;
       await this.printText(`Tổng cộng: ${this.formatNumber(net)}`, { fontSize: fsBase, fontStyle: 'bold', align: 'right' });
 
