@@ -951,10 +951,10 @@
 
 /* ---- Header Meta/Status Balance ---- */
 .phieu-header-meta-stack {
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  gap: 4px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
 }
 
 .phieu-header-status-row {

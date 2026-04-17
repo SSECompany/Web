@@ -905,15 +905,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       onBack={() => navigate(returnUrl)}
       badgeText={badge.text}
       badgeColor={badge.color}
-      metaOrder={form.getFieldValue('soPhieu')}
-      metaDate={form.getFieldValue('ngay') ? dayjs(form.getFieldValue('ngay')).format('DD/MM/YYYY') : '.........'}
-      statusValue={form.getFieldValue('trangThai') || "0"}
-      statusOptions={[
-        { value: "0", label: "Lập chứng từ" },
-        { value: "1", label: "Đang nhặt" },
-        { value: "2", label: "Nhặt xong" },
-      ]}
-      showStatusSelect={true}
+      showStatusSelect={false}
       statusDisabled={!isEditMode && !!id}
       headerRightSpan={
         !isEditMode && id && (form.getFieldValue("trangThai") !== "2") ? (
@@ -921,7 +913,6 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         ) : null
       }
       fixedFooterActions={footerActions}
-      hideInfo={true}
     >
       <div className="phieu-form-container">
         <div className="phieu-form phieu-form--floating">

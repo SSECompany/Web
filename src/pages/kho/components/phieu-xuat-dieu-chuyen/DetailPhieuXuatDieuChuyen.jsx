@@ -354,6 +354,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
 
   return (
     <FormTemplate
+      headerLayout="horizontal"
       form={form}
       onFinish={handleSubmit}
       onBack={() => navigate("/kho/xuat-dieu-chuyen")}

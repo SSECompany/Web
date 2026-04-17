@@ -59,11 +59,11 @@ body {
 
 .phieu-header-info {
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   flex: 1;
   margin-left: 10px;
-  gap: 16px;
+  gap: 8px;
   overflow: visible;
   min-width: 0;
 }
@@ -112,17 +112,19 @@ body {
 
 .phieu-header-meta-stack {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 20px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   margin-left: 10px;
 }
 
-.phieu-header-meta-stack--horizontal {
-  flex-direction: row;
-  align-items: center;
-  gap: 16px;
+.layout-horizontal-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 24px !important;
+  margin-left: 0 !important;
 }
 
 .phieu-header-meta-item {

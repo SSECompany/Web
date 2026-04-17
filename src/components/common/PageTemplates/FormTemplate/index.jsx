@@ -26,7 +26,7 @@ const FormTemplate = ({
   badgeColor = "blue", // green, blue, orange, red
   metaOrder,
   metaOrderLabel = "ĐƠN HÀNG",
-  metaDate = dayjs().format("DD/MM/YYYY"),
+  metaDate,
   statusValue,
   statusOptions = [
     { value: "0", label: "Lập chứng từ" },
@@ -46,6 +46,7 @@ const FormTemplate = ({
 
   // New options
   hideInfo = false,
+  headerLayout = "vertical", // "vertical" | "horizontal"
 }) => {
   return (
     <>
@@ -59,29 +60,32 @@ const FormTemplate = ({
           className="phieu-back-button"
         />
 
-        <div className="phieu-header-info">
-          <div className="phieu-header-tags">
-            <span
-              className={`phieu-header-badge phieu-header-badge--${badgeColor}`}
-            >
-              {badgeText}
-            </span>
-          </div>
+        {!hideInfo && (
+          <div className="phieu-header-info">
+            <div className="phieu-header-tags">
+              <span
+                className={`phieu-header-badge phieu-header-badge--${badgeColor}`}
+              >
+                {badgeText}
+              </span>
+            </div>
 
-          <div className="phieu-header-meta-stack">
-            {metaOrder !== undefined && metaOrder !== null && (
-              <div className="phieu-header-meta-item">
-                {metaOrderLabel}:{" "}
-                <span className="phieu-header-meta-value">
-                  {metaOrder || "........."}
-                </span>
-              </div>
-            )}
+            <div className={`phieu-header-meta-stack ${headerLayout === "horizontal" ? "layout-horizontal-row" : ""}`}>
+              {metaOrder !== undefined && metaOrder !== null && (
+                <div className="phieu-header-meta-item">
+                  {metaOrderLabel}:{" "}
+                  <span className="phieu-header-meta-value">
+                    {metaOrder || "........."}
+                  </span>
+                </div>
+              )}
 
-              <div className="phieu-header-meta-item">
-                NGÀY:{" "}
-                <span className="phieu-header-meta-value">{metaDate}</span>
-              </div>
+              {metaDate && (
+                <div className="phieu-header-meta-item">
+                  NGÀY:{" "}
+                  <span className="phieu-header-meta-value">{metaDate}</span>
+                </div>
+              )}
 
               {showStatusSelect && (
                 <div className="phieu-header-status-row">
@@ -115,8 +119,8 @@ const FormTemplate = ({
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="phieu-header-right">
           {headerRightSpan || <div style={{ width: 40 }} />}

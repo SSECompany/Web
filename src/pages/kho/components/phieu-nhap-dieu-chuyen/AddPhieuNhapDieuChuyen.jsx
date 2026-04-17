@@ -249,6 +249,7 @@ const AddPhieuNhapDieuChuyen = () => {
 
   return (
     <FormTemplate
+      headerLayout="horizontal"
       form={form}
       onFinish={handleSubmit}
       onBack={() => navigate("/kho/nhap-dieu-chuyen")}
