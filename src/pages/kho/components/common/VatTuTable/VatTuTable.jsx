@@ -440,7 +440,84 @@ const VatTuTable = ({
           },
         ]
         : []),
-      ...(columnConfig.consolidateProduct
+      ...(columnConfig.integrateStockInfoInMatHang
+        ? [
+          {
+            title: "Ảnh",
+            key: "anh",
+            width: 150,
+            align: "center",
+            fixed: "left",
+            render: (_, record) => (
+              <div style={{ display: "flex", justifyContent: "center", padding: '8px 0' }}>
+                {record.image ? (
+                  <img
+                    src={record.image}
+                    alt=""
+                    style={{ 
+                      width: 130, 
+                      height: 130, 
+                      objectFit: "cover", 
+                      borderRadius: 8, 
+                      border: '1px solid #f0f0f0',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                    }}
+                  />
+                ) : (
+                  <div style={{ 
+                    width: 130, 
+                    height: 130, 
+                    background: '#f8f9fb', 
+                    borderRadius: 8, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    fontSize: '12px', 
+                    color: '#94a3b8', 
+                    border: '1px solid #eef2f7' 
+                  }}>No Image</div>
+                )}
+              </div>
+            ),
+          },
+          {
+            title: "Mặt hàng",
+            key: "mat_hang",
+            width: 250,
+            align: "center",
+            fixed: "left",
+            render: (_, record) => {
+              // Always try to pick from the most up-to-date dataSource to catch inline updates
+              const currentRecord = dataSource.find((item) => item.key === record.key) || record;
+              const maVt = currentRecord.maHang || currentRecord.ma_vt || "";
+              const tenVt = currentRecord[columnConfig.tenMatHangField || "ten_mat_hang"] || "";
+              const dvt = currentRecord.dvt || "";
+              const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"] || "";
+              const soLuongTon = currentRecord[columnConfig.soLuongTonField || "so_luong_ton"];
+              const tonKh = currentRecord[columnConfig.tonKhField || "ton_kh"];
+              
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '4px 0', gap: 4 }}>
+                  <div style={{ color: '#333', fontSize: '13px', lineHeight: '1.4' }}>
+                    {maVt ? `${maVt} - ` : ""}{tenVt}
+                  </div>
+                  <div style={{ color: '#666', fontSize: '13px' }}>
+                    {dvt}
+                  </div>
+                  {maViTri ? (
+                    <div style={{ color: '#ff4d4f', fontWeight: 'bold', fontSize: '13px' }}>
+                      {maViTri}
+                    </div>
+                  ) : null}
+                  <div style={{ color: '#52c41a', fontSize: '13px' }}>
+                    Tồn: {formatQuantityDisplay(soLuongTon || 0)} / Tồn khả dụng: {tonKh !== null && tonKh !== undefined ? formatQuantityDisplay(tonKh) : "-"}
+                  </div>
+                </div>
+              );
+            }
+          }
+        ]
+        : columnConfig.consolidateProduct
         ? [
           {
             title: "Sản phẩm",
