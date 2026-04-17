@@ -556,36 +556,10 @@ export const usePhieuNhatHangData = () => {
         return masterDataCache.donViTinh[cleanMaVatTu];
       }
 
-      try {
-        // Alternative approach: use manual URL construction to avoid double encoding
-        const encodedMaVt = encodeURIComponent(cleanMaVatTu);
-        const url = `v1/web/danh-sach-dv?ma_vt=${encodedMaVt}`;
-
-        const response = await https.get(
-          url,
-          {}, // Empty params since we manually built the URL
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.data && response.data.data) {
-          const data = response.data.data;
-          // Cache kết quả theo cleanMaVatTu
-          masterDataCache.donViTinh[cleanMaVatTu] = data;
-          masterDataCache.lastFetch = Date.now();
-          return data;
-        }
-        return [];
-      } catch (error) {
-        console.error("Error fetching don vi tinh:", error);
-        return [];
-      }
+      // API v1/web/danh-sach-dv đã bị bỏ theo yêu cầu.
+      return [];
     },
-    [token]
+    []
   );
 
   // Clear cache function

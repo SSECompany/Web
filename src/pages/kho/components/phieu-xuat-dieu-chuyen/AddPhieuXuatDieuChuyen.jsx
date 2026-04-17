@@ -50,6 +50,8 @@ const AddPhieuXuatDieuChuyen = () => {
     fetchMaKhoList,
     fetchVatTuDetail,
     fetchDonViTinh,
+    fetchLoList,
+    fetchViTriList,
     setVatTuList: setVatTuListFromHook,
   } = usePhieuXuatDieuChuyenData();
 
@@ -60,6 +62,7 @@ const AddPhieuXuatDieuChuyen = () => {
     handleQuantityChange,
     handleDeleteItem,
     handleDvtChange,
+    handleSelectChange,
   } = useVatTuManager();
 
   const token = localStorage.getItem("access_token");
@@ -250,14 +253,12 @@ const AddPhieuXuatDieuChuyen = () => {
       badgeText="THÊM PHIẾU XUẤT ĐIỀU CHUYỂN"
       badgeColor="green"
       metaOrder={form.getFieldValue('soPhieu')}
+      metaOrderLabel="SỐ CHỨNG TỪ"
       metaDate={form.getFieldValue('ngay') ? dayjs(form.getFieldValue('ngay')).format('DD/MM/YYYY') : dayjs().format('DD/MM/YYYY')}
       statusValue={form.getFieldValue('trangThai') || "0"}
       statusOptions={[
         { value: "0", label: "Lập chứng từ" },
-        { value: "1", label: "Điều chuyển" },
-        { value: "2", label: "Chuyển KTTH" },
         { value: "3", label: "Chuyển sổ cái" },
-        { value: "9", label: "Tài chính" },
       ]}
       showStatusSelect={true}
       fixedFooterActions={[
@@ -311,11 +312,21 @@ const AddPhieuXuatDieuChuyen = () => {
             handleQuantityChange={handleQuantityChange}
             handleDeleteItem={handleDeleteItem}
             handleDvtChange={handleDvtChange}
+            onSelectChange={handleSelectChange}
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchMaKhoList={fetchMaKhoList}
             fetchDonViTinh={fetchDonViTinh}
+            fetchLoList={fetchLoList}
+            fetchViTriList={fetchViTriList}
             onDataSourceUpdate={setDataSource}
+            apiHandlers={{
+              fetchLoList,
+              fetchViTriList,
+              fetchMaKhoList,
+              fetchDonViTinh
+            }}
           />
         </Form>
       </div>

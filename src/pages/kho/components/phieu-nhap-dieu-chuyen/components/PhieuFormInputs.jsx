@@ -81,25 +81,19 @@ const PhieuFormInputs = ({
           </Form.Item>
 
           <Form.Item
-            name="maGiaoDich"
+            name="ma_gd"
             label="Mã giao dịch"
             rules={[{ required: true, message: "Chọn mã giao dịch" }]}
           >
             <Select
+              placeholder="Chọn mã giao dịch"
+              options={maGiaoDichList?.map(x => ({ value: x.ma_gd || x.ma_giao_dich, label: (x.ma_gd || x.ma_giao_dich) + ' - ' + (x.ten_gd || x.ten_giao_dich) }))}
               showSearch
-              placeholder="Chọn mã giao dịch (Mã - Tên)"
-              options={[
-                { value: "3", label: "3 - Nhập điều chuyển" },
-                ...(phieuData && phieuData.ma_gd ? [{ value: phieuData.ma_gd.trim(), label: `${phieuData.ma_gd.trim()} - ${phieuData.ten_gd}` }] : []),
-                ...(maGiaoDichList || []).map(item => ({
-                  value: item.ma_gd?.trim(),
-                  label: `${item.ma_gd?.trim()} - ${item.ten_gd}`
-                }))
-              ].filter((v, i, a) => a.findIndex(t => (t.value === v.value)) === i)}
-              onOpenChange={(open) => open && fetchMaGiaoDichList && fetchMaGiaoDichList()}
-              disabled={true}
-              popupMatchSelectWidth={false}
               optionFilterProp="label"
+              allowClear
+              onOpenChange={(open) => open && fetchMaGiaoDichList && fetchMaGiaoDichList()}
+              disabled={!isEditMode}
+              popupMatchSelectWidth={false}
             />
           </Form.Item>
 
@@ -110,42 +104,36 @@ const PhieuFormInputs = ({
 
         {/* CỘT PHẢI */}
         <Col span={10}>
-
-
-          <Form.Item 
-            name="ngay" 
+          <Form.Item
+            name="ngay"
             label="Ngày lập"
             rules={[{ required: true, message: "Chọn ngày lập" }]}
           >
-            <DatePicker 
-                style={commonInputStyle} 
-                format="DD/MM/YYYY" 
-                inputReadOnly 
-                disabled={!isEditMode} 
+            <DatePicker
+              style={{ width: "100%" }}
+              format="DD/MM/YYYY"
+              disabled={!isEditMode}
             />
           </Form.Item>
 
-          <Form.Item 
-            name="ngay_lct" 
+          <Form.Item
+            name="ngay_lct"
             label="Ngày hạch toán"
             rules={[{ required: true, message: "Chọn ngày hạch toán" }]}
           >
-            <DatePicker 
-                style={commonInputStyle} 
-                format="DD/MM/YYYY" 
-                inputReadOnly 
-                disabled={!isEditMode} 
+            <DatePicker
+              style={{ width: "100%" }}
+              format="DD/MM/YYYY"
+              disabled={!isEditMode}
             />
           </Form.Item>
-
-
         </Col>
       </Row>
 
       {showVatTuSelect && VatTuSelectComponent && (
         <Row style={{ marginTop: 16 }}>
           <Col span={24}>
-            <Form.Item label={<span style={{ fontWeight: 500, fontSize: '16px' }}>Chi tiết</span>}>
+            <Form.Item label={<span style={{ fontWeight: 500, fontSize: '16px' }}>Tìm vật tư hàng hoá</span>}>
               <VatTuSelectComponent
                 isEditMode={isEditMode}
                 barcodeEnabled={barcodeEnabled}

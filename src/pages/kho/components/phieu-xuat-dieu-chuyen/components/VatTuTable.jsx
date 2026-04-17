@@ -7,9 +7,12 @@ const VatTuXuatDieuChuyenTable = ({
   handleQuantityChange,
   handleDeleteItem,
   handleDvtChange,
+  onSelectChange, // Nhận thêm onSelectChange
   fetchDonViTinh,
   onDataSourceUpdate,
   columnConfig,
+  apiHandlers, // Nhận apiHandlers từ props
+  ...props
 }) => {
   return (
     <VatTuTable
@@ -18,11 +21,14 @@ const VatTuXuatDieuChuyenTable = ({
       onQuantityChange={handleQuantityChange}
       onDeleteItem={handleDeleteItem}
       onDvtChange={handleDvtChange}
+      onSelectChange={onSelectChange}
       onDataSourceUpdate={onDataSourceUpdate}
       columnConfig={columnConfig || phieuXuatDieuChuyenConfig}
       apiHandlers={{
         fetchDonViTinh,
+        ...apiHandlers // Merge apiHandlers
       }}
+      {...props}
     />
   );
 };

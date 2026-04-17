@@ -158,6 +158,7 @@ const VatTuTable = ({
           ...latestRecord, 
           loOptions: mergedOptions,
           loPage: page,
+          loKeyword: keyword, // Persist keyword
           _loTotalPage: totalPage
         };
         const updatedDataSource = latestDataSource.map((item) =>
@@ -691,12 +692,12 @@ const VatTuTable = ({
                 onPopupScroll={(e) => {
                   const { target } = e;
                   if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !isLoLoading) {
-                    const currentDataSource = dataSourceRef.current;
-                    const r = currentDataSource.find(it => it.key === record.key);
-                    const nextPage = (r?.loPage || 1) + 1;
+                    const currentRecord = dataSource.find(it => it.key === record.key) || record;
+                    const nextPage = (currentRecord?.loPage || 1) + 1;
+                    const currentKeyword = currentRecord?.loKeyword || "";
                     // Chỉ load tiếp khi thực sự có options từ page trước (giả định pageSize=10)
                     if (loOpts.length >= (nextPage - 1) * 10) {
-                      loadLoOptions("", record, false, nextPage);
+                      loadLoOptions(currentKeyword, record, false, nextPage);
                     }
                   }
                 }}
@@ -715,8 +716,100 @@ const VatTuTable = ({
         },
       });
     } else {
-      // Thêm cột mã vị trí
-      if (columnConfig.showMaViTri) {
+      // Thêm cột từ vị trí
+      if (columnConfig.showMaViTriTu) {
+        baseColumns.push({
+          title: "Từ vị trí",
+          dataIndex: columnConfig.maViTriTuField || "ma_vi_tri",
+          key: "ma_vi_tri",
+          width: 100,
+          align: "center",
+          ellipsis: true,
+          render: (value, record) => {
+            if (!isEditMode) return value;
+            return (
+              <Select
+                showSearch
+                placeholder="Vị trí"
+                value={value || undefined}
+                style={{ width: "100%" }}
+                size="small"
+                onSearch={(val) => loadViTriOptions(val, record)}
+                onDropdownVisibleChange={(open) => {
+                  if (open) {
+                    const r = dataSource.find(it => it.key === record.key) || record;
+                    if (!r.viTriOptions || r.viTriOptions.length === 0) {
+                      loadViTriOptions("", record, false, 1);
+                    }
+                  }
+                }}
+                onChange={(val) => onSelectChange(val, record, columnConfig.maViTriTuField || "ma_vi_tri")}
+                options={record.viTriOptions || []}
+                loading={loadingViTri[record.key]}
+                filterOption={false}
+                listHeight={250}
+                onPopupScroll={(e) => {
+                  const { target } = e;
+                  if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !loadingViTri[record.key]) {
+                    const r = dataSource.find(it => it.key === record.key) || record;
+                    const nextP = (r.viTriPage || 1) + 1;
+                    loadViTriOptions("", record, false, nextP);
+                  }
+                }}
+              />
+            );
+          },
+        });
+      }
+
+      // Thêm cột đến vị trí
+      if (columnConfig.showMaViTriDen) {
+        baseColumns.push({
+          title: "Đến vị trí",
+          dataIndex: columnConfig.maViTriDenField || "ma_vi_tri_nh",
+          key: "ma_vi_tri_nh",
+          width: 100,
+          align: "center",
+          ellipsis: true,
+          render: (value, record) => {
+            if (!isEditMode) return value;
+            return (
+              <Select
+                showSearch
+                placeholder="Vị trí"
+                value={value || undefined}
+                style={{ width: "100%" }}
+                size="small"
+                onSearch={(val) => loadViTriOptions(val, record)}
+                onDropdownVisibleChange={(open) => {
+                  if (open) {
+                    const r = dataSource.find(it => it.key === record.key) || record;
+                    if (!r.viTriOptions || r.viTriOptions.length === 0) {
+                      loadViTriOptions("", record, false, 1);
+                    }
+                  }
+                }}
+                onChange={(val) => onSelectChange(val, record, columnConfig.maViTriDenField || "ma_vi_tri_nh")}
+                options={record.viTriOptions || []}
+                loading={loadingViTri[record.key]}
+                filterOption={false}
+                listHeight={250}
+                onPopupScroll={(e) => {
+                  const { target } = e;
+                  if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !loadingViTri[record.key]) {
+                    const r = dataSource.find(it => it.key === record.key) || record;
+                    const nextP = (r.viTriPage || 1) + 1;
+                    loadViTriOptions("", record, false, nextP);
+                  }
+                }}
+              />
+            );
+          },
+        });
+      }
+
+      // Thêm cột mã vị trí (cũ)
+      if (columnConfig.showMaViTri && !columnConfig.showMaViTriTu && !columnConfig.showMaViTriDen) {
         baseColumns.push({
           title: "Mã vị trí",
           dataIndex: columnConfig.maViTriField || "ma_vi_tri",
@@ -750,13 +843,74 @@ const VatTuTable = ({
           title: "Mã lô",
           dataIndex: columnConfig.maLoField || "ma_lo",
           key: "ma_lo",
-          width: 90,
+          width: 120,
           align: "center",
           ellipsis: true,
           render: (value, record) => {
             if (!isEditMode) {
               return value;
             }
+            
+            if (columnConfig.maLoLookup) {
+              return (
+                <Select
+                  showSearch
+                  placeholder="Chọn lô"
+                  value={value || undefined}
+                  style={{ 
+                    width: "100%",
+                    ...(!!record._invalid_duplicate_ma_lo ? { backgroundColor: "#ffccc7", borderColor: "#ff4d4f" } : {})
+                  }}
+                  size="small"
+                  onSearch={(val) => loadLoOptions(val, record)}
+                  onDropdownVisibleChange={(open) => {
+                    if (open) {
+                      setOpenLo((prev) => ({ ...prev, [record.key]: true }));
+                      const r = dataSource.find(it => it.key === record.key) || record;
+                      if (!r.loOptions || r.loOptions.length === 0) {
+                        loadLoOptions("", record, true, 1);
+                      }
+                    } else {
+                      setOpenLo((prev) => {
+                        const next = { ...prev };
+                        delete next[record.key];
+                        return next;
+                      });
+                    }
+                  }}
+                  open={openLo[record.key]}
+                  onChange={(val) => onSelectChange(val, record, columnConfig.maLoField || "ma_lo")}
+                  options={record.loOptions || []}
+                  loading={loadingLo[record.key]}
+                  filterOption={false}
+                  listHeight={250}
+                   onPopupScroll={(e) => {
+                    const { target } = e;
+                    if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !loadingLo[record.key]) {
+                      const currentRecord = dataSource.find((it) => it.key === record.key) || record;
+                      const nextPage = (currentRecord.loPage || 1) + 1;
+                      const currentKeyword = currentRecord.loKeyword || "";
+                      const currentOptions = currentRecord.loOptions || [];
+                      // Load more if we haven't reached the end
+                      if (currentOptions.length < (currentRecord._loTotalPage || 1) * 10) {
+                        loadLoOptions(currentKeyword, record, false, nextPage);
+                      }
+                    }
+                  }}
+                  dropdownRender={(menu) => (
+                    <div>
+                      {menu}
+                      {loadingLo[record.key] ? (
+                        <div style={{ display: "flex", justifyContent: "center", padding: 8 }}>
+                          <Spin size="small" />
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                />
+              );
+            }
+
             const currentRecord = dataSource.find((item) => item.key === record.key) || record;
             const isDuplicateMaLo = !!currentRecord._invalid_duplicate_ma_lo;
             return (
@@ -1160,6 +1314,7 @@ const VatTuTable = ({
     loadingLo,
     loadingViTri,
     loadLoOptions,
+    loadViTriOptions,
     onSelectChange,
     openLo,
   ]);

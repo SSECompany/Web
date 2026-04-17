@@ -12,7 +12,11 @@ export const phieuNhapKhoConfig = {
   soLuongCheatTitle: "Số lượng cheat",
   showSoLuongCheat: true,
   showMaKho: true,
-  showThaoTac: false,
+  showMaLo: true,
+  showMaViTri: true,
+  maLoLookup: true,
+  showThaoTac: true,
+  consolidateProduct: true,
 };
 
 // Cấu hình cho phiếu nhập hàng theo đơn
@@ -89,7 +93,11 @@ export const phieuXuatKhoConfig = {
   soLuongCheatTitle: "Số lượng cheat",
   showSoLuongCheat: true,
   showMaKho: true,
-  showThaoTac: false,
+  showMaLo: true,
+  showMaViTri: true,
+  maLoLookup: true,
+  showThaoTac: true,
+  consolidateProduct: true,
 };
 
 // Cấu hình cho phiếu nhập điều chuyển
@@ -103,9 +111,11 @@ export const phieuNhapDieuChuyenConfig = {
   showSoLuongCheat: false,
   showMaKho: false,
   showMaLo: true,
-  showMaViTri: true,
-  maLoField: "ma_lo",
-  maViTriField: "ma_vi_tri",
+  maLoLookup: true, // Enable lookup for lot
+  showMaViTriTu: true,
+  showMaViTriDen: true,
+  maViTriTuField: "ma_vi_tri",
+  maViTriDenField: "ma_vi_tri_nh",
   showThaoTac: true,
   consolidateProduct: true,
 };
@@ -125,8 +135,11 @@ export const phieuXuatKhoBanHangConfig = {
   soLuongCheatField: "sl_td3",
   soLuongCheatTitle: "Số lượng xuất",
   showSoLuongCheat: true,
-  showMaKho: false, // Không có cột mã kho
-  showThaoTac: false,
+  showMaKho: true,
+  showMaLo: true,
+  showMaViTri: true,
+  maLoLookup: true,
+  showThaoTac: true,
 };
 
 /**

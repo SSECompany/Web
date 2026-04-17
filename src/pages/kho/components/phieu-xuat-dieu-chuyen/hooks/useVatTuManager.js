@@ -192,6 +192,7 @@ export const useVatTuManager = () => {
             so_luong_hienThi = so_luong_goc * heSoHienTai;
           }
 
+          const productName = vatTuInfo.ten_vt || vatTuInfo.label || value;
           const newItem = {
             key: prev.length + 1,
             maHang: value,
@@ -201,7 +202,7 @@ export const useVatTuManager = () => {
             sl_td3_goc: Math.round(sl_td3_goc * 1000) / 1000, // Số lượng cheat gốc = 1
             he_so: heSoHienTai,
             he_so_goc: heSoGocFromAPI,
-            ten_mat_hang: vatTuInfo.ten_vt || value,
+            ten_mat_hang: productName,
             image: vatTuInfo.image || null,
             dvt: dvtHienTai,
             dvt_goc: dvtGocFromAPI,
@@ -276,7 +277,7 @@ export const useVatTuManager = () => {
             tk_du: "",
             
             // Product name từ API response
-            ten_vt: vatTuInfo.ten_vt || value,
+            ten_vt: productName,
 
             // Other financial fields
             gia_nt: 0,
@@ -500,6 +501,20 @@ export const useVatTuManager = () => {
     });
   };
 
+  const handleSelectChange = (value, record, field) => {
+    setDataSource((prev) =>
+      prev.map((item) =>
+        item.key === record.key
+          ? {
+              ...item,
+              [field]: value,
+              _lastUpdated: Date.now(),
+            }
+          : item
+      )
+    );
+  };
+
   return {
     dataSource,
     setDataSource,
@@ -507,5 +522,6 @@ export const useVatTuManager = () => {
     handleQuantityChange,
     handleDeleteItem,
     handleDvtChange,
+    handleSelectChange,
   };
 };

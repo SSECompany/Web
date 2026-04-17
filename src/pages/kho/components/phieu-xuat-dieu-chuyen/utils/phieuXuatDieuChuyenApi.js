@@ -141,10 +141,9 @@ export const createPhieuXuatDieuChuyen = async (payload) => {
       message.success("Tạo phiếu xuất điều chuyển thành công");
       return { success: true };
     } else {
-      message.error(
-        response.data?.message || "Tạo phiếu xuất điều chuyển thất bại"
-      );
-      return { success: false, message: response.data?.message };
+      const errorMessage = response.data?.responseModel?.message || response.data?.message || "Tạo phiếu xuất điều chuyển thất bại";
+      message.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   } catch (error) {
     console.error("Lỗi khi tạo phiếu xuất điều chuyển:", error);
@@ -228,10 +227,9 @@ export const deletePhieuXuatDieuChuyen = async (stt_rec) => {
       message.success("Xóa phiếu xuất điều chuyển thành công");
       return { success: true };
     } else {
-      message.error(
-        response.data?.message || "Xóa phiếu xuất điều chuyển thất bại"
-      );
-      return { success: false, message: response.data?.message };
+      const errorMessage = response.data?.responseModel?.message || response.data?.message || "Xóa phiếu xuất điều chuyển thất bại";
+      message.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   } catch (error) {
     console.error("Lỗi khi xóa phiếu xuất điều chuyển:", error);
@@ -266,10 +264,9 @@ export const deletePhieuXuatDieuChuyenDirect = async (stt_rec) => {
       message.success("Xóa phiếu xuất điều chuyển thành công");
       return { success: true };
     } else {
-      message.error(
-        response.data?.message || "Xóa phiếu xuất điều chuyển thất bại"
-      );
-      return { success: false, message: response.data?.message };
+      const errorMessage = response.data?.responseModel?.message || response.data?.message || "Xóa phiếu xuất điều chuyển thất bại";
+      message.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   } catch (error) {
     console.error("Lỗi khi xóa phiếu xuất điều chuyển:", error);

@@ -59,10 +59,11 @@ body {
 
 .phieu-header-info {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   flex: 1;
   margin-left: 10px;
-  gap: 4px;
+  gap: 16px;
   overflow: visible;
   min-width: 0;
 }
@@ -111,8 +112,17 @@ body {
 
 .phieu-header-meta-stack {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-left: 10px;
+}
+
+.phieu-header-meta-stack--horizontal {
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
 }
 
 .phieu-header-meta-item {
@@ -140,7 +150,6 @@ body {
   display: flex;
   align-items: center;
   height: 28px;
-  margin-top: 2px;
 }
 
 .phieu-header-status-label {

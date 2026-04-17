@@ -252,11 +252,17 @@ export const usePhieuNhapHangData = () => {
         // Reuse KD module's fetchVatTuSelection API
         const data = await fetchVatTuSelection(keyword, page, 100);
 
-        const options = data.map((item) => ({
-          label: `${item.ma_vt} - ${item.ten_vt}`,
-          value: item.ma_vt,
-          ...item,
-        }));
+        const options = data.map((item) => {
+          const maVt = item.ma_vt || item.value || "";
+          const tenVt = item.ten_vt || item.label || "";
+          return {
+            label: tenVt ? `${maVt} - ${tenVt}` : maVt,
+            value: maVt,
+            ...item,
+            ma_vt: maVt,
+            ten_vt: tenVt,
+          };
+        });
         setVatTuList((prev) => (append ? [...prev, ...options] : options));
         if (!keyword && page === 1 && !append) {
           masterDataCache.vatTu = options;
@@ -316,36 +322,10 @@ export const usePhieuNhapHangData = () => {
         return masterDataCache.donViTinh[cleanMaVatTu];
       }
 
-      try {
-        const encodedMaVt = encodeURIComponent(cleanMaVatTu);
-        const url = `v1/web/danh-sach-dv?ma_vt=${encodedMaVt}`;
-        
-        // FOR NOW: Maintain call but the cache will catch 99% of cases
-        // where fetchThongTinVatTu was called first.
-        const response = await https.get(
-          url,
-          {},
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.data && response.data.data) {
-          const data = response.data.data;
-          masterDataCache.donViTinh[cleanMaVatTu] = data;
-          masterDataCache.lastFetch = Date.now();
-          return data;
-        }
-        return [];
-      } catch (error) {
-        console.error("Error fetching don vi tinh:", error);
-        return [];
-      }
+      // API v1/web/danh-sach-dv đã bị bỏ theo yêu cầu.
+      return [];
     },
-    [token]
+    []
   );
 
   const clearCache = useCallback((type = null) => {

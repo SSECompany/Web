@@ -53,6 +53,8 @@ const AddPhieuNhapKho = () => {
     fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
+    fetchLoList,
+    fetchViTriList,
     setVatTuList,
   } = usePhieuNhapKhoData();
 
@@ -265,6 +267,9 @@ const AddPhieuNhapKho = () => {
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
             fetchMaKhoList={fetchMaKhoList}
+            fetchDonViTinh={fetchDonViTinh}
+            fetchLoList={fetchLoList}
+            fetchViTriList={fetchViTriList}
           />
       </Form>
     </FormTemplate>

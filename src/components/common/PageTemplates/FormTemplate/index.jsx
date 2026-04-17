@@ -25,6 +25,7 @@ const FormTemplate = ({
   badgeText = "CHI TIẾT PHIẾU",
   badgeColor = "blue", // green, blue, orange, red
   metaOrder,
+  metaOrderLabel = "ĐƠN HÀNG",
   metaDate = dayjs().format("DD/MM/YYYY"),
   statusValue,
   statusOptions = [
@@ -67,16 +68,15 @@ const FormTemplate = ({
             </span>
           </div>
 
-          {!hideInfo && (
-            <div className="phieu-header-meta-stack">
-              {metaOrder !== undefined && metaOrder !== null && (
-                <div className="phieu-header-meta-item">
-                  ĐƠN HÀNG:{" "}
-                  <span className="phieu-header-meta-value">
-                    {metaOrder || "........."}
-                  </span>
-                </div>
-              )}
+          <div className="phieu-header-meta-stack">
+            {metaOrder !== undefined && metaOrder !== null && (
+              <div className="phieu-header-meta-item">
+                {metaOrderLabel}:{" "}
+                <span className="phieu-header-meta-value">
+                  {metaOrder || "........."}
+                </span>
+              </div>
+            )}
 
               <div className="phieu-header-meta-item">
                 NGÀY:{" "}

@@ -204,11 +204,17 @@ export const usePhieuXuatDieuChuyenData = () => {
         const data = listObject[0] || [];
 
         if (Array.isArray(data)) {
-          const options = data.map((item) => ({
-            label: `${item.ma_vt} - ${item.ten_vt}`,
-            value: item.ma_vt,
-            ...item,
-          }));
+          const options = data.map((item) => {
+            const maVt = item.ma_vt || item.value || "";
+            const tenVt = item.ten_vt || item.label || "";
+            return {
+              label: tenVt ? `${maVt} - ${tenVt}` : maVt,
+              value: maVt,
+              ...item,
+              ma_vt: maVt,
+              ten_vt: tenVt,
+            };
+          });
           setVatTuList((prev) => (append ? [...prev, ...options] : options));
           if (!keyword && page === 1 && !append) {
             masterDataCache.vatTu = options;
@@ -270,7 +276,7 @@ export const usePhieuXuatDieuChuyenData = () => {
       const cached = getCachedUnits(cleanMaHang);
       if (cached && !forceRefresh) return cached;
 
-      // Kiểm tra cache trước khi gọi API
+      // Kiểm tra cache nội bộ
       if (
         !forceRefresh &&
         masterDataCache.lastFetch &&
@@ -280,26 +286,9 @@ export const usePhieuXuatDieuChuyenData = () => {
         return masterDataCache.donViTinh[cleanMaHang];
       }
 
-      try {
-        const response = await https.get(
-          "v1/web/danh-sach-dv",
-          {
-            ma_vt: cleanMaHang,
-          }
-        );
-
-        if (response.data && response.data.data) {
-          const data = response.data.data;
-          // Cache kết quả theo maHang
-          masterDataCache.donViTinh[cleanMaHang] = data;
-          masterDataCache.lastFetch = Date.now();
-          return data;
-        }
-        return [];
-      } catch (error) {
-        console.error("Error fetching don vi tinh:", error);
-        return [];
-      }
+      // API v1/web/danh-sach-dv đã bị bỏ theo yêu cầu. 
+      // Dữ liệu ĐVT hiện tại được lấy từ cache (populate bởi fetchThongTinVatTu).
+      return [];
     },
     []
   );
@@ -319,6 +308,69 @@ export const usePhieuXuatDieuChuyenData = () => {
       }, 500),
     [fetchVatTuList]
   );
+
+  const fetchLoList = useCallback(async (keyword = "", record = {}, page = 1) => {
+    try {
+      const { getLoItem } = require("../../../../../api");
+      const response = await getLoItem({
+        ma_vt: (record?.maHang || record?.ma_vt || "").toString(),
+        ma_lo: "",
+        ten_lo: keyword,
+        ngay_hhsd_tu: null,
+        ngay_hhsd_den: null,
+        pageIndex: page,
+        pageSize: 10,
+      });
+
+      const data = response?.listObject?.[0] || [];
+      const totalPage = response?.listObject?.[1]?.[0]?.totalPage ?? 1;
+
+      const options = data.map((x) => {
+        const value = (x?.ma_lo || x?.value || x?.ten_lo || "").toString();
+        // Format label: ma_lo-ngay_hhsd nếu có ngay_hhsd
+        let label = value;
+        if (x?.ngay_hhsd) {
+          const formattedDate = dayjs(x.ngay_hhsd).format("DD/MM/YYYY");
+          label = `${value}-${formattedDate}`;
+        } else {
+          label = x?.ma_lo || x?.ten_lo || x?.label || value;
+        }
+        return { value, label, ...x };
+      });
+      return { options, totalPage };
+    } catch (e) {
+      console.error("fetchLoList error", e);
+      return { options: [], totalPage: 1 };
+    }
+  }, []);
+
+  const fetchViTriList = useCallback(async (keyword = "", record = {}, page = 1) => {
+    try {
+      const { getViTriByKho } = require("../../../../../api");
+      const response = await getViTriByKho({
+        ma_kho: (record?.ma_kho || "").toString(),
+        ten_vi_tri: keyword,
+        pageIndex: page,
+        pageSize: 50,
+      });
+
+      const data = response?.listObject?.[0] || [];
+      const options = data.map((x) => {
+        const value = (
+          x?.ma_vi_tri ||
+          x?.value ||
+          x?.ten_vi_tri ||
+          ""
+        ).toString();
+        const label = x?.ma_vi_tri || x?.ten_vi_tri || x?.label || value;
+        return { value, label, ...x };
+      });
+      return options;
+    } catch (e) {
+      console.error("fetchViTriList error", e);
+      return [];
+    }
+  }, []);
 
   const clearCache = useCallback(() => {
     masterDataCache.maGiaoDich = null;
@@ -341,6 +393,8 @@ export const usePhieuXuatDieuChuyenData = () => {
     fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
+    fetchLoList,
+    fetchViTriList,
     setVatTuList,
     clearCache,
   };
