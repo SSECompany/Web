@@ -42,6 +42,9 @@ const FormTemplate = ({
 
   // Footer Actions
   fixedFooterActions = [],
+
+  // New options
+  hideInfo = false,
 }) => {
   return (
     <>
@@ -64,53 +67,55 @@ const FormTemplate = ({
             </span>
           </div>
 
-          <div className="phieu-header-meta-stack">
-            {metaOrder !== undefined && metaOrder !== null && (
+          {!hideInfo && (
+            <div className="phieu-header-meta-stack">
+              {metaOrder !== undefined && metaOrder !== null && (
+                <div className="phieu-header-meta-item">
+                  ĐƠN HÀNG:{" "}
+                  <span className="phieu-header-meta-value">
+                    {metaOrder || "........."}
+                  </span>
+                </div>
+              )}
+
               <div className="phieu-header-meta-item">
-                ĐƠN HÀNG:{" "}
-                <span className="phieu-header-meta-value">
-                  {metaOrder || "........."}
-                </span>
+                NGÀY:{" "}
+                <span className="phieu-header-meta-value">{metaDate}</span>
               </div>
-            )}
 
-            <div className="phieu-header-meta-item">
-              NGÀY:{" "}
-              <span className="phieu-header-meta-value">{metaDate}</span>
+              {showStatusSelect && (
+                <div className="phieu-header-status-row">
+                  <span className="phieu-header-status-label">TRẠNG THÁI:</span>
+                  {form ? (
+                    <Form form={form} component={false}>
+                      <Form.Item
+                        name={statusFieldName}
+                        noStyle
+                        initialValue={statusValue || "0"}
+                      >
+                        <Select
+                          size="small"
+                          className="phieu-header-status-select"
+                          popupMatchSelectWidth={false}
+                          options={statusOptions}
+                          disabled={statusDisabled}
+                        />
+                      </Form.Item>
+                    </Form>
+                  ) : (
+                    <Select
+                      size="small"
+                      className="phieu-header-status-select"
+                      popupMatchSelectWidth={false}
+                      options={statusOptions}
+                      value={statusValue || "0"}
+                      disabled
+                    />
+                  )}
+                </div>
+              )}
             </div>
-
-            {showStatusSelect && (
-              <div className="phieu-header-status-row">
-                <span className="phieu-header-status-label">TRẠNG THÁI:</span>
-                {form ? (
-                  <Form form={form} component={false}>
-                    <Form.Item
-                      name={statusFieldName}
-                      noStyle
-                      initialValue={statusValue || "0"}
-                    >
-                      <Select
-                        size="small"
-                        className="phieu-header-status-select"
-                        popupMatchSelectWidth={false}
-                        options={statusOptions}
-                        disabled={statusDisabled}
-                      />
-                    </Form.Item>
-                  </Form>
-                ) : (
-                  <Select
-                    size="small"
-                    className="phieu-header-status-select"
-                    popupMatchSelectWidth={false}
-                    options={statusOptions}
-                    value={statusValue || "0"}
-                    disabled
-                  />
-                )}
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         <div className="phieu-header-right">

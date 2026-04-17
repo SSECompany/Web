@@ -34,6 +34,10 @@
         margin: 0 !important;
     }
 
+    thead {
+        display: table-row-group;
+    }
+
     @page {
         size: A4;
         margin: 5mm;

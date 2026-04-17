@@ -921,6 +921,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         ) : null
       }
       fixedFooterActions={footerActions}
+      hideInfo={true}
     >
       <div className="phieu-form-container">
         <div className="phieu-form phieu-form--floating">
