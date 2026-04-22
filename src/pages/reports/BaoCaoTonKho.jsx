@@ -35,6 +35,8 @@ const formatDate = (date) => {
 const getDefaultFilters = () => ({
   DateTo: dayjs().format("YYYY-MM-DD HH:mm:ss.SSS"),
   Site: "",
+  Item: "",
+  ItemName: "",
   ItemGroup1: "",
   ItemGroup2: "",
   ItemGroup3: "",
@@ -106,11 +108,6 @@ const BaoCaoTonKho = () => {
   const loaiNhomVatTu = 1;
 
   const [filters, setFilters] = useState(getDefaultFilters);
-  const [tableFilters, setTableFilters] = useState({
-    ma_vt: "",
-    ten_vt: "",
-    dvt: "",
-  });
 
   // Auto-fill Unit when defaultUnitCode is available
   // useEffect(() => {
@@ -290,6 +287,7 @@ const BaoCaoTonKho = () => {
           DateTo: filters.DateTo,
           Site: filters.Site || "",
           Item: filters.Item || "",
+          ItemName: filters.ItemName || "",
           ItemGroup1: filters.ItemGroup1 || "",
           ItemGroup2: filters.ItemGroup2 || "",
           ItemGroup3: filters.ItemGroup3 || "",
@@ -402,23 +400,10 @@ const BaoCaoTonKho = () => {
         const res = await multipleTablePutApi({
           store: "api_rs_rptStockReport",
           param: {
-            DateTo: filters.DateTo,
-            Site: filters.Site || "",
-            Item: filters.Item || "",
-            ItemGroup1: filters.ItemGroup1 || "",
-            ItemGroup2: filters.ItemGroup2 || "",
-            ItemGroup3: filters.ItemGroup3 || "",
-            nh_theo: filters.nh_theo || 0,
-            tt_sx1: filters.tt_sx1 || 0,
-            tt_sx2: filters.tt_sx2 || 0,
-            tt_sx3: filters.tt_sx3 || 0,
+            ...filters,
+            ItemName: filters.ItemName || "",
             Unit: "",
-            BalanceType: filters.BalanceType || 2,
-            Order: filters.Order || "ma_vt",
-            DataType: filters.DataType || 2,
-            Language: filters.Language || "V",
             UserID: userId,
-            Admin: filters.Admin || 1,
             pageIndex: currentPageIdx,
             pageSize: 1000,
           },
@@ -537,6 +522,14 @@ const BaoCaoTonKho = () => {
     }
   }, [filters, userId]);
 
+  const handleFilterChange = useCallback((key, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+    setCurrentPage(1); // Reset về trang 1 khi filter thay đổi
+  }, []);
+
   const columns = useMemo(
     () => [
       {
@@ -560,10 +553,7 @@ const BaoCaoTonKho = () => {
               }
               onPressEnter={() => {
                 confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ma_vt: selectedKeys[0] || "",
-                }));
+                handleFilterChange("Item", selectedKeys[0] || "");
               }}
               style={{ marginBottom: 8, display: "block" }}
             />
@@ -571,10 +561,7 @@ const BaoCaoTonKho = () => {
               type="primary"
               onClick={() => {
                 confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ma_vt: selectedKeys[0] || "",
-                }));
+                handleFilterChange("Item", selectedKeys[0] || "");
               }}
               size="small"
               style={{ width: "100%" }}
@@ -583,9 +570,6 @@ const BaoCaoTonKho = () => {
             </Button>
           </div>
         ),
-        filteredValue: tableFilters.ma_vt ? [tableFilters.ma_vt] : null,
-        onFilter: (value, record) =>
-          record.ma_vt?.toString().toLowerCase().includes(value.toLowerCase()),
       },
       {
         title: "Tên vật tư",
@@ -602,10 +586,7 @@ const BaoCaoTonKho = () => {
               }
               onPressEnter={() => {
                 confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ten_vt: selectedKeys[0] || "",
-                }));
+                handleFilterChange("ItemName", selectedKeys[0] || "");
               }}
               style={{ marginBottom: 8, display: "block" }}
             />
@@ -613,10 +594,7 @@ const BaoCaoTonKho = () => {
               type="primary"
               onClick={() => {
                 confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ten_vt: selectedKeys[0] || "",
-                }));
+                handleFilterChange("ItemName", selectedKeys[0] || "");
               }}
               size="small"
               style={{ width: "100%" }}
@@ -625,9 +603,6 @@ const BaoCaoTonKho = () => {
             </Button>
           </div>
         ),
-        filteredValue: tableFilters.ten_vt ? [tableFilters.ten_vt] : null,
-        onFilter: (value, record) =>
-          record.ten_vt?.toString().toLowerCase().includes(value.toLowerCase()),
       },
       {
         title: "ĐVT",
@@ -648,7 +623,7 @@ const BaoCaoTonKho = () => {
         width: 150,
       },
     ],
-    [tableFilters]
+    [handleFilterChange]
   );
 
   const renderCellContent = useCallback((text, record, col) => {
@@ -776,23 +751,11 @@ const BaoCaoTonKho = () => {
     );
   }, [dataSource]);
 
-  const handleFilterChange = useCallback((key, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-    setCurrentPage(1); // Reset về trang 1 khi filter thay đổi
-  }, []);
 
   const handleClearFilters = useCallback(() => {
     setFilters({
       ...getDefaultFilters(),
       // Unit: defaultUnitCode ? [defaultUnitCode] : [],
-    });
-    setTableFilters({
-      ma_vt: "",
-      ten_vt: "",
-      dvt: "",
     });
     setCurrentPage(1);
   }, [setCurrentPage, defaultUnitCode]);
@@ -873,34 +836,18 @@ const BaoCaoTonKho = () => {
       });
     }
 
-    // Add table filters to chips
-    if (tableFilters.ma_vt) {
+    if (filters.ItemName) {
       chips.push({
-        key: "ma_vt",
-        label: "Mã vật tư",
-        value: tableFilters.ma_vt,
-        color: "gold",
-      });
-    }
-    if (tableFilters.ten_vt) {
-      chips.push({
-        key: "ten_vt",
+        key: "ItemName",
         label: "Tên vật tư",
-        value: tableFilters.ten_vt,
-      });
-    }
-    if (tableFilters.dvt) {
-      chips.push({
-        key: "dvt",
-        label: "ĐVT",
-        value: tableFilters.dvt,
+        value: filters.ItemName,
+        color: "green",
       });
     }
 
     return chips;
   }, [
     filters,
-    tableFilters,
     khoOptions,
     nhomVatTuOptions,
     vatTuOptions,
@@ -910,11 +857,6 @@ const BaoCaoTonKho = () => {
   const handleRemoveFilter = useCallback((key) => {
     if (key === "Unit") {
       // handleFilterChange("Unit", []);
-    } else if (["ma_vt", "ten_vt", "dvt"].includes(key)) {
-      setTableFilters((prev) => ({
-        ...prev,
-        [key]: "",
-      }));
     } else {
       handleFilterChange(key, "");
     }
@@ -1068,7 +1010,7 @@ const BaoCaoTonKho = () => {
                 }
               />
             </div> */}
-            <div className="button-item-row" style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end", marginTop: "12px" }}>
+            <div className="button-item-row" style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "12px" }}>
               <div style={{ display: "flex", gap: "12px" }}>
                 <Button
                   type="primary"

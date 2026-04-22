@@ -61,6 +61,7 @@ const getDefaultFilters = () => ({
   DataType: 2,
   Language: "V",
   Admin: 1,
+  ItemName: "",
   TransactionList: "",
 });
 
@@ -106,13 +107,6 @@ const BaoCaoBangKePhieuNhap = () => {
 
   // Filters
   const [filters, setFilters] = useState(getDefaultFilters);
-  const [tableFilters, setTableFilters] = useState({
-    so_ct: "",
-    ma_vt: "",
-    ten_kh: "",
-    ma_kh: "",
-    ngay_ct: "",
-  });
 
   // Auto-fill Unit
   // useEffect(() => {
@@ -279,6 +273,7 @@ const BaoCaoBangKePhieuNhap = () => {
           Language: filters.Language,
           UserID: userId,
           Admin: filters.Admin,
+          ItemName: filters.ItemName || "",
           TransactionList: filters.TransactionList || "",
           pageIndex: currentPage,
           pageSize: pageSize,
@@ -394,14 +389,9 @@ const BaoCaoBangKePhieuNhap = () => {
     }
   }, [filters, userId]);
 
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(1);
-  };
 
   const handleClearFilters = () => {
     setFilters({ ...getDefaultFilters(), /* Unit: defaultUnitCode ? [defaultUnitCode] : [] */ });
-    setTableFilters({ so_ct: "", ma_vt: "", ten_kh: "", ma_kh: "", ngay_ct: "" });
     setCurrentPage(1);
   };
 
@@ -411,8 +401,6 @@ const BaoCaoBangKePhieuNhap = () => {
     } else if (filterKey === "DateRange") {
       handleFilterChange("DateFrom", "");
       handleFilterChange("DateTo", "");
-    } else if (["so_ct", "ma_kh", "ten_kh", "ma_vt"].includes(filterKey)) {
-      setTableFilters(prev => ({ ...prev, [filterKey]: "" }));
     } else {
       handleFilterChange(filterKey, "");
     }
@@ -449,22 +437,17 @@ const BaoCaoBangKePhieuNhap = () => {
       chips.push({ key: "Item", label: "Vật tư", value: label, color: "green" });
     }
 
-    // Column Filters
-    if (tableFilters.so_ct) {
-      chips.push({ key: "so_ct", label: "Số ct", value: tableFilters.so_ct, color: "gold" });
-    }
-    if (tableFilters.ma_kh) {
-      chips.push({ key: "ma_kh", label: "Mã khách", value: tableFilters.ma_kh, color: "gold" });
-    }
-    if (tableFilters.ten_kh) {
-      chips.push({ key: "ten_kh", label: "Tên khách", value: tableFilters.ten_kh, color: "gold" });
-    }
-    if (tableFilters.ma_vt) {
-      chips.push({ key: "ma_vt", label: "Mã vật tư", value: tableFilters.ma_vt, color: "gold" });
+    if (filters.ItemName) {
+      chips.push({ key: "ItemName", label: "Tên vật tư", value: filters.ItemName, color: "green" });
     }
 
     return chips;
-  }, [filters, dvcsOptions, khoOptions, khachHangOptions, vatTuOptions, tableFilters]);
+  }, [filters, dvcsOptions, khoOptions, khachHangOptions, vatTuOptions]);
+
+  const handleFilterChange = useCallback((key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setCurrentPage(1);
+  }, []);
 
   const columns = useMemo(() => [
     { title: "STT", dataIndex: "stt", key: "stt", width: 60, align: "center", fixed: "left" },
@@ -510,20 +493,6 @@ const BaoCaoBangKePhieuNhap = () => {
       key: "so_ct", 
       width: 140, 
       align: "center",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Input
-            placeholder="Tìm số ct"
-            value={selectedKeys[0]}
-            onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-            onPressEnter={() => { confirm(); setTableFilters(prev => ({ ...prev, so_ct: selectedKeys[0] || "" })); }}
-            style={{ marginBottom: 8, display: "block" }}
-          />
-          <Button type="primary" size="small" onClick={() => { confirm(); setTableFilters(prev => ({ ...prev, so_ct: selectedKeys[0] || "" })); }}>Tìm</Button>
-        </div>
-      ),
-      filteredValue: tableFilters.so_ct ? [tableFilters.so_ct] : null,
-      onFilter: (value, record) => record.so_ct?.toLowerCase().includes(value.toLowerCase()),
     },
     { 
       title: "Mã khách", 
@@ -537,14 +506,12 @@ const BaoCaoBangKePhieuNhap = () => {
             placeholder="Tìm mã khách"
             value={selectedKeys[0]}
             onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-            onPressEnter={() => { confirm(); setTableFilters(prev => ({ ...prev, ma_kh: selectedKeys[0] || "" })); }}
+            onPressEnter={() => { confirm(); handleFilterChange("Customer", selectedKeys[0] || ""); }}
             style={{ marginBottom: 8, display: "block" }}
           />
-          <Button type="primary" size="small" onClick={() => { confirm(); setTableFilters(prev => ({ ...prev, ma_kh: selectedKeys[0] || "" })); }}>Tìm</Button>
+          <Button type="primary" size="small" onClick={() => { confirm(); handleFilterChange("Customer", selectedKeys[0] || ""); }}>Tìm</Button>
         </div>
       ),
-      filteredValue: tableFilters.ma_kh ? [tableFilters.ma_kh] : null,
-      onFilter: (value, record) => record.ma_kh?.toLowerCase().includes(value.toLowerCase()),
     },
     { 
       title: "Tên khách", 
@@ -553,20 +520,6 @@ const BaoCaoBangKePhieuNhap = () => {
       width: 300, 
       align: "left", 
       ellipsis: true,
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Input
-            placeholder="Tìm tên khách"
-            value={selectedKeys[0]}
-            onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-            onPressEnter={() => { confirm(); setTableFilters(prev => ({ ...prev, ten_kh: selectedKeys[0] || "" })); }}
-            style={{ marginBottom: 8, display: "block" }}
-          />
-          <Button type="primary" size="small" onClick={() => { confirm(); setTableFilters(prev => ({ ...prev, ten_kh: selectedKeys[0] || "" })); }}>Tìm</Button>
-        </div>
-      ),
-      filteredValue: tableFilters.ten_kh ? [tableFilters.ten_kh] : null,
-      onFilter: (value, record) => record.ten_kh?.toLowerCase().includes(value.toLowerCase()),
     },
     { title: "Diễn giải", dataIndex: "dien_giai", key: "dien_giai", width: 250, align: "left", ellipsis: true },
     { 
@@ -581,14 +534,12 @@ const BaoCaoBangKePhieuNhap = () => {
             placeholder="Tìm mã vật tư"
             value={selectedKeys[0]}
             onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-            onPressEnter={() => { confirm(); setTableFilters(prev => ({ ...prev, ma_vt: selectedKeys[0] || "" })); }}
+            onPressEnter={() => { confirm(); handleFilterChange("Item", selectedKeys[0] || ""); }}
             style={{ marginBottom: 8, display: "block" }}
           />
-          <Button type="primary" size="small" onClick={() => { confirm(); setTableFilters(prev => ({ ...prev, ma_vt: selectedKeys[0] || "" })); }}>Tìm</Button>
+          <Button type="primary" size="small" onClick={() => { confirm(); handleFilterChange("Item", selectedKeys[0] || ""); }}>Tìm</Button>
         </div>
       ),
-      filteredValue: tableFilters.ma_vt ? [tableFilters.ma_vt] : null,
-      onFilter: (value, record) => record.ma_vt?.toLowerCase().includes(value.toLowerCase()),
     },
     { 
       title: "Tên vật tư", 
@@ -603,21 +554,19 @@ const BaoCaoBangKePhieuNhap = () => {
             placeholder="Tìm tên vật tư"
             value={selectedKeys[0]}
             onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-            onPressEnter={() => { confirm(); setTableFilters(prev => ({ ...prev, ten_vt: selectedKeys[0] || "" })); }}
+            onPressEnter={() => { confirm(); handleFilterChange("ItemName", selectedKeys[0] || ""); }}
             style={{ marginBottom: 8, display: "block" }}
           />
-          <Button type="primary" size="small" onClick={() => { confirm(); setTableFilters(prev => ({ ...prev, ten_vt: selectedKeys[0] || "" })); }}>Tìm</Button>
+          <Button type="primary" size="small" onClick={() => { confirm(); handleFilterChange("ItemName", selectedKeys[0] || ""); }}>Tìm</Button>
         </div>
       ),
-      filteredValue: tableFilters.ten_vt ? [tableFilters.ten_vt] : null,
-      onFilter: (value, record) => record.ten_vt?.toLowerCase().includes(value.toLowerCase()),
     },
     { title: "ĐVT", dataIndex: "dvt", key: "dvt", width: 80, align: "center" },
     { title: "Số lượng", dataIndex: "so_luong", key: "so_luong", width: 100, align: "right", render: (val) => formatNumber(val) },
     { title: "Giá", dataIndex: "gia", key: "gia", width: 130, align: "right", render: (val) => formatNumber(val) },
     { title: "Tiền", dataIndex: "tien", key: "tien", width: 150, align: "right", render: (val) => formatNumber(val) },
     { title: "Kho hàng", dataIndex: "ma_kho", key: "ma_kho", width: 100, align: "center" },
-  ], [tableFilters, filters.DateFrom, filters.DateTo, fetchData]);
+  ], [handleFilterChange, filters.DateFrom, filters.DateTo, fetchData]);
 
   // Totals calculations
   const totals = useMemo(() => {
@@ -727,10 +676,10 @@ const BaoCaoBangKePhieuNhap = () => {
             <div className="button-item-row" style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "12px" }}>
               <Button
                 type="primary"
-                style={{ backgroundColor: "#217346", borderColor: "#217346", minWidth: "120px" }}
                 onClick={handleExportExcel}
                 loading={exportLoading}
                 disabled={dataSource.length === 0}
+                className="btn-export-excel"
               >
                 Xuất Excel
               </Button>

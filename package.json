@@ -1,6 +1,6 @@
 {
   "name": "tapmed",
-  "version": "0.1.43",
+  "version": "0.1.44",
   "private": true,
   "dependencies": {
     "@ant-design/charts": "^2.1.1",

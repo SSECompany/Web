@@ -41,6 +41,7 @@ const getDefaultFilters = () => ({
   ItemType: "",
   ItemGroup: "",
   Item: "",
+  ItemName: "",
   CalculateTransfer: "1",
   nh_theo: "",
   tt_sx1: 0,
@@ -103,12 +104,6 @@ const TongHopNhapXuatTon = () => {
   const vatTuSearchRef = useRef(null);
 
   const [filters, setFilters] = useState(getDefaultFilters);
-
-  const [tableFilters, setTableFilters] = useState({
-    ma_vt: "",
-    ten_vt: "",
-    dvt: "",
-  });
 
   // Auto-fill Unit when defaultUnitCode is available
   // useEffect(() => {
@@ -349,6 +344,7 @@ const TongHopNhapXuatTon = () => {
           Language: filters.Language || "V",
           UserID: userId,
           Admin: filters.Admin || 1,
+          ItemName: filters.ItemName || "",
           pageIndex: currentPage,
           pageSize: pageSize,
         },
@@ -461,6 +457,7 @@ const TongHopNhapXuatTon = () => {
             Language: filters.Language || "V",
             UserID: userId,
             Admin: filters.Admin || 1,
+            ItemName: filters.ItemName || "",
             pageIndex: currentPageIdx,
             pageSize: 1000, // Lấy tối đa cho mỗi trang
           },
@@ -595,6 +592,14 @@ const TongHopNhapXuatTon = () => {
     }
   }, [filters, userId]);
 
+  const handleFilterChange = useCallback((key, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+    setCurrentPage(1); // Reset về trang 1 khi filter thay đổi
+  }, []);
+
   const columns = useMemo(
     () => [
       {
@@ -618,10 +623,7 @@ const TongHopNhapXuatTon = () => {
               }
               onPressEnter={() => {
                 confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ma_vt: selectedKeys[0] || "",
-                }));
+                handleFilterChange("Item", selectedKeys[0] || "");
               }}
               style={{ marginBottom: 8, display: "block" }}
             />
@@ -629,10 +631,7 @@ const TongHopNhapXuatTon = () => {
               type="primary"
               onClick={() => {
                 confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ma_vt: selectedKeys[0] || "",
-                }));
+                handleFilterChange("Item", selectedKeys[0] || "");
               }}
               size="small"
               style={{ width: "100%" }}
@@ -641,9 +640,6 @@ const TongHopNhapXuatTon = () => {
             </Button>
           </div>
         ),
-        filteredValue: tableFilters.ma_vt ? [tableFilters.ma_vt] : null,
-        onFilter: (value, record) =>
-          record.ma_vt?.toString().toLowerCase().includes(value.toLowerCase()),
       },
       {
         title: "Tên vật tư",
@@ -660,10 +656,7 @@ const TongHopNhapXuatTon = () => {
               }
               onPressEnter={() => {
                 confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ten_vt: selectedKeys[0] || "",
-                }));
+                handleFilterChange("ItemName", selectedKeys[0] || "");
               }}
               style={{ marginBottom: 8, display: "block" }}
             />
@@ -671,10 +664,7 @@ const TongHopNhapXuatTon = () => {
               type="primary"
               onClick={() => {
                 confirm();
-                setTableFilters((prev) => ({
-                  ...prev,
-                  ten_vt: selectedKeys[0] || "",
-                }));
+                handleFilterChange("ItemName", selectedKeys[0] || "");
               }}
               size="small"
               style={{ width: "100%" }}
@@ -683,9 +673,6 @@ const TongHopNhapXuatTon = () => {
             </Button>
           </div>
         ),
-        filteredValue: tableFilters.ten_vt ? [tableFilters.ten_vt] : null,
-        onFilter: (value, record) =>
-          record.ten_vt?.toString().toLowerCase().includes(value.toLowerCase()),
       },
       {
         title: "ĐVT",
@@ -702,7 +689,7 @@ const TongHopNhapXuatTon = () => {
       createNumberColumn("Tồn cuối", "ton_cuoi"),
       createNumberColumn("Dư cuối", "du_cuoi"),
     ],
-    [tableFilters]
+    [handleFilterChange]
   );
 
   function createNumberColumn(title, dataIndex) {
@@ -828,23 +815,11 @@ const TongHopNhapXuatTon = () => {
     return totals[field] || 0;
   };
 
-  const handleFilterChange = useCallback((key, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-    setCurrentPage(1); // Reset về trang 1 khi filter thay đổi
-  }, []);
 
   const handleClearFilters = useCallback(() => {
     setFilters({
       ...getDefaultFilters(),
       // Unit: defaultUnitCode ? [defaultUnitCode] : [],
-    });
-    setTableFilters({
-      ma_vt: "",
-      ten_vt: "",
-      dvt: "",
     });
     setCurrentPage(1);
   }, [setCurrentPage, defaultUnitCode]);
@@ -920,35 +895,18 @@ const TongHopNhapXuatTon = () => {
       });
     }
 
-    // Add table filters to chips
-    if (tableFilters.ma_vt) {
+    if (filters.ItemName) {
       chips.push({
-        key: "ma_vt",
-        label: "Mã vật tư",
-        value: tableFilters.ma_vt,
-        color: "gold",
-      });
-    }
-    if (tableFilters.ten_vt) {
-      chips.push({
-        key: "ten_vt",
+        key: "ItemName",
         label: "Tên vật tư",
-        value: tableFilters.ten_vt,
-        color: "gold",
-      });
-    }
-    if (tableFilters.dvt) {
-      chips.push({
-        key: "dvt",
-        label: "ĐVT",
-        value: tableFilters.dvt,
+        value: filters.ItemName,
+        color: "green",
       });
     }
 
     return chips;
   }, [
     filters,
-    tableFilters,
     khoOptions,
     nhomVatTuOptions,
     vatTuOptions,
@@ -961,11 +919,6 @@ const TongHopNhapXuatTon = () => {
     } else if (key === "DateRange") {
       handleFilterChange("DateFrom", formatDate(dayjs().startOf("day")));
       handleFilterChange("DateTo", formatDate(dayjs().endOf("day")));
-    } else if (["ma_vt", "ten_vt", "dvt"].includes(key)) {
-      setTableFilters((prev) => ({
-        ...prev,
-        [key]: "",
-      }));
     } else {
       handleFilterChange(key, "");
     }

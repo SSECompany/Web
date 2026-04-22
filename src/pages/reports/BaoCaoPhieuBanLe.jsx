@@ -42,6 +42,7 @@ const getDefaultFilters = () => ({
   Customer: "",
   Site: "",
   Item: "",
+  ItemName: "",
   Group1: "",
   Group2: "",
   Group3: "",
@@ -94,12 +95,6 @@ const BaoCaoPhieuBanLe = () => {
   const vatTuSearchRef = useRef(null);
 
   const [filters, setFilters] = useState(getDefaultFilters);
-  const [tableFilters, setTableFilters] = useState({
-    so_ct: "",
-    dien_giai: "",
-    ma_vt: "",
-    ten_vt: "",
-  });
 
   // Fetch danh sách kho
   const fetchKhoOptions = useCallback(
@@ -342,6 +337,7 @@ const BaoCaoPhieuBanLe = () => {
           Language: filters.Language || "V",
           UserID: userId,
           Admin: filters.Admin || 1,
+          ItemName: filters.ItemName || "",
           pageIndex: currentPage,
           pageSize: pageSize,
         },
@@ -427,6 +423,7 @@ const BaoCaoPhieuBanLe = () => {
             Language: filters.Language || "V",
             UserID: userId,
             Admin: filters.Admin || 1,
+            ItemName: filters.ItemName || "",
             pageIndex: currentPageIdx,
             pageSize: 1000,
           },
@@ -592,6 +589,14 @@ const BaoCaoPhieuBanLe = () => {
     return <div style={CELL_STYLE}>{text || ""}</div>;
   }, []);
 
+  const handleFilterChange = useCallback((key, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+    setCurrentPage(1); // Reset về trang 1 khi filter thay đổi
+  }, []);
+
   // Định nghĩa columns cố định
   const columns = useMemo(
     () =>
@@ -616,42 +621,6 @@ const BaoCaoPhieuBanLe = () => {
           key: "so_ct",
           width: 140,
           align: "center",
-          filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-            <div style={{ padding: 8 }}>
-              <Input
-                placeholder="Tìm số chứng từ"
-                value={selectedKeys[0]}
-                onChange={(e) =>
-                  setSelectedKeys(e.target.value ? [e.target.value] : [])
-                }
-                onPressEnter={() => {
-                  confirm();
-                  setTableFilters((prev) => ({
-                    ...prev,
-                    so_ct: selectedKeys[0] || "",
-                  }));
-                }}
-                style={{ marginBottom: 8, display: "block" }}
-              />
-              <Button
-                type="primary"
-                onClick={() => {
-                  confirm();
-                  setTableFilters((prev) => ({
-                    ...prev,
-                    so_ct: selectedKeys[0] || "",
-                  }));
-                }}
-                size="small"
-                style={{ width: "100%" }}
-              >
-                Tìm kiếm
-              </Button>
-            </div>
-          ),
-          filteredValue: tableFilters.so_ct ? [tableFilters.so_ct] : null,
-          onFilter: (value, record) =>
-            record.so_ct?.toString().toLowerCase().includes(value.toLowerCase()),
         },
         {
           title: "Diễn giải",
@@ -659,42 +628,6 @@ const BaoCaoPhieuBanLe = () => {
           key: "dien_giai",
           width: 200,
           align: "left",
-          filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-            <div style={{ padding: 8 }}>
-              <Input
-                placeholder="Tìm diễn giải"
-                value={selectedKeys[0]}
-                onChange={(e) =>
-                  setSelectedKeys(e.target.value ? [e.target.value] : [])
-                }
-                onPressEnter={() => {
-                  confirm();
-                  setTableFilters((prev) => ({
-                    ...prev,
-                    dien_giai: selectedKeys[0] || "",
-                  }));
-                }}
-                style={{ marginBottom: 8, display: "block" }}
-              />
-              <Button
-                type="primary"
-                onClick={() => {
-                  confirm();
-                  setTableFilters((prev) => ({
-                    ...prev,
-                    dien_giai: selectedKeys[0] || "",
-                  }));
-                }}
-                size="small"
-                style={{ width: "100%" }}
-              >
-                Tìm kiếm
-              </Button>
-            </div>
-          ),
-          filteredValue: tableFilters.dien_giai ? [tableFilters.dien_giai] : null,
-          onFilter: (value, record) =>
-            record.dien_giai?.toString().toLowerCase().includes(value.toLowerCase()),
         },
         {
           title: "Mã hàng",
@@ -712,10 +645,7 @@ const BaoCaoPhieuBanLe = () => {
                 }
                 onPressEnter={() => {
                   confirm();
-                  setTableFilters((prev) => ({
-                    ...prev,
-                    ma_vt: selectedKeys[0] || "",
-                  }));
+                  handleFilterChange("Item", selectedKeys[0] || "");
                 }}
                 style={{ marginBottom: 8, display: "block" }}
               />
@@ -723,10 +653,7 @@ const BaoCaoPhieuBanLe = () => {
                 type="primary"
                 onClick={() => {
                   confirm();
-                  setTableFilters((prev) => ({
-                    ...prev,
-                    ma_vt: selectedKeys[0] || "",
-                  }));
+                  handleFilterChange("Item", selectedKeys[0] || "");
                 }}
                 size="small"
                 style={{ width: "100%" }}
@@ -735,9 +662,6 @@ const BaoCaoPhieuBanLe = () => {
               </Button>
             </div>
           ),
-          filteredValue: tableFilters.ma_vt ? [tableFilters.ma_vt] : null,
-          onFilter: (value, record) =>
-            record.ma_vt?.toString().toLowerCase().includes(value.toLowerCase()),
         },
         {
           title: "Tên mặt hàng",
@@ -755,10 +679,7 @@ const BaoCaoPhieuBanLe = () => {
                 }
                 onPressEnter={() => {
                   confirm();
-                  setTableFilters((prev) => ({
-                    ...prev,
-                    ten_vt: selectedKeys[0] || "",
-                  }));
+                  handleFilterChange("Item", selectedKeys[0] || "");
                 }}
                 style={{ marginBottom: 8, display: "block" }}
               />
@@ -766,10 +687,7 @@ const BaoCaoPhieuBanLe = () => {
                 type="primary"
                 onClick={() => {
                   confirm();
-                  setTableFilters((prev) => ({
-                    ...prev,
-                    ten_vt: selectedKeys[0] || "",
-                  }));
+                  handleFilterChange("Item", selectedKeys[0] || "");
                 }}
                 size="small"
                 style={{ width: "100%" }}
@@ -778,9 +696,6 @@ const BaoCaoPhieuBanLe = () => {
               </Button>
             </div>
           ),
-          filteredValue: tableFilters.ten_vt ? [tableFilters.ten_vt] : null,
-          onFilter: (value, record) =>
-            record.ten_vt?.toString().toLowerCase().includes(value.toLowerCase()),
         },
         {
           title: "ĐVT",
@@ -878,7 +793,7 @@ const BaoCaoPhieuBanLe = () => {
         onCell: (record) => ({ record }),
         render: (text, record) => renderCellContent(text, record, col),
       })),
-    [renderCellContent, tableFilters]
+    [renderCellContent, handleFilterChange]
   );
 
   // Load options on mount
@@ -918,22 +833,8 @@ const BaoCaoPhieuBanLe = () => {
     }
   }, [fetchData, userId, currentPage, pageSize]);
 
-  const handleFilterChange = useCallback((key, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-    setCurrentPage(1);
-  }, []);
-
   const handleClearFilters = useCallback(() => {
     setFilters(getDefaultFilters());
-    setTableFilters({
-      so_ct: "",
-      dien_giai: "",
-      ma_vt: "",
-      ten_vt: "",
-    });
     setCurrentPage(1);
   }, [setCurrentPage]);
 
@@ -1016,44 +917,18 @@ const BaoCaoPhieuBanLe = () => {
       });
     }
 
-    // Add table filters to chips
-    if (tableFilters.so_ct) {
+    if (filters.ItemName) {
       chips.push({
-        key: "so_ct",
-        label: "Số CT",
-        value: tableFilters.so_ct,
-        color: "gold",
-      });
-    }
-    if (tableFilters.dien_giai) {
-      chips.push({
-        key: "dien_giai",
-        label: "Diễn giải",
-        value: tableFilters.dien_giai,
-        color: "gold",
-      });
-    }
-    if (tableFilters.ma_vt) {
-      chips.push({
-        key: "ma_vt",
-        label: "Mã hàng",
-        value: tableFilters.ma_vt,
-        color: "gold",
-      });
-    }
-    if (tableFilters.ten_vt) {
-      chips.push({
-        key: "ten_vt",
+        key: "ItemName",
         label: "Tên hàng",
-        value: tableFilters.ten_vt,
-        color: "gold",
+        value: filters.ItemName,
+        color: "green",
       });
     }
 
     return chips;
   }, [
     filters,
-    tableFilters,
     khoOptions,
     nhanVienOptions,
     khachHangOptions,
@@ -1067,11 +942,6 @@ const BaoCaoPhieuBanLe = () => {
     } else if (key === "DateRange") {
       handleFilterChange("DateFrom", formatDate(dayjs().startOf("day")));
       handleFilterChange("DateTo", formatDate(dayjs().endOf("day")));
-    } else if (["so_ct", "dien_giai", "ma_vt", "ten_vt"].includes(key)) {
-      setTableFilters((prev) => ({
-        ...prev,
-        [key]: "",
-      }));
     } else {
       handleFilterChange(key, "");
     }
@@ -1334,7 +1204,6 @@ const BaoCaoPhieuBanLe = () => {
             <div className="button-item-row" style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "12px" }}>
               <Button
                 type="primary"
-                style={{ backgroundColor: "#217346", borderColor: "#217346", minWidth: "120px" }}
                 onClick={handleExportExcel}
                 loading={exportLoading}
                 disabled={dataSource.length === 0}
