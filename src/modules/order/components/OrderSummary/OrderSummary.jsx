@@ -277,7 +277,10 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
     content: () => printContent.current,
   });
 
+  const isLockedRef = useRef(false);
+
   const activeTab = orders?.find(
+
     (tab) => tab.internalId === internalActiveTabId
   );
 
@@ -485,6 +488,8 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
       orderData.masterData.s3 = "0";
     }
 
+    if (isLockedRef.current || isCreatingOrder || isProcessingPayment) return;
+    isLockedRef.current = true;
     setIsCreatingOrder(true);
 
 
@@ -591,8 +596,10 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
         message: "Có lỗi xảy ra!",
         description: error.message,
       });
+    } finally {
+      setIsCreatingOrder(false);
+      isLockedRef.current = false;
     }
-    setIsCreatingOrder(false);
   };
 
   const handleSaveOrder = async () => {
@@ -823,9 +830,10 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
     selectedStaff = null,
     useDynamicQR = false
   ) => {
-    if (isProcessingPayment) {
+    if (isLockedRef.current || isProcessingPayment || isCreatingOrder) {
       return;
     }
+    isLockedRef.current = true;
 
     // Ping Server Khẩn Cấp Ngay Khi Mở/Xác Nhận Hộp Thoại Thanh Toán:
     multipleTablePutApi({ store: "api_getListRestaurantTables", param: { searchValue: "ping" }, data: {} }).catch(()=>{});
@@ -1011,14 +1019,17 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
       });
       setIsProcessingPayment(false);
       setIsCreatingOrder(false);
+    } finally {
+      isLockedRef.current = false;
     }
   };
 
   // Hàm xử lý khi khách hàng xác nhận đơn hàng
   const handleConfirmCustomerPayment = async (customerInfo, selectedStaff = null) => {
-    if (isProcessingPayment) {
+    if (isLockedRef.current || isProcessingPayment || isCreatingOrder) {
       return;
     }
+    isLockedRef.current = true;
 
     // Ping Server Khẩn Cấp Ngay Khi Mở/Xác Nhận Đơn Khách Hàng:
     multipleTablePutApi({ store: "api_getListRestaurantTables", param: { searchValue: "ping" }, data: {} }).catch(()=>{});
@@ -1132,6 +1143,7 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
       setIsProcessingPayment(false);
     } finally {
       setIsCreatingOrder(false);
+      isLockedRef.current = false;
     }
   };
 
@@ -1207,6 +1219,8 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
 
   const handleCompleteCombineOrder = async () => {
     if (activeTab?.tableId !== "gop-don" || !activeTab?.detail?.length) return;
+    if (isLockedRef.current || isCreatingOrder || isProcessingPayment) return;
+    isLockedRef.current = true;
 
     const hasInternet = await checkInternetConnection();
     if (!hasInternet) {
@@ -1290,8 +1304,10 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
         message: "Lỗi khi gộp đơn!",
         description: err.message,
       });
+    } finally {
+      setIsCombining(false);
+      isLockedRef.current = false;
     }
-    setIsCombining(false);
   };
   return (
     <div className="order-summary">
@@ -1308,7 +1324,7 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
         onClose={handleClosePaymentModal}
         onConfirm={handleConfirmPayment}
         total={total}
-        isCreatingOrder={false}
+        isCreatingOrder={isCreatingOrder}
         initialPaymentMethod={
           paymentFormCache?.selectedPayments?.length
             ? paymentFormCache.selectedPayments.join(",")
@@ -1383,7 +1399,14 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
         {activeTab?.tableId === "gop-don" ? (
           <button
             className="summary-button primary"
-            disabled={isCombining || !activeTab?.detail?.length || !isOnline}
+            disabled={
+              isLockedRef.current ||
+              isCombining ||
+              !activeTab?.detail?.length ||
+              !isOnline ||
+              isCreatingOrder ||
+              isProcessingPayment
+            }
             onClick={handleCompleteCombineOrder}
             title={!isOnline ? "Không có kết nối internet" : ""}
           >
@@ -1399,7 +1422,10 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
                   isCreatingOrder ||
                   isPrinting ||
                   !isOnline ||
-                  isStudentReadOnlyMode
+                  isStudentReadOnlyMode ||
+                  isProcessingPayment ||
+                  isPaymentModalVisible ||
+                  isCustomerPaymentModalVisible
                 }
                 title={
                   !isOnline
@@ -1421,7 +1447,10 @@ export default function OrderSummary({ total, itemCount, salesStaff = [] }) {
                   isPrinting ||
                   !activeTab?.detail?.length ||
                   !isOnline ||
-                  isStudentReadOnlyMode
+                  isStudentReadOnlyMode ||
+                  isProcessingPayment ||
+                  isPaymentModalVisible ||
+                  isCustomerPaymentModalVisible
                 }
                 title={
                   !isOnline
