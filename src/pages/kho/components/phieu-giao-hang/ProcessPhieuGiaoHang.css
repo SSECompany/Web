@@ -739,10 +739,38 @@
 /* Ứng tiền checkbox: label trái, ô tick phải, căn phải */
 .process-confirm-advance-money {
   margin-top: 12px;
-  padding-left: 0;
   display: flex;
   justify-content: flex-end;
 }
+
+.process-confirm-field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.process-checkbox-reverse {
+  display: inline-flex !important;
+  flex-direction: row-reverse !important;
+  align-items: center !important;
+  font-weight: 700 !important;
+  margin-inline-start: 0 !important;
+  padding-left: 0 !important;
+}
+
+.process-checkbox-reverse .ant-checkbox {
+  top: 0 !important;
+  flex-shrink: 0 !important;
+  margin-left: 8px !important;
+}
+
+.process-checkbox-reverse .ant-checkbox + span {
+  padding-inline-end: 0 !important;
+  padding-left: 0 !important;
+  padding-inline-start: 0 !important;
+}
+
 .process-confirm-advance-money .ant-checkbox-wrapper {
   display: inline-flex;
   align-items: center;
