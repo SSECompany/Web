@@ -286,11 +286,12 @@ const ProcessPhieuGiaoHang = () => {
     }
   };
 
-  // Logic tuần tự: 1 -> 2 -> 3 -> 4 -> 5 -> 6 hoặc 7
+  // Logic tuần tự: 1 -> 2 -> 3 -> 5 -> 6 hoặc 7
   const currentStatus = String(phieuData?.status || "1");
   const canStore = currentStatus === "1";       // 1 -> 2
   const canExport = currentStatus === "2";     // 2 -> 3
-  const canHandover = currentStatus === "3" || currentStatus === "5";   // 3 -> 5 (lần đầu) hoặc đã ở 5 (cho phép sửa xe/chi phí/ảnh)
+  const canUpdateDeliveryInfo = currentStatus === "3"; // 3 -> 5 (cập nhật thông tin giao hàng, không yêu cầu ảnh/chi phí)
+  const canHandover = currentStatus === "5";   // Đã ở 5 thì mới hiện nút Bàn giao ĐVVC để cập nhật xe/chi phí/ảnh
   const canComplete = currentStatus === "5";   // 5 -> 6
   const canFail = currentStatus === "5";       // 5 -> 7
   const canReturnToStore = currentStatus === "7"; // 7 -> 2 (Thất bại -> Chuyển về kho)
@@ -1121,6 +1122,17 @@ const ProcessPhieuGiaoHang = () => {
                 onClick={() => handleAction("export")}
               >
                 Xuất hàng
+              </Button>
+            )}
+            {canUpdateDeliveryInfo && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<EditOutlined />}
+                className="process-action-btn handover"
+                onClick={() => handleAction("updateDeliveryInfo")}
+              >
+                Cập nhật thông tin giao hàng
               </Button>
             )}
             {canHandover && (
