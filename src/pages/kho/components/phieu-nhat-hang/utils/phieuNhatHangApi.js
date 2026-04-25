@@ -174,18 +174,17 @@ export const updatePhieuNhatHang = async (
 
     // Check new response structure with responseModel
     if (response?.responseModel?.isSucceded === true) {
+      const apiMsg = response.responseModel.message || "Cập nhật phiếu thành công";
       if (options?.showSuccess) {
-        message.success(
-          response.responseModel.message || "Cập nhật phiếu thành công"
-        );
+        message.success(apiMsg);
       }
-      return { success: true };
+      return { success: true, message: apiMsg };
     } else if (response && response.statusCode === 200) {
       // Fallback for old response structure
       if (options?.showSuccess) {
         message.success("Cập nhật phiếu thành công");
       }
-      return { success: true };
+      return { success: true, message: "Cập nhật phiếu thành công" };
     } else {
       message.error(
         response?.responseModel?.message || response?.message || "Có lỗi xảy ra",
@@ -227,11 +226,11 @@ export const startPhieuNhatHang = async (stt_rec, userId) => {
     // Check new response structure with responseModel
     if (response?.responseModel?.isSucceded === true) {
       // Không hiển thị message ở đây, để component tự hiển thị message cụ thể
-      return { success: true };
+      return { success: true, message: response.responseModel.message };
     } else if (response && response.statusCode === 200) {
       // Fallback for old response structure
       // Không hiển thị message ở đây, để component tự hiển thị message cụ thể
-      return { success: true };
+      return { success: true, message: "Bắt đầu nhặt hàng thành công" };
     } else {
       const errorMessage =
         response?.responseModel?.message ||

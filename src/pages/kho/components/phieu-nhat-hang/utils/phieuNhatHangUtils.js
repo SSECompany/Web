@@ -159,7 +159,7 @@ export const validateCompletionRules = (dataSource = []) => {
     // Chỉ kiểm tra nhóm có parent (dòng cha)
     if (g && g.parentItem) {
       const equal =
-        (parseFloat(g.pickedSum) || 0) === (parseFloat(g.orderQty) || 0);
+        (Math.round(g.pickedSum) || 0) === (Math.round(g.orderQty) || 0);
       if (!equal) {
         const parent = g.parentItem;
         const maHang = parent.maHang || parent.ma_vt || "";
@@ -213,8 +213,8 @@ export const computeGroupState = (dataSource = []) => {
       members: [],
       parentItem: null,
     };
-    const picked = parseFloat(row.tong_nhat || 0) || 0;
-    state.pickedSum += picked;
+    const picked = Math.round(parseFloat(row.tong_nhat || 0) || 0);
+    state.pickedSum = Math.round(state.pickedSum + picked);
     state.members.push(row);
     if (!row.isChild) {
       state.parentIndex = index + 1; // 1-based for display
@@ -235,7 +235,9 @@ export const computeGroupState = (dataSource = []) => {
   });
   // Mark exceeded: SL nhặt không vượt SL đơn (so sánh dòng mẹ vs mẹ, con vs con) + tổng nhóm — không check tồn khả dụng
   for (const [, g] of groups) {
-    g.exceeded = g.pickedSum > g.orderQty;
+    const roundedPickedSum = Math.round(g.pickedSum || 0);
+    const roundedOrderQty = Math.round(g.orderQty || 0);
+    g.exceeded = roundedPickedSum > roundedOrderQty;
     g.exceededTonKh = false; // Phiếu nhặt hàng không kiểm tra tồn khả dụng
     // Per-row: mỗi dòng có tong_nhat > soLuongDeNghi của chính dòng đó
     g.exceededPerRow = g.members.some((row) => {
@@ -312,10 +314,10 @@ export const buildPhieuNhatHangPayload = (
   const orderDate = formatDate(values.ngay);
   // Chỉ giữ lại những trường thực sự có trong data từ API response
   // Không gắn mặc định bất kỳ trường nào
-  const totalQuantity = dataSource.reduce(
+  const totalQuantity = Math.round(dataSource.reduce(
     (sum, item) => sum + parseFloat(item.soLuong || 0),
     0
-  );
+  ));
 
   // Tính tổng tiền từ detail
   const totalAmount = dataSource.reduce(

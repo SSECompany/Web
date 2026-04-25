@@ -664,11 +664,11 @@ export const useVatTuManagerNhatHang = () => {
             parseFloat(rootParent?.soLuongDeNghi_tong || 0) ||
             parseFloat(rootParent?.so_luong || 0) ||
             0;
-          const sumPrevPicked = groupMembers
+          const sumPrevPicked = Math.round(groupMembers
             .slice(0, memberIndexInGroup)
-            .reduce((s, m) => s + parseFloat(m.tong_nhat || 0), 0);
+            .reduce((s, m) => s + parseFloat(m.tong_nhat || 0), 0));
           const restoredOrderQty =
-            Math.round((totalOrder - sumPrevPicked) * 1000) / 1000;
+            Math.round(totalOrder - sumPrevPicked);
 
           baseData = baseData.map((item) => {
             if (item.key === record.key) {
@@ -700,7 +700,7 @@ export const useVatTuManagerNhatHang = () => {
                 return {
                   ...item,
                   [field]: newValue,
-                  soLuong_goc: Math.round(soLuongGocMoi * 1000) / 1000,
+                  soLuong_goc: Math.round(soLuongGocMoi),
                 };
               } else {
                 return {
@@ -730,16 +730,16 @@ export const useVatTuManagerNhatHang = () => {
                     r.parentKey === item.parentKey &&
                     r.key !== item.key
                 );
-                const sumOtherChildren = otherChildren.reduce(
+                const sumOtherChildren = Math.round(otherChildren.reduce(
                   (s, c) => s + parseFloat(c.soLuongDeNghi ?? c.so_luong ?? 0),
                   0
-                );
+                ));
                 const maxAllowed = Math.max(
                   0,
                   parentTotal - 1 - sumOtherChildren
                 );
                 if (parentTotal > 0 && newValue > maxAllowed) {
-                  finalValue = Math.round(maxAllowed * 1000) / 1000;
+                   finalValue = Math.round(maxAllowed);
                   message.warning(
                     `SL đơn dòng con phải nhỏ hơn SL đơn dòng mẹ ít nhất 1 (tối đa ${maxAllowed}). Đã giới hạn về ${finalValue}.`
                   );
@@ -785,33 +785,36 @@ export const useVatTuManagerNhatHang = () => {
                   (r.isChild ? r.parentKey : r.key) === groupKey &&
                   r.key !== item.key
               );
-              const sumOthers = otherMembers.reduce(
+              const sumOthers = Math.round(otherMembers.reduce(
                 (s, m) => s + parseFloat(m.tong_nhat || 0),
                 0
-              );
+              ));
               const limits = [];
               if (rowOrderQty > 0) limits.push(rowOrderQty); // SL nhặt ≤ SL đơn của chính dòng đó
               if (groupOrderQty > 0)
                 limits.push(Math.max(0, groupOrderQty - sumOthers));
-              const maxAllowed =
-                limits.length > 0 ? Math.min(...limits) : newValue;
+
+              const maxAllowedRaw = limits.length > 0 ? Math.min(...limits) : newValue;
+              const maxAllowed = typeof maxAllowedRaw === "number" ? Math.round(maxAllowedRaw) : maxAllowedRaw;
+              const roundedNewValue = typeof newValue === "number" ? Math.round(newValue) : newValue;
+
               const cappedValue =
                 typeof newValue === "number" &&
                 limits.length > 0 &&
-                newValue > maxAllowed
-                  ? Math.round(maxAllowed * 1000) / 1000
+                roundedNewValue > maxAllowed
+                  ? maxAllowed
                   : newValue;
               if (
                 typeof newValue === "number" &&
                 limits.length > 0 &&
-                newValue > maxAllowed
+                roundedNewValue > maxAllowed
               ) {
                 const reasons = [];
-                if (rowOrderQty > 0 && newValue > rowOrderQty)
+                if (rowOrderQty > 0 && roundedNewValue > Math.round(rowOrderQty))
                   reasons.push(`SL đơn (${rowOrderQty})`);
                 if (
                   groupOrderQty > 0 &&
-                  newValue > Math.max(0, groupOrderQty - sumOthers)
+                  roundedNewValue > Math.round(Math.max(0, groupOrderQty - sumOthers))
                 )
                   reasons.push(`SL đơn nhóm (${groupOrderQty})`);
                 message.warning(
@@ -849,10 +852,10 @@ export const useVatTuManagerNhatHang = () => {
           const children = next.filter(
             (r) => r.isChild && r.parentKey === parentKey
           );
-          const sumChildren = children.reduce(
+          const sumChildren = Math.round(children.reduce(
             (s, c) => s + parseFloat(c.soLuongDeNghi ?? c.so_luong ?? 0),
             0
-          );
+          ));
           const total =
             parseFloat(
               parent.soLuongDeNghi_tong ??
@@ -861,7 +864,7 @@ export const useVatTuManagerNhatHang = () => {
                 0
             ) || 0;
           const parentSoLuongDeNghi =
-            Math.round((total - sumChildren) * 1000) / 1000;
+            Math.round(total - sumChildren);
           next[parentIndex] = {
             ...parent,
             soLuongDeNghi: parentSoLuongDeNghi,
@@ -985,7 +988,7 @@ export const useVatTuManagerNhatHang = () => {
           .slice(0, memberIndexInGroup - 1)
           .reduce((s, m) => s + parseFloat(m.tong_nhat || 0), 0);
           
-        const restoredOrderQty = Math.round((totalOrder - sumPickedBefore) * 1000) / 1000;
+        const restoredOrderQty = Math.round(totalOrder - sumPickedBefore);
 
         filteredData = filteredData.map((item) => {
           if (item.key === predecessor.key) {
@@ -1067,7 +1070,7 @@ export const useVatTuManagerNhatHang = () => {
       if (pickedValue > 0 && pickedValue < currentOrderQty) {
         parentNewOrderQty = pickedValue;
         parentNewNhat = pickedValue;
-        childOrderQty = Math.round((currentOrderQty - pickedValue) * 1000) / 1000;
+        childOrderQty = Math.round(currentOrderQty - pickedValue);
       }
 
       const groupKey = parent.isChild ? parent.parentKey : parent.key;
@@ -1192,43 +1195,9 @@ export const useVatTuManagerNhatHang = () => {
 
     const heSoMoi = selectedDvt ? parseFloat(selectedDvt.he_so) || 1 : 1;
 
-    const currentDvtInList = dvtOptions.find(
-      (dvt) => dvt && dvt.dvt && dvt.dvt.trim() === record.dvt?.trim()
-    );
-    const heSoHienTai = currentDvtInList
-      ? parseFloat(currentDvtInList.he_so) || 1
-      : record.he_so || 1;
-
-    // Lấy số lượng hiện tại từ cả 2 trường
-    const soLuongHienTai = record.soLuong || 0;
-    const soLuongDeNghiHienTai = record.soLuongDeNghi || 0;
-
-    // Tính toán số lượng mới cho cả 2 trường
-    let soLuongMoi = (soLuongHienTai * heSoHienTai) / heSoMoi;
-    let soLuongDeNghiMoi = (soLuongDeNghiHienTai * heSoHienTai) / heSoMoi;
-
-    const soLuongLamTron = Math.round(soLuongMoi * 10000) / 10000;
-    const soLuongDeNghiLamTron = Math.round(soLuongDeNghiMoi * 10000) / 10000;
-
-    let soLuongGocMoi = record.soLuong_goc;
-
-    if (newValue.trim() === record.dvt_goc?.trim()) {
-      const he_so_goc = record.he_so_goc || 1;
-      soLuongGocMoi = soLuongLamTron / he_so_goc;
-    } else {
-      if (record.dvt?.trim() === record.dvt_goc?.trim()) {
-        soLuongGocMoi = soLuongHienTai / (record.he_so_goc || 1);
-      } else {
-        soLuongGocMoi = record.soLuong_goc;
-      }
-    }
-
     const finalResult = {
       dvt: newValue,
       he_so: heSoMoi,
-      soLuong: soLuongLamTron, // Cập nhật số lượng thực tế (sl_td3)
-      soLuongDeNghi: soLuongDeNghiLamTron, // Cập nhật số lượng đề nghị (so_luong)
-      soLuong_goc: Math.round((soLuongGocMoi || 0) * 10000) / 10000,
       _lastUpdated: Date.now(),
     };
 

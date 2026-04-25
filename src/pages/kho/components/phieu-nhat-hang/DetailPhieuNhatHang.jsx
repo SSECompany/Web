@@ -594,7 +594,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         };
 
         form.setFieldsValue(updatedFormattedData);
-        message.success("Đã bắt đầu nhặt hàng thành công");
+        message.success(startResult.message || "Đã bắt đầu nhặt hàng thành công");
       }
 
       setLoading(false);
@@ -691,9 +691,10 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         Data: payload,
       };
 
-      const result = await updatePhieuNhatHang(wrappedPayload, userInfo);
+      const result = await updatePhieuNhatHang(wrappedPayload, userInfo, { showSuccess: false });
 
       if (result.success) {
+        message.success(result.message || "Lưu phiếu nhặt hàng thành công");
         // Giữ nguyên màn hình chỉnh sửa, không navigate về trang chủ
         setLoading(false);
       } else {
@@ -833,10 +834,11 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           const result = await updatePhieuNhatHang(wrappedPayload, userInfo, { showSuccess: false });
 
           if (result.success) {
+            message.success(result.message || "Hoàn thành phiếu nhặt hàng thành công");
             // Delay một chút để user thấy message trước khi navigate
             setTimeout(() => {
               navigate(returnUrl);
-            }, 1000);
+            }, 1500);
           } else {
             setLoading(false);
           }
