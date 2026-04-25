@@ -442,7 +442,7 @@ const BaoCaoBangKePhieuNhap = () => {
     }
 
     return chips;
-  }, [filters, dvcsOptions, khoOptions, khachHangOptions, vatTuOptions]);
+  }, [filters, khoOptions, khachHangOptions, vatTuOptions]);
 
   const handleFilterChange = useCallback((key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));

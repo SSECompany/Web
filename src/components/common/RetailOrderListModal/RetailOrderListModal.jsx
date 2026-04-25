@@ -187,15 +187,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
         setIsLoading(false);
       }
     },
-    [
-      stableFilters,
-      id,
-      unitId,
-      storeId,
-      isOpen,
-      isLoading,
-      currentPage,
-    ]
+    [stableFilters, id, unitId, storeId, isOpen, isLoading] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Fetch bank info for printing
@@ -235,7 +227,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       setTotalRecords(0);
       lastApiCall.current = { pageIndex: 0, filters: {} };
     }
-  }, [isOpen, fetchListOrderData, stableFilters]);
+  }, [isOpen, stableFilters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentData = allData;
 

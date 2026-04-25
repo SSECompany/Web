@@ -758,7 +758,7 @@ const BaoCaoTonKho = () => {
       // Unit: defaultUnitCode ? [defaultUnitCode] : [],
     });
     setCurrentPage(1);
-  }, [setCurrentPage, defaultUnitCode]);
+  }, [setCurrentPage]);
 
   const handleDateChange = (date) => {
     if (date) {
@@ -851,7 +851,6 @@ const BaoCaoTonKho = () => {
     khoOptions,
     nhomVatTuOptions,
     vatTuOptions,
-    dvcsOptions,
   ]);
 
   const handleRemoveFilter = useCallback((key) => {

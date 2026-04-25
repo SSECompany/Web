@@ -822,7 +822,7 @@ const TongHopNhapXuatTon = () => {
       // Unit: defaultUnitCode ? [defaultUnitCode] : [],
     });
     setCurrentPage(1);
-  }, [setCurrentPage, defaultUnitCode]);
+  }, [setCurrentPage]);
   const activeChips = useMemo(() => {
     const chips = [];
     // if (filters.Unit && filters.Unit.length > 0) {
@@ -910,7 +910,6 @@ const TongHopNhapXuatTon = () => {
     khoOptions,
     nhomVatTuOptions,
     vatTuOptions,
-    dvcsOptions,
   ]);
 
   const handleRemoveFilter = useCallback((key) => {

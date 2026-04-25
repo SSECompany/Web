@@ -933,7 +933,6 @@ const BaoCaoPhieuBanLe = () => {
     nhanVienOptions,
     khachHangOptions,
     vatTuOptions,
-    dvcsOptions,
   ]);
 
   const handleRemoveFilter = useCallback((key) => {
