@@ -449,17 +449,18 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
   };
 
   const handleStatusConfirm = async () => {
-    // Validation: chỉ "Xuất hàng" và "Lưu kho" không bắt buộc ghi chú
-    if (!statusNote && statusAction !== "xuat_hang" && statusAction !== "luu_kho") {
+    // Validation: chỉ "Đã tiếp nhận", "Xuất hàng", và "Lưu kho" không bắt buộc ghi chú
+    if (!statusNote && statusAction !== "tiep_nhan" && statusAction !== "xuat_hang" && statusAction !== "luu_kho") {
       message.error("Vui lòng nhập ghi chú");
       return;
     }
 
     try {
       // Map action sang status code theo đúng workflow tuần tự (mapping mới: 1-7)
-      // 1: Lập chứng từ, 2: Lưu kho, 3: Xuất hàng, 5: Bàn giao ĐVVC, 6: Hoàn thành, 7: Thất bại
+      // 1: Lập chứng từ, 2: Lưu kho, 3: Xuất hàng, 4: Đã tiếp nhận, 5: Bàn giao ĐVVC, 6: Hoàn thành, 7: Thất bại
       const statusMap = {
         xuat_hang: "3",    // Xuất hàng
+        tiep_nhan: "4",    // Đã tiếp nhận
         ban_giao: "5",     // Bàn giao ĐVVC
         hoan_thanh: "6",   // Hoàn thành
         that_bai: "7",     // Thất bại
@@ -535,6 +536,7 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
   const getStatusActionText = (action) => {
     const map = {
       xuat_hang: "Xuất hàng",
+      tiep_nhan: "Đã tiếp nhận",
       ban_giao: "Bàn giao ĐVVC",
       hoan_thanh: "Hoàn thành",
       that_bai: "Thất bại",
@@ -586,7 +588,20 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
     }
     
     if (currentStatus === "3") {
-      // 3 (Xuất hàng) -> 5 (Bàn giao ĐVVC)
+      // 3 (Xuất hàng) -> 4 (Đã tiếp nhận)
+      buttons.push(
+        <button
+          key="tiep_nhan"
+          className="detail-giao-hang-status-btn receive"
+          onClick={() => handleStatusAction("tiep_nhan")}
+        >
+          <CheckCircleOutlined /> Đã tiếp nhận
+        </button>
+      );
+    }
+    
+    if (currentStatus === "4") {
+      // 4 (Đã tiếp nhận) -> 5 (Bàn giao ĐVVC)
       buttons.push(
         <button
           key="ban_giao"

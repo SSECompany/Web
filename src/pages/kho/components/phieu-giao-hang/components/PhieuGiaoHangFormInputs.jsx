@@ -33,6 +33,7 @@ const PhieuGiaoHangFormInputs = ({
       case "1": return "Lập chứng từ";
       case "2": return "Lưu kho";
       case "3": return "Xuất hàng";
+      case "4": return "Đã tiếp nhận";
       case "5": return "Bàn giao ĐVVC";
       case "6": return "Hoàn thành";
       case "7": return "Thất bại";
