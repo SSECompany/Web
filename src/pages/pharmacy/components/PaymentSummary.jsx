@@ -680,6 +680,7 @@ const PaymentSummary = ({
         {(() => {
           const isVatMissing = cart.some(
             (item) =>
+              (Number(item.price) > 0 || Number(item.listPrice) > 0) &&
               (item.thue_suat === undefined || item.thue_suat === null) &&
               (!item.ma_thue || item.ma_thue === "")
           );
