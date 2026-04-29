@@ -59,29 +59,43 @@ Phenika là một ứng dụng Web Frontend được xây dựng bằng hệ sin
 
 ---
 
-## 3. Cấu Trúc Thư Mục (Folder Structure)
+## 3. Chi Tiết Cấu Trúc & Các Thành Phần (Detailed Structure)
 
-Dưới đây là sơ đồ cấu trúc thư mục chính của dự án:
+### 3.1. Thư mục `src/components` (Dùng chung)
+Các component tại đây được thiết kế để có thể tái sử dụng ở nhiều nơi trong dự án.
 
-```text
-Phenika/
-├── public/                 # Các file public tĩnh (index.html, favicon,...)
-├── scripts/                # Các script hỗ trợ build, tự động cập nhật version
-├── src/                    # Chứa mã nguồn chính
-│   ├── components/         # Các UI components dùng chung (Shared Components)
-│   ├── modules/            # Chứa các module chức năng chính (hiện có: meal, order)
-│   │   ├── meal/           # Module quản lý suất ăn (RoomSelectionForm, MealDetailsForm,...)
-│   │   └── order/          # Module quản lý đơn hàng
-│   ├── redux/              # Cấu hình Redux store, slices
-│   ├── routes/             # Cấu hình React Router (Public & Private routes)
-│   ├── services/           # Chứa các API calls (cấu hình Axios instance)
-│   ├── utils/              # Các hàm tiện ích dùng chung (format number,...)
-│   ├── App.js              # File Component gốc
-│   └── index.js            # File Entry point của React
-├── .env                    # Biến môi trường
-├── package.json            # Chứa thông tin thư viện và scripts
-└── README.md
-```
+- **`common/`**: Chứa các UI cơ bản.
+    - `Loading/`: Xử lý hiệu ứng chờ khi tải trang hoặc dữ liệu.
+    - `Modal/`: Các popup xác nhận (`ModalConfirm`) hoặc chọn dữ liệu.
+    - `GenerateQR/`: Hỗ trợ tạo mã QR thanh toán (VietQR).
+    - `ErrorPage/`: Trang hiển thị khi có lỗi hệ thống.
+    - `VersionIndicator/`: Hiển thị phiên bản hiện tại của ứng dụng.
+- **`layout/`**: Các thành phần giao diện chính.
+    - `Navbar/`: Thanh điều hướng phía trên, bao gồm cả hệ thống thông báo (`Notify`).
+
+### 3.2. Thư mục `src/modules` (Chức năng nghiệp vụ)
+Dự án được chia theo kiến trúc module để dễ quản lý logic riêng biệt.
+
+- **Module `meal` (Quản lý suất ăn)**:
+    - `components/`:
+        - `RoomSelectionForm/`: Giao diện chọn phòng và khu vực.
+        - `MealDetailsForm/`: Nhập thông tin chi tiết suất ăn, có tích hợp validator riêng.
+        - `MealInputBlock/`: Khối nhập liệu nhanh suất ăn.
+    - `store/`: Chứa `meal.js` quản lý state (Redux) riêng cho module này.
+- **Module `order` (Hệ thống bán hàng - POS)**:
+    - `components/`:
+        - `Menu/`, `Category/`: Hiển thị danh sách thực đơn và phân loại sản phẩm.
+        - `OrderList/`, `OrderItem/`: Quản lý giỏ hàng và các thao tác trên từng món (ghi chú, giảm giá).
+        - `OrderSummary/`: Tổng hợp đơn hàng, xử lý thanh toán (`PaymentModal`) và in ấn (`PrintComponent`).
+        - `ReceiptPreviewModal/`: Xem trước hóa đơn nhiệt trước khi in.
+        - `RetailOrderListModal/`, `FamilyMealListModal/`: Các modal danh sách đơn lẻ và đơn cơm gia đình.
+    - `store/`: Chứa `order.js` xử lý logic tính toán giá, khuyến mãi và thanh toán.
+
+### 3.3. Các thư mục quan trọng khác
+- **`src/redux/`**: Cấu hình store tổng và root reducer.
+- **`src/services/`**: Quản lý API tập trung bằng Axios.
+- **`src/utils/`**: Các hàm bổ trợ (xử lý in ấn Imin, format tiền tệ, ngày tháng).
+- **`src/routes/`**: Định nghĩa danh sách các trang và quyền truy cập.
 
 ---
 
