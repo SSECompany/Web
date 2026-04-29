@@ -1,4 +1,10 @@
 import * as signalR from "@microsoft/signalr";
+import {
+  DollarOutlined,
+  FullscreenExitOutlined,
+  FullscreenOutlined,
+  LoadingOutlined,
+} from "@ant-design/icons";
 import { Button, Modal, notification, Tabs, Tooltip } from "antd";
 import React, { useCallback, useEffect, useReducer, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -28,6 +34,7 @@ import {
   switchTab,
 } from "../../modules/order/store/order";
 import jwt from "../../utils/jwt";
+import IminPrinterService from "../../utils/IminPrinterService";
 import "./POSPage.css";
 
 const useSignalRConnection = (onNewOrder) => {
@@ -159,6 +166,27 @@ const POSPage = () => {
     isStudentMealListVisible: false,
   });
   const [drinkFilter, setDrinkFilter] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isOpeningDrawer, setIsOpeningDrawer] = useState(false);
+
+  useEffect(() => {
+    const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      const el = document.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      else if (el.msRequestFullscreen) el.msRequestFullscreen();
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      else if (document.msExitFullscreen) document.msExitFullscreen();
+    }
+  }, []);
 
   const { id, unitId } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
@@ -481,6 +509,27 @@ const POSPage = () => {
     dispatchModal({ type: "TOGGLE_STUDENT_MEAL_LIST" });
   }, []);
 
+  const handleOpenCashDrawer = useCallback(async () => {
+    if (isOpeningDrawer) return;
+    setIsOpeningDrawer(true);
+    try {
+      const printerService = new IminPrinterService();
+      await printerService.initPrinter();
+      await printerService.openCashBox();
+      notification.success({
+        message: "Mở két thành công",
+        description: "Ngăn kéo tiền đã được mở.",
+      });
+    } catch (err) {
+      notification.error({
+        message: "Không mở được két",
+        description: err?.message || "Máy in / két chưa kết nối hoặc chưa sẵn sàng.",
+      });
+    } finally {
+      setIsOpeningDrawer(false);
+    }
+  }, [isOpeningDrawer]);
+
   return (
     <div className="pos-page">
       <div>{jwt.checkExistToken() && <Navbar />}</div>
@@ -532,6 +581,13 @@ const POSPage = () => {
 
           {!isOrderPage && (
             <div className="tool-tip">
+              <Tooltip placement="topRight" title={isFullscreen ? "Thu nhỏ" : "Phóng to màn hình"}>
+                <Button
+                  className="default_button"
+                  onClick={toggleFullscreen}
+                  icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+                />
+              </Tooltip>
               <Tooltip placement="topRight" title="Danh sách đơn">
                 <Button
                   className="default_button"
@@ -560,6 +616,42 @@ const POSPage = () => {
                 >
                   <i className="pi pi-users sub_text_color"></i>
                 </Button>
+              </Tooltip>
+              <Tooltip
+                placement="topRight"
+                title="Suất ăn sinh viên trả trước"
+              >
+                <Button
+                  className="default_button"
+                  onClick={handlePrepaidStudentMealList}
+                >
+                  <i className="pi pi-user sub_text_color"></i>
+                </Button>
+              </Tooltip>
+              <Tooltip
+                placement="topRight"
+                title="Suất ăn sinh viên trả sau"
+              >
+                <Button
+                  className="default_button"
+                  onClick={handleStudentMealList}
+                >
+                  <i className="pi pi-user-plus sub_text_color"></i>
+                </Button>
+              </Tooltip>
+              <Tooltip placement="topRight" title="Mở két">
+                <Button
+                  className="default_button"
+                  onClick={handleOpenCashDrawer}
+                  disabled={isOpeningDrawer}
+                  icon={
+                    isOpeningDrawer ? (
+                      <LoadingOutlined className="sub_text_color" spin />
+                    ) : (
+                      <DollarOutlined className="sub_text_color" />
+                    )
+                  }
+                />
               </Tooltip>
             </div>
           )}

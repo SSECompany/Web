@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   apiProcessCombinedMealOrder,
+  apiCheckSuatAnVIP,
   multipleTablePutApi,
   syncFastMutiApi,
 } from "../../../../api";
@@ -45,6 +46,11 @@ const MealDetailsForm = () => {
     CA3: false,
   });
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [isVipMealTicket, setIsVipMealTicket] = useState(false);
+  const [vipQuotaByShift, setVipQuotaByShift] = useState({});
+  const [vipSttRecByShift, setVipSttRecByShift] = useState({}); // Lưu stt_rec theo từng ca
+  const [isMenuVipByShift, setIsMenuVipByShift] = useState({}); // Lưu isMenuVip theo từng ca
+  const [hasMenuVip, setHasMenuVip] = useState(false); // Có menu VIP cho toàn bộ ngày/giường
 
   // Track xem user có thay đổi gì trong session hiện tại không
   const hasChangedInThisSession = useRef(false);
@@ -74,6 +80,225 @@ const MealDetailsForm = () => {
   const [selectedPatientInShift, setSelectedPatientInShift] = useState({});
 
   const [mealEntries, setMealEntries] = useState(detailData);
+
+  // Mã 3 ca bắt buộc: sáng, trưa, chiều. Các ca thêm từ API (vd: Bữa Phụ) không bắt buộc.
+  const MANDATORY_SHIFT_CODES = ["CA1", "CA2", "CA3"];
+
+  // Ref để track các giá trị đã check, tránh gọi API lại không cần thiết
+  const lastVipCheckParams = useRef({
+    ngay_ct: null,
+    ma_bp: null,
+    ma_phong: null,
+    ma_giuong: null,
+    userId: null,
+  });
+
+  // Gọi API kiểm tra suất ăn VIP theo giường / ngày / phòng
+  // CHỈ gọi khi các giá trị thực sự thay đổi, không gọi lại khi tích checkbox
+  useEffect(() => {
+    const ngay_ct = selectedDate;
+    const ma_bp = masterData?.name;
+    const ma_phong = masterData?.roomCode;
+    const ma_giuong = bedName?.ma_giuong;
+
+    if (!ngay_ct || !ma_bp || !ma_phong || !ma_giuong || !userId) {
+      setIsVipMealTicket(false);
+      setVipQuotaByShift({});
+      setVipSttRecByShift({});
+      setIsMenuVipByShift({});
+      setHasMenuVip(false);
+      lastVipCheckParams.current = {
+        ngay_ct: null,
+        ma_bp: null,
+        ma_phong: null,
+        ma_giuong: null,
+        userId: null,
+      };
+      return;
+    }
+
+    // Chỉ gọi API nếu các giá trị thực sự thay đổi
+    const prev = lastVipCheckParams.current;
+    if (
+      prev.ngay_ct === ngay_ct &&
+      prev.ma_bp === ma_bp &&
+      prev.ma_phong === ma_phong &&
+      prev.ma_giuong === ma_giuong &&
+      prev.userId === userId
+    ) {
+      // Không có thay đổi, không gọi API
+      return;
+    }
+
+    // Cập nhật ref với giá trị mới
+    lastVipCheckParams.current = {
+      ngay_ct,
+      ma_bp,
+      ma_phong,
+      ma_giuong,
+      userId,
+    };
+
+    const checkVipStatus = async () => {
+      try {
+        const response = await apiCheckSuatAnVIP({
+          ngay_ct,
+          ma_bp,
+          ma_phong,
+          ma_giuong,
+          userId,
+        });
+
+        // Check nếu listObject[0] có dữ liệu (không rỗng)
+        const list0 = Array.isArray(response?.listObject?.[0])
+          ? response.listObject[0]
+          : [];
+
+        // Có VIP nếu list0 có ít nhất 1 item và item đó có stt_rec
+        const hasVipStatus =
+          list0.length > 0 && list0.some((item) => item?.stt_rec);
+
+        const nextQuotaByShift = {};
+        const nextSttRecByShift = {};
+        const nextIsMenuVipByShift = {};
+        let hasAnyMenuVip = false;
+        
+        list0.forEach((item) => {
+          const shiftCode = (item?.ma_ca || "").toString().trim();
+          const quota = Number(item?.sl_mien_phi_nn ?? 0) || 0;
+          const sttRec = (item?.stt_rec || "").toString().trim();
+          const isMenuVip = item?.isMenuVip === 1 || item?.isMenuVip === true;
+          if (!shiftCode) return;
+          nextQuotaByShift[shiftCode] = Math.max(
+            nextQuotaByShift[shiftCode] || 0,
+            quota
+          );
+          // Lưu stt_rec theo từng ca (nếu có)
+          if (sttRec) {
+            nextSttRecByShift[shiftCode] = sttRec;
+          }
+          // Lưu isMenuVip theo từng ca (nếu có)
+          if (isMenuVip) {
+            nextIsMenuVipByShift[shiftCode] = true;
+            hasAnyMenuVip = true;
+          }
+        });
+
+        // Nếu có bất kỳ ca nào có isMenuVip: 1, thì tất cả các ca đều dùng menu VIP
+        if (hasAnyMenuVip) {
+          // Lấy tất cả các ca từ listShifts hoặc dùng mặc định
+          const allShiftCodes = Array.isArray(listShifts) && listShifts.length > 0
+            ? listShifts.map((shift) => shift.ma_ca)
+            : ["CA1", "CA2", "CA3"];
+          allShiftCodes.forEach((shift) => {
+            nextIsMenuVipByShift[shift] = true;
+          });
+        }
+
+        setIsVipMealTicket(hasVipStatus);
+        setVipQuotaByShift(hasVipStatus ? nextQuotaByShift : {});
+        setVipSttRecByShift(hasVipStatus ? nextSttRecByShift : {});
+        setIsMenuVipByShift(hasVipStatus ? nextIsMenuVipByShift : {});
+        setHasMenuVip(hasAnyMenuVip);
+        setHasMenuVip(hasAnyMenuVip);
+      } catch (error) {
+        console.error("Error checking VIP meal ticket status:", error);
+        setIsVipMealTicket(false);
+        setVipQuotaByShift({});
+        setVipSttRecByShift({});
+        setIsMenuVipByShift({});
+        setHasMenuVip(false);
+      }
+    };
+
+    checkVipStatus();
+  }, [selectedDate, masterData?.name, masterData?.roomCode, bedName?.ma_giuong, userId, listShifts]);
+
+  const countVipSelectedInShift = useCallback(
+    (shift) => {
+      const entries = mealEntries[currentBedIndex]?.[shift] || [];
+      return entries.filter((m) => m?.vipSelected).length;
+    },
+    [mealEntries, currentBedIndex]
+  );
+
+  const handleVipCheckboxChange = useCallback(
+    (timeOfDay, index, checked) => {
+      const quota = vipQuotaByShift?.[timeOfDay] || 0;
+      if (!quota) return;
+
+      const currentCount = countVipSelectedInShift(timeOfDay);
+      if (checked && currentCount >= quota) return;
+
+      setMealEntries((prev) => {
+        const updatedMeals = cloneDeep(prev);
+        if (!updatedMeals[currentBedIndex]) {
+          updatedMeals[currentBedIndex] = { CA1: [], CA2: [], CA3: [] };
+        }
+        const bedMeals = { ...updatedMeals[currentBedIndex] };
+        const meals = [...(bedMeals[timeOfDay] || [])];
+        const meal = { ...(meals[index] || {}) };
+
+        meal.vipSelected = checked;
+        
+        // Nếu tích VIP thì bỏ tích "Người bệnh" và tính totalMoney với quota món miễn phí
+        if (checked) {
+          if (meal.collectMoney) {
+            meal.collectMoney = false;
+            // Xóa khỏi selectedPatientInShift
+            setSelectedPatientInShift((prev) => {
+              const updated = { ...prev };
+              if (updated[timeOfDay] === index) {
+                delete updated[timeOfDay];
+              }
+              return updated;
+            });
+          }
+          
+          const price = meal.price || 0;
+          const quantity = meal.quantity || 1;
+          
+          // Tính totalMoney: miễn phí theo số lượng quota VIP, các món còn lại phải trả tiền
+          // totalMoney = price * max(0, quantity - quota)
+          // VD: SL=2, giá=100k, quota=1 => totalMoney = 100k * (2-1) = 100k
+          // VD: SL=1, giá=100k, quota=1 => totalMoney = 100k * (1-1) = 0
+          meal.totalMoney = price * Math.max(0, quantity - quota);
+          
+          // Lưu stt_rec_vip vào meal entry
+          meal.stt_rec_vip = vipSttRecByShift?.[timeOfDay] || "";
+          // Lưu isMenuVip vào meal entry
+          meal.isMenuVip = isMenuVipByShift?.[timeOfDay] || false;
+        } else {
+          // Khi bỏ tích VIP, tính lại totalMoney = price * quantity
+          const price = meal.price || 0;
+          const quantity = meal.quantity || 1;
+          meal.totalMoney = price * quantity;
+          // Xóa stt_rec_vip khi bỏ tích
+          meal.stt_rec_vip = "";
+          // Xóa isMenuVip khi bỏ tích
+          meal.isMenuVip = false;
+        }
+        
+        meals[index] = meal;
+        bedMeals[timeOfDay] = meals;
+        updatedMeals[currentBedIndex] = bedMeals;
+
+        dispatch(
+          setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex })
+        );
+
+        return updatedMeals;
+      });
+    },
+    [
+      vipQuotaByShift,
+      vipSttRecByShift,
+      isMenuVipByShift,
+      countVipSelectedInShift,
+      currentBedIndex,
+      dispatch,
+    ]
+  );
 
   // Helper function: lấy danh sách mã ca động từ listShifts
   const getShiftCodes = useCallback(() => {
@@ -151,15 +376,21 @@ const MealDetailsForm = () => {
       if (!selectedDate) return;
 
       try {
+        const param = {
+          searchValue: "",
+          ngay_an: selectedDate,
+          ma_ca: timeOfDay,
+          pageindex: 1,
+          pagesize: 100,
+        };
+        // Thêm isMenuVip nếu có menu VIP cho toàn bộ ngày/giường
+        if (hasMenuVip) {
+          param.isMenuVip = 1;
+        }
+
         const response = await multipleTablePutApi({
           store: "[api_getListDietCategory]",
-          param: {
-            searchValue: "",
-            ngay_an: selectedDate,
-            ma_ca: timeOfDay,
-            pageindex: 1,
-            pagesize: 100,
-          },
+          param,
           data: {},
         });
 
@@ -180,7 +411,7 @@ const MealDetailsForm = () => {
         // Trong trường hợp lỗi, không thay đổi listDietCategory
       }
     },
-    [selectedDate, dispatch]
+    [selectedDate, dispatch, hasMenuVip]
   );
 
   const updateMealEntriesInRedux = (updatedMeals) => {
@@ -216,7 +447,17 @@ const MealDetailsForm = () => {
   };
 
   const updateMealEntry = useCallback(
-    (timeOfDay, index, updateFn, shouldMarkAsEdit = true) => {
+    (timeOfDay, index, updateFn, optionsOrFlag = true) => {
+      // Hỗ trợ cả kiểu cũ (boolean) và kiểu mới (object options)
+      const options =
+        typeof optionsOrFlag === "boolean"
+          ? { shouldMarkAsEdit: optionsOrFlag, syncToRedux: true }
+          : {
+              shouldMarkAsEdit: true,
+              syncToRedux: true,
+              ...optionsOrFlag,
+            };
+
       setMealEntries((prev) => {
         const updatedMeals = [...prev];
         if (!updatedMeals[currentBedIndex]) {
@@ -228,7 +469,7 @@ const MealDetailsForm = () => {
 
         updateFn(meal);
         // CHỈ đánh dấu isEdit nếu shouldMarkAsEdit = true VÀ meal có stt_rec
-        if (shouldMarkAsEdit && meal.stt_rec) {
+        if (options.shouldMarkAsEdit && meal.stt_rec) {
           meal.isEdit = true;
           // Đánh dấu có thay đổi trong session này
           hasChangedInThisSession.current = true;
@@ -238,10 +479,12 @@ const MealDetailsForm = () => {
         bedMeals[timeOfDay] = meals;
         updatedMeals[currentBedIndex] = bedMeals;
 
-        // Update Redux store NGAY LẬP TỨC
-        dispatch(
-          setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex })
-        );
+        // Tuỳ chọn: chỉ sync ngay lên Redux khi cần
+        if (options.syncToRedux) {
+          dispatch(
+            setMeal({ mealEntries: updatedMeals, bedIndex: currentBedIndex })
+          );
+        }
 
         return updatedMeals;
       });
@@ -268,6 +511,12 @@ const MealDetailsForm = () => {
         hasChangedInThisSession.current = true;
       }
 
+      // Với ghi chú: chỉ cập nhật local, không cần sync Redux liên tục để tránh render lặp
+      const options =
+        name === "note"
+          ? { shouldMarkAsEdit: hasRealChange, syncToRedux: false }
+          : hasRealChange;
+
       updateMealEntry(
         timeOfDay,
         index,
@@ -293,17 +542,23 @@ const MealDetailsForm = () => {
             meal.mealTypeName = selectedFood?.ten_mon || "";
             meal.quantity = quantity;
             meal.price = price;
-            meal.totalMoney = meal.collectMoney ? 0 : price * quantity;
+            // Nếu đã tích VIP, chỉ tính tiền cho (quantity - quota) món, quota món được miễn phí
+            if (meal.vipSelected) {
+              const quota = vipQuotaByShift?.[timeOfDay] || 0;
+              meal.totalMoney = meal.collectMoney ? 0 : price * Math.max(0, quantity - quota);
+            } else {
+              meal.totalMoney = meal.collectMoney ? 0 : price * quantity;
+            }
           } else if (name === "note") {
             meal.note = value;
           } else {
             meal[name] = value;
           }
         },
-        hasRealChange
+        options
       ); // Chỉ đánh dấu isEdit nếu có thay đổi thực sự
     },
-    [foodListByShiftAndMode, mealEntries, currentBedIndex]
+    [foodListByShiftAndMode, mealEntries, currentBedIndex, updateMealEntry, vipQuotaByShift]
   );
 
   const handleQuantityChange = useCallback(
@@ -313,7 +568,8 @@ const MealDetailsForm = () => {
 
       // Xử lý bình thường
       const oldQuantity = currentMeal?.quantity || 0;
-      const newQuantity = Math.max(1, oldQuantity + change);
+      let newQuantity = Math.max(1, oldQuantity + change);
+      
       const hasRealChange = oldQuantity !== newQuantity;
 
       // Set flag if has real change and has stt_rec
@@ -335,12 +591,19 @@ const MealDetailsForm = () => {
           // Ưu tiên dùng giá đã có trong meal (đã load từ lịch sử), fallback giá từ danh sách món
           const price = (meal.price ?? 0) || selectedFood?.gia_ban || 0;
           meal.quantity = newQuantity;
-          meal.totalMoney = meal.collectMoney ? 0 : price * newQuantity;
+          
+          // Nếu đã tích VIP, chỉ tính tiền cho (newQuantity - quota) món, quota món được miễn phí
+          if (meal.vipSelected) {
+            const quota = vipQuotaByShift?.[timeOfDay] || 0;
+            meal.totalMoney = meal.collectMoney ? 0 : price * Math.max(0, newQuantity - quota);
+          } else {
+            meal.totalMoney = meal.collectMoney ? 0 : price * newQuantity;
+          }
         },
         hasRealChange
       ); // Chỉ đánh dấu isEdit nếu số lượng thay đổi
     },
-    [foodListByShiftAndMode, mealEntries, currentBedIndex]
+    [foodListByShiftAndMode, mealEntries, currentBedIndex, vipQuotaByShift, updateMealEntry]
   );
 
   const handleAddMeal = (timeOfDay) => {
@@ -412,17 +675,23 @@ const MealDetailsForm = () => {
         if (!selectedDate || !value) return;
 
         try {
+          const param = {
+            bn_yn: "",
+            ma_ca: timeOfDay,
+            ma_nh: value,
+            searchValue: "",
+            ngay_an: selectedDate,
+            pageindex: 1,
+            pagesize: 50,
+          };
+          // Thêm isMenuVip nếu có menu VIP cho toàn bộ ngày/giường
+          if (hasMenuVip) {
+            param.isMenuVip = 1;
+          }
+
           const response = await multipleTablePutApi({
             store: "[api_getListFood]",
-            param: {
-              bn_yn: "",
-              ma_ca: timeOfDay,
-              ma_nh: value,
-              searchValue: "",
-              ngay_an: selectedDate,
-              pageindex: 1,
-              pagesize: 50,
-            },
+            param,
             data: {},
           });
 
@@ -456,6 +725,7 @@ const MealDetailsForm = () => {
       updateMealEntry,
       currentBedIndex,
       mealEntries,
+      hasMenuVip,
     ]
   );
 
@@ -472,17 +742,23 @@ const MealDetailsForm = () => {
       }
 
       try {
+        const param = {
+          bn_yn: "",
+          ma_ca: timeOfDay,
+          ma_nh: mode,
+          searchValue: "",
+          ngay_an: selectedDate,
+          pageindex: 1,
+          pagesize: 50,
+        };
+        // Thêm isMenuVip nếu có menu VIP cho toàn bộ ngày/giường
+        if (hasMenuVip) {
+          param.isMenuVip = 1;
+        }
+
         const response = await multipleTablePutApi({
           store: "[api_getListFood]",
-          param: {
-            bn_yn: "",
-            ma_ca: timeOfDay,
-            ma_nh: mode,
-            searchValue: "",
-            ngay_an: selectedDate,
-            pageindex: 1,
-            pagesize: 50,
-          },
+          param,
           data: {},
         });
 
@@ -502,7 +778,7 @@ const MealDetailsForm = () => {
         }));
       }
     },
-    [selectedDate, foodListByShiftAndMode]
+    [selectedDate, foodListByShiftAndMode, hasMenuVip]
   );
 
   // Thêm hàm helper để lấy danh sách món ăn theo ca và chế độ
@@ -611,17 +887,23 @@ const MealDetailsForm = () => {
       (!foodListByShiftAndMode[key] || currentMeal?.price === 0)
     ) {
       try {
+        const param = {
+          bn_yn: "",
+          ma_ca: timeOfDay,
+          ma_nh: mealMode,
+          searchValue: "",
+          ngay_an: selectedDate,
+          pageindex: 1,
+          pagesize: 50,
+        };
+        // Thêm isMenuVip nếu có menu VIP cho toàn bộ ngày/giường
+        if (hasMenuVip) {
+          param.isMenuVip = 1;
+        }
+
         const response = await multipleTablePutApi({
           store: "[api_getListFood]",
-          param: {
-            bn_yn: "",
-            ma_ca: timeOfDay,
-            ma_nh: mealMode,
-            searchValue: "",
-            ngay_an: selectedDate,
-            pageindex: 1,
-            pagesize: 50,
-          },
+          param,
           data: {},
         });
 
@@ -682,8 +964,21 @@ const MealDetailsForm = () => {
             collectMoney: checked,
             price: finalPrice, // CẬP NHẬT giá mới
             // Khi bỏ tích bệnh nhân, tính lại theo giá MỚI
-            totalMoney: checked ? 0 : finalPrice * quantityToUse,
+            // Nếu đã tích VIP, chỉ tính tiền cho (quantity - quota) món, quota món được miễn phí
+            totalMoney: checked 
+              ? 0 
+              : (meal.vipSelected 
+                  ? finalPrice * Math.max(0, quantityToUse - (vipQuotaByShift?.[timeOfDay] || 0))
+                  : finalPrice * quantityToUse),
           };
+          
+          // Nếu tích "Người bệnh" thì bỏ tích VIP
+          if (checked && updatedMeal.vipSelected) {
+            updatedMeal.vipSelected = false;
+            // Khi bỏ tích VIP, tính lại totalMoney
+            updatedMeal.totalMoney = 0; // "Người bệnh" trả tiền nên totalMoney = 0
+          }
+          
           // CHỈ đánh dấu isEdit nếu THỰC SỰ có thay đổi
           if (updatedMeal.stt_rec && meal.collectMoney !== checked) {
             updatedMeal.isEdit = true;
@@ -746,6 +1041,7 @@ const MealDetailsForm = () => {
 
         const price = meal.price || 0;
         const collectMoney = meal.collectMoney;
+        const vipSelected = meal.vipSelected;
         const isPaid = meal.isPaid;
         const httt = meal.httt;
 
@@ -757,12 +1053,14 @@ const MealDetailsForm = () => {
           listFood.find((food) => food.ma_mon === meal.mealType)?.ten_mon ||
           meal.mealType;
 
-        // Check for price = 0 and not paid by patient
-        if (price === 0 && !collectMoney) {
+        // Check for price = 0 and not paid by patient and not VIP
+        if (price === 0 && !collectMoney && !vipSelected) {
           invalidPriceMeals.push({
             shift: shiftName,
             mealName: mealName,
-            issue: "Có giá = 0 nhưng không được tích 'Người bệnh trả tiền'",
+            issue: hasMenuVip 
+              ? "Có giá = 0 nhưng không được tích 'Người bệnh trả tiền' hoặc 'Người bệnh VIP'"
+              : "Có giá = 0 nhưng không được tích 'Người bệnh trả tiền' hoặc 'Người nhà VIP'",
           });
         }
       });
@@ -807,7 +1105,7 @@ const MealDetailsForm = () => {
               <p style={{ marginBottom: "4px" }}>Vui lòng:</p>
               <ul style={{ margin: "0", paddingLeft: "16px" }}>
                 <li>
-                  Tích "Người bệnh trả tiền" cho các món có giá = 0 hoặc cập
+                  Tích "Người bệnh trả tiền" hoặc {hasMenuVip ? '"Người bệnh VIP"' : '"Người nhà VIP"'} cho các món có giá = 0 hoặc cập
                   nhật giá tiền
                 </li>
               </ul>
@@ -822,19 +1120,17 @@ const MealDetailsForm = () => {
 
     const updatedMeals = cloneDeep(mealEntries);
 
-    // Check if all shifts have meals
-    const allShiftsHaveMeals = shiftCodes.every((shift) => {
+    // Chỉ bắt buộc 3 ca: sáng (CA1), trưa (CA2), chiều (CA3). Các ca thêm từ API không bắt buộc.
+    const allMandatoryShiftsHaveMeals = MANDATORY_SHIFT_CODES.every((shift) => {
       const meals = bedMeals[shift] || [];
       return meals.some((meal) => meal.mealType);
     });
 
-    if (!allShiftsHaveMeals) {
-      // This should not happen because the submit button is disabled
-      // But we add this check as a safeguard
-      const shiftNames = listShifts.map((s) => s.ten_ca).join(", ");
+    if (!allMandatoryShiftsHaveMeals) {
+      const mandatoryNames = "Ca sáng, Ca trưa, Ca chiều";
       notification.error({
         message: "Lỗi",
-        description: `Vui lòng nhập đủ món ăn cho tất cả các ca (${shiftNames})`,
+        description: `Vui lòng nhập đủ món ăn cho 3 ca bắt buộc (${mandatoryNames}). Các ca khác (nếu có) không bắt buộc.`,
       });
       return;
     }
@@ -1004,8 +1300,20 @@ const MealDetailsForm = () => {
                   ? 1
                   : 0;
 
-              // Generate cookie_voucher timestamp for tracking edit time
-              const cookieVoucher = generateCookieVoucher();
+              // Giống sửa đơn: dùng cookie_voucher từ data đã load (API), chỉ tạo mới khi không có
+              const cookieVoucher =
+                meal.cookie_voucher && meal.cookie_voucher.trim() !== ""
+                  ? meal.cookie_voucher
+                  : generateCookieVoucher();
+
+              // menu_vip_yn: 1 nếu suất đang sử dụng menu VIP, 0 nếu không
+              const menuVipYn =
+                meal.menu_vip_yn === true ||
+                meal.menu_vip_yn === 1 ||
+                meal.menu_vip_yn === "1" ||
+                meal.menu_vip_yn === "true"
+                  ? 1
+                  : 0;
 
               cancelDetail.push({
                 ma_giuong: bedName.ma_giuong,
@@ -1024,7 +1332,8 @@ const MealDetailsForm = () => {
                 stt_rec0: meal.stt_rec0 || "",
                 status: "3", // Status 3 để huỷ đơn
                 so_ct: meal.so_ct || "",
-                cookie_voucher: cookieVoucher, // Thêm cookie_voucher để biết thời gian sửa gần nhất
+                cookie_voucher: cookieVoucher,
+                 menu_vip_yn: menuVipYn,
               });
             }
           });
@@ -1165,8 +1474,20 @@ const MealDetailsForm = () => {
                   ? 1
                   : 0;
 
-              // Generate cookie_voucher timestamp for tracking edit time
-              const cookieVoucher = generateCookieVoucher();
+              // Giống sửa đơn: dùng cookie_voucher từ data đã load (API), chỉ tạo mới khi không có
+              const cookieVoucher =
+                meal.cookie_voucher && meal.cookie_voucher.trim() !== ""
+                  ? meal.cookie_voucher
+                  : generateCookieVoucher();
+
+              // menu_vip_yn: 1 nếu suất đang sử dụng menu VIP, 0 nếu không
+              const menuVipYn =
+                meal.menu_vip_yn === true ||
+                meal.menu_vip_yn === 1 ||
+                meal.menu_vip_yn === "1" ||
+                meal.menu_vip_yn === "true"
+                  ? 1
+                  : 0;
 
               cancelDetail.push({
                 ma_giuong: bedName.ma_giuong,
@@ -1184,7 +1505,8 @@ const MealDetailsForm = () => {
                 stt_rec0: meal.stt_rec0 || "",
                 status: "3", // Status 3 để huỷ ca
                 so_ct: meal.so_ct || "",
-                cookie_voucher: cookieVoucher, // Thêm cookie_voucher để biết thời gian sửa gần nhất
+                cookie_voucher: cookieVoucher,
+                menu_vip_yn: menuVipYn,
               });
             }
           });
@@ -1336,6 +1658,14 @@ const MealDetailsForm = () => {
           handleCollectMoneyChange={(e) =>
             handlePatientCheckboxChange(shift, index, e.target.checked)
           }
+          showVipCheckbox={(vipQuotaByShift?.[shift] || 0) > 0}
+          vipChecked={!!meal.vipSelected || Number(meal.vip_yn) === 1 || (!!meal.stt_rec_vip && meal.stt_rec_vip.trim() !== "")}
+          vipQuota={vipQuotaByShift?.[shift] || 0}
+          vipSelectedCount={entries.filter((m) => !!m.vipSelected || Number(m.vip_yn) === 1 || (!!m.stt_rec_vip && m.stt_rec_vip.trim() !== "")).length}
+          handleVipChange={(e) =>
+            handleVipCheckboxChange(shift, index, e.target.checked)
+          }
+          hasMenuVip={hasMenuVip}
           refetchDietCategory={refetchDietCategory}
           refetchFoodList={refetchFoodList}
           firstMealInputRef={firstMealInputRef}
@@ -1358,10 +1688,14 @@ const MealDetailsForm = () => {
     handleChange,
     handleQuantityChange,
     handlePatientCheckboxChange,
+    vipQuotaByShift,
+    countVipSelectedInShift,
+    handleVipCheckboxChange,
     refetchDietCategory,
     refetchFoodList,
     getShiftCodes,
     listShifts,
+    hasMenuVip,
   ]);
 
   useEffect(() => {
@@ -1408,6 +1742,7 @@ const MealDetailsForm = () => {
     quantity: 0,
     note: "",
     collectMoney: false,
+    vipSelected: false,
     totalMoney: 0,
     isPaid: false,
     httt: "",
@@ -1418,8 +1753,32 @@ const MealDetailsForm = () => {
     cookie_voucher: "",
   });
 
+  const petalHoaStyle = {
+    backgroundImage: 'url("/hoa.png")',
+    backgroundSize: "contain",
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "center",
+  };
+
   return (
-    <div className="meal-ticket-form">
+    <div className={`meal-ticket-form ${isVipMealTicket ? "meal-ticket-form-vip" : ""}`}>
+      {/* Lớp hoa mai rơi - chỉ hiển thị khi VIP */}
+      {isVipMealTicket && (
+        <div className="petals-container">
+          <span className="petal petal-1" style={petalHoaStyle} />
+          <span className="petal petal-2" style={petalHoaStyle} />
+          <span className="petal petal-3" style={petalHoaStyle} />
+          <span className="petal petal-4" style={petalHoaStyle} />
+          <span className="petal petal-5" style={petalHoaStyle} />
+          <span className="petal petal-6" style={petalHoaStyle} />
+          <span className="petal petal-7" style={petalHoaStyle} />
+          <span className="petal petal-8" style={petalHoaStyle} />
+          <span className="petal petal-9" style={petalHoaStyle} />
+          <span className="petal petal-10" style={petalHoaStyle} />
+          <span className="petal petal-11" style={petalHoaStyle} />
+          <span className="petal petal-12" style={petalHoaStyle} />
+        </div>
+      )}
       <div className="back-button-container">
         <button className="back-button" onClick={handleBackToRoomSelection}>
           <ArrowLeftOutlined />
@@ -1427,6 +1786,9 @@ const MealDetailsForm = () => {
       </div>
       <h2 className="form-title_detail">
         Giường {bedName?.ten_giuong || "Không rõ tên giường"}
+        {isVipMealTicket && (
+          <span className="vip-badge">{hasMenuVip ? "Người bệnh VIP" : "Người nhà VIP"}</span>
+        )}
       </h2>
       <div className="meal-details-datepicker">
         <DatePicker
@@ -1518,13 +1880,7 @@ const MealDetailsForm = () => {
                     fontSize: "14px",
                   }}
                 >
-                  <strong>Lưu ý:</strong> Bạn cần nhập đủ món ăn cho cả {listShifts.length} ca (
-                  {listShifts.map((shift, index) => (
-                    <span key={shift.ma_ca}>
-                      {shift.ten_ca}
-                      {index < listShifts.length - 1 ? ", " : ""}
-                    </span>
-                  ))}) để hoàn thành
+                  <strong>Lưu ý:</strong> Chỉ cần nhập đủ món ăn cho 3 ca bắt buộc (Ca sáng, Ca trưa, Ca chiều) để hoàn thành. Các ca khác (nếu có) không bắt buộc.
                 </div>
               )}
 

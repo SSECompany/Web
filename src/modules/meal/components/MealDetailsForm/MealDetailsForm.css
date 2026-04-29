@@ -10,6 +10,127 @@
   margin-bottom: 100px;
 }
 
+/* VIP Tết theme */
+.meal-ticket-form-vip {
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #ff85c0;
+  background: radial-gradient(circle at top left, #fff0f6 0, #fff 45%, #fff7e6 85%);
+}
+
+/* Tắt pseudo-element cũ */
+.meal-ticket-form-vip::before,
+.meal-ticket-form-vip::after {
+  content: none;
+}
+
+.meal-ticket-form-vip .form-title_detail {
+  position: relative;
+  z-index: 1;
+  color: #a8071a;
+}
+
+/* VIP Badge Style */
+.vip-badge {
+  display: inline-block;
+  margin-left: 10px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #ff8c00;
+  text-shadow: 
+    0 0 10px rgba(255, 140, 0, 0.8),
+    0 0 20px rgba(255, 140, 0, 0.6),
+    0 0 30px rgba(255, 100, 0, 0.5),
+    0 0 40px rgba(255, 60, 0, 0.4);
+  position: relative;
+}
+
+.meal-ticket-form-vip .total-money {
+  position: relative;
+  z-index: 1;
+  color: #d4380d;
+}
+
+.meal-ticket-form-vip .back-button,
+.meal-ticket-form-vip .submit-button,
+.meal-ticket-form-vip .cancel-button,
+.meal-ticket-form-vip .add-row-button {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes tetBackgroundPulse {
+  0% {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    background-position: 0 0;
+  }
+  50% {
+    box-shadow: 0 8px 22px rgba(255, 77, 79, 0.4);
+    background-position: 30px 20px;
+  }
+  100% {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    background-position: 0 0;
+  }
+}
+
+/* Container hoa mai rơi */
+.petals-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.petal {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  opacity: 0.98;
+  transform-origin: center;
+  animation-name: petalFall;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+  filter: drop-shadow(0 0 4px rgba(250, 173, 20, 0.7));
+}
+
+
+.petal-1 { left: 5%;  animation-duration: 9s;  animation-delay: -1s; }
+.petal-2 { left: 15%; animation-duration: 11s; animation-delay: -3s; }
+.petal-3 { left: 25%; animation-duration: 10s; animation-delay: -5s; }
+.petal-4 { left: 35%; animation-duration: 12s; animation-delay: -2s; }
+.petal-5 { left: 45%; animation-duration: 9.5s; animation-delay: -6s; }
+.petal-6 { left: 55%; animation-duration: 13s; animation-delay: -4s; }
+.petal-7 { left: 65%; animation-duration: 10.5s; animation-delay: -7s; }
+.petal-8 { left: 75%; animation-duration: 12.5s; animation-delay: -5s; }
+.petal-9 { left: 85%; animation-duration: 11.5s; animation-delay: -8s; }
+.petal-10 { left: 50%; animation-duration: 14s; animation-delay: -9s; }
+.petal-11 { left: 30%; animation-duration: 13.5s; animation-delay: -10s; }
+.petal-12 { left: 70%; animation-duration: 15s; animation-delay: -11s; }
+
+@keyframes petalFall {
+  0% {
+    top: -15%;
+    transform: translateX(0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translateX(-10px) rotate(60deg) scale(1.05);
+  }
+  50% {
+    transform: translateX(8px) rotate(140deg) scale(0.95);
+  }
+  75% {
+    transform: translateX(-6px) rotate(220deg) scale(1.02);
+  }
+  100% {
+    top: 110%;
+    transform: translateX(0) rotate(360deg) scale(1);
+  }
+}
+
 /* Back Button */
 .back-button-container {
   display: flex;
@@ -18,14 +139,20 @@
 
 .back-button {
   padding: 8px;
-  background-color: white;
-  color: black;
+  background-color: #fff1f0;
+  color: #a8071a;
   font-size: 24px !important;
-  border: none;
+  border: 1px solid #ffccc7;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
 .back-button svg {
   font-size: 20px !important;
+}
+
+.back-button:hover {
+  background-color: #ffccc7;
 }
 
 .form-title_detail {
@@ -112,6 +239,8 @@
 .price-label {
   font-weight: bold;
   margin-right: 5px;
+  min-width: 90px;
+  display: inline-block;
 }
 
 .price-checkbox {

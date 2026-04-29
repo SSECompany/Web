@@ -22,8 +22,10 @@ import {
 } from "../../../../api";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import jwt from "../../../../utils/jwt";
+import IminPrinterService from "../../../../utils/IminPrinterService";
 import { addTab, setListOrderInfo, switchTab } from "../../store/order";
 import "../OrderSummary/PaymentModal/PaymentModal.css";
+import ReceiptPreviewModal from "../OrderSummary/ReceiptPreviewModal/ReceiptPreviewModal";
 import PrintComponent from "../RetailOrderListModal/PrintComponent/PrintComponent";
 import "./FamilyMealListModal.css";
 
@@ -41,7 +43,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
   const stableFilters = useMemo(() => filters, [JSON.stringify(filters)]);
   const dispatch = useDispatch();
 
-  const { id, storeId, unitId } = useSelector(
+  const { id, storeId, unitId, unitName } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
   );
   const tabs = useSelector((state) => state.orders.orders);
@@ -66,6 +68,9 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
   const fullName = claims?.FullName;
 
   const [isEditingOrder, setIsEditingOrder] = useState(false);
+  const [isReprinting, setIsReprinting] = useState(false);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewPayload, setPreviewPayload] = useState(null);
 
   const fetchFamilyMealData = useCallback(
     async (pageIndex = currentPage, customFilters = null) => {
@@ -691,10 +696,11 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
             <Button
               icon={<PrinterOutlined />}
               onClick={() => handleReprint(record)}
+              loading={isReprinting}
               size="small"
               type="primary"
               className="print_button"
-              disabled={isCancelled}
+              disabled={isCancelled || isReprinting}
             />
             <Button
               icon={<CheckOutlined />}
@@ -786,31 +792,113 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
   };
 
   const handleReprint = async (record) => {
+    const isCompleted = record.status === "2" || record.status === 2;
+    const isCancelledOrder =
+      record.status !== "0" &&
+      record.status !== "2" &&
+      record.status !== 0 &&
+      record.status !== 2;
+    if (!isCompleted) {
+      notification.warning({
+        message: "Không thể in lại",
+        description: isCancelledOrder
+          ? "Đơn đã hủy không thể in lại."
+          : "Chỉ in lại đơn đã hoàn thành.",
+        duration: 3,
+      });
+      return;
+    }
     try {
+      setIsReprinting(true);
       const { masterData, flatDetailData } = await fetchOrderDetail(
         record.stt_rec
       );
       const detailData = groupDetailData(flatDetailData, true);
 
-      setPrintMaster(masterData);
-      setPrintDetail(detailData);
+      const mergedMasterData = {
+        ...masterData,
+        ten_kh: masterData.ten_kh || record.ten_kh || "",
+        ong_ba: masterData.ong_ba || record.ong_ba || "",
+        ma_kh: masterData.ma_kh || record.ma_kh || "",
+        cccd: masterData.cccd || record.cccd || "",
+        so_dt: masterData.so_dt || record.so_dt || "",
+        dia_chi: masterData.dia_chi || record.dia_chi || "",
+        email: masterData.email || record.email || "",
+        ma_so_thue_kh: masterData.ma_so_thue_kh || record.ma_so_thue_kh || "",
+        ten_dv_kh: masterData.ten_dv_kh || record.ten_dv_kh || "",
+        so_giuong: masterData.so_giuong || record.so_giuong || "",
+        so_phong: masterData.so_phong || record.so_phong || "",
+        ca_an: masterData.ca_an || record.ca_an || "",
+        thutien_yn: masterData.thutien_yn !== undefined ? masterData.thutien_yn : (record.thutien_yn || false),
+        StoreID: masterData.StoreID || record.StoreID || "",
+        ten_bp: masterData.ten_bp || record.ten_bp || "",
+        cookie_voucher: masterData.cookie_voucher || "",
+        kh_ts_yn: masterData.kh_ts_yn || "0",
+        xuat_hoa_don_yn: masterData.xuat_hoa_don_yn || "0",
+        cong_no: masterData.cong_no || "0",
+        ma_nvbh: masterData.ma_nvbh || "",
+        ten_nvbh: masterData.ten_nvbh || "",
+        ten_dvcs: masterData.ten_dvcs || record.ten_dvcs || unitName || "",
+      };
 
-      // Delay để đảm bảo component được render trước khi print
-      setTimeout(() => {
-        handlePrint();
-      }, 100);
-
-      notification.success({
-        message: "In lại hóa đơn",
-        description: `Đang in lại hóa đơn ${record.so_ct}`,
-        duration: 3,
+      setPreviewPayload({
+        mergedMasterData,
+        flatDetailData,
+        detailData,
+        record,
       });
+      setPreviewVisible(true);
+    } catch (err) {
+      notification.error({
+        message: "Lỗi khi tải hóa đơn",
+        description: err?.message || "Không thể tải chi tiết đơn hàng.",
+        duration: 4,
+      });
+    } finally {
+      setIsReprinting(false);
+    }
+  };
+
+  const handleConfirmReprint = async () => {
+    if (!previewPayload) return;
+    const { mergedMasterData, flatDetailData, detailData, record } = previewPayload;
+    setIsReprinting(true);
+    try {
+      const printerService = new IminPrinterService();
+      await printerService.initPrinter();
+
+      if (!printerService.isSimulationMode) {
+        await printerService.printReceipt(
+          mergedMasterData,
+          flatDetailData,
+          1,
+          { isReprint: true }
+        );
+        notification.success({
+          message: "In lại hóa đơn",
+          description: `Đã in lại hóa đơn ${record.so_ct} bằng máy in nhiệt.`,
+          duration: 3,
+        });
+      } else {
+        setPrintMaster(mergedMasterData);
+        setPrintDetail(detailData);
+        setTimeout(() => handlePrint(), 100);
+        notification.info({
+          message: "In lại hóa đơn",
+          description: "Chế độ simulation - in qua trình duyệt.",
+          duration: 3,
+        });
+      }
+      setPreviewVisible(false);
+      setPreviewPayload(null);
     } catch (err) {
       notification.error({
         message: "Lỗi khi in lại hóa đơn",
-        description: err.message,
+        description: err?.message || "Vui lòng kiểm tra máy in.",
         duration: 4,
       });
+    } finally {
+      setIsReprinting(false);
     }
   };
 
@@ -959,6 +1047,19 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
           )}
         </div>
       </Modal>
+      <ReceiptPreviewModal
+        visible={previewVisible}
+        onCancel={() => {
+          setPreviewVisible(false);
+          setPreviewPayload(null);
+        }}
+        onConfirm={handleConfirmReprint}
+        master={previewPayload?.mergedMasterData || {}}
+        detail={previewPayload?.flatDetailData || []}
+        orderNumber={previewPayload?.mergedMasterData?.so_ct || previewPayload?.record?.so_ct || ""}
+        isReprint
+        confirmLoading={isReprinting}
+      />
       <div style={{ display: "none" }}>
         <PrintComponent
           ref={printContent}

@@ -6,7 +6,7 @@ import jwt from "../../../../../utils/jwt";
 const account = process.env.REACT_APP_VIETQR_ACCOUNT;
 
 const PrintComponent = forwardRef(
-  ({ master = {}, detail = [], orderNumber = "" }, ref) => {
+  ({ master = {}, detail = [], orderNumber = "", receiptTitle = "HÓA ĐƠN" }, ref) => {
     const rawToken = localStorage.getItem("access_token");
     const claims =
       rawToken && rawToken.split(".").length === 3
@@ -63,7 +63,7 @@ const PrintComponent = forwardRef(
           <label
             style={{ fontWeight: "bold", fontSize: "14px", color: "#000" }}
           >
-            HÓA ĐƠN
+            {receiptTitle}
           </label>
           <br />
           <span>
@@ -85,9 +85,9 @@ const PrintComponent = forwardRef(
         </div>
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Tên khách:</strong>{" "}
-          {master?.ong_ba && master.ong_ba.trim()
-            ? master.ong_ba
-            : "Khách hàng căng tin"}
+          {(master?.ong_ba && master.ong_ba.trim()) ||
+            (master?.ten_kh && master.ten_kh.trim()) ||
+            "Khách hàng căng tin"}
         </div>
         {master?.ma_so_thue_kh && master.ma_so_thue_kh.trim() && (
           <div style={{ color: "#000", marginBottom: "6px" }}>

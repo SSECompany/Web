@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../../api";
 import jwt from "../../../../utils/jwt";
+import IminPrinterService from "../../../../utils/IminPrinterService";
 import {
   addTab,
   clearTabData,
@@ -75,6 +76,9 @@ const generateRandomId = () =>
   Array.from({ length: 16 }, () =>
     Math.floor(Math.random() * 36).toString(36)
   ).join("");
+
+// Số liên hóa đơn mặc định khi in qua máy in nhiệt iMin (POS)
+const DEFAULT_RECEIPT_COPIES = 2;
 
 // Helper function để gọi trực tiếp API syncFast với tracking
 const callSyncFastApi = async (sttRec, userId) => {
@@ -467,16 +471,19 @@ export default function OrderSummary({ total, itemCount }) {
       const response = await multipleTablePutApi(payload);
       if (response?.responseModel?.isSucceded) {
         const sttRec = response?.listObject[0][0]?.stt_rec;
+        const soCt = response?.listObject[0][0]?.so_ct;
 
         if (sttRec) {
           // BƯỚC 2: Bật hộp thoại in NGAY LẬP TỨC
           if (!isSaveOnly) {
-            setPrintMaster(orderData.masterData);
+            const masterWithSoCt = soCt ? { ...orderData.masterData, so_ct: soCt } : orderData.masterData;
+            setPrintMaster(masterWithSoCt);
             setPrintDetail(orderData.detailData);
             setCurrentPrintData({
-              master: orderData.masterData,
+              master: masterWithSoCt,
               detail: orderData.detailData,
               sttRec,
+              orderNumber: soCt,
               sync: true,
             });
             setHasReprinted(false);
@@ -554,7 +561,9 @@ export default function OrderSummary({ total, itemCount }) {
     dispatch(removeTab({ internalId: internalActiveTabId }));
   };
 
-  let hasPrinted = false;
+  const hasPrintedRef = useRef(false);
+  const printFallbackTimerRef = useRef(null);
+  const isMountedRef = useRef(true);
 
   const handleReprint = () => {
     if (currentPrintData) {
@@ -572,37 +581,89 @@ export default function OrderSummary({ total, itemCount }) {
     documentTitle: "Print This Document",
     copyStyles: false,
     onAfterPrint: () => {
-      if (!hasPrinted) {
-        hasPrinted = true;
+      if (!hasPrintedRef.current) {
+        hasPrintedRef.current = true;
+        clearPrintFallbackTimer();
         setIsPrinting(false);
-
-        if (currentPrintData && !hasReprinted) {
-          Modal.confirm({
-            title: "In thêm bản khác?",
-            content: "Bạn có muốn in thêm một bản nữa không?",
-            onOk: () => {
-              setHasReprinted(true);
-              handleReprint();
-            },
-            onCancel: () => {
-              setTimeout(() => handleSaveOrder(), 100);
-            },
-            okText: "In thêm",
-            cancelText: "Đóng",
-          });
-        } else {
-          setTimeout(() => handleSaveOrder(), 100);
-        }
+        setTimeout(() => handleSaveOrder(), 100);
       }
     },
   });
 
-  useEffect(() => {
-    if (isPrinting && !isPrinted) {
-      hasPrinted = false;
-      handlePrint();
-    } else {
+  const clearPrintFallbackTimer = () => {
+    if (printFallbackTimerRef.current) {
+      clearTimeout(printFallbackTimerRef.current);
+      printFallbackTimerRef.current = null;
     }
+  };
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      clearPrintFallbackTimer();
+    };
+  }, []);
+
+  // In hóa đơn: ưu tiên máy in nhiệt iMin (POS, nhiều liên + cắt giấy), fallback react-to-print
+  useEffect(() => {
+    if (!isPrinting || isPrinted) return;
+    hasPrintedRef.current = false;
+
+    clearPrintFallbackTimer();
+    printFallbackTimerRef.current = setTimeout(() => {
+      printFallbackTimerRef.current = null;
+      if (!isMountedRef.current) return;
+      handleSaveOrder();
+    }, 10000);
+
+    const runPrint = async () => {
+      try {
+        const printerService = new IminPrinterService();
+        await printerService.initPrinter();
+
+        if (!printerService.isSimulationMode) {
+          try {
+            // Mở két tiền khi thanh toán (trước khi in hóa đơn)
+            try {
+              await printerService.openCashBox();
+            } catch (drawerErr) {
+              console.warn("Két tiền không mở được (có thể không kết nối):", drawerErr?.message);
+            }
+            const masterForPrint = {
+              ...printMaster,
+              so_ct: currentPrintData?.orderNumber ?? currentPrintData?.master?.so_ct ?? printMaster?.so_ct ?? "Chưa có",
+            };
+            await printerService.printReceipt(
+              masterForPrint,
+              printDetail,
+              DEFAULT_RECEIPT_COPIES
+            );
+            clearPrintFallbackTimer();
+            setIsPrinting(false);
+            setIsPrinted(true);
+            setTimeout(() => handleSaveOrder(), 100);
+          } catch (err) {
+            notification.error({
+              message: "Lỗi in hóa đơn",
+              description: err?.message || "Máy in chưa sẵn sàng",
+            });
+            clearPrintFallbackTimer();
+            setIsPrinting(false);
+            setTimeout(() => handleSaveOrder(), 100);
+          }
+        } else {
+          handlePrint();
+        }
+      } catch (initErr) {
+        clearPrintFallbackTimer();
+        setIsPrinting(false);
+        setTimeout(() => handleSaveOrder(), 100);
+      }
+    };
+
+    runPrint();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [printMaster, printDetail, isPrinting, isPrinted]);
 
   const handleOpenPaymentModal = () => {

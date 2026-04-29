@@ -22,8 +22,6 @@ const Navbar = () => {
   const dispatch = useDispatch();
   const userInfo = useSelector(getUserInfo);
   const routeLocation = useLocation();
-
-  // Check if current page is meal ticket page
   const isMealTicketPage = routeLocation.pathname === "/meal-ticket";
 
   useEffect(() => {

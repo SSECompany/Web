@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addDataMultiObjectApi, multipleTablePutApi } from "../../api";
 import Navbar from '../../components/layout/Navbar/Navbar';
+import useVersionCheck from '../../hooks/useVersionCheck';
 import MealDetailsForm from '../../modules/meal/components/MealDetailsForm/MealDetailsForm';
 import RoomSelectionForm from '../../modules/meal/components/RoomSelectionForm/RoomSelectionForm';
 import {
@@ -19,6 +20,8 @@ import './MealTicketForm.css';
 
 const MealTicketForm = () => {
     const dispatch = useDispatch();
+    // Chạy auto check version (không hiển thị badge, chỉ báo modal khi có bản mới)
+    useVersionCheck();
     const mealDetails = useSelector((state) => state.meals.meals.masterData || {});
     const showFormDetails = useSelector((state) => state.meals.showFormDetails);
     const showRoomSelection = useSelector((state) => state.meals.showRoomSelection);

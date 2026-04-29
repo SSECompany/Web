@@ -1,0 +1,52 @@
+/* Modal xem trước hóa đơn - không title, ẩn scrollbar nhưng vẫn scroll được */
+
+.receipt-preview-modal .ant-modal-body {
+  padding: 20px 24px 24px;
+  background: #fff;
+}
+
+/* Vùng scroll: ẩn scrollbar, vẫn cuộn được */
+.receipt-preview-modal .receipt-preview-scroll {
+  max-height: 65vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0;
+  margin: 0 -8px;
+  /* Ẩn scrollbar Chrome, Safari, Edge */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.receipt-preview-modal .receipt-preview-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Giấy in mô phỏng - nền trắng, bóng nhẹ, bo góc */
+.receipt-preview-modal .receipt-preview-paper {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  padding: 20px;
+  max-width: 300px;
+  margin: 0 auto;
+  border: 1px solid #f0f0f0;
+}
+
+.receipt-preview-modal .receipt-preview-paper .print-content {
+  display: block;
+  margin: 0;
+  padding: 0;
+  box-shadow: none;
+  border: none;
+}
+
+.receipt-preview-modal .ant-modal-footer {
+  border-top: 1px solid #f0f0f0;
+  padding: 12px 24px 20px;
+}
+
+.receipt-preview-modal .ant-modal-footer .ant-btn-primary {
+  min-width: 120px;
+}

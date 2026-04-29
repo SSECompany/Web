@@ -621,6 +621,34 @@ export const apiProcessCombinedMealOrder = async ({
   }
 };
 
+// API kiểm tra suất ăn VIP (stored procedure: api_CheckSuatAnVIP)
+export const apiCheckSuatAnVIP = async ({
+  ngay_ct,
+  ma_bp,
+  ma_phong,
+  ma_giuong,
+  userId,
+}) => {
+  try {
+    const response = await multipleTablePutApi({
+      store: "api_CheckSuatAnVIP",
+      param: {
+        ngay_ct,
+        ma_bp,
+        ma_phong,
+        ma_giuong,
+        userId,
+      },
+      data: {},
+    });
+
+    return response;
+  } catch (error) {
+    console.error("Error calling api_CheckSuatAnVIP:", error);
+    throw error;
+  }
+};
+
 // API lấy danh sách suất ăn người nhà người bệnh
 export const apiGetRetailOrderPatientIsFamily = async ({
   so_ct = "",

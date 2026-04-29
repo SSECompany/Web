@@ -14,10 +14,16 @@ const MealEntryRow = ({
   handleChange,
   handleQuantityChange,
   handleCollectMoneyChange,
+  showVipCheckbox,
+  vipChecked,
+  vipQuota,
+  vipSelectedCount,
+  handleVipChange,
   refetchDietCategory,
   refetchFoodList,
   firstMealInputRef,
   isAnotherMealSelected,
+  hasMenuVip,
 }) => {
   // Dùng foodListForSelection từ parent, NHƯNG thêm món hiện tại từ history nếu chưa có
   let availableFoods = [...(foodListForSelection || [])]; // Clone array để tránh mutate
@@ -152,7 +158,9 @@ const MealEntryRow = ({
               onClick={() => handleQuantityChange(timeOfDay, index, -1)}
               className="quantity-button"
               disabled={
-                !meal.mealType || meal.quantity <= 1 || meal.collectMoney
+                !meal.mealType || 
+                meal.quantity <= 1 || 
+                meal.collectMoney
               }
             >
               <MinusOutlined />
@@ -161,7 +169,10 @@ const MealEntryRow = ({
             <button
               onClick={() => handleQuantityChange(timeOfDay, index, 1)}
               className="quantity-button"
-              disabled={!meal.mealType || meal.collectMoney}
+              disabled={
+                !meal.mealType || 
+                meal.collectMoney
+              }
             >
               <PlusOutlined />
             </button>
@@ -169,22 +180,43 @@ const MealEntryRow = ({
         </div>
 
         <div className="price-input-group">
-          <div>
-            <span className="price-label">Người bệnh</span>
-            <Checkbox
-              checked={meal.collectMoney || false}
-              onChange={(e) => {
-                handleCollectMoneyChange(e);
-                if (e.target.checked) {
-                  handleQuantityChange(timeOfDay, index, 1 - meal.quantity); // Set quantity = 1 immediately
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <span className="price-label">Người bệnh</span>
+              <Checkbox
+                checked={meal.collectMoney || false}
+                onChange={(e) => {
+                  handleCollectMoneyChange(e);
+                  if (e.target.checked) {
+                    handleQuantityChange(timeOfDay, index, 1 - meal.quantity); // Set quantity = 1 immediately
+                  }
+                }}
+                className="price-checkbox"
+                disabled={
+                  !meal.mealType || // Không có món ăn thì disable
+                  (!meal.collectMoney && isAnotherMealSelected) || // Nếu đã có suất khác được chọn thì disable
+                  !!vipChecked // Disable nếu đã tích VIP
                 }
-              }}
-              className="price-checkbox"
-              disabled={
-                !meal.mealType || // Không có món ăn thì disable
-                (!meal.collectMoney && isAnotherMealSelected) // Nếu đã có suất khác được chọn thì disable
-              }
-            />
+              />
+            </div>
+            {showVipCheckbox && (
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <span className="price-label">{hasMenuVip ? "Người bệnh VIP" : "Người nhà VIP"}</span>
+                <Checkbox
+                  checked={!!vipChecked}
+                  onChange={handleVipChange}
+                  className="price-checkbox"
+                  disabled={
+                    !meal.mealType ||
+                    (!vipChecked && vipSelectedCount >= vipQuota) ||
+                    meal.collectMoney // Disable nếu đã tích "Người bệnh"
+                  }
+                />
+                <span style={{ fontSize: 12, color: "#8c8c8c", marginLeft: "4px" }}>
+                  {`(${vipSelectedCount}/${vipQuota})`}
+                </span>
+              </div>
+            )}
           </div>
           <span className="price-display">
             {Number(meal.totalMoney || 0).toLocaleString()} đ

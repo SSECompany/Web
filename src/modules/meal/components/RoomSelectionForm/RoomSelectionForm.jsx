@@ -9,6 +9,7 @@ import { useReactToPrint } from "react-to-print";
 import {
   addDataMultiObjectApi,
   apiProcessCombinedMealOrder,
+  apiCheckSuatAnVIP,
   multipleTablePutApi,
   syncFastMutiApi,
   apiGetShiftList,
@@ -383,6 +384,40 @@ const RoomSelectionForm = () => {
 
   const openBedDetails = useCallback(
     async (bed, index) => {
+      // Chỉ gọi API kiểm tra suất ăn VIP khi đã có đủ Mã khoa, Mã phòng, Mã giường
+      if (!masterData.name || !masterData.roomCode || !bed?.ma_giuong) {
+        notification.warning({
+          message: "Vui lòng chọn đủ Mã khoa, Mã phòng và Mã giường trước khi đăng ký suất ăn VIP.",
+        });
+        return;
+      }
+
+      try {
+        const vipCheckResponse = await apiCheckSuatAnVIP({
+          ngay_ct: roomSelectedDate, // format DD/MM/YYYY đã dùng trong các API khác
+          ma_bp: masterData.name,
+          ma_phong: masterData.roomCode,
+          ma_giuong: bed.ma_giuong,
+          userId: id,
+        });
+
+        const isSucceded = vipCheckResponse?.responseModel?.isSucceded;
+        if (isSucceded === false) {
+          notification.warning({
+            message:
+              vipCheckResponse?.responseModel?.message ||
+              "Không đủ điều kiện đăng ký suất ăn VIP.",
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("❌ Lỗi khi kiểm tra suất ăn VIP:", error);
+        notification.error({
+          message: "Không kiểm tra được suất ăn VIP, vui lòng thử lại sau.",
+        });
+        return;
+      }
+
       dispatch(setMasterData({ beds: [bed] }));
       dispatch(setCurrentBedIndex(index));
 
@@ -394,7 +429,7 @@ const RoomSelectionForm = () => {
           detailData[index][shift]?.some((m) => m.mode || m.mealType)
         );
 
-      if (isAlreadyEdited || hasLocalData) {
+      if (isAlreadyEdited) {
         dispatch(setShowMealDetails(true));
         dispatch(setShowRoomSelection(false));
         return;
@@ -458,6 +493,19 @@ const RoomSelectionForm = () => {
 
                 const finalStatus = meal.status?.toString() || "0";
 
+                const isVipRecord =
+                  meal.vip_yn === true ||
+                  meal.vip_yn === 1 ||
+                  meal.vip_yn === "1" ||
+                  meal.vip_yn === "true" ||
+                  (meal.stt_rec_vip && meal.stt_rec_vip.trim() !== "");
+                
+                const isMenuVipRecord =
+                  meal.menu_vip_yn === true ||
+                  meal.menu_vip_yn === 1 ||
+                  meal.menu_vip_yn === "1" ||
+                  meal.menu_vip_yn === "true";
+
                 convertedMeals[caCode].push({
                   mode: maCheDoTrimmed,
                   modeName: meal.ten_che_do || "",
@@ -475,7 +523,12 @@ const RoomSelectionForm = () => {
                   stt_rec0: meal.stt_rec0 || "",
                   status: finalStatus,
                   so_ct: soCtTrimmed,
-                  cookie_voucher: meal.cookie_voucher || "", // Lưu cookie_voucher từ API response
+                  cookie_voucher: meal.cookie_voucher || "",
+                  vipSelected: isVipRecord,
+                  stt_rec_vip: meal.stt_rec_vip || "",
+                  isMenuVip: isMenuVipRecord,
+                  vip_yn: isVipRecord ? 1 : 0,
+                  menu_vip_yn: isMenuVipRecord ? 1 : 0,
                   isEdit: false,
                 });
               }
@@ -620,6 +673,10 @@ const RoomSelectionForm = () => {
       userName,
       mealHistory,
       submittedBeds,
+      masterData.name,
+      masterData.roomCode,
+      roomSelectedDate,
+      id,
     ]
   );
 
@@ -677,7 +734,31 @@ const RoomSelectionForm = () => {
       const filteredMealMap = bedMealMap.map((m) => {
         const filtered = {};
         shiftCodes.forEach((shift) => {
-          filtered[shift] = Array.isArray(m?.[shift]) ? m[shift] : [];
+          filtered[shift] = (Array.isArray(m?.[shift]) ? m[shift] : []).map(
+            (meal) => {
+              const isVipRecord =
+                meal.vip_yn === true ||
+                meal.vip_yn === 1 ||
+                meal.vip_yn === "1" ||
+                meal.vip_yn === "true" ||
+                (meal.stt_rec_vip && meal.stt_rec_vip.trim() !== "");
+              
+              const isMenuVipRecord =
+                meal.menu_vip_yn === true ||
+                meal.menu_vip_yn === 1 ||
+                meal.menu_vip_yn === "1" ||
+                meal.menu_vip_yn === "true";
+
+              return {
+                ...meal,
+                vipSelected: isVipRecord,
+                stt_rec_vip: meal.stt_rec_vip || "",
+                isMenuVip: isMenuVipRecord,
+                vip_yn: isVipRecord ? 1 : 0,
+                menu_vip_yn: isMenuVipRecord ? 1 : 0,
+              };
+            }
+          );
         });
         return filtered;
       });
@@ -953,6 +1034,12 @@ const RoomSelectionForm = () => {
             ? meal.cookie_voucher  // Dùng cookie_voucher đã có từ API khi load data
             : generateCookieVoucher(); // Tạo mới chỉ khi là món mới
 
+          // Convert vip_yn: 1 nếu tích VIP, 0 nếu không
+          const vipYn = meal.vipSelected ? 1 : 0;
+          // menu_vip_yn: 1 nếu suất đang sử dụng menu VIP (đang tích VIP và là loại Menu VIP), 0 nếu không
+          const menuVipYn = (meal.vipSelected && (meal.isMenuVip === true || meal.isMenuVip === 1)) ? 1 : 0;
+          const sttRecVip = meal.stt_rec_vip || "";
+
           filteredDetail.push({
             ma_giuong: bed.ma_giuong,
             ma_ca: shift,
@@ -970,6 +1057,9 @@ const RoomSelectionForm = () => {
             status: "0", // LUÔN dùng status = "0"
             so_ct: meal.so_ct || "",
             cookie_voucher: cookieVoucher, // Dùng cookie_voucher từ data đã load khi sửa, tạo mới khi thêm món
+            vip_yn: vipYn, // 1 nếu tích VIP, 0 nếu không
+            menu_vip_yn: menuVipYn, // 1 nếu suất sử dụng menu VIP, 0 nếu không
+            stt_rec_vip: sttRecVip, // stt_rec từ API api_CheckSuatAnVIP
           });
         });
       });
@@ -1056,6 +1146,11 @@ const RoomSelectionForm = () => {
     dispatch,
     id,
     unitId,
+    createCaMapping,
+    getShiftCodes,
+    listShifts,
+    loadBedsWithMeals,
+    mealHistory,
   ]);
 
   const handleDateChange = (date) => {

@@ -141,6 +141,11 @@
   font-size: 18px;
   color: #ff6600;
 }
+
+.tool-tip button .anticon {
+  font-size: 18px;
+  color: #ff6600;
+}
 .tabs-menu-container .ant-tabs-content-holder {
   padding-top: 0 !important;
 }
