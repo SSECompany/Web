@@ -1,11 +1,12 @@
- import * as signalR from "@microsoft/signalr";
+import * as signalR from "@microsoft/signalr";
 import {
   DollarOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
+  LoadingOutlined,
 } from "@ant-design/icons";
 import { Button, Modal, notification, Tabs, Tooltip } from "antd";
-import React, { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import React, { useCallback, useEffect, useReducer, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useParams } from "react-router-dom";
 import { multipleTablePutApi } from "../../api";
@@ -13,12 +14,14 @@ import Loading from "../../components/common/Loading/Loading";
 import SelectTableModal from "../../components/common/Modal/ModalSelectTable";
 import Navbar from "../../components/layout/Navbar/Navbar";
 import Category from "../../modules/order/components/Category/Category";
+import FamilyMealListModal from "../../modules/order/components/FamilyMealListModal/FamilyMealListModal";
 import MenuGrid from "../../modules/order/components/Menu/MenuGrid";
 import OrderList from "../../modules/order/components/OrderList/OrderList";
 import OrderSummary from "../../modules/order/components/OrderSummary/OrderSummary";
+import PrepaidStudentMealListModal from "../../modules/order/components/PrepaidStudentMealListModal/PrepaidStudentMealListModal";
 import ReportModal from "../../modules/order/components/ReportModal/ReportModal";
-import ShiftReportModal from "../../modules/order/components/ShiftReportModal/ShiftReportModal";
 import RetailOrderListModal from "../../modules/order/components/RetailOrderListModal/RetailOrderListModal";
+import StudentMealListModal from "../../modules/order/components/StudentMealListModal/StudentMealListModal";
 
 import {
   addOrderFromSignal,
@@ -34,37 +37,20 @@ import jwt from "../../utils/jwt";
 import IminPrinterService from "../../utils/IminPrinterService";
 import "./POSPage.css";
 
-/** Một kết nối SignalR duy nhất cho orderHub (Order + Print), tránh gọi negotiate nhiều lần */
-const useOrderHubSignalR = (onNewOrder, onPrintResult, userId) => {
-  const onNewOrderRef = React.useRef(onNewOrder);
-  const onPrintResultRef = React.useRef(onPrintResult);
-  onNewOrderRef.current = onNewOrder;
-  onPrintResultRef.current = onPrintResult;
-
+const useSignalRConnection = (onNewOrder) => {
   useEffect(() => {
-    if (!userId || userId === 0) return;
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(`${process.env.REACT_APP_ROOT_API}Hub/orderHub`)
       .withAutomaticReconnect()
       .build();
 
-    connection.on("ReceiveNewOrder", (data) => {
-      onNewOrderRef.current?.(data);
-    });
-    connection.on("ReceivePrintResult", (printData) => {
-      if (printData && typeof printData === "object") {
-        onPrintResultRef.current?.(printData);
-      }
-    });
+    connection.on("ReceiveNewOrder", onNewOrder);
 
     const startConnection = async () => {
       try {
         await connection.start();
         console.log("✅ Kết nối SignalR Order Hub thành công!");
         await connection.invoke("AddToGroup", "orderingArea");
-        if (userId) {
-          await connection.invoke("AddToGroup", `printResult_${userId}`);
-        }
       } catch (err) {
         console.error("❌ SignalR Connection Error:", err);
         setTimeout(startConnection, 5000);
@@ -75,11 +61,67 @@ const useOrderHubSignalR = (onNewOrder, onPrintResult, userId) => {
 
     return () => {
       connection.off("ReceiveNewOrder");
-      connection.off("ReceivePrintResult");
       connection.stop();
       console.log("🛑 SignalR Order Hub Disconnected!");
     };
-  }, [userId]); // Chỉ tạo lại connection khi userId đổi, callbacks dùng ref
+  }, [onNewOrder]);
+};
+
+const useSignalRPrintConnection = (onPrintResult, userId) => {
+  useEffect(() => {
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(`${process.env.REACT_APP_ROOT_API}Hub/orderHub`)
+      .withAutomaticReconnect()
+      .build();
+
+    // Log tất cả các event được nhận
+    connection.onreconnecting((error) => {});
+
+    connection.onreconnected((connectionId) => {});
+
+    connection.onclose((error) => {});
+
+    connection.on("ReceivePrintResult", (printData) => {
+      // Kiểm tra xem data có null/undefined không
+      if (!printData) {
+        console.warn("⚠️ printData là null hoặc undefined");
+        return;
+      }
+
+      // Kiểm tra xem có phải là object không
+      if (typeof printData !== "object") {
+        return;
+      }
+
+      onPrintResult(printData);
+    });
+
+    const startConnection = async () => {
+      try {
+        await connection.start();
+        console.log("✅ Kết nối SignalR Print Hub thành công!");
+        await connection.invoke("AddToGroup", `printResult_${userId}`);
+      } catch (err) {
+        console.error("❌ Lỗi kết nối Print SignalR Hub:", err);
+        console.error("🔍 Chi tiết lỗi:", err.toString());
+        console.error("📊 Error object:", {
+          name: err.name,
+          message: err.message,
+          stack: err.stack,
+        });
+        console.log("⏰ Sẽ thử kết nối lại sau 5 giây...");
+        setTimeout(startConnection, 5000);
+      }
+    };
+
+    startConnection();
+
+    return () => {
+      connection.off("ReceivePrintResult");
+      connection.stop();
+      console.log("🛑 SignalR Print Hub Disconnected!");
+    };
+  }, [onPrintResult, userId]);
 };
 
 const modalReducer = (state, action) => {
@@ -90,8 +132,6 @@ const modalReducer = (state, action) => {
       return { ...state, isModalVisible: !state.isModalVisible };
     case "TOGGLE_REPORT":
       return { ...state, isReportModalVisible: !state.isReportModalVisible };
-    case "TOGGLE_SHIFT_REPORT":
-      return { ...state, isShiftReportVisible: !state.isShiftReportVisible };
     case "TOGGLE_FAMILY_MEAL_LIST":
       return {
         ...state,
@@ -121,14 +161,13 @@ const POSPage = () => {
     isModalVisible: false,
     isOpenOrderList: false,
     isReportModalVisible: false,
-    isShiftReportVisible: false,
     isFamilyMealListVisible: false,
     isPrepaidStudentMealListVisible: false,
     isStudentMealListVisible: false,
   });
   const [drinkFilter, setDrinkFilter] = useState(null);
-  const [salesStaff, setSalesStaff] = useState([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isOpeningDrawer, setIsOpeningDrawer] = useState(false);
 
   useEffect(() => {
     const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
@@ -149,29 +188,6 @@ const POSPage = () => {
     }
   }, []);
 
-  const [isOpeningDrawer, setIsOpeningDrawer] = useState(false);
-  const handleOpenCashDrawer = useCallback(async () => {
-    setIsOpeningDrawer(true);
-    try {
-      const printerService = new IminPrinterService();
-      await printerService.initPrinter();
-      await printerService.openCashBox();
-      notification.success({
-        message: "Mở két tiền",
-        description: "Đã gửi lệnh mở két tiền.",
-        duration: 2,
-      });
-    } catch (err) {
-      notification.error({
-        message: "Không mở được két tiền",
-        description: err?.message || "Kiểm tra kết nối máy in / két tiền.",
-        duration: 4,
-      });
-    } finally {
-      setIsOpeningDrawer(false);
-    }
-  }, []);
-
   const { id, unitId } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
   );
@@ -181,7 +197,6 @@ const POSPage = () => {
   const rawToken = localStorage.getItem("access_token");
   const claims =
     rawToken && rawToken.split(".").length === 3 ? jwt.getClaims?.() || {} : {};
-
 
   const listOrderTable = useSelector(
     (state) => state.orders.listOrderTable || []
@@ -227,26 +242,25 @@ const POSPage = () => {
         id: masterData.ma_ban || `order_${Date.now()}`,
       };
 
-      // [COMMENTED] Mỗi đơn mới từ SignalR → tạo 1 tab mới
-      // dispatch(
-      //   addTab({
-      //     tableName: tableData.name,
-      //     tableId: tableData.id,
-      //     isRealtime: true,
-      //     master: masterData,
-      //     detail: groupedDetailData,
-      //     unseen: true,
-      //   })
-      // );
+      dispatch(
+        addTab({
+          tableName: tableData.name,
+          tableId: tableData.id,
+          isRealtime: true,
+          master: masterData,
+          detail: groupedDetailData,
+          unseen: true,
+        })
+      );
 
-      // setTimeout(() => {
-      //   dispatch(
-      //     addOrderFromSignal({
-      //       tableId: tableData.id,
-      //       detailData: groupedDetailData,
-      //     })
-      //   );
-      // }, 100);
+      setTimeout(() => {
+        dispatch(
+          addOrderFromSignal({
+            tableId: tableData.id,
+            detailData: groupedDetailData,
+          })
+        );
+      }, 100);
     },
     [claims?.RoleWeb, dispatch, listOrderTable]
   );
@@ -300,132 +314,60 @@ const POSPage = () => {
     }
   }, []);
 
-  useOrderHubSignalR(handleNewOrder, handlePrintResult, id);
-
-  const fetchedKeyRef = React.useRef(null);
+  useSignalRConnection(handleNewOrder);
+  useSignalRPrintConnection(handlePrintResult, id);
 
   useEffect(() => {
-    if (!unitId || !id) return;
-    const key = `${unitId}-${id}-${drinkFilter ?? "all"}`;
-    if (fetchedKeyRef.current === key) return;
-    fetchedKeyRef.current = key;
-
     const fetchData = async () => {
       try {
-        const needTables = !listOrderTable || listOrderTable.length === 0;
-        const categoryPromise = multipleTablePutApi({
-          store: "api_getListItemGroup",
-          param: {
-            searchValue: "",
-            unitId: unitId,
-            userId: id,
-            pageindex: 1,
-            pagesize: 1000,
-            ...(drinkFilter !== null && { do_uong_yn: drinkFilter }),
-          },
-          data: {},
-        });
-        const tablePromise = needTables
-          ? multipleTablePutApi({
-              store: "api_getListRestaurantTables",
-              param: {
-                searchValue: "",
-                unitId: unitId,
-                userId: id,
-                pageindex: 1,
-                pagesize: 100,
-              },
-              data: {},
-            })
-          : null;
-
         const [tableRes, categoryRes] = await Promise.all([
-          tablePromise,
-          categoryPromise,
+          multipleTablePutApi({
+            store: "api_getListRestaurantTables",
+            param: {
+              searchValue: "",
+              unitId: unitId,
+              userId: id,
+              pageindex: 1,
+              pagesize: 100,
+            },
+            data: {},
+          }),
+          multipleTablePutApi({
+            store: "api_getListItemGroup",
+            param: {
+              searchValue: "",
+              unitId: unitId,
+              userId: id,
+              pageindex: 1,
+              pagesize: 1000,
+              ...(drinkFilter !== null && { do_uong_yn: drinkFilter }),
+            },
+            data: {},
+          }),
         ]);
 
-        if (needTables && tableRes?.listObject?.[0]) {
-          const tableData = tableRes.listObject[0].map((item) => ({
+        const tableData =
+          tableRes?.listObject[0]?.map((item) => ({
             id: item.value,
             name: item.label,
-          }));
-          dispatch(setListOrderTable(tableData));
-        }
+          })) || [];
 
         const categoryData =
-          categoryRes?.listObject?.[0]?.map((item) => ({
+          categoryRes?.listObject[0]?.map((item) => ({
             loai_nh: item.loai_nh,
             ma_nh: item.ma_nh,
             ten_nh: item.ten_nh,
           })) || [];
-        dispatch(setListCategory(categoryData));
 
-        // Kiểm tra in test theo session để đảm bảo máy in hoạt động
-        const hasPrinted = sessionStorage.getItem("hasPrintedStatus");
-        if (!hasPrinted) {
-          try {
-            const printerService = new IminPrinterService();
-            await printerService.printTest();
-            sessionStorage.setItem("hasPrintedStatus", "true");
-          } catch (printErr) {
-            console.warn("⚠️ Máy in chưa sẵn sàng hoặc mất kết nối:", printErr);
-          }
-        }
+        dispatch(setListOrderTable(tableData));
+        dispatch(setListCategory(categoryData));
       } catch (err) {
         console.error("❌ Lỗi khi lấy dữ liệu:", err);
-        fetchedKeyRef.current = null;
       }
     };
 
     fetchData();
   }, [unitId, id, dispatch, drinkFilter]);
-
-  // Lấy danh sách nhân viên bán hàng - chỉ gọi 1 lần khi đã có userId hợp lệ
-  useEffect(() => {
-    // Kiểm tra SalesManDefault từ token
-    const salesManDefault = claims?.SalesManDefault?.trim();
-    
-    // Nếu có SalesManDefault từ token, không cần gọi API
-    if (salesManDefault) {
-      // Tạo object nhân viên từ SalesManDefault
-      const defaultStaff = [{
-        ma_nvbh: salesManDefault,
-        value: salesManDefault,
-        id: salesManDefault,
-        ten_nvbh: salesManDefault, // Có thể cần cập nhật sau nếu có thông tin tên
-        label: salesManDefault,
-        name: salesManDefault,
-      }];
-      setSalesStaff(defaultStaff);
-      return;
-    }
-
-    // Nếu không có SalesManDefault, gọi API
-    const fetchSalesStaff = async () => {
-      try {
-        const res = await multipleTablePutApi({
-          store: "api_get_DMNVBH_Paging",
-          param: {
-            searchValue: "",
-            userId: id,
-            pageIndex: 1,
-            pageSize: 20,
-          },
-          data: {},
-        });
-
-        const staffData = res?.listObject?.[0] || [];
-        setSalesStaff(staffData);
-      } catch (err) {
-        console.error("❌ Lỗi khi lấy danh sách nhân viên bán hàng:", err);
-      }
-    };
-
-    // Không gọi khi chưa có id hoặc đã load rồi
-    if (!id || salesStaff.length > 0) return;
-
-    fetchSalesStaff();
-  }, [id, salesStaff.length, claims?.SalesManDefault]);
 
   useEffect(() => {
     const timestamp = Date.now();
@@ -551,13 +493,42 @@ const POSPage = () => {
     dispatchModal({ type: "TOGGLE_REPORT" });
   }, []);
 
-  const handleShiftReportModal = useCallback(() => {
-    dispatchModal({ type: "TOGGLE_SHIFT_REPORT" });
-  }, []);
-
   const handleSelectTableModal = useCallback(() => {
     dispatchModal({ type: "TOGGLE_SELECT_TABLE" });
   }, []);
+
+  const handleFamilyMealList = useCallback(() => {
+    dispatchModal({ type: "TOGGLE_FAMILY_MEAL_LIST" });
+  }, []);
+
+  const handlePrepaidStudentMealList = useCallback(() => {
+    dispatchModal({ type: "TOGGLE_PREPAID_STUDENT_MEAL_LIST" });
+  }, []);
+
+  const handleStudentMealList = useCallback(() => {
+    dispatchModal({ type: "TOGGLE_STUDENT_MEAL_LIST" });
+  }, []);
+
+  const handleOpenCashDrawer = useCallback(async () => {
+    if (isOpeningDrawer) return;
+    setIsOpeningDrawer(true);
+    try {
+      const printerService = new IminPrinterService();
+      await printerService.initPrinter();
+      await printerService.openCashBox();
+      notification.success({
+        message: "Mở két thành công",
+        description: "Ngăn kéo tiền đã được mở.",
+      });
+    } catch (err) {
+      notification.error({
+        message: "Không mở được két",
+        description: err?.message || "Máy in / két chưa kết nối hoặc chưa sẵn sàng.",
+      });
+    } finally {
+      setIsOpeningDrawer(false);
+    }
+  }, [isOpeningDrawer]);
 
   return (
     <div className="pos-page">
@@ -626,29 +597,60 @@ const POSPage = () => {
                 </Button>
               </Tooltip>
               {claims?.RoleWeb !== "isPosMini" && (
-                <Tooltip placement="topRight" title="Bảng kê hóa đơn">
+                <Tooltip placement="topRight" title="Báo cáo kết ca">
                   <Button
-                    className="default_button hide-on-mobile"
+                    className="default_button"
                     onClick={handleReportModal}
                   >
                     <i className="pi pi-chart-line sub_text_color"></i>
                   </Button>
                 </Tooltip>
               )}
-              <Tooltip placement="topRight" title="Báo cáo chốt ca">
+              <Tooltip
+                placement="topRight"
+                title="Suất ăn Người nhà Người bệnh"
+              >
                 <Button
                   className="default_button"
-                  onClick={handleShiftReportModal}
+                  onClick={handleFamilyMealList}
                 >
-                  <i className="pi pi-print sub_text_color"></i>
+                  <i className="pi pi-users sub_text_color"></i>
                 </Button>
               </Tooltip>
-              <Tooltip placement="topRight" title="Mở két tiền">
+              <Tooltip
+                placement="topRight"
+                title="Suất ăn sinh viên trả trước"
+              >
                 <Button
-                  className="default_button hide-on-mobile"
-                  loading={isOpeningDrawer}
+                  className="default_button"
+                  onClick={handlePrepaidStudentMealList}
+                >
+                  <i className="pi pi-user sub_text_color"></i>
+                </Button>
+              </Tooltip>
+              <Tooltip
+                placement="topRight"
+                title="Suất ăn sinh viên trả sau"
+              >
+                <Button
+                  className="default_button"
+                  onClick={handleStudentMealList}
+                >
+                  <i className="pi pi-user-plus sub_text_color"></i>
+                </Button>
+              </Tooltip>
+              <Tooltip placement="topRight" title="Mở két">
+                <Button
+                  className="default_button"
                   onClick={handleOpenCashDrawer}
-                  icon={<DollarOutlined />}
+                  disabled={isOpeningDrawer}
+                  icon={
+                    isOpeningDrawer ? (
+                      <LoadingOutlined className="sub_text_color" spin />
+                    ) : (
+                      <DollarOutlined className="sub_text_color" />
+                    )
+                  }
                 />
               </Tooltip>
             </div>
@@ -667,7 +669,6 @@ const POSPage = () => {
           <OrderSummary
             total={calculateTotal()}
             itemCount={calculateItemCount()}
-            salesStaff={salesStaff}
           />
         </div>
       </div>
@@ -684,15 +685,18 @@ const POSPage = () => {
       <ReportModal
         isOpen={modalState.isReportModalVisible}
         onClose={handleReportModal}
-        unitId={unitId}
-        id={id}
       />
-      <ShiftReportModal
-        isOpen={modalState.isShiftReportVisible}
-        onClose={handleShiftReportModal}
-        unitId={unitId}
-        userId={id}
-        cashierName={claims?.FullName}
+      <FamilyMealListModal
+        isOpen={modalState.isFamilyMealListVisible}
+        onClose={handleFamilyMealList}
+      />
+      <PrepaidStudentMealListModal
+        isOpen={modalState.isPrepaidStudentMealListVisible}
+        onClose={handlePrepaidStudentMealList}
+      />
+      <StudentMealListModal
+        isOpen={modalState.isStudentMealListVisible}
+        onClose={handleStudentMealList}
       />
       <Loading />
     </div>

@@ -1,12 +1,10 @@
 import {
   CheckOutlined,
   EditOutlined,
-  LoadingOutlined,
   PrinterOutlined,
 } from "@ant-design/icons";
 import {
   Button,
-  DatePicker,
   Input,
   Modal,
   Select,
@@ -17,16 +15,18 @@ import {
 } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useReactToPrint } from "react-to-print";
 import {
   apiGetRetailOrderPatientIsFamily,
   multipleTablePutApi,
 } from "../../../../api";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
-import IminPrinterService from "../../../../utils/IminPrinterService";
 import jwt from "../../../../utils/jwt";
+import IminPrinterService from "../../../../utils/IminPrinterService";
 import { addTab, setListOrderInfo, switchTab } from "../../store/order";
-import ReceiptPreviewModal from "../OrderSummary/ReceiptPreviewModal/ReceiptPreviewModal";
 import "../OrderSummary/PaymentModal/PaymentModal.css";
+import ReceiptPreviewModal from "../OrderSummary/ReceiptPreviewModal/ReceiptPreviewModal";
+import PrintComponent from "../RetailOrderListModal/PrintComponent/PrintComponent";
 import "./FamilyMealListModal.css";
 
 const FamilyMealListModal = ({ isOpen, onClose }) => {
@@ -68,13 +68,9 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
   const fullName = claims?.FullName;
 
   const [isEditingOrder, setIsEditingOrder] = useState(false);
-  const [reprintingSttRec, setReprintingSttRec] = useState(null);
+  const [isReprinting, setIsReprinting] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
-  const [previewMaster, setPreviewMaster] = useState({});
-  const [previewDetailFlat, setPreviewDetailFlat] = useState([]);
-  const [previewDetailGrouped, setPreviewDetailGrouped] = useState([]);
-  const [previewOrderNumber, setPreviewOrderNumber] = useState("");
-  const [confirmPrintLoading, setConfirmPrintLoading] = useState(false);
+  const [previewPayload, setPreviewPayload] = useState(null);
 
   const fetchFamilyMealData = useCallback(
     async (pageIndex = currentPage, customFilters = null) => {
@@ -98,7 +94,6 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       try {
         const res = await apiGetRetailOrderPatientIsFamily({
           so_ct: filtersToUse.so_ct || "",
-          ngay_ct: filtersToUse.ngay_ct || "",
           ma_kh: filtersToUse.ma_kh || "",
           status: filtersToUse.status || "",
           ma_ban: filtersToUse.ma_ban || "",
@@ -114,22 +109,39 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
           userId: id,
           unitId: unitId,
           storeId: storeId,
-          ma_gd: "3", // 3 = đơn người nhà bệnh nhân
+          ma_gd: "3", // 3 = đơn Người nhà Người bệnh
         });
 
         const updatedData = Array.isArray(res?.listObject[0])
           ? res.listObject[0]
           : [];
-        const paginationInfo = res?.listObject[2]?.[0] || {};
-        const totalRecords = paginationInfo.totalRecord || updatedData.length;
+        // Robustly detect pagination info regardless of index/shape
+        const listObject = Array.isArray(res?.listObject) ? res.listObject : [];
+        let paginationInfo = {};
+        for (let i = 0; i < listObject.length; i++) {
+          const candidate = Array.isArray(listObject[i]) ? listObject[i][0] : null;
+          if (
+            candidate &&
+            (candidate.totalRecord !== undefined ||
+              candidate.totalrecord !== undefined ||
+              candidate.totalpage !== undefined ||
+              candidate.pagesize !== undefined)
+          ) {
+            paginationInfo = candidate;
+            break;
+          }
+        }
+        const totalRecords = Number(
+          paginationInfo.totalRecord ?? paginationInfo.totalrecord ?? 0
+        ) || updatedData.length;
 
         setAllData(updatedData);
         setTotalRecords(totalRecords);
         dispatch(setListOrderInfo(updatedData));
       } catch (err) {
-        console.error("Lỗi khi lấy danh sách suất ăn người nhà:", err);
+        console.error("Lỗi khi lấy danh sách suất ăn Người nhà:", err);
         notification.error({
-          message: "Lỗi khi tải danh sách suất ăn người nhà",
+          message: "Lỗi khi tải danh sách suất ăn Người nhà Người bệnh",
           duration: 4,
         });
       } finally {
@@ -213,10 +225,6 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
             case "so_ct":
               displayText = `Số CT: ${value}`;
               tagColor = "blue";
-              break;
-            case "ngay_ct":
-              displayText = `Ngày CT: ${value}`;
-              tagColor = "geekblue";
               break;
             case "ten_bp":
               displayText = `Bộ phận: ${value}`;
@@ -391,26 +399,6 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       key: "ngay_ct",
       width: 120,
       align: "center",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div className="filter-dropdown">
-          <DatePicker
-            inputReadOnly
-            onChange={(date) => {
-              setSelectedKeys(date ? [date.format("DD/MM/YYYY")] : []);
-            }}
-            format="DD/MM/YYYY"
-            placeholder="Chọn ngày CT"
-          />
-          <Button
-            className="search_button"
-            type="primary"
-            onClick={() => handleFilter("ngay_ct", selectedKeys[0], confirm)}
-            size="small"
-          >
-            Tìm kiếm
-          </Button>
-        </div>
-      ),
     },
     {
       title: "Tên bộ phận",
@@ -611,6 +599,43 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       ),
     },
     {
+      title: "Đồng bộ",
+      dataIndex: "s2",
+      key: "s2",
+      align: "center",
+      width: 120,
+      render: (value) => {
+        // Một số bản ghi không có s2 => cần chuẩn hóa để tránh lỗi undefined.trim
+        const normalizedS2 = String(value || "").trim();
+        const isSynchronized = normalizedS2 === "Synchronize";
+        return (
+          <Tag color={isSynchronized ? "green" : "red"}>
+            {isSynchronized ? "Thành công" : "Thất bại"}
+          </Tag>
+        );
+      },
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div className="filter-dropdown">
+          <Select
+            placeholder="Chọn"
+            value={selectedKeys[0]}
+            onChange={(value) => setSelectedKeys(value ? [value] : [])}
+          >
+            <Select.Option value="Synchronize     ">Thành công</Select.Option>
+            <Select.Option value="*">Thất bại</Select.Option>
+          </Select>
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => handleFilter("s2", selectedKeys[0], confirm)}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
+    },
+    {
       title: "Trạng thái",
       dataIndex: "statusName",
       key: "statusName",
@@ -665,27 +690,17 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
               disabled={
                 isCancelled ||
                 isEditingOrder ||
-                record.status === "2"
+                (record.status === "2" && record.s3 === true)
               }
             />
             <Button
-              icon={reprintingSttRec === record.stt_rec ? <LoadingOutlined spin /> : <PrinterOutlined />}
+              icon={<PrinterOutlined />}
               onClick={() => handleReprint(record)}
+              loading={isReprinting}
               size="small"
               type="primary"
               className="print_button"
-              disabled={
-                reprintingSttRec != null ||
-                isCancelled ||
-                (record.status !== "2" && record.status !== 2)
-              }
-              title={
-                isCancelled
-                  ? "Đơn đã hủy"
-                  : record.status !== "2" && record.status !== 2
-                  ? "Chỉ in lại đơn đã hoàn thành"
-                  : "In lại"
-              }
+              disabled={isCancelled || isReprinting}
             />
             <Button
               icon={<CheckOutlined />}
@@ -738,15 +753,8 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
         so_giuong: masterData.so_giuong || record.so_giuong || "",
         so_phong: masterData.so_phong || record.so_phong || "",
         ca_an: masterData.ca_an || record.ca_an || "",
-        thutien_yn: masterData.thutien_yn || record.thutien_yn || "",
         StoreID: masterData.StoreID || record.StoreID || "",
         ten_bp: masterData.ten_bp || record.ten_bp || "",
-        // Các trường mới từ API
-        cookie_voucher: masterData.cookie_voucher || "",
-        kh_ts_yn: masterData.kh_ts_yn || "0",
-        xuat_hoa_don_yn: masterData.xuat_hoa_don_yn || "0",
-        cong_no: masterData.cong_no || "0",
-        ma_nvbh: masterData.ma_nvbh || "",
       };
 
       const tableData = {
@@ -769,7 +777,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       dispatch(switchTab(internalId));
       onClose();
       notification.success({
-        message: "Đã tải đơn hàng người nhà bệnh nhân thành công!",
+        message: "Đã tải đơn hàng Người nhà Người bệnh thành công!",
         duration: 3,
       });
     } catch (err) {
@@ -801,6 +809,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       return;
     }
     try {
+      setIsReprinting(true);
       const { masterData, flatDetailData } = await fetchOrderDetail(
         record.stt_rec
       );
@@ -808,19 +817,19 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
 
       const mergedMasterData = {
         ...masterData,
-        ten_kh: masterData.ten_kh || record.ten_kh,
-        ong_ba: masterData.ong_ba || record.ong_ba,
-        ma_kh: masterData.ma_kh || record.ma_kh,
-        cccd: masterData.cccd || record.cccd,
-        so_dt: masterData.so_dt || record.so_dt,
-        dia_chi: masterData.dia_chi || record.dia_chi,
-        email: masterData.email || record.email,
-        ma_so_thue_kh: masterData.ma_so_thue_kh || record.ma_so_thue_kh,
-        ten_dv_kh: masterData.ten_dv_kh || record.ten_dv_kh,
+        ten_kh: masterData.ten_kh || record.ten_kh || "",
+        ong_ba: masterData.ong_ba || record.ong_ba || "",
+        ma_kh: masterData.ma_kh || record.ma_kh || "",
+        cccd: masterData.cccd || record.cccd || "",
+        so_dt: masterData.so_dt || record.so_dt || "",
+        dia_chi: masterData.dia_chi || record.dia_chi || "",
+        email: masterData.email || record.email || "",
+        ma_so_thue_kh: masterData.ma_so_thue_kh || record.ma_so_thue_kh || "",
+        ten_dv_kh: masterData.ten_dv_kh || record.ten_dv_kh || "",
         so_giuong: masterData.so_giuong || record.so_giuong || "",
         so_phong: masterData.so_phong || record.so_phong || "",
         ca_an: masterData.ca_an || record.ca_an || "",
-        thutien_yn: masterData.thutien_yn || record.thutien_yn || "",
+        thutien_yn: masterData.thutien_yn !== undefined ? masterData.thutien_yn : (record.thutien_yn || false),
         StoreID: masterData.StoreID || record.StoreID || "",
         ten_bp: masterData.ten_bp || record.ten_bp || "",
         cookie_voucher: masterData.cookie_voucher || "",
@@ -832,45 +841,47 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
         ten_dvcs: masterData.ten_dvcs || record.ten_dvcs || unitName || "",
       };
 
-      setPreviewMaster(mergedMasterData);
-      setPreviewDetailFlat(flatDetailData);
-      setPreviewDetailGrouped(detailData);
-      setPreviewOrderNumber(mergedMasterData.so_ct || record.so_ct || "");
+      setPreviewPayload({
+        mergedMasterData,
+        flatDetailData,
+        detailData,
+        record,
+      });
       setPreviewVisible(true);
     } catch (err) {
       notification.error({
-        message: "Lỗi khi tải đơn hàng",
-        description: err?.message || "Vui lòng thử lại.",
+        message: "Lỗi khi tải hóa đơn",
+        description: err?.message || "Không thể tải chi tiết đơn hàng.",
         duration: 4,
       });
+    } finally {
+      setIsReprinting(false);
     }
   };
 
-  const handleConfirmPreviewPrint = async () => {
-    setConfirmPrintLoading(true);
-    let usedSimulation = false;
+  const handleConfirmReprint = async () => {
+    if (!previewPayload) return;
+    const { mergedMasterData, flatDetailData, detailData, record } = previewPayload;
+    setIsReprinting(true);
     try {
       const printerService = new IminPrinterService();
       await printerService.initPrinter();
 
       if (!printerService.isSimulationMode) {
         await printerService.printReceipt(
-          previewMaster,
-          previewDetailFlat,
+          mergedMasterData,
+          flatDetailData,
           1,
           { isReprint: true }
         );
         notification.success({
           message: "In lại hóa đơn",
-          description: `Đã in lại hóa đơn ${previewOrderNumber} bằng máy in nhiệt.`,
+          description: `Đã in lại hóa đơn ${record.so_ct} bằng máy in nhiệt.`,
           duration: 3,
         });
-        setPreviewVisible(false);
       } else {
-        usedSimulation = true;
-        setPrintMaster(previewMaster);
-        setPrintDetail(previewDetailGrouped);
-        setPreviewVisible(false);
+        setPrintMaster(mergedMasterData);
+        setPrintDetail(detailData);
         setTimeout(() => handlePrint(), 100);
         notification.info({
           message: "In lại hóa đơn",
@@ -878,6 +889,8 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
           duration: 3,
         });
       }
+      setPreviewVisible(false);
+      setPreviewPayload(null);
     } catch (err) {
       notification.error({
         message: "Lỗi khi in lại hóa đơn",
@@ -885,14 +898,17 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
         duration: 4,
       });
     } finally {
-      setConfirmPrintLoading(false);
-      if (usedSimulation) {
-        setReprintingSttRec(null);
-      }
+      setIsReprinting(false);
     }
   };
 
-    const handleApprove = async (record) => {
+  const handlePrint = useReactToPrint({
+    content: () => printContent.current,
+    documentTitle: "Print Family Meal",
+    copyStyles: false,
+  });
+
+  const handleApprove = async (record) => {
     showConfirm({
       title: `Bạn có chắc chắn muốn thanh toán đơn hàng có số chứng từ: ${record.so_ct}?`,
       onOk: async () => {
@@ -931,7 +947,6 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
             so_giuong: masterData.so_giuong || record.so_giuong || "",
             so_phong: masterData.so_phong || record.so_phong || "",
             ca_an: masterData.ca_an || record.ca_an || "",
-            thutien_yn: masterData.thutien_yn || record.thutien_yn || "",
             StoreID: masterData.StoreID || record.StoreID || "",
           };
 
@@ -970,7 +985,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       <Modal
         open={isOpen}
         width="95%"
-        title="Danh sách suất ăn người nhà bệnh nhân"
+        title="Danh sách suất ăn Người nhà Người bệnh"
         destroyOnClose
         onCancel={onClose}
         footer={null}
@@ -1025,7 +1040,7 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
                 showSizeChanger: false,
                 showQuickJumper: false,
                 showTotal: (total, range) =>
-                  `${range[0]}-${range[1]} của ${total} suất ăn người nhà bệnh nhân`,
+                  `${range[0]}-${range[1]} của ${total} suất ăn Người nhà Người bệnh`,
                 onChange: handlePageChange,
               }}
             />
@@ -1034,13 +1049,16 @@ const FamilyMealListModal = ({ isOpen, onClose }) => {
       </Modal>
       <ReceiptPreviewModal
         visible={previewVisible}
-        onCancel={() => setPreviewVisible(false)}
-        onConfirm={handleConfirmPreviewPrint}
-        master={previewMaster}
-        detail={previewDetailFlat}
-        orderNumber={previewOrderNumber}
-        isReprint={true}
-        confirmLoading={confirmPrintLoading}
+        onCancel={() => {
+          setPreviewVisible(false);
+          setPreviewPayload(null);
+        }}
+        onConfirm={handleConfirmReprint}
+        master={previewPayload?.mergedMasterData || {}}
+        detail={previewPayload?.flatDetailData || []}
+        orderNumber={previewPayload?.mergedMasterData?.so_ct || previewPayload?.record?.so_ct || ""}
+        isReprint
+        confirmLoading={isReprinting}
       />
       <div style={{ display: "none" }}>
         <PrintComponent

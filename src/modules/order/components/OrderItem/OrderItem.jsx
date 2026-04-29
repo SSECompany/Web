@@ -1,13 +1,17 @@
-import { EllipsisOutlined } from "@ant-design/icons";
-import { Button, Dropdown, Menu } from "antd";
-import React, { useEffect, useState } from "react";
+import { EllipsisOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
+import { Button, Dropdown, Menu, message } from "antd";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 import { formatNumber } from "../../../../app/hook/dataFormatHelper";
-import { applyVoucherToProduct, updateProductPrice } from "../../store/order";
+import {
+  applyVoucherToProduct,
+  updateProductPrice,
+  updateProductQuantity,
+} from "../../store/order";
+import "./OrderItem.css";
 import AddNoteAndExtrasModal from "./modal/AddNoteAndExtrasModal";
 import DiscountModal from "./modal/DiscountModal";
 import SelectMealModal from "./modal/SelectMealModal";
-import "./OrderItem.css";
 
 export default function OrderItem({
   item,
@@ -24,17 +28,27 @@ export default function OrderItem({
   const [priceInput, setPriceInput] = useState("");
   const dispatch = useDispatch();
   const token = localStorage.getItem("access_token");
+  const totalOriginalPrice = useMemo(() => {
+    const unitPrice = parseFloat(item.don_gia || 0);
+    const quantity = parseFloat(item.so_luong || 1);
+    return isNaN(unitPrice * quantity) ? 0 : unitPrice * quantity;
+  }, [item.don_gia, item.so_luong]);
 
-  const handleQuantityInputChange = (e) => {
-    if (isReadOnlyMode) return;
-    const rawValue = e.target.value.replace(/\D/g, "");
-    if (rawValue === "") return;
-    const newQuantity = Math.max(1, parseInt(rawValue, 10) || 1);
-    if (newQuantity === item.so_luong) return;
-    const diff = newQuantity - (parseFloat(item.so_luong || 0) || 0);
-    if (diff !== 0) {
-      onUpdateQuantity(index, diff);
+  // Kiểm tra tồn kho
+  const checkInventory = (newQuantity) => {
+    if (item.selected_meal && item.selected_meal.tonDuTru !== undefined) {
+      const availableStock = parseInt(item.selected_meal.tonDuTru) || 0;
+      return newQuantity <= availableStock;
     }
+    return true; // Không có thông tin tồn kho thì cho phép
+  };
+
+  // Lấy số lượng tồn kho hiện tại
+  const getAvailableStock = () => {
+    if (item.selected_meal && item.selected_meal.tonDuTru !== undefined) {
+      return parseInt(item.selected_meal.tonDuTru) || 0;
+    }
+    return null;
   };
 
   useEffect(() => {
@@ -61,6 +75,35 @@ export default function OrderItem({
 
   const handleOpenDiscountModal = () => {
     setIsDiscountModalVisible(true);
+  };
+
+  const handleUpdateQuantity = (increment) => {
+    const currentQuantity = parseInt(item.so_luong);
+    const newQuantity = Math.max(1, currentQuantity + increment);
+
+    // Kiểm tra tồn kho trước khi update
+    if (!checkInventory(newQuantity)) {
+      const availableStock = getAvailableStock();
+      message.warning(
+        `Không thể tăng số lượng! Tồn kho hiện tại: ${availableStock} suất`
+      );
+      return;
+    }
+
+    // Gọi hàm update quantity từ props hoặc dispatch trực tiếp
+    if (onUpdateQuantity) {
+      onUpdateQuantity(index, increment);
+    } else {
+      // Fallback: dispatch trực tiếp nếu không có onUpdateQuantity
+      dispatch(
+        updateProductQuantity({
+          internalId: null, // Sẽ được xử lý trong reducer
+          productIndex: index,
+          increment: increment,
+          inventoryCheck: true,
+        })
+      );
+    }
   };
 
   // Kiểm tra xem item có phải là "Cơm Suất tối" hoặc "Cơm Suất trưa" không
@@ -100,7 +143,7 @@ export default function OrderItem({
           </span>
           <div className="quantity-controls">
             <Button
-              onClick={() => onUpdateQuantity(index, -1)}
+              onClick={() => handleUpdateQuantity(-1)}
               disabled={item.so_luong <= 1 || isReadOnlyMode}
               style={
                 isReadOnlyMode ? { opacity: 0.5, cursor: "not-allowed" } : {}
@@ -108,18 +151,9 @@ export default function OrderItem({
             >
               -
             </Button>
-            <input
-              type="number"
-              min={1}
-              inputMode="numeric"
-              pattern="[0-9]*"
-              className="quantity-input hide-number-input-spinners"
-              value={item.so_luong}
-              onChange={handleQuantityInputChange}
-              disabled={isReadOnlyMode}
-            />
+            <span>{item.so_luong}</span>
             <Button
-              onClick={() => onUpdateQuantity(index, 1)}
+              onClick={() => handleUpdateQuantity(1)}
               disabled={isReadOnlyMode}
               style={
                 isReadOnlyMode ? { opacity: 0.5, cursor: "not-allowed" } : {}
@@ -149,10 +183,7 @@ export default function OrderItem({
                   marginTop: "2px",
                 }}
               >
-                {formatNumber(
-                  (parseFloat(item.don_gia || 0) || 0) *
-                    (parseFloat(item.so_luong || 1) || 1)
-                )}
+                {formatNumber(totalOriginalPrice)}
               </div>
             ) : null}
           </span>
@@ -198,6 +229,18 @@ export default function OrderItem({
                 {item.selected_meal.description}
               </div>
             )}
+            {/* Chỉ hiển thị cảnh báo khi vượt quá tồn kho */}
+            {item.selected_meal.tonDuTru !== undefined &&
+              parseInt(item.so_luong) >
+                parseInt(item.selected_meal.tonDuTru) && (
+                <div className="inventory-warning-info">
+                  <ExclamationCircleOutlined className="inventory-warning-icon" />
+                  <span className="inventory-warning-text">
+                    Cảnh báo: Đã vượt quá tồn kho ({item.selected_meal.tonDuTru}{" "}
+                    suất)
+                  </span>
+                </div>
+              )}
           </div>
         )}
         {item.ghi_chu && !item.selected_meal && (

@@ -1,29 +1,15 @@
-import { Button, DatePicker, Input, Modal, Space, Table } from "antd";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Button, DatePicker, Input, Modal, Table } from "antd";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { multipleTablePutApi } from "../../../../api";
 import { formatNumber } from "../../../../app/hook/dataFormatHelper";
 import "./ReportModal.css";
 
-const DEFAULT_FILTERS = {
-  so_ct: "",
-  ma_ban: "",
-  ten_vt: "",
-  nh_vt1: "",
-};
-
 const SUMMARY_FIELDS = [
   "ten_nhan_vien",
-  "ma_ban",
+  "ten_gd",
   "so_ct",
   "ngay_ct",
   "datetime2",
-  "nh_vt1",
   "so_luong",
   "gia_ban",
   "thanh_tien",
@@ -31,10 +17,21 @@ const SUMMARY_FIELDS = [
   "tien_mat",
   "tien_ck",
   "ap_voucher",
-  "cong_no",
+  "tt_pos_nt",
+  "tt_qrcode_nt",
+  "tt_cn_nt",
 ];
 
-const MONEY_FIELDS = ["gia_ban", "thanh_tien", "ck_nt", "tien_mat", "tien_ck", "cong_no"];
+const MONEY_FIELDS = [
+  "gia_ban",
+  "thanh_tien",
+  "ck_nt",
+  "tien_mat",
+  "tien_ck",
+  "tt_pos_nt",
+  "tt_qrcode_nt",
+  "tt_cn_nt",
+];
 
 const formatDate = (date) => {
   const d = new Date(date);
@@ -57,38 +54,34 @@ const isVoucherApplied = (ap_voucher) => {
   );
 };
 
-const CELL_STYLE = { textAlign: "center" };
-const BOLD_CELL_STYLE = { fontWeight: "bold", textAlign: "center" };
+const CELL_STYLE = {
+  textAlign: "center",
+  whiteSpace: "normal",
+  wordWrap: "break-word",
+};
+const BOLD_CELL_STYLE = {
+  fontWeight: "bold",
+  textAlign: "center",
+  whiteSpace: "normal",
+  wordWrap: "break-word",
+};
 
 const ReportModal = ({ isOpen, onClose, unitId, id }) => {
   const [dataSource, setDataSource] = useState([]);
-  const [filters, setFilters] = useState(() => ({ ...DEFAULT_FILTERS }));
-  const [dateRange, setDateRange] = useState([
-    formatDate(new Date()),
-    formatDate(new Date()),
-  ]);
-  const filtersRef = useRef(filters);
-  const fetchDataRef = useRef(() => {});
 
   const fetchData = useCallback(
-    async (overrideDateRange, overrideFilters) => {
+    async (filterNgayCT) => {
       try {
-        const effectiveFilters = overrideFilters || filtersRef.current;
-        const effectiveRange =
-          overrideDateRange || dateRange || [formatDate(new Date()), formatDate(new Date())];
-
-        const [fromDate, toDate] = effectiveRange;
+        const ngayCT = filterNgayCT || formatDate(new Date());
 
         const res = await multipleTablePutApi({
           store: "api_get_pos_order_manv",
           param: {
-            so_ct: effectiveFilters.so_ct?.trim() || "",
+            so_ct: "",
             ma_kh: "",
             ten_kh: "",
             dien_thoai: "",
-            DateFrom: fromDate,
-            DateTo: toDate,
-            ngay_ct: "",
+            ngay_ct: ngayCT,
             PageIndex: 1,
             PageSize: 1000,
             StoreId: "",
@@ -96,9 +89,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
             Status: "",
             Userid: id,
             username: "",
-            ma_ban: effectiveFilters.ma_ban?.trim() || "",
-            ten_vt: effectiveFilters.ten_vt?.trim() || "",
-            nh_vt1: effectiveFilters.nh_vt1?.trim() || "",
+            ma_ban: "",
           },
           data: {},
         });
@@ -117,162 +108,104 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         console.error("❌ Lỗi khi lấy dữ liệu:", err);
       }
     },
-    [unitId, id, dateRange]
-  );
-
-  useEffect(() => {
-    filtersRef.current = filters;
-  }, [filters]);
-
-  useEffect(() => {
-    fetchDataRef.current = fetchData;
-  }, [fetchData]);
-
-  const applyFilter = useCallback(
-    (key, value) => {
-      const trimmedValue = value?.trim() || "";
-      setFilters((prev) => {
-        const next = { ...prev, [key]: trimmedValue };
-        filtersRef.current = next;
-        fetchData(undefined, next);
-        return next;
-      });
-    },
-    [fetchData]
-  );
-
-  const renderTextFilterDropdown = useCallback(
-    (dataIndex, placeholder) => {
-      return ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div className="report-modal_filterDropdown">
-          <Space direction="vertical" size={8} style={{ width: "100%" }}>
-            <Input
-              placeholder={placeholder}
-              value={selectedKeys?.[0] || ""}
-              onChange={(event) => {
-                const { value } = event.target;
-                setSelectedKeys(value ? [value] : []);
-              }}
-              onPressEnter={() => {
-                confirm({ closeDropdown: true });
-                applyFilter(dataIndex, selectedKeys?.[0] || "");
-              }}
-              allowClear
-            />
-            <div className="report-modal_filterActions">
-              <Button
-                type="primary"
-                size="small"
-                onClick={() => {
-                  confirm({ closeDropdown: true });
-                  applyFilter(dataIndex, selectedKeys?.[0] || "");
-                }}
-              >
-                Tìm kiếm
-              </Button>
-              <Button
-                size="small"
-                onClick={() => {
-                  setSelectedKeys([]);
-                  confirm({ closeDropdown: true });
-                  applyFilter(dataIndex, "");
-                }}
-              >
-                Làm mới
-              </Button>
-            </div>
-          </Space>
-        </div>
-      );
-    },
-    [applyFilter]
+    [unitId, id]
   );
 
   const columns = useMemo(
     () => [
-      { title: "STT", dataIndex: "fake_stt", key: "fake_stt", width: 70, ellipsis: false },
+      { title: "STT", dataIndex: "fake_stt", key: "fake_stt", minWidth: 70 },
       {
         title: "Tên nhân viên",
         dataIndex: "ten_nhan_vien",
         key: "ten_nhan_vien",
-        width: 160,
-        ellipsis: false,
+        minWidth: 140,
       },
-      {
-        title: "Mã bàn",
-        dataIndex: "ma_ban",
-        key: "ma_ban",
-        width: 110,
-        ellipsis: false,
-        filteredValue: filters.ma_ban ? [filters.ma_ban] : null,
-        filterDropdown: renderTextFilterDropdown("ma_ban", "Nhập mã bàn"),
-      },
+      { title: "Tên GD", dataIndex: "ten_gd", key: "ten_gd", minWidth: 200 },
       {
         title: "Số CT",
         dataIndex: "so_ct",
         key: "so_ct",
-        width: 110,
-        ellipsis: false,
-        filteredValue: filters.so_ct ? [filters.so_ct] : null,
-        filterDropdown: renderTextFilterDropdown("so_ct", "Nhập số CT"),
+        minWidth: 110,
+        filterDropdown: ({
+          setSelectedKeys,
+          selectedKeys,
+          confirm,
+          clearFilters,
+        }) => (
+          <div style={{ padding: 8 }}>
+            <Input
+              placeholder="Tìm kiếm Số CT"
+              value={selectedKeys[0]}
+              onChange={(e) => {
+                setSelectedKeys(e.target.value ? [e.target.value] : []);
+              }}
+              onPressEnter={() => {
+                confirm();
+              }}
+              style={{ marginBottom: 8, display: "block" }}
+            />
+            <Button
+              className="search_button"
+              type="primary"
+              onClick={() => {
+                confirm();
+              }}
+              size="small"
+              style={{ width: 90, marginRight: 8 }}
+            >
+              Tìm kiếm
+            </Button>
+            <Button
+              onClick={() => {
+                clearFilters();
+              }}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Đặt lại
+            </Button>
+          </div>
+        ),
+        onFilter: (value, record) => {
+          if (!value) return true;
+          return String(record.so_ct || "")
+            .toLowerCase()
+            .includes(String(value).toLowerCase());
+        },
       },
       {
         title: "Ngày CT",
         dataIndex: "ngay_ct",
         key: "ngay_ct",
-        width: 200,
-        ellipsis: false,
-        filteredValue: dateRange && dateRange.length === 2 ? [dateRange.join(" - ")] : null,
+        minWidth: 130,
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div className="report-modal_filterDropdown">
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
-              <DatePicker.RangePicker
-                inputReadOnly
-                format="DD/MM/YYYY"
-                placeholder={["Từ ngày", "Đến ngày"]}
-                style={{ width: "100%" }}
-                onChange={(dates) => {
-                  if (dates && dates.length === 2) {
-                    const from = dates[0].format("DD/MM/YYYY");
-                    const to = dates[1].format("DD/MM/YYYY");
-                    setSelectedKeys([`${from} - ${to}`]);
-                  } else {
-                    setSelectedKeys([]);
-                  }
-                }}
-              />
-              <div className="report-modal_filterActions">
-                <Button
-                  type="primary"
-                  size="small"
-                  onClick={() => {
-                    confirm({ closeDropdown: true });
-                    const value = selectedKeys?.[0] || "";
-                    if (value) {
-                      const [from, to] = value.split(" - ");
-                      const newRange = [from || formatDate(new Date()), to || from || formatDate(new Date())];
-                      setDateRange(newRange);
-                      fetchData(newRange);
-                    }
-                  }}
-                >
-                  Tìm kiếm
-                </Button>
-                <Button
-                  size="small"
-                  onClick={() => {
-                    setSelectedKeys([]);
-                    confirm({ closeDropdown: true });
-                    const today = formatDate(new Date());
-                    const newRange = [today, today];
-                    setDateRange(newRange);
-                    fetchData(newRange);
-                  }}
-                >
-                  Làm mới
-                </Button>
-              </div>
-            </Space>
+          <div style={{ padding: 8 }}>
+            <DatePicker
+              inputReadOnly
+              onChange={(date) => {
+                if (date) {
+                  setSelectedKeys([date.format("DD/MM/YYYY")]);
+                } else {
+                  setSelectedKeys([]);
+                }
+              }}
+              style={{ marginBottom: 8, display: "block" }}
+              format="DD/MM/YYYY"
+              placeholder="Chọn ngày CT"
+            />
+            <Button
+              className="search_button"
+              type="primary"
+              onClick={() => {
+                confirm();
+                if (selectedKeys[0]) {
+                  fetchData(selectedKeys[0]);
+                }
+              }}
+              size="small"
+            >
+              Tìm kiếm
+            </Button>
           </div>
         ),
       },
@@ -280,70 +213,58 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         title: "Thời gian",
         dataIndex: "datetime2",
         key: "datetime2",
-        width: 140,
-        ellipsis: false,
+        minWidth: 120,
       },
-      {
-        title: "Tên món",
-        dataIndex: "ten_mon",
-        key: "ten_mon",
-        width: 160,
-        ellipsis: false,
-        filteredValue: filters.ten_vt ? [filters.ten_vt] : null,
-        filterDropdown: renderTextFilterDropdown("ten_vt", "Nhập tên món"),
-      },
-      {
-        title: "Nhóm món",
-        dataIndex: "nh_vt1",
-        key: "nh_vt1",
-        width: 150,
-        ellipsis: false,
-        filteredValue: filters.nh_vt1 ? [filters.nh_vt1] : null,
-        filterDropdown: renderTextFilterDropdown("nh_vt1", "Nhập nhóm món"),
-      },
+      { title: "Tên món", dataIndex: "ten_mon", key: "ten_mon", minWidth: 150 },
       {
         title: "Số lượng",
         dataIndex: "so_luong",
         key: "so_luong",
-        width: 110,
-        ellipsis: false,
+        minWidth: 110,
       },
-      { title: "Giá bán", dataIndex: "gia_ban", key: "gia_ban", width: 110, ellipsis: false },
+      { title: "Giá bán", dataIndex: "gia_ban", key: "gia_ban", minWidth: 110 },
       {
         title: "Thành tiền",
         dataIndex: "thanh_tien",
         key: "thanh_tien",
-        width: 130,
-        ellipsis: false,
+        minWidth: 130,
       },
       {
-        title: "Tiền chiết khấu",
+        title: "Chiết khấu",
         dataIndex: "ck_nt",
         key: "ck_nt",
-        width: 160,
-        ellipsis: false,
+        minWidth: 130,
       },
       {
         title: "Tiền mặt",
         dataIndex: "tien_mat",
         key: "tien_mat",
-        width: 130,
-        ellipsis: false,
+        minWidth: 130,
       },
-      { title: "Tiền CK", dataIndex: "tien_ck", key: "tien_ck", width: 110, ellipsis: false },
+      { title: "Tiền CK", dataIndex: "tien_ck", key: "tien_ck", minWidth: 120 },
       {
-        title: "Công nợ",
-        dataIndex: "cong_no",
-        key: "cong_no",
-        width: 130,
-        ellipsis: false,
+        title: "Sinh viên trả trước",
+        dataIndex: "tt_pos_nt",
+        key: "tt_pos_nt",
+        minWidth: 180,
+      },
+      {
+        title: "Bệnh nhân trả trước",
+        dataIndex: "tt_qrcode_nt",
+        key: "tt_qrcode_nt",
+        minWidth: 180,
+      },
+      {
+        title: "GC",
+        dataIndex: "tt_cn_nt",
+        key: "tt_cn_nt",
+        minWidth: 180,
       },
       {
         title: "Áp voucher",
         dataIndex: "ap_voucher",
         key: "ap_voucher",
-        width: 130,
-        ellipsis: false,
+        minWidth: 130,
       },
       {
         title: "SysTotal",
@@ -352,7 +273,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
         hidden: true,
       },
     ],
-    [filters, renderTextFilterDropdown, dateRange, fetchData]
+    [fetchData]
   );
 
   const formatCellText = useCallback((col, text, record) => {
@@ -429,15 +350,15 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
 
   useEffect(() => {
     if (isOpen) {
-      fetchDataRef.current();
+      fetchData();
     }
-  }, [isOpen]);
+  }, [isOpen, fetchData]);
 
   return (
     <Modal
       open={isOpen}
       width={"95%"}
-      title="Bảng kê hóa đơn"
+      title="Báo cáo kết ca"
       destroyOnClose
       onCancel={onClose}
       centered
@@ -449,12 +370,13 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
           columns={optimizedColumns}
           dataSource={dataSource}
           pagination={false}
-          width="100%"
           rowKey="key"
           rowClassName={(record) =>
             record.systotal === 0 ? "summary-row group-row" : ""
           }
-          scroll={{ x: "max-content", y: 450 }}
+          scroll={{ y: 450, x: true }}
+          tableLayout="auto"
+          size="small"
           summary={(pageData) => {
             const totals = pageData.reduce(
               (acc, item) => {
@@ -465,17 +387,21 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                   ck_nt,
                   tien_mat,
                   tien_ck,
-                  cong_no,
                   ap_voucher,
+                  tt_pos_nt,
+                  tt_qrcode_nt,
+                  tt_cn_nt,
                 } = item;
 
                 if (systotal === 0) {
                   acc.totalSoLuong += Number(so_luong) || 0;
                   acc.totalThanhTien += Number(thanh_tien) || 0;
-                  acc.totalTienChietKhau += Number(ck_nt) || 0;
+                  acc.totalChietKhau += Number(ck_nt) || 0;
                   acc.totalTienMat += Number(tien_mat) || 0;
                   acc.totalTienCK += Number(tien_ck) || 0;
-                  acc.totalCongNo += Number(cong_no) || 0;
+                  acc.totalTtPosNt += Number(tt_pos_nt) || 0;
+                  acc.totalTtQrcodeNt += Number(tt_qrcode_nt) || 0;
+                  acc.totalTtCnNt += Number(tt_cn_nt) || 0;
                 } else {
                   if (isVoucherApplied(ap_voucher)) {
                     acc.totalApVoucher += 1;
@@ -487,11 +413,13 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
               {
                 totalSoLuong: 0,
                 totalThanhTien: 0,
-                totalTienChietKhau: 0,
+                totalChietKhau: 0,
                 totalTienMat: 0,
                 totalTienCK: 0,
-                totalCongNo: 0,
                 totalApVoucher: 0,
+                totalTtPosNt: 0,
+                totalTtQrcodeNt: 0,
+                totalTtCnNt: 0,
               }
             );
 
@@ -511,9 +439,7 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                         <strong>{formatNumber(totals.totalThanhTien)}</strong>
                       ),
                       ck_nt: (
-                        <strong>
-                          {formatNumber(totals.totalTienChietKhau)}
-                        </strong>
+                        <strong>{formatNumber(totals.totalChietKhau)}</strong>
                       ),
                       tien_mat: (
                         <strong>{formatNumber(totals.totalTienMat)}</strong>
@@ -521,10 +447,16 @@ const ReportModal = ({ isOpen, onClose, unitId, id }) => {
                       tien_ck: (
                         <strong>{formatNumber(totals.totalTienCK)}</strong>
                       ),
-                      cong_no: (
-                        <strong>{formatNumber(totals.totalCongNo)}</strong>
-                      ),
                       ap_voucher: <strong>{totals.totalApVoucher}</strong>,
+                      tt_pos_nt: (
+                        <strong>{formatNumber(totals.totalTtPosNt)}</strong>
+                      ),
+                      tt_qrcode_nt: (
+                        <strong>{formatNumber(totals.totalTtQrcodeNt)}</strong>
+                      ),
+                      tt_cn_nt: (
+                        <strong>{formatNumber(totals.totalTtCnNt)}</strong>
+                      ),
                     };
 
                     const cellValue = cellValueMap[dataIndex];

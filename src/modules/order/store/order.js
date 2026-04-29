@@ -51,7 +51,6 @@ const orders = createSlice({
         so_giuong: "",
         so_phong: "",
         ca_an: "",
-        thutien_yn: "",
       };
 
       let tong_tien = 0;
@@ -68,20 +67,7 @@ const orders = createSlice({
               so_luong,
           0
         );
-        
-        // Tính giảm giá
-        const totalBeforeDiscount = don_gia * so_luong + extrasTotal;
-        const tl_ck = parseFloat(item.tl_ck || 0);
-        const ck_nt = parseFloat(item.ck_nt || 0);
-
-        let finalDiscount = 0;
-        if (tl_ck > 0) {
-          finalDiscount = (totalBeforeDiscount * tl_ck) / 100;
-        } else {
-          finalDiscount = ck_nt;
-        }
-
-        const thanh_tien = totalBeforeDiscount - finalDiscount;
+        const thanh_tien = don_gia * so_luong + extrasTotal;
 
         tong_tien += thanh_tien;
         tong_sl += so_luong;
@@ -89,8 +75,8 @@ const orders = createSlice({
         return {
           ...item,
           thanh_tien: thanh_tien.toFixed(0),
-          tl_ck: item.tl_ck || "0",
-          ck_nt: item.ck_nt || "0",
+          tl_ck: "0",
+          ck_nt: "0",
         };
       });
 
@@ -415,19 +401,7 @@ const orders = createSlice({
             0
           );
 
-          // Tính giảm giá
-          const totalBeforeDiscount = don_gia * so_luong + extrasTotal;
-          const tl_ck = parseFloat(item.tl_ck || 0);
-          const ck_nt = parseFloat(item.ck_nt || 0);
-
-          let finalDiscount = 0;
-          if (tl_ck > 0) {
-            finalDiscount = (totalBeforeDiscount * tl_ck) / 100;
-          } else {
-            finalDiscount = ck_nt;
-          }
-
-          const thanh_tien = totalBeforeDiscount - finalDiscount;
+          const thanh_tien = don_gia * so_luong + extrasTotal;
           item.thanh_tien = thanh_tien.toFixed(0);
 
           newTongTien += thanh_tien;
@@ -485,6 +459,7 @@ const orders = createSlice({
         tab.master.tong_sl = tongSl.toString();
       }
     },
+
     applyVoucherToProduct: (state, action) => {
       const { index } = action.payload;
       const tab = state.orders.find(
@@ -502,6 +477,8 @@ const orders = createSlice({
         mealDescription,
         mealShift,
         mealShiftLabel,
+        tonDuTru,
+        isCheckTonDuTru,
       } = action.payload;
       const tab = state.orders.find(
         (tab) => tab.internalId === state.internalActiveTabId
@@ -514,6 +491,8 @@ const orders = createSlice({
           description: mealDescription,
           shift: mealShift,
           shiftLabel: mealShiftLabel,
+          tonDuTru: tonDuTru,
+          isCheckTonDuTru: isCheckTonDuTru,
         };
 
         // Lưu mã vật tư ban đầu vào gc_td1 (nếu chưa có)
@@ -552,6 +531,40 @@ const orders = createSlice({
 
         tab.master.tong_tien = tongTien.toFixed(0);
         tab.master.tong_sl = tongSl.toString();
+      }
+    },
+    resetOrders: (state) => {
+      Object.assign(state, {
+        ...initialState,
+        activeTabId: null,
+        internalActiveTabId: null,
+        orders: [],
+      });
+    },
+    setCustomerInfo: (state, action) => {
+      const {
+        ong_ba = "",
+        cccd = "",
+        dia_chi = "",
+        so_dt = "",
+        email = "",
+      } = action.payload || {};
+      const tab = state.orders.find(
+        (tab) => tab.internalId === state.internalActiveTabId
+      );
+      if (tab) {
+        tab.master.ong_ba = ong_ba?.trim() || "";
+        tab.master.cccd = cccd;
+        tab.master.dia_chi = dia_chi;
+        tab.master.so_dt = so_dt;
+        tab.master.email = email;
+      }
+    },
+    updateTabExtraProps: (state, action) => {
+      const { internalId, ...rest } = action.payload;
+      const tab = state.orders.find((tab) => tab.internalId === internalId);
+      if (tab) {
+        Object.assign(tab, rest);
       }
     },
     updateProductDiscount: (state, action) => {
@@ -597,40 +610,6 @@ const orders = createSlice({
         tab.master.tong_tien = tab.detail
           .reduce((sum, item) => sum + parseFloat(item.thanh_tien), 0)
           .toFixed(0);
-      }
-    },
-    resetOrders: (state) => {
-      Object.assign(state, {
-        ...initialState,
-        activeTabId: null,
-        internalActiveTabId: null,
-        orders: [],
-      });
-    },
-    setCustomerInfo: (state, action) => {
-      const {
-        ong_ba = "",
-        cccd = "",
-        dia_chi = "",
-        so_dt = "",
-        email = "",
-      } = action.payload || {};
-      const tab = state.orders.find(
-        (tab) => tab.internalId === state.internalActiveTabId
-      );
-      if (tab) {
-        tab.master.ong_ba = ong_ba?.trim() || "";
-        tab.master.cccd = cccd;
-        tab.master.dia_chi = dia_chi;
-        tab.master.so_dt = so_dt;
-        tab.master.email = email;
-      }
-    },
-    updateTabExtraProps: (state, action) => {
-      const { internalId, ...rest } = action.payload;
-      const tab = state.orders.find((tab) => tab.internalId === internalId);
-      if (tab) {
-        Object.assign(tab, rest);
       }
     },
   },

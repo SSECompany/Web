@@ -1,4 +1,4 @@
-import { CheckOutlined, PrinterOutlined } from "@ant-design/icons";
+import { CheckOutlined } from "@ant-design/icons";
 import {
   Button,
   Input,
@@ -12,16 +12,19 @@ import {
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useReactToPrint } from "react-to-print";
 import {
   apiConfirmStudentOrder,
-  apiGetRetailOrderStudentOrders,
+  apiGetRetailOrderPostpaidStudentOrders,
+  multipleTablePutApi,
 } from "../../../../api";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import jwt from "../../../../utils/jwt";
 import { addTab, setListOrderInfo, switchTab } from "../../store/order";
-import "./PrepaidStudentMealListModal.css";
+import "../PrepaidStudentMealListModal/PrepaidStudentMealListModal.css";
+import PrintComponent from "../RetailOrderListModal/PrintComponent/PrintComponent";
 
-const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
+const StudentMealListModal = ({ isOpen, onClose }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20; // Cố định pageSize = 20
   const [totalRecords, setTotalRecords] = useState(0);
@@ -45,7 +48,7 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
       if (parsedValue > maxValue) {
         newValue = maxValue;
         notification.warning({
-          message: `Số lượng không được vượt quá ${maxValue}`,
+          message: `Số lượng không được vượt quá ${maxValue} (số lượng còn lại)`,
           duration: 2,
         });
       } else if (parsedValue < 0) {
@@ -68,14 +71,13 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
   const stableFilters = useMemo(() => filters, [JSON.stringify(filters)]);
   const dispatch = useDispatch();
 
-  // Sử dụng data trực tiếp từ API (backend pagination)
-  const currentData = allData;
-
   const { id, storeId, unitId } = useSelector(
     (state) => state.claimsReducer.userInfo || {}
   );
   const [printMaster, setPrintMaster] = useState({});
   const [printDetail, setPrintDetail] = useState([]);
+  const printContent = useRef();
+  const lastApiCall = useRef({ pageIndex: 0, filters: {} });
 
   // Tính chiều cao scroll động - tối đa 10 dòng
   const getScrollY = useMemo(() => {
@@ -86,8 +88,6 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
     const actualRows = Math.min(rowCount, maxRows);
     return actualRows * 55;
   }, [allData.length]);
-  const printContent = useRef();
-  const lastApiCall = useRef({ pageIndex: 0, filters: {} });
 
   const rawToken = localStorage.getItem("access_token");
   const claims =
@@ -97,7 +97,7 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
   const [isEditingOrder, setIsEditingOrder] = useState(false);
   const tabs = useSelector((state) => state.orders.orders);
 
-  const fetchPrepaidStudentMealData = useCallback(
+  const fetchStudentMealData = useCallback(
     async (pageIndex = currentPage, customFilters = null) => {
       if (!isOpen || isLoading) return; // Chỉ gọi API khi modal đang mở và không đang loading
 
@@ -117,11 +117,11 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
 
       setIsLoading(true);
       try {
-        // Sử dụng API mới cho sinh viên
+        // Sử dụng API mới cho sinh viên trả sau
         const today = new Date().toISOString().split("T")[0]; // Format: YYYY-MM-DD
-        const res = await apiGetRetailOrderStudentOrders({
+        const res = await apiGetRetailOrderPostpaidStudentOrders({
           storeId: storeId || "",
-          ts_yn: 0,
+          ts_yn: 1, // 1 = sinh viên trả sau
           unitId: unitId || "PHENIKAA",
           dateFrom: filtersToUse.dateFrom || today,
           dateTo: filtersToUse.dateTo || today,
@@ -161,17 +161,17 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
         setTotalRecords(totalRecords);
         dispatch(setListOrderInfo(updatedData));
 
-        // Reset input values khi load dữ liệu mới
+        // Reset input values khi load dữ liệu mới - luôn bắt đầu từ 0
         const newInputValues = {};
         updatedData.forEach((record) => {
-          const recordKey = `${record.ma_kh}_${record.ma_ca}_${record.ma_vt}_${record.ngay_ct}`;
-          newInputValues[recordKey] = record.so_luong_da_nhan || 0;
+          const recordKey = `${record.ma_kh}_${record.ma_ca}_${record.ma_vt}_${record.ngay_ct}_${record.ma_bp}`;
+          newInputValues[recordKey] = 0; // Luôn bắt đầu từ 0
         });
         setInputValues(newInputValues);
       } catch (err) {
-        console.error("Lỗi khi lấy danh sách suất ăn sinh viên:", err);
+        console.error("Lỗi khi lấy danh sách suất ăn sinh viên trả sau:", err);
         notification.error({
-          message: "Lỗi khi tải danh sách suất ăn sinh viên",
+          message: "Lỗi khi tải danh sách suất ăn sinh viên trả sau",
           duration: 4,
         });
       } finally {
@@ -183,7 +183,7 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
-      fetchPrepaidStudentMealData(1, filters);
+      fetchStudentMealData(1, filters);
     } else {
       // Reset state khi đóng modal
       setCurrentPage(1);
@@ -195,6 +195,9 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  // Sử dụng data trực tiếp từ API (backend pagination)
+  const currentData = allData;
 
   // Helper function để group detail data
   const groupDetailData = (flatDetailData, useUniqueId = true) => {
@@ -225,6 +228,23 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
     return groupedDetailData;
   };
 
+  // Helper function để fetch order detail
+  const fetchOrderDetail = async (stt_rec) => {
+    const res = await multipleTablePutApi({
+      store: "api_get_data_detail_retail_order",
+      param: { stt_rec },
+      data: {},
+    });
+
+    if (res?.responseModel?.isSucceded) {
+      const masterData = res?.listObject[0]?.[0] || {};
+      const flatDetailData = res?.listObject[1] || [];
+      return { masterData, flatDetailData };
+    }
+    throw new Error(
+      res?.responseModel?.message || "Lỗi khi tải chi tiết đơn hàng"
+    );
+  };
 
   // Helper function để xử lý filter
   const handleFilter = (key, value, confirm) => {
@@ -233,14 +253,14 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
     setFilters(newFilters);
     setCurrentPage(1); // Reset về trang 1 khi filter
     // Gọi API ngay lập tức khi filter thay đổi với pageIndex = 1 và truyền filters mới
-    fetchPrepaidStudentMealData(1, newFilters);
+    fetchStudentMealData(1, newFilters);
   };
 
   // Helper function để xóa tất cả filter
   const handleClearAllFilters = () => {
     setFilters(EMPTY_FILTERS);
     setCurrentPage(1);
-    fetchPrepaidStudentMealData(1, EMPTY_FILTERS);
+    fetchStudentMealData(1, EMPTY_FILTERS);
   };
 
   // Helper function để xóa một filter cụ thể
@@ -249,7 +269,7 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
     delete newFilters[key];
     setFilters(newFilters);
     setCurrentPage(1);
-    fetchPrepaidStudentMealData(1, newFilters);
+    fetchStudentMealData(1, newFilters);
   };
 
   // Helper function để render filter tags
@@ -315,7 +335,7 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
   const handlePageChange = (page) => {
     setCurrentPage(page);
     // Gọi API ngay lập tức khi thay đổi trang với pageIndex mới và filters hiện tại
-    fetchPrepaidStudentMealData(page, filters);
+    fetchStudentMealData(page, filters);
   };
 
   const columns = [
@@ -578,15 +598,14 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
       width: 120,
       align: "center",
       render: (_, record) => {
-        // Tạo unique key cho record
-        const recordKey = `${record.ma_kh}_${record.ma_ca}_${record.ma_vt}_${record.ngay_ct}`;
+        // Tạo unique key cho record - bao gồm ma_bp để tránh trùng lặp
+        const recordKey = `${record.ma_kh}_${record.ma_ca}_${record.ma_vt}_${record.ngay_ct}_${record.ma_bp}`;
         const currentValue =
-          inputValues[recordKey] !== undefined
-            ? inputValues[recordKey]
-            : record.so_luong_da_nhan || 0;
+          inputValues[recordKey] !== undefined ? inputValues[recordKey] : 0; // Luôn bắt đầu từ 0
 
         const handleInputChangeLocal = (inputValue) => {
-          const maxValue = record.so_luong;
+          // Số lượng tối đa có thể nhập = số lượng - đã nhận
+          const maxValue = record.so_luong - (record.so_luong_da_nhan || 0);
           handleInputChange(recordKey, inputValue, maxValue);
         };
 
@@ -594,7 +613,7 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
           <Input
             type="number"
             min="0"
-            max={record.so_luong}
+            max={record.so_luong - (record.so_luong_da_nhan || 0)}
             value={currentValue}
             style={{ width: "80px", textAlign: "center" }}
             className="hide-number-input-spinners"
@@ -625,30 +644,23 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
     {
       title: "Chức năng",
       key: "action",
-      width: 120,
+      width: 80,
       fixed: "right",
       align: "center",
       render: (_, record) => (
-        <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
-          <Button
-            icon={<PrinterOutlined />}
-            onClick={() => handleReprint(record)}
-            type="primary"
-            size="small"
-            className="print_button"
-            title="In lại"
-            disabled={record.so_luong_da_nhan <= 0}
-          />
-          <Button
-            icon={<CheckOutlined />}
-            onClick={() => handleApprove(record)}
-            type="primary"
-            size="small"
-            className="approve_button"
-            disabled={isEditingOrder || record.so_luong_da_nhan > 0}
-            title="Xác nhận"
-          />
-        </div>
+        <Button
+          icon={<CheckOutlined />}
+          onClick={() => handleApprove(record)}
+          type="primary"
+          size="small"
+          className="approve_button"
+          disabled={
+            isEditingOrder ||
+            record.so_luong_da_nhan >= record.so_luong ||
+            record.so_luong - (record.so_luong_da_nhan || 0) <= 0
+          }
+          title="Xác nhận"
+        />
       ),
     },
   ];
@@ -657,8 +669,8 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
     if (isEditingOrder) return;
     setIsEditingOrder(true);
     try {
-      // Tạo unique key từ các field của record
-      const recordKey = `${record.ma_kh}_${record.ma_ca}_${record.ma_vt}_${record.ngay_ct}`;
+      // Tạo unique key từ các field của record - bao gồm ma_bp để tránh trùng lặp
+      const recordKey = `${record.ma_kh}_${record.ma_ca}_${record.ma_vt}_${record.ngay_ct}_${record.ma_bp}`;
       const existingTab = tabs.some(
         (tab) => tab.master.recordKey === recordKey
       );
@@ -713,8 +725,8 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
           master: masterData,
           detail: detailData,
           metadata: {
-            isPrepaidStudent: true,
-            typeStudent: "prepaid_student",
+            isPostpaidStudent: true,
+            typeStudent: "postpaid_student",
           },
         })
       );
@@ -731,55 +743,11 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
     }
   };
 
-    const handleReprint = async (record) => {
-    if (record.so_luong_da_nhan <= 0) {
-      notification.warning({
-        message: "Chỉ có thể in lại đơn hàng đã xác nhận",
-        duration: 3,
-      });
-      return;
-    }
-
-    try {
-      // Gọi API để lấy data in (sử dụng api_get_data_retail_order_student_orders)
-      const response = await apiConfirmStudentOrder({
-        ngay_ct: record.ngay_ct,
-        ma_kh: record.ma_kh,
-        storeId: record.ma_bp,
-        ca_an: record.ma_ca,
-        ma_vt: record.ma_vt,
-        so_luong: record.so_luong_da_nhan,
-        ts_yn: 0, // 0 = trả trước
-        unitId: unitId || "PHENIKAA",
-        userId: id,
-      });
-
-      if (response?.responseModel?.isSucceded) {
-        const masterData = response?.listObject[0]?.[0] || {};
-        const flatDetailData = response?.listObject[1] || [];
-        const groupedDetail = groupDetailData(flatDetailData, false);
-
-        setPrintMaster(masterData);
-        setPrintDetail(groupedDetail);
-
-        // Delay để đảm bảo state đã được update trước khi in
-        setTimeout(() => {
-          handlePrint();
-        }, 100);
-      } else {
-        notification.error({
-          message: response?.responseModel?.message || "Lỗi khi tải thông tin để in",
-          duration: 4,
-        });
-      }
-    } catch (err) {
-      console.error("Lỗi khi lấy thông tin để in:", err);
-      notification.error({
-        message: "Lỗi khi tải thông tin để in",
-        duration: 4,
-      });
-    }
-  };
+  const handlePrint = useReactToPrint({
+    content: () => printContent.current,
+    documentTitle: "Print Postpaid Student Meal",
+    copyStyles: false,
+  });
 
   const handleApprove = async (record) => {
     showConfirm({
@@ -788,8 +756,8 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
         if (isEditingOrder) return;
         setIsEditingOrder(true);
         try {
-          // Tạo unique key từ các field của record
-          const recordKey = `${record.ma_kh}_${record.ma_ca}_${record.ma_vt}_${record.ngay_ct}`;
+          // Tạo unique key từ các field của record - bao gồm ma_bp để tránh trùng lặp
+          const recordKey = `${record.ma_kh}_${record.ma_ca}_${record.ma_vt}_${record.ngay_ct}_${record.ma_bp}`;
           const inputQuantity =
             inputValues[recordKey] || record.so_luong_da_nhan || 0;
 
@@ -803,7 +771,7 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
             return;
           }
 
-          // Gọi API xác nhận suất ăn sinh viên trả trước
+          // Gọi API xác nhận suất ăn sinh viên trả sau
           const confirmResult = await apiConfirmStudentOrder({
             ngay_ct: record.ngay_ct,
             ma_kh: record.ma_kh,
@@ -811,7 +779,7 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
             ca_an: record.ma_ca,
             ma_vt: record.ma_vt,
             so_luong: inputQuantity,
-            ts_yn: 0, // 0 = trả trước
+            ts_yn: 1, // 1 = trả sau
             unitId: unitId || "PHENIKAA",
             userId: id,
           });
@@ -859,10 +827,10 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
                     master: masterData,
                     detail: detailData,
                     metadata: {
-                      isPrepaidStudent: true,
+                      isPostpaidStudent: true,
                       isReadOnly: true,
                       isConfirmed: true,
-                      typeStudent: "prepaid_student",
+                      typeStudent: "postpaid_student",
                     },
                   })
                 );
@@ -881,7 +849,7 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
             }
 
             // Refresh data sau khi xác nhận thành công
-            fetchPrepaidStudentMealData(currentPage, filters);
+            fetchStudentMealData(currentPage, filters);
           } else {
             notification.error({
               message:
@@ -908,7 +876,7 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
       <Modal
         open={isOpen}
         width="95%"
-        title="Danh sách suất ăn sinh viên trả trước"
+        title="Danh sách suất ăn sinh viên trả sau"
         destroyOnClose
         onCancel={onClose}
         footer={null}
@@ -951,8 +919,8 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
               dataSource={currentData}
               columns={columns}
               rowKey={(record) => {
-                // Tạo unique key ổn định từ các field của record
-                return `${record.ma_kh}_${record.ma_ca}_${record.ma_vt}_${record.ngay_ct}`;
+                // Tạo unique key ổn định từ các field của record - bao gồm ma_bp để tránh trùng lặp
+                return `${record.ma_kh}_${record.ma_ca}_${record.ma_vt}_${record.ngay_ct}_${record.ma_bp}`;
               }}
               className="prepaid-student-meal-table"
               scroll={{ x: "max-content", y: getScrollY }}
@@ -983,4 +951,4 @@ const PrepaidStudentMealListModal = ({ isOpen, onClose }) => {
   );
 };
 
-export default PrepaidStudentMealListModal;
+export default StudentMealListModal;

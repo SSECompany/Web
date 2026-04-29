@@ -6,6 +6,7 @@ const MealEntryRow = ({
   meal,
   index,
   timeOfDay,
+  shiftName,
   listDietCategory,
   foodListForSelection,
   handleDeleteMeal,
@@ -13,10 +14,16 @@ const MealEntryRow = ({
   handleChange,
   handleQuantityChange,
   handleCollectMoneyChange,
+  showVipCheckbox,
+  vipChecked,
+  vipQuota,
+  vipSelectedCount,
+  handleVipChange,
   refetchDietCategory,
   refetchFoodList,
   firstMealInputRef,
   isAnotherMealSelected,
+  hasMenuVip,
 }) => {
   // Dùng foodListForSelection từ parent, NHƯNG thêm món hiện tại từ history nếu chưa có
   let availableFoods = [...(foodListForSelection || [])]; // Clone array để tránh mutate
@@ -24,16 +31,18 @@ const MealEntryRow = ({
   // Nếu meal có mealType mà không có trong foodListForSelection
   // Thì thêm vào để hiển thị trong dropdown (tránh bị mất value)
   if (meal.mealType) {
-    const isInList = availableFoods.some(food => food.ma_mon === meal.mealType);
+    const isInList = availableFoods.some(
+      (food) => food.ma_mon === meal.mealType
+    );
     if (!isInList) {
       // Thêm món hiện tại vào đầu danh sách
       // Nếu mealTypeName là mã món (chưa fetch API), dùng nó làm tên tạm thời
       availableFoods = [
         {
           ma_mon: meal.mealType,
-          ten_mon: meal.mealTypeName || meal.mealType // Fallback to ma_mon if no ten_mon
+          ten_mon: meal.mealTypeName || meal.mealType, // Fallback to ma_mon if no ten_mon
         },
-        ...availableFoods
+        ...availableFoods,
       ];
     }
   }
@@ -41,41 +50,19 @@ const MealEntryRow = ({
   // Tương tự, thêm chế độ từ history vào listDietCategory nếu chưa có
   let availableDietCategories = listDietCategory || [];
   if (meal.mode && meal.modeName) {
-    const isInList = availableDietCategories.some(cat => cat.ma_nh === meal.mode);
+    const isInList = availableDietCategories.some(
+      (cat) => cat.ma_nh === meal.mode
+    );
     if (!isInList) {
       availableDietCategories = [
         { ma_nh: meal.mode, ten_nh: meal.modeName },
-        ...availableDietCategories
+        ...availableDietCategories,
       ];
     }
   }
 
-  // Determine shift name for display
-  const shiftName =
-    timeOfDay === "CA1"
-      ? "Ca Sáng"
-      : timeOfDay === "CA2"
-      ? "Ca Trưa"
-      : "Ca Chiều";
-
   return (
     <div className="meal-entry-wrapper" key={index}>
-      {index === 0 && (
-        <div
-          style={{
-            backgroundColor: "#f6ffed",
-            padding: "8px",
-            marginBottom: "12px",
-            borderRadius: "4px",
-            border: "1px solid #b7eb8f",
-          }}
-        >
-          <p style={{ margin: 0, color: "#52c41a", fontWeight: "bold" }}>
-            Lưu ý: Bạn cần nhập đủ món ăn cho cả 3 ca (Sáng, Trưa, Chiều) để
-            hoàn thành
-          </p>
-        </div>
-      )}
       <div className="meal-entry">
         <div className="mode-selection-group">
           <div className="mode-controls">
@@ -84,7 +71,7 @@ const MealEntryRow = ({
               className="mode-label"
             >
               <span style={{ color: "#ff4d4f", marginRight: "4px" }}>*</span>
-              Chế độ - {shiftName}
+              Chế độ - {shiftName || timeOfDay}
             </label>
             <button
               className="mode-delete-button"
@@ -171,7 +158,9 @@ const MealEntryRow = ({
               onClick={() => handleQuantityChange(timeOfDay, index, -1)}
               className="quantity-button"
               disabled={
-                !meal.mealType || meal.quantity <= 1 || meal.collectMoney
+                !meal.mealType || 
+                meal.quantity <= 1 || 
+                meal.collectMoney
               }
             >
               <MinusOutlined />
@@ -180,7 +169,10 @@ const MealEntryRow = ({
             <button
               onClick={() => handleQuantityChange(timeOfDay, index, 1)}
               className="quantity-button"
-              disabled={!meal.mealType || meal.collectMoney}
+              disabled={
+                !meal.mealType || 
+                meal.collectMoney
+              }
             >
               <PlusOutlined />
             </button>
@@ -188,25 +180,46 @@ const MealEntryRow = ({
         </div>
 
         <div className="price-input-group">
-          <div>
-            <span className="price-label">Bệnh nhân</span>
-            <Checkbox
-              checked={meal.collectMoney || false}
-              onChange={(e) => {
-                handleCollectMoneyChange(e);
-                if (e.target.checked) {
-                  handleQuantityChange(timeOfDay, index, 1 - meal.quantity); // Set quantity = 1 immediately
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <span className="price-label">Người bệnh</span>
+              <Checkbox
+                checked={meal.collectMoney || false}
+                onChange={(e) => {
+                  handleCollectMoneyChange(e);
+                  if (e.target.checked) {
+                    handleQuantityChange(timeOfDay, index, 1 - meal.quantity); // Set quantity = 1 immediately
+                  }
+                }}
+                className="price-checkbox"
+                disabled={
+                  !meal.mealType || // Không có món ăn thì disable
+                  (!meal.collectMoney && isAnotherMealSelected) || // Nếu đã có suất khác được chọn thì disable
+                  !!vipChecked // Disable nếu đã tích VIP
                 }
-              }}
-              className="price-checkbox"
-              disabled={
-                !meal.mealType || // Không có món ăn thì disable
-                (!meal.collectMoney && isAnotherMealSelected) // Nếu đã có suất khác được chọn thì disable
-              }
-            />
+              />
+            </div>
+            {showVipCheckbox && (
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <span className="price-label">{hasMenuVip ? "Người bệnh VIP" : "Người nhà VIP"}</span>
+                <Checkbox
+                  checked={!!vipChecked}
+                  onChange={handleVipChange}
+                  className="price-checkbox"
+                  disabled={
+                    !meal.mealType ||
+                    (!vipChecked && vipSelectedCount >= vipQuota) ||
+                    meal.collectMoney // Disable nếu đã tích "Người bệnh"
+                  }
+                />
+                <span style={{ fontSize: 12, color: "#8c8c8c", marginLeft: "4px" }}>
+                  {`(${vipSelectedCount}/${vipQuota})`}
+                </span>
+              </div>
+            )}
           </div>
           <span className="price-display">
-            {(meal.totalMoney || 0).toLocaleString()} đ
+            {Number(meal.totalMoney || 0).toLocaleString()} đ
           </span>
         </div>
 

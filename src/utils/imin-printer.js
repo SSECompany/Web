@@ -3,6 +3,7 @@
   * (c) 2022 archiesong
   * @license MIT
   */
+/* eslint-disable no-unused-expressions, no-undef, no-restricted-globals, no-useless-escape, strict, no-lone-blocks */
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
@@ -602,13 +603,7 @@
                     alignmentMode !== void 0 ? alignmentMode : void 0
                   )
                 );
-
-                let hasBeenCalled = false;
-                if (!hasBeenCalled) {
-                  this$1$1.partialCut();
-                  hasBeenCalled = true; 
-                  resolve(1);
-                }
+                resolve(1);
               } else {
                 reject(new Error("No response data"));
               }

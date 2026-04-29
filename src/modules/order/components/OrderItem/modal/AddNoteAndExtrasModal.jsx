@@ -126,7 +126,7 @@ export default function AddNoteAndExtrasModal({ isVisible, onClose, orderIndex }
                         </Col>
                         <Col span={4} style={{ textAlign: "center" }}>
                             <span>
-                                {extra.price?.toLocaleString() || extra.gia?.toLocaleString() || "0"}đ
+                                {Number(extra.price || extra.gia || 0).toLocaleString()}đ
                             </span>
                         </Col>
                         <Col className="update-quantity" span={5} style={{ textAlign: "center" }}>

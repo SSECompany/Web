@@ -345,13 +345,3 @@ const DiscountModal = ({ isVisible, onClose, orderIndex, item }) => {
 };
 
 export default DiscountModal;
-
-
-
-
-
-
-
-
-
-

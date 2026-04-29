@@ -1,7 +1,6 @@
 import {
   CheckOutlined,
   EditOutlined,
-  LoadingOutlined,
   PrinterOutlined,
 } from "@ant-design/icons";
 import {
@@ -11,23 +10,22 @@ import {
   Modal,
   notification,
   Select,
-  Space,
   Spin,
   Table,
   Tag,
 } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useReactToPrint } from "react-to-print";
 import { multipleTablePutApi } from "../../../../api";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
-import IminPrinterService from "../../../../utils/IminPrinterService";
 import jwt from "../../../../utils/jwt";
+import IminPrinterService from "../../../../utils/IminPrinterService";
 import { addTab, setListOrderInfo, switchTab } from "../../store/order";
 import "../OrderSummary/PaymentModal/PaymentModal.css";
 import ReceiptPreviewModal from "../OrderSummary/ReceiptPreviewModal/ReceiptPreviewModal";
+import PrintComponent from "./PrintComponent/PrintComponent";
 import "./RetailOrderListModal.css";
-import { useReactToPrint } from "react-to-print";
-import PrintComponent from "../OrderSummary/PrintComponent/PrintComponent";
 
 const RetailOrderListModal = ({ isOpen, onClose }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -50,9 +48,6 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const [printMaster, setPrintMaster] = useState({});
   const [printDetail, setPrintDetail] = useState([]);
   const printContent = useRef();
-  const handlePrint = useReactToPrint({
-    content: () => printContent.current,
-  });
   const lastApiCall = useRef({ pageIndex: 0, filters: {} });
 
   const rawToken = localStorage.getItem("access_token");
@@ -61,13 +56,12 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   const fullName = claims?.FullName;
 
   const [isEditingOrder, setIsEditingOrder] = useState(false);
-  const [reprintingSttRec, setReprintingSttRec] = useState(null);
+  const [isReprinting, setIsReprinting] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
-  const [previewMaster, setPreviewMaster] = useState({});
-  const [previewDetailFlat, setPreviewDetailFlat] = useState([]);
-  const [previewDetailGrouped, setPreviewDetailGrouped] = useState([]);
-  const [previewOrderNumber, setPreviewOrderNumber] = useState("");
-  const [confirmPrintLoading, setConfirmPrintLoading] = useState(false);
+  const [previewPayload, setPreviewPayload] = useState(null);
+
+  // Transaction codes to request from backend (POS + POS bàn)
+  const TRANSACTION_CODES = "2,6";
 
   const fetchListOrderData = useCallback(
     async (pageIndex = currentPage, customFilters = null) => {
@@ -81,7 +75,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       if (
         lastApiCall.current.pageIndex === pageIndex &&
         JSON.stringify(lastApiCall.current.filters) ===
-        JSON.stringify(filtersToUse)
+          JSON.stringify(filtersToUse)
       ) {
         return; // Bỏ qua nếu là duplicate call
       }
@@ -104,7 +98,8 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
             userId: id,
             unitId: unitId,
             storeId: storeId,
-            ma_gd: "2", // 2 = đơn POS
+            // 2 = đơn POS, 6 = POS bàn
+            ma_gd: TRANSACTION_CODES,
           },
           data: {},
         });
@@ -112,8 +107,25 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         const updatedData = Array.isArray(res?.listObject[0])
           ? res.listObject[0]
           : [];
-        const paginationInfo = res?.listObject[2]?.[0] || {};
-        const totalRecords = paginationInfo.totalRecord || updatedData.length;
+        // Robustly detect pagination info regardless of index/shape
+        const listObject = Array.isArray(res?.listObject) ? res.listObject : [];
+        let paginationInfo = {};
+        for (let i = 0; i < listObject.length; i++) {
+          const candidate = Array.isArray(listObject[i]) ? listObject[i][0] : null;
+          if (
+            candidate &&
+            (candidate.totalRecord !== undefined ||
+              candidate.totalrecord !== undefined ||
+              candidate.totalpage !== undefined ||
+              candidate.pagesize !== undefined)
+          ) {
+            paginationInfo = candidate;
+            break;
+          }
+        }
+        const totalRecords = Number(
+          paginationInfo.totalRecord ?? paginationInfo.totalrecord ?? 0
+        ) || updatedData.length;
 
         setAllData(updatedData);
         setTotalRecords(totalRecords);
@@ -240,53 +252,33 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
     {
       title: () => (
         <div className="column-title-with-tag">
-          Số thẻ {filters.ma_ban && <Tag color="blue">{filters.ma_ban}</Tag>}
+          Mã bàn {filters.ma_ban && <Tag color="blue">{filters.ma_ban}</Tag>}
         </div>
       ),
       dataIndex: "ma_ban",
       key: "ma_ban",
-      width: 150,
-      filterDropdown: ({ setSelectedKeys, selectedKeys = [], confirm }) => {
-        const currentValue = selectedKeys?.[0] || "";
-        return (
-          <div className="retail-order_filterDropdown">
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
-              <Input
-                allowClear
-                placeholder="Tìm kiếm Số thẻ"
-                value={currentValue}
-                onChange={(e) => {
-                  const { value } = e.target;
-                  setSelectedKeys(value ? [value] : []);
-                }}
-                onPressEnter={() =>
-                  handleFilter("ma_ban", currentValue, confirm)
-                }
-              />
-              <div className="retail-order_filterActions">
-                <Button
-                  type="primary"
-                  size="small"
-                  onClick={() =>
-                    handleFilter("ma_ban", currentValue, confirm)
-                  }
-                >
-                  Tìm kiếm
-                </Button>
-                <Button
-                  size="small"
-                  onClick={() => {
-                    setSelectedKeys([]);
-                    handleFilter("ma_ban", "", confirm);
-                  }}
-                >
-                  Làm mới
-                </Button>
-              </div>
-            </Space>
-          </div>
-        );
-      },
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div className="filter-dropdown">
+          <Input
+            placeholder="Tìm kiếm Mã bàn"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() =>
+              handleFilter("ma_ban", selectedKeys[0], confirm)
+            }
+          />
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => handleFilter("ma_ban", selectedKeys[0], confirm)}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
     },
     {
       title: () => (
@@ -297,98 +289,125 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       dataIndex: "so_ct",
       key: "so_ct",
       width: 200,
-      filterDropdown: ({ setSelectedKeys, selectedKeys = [], confirm }) => {
-        const currentValue = selectedKeys?.[0] || "";
-        return (
-          <div className="retail-order_filterDropdown">
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
-              <Input
-                allowClear
-                placeholder="Tìm kiếm Số CT"
-                value={currentValue}
-                onChange={(e) => {
-                  const { value } = e.target;
-                  setSelectedKeys(value ? [value] : []);
-                }}
-                onPressEnter={() =>
-                  handleFilter("so_ct", currentValue, confirm)
-                }
-              />
-              <div className="retail-order_filterActions">
-                <Button
-                  type="primary"
-                  size="small"
-                  onClick={() =>
-                    handleFilter("so_ct", currentValue, confirm)
-                  }
-                >
-                  Tìm kiếm
-                </Button>
-                <Button
-                  size="small"
-                  onClick={() => {
-                    setSelectedKeys([]);
-                    handleFilter("so_ct", "", confirm);
-                  }}
-                >
-                  Làm mới
-                </Button>
-              </div>
-            </Space>
-          </div>
-        );
-      },
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div className="filter-dropdown">
+          <Input
+            placeholder="Tìm kiếm Số CT"
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => handleFilter("so_ct", selectedKeys[0], confirm)}
+          />
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => handleFilter("so_ct", selectedKeys[0], confirm)}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
     },
     {
       title: "Ngày CT",
       dataIndex: "ngay_ct",
       key: "ngay_ct",
       width: 200,
-      filterDropdown: ({ setSelectedKeys, selectedKeys = [], confirm }) => {
-        const currentValue = selectedKeys?.[0] || "";
-        return (
-          <div className="retail-order_filterDropdown">
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
-              <DatePicker
-                inputReadOnly
-                format="DD/MM/YYYY"
-                placeholder="Chọn ngày CT"
-                style={{ width: "100%" }}
-                onChange={(date) => {
-                  const formatted = date ? date.format("DD/MM/YYYY") : "";
-                  setSelectedKeys(formatted ? [formatted] : []);
-                }}
-              />
-              <div className="retail-order_filterActions">
-                <Button
-                  type="primary"
-                  size="small"
-                  onClick={() =>
-                    handleFilter("ngay_ct", currentValue, confirm)
-                  }
-                >
-                  Tìm kiếm
-                </Button>
-                <Button
-                  size="small"
-                  onClick={() => {
-                    setSelectedKeys([]);
-                    handleFilter("ngay_ct", "", confirm);
-                  }}
-                >
-                  Làm mới
-                </Button>
-              </div>
-            </Space>
-          </div>
-        );
-      },
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div className="filter-dropdown">
+          <DatePicker
+            inputReadOnly
+            onChange={(date) => {
+              setSelectedKeys(date ? [date.format("DD/MM/YYYY")] : []);
+            }}
+            format="DD/MM/YYYY"
+            placeholder="Chọn ngày CT"
+          />
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => handleFilter("ngay_ct", selectedKeys[0], confirm)}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
     },
     {
       title: "Tổng tiền",
       dataIndex: "t_tt",
       key: "t_tt",
-      render: (value) => `${value?.toLocaleString() || 0} VND`,
+      render: (value) => `${Number(value || 0).toLocaleString()} VND`,
+    },
+    {
+      title: "Yêu cầu đồng bộ",
+      dataIndex: "s3",
+      key: "s3",
+      align: "center",
+      render: (value) => (
+        <Tag color={value === true ? "green" : "red"}>
+          {value === true ? "Đồng bộ" : "Không đồng bộ"}
+        </Tag>
+      ),
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div className="filter-dropdown">
+          <Select
+            placeholder="Chọn"
+            value={selectedKeys[0]}
+            onChange={(value) => setSelectedKeys(value ? [value] : [])}
+          >
+            <Select.Option value="1">Có đồng bộ</Select.Option>
+            <Select.Option value="0">Không đồng bộ</Select.Option>
+          </Select>
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => handleFilter("s3", selectedKeys[0], confirm)}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
+    },
+    {
+      title: "Đồng bộ",
+      dataIndex: "s2",
+      key: "s2",
+      align: "center",
+      render: (value) => {
+        // Một số bản ghi không có s2 => cần chuẩn hóa để tránh lỗi undefined.trim
+        const normalizedS2 = (value ?? "").toString().trim();
+        const isSynchronized = normalizedS2 === "Synchronize";
+        return (
+          <Tag color={isSynchronized ? "green" : "red"}>
+            {isSynchronized ? "Thành công" : "Thất bại"}
+          </Tag>
+        );
+      },
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div className="filter-dropdown">
+          <Select
+            placeholder="Chọn"
+            value={selectedKeys[0]}
+            onChange={(value) => setSelectedKeys(value ? [value] : [])}
+          >
+            <Select.Option value="Synchronize     ">Thành công</Select.Option>
+            <Select.Option value="*">Thất bại</Select.Option>
+          </Select>
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => handleFilter("s2", selectedKeys[0], confirm)}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
     },
     {
       title: "Trạng thái",
@@ -398,44 +417,26 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       render: (text) => (
         <Tag color={text === "Hoàn thành" ? "green" : "yellow"}>{text}</Tag>
       ),
-      filterDropdown: ({ setSelectedKeys, selectedKeys = [], confirm }) => {
-        const currentValue = selectedKeys?.[0] || undefined;
-        return (
-          <div className="retail-order_filterDropdown">
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
-              <Select
-                allowClear
-                placeholder="Chọn trạng thái"
-                value={currentValue}
-                onChange={(value) => setSelectedKeys(value ? [value] : [])}
-              >
-                <Select.Option value="2">Hoàn thành</Select.Option>
-                <Select.Option value="0">Chưa hoàn thành</Select.Option>
-              </Select>
-              <div className="retail-order_filterActions">
-                <Button
-                  type="primary"
-                  size="small"
-                  onClick={() =>
-                    handleFilter("status", currentValue || "", confirm)
-                  }
-                >
-                  Tìm kiếm
-                </Button>
-                <Button
-                  size="small"
-                  onClick={() => {
-                    setSelectedKeys([]);
-                    handleFilter("status", "", confirm);
-                  }}
-                >
-                  Làm mới
-                </Button>
-              </div>
-            </Space>
-          </div>
-        );
-      },
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+        <div className="filter-dropdown">
+          <Select
+            placeholder="Chọn trạng thái"
+            value={selectedKeys[0]}
+            onChange={(value) => setSelectedKeys(value ? [value] : [])}
+          >
+            <Select.Option value="2">Hoàn thành</Select.Option>
+            <Select.Option value="0">Chưa hoàn thành</Select.Option>
+          </Select>
+          <Button
+            className="search_button"
+            type="primary"
+            onClick={() => handleFilter("status", selectedKeys[0], confirm)}
+            size="small"
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      ),
     },
     {
       title: "Chức năng",
@@ -448,23 +449,18 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
             type="danger"
             size="small"
             className="edit_button"
-            disabled={isEditingOrder || record.status === "2"}
+            disabled={
+              isEditingOrder || (record.status === "2" && record.s3 === true)
+            }
           />
           <Button
-            icon={reprintingSttRec === record.stt_rec ? <LoadingOutlined spin /> : <PrinterOutlined />}
+            icon={<PrinterOutlined />}
             onClick={() => handleReprint(record)}
+            loading={isReprinting}
+            disabled={isReprinting}
             size="small"
             type="primary"
             className="print_button"
-            disabled={
-              reprintingSttRec != null ||
-              (record.status !== "2" && record.status !== 2)
-            }
-            title={
-              record.status !== "2" && record.status !== 2
-                ? "Chỉ in lại đơn đã hoàn thành"
-                : "In lại"
-            }
           />
           <Button
             icon={<CheckOutlined />}
@@ -517,12 +513,6 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         so_phong: masterData.so_phong || record.so_phong || "",
         ca_an: masterData.ca_an || record.ca_an || "",
         thutien_yn: masterData.thutien_yn || record.thutien_yn || "",
-        // Các trường mới từ API
-        cookie_voucher: masterData.cookie_voucher || "",
-        kh_ts_yn: masterData.kh_ts_yn || "0",
-        xuat_hoa_don_yn: masterData.xuat_hoa_don_yn || "0",
-        cong_no: masterData.cong_no || "0",
-        ma_nvbh: masterData.ma_nvbh || "",
       };
 
       const tableData = {
@@ -555,15 +545,8 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
   };
 
   const handleReprint = async (record) => {
-    if (record.status !== "2" && record.status !== 2) {
-      notification.warning({
-        message: "Không thể in lại",
-        description: "Chỉ in lại đơn đã hoàn thành.",
-        duration: 3,
-      });
-      return;
-    }
     try {
+      setIsReprinting(true);
       const { masterData, flatDetailData } = await fetchOrderDetail(
         record.stt_rec
       );
@@ -589,10 +572,10 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         kh_ts_yn: masterData.kh_ts_yn !== undefined ? masterData.kh_ts_yn : false,
         xuat_hoa_don_yn: masterData.xuat_hoa_don_yn !== undefined ? masterData.xuat_hoa_don_yn : false,
         cong_no: masterData.cong_no || 0,
-        ma_nvbh: masterData.ma_nvbh ? masterData.ma_nvbh.trim() : "",
-        ten_nvbh: masterData.ten_nvbh ? masterData.ten_nvbh.trim() : "",
-        so_ct: masterData.so_ct ? masterData.so_ct.trim() : (record.so_ct || ""),
-        username: masterData.username ? masterData.username.trim() : (record.username ? record.username.trim() : ""),
+        ma_nvbh: masterData.ma_nvbh ? String(masterData.ma_nvbh).trim() : "",
+        ten_nvbh: masterData.ten_nvbh ? String(masterData.ten_nvbh).trim() : "",
+        so_ct: masterData.so_ct ? String(masterData.so_ct).trim() : (record.so_ct || ""),
+        username: masterData.username ? String(masterData.username).trim() : (record.username ? String(record.username).trim() : ""),
         ma_ban: masterData.ma_ban || record.ma_ban || "",
         httt: masterData.httt || record.httt || "tien_mat",
         tong_tien: masterData.tong_tien || masterData.tong_tt || 0,
@@ -600,72 +583,63 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         tien_mat: masterData.tien_mat || 0,
         chuyen_khoan: masterData.chuyen_khoan || 0,
         tong_sl: masterData.tong_sl || 0,
-        datetime2: masterData.datetime2 || masterData.datetime2 || new Date().toISOString(),
+        datetime2: masterData.datetime2 || new Date().toISOString(),
         ngay_ct: masterData.ngay_ct || record.ngay_ct || "",
         status: masterData.status || record.status || "",
         ten_dvcs: masterData.ten_dvcs || record.ten_dvcs || unitName || "",
       };
 
-      setPreviewMaster(mergedMasterData);
-      setPreviewDetailFlat(flatDetailData);
-      setPreviewDetailGrouped(groupedDetailData);
-      setPreviewOrderNumber(mergedMasterData.so_ct || record.so_ct || "");
+      setPreviewPayload({
+        mergedMasterData,
+        flatDetailData,
+        groupedDetailData,
+        record,
+      });
       setPreviewVisible(true);
     } catch (error) {
-      console.error("Lỗi khi tải đơn hàng để in lại:", error);
+      console.error("Lỗi khi tải hóa đơn để in lại:", error);
       notification.error({
-        message: "Lỗi khi tải đơn hàng",
-        description: error?.message || "Vui lòng thử lại.",
+        message: "Lỗi khi tải hóa đơn",
+        description: error?.message || "Không thể tải chi tiết đơn hàng.",
         duration: 4,
       });
+    } finally {
+      setIsReprinting(false);
     }
   };
 
-  const handleConfirmPreviewPrint = async () => {
-    setConfirmPrintLoading(true);
-    let usedSimulation = false;
+  const handleConfirmReprint = async () => {
+    if (!previewPayload) return;
+    const { mergedMasterData, flatDetailData, groupedDetailData, record } = previewPayload;
+    setIsReprinting(true);
     try {
       const printerService = new IminPrinterService();
       await printerService.initPrinter();
 
-      const hasRealPrinter = printerService.isInitialized && printerService.printerInstance;
-      const isAndroid = /Android/i.test(navigator?.userAgent || "");
-
-      if (hasRealPrinter) {
+      if (!printerService.isSimulationMode) {
         await printerService.printReceipt(
-          previewMaster,
-          previewDetailFlat,
+          mergedMasterData,
+          flatDetailData,
           1,
           { isReprint: true }
         );
         notification.success({
           message: "In lại hóa đơn",
-          description: `Đã in lại hóa đơn ${previewOrderNumber} bằng máy in nhiệt.`,
+          description: `Đã in lại hóa đơn ${record.so_ct} bằng máy in nhiệt.`,
           duration: 3,
         });
-        setPreviewVisible(false);
       } else {
-        if (isAndroid) {
-          notification.error({
-            message: "Không thể in lại",
-            description: "Máy in POS chưa sẵn sàng.",
-            duration: 3,
-          });
-          setPreviewVisible(false);
-        } else {
-          // PC: dùng react-to-print
-          usedSimulation = true;
-          setPrintMaster(previewMaster);
-          setPrintDetail(previewDetailGrouped);
-          setPreviewVisible(false);
-          setTimeout(() => handlePrint(), 300);
-          notification.info({
-            message: "In lại hóa đơn",
-            description: "In qua trình duyệt (PC/dev).",
-            duration: 3,
-          });
-        }
+        setPrintMaster(mergedMasterData);
+        setPrintDetail(groupedDetailData);
+        setTimeout(() => handlePrint(), 300);
+        notification.info({
+          message: "In lại hóa đơn",
+          description: "Chế độ simulation - in qua trình duyệt.",
+          duration: 3,
+        });
       }
+      setPreviewVisible(false);
+      setPreviewPayload(null);
     } catch (error) {
       console.error("Lỗi khi in lại hóa đơn:", error);
       notification.error({
@@ -674,10 +648,7 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
         duration: 4,
       });
     } finally {
-      setConfirmPrintLoading(false);
-      if (usedSimulation) {
-        setReprintingSttRec(null);
-      }
+      setIsReprinting(false);
     }
   };
 
@@ -721,12 +692,6 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
             so_phong: masterData.so_phong || record.so_phong || "",
             ca_an: masterData.ca_an || record.ca_an || "",
             thutien_yn: masterData.thutien_yn || record.thutien_yn || "",
-            // Các trường mới từ API
-            cookie_voucher: masterData.cookie_voucher || "",
-            kh_ts_yn: masterData.kh_ts_yn || "0",
-            xuat_hoa_don_yn: masterData.xuat_hoa_don_yn || "0",
-            cong_no: masterData.cong_no || "0",
-            ma_nvbh: masterData.ma_nvbh || "",
           };
 
           const tableData = {
@@ -759,7 +724,13 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
     });
   };
 
-    return (
+  const handlePrint = useReactToPrint({
+    content: () => printContent.current,
+    documentTitle: "Print This Document",
+    copyStyles: false,
+  });
+
+  return (
     <>
       <Modal
         open={isOpen}
@@ -795,13 +766,16 @@ const RetailOrderListModal = ({ isOpen, onClose }) => {
       </Modal>
       <ReceiptPreviewModal
         visible={previewVisible}
-        onCancel={() => setPreviewVisible(false)}
-        onConfirm={handleConfirmPreviewPrint}
-        master={previewMaster}
-        detail={previewDetailFlat}
-        orderNumber={previewOrderNumber}
-        isReprint={true}
-        confirmLoading={confirmPrintLoading}
+        onCancel={() => {
+          setPreviewVisible(false);
+          setPreviewPayload(null);
+        }}
+        onConfirm={handleConfirmReprint}
+        master={previewPayload?.mergedMasterData || {}}
+        detail={previewPayload?.flatDetailData || []}
+        orderNumber={previewPayload?.mergedMasterData?.so_ct || previewPayload?.record?.so_ct || ""}
+        isReprint
+        confirmLoading={isReprinting}
       />
       <div style={{ display: "none" }}>
         <PrintComponent

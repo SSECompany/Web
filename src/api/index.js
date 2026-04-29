@@ -115,6 +115,25 @@ export const addDataMultiObjectApi = async (payload) => {
     });
 };
 
+export const apiGetShiftList = async (payload) => {
+  const token = localStorage.getItem("access_token");
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => {
+      return res?.data || [];
+    })
+    .catch((err) => {
+      console.error("❌ Error fetching shift list:", err);
+      return [];
+    });
+};
+
 export const printOrderApi = async (sttRec, userId) => {
   // API Print/print-order tắt tạm - không gọi server, trả về [] để luồng gọi vẫn chạy
   if (PRINT_ORDER_API_DISABLED) {
@@ -641,7 +660,35 @@ export const apiProcessCombinedMealOrder = async ({
   }
 };
 
-// API lấy danh sách suất ăn người nhà bệnh nhân
+// API kiểm tra suất ăn VIP (stored procedure: api_CheckSuatAnVIP)
+export const apiCheckSuatAnVIP = async ({
+  ngay_ct,
+  ma_bp,
+  ma_phong,
+  ma_giuong,
+  userId,
+}) => {
+  try {
+    const response = await multipleTablePutApi({
+      store: "api_CheckSuatAnVIP",
+      param: {
+        ngay_ct,
+        ma_bp,
+        ma_phong,
+        ma_giuong,
+        userId,
+      },
+      data: {},
+    });
+
+    return response;
+  } catch (error) {
+    console.error("Error calling api_CheckSuatAnVIP:", error);
+    throw error;
+  }
+};
+
+// API lấy danh sách suất ăn người nhà người bệnh
 export const apiGetRetailOrderPatientIsFamily = async ({
   so_ct = "",
   ngay_ct = "",

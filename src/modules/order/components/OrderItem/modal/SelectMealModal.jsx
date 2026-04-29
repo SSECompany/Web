@@ -1,18 +1,10 @@
-import { Input, Modal, Radio, Space, Spin, Tabs } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { Modal, Radio, Space, Spin, Tabs } from "antd";
 import dayjs from "dayjs";
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { multipleTablePutApi } from "../../../../../api";
 import { updateProductMeal } from "../../../store/order";
 import "./SelectMealModal.css";
-
-// Định nghĩa các ca bọc ngoài component để tránh re-render
-const mealShifts = [
-  { key: "sang", label: "Ca Sáng", code: "CA1" },
-  { key: "trua", label: "Ca Trưa", code: "CA2" },
-  { key: "toi", label: "Ca Tối", code: "CA3" },
-];
 
 export default function SelectMealModal({
   isVisible,
@@ -24,8 +16,14 @@ export default function SelectMealModal({
   const [selectedShift, setSelectedShift] = useState("sang");
   const [mealOptions, setMealOptions] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
   const dispatch = useDispatch();
+
+  // Định nghĩa các ca bọc
+  const mealShifts = [
+    { key: "sang", label: "Ca Sáng", code: "CA1" },
+    { key: "trua", label: "Ca Trưa", code: "CA2" },
+    { key: "toi", label: "Ca Tối", code: "CA3" },
+  ];
 
   // Kiểm tra món ăn có ca cố định không
   const getFixedShift = (itemCode) => {
@@ -50,7 +48,6 @@ export default function SelectMealModal({
       }
     } else if (isVisible) {
       setSelectedMeal("");
-      setSearchTerm("");
       // Nếu là món có ca cố định, tự động set ca đó
       if (isFixedShiftItem) {
         setSelectedShift(fixedShift);
@@ -60,7 +57,13 @@ export default function SelectMealModal({
     }
   }, [isVisible, item?.selected_meal, isFixedShiftItem, fixedShift]);
 
-  const fetchMealOptions = useCallback(async () => {
+  useEffect(() => {
+    if (isVisible) {
+      fetchMealOptions();
+    }
+  }, [isVisible, selectedShift]);
+
+  const fetchMealOptions = async () => {
     setLoading(true);
     try {
       // Tạo thời gian dựa trên ca bọc được chọn
@@ -81,11 +84,18 @@ export default function SelectMealModal({
           mealTime = dayjs().format("YYYY-MM-DD HH:mm:ss");
       }
 
+      // Lấy mã ca từ selectedShift
+      const selectedShiftInfo = mealShifts.find(
+        (shift) => shift.key === selectedShift
+      );
+      const maCa = selectedShiftInfo?.code || "CA1";
+
       const res = await multipleTablePutApi({
         store: "api_getListFoodMealByPost",
         param: {
           searchValue: "",
           ngay_an: mealTime,
+          ma_ca: maCa,
           pageIndex: 1,
           pageSize: 100,
         },
@@ -101,6 +111,8 @@ export default function SelectMealModal({
             label: food.ten_mon,
             price: food.gia_ban,
             description: food.ma_mon_phu || "",
+            tonDuTru: food.tonDuTru || 0,
+            isCheckTonDuTru: food.IsCheckTonDuTru !== false, // Default true nếu không có giá trị
           }));
         setMealOptions(options);
       } else {
@@ -113,31 +125,20 @@ export default function SelectMealModal({
     } finally {
       setLoading(false);
     }
-  }, [selectedShift]);
-
-  useEffect(() => {
-    if (isVisible) {
-      fetchMealOptions();
-    }
-  }, [isVisible, fetchMealOptions]);
-
-
-  const filteredOptions = useMemo(() => {
-    if (!searchTerm) return mealOptions;
-    const lowerSearch = searchTerm.toLowerCase();
-    return mealOptions.filter(
-      (option) =>
-        option.label.toLowerCase().includes(lowerSearch) ||
-        (option.description &&
-          option.description.toLowerCase().includes(lowerSearch))
-    );
-  }, [mealOptions, searchTerm]);
+  };
 
   const handleOk = () => {
     if (selectedMeal) {
       const selectedOption = mealOptions.find(
         (option) => option.value === selectedMeal
       );
+
+      // Kiểm tra xem món đã chọn có bị disable không
+      if (!selectedOption.isCheckTonDuTru) {
+        console.warn("Cannot select disabled meal:", selectedOption.label);
+        return;
+      }
+
       const selectedShiftInfo = mealShifts.find(
         (shift) => shift.key === selectedShift
       );
@@ -149,18 +150,18 @@ export default function SelectMealModal({
           mealDescription: selectedOption.description,
           mealShift: selectedShiftInfo.code,
           mealShiftLabel: selectedShiftInfo.label,
+          tonDuTru: selectedOption.tonDuTru,
+          isCheckTonDuTru: selectedOption.isCheckTonDuTru,
         })
       );
     }
     onClose();
     setSelectedMeal("");
-    setSearchTerm("");
   };
 
   const handleCancel = () => {
     onClose();
     setSelectedMeal("");
-    setSearchTerm("");
   };
 
   const handleShiftChange = (key) => {
@@ -170,7 +171,6 @@ export default function SelectMealModal({
     }
     setSelectedShift(key);
     setSelectedMeal(""); // Reset món ăn khi chuyển ca bọc
-    setSearchTerm("");
   };
 
   const tabItems = mealShifts.map((shift) => ({
@@ -192,30 +192,38 @@ export default function SelectMealModal({
             className="meal-options"
           >
             <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-              {filteredOptions.length > 0 ? (
-                filteredOptions.map((option) => (
-                  <Radio
-                    key={option.value}
-                    value={option.value}
-                    className="meal-option"
-                  >
-                    <div className="meal-option-content">
-                      <div className="meal-info">
-                        <span className="meal-label">{option.label}</span>
-                        {option.description && (
-                          <span className="meal-description">
-                            {option.description}
-                          </span>
-                        )}
-                      </div>
+              {mealOptions.map((option) => (
+                <Radio
+                  key={option.value}
+                  value={option.value}
+                  disabled={!option.isCheckTonDuTru}
+                  className={`meal-option ${
+                    !option.isCheckTonDuTru ? "meal-option-disabled" : ""
+                  }`}
+                >
+                  <div className="meal-option-content">
+                    <div className="meal-left">
+                      <div className="meal-label">{option.label}</div>
+                      {option.description && (
+                        <div className="meal-description">
+                          {option.description}
+                        </div>
+                      )}
                     </div>
-                  </Radio>
-                ))
-              ) : (
-                <div style={{ textAlign: "center", padding: "20px", color: "#999" }}>
-                  Không tìm thấy món ăn nào phù hợp
-                </div>
-              )}
+                    <div className="meal-right">
+                      <span
+                        className={`meal-inventory ${
+                          !option.isCheckTonDuTru
+                            ? "meal-inventory-disabled"
+                            : ""
+                        }`}
+                      >
+                        Tồn: {option.tonDuTru}
+                      </span>
+                    </div>
+                  </div>
+                </Radio>
+              ))}
             </Space>
           </Radio.Group>
         )}
@@ -235,23 +243,11 @@ export default function SelectMealModal({
       width={600}
     >
       <div className="select-meal-content">
-        <div className="meal-selection-header">
-          <p>
-            {isFixedShiftItem
-              ? `Vui lòng chọn món suất cho ${item?.ten_vt}:`
-              : `Vui lòng chọn ca bọc và món suất cho ${item?.ten_vt}:`}
-          </p>
-          <div className="meal-search-wrapper" style={{ marginBottom: "15px" }}>
-            <Input
-              placeholder="Tìm món ăn nhanh..."
-              prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              allowClear
-              className="meal-search-input"
-            />
-          </div>
-        </div>
+        <p>
+          {isFixedShiftItem
+            ? `Vui lòng chọn món suất cho ${item?.ten_vt}:`
+            : `Vui lòng chọn ca bọc và món suất cho ${item?.ten_vt}:`}
+        </p>
 
         {isFixedShiftItem ? (
           // Hiển thị trực tiếp nội dung ca cố định mà không có tabs và badge
@@ -270,4 +266,3 @@ export default function SelectMealModal({
     </Modal>
   );
 }
-

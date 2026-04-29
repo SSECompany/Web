@@ -1,9 +1,12 @@
 import React, { forwardRef } from "react";
 import { formatNumber } from "../../../../../app/hook/dataFormatHelper";
+import VietQR from "../../../../../components/common/GenerateQR/VietQR";
 import jwt from "../../../../../utils/jwt";
 
+const account = process.env.REACT_APP_VIETQR_ACCOUNT;
+
 const PrintComponent = forwardRef(
-  ({ master = {}, detail = [], orderNumber = "" }, ref) => {
+  ({ master = {}, detail = [], orderNumber = "", receiptTitle = "HÓA ĐƠN" }, ref) => {
     const rawToken = localStorage.getItem("access_token");
     const claims =
       rawToken && rawToken.split(".").length === 3
@@ -12,18 +15,24 @@ const PrintComponent = forwardRef(
     const fullName = claims?.FullName;
 
     const formatPaymentMethod = (method) => {
-      if (!method) return "TM";
+      if (!method) return "Tiền mặt";
 
       // Xử lý trường hợp có nhiều hình thức thanh toán
       const methods = method.split(",").map((m) => m.trim());
       const formattedMethods = methods.map((m) => {
         switch (m) {
           case "chuyen_khoan":
-            return "CK";
+            return "Chuyển khoản";
           case "tien_mat":
-            return "TM";
+            return "Tiền mặt";
+          case "tra_sau":
+            return "Trả sau";
+          case "benhnhan_tratruoc":
+            return "Người bệnh trả trước";
+          case "sinhvien_tratruoc":
+            return "Sinh viên trả trước";
           default:
-            return "TM";
+            return "Tiền mặt";
         }
       });
 
@@ -43,74 +52,37 @@ const PrintComponent = forwardRef(
         }}
         ref={ref}
       >
+        <div style={{ textAlign: "center" }}>
+          <img
+            src="/logo.jpeg"
+            alt="Phenikaa MEC Logo"
+            style={{ width: "120px", height: "auto", marginBottom: "8px" }}
+          />
+        </div>
         <div style={{ textAlign: "center", marginBottom: "8px" }}>
-          <div
-            style={{
-              fontWeight: "bold",
-              fontSize: "13px",
-              color: "#000",
-              marginBottom: "4px",
-            }}
-          >
-            Trường Đại học Phenikaa
-          </div>
-          <div
-            style={{
-              fontSize: "11px",
-              color: "#000",
-              marginBottom: "6px",
-            }}
-          >
-            Địa chỉ: Yên Nghĩa, Hà Đông, Hà Nội
-          </div>
           <label
             style={{ fontWeight: "bold", fontSize: "14px", color: "#000" }}
           >
-            HÓA ĐƠN
+            {receiptTitle}
           </label>
           <br />
           <span>
-            {(() => {
-              const rawDate = master?.ngay_ct || "";
-              if (rawDate && rawDate.includes("-")) {
-                const parts = rawDate.split('T')[0].split('-');
-                if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-              }
-              return rawDate;
-            })() || `${now.getDate().toString().padStart(2, "0")}/${(
+            {`${now.getDate().toString().padStart(2, "0")}/${(
               now.getMonth() + 1
             )
               .toString()
-              .padStart(2, "0")}/${now.getFullYear()}`}
-            {" "}
-            {`${now
+              .padStart(2, "0")}/${now.getFullYear()} ${now
               .getHours()
               .toString()
               .padStart(2, "0")}:${now
-                .getMinutes()
-                .toString()
-                .padStart(2, "0")}:${now
-                  .getSeconds()
-                  .toString()
-                  .padStart(2, "0")}`}
+              .getMinutes()
+              .toString()
+              .padStart(2, "0")}:${now
+              .getSeconds()
+              .toString()
+              .padStart(2, "0")}`}
           </span>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', marginBottom: '8px' }}>
-            <span style={{ fontSize: "14px", fontWeight: "bold", color: "#000" }}>
-              [{formatPaymentMethod(master?.httt)}]
-            </span>
-            {(() => {
-              const soThe = master?.so_the?.trim() || master?.ma_ban?.trim() || "";
-              const hienThi = soThe && soThe.toUpperCase() !== "POS" ? soThe : "";
-              return hienThi ? (
-                <span style={{ fontSize: "24px", fontWeight: "bold", color: "#000" }}>
-                  [{hienThi}]
-                </span>
-              ) : null;
-            })()}
-            <span style={{ fontSize: "14px", fontWeight: "bold", color: "#000" }}></span>
-          </div>
         </div>
-        {/* Thông tin khách hàng */}
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Tên khách:</strong>{" "}
           {(master?.ong_ba && master.ong_ba.trim()) ||
@@ -122,21 +94,54 @@ const PrintComponent = forwardRef(
             <strong>Mã số thuế:</strong> {master.ma_so_thue_kh}
           </div>
         )}
-
-        {/* Chi tiết thanh toán — chỉ hiển thị khi đa phương thức */}
-        {!(master?.xuat_hoa_don_yn === "1" || master?.kh_ts_yn === "1") &&
-          Number(master?.chuyen_khoan || 0) > 0 &&
-          Number(master?.tien_mat || 0) > 0 && (
-            <div
-              style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}
-            >
-              <div>• CK: {formatNumber(master.chuyen_khoan)}đ</div>
-              <div>• TM: {formatNumber(master.tien_mat)}đ</div>
-            </div>
-          )}
-        {/* Thông tin đơn hàng */}
+        {master?.ten_dv_kh && master.ten_dv_kh.trim() && (
+          <div style={{ color: "#000", marginBottom: "6px" }}>
+            <strong>Tên công ty:</strong> {master.ten_dv_kh}
+          </div>
+        )}
+        <div style={{ paddingBottom: "6px" }}>
+          <div style={{ color: "#000" }}>
+            <strong>Bàn:</strong> {master?.ma_ban || "Không xác định"}
+          </div>
+        </div>
+        <div style={{ color: "#000", marginBottom: "6px" }}>
+          <strong>Hình thức:</strong> {formatPaymentMethod(master?.httt)}
+        </div>
+        {(Number(master?.benhnhan_tratruoc || 0) > 0 ||
+          Number(master?.sinhvien_tratruoc || 0) > 0 ||
+          Number(master?.chuyen_khoan || 0) > 0 ||
+          Number(master?.tien_mat || 0) > 0 ||
+          Number(master?.tra_sau || 0) > 0) && (
+          <div
+            style={{ color: "#000", marginBottom: "6px", paddingLeft: "10px" }}
+          >
+            {Number(master?.benhnhan_tratruoc || 0) > 0 && (
+              <div>
+                • Người bệnh trả trước: {formatNumber(master.benhnhan_tratruoc)}
+                đ
+              </div>
+            )}
+            {Number(master?.sinhvien_tratruoc || 0) > 0 && (
+              <div>
+                • Sinh viên trả trước: {formatNumber(master.sinhvien_tratruoc)}đ
+              </div>
+            )}
+            {Number(master?.chuyen_khoan || 0) > 0 && (
+              <div>• Chuyển khoản: {formatNumber(master.chuyen_khoan)}đ</div>
+            )}
+            {Number(master?.tien_mat || 0) > 0 && (
+              <div>• Tiền mặt: {formatNumber(master.tien_mat)}đ</div>
+            )}
+            {Number(master?.tra_sau || 0) > 0 && (
+              <div>• Trả sau: {formatNumber(master.tra_sau)}đ</div>
+            )}
+          </div>
+        )}
         <div style={{ color: "#000", marginBottom: "6px" }}>
           <strong>Số CT:</strong> {orderNumber || "Chưa có"}
+        </div>
+        <div style={{ color: "#000", marginBottom: "6px" }}>
+          <strong>Nhân viên:</strong> {fullName}
         </div>
 
         <table
@@ -146,7 +151,7 @@ const PrintComponent = forwardRef(
             marginBottom: "6px",
           }}
         >
-          <thead style={{ display: "table-row-group" }}>
+          <thead>
             <tr style={{ fontSize: "10px", borderBottom: "1px solid black" }}>
               <th
                 style={{
@@ -241,11 +246,46 @@ const PrintComponent = forwardRef(
                           color: "#000",
                         }}
                       >
-                        {formatNumber(
-                          item?.thanh_tien_print ||
-                          item?.thanh_tien ||
-                          (Number(item?.don_gia || 0) * Number(item?.so_luong || 1))
-                        )}đ
+                        {(() => {
+                          const originalPrice =
+                            parseFloat(item?.don_gia || 0) *
+                            parseInt(item?.so_luong || 1);
+                          const discountAmount = parseFloat(item?.ck_nt || 0);
+                          const finalPrice = originalPrice - discountAmount;
+
+                          if (discountAmount > 0) {
+                            return (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontSize: "12px",
+                                    color: "#000",
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  {formatNumber(finalPrice)}đ
+                                </div>
+                                <div
+                                  style={{
+                                    textDecoration: "line-through",
+                                    fontSize: "10px",
+                                    color: "#999",
+                                  }}
+                                >
+                                  {formatNumber(originalPrice)}đ
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            return `${formatNumber(originalPrice)}đ`;
+                          }
+                        })()}
                       </td>
                     </tr>
 
@@ -293,11 +333,46 @@ const PrintComponent = forwardRef(
                             color: "#000",
                           }}
                         >
-                          {formatNumber(
-                            sub?.thanh_tien_print ||
-                            sub?.thanh_tien ||
-                            (Number(sub?.don_gia || 0) * Number(sub?.so_luong || 1))
-                          )}đ
+                          {(() => {
+                            const originalPrice =
+                              parseFloat(sub?.don_gia || 0) *
+                              parseInt(sub?.so_luong || 1);
+                            const discountAmount = parseFloat(sub?.ck_nt || 0);
+                            const finalPrice = originalPrice - discountAmount;
+
+                            if (discountAmount > 0) {
+                              return (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      fontSize: "12px",
+                                      color: "#000",
+                                      fontWeight: "bold",
+                                    }}
+                                  >
+                                    {formatNumber(finalPrice)}đ
+                                  </div>
+                                  <div
+                                    style={{
+                                      textDecoration: "line-through",
+                                      fontSize: "10px",
+                                      color: "#999",
+                                    }}
+                                  >
+                                    {formatNumber(originalPrice)}đ
+                                  </div>
+                                </div>
+                              );
+                            } else {
+                              return `${formatNumber(originalPrice)}đ`;
+                            }
+                          })()}
                         </td>
                       </tr>
                     ))}
@@ -334,13 +409,14 @@ const PrintComponent = forwardRef(
           style={{
             borderTop: "1px solid black",
             paddingTop: "6px",
+            marginRight: 10,
           }}
         />
 
         {(() => {
-          // Tính tổng chiết khấu từ chi tiết đơn hàng (field chiet_khau_print)
+          // Tính tổng chiết khấu từ chi tiết đơn hàng (field ck_nt)
           const totalDiscount = (detail || []).reduce((sum, d) => {
-            const val = parseFloat(d?.chiet_khau_print || 0);
+            const val = parseFloat(d?.ck_nt || 0);
             return sum + (isNaN(val) ? 0 : val);
           }, 0);
           if (totalDiscount > 0) {
@@ -350,6 +426,7 @@ const PrintComponent = forwardRef(
                   paddingTop: "4px",
                   textAlign: "right",
                   fontSize: "11px",
+                  marginRight: 10,
                   color: "#000",
                 }}
               >
@@ -366,11 +443,59 @@ const PrintComponent = forwardRef(
             fontWeight: "bold",
             textAlign: "right",
             fontSize: "13px",
+            marginRight: 10,
             color: "#000",
           }}
         >
           Tổng tiền: {formatNumber(master?.tong_tien) || "0"}đ
         </div>
+
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "10px",
+            fontStyle: "italic",
+            fontSize: "12px",
+            color: "#000",
+          }}
+        >
+          CẢM ƠN QUÝ KHÁCH, HẸN GẶP LẠI!
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: "10px" }}>
+          <div
+            style={{
+              display: "inline-block",
+              border: "1px solid #ccc",
+              borderRadius: 8,
+              padding: 6,
+              background: "#fff",
+            }}
+          >
+            {(() => {
+              const totalAmount = Number(master?.tong_tien || 0);
+              const prepaidAmount =
+                Number(master?.benhnhan_tratruoc || 0) +
+                Number(master?.sinhvien_tratruoc || 0);
+              const remainingAmount = totalAmount - prepaidAmount;
+              const qrAmount =
+                master?.chuyen_khoan && Number(master.chuyen_khoan) > 0
+                  ? master.chuyen_khoan
+                  : remainingAmount > 0
+                  ? remainingAmount
+                  : totalAmount;
+
+              return (
+                <VietQR
+                  amount={qrAmount}
+                  soChungTu={`Thanh toan Phenikaa so CT ${orderNumber} ${qrAmount}vnd`}
+                  size={80}
+                />
+              );
+            })()}
+          </div>
+        </div>
+
         <div
           style={{
             marginTop: "20px",
@@ -378,26 +503,31 @@ const PrintComponent = forwardRef(
             paddingTop: "10px",
           }}
         >
-          {master?.HotlineBill && (
-            <div style={{ textAlign: "center", fontSize: "12px", color: "#000" }}>
-              Hotline: {master.HotlineBill}
-            </div>
-          )}
-          {master?.EmailBill && (
-            <div style={{ textAlign: "center", fontSize: "12px", color: "#000" }}>
-              Email: {master.EmailBill}
-            </div>
-          )}
           <div
             style={{
               textAlign: "center",
-              marginTop: "10px",
               fontStyle: "italic",
               fontSize: "12px",
               color: "#000",
             }}
           >
-            CẢM ƠN QUÝ KHÁCH, HẸN GẶP LẠI!
+            Tra cứu hóa đơn điện tử tại Website:{" "}
+            <a
+              href="https://einvoice.phenikaamec.com/"
+              style={{ color: "#0066cc" }}
+            >
+              https://einvoice.phenikaamec.com/
+            </a>
+          </div>
+          <div
+            style={{
+              textAlign: "center",
+              marginTop: "5px",
+              fontSize: "10px",
+              color: "#000",
+            }}
+          >
+            Mã số tra cứu: {orderNumber || ""}
           </div>
         </div>
       </div>
