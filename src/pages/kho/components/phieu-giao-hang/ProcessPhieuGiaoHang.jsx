@@ -94,6 +94,7 @@ const ProcessPhieuGiaoHang = () => {
   const [confirmModalImages, setConfirmModalImages] = useState([]);
   const [confirmLoading, setConfirmLoading] = useState(false); // Chặn spam bấm nút xác nhận
   const [confirmAdvanceMoney, setConfirmAdvanceMoney] = useState(false);
+  const [confirmIsFree, setConfirmIsFree] = useState(false);
   
   const [transportInfo, setTransportInfo] = useState({
     ten_nha_xe: "",
@@ -304,7 +305,6 @@ const ProcessPhieuGiaoHang = () => {
     switch (String(status)) {
       case "2": return "store";
       case "3": return "export";
-      case "4": return "receive";
       case "5": return "handover";
       case "6": return "complete";
       case "7": return "fail";
@@ -316,7 +316,6 @@ const ProcessPhieuGiaoHang = () => {
     switch (String(status)) {
       case "2": return { icon: <CheckCircleOutlined />, label: "Lưu kho", className: "store" };
       case "3": return { icon: <ExportOutlined />, label: "Xuất hàng", className: "export" };
-      case "4": return { icon: <CheckCircleOutlined />, label: "Đã tiếp nhận", className: "receive" };
       case "5": return { icon: <TruckOutlined />, label: "Bàn giao ĐVVC", className: "handover" };
       case "6": return { icon: <CheckCircleOutlined />, label: "Hoàn thành", className: "complete" };
       case "7": return { icon: <CloseCircleOutlined />, label: "Thất bại", className: "fail", danger: true };
@@ -332,6 +331,7 @@ const ProcessPhieuGiaoHang = () => {
     setConfirmNote("");
     setConfirmCost(cost);
     setConfirmAdvanceMoney(advance);
+    setConfirmIsFree(cost === 0 && phieuData?.shippingCosts !== undefined);
     setConfirmModalImages([]);
     setConfirmLoading(false); // Reset loading khi mở modal mới
     const vehicle = action === "handover" && phieuData?.vehicleCode ? phieuData.vehicleCode.trim() : "";
@@ -410,9 +410,9 @@ const ProcessPhieuGiaoHang = () => {
       message.warning("Vui lòng chọn trạng thái");
       return;
     }
-    // Chỉ cho phép chọn Bàn giao ĐVVC (5) khi đã qua bước Đã tiếp nhận (4)
-    if (selectedStatus === "5" && currentStatus !== "4") {
-      message.warning("Vui lòng cập nhật trạng thái đơn hàng lên \"Đã tiếp nhận\" trước khi chọn Bàn giao ĐVVC");
+    // Cho phép chọn Bàn giao ĐVVC (5) khi đang ở Xuất hàng (3)
+    if (selectedStatus === "5" && currentStatus !== "3" && currentStatus !== "5") {
+      message.warning("Vui lòng cập nhật trạng thái đơn hàng lên \"Xuất hàng\" trước khi chọn Bàn giao ĐVVC");
       return;
     }
     const action = getActionFromStatus(selectedStatus);
@@ -428,14 +428,10 @@ const ProcessPhieuGiaoHang = () => {
     if (!phieuData) return;
     if (confirmLoading) return; // Chặn spam bấm nhiều lần
 
-    // Cập nhật thông tin giao hàng: chỉ chuyển status 4 -> 5, không bắt buộc ảnh/xe/chi phí
+    // Cập nhật thông tin giao hàng: chỉ chuyển status 3 -> 5, không bắt buộc ảnh/xe/chi phí
     const isUpdateDeliveryInfo = confirmAction === "updateDeliveryInfo";
     const isHandover = confirmAction === "handover" || (confirmAction === "save" && selectedStatus === "5");
-    // Bàn giao ĐVVC: bắt buộc có ít nhất 1 ảnh trong modal, không có ảnh thì không được gửi
-    if (isHandover && !isUpdateDeliveryInfo && confirmModalImages.length < 1) {
-      message.warning("Vui lòng chụp ảnh đính kèm trước khi xác nhận Bàn giao ĐVVC");
-      return;
-    }
+    // Bàn giao ĐVVC: không còn bắt buộc ảnh theo yêu cầu mới
 
     setConfirmLoading(true); // Bắt đầu loading, chặn spam
 
@@ -446,7 +442,7 @@ const ProcessPhieuGiaoHang = () => {
         // Lưu trạng thái đã chọn
         newStatus = selectedStatus;
       } else if (confirmAction === "updateDeliveryInfo") {
-        // Chỉ chuyển status 4 -> 5, không gửi xe/chi phí
+        // Chỉ chuyển status 3 -> 5, không gửi xe/chi phí
         newStatus = "5";
       } else if (confirmAction === "handover" && currentStatus === "5") {
         // Đã ở Bàn giao ĐVVC: chỉ cập nhật xe/chi phí/ảnh, không đổi trạng thái
@@ -457,7 +453,6 @@ const ProcessPhieuGiaoHang = () => {
           store: "2",           // Lưu kho
           returnToStore: "2",   // Chuyển về kho (từ Thất bại)
           export: "3",          // Xuất hàng
-          receive: "4",         // Đã tiếp nhận
           handover: "5",        // Bàn giao ĐVVC (chỉ khi chưa ở 5)
           complete: "6",        // Hoàn thành
           fail: "7",            // Thất bại
@@ -873,8 +868,7 @@ const ProcessPhieuGiaoHang = () => {
           >
             <Select.Option value="2">Lưu kho</Select.Option>
             <Select.Option value="3">Xuất hàng</Select.Option>
-            <Select.Option value="4">Đã tiếp nhận</Select.Option>
-            <Select.Option value="5" disabled={currentStatus !== "4"}>Bàn giao ĐVVC</Select.Option>
+            <Select.Option value="5" disabled={currentStatus !== "3" && currentStatus !== "5"}>Bàn giao ĐVVC</Select.Option>
             <Select.Option value="6">Hoàn thành</Select.Option>
             <Select.Option value="7">Thất bại</Select.Option>
           </Select>
@@ -1265,36 +1259,55 @@ const ProcessPhieuGiaoHang = () => {
                 />
               </div>
               <div className="process-confirm-field">
-                <label style={{ fontWeight: 700, marginBottom: "8px", display: "block" }}>Chi phí:</label>
-              <InputNumber
-                style={{ width: "100%" }}
-                value={confirmCost}
-                onChange={(val) => setConfirmCost(val || 0)}
-                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                parser={(value) => value.replace(/[^\d]/g, "")}
-                placeholder="Nhập chi phí vận chuyển"
-                addonAfter="đ"
-                min={0}
-                max={999999999999}
-                controls={false}
-                inputMode="numeric"
-                onKeyDown={(e) => {
-                  // Chỉ cho phép số, Backspace, Delete, Tab, Arrow keys
-                  if (
-                    !/[0-9]/.test(e.key) &&
-                    !["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)
-                  ) {
-                    e.preventDefault();
-                  }
-                }}
-              />
-            </div>
+                <div className="process-confirm-label-row">
+                  <label style={{ fontWeight: 700, margin: 0 }}>Chi phí:</label>
+                  <Checkbox
+                    className="process-confirm-checkbox"
+                    checked={confirmIsFree}
+                    onChange={(e) => {
+                      const isChecked = e.target.checked;
+                      setConfirmIsFree(isChecked);
+                      if (isChecked) {
+                        setConfirmCost(0);
+                        setConfirmAdvanceMoney(false);
+                      }
+                    }}
+                  >
+                    Miễn phí
+                  </Checkbox>
+                </div>
+                <InputNumber
+                  style={{ width: "100%" }}
+                  value={confirmCost}
+                  onChange={(val) => setConfirmCost(val || 0)}
+                  formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                  parser={(value) => value.replace(/[^\d]/g, "")}
+                  placeholder="Nhập chi phí vận chuyển"
+                  addonAfter="đ"
+                  min={0}
+                  max={999999999999}
+                  controls={false}
+                  disabled={confirmIsFree}
+                  inputMode="numeric"
+                  onKeyDown={(e) => {
+                    // Chỉ cho phép số, Backspace, Delete, Tab, Arrow keys
+                    if (
+                      !/[0-9]/.test(e.key) &&
+                      !["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)
+                    ) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
+              </div>
               <div className="process-confirm-field process-confirm-advance-money">
                 <Checkbox
+                  className="process-confirm-checkbox"
                   checked={confirmAdvanceMoney}
+                  disabled={confirmIsFree}
                   onChange={(e) => setConfirmAdvanceMoney(e.target.checked)}
                 >
-                  Ứng tiền :
+                  Ứng tiền
                 </Checkbox>
               </div>
             </>

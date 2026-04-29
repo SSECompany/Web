@@ -736,32 +736,34 @@
   color: #262626;
 }
 
-/* Ứng tiền checkbox: label trái, ô tick phải, căn phải */
+.process-confirm-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* Checkbox style chung: box trước, label sau */
+.process-confirm-checkbox {
+  display: inline-flex !important;
+  align-items: center !important;
+  font-weight: 700 !important;
+}
+
+.process-confirm-checkbox .ant-checkbox {
+  top: 0 !important;
+  margin-right: 8px !important;
+}
+
+.process-confirm-checkbox + span {
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}
+
 .process-confirm-advance-money {
   margin-top: 12px;
-  padding-left: 0;
   display: flex;
   justify-content: flex-end;
-}
-.process-confirm-advance-money .ant-checkbox-wrapper {
-  display: inline-flex;
-  align-items: center;
-  flex-direction: row-reverse;
-  font-weight: 700;
-  margin-inline-start: 0;
-  padding-left: 0;
-}
-.process-confirm-advance-money .ant-checkbox {
-  top: 0;
-  flex-shrink: 0;
-}
-.process-confirm-advance-money .ant-checkbox-inner {
-  border-radius: 4px;
-}
-.process-confirm-advance-money .ant-checkbox + span {
-  padding-inline-end: 8px;
-  padding-left: 0;
-  padding-inline-start: 0;
 }
 
 .process-confirm-content .process-upload-label {

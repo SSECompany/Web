@@ -24,7 +24,7 @@ import QRScanner from "../../../../components/common/QRScanner/QRScanner";
 import "./PhieuGiaoHang.css";
 import { fetchPhieuGiaoHangList, fetchPhieuGiaoHangDataByQR } from "./utils/phieuGiaoHangApi";
 
-const STATUS_KEYS = ["3", "4", "5", "6", "7"];
+const STATUS_KEYS = ["3", "5", "6", "7"];
 
 const ListPhieuGiaoHang = () => {
   const navigate = useNavigate();
@@ -235,7 +235,6 @@ const ListPhieuGiaoHang = () => {
   // Map tab key -> API Status
   const statusMap = useMemo(() => ({
     exported: "3",
-    received: "4",
     handover: "5",
     completed: "6",
     failed: "7",
@@ -244,7 +243,6 @@ const ListPhieuGiaoHang = () => {
   // Map API Status -> tab key (để đồng bộ tab khi áp dụng bộ lọc trạng thái)
   const statusToTabKey = useMemo(() => ({
     "3": "exported",
-    "4": "received",
     "5": "handover",
     "6": "completed",
     "7": "failed",
@@ -330,7 +328,6 @@ const ListPhieuGiaoHang = () => {
   // Số lượng theo trạng thái lấy từ API (countByStatus), dùng cho nhãn tab
   const stats = useMemo(() => ({
     exported: countByStatus["3"] ?? 0,
-    received: countByStatus["4"] ?? 0,
     handover: countByStatus["5"] ?? 0,
     completed: countByStatus["6"] ?? 0,
     failed: countByStatus["7"] ?? 0,
@@ -503,7 +500,6 @@ const ListPhieuGiaoHang = () => {
               options={[
                 { value: "", label: "Tất cả" },
                 { value: "3", label: "Xuất hàng" },
-                { value: "4", label: "Đã tiếp nhận" },
                 { value: "5", label: "Bàn giao ĐVVC" },
                 { value: "6", label: "Hoàn thành" },
                 { value: "7", label: "Thất bại" },
@@ -563,7 +559,7 @@ const ListPhieuGiaoHang = () => {
         </div>
       </Drawer>
 
-      {/* Filter tabs - 5 trạng thái (bỏ Tất cả, Lập chứng từ và Lưu kho, bắt đầu từ Xuất hàng) */}
+      {/* Filter tabs - 4 trạng thái (bỏ Tất cả, Lập chứng từ và Lưu kho, bắt đầu từ Xuất hàng) */}
       <div className="giao-hang-filter-tabs">
         <button 
           ref={(el) => { tabRefs.current.exported = el; }}
@@ -571,13 +567,6 @@ const ListPhieuGiaoHang = () => {
           onClick={() => handleFilterChange("exported")}
         >
           Xuất hàng ({stats.exported})
-        </button>
-        <button 
-          ref={(el) => { tabRefs.current.received = el; }}
-          className={`giao-hang-filter-tab ${activeFilter === "received" ? "active" : ""}`}
-          onClick={() => handleFilterChange("received")}
-        >
-          Đã tiếp nhận ({stats.received})
         </button>
         <button 
           ref={(el) => { tabRefs.current.handover = el; }}
