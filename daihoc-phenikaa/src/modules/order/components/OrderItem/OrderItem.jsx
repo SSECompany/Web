@@ -1,0 +1,227 @@
+import { EllipsisOutlined } from "@ant-design/icons";
+import { Button, Dropdown, Menu } from "antd";
+import React, { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
+import { formatNumber } from "../../../../app/hook/dataFormatHelper";
+import { applyVoucherToProduct, updateProductPrice } from "../../store/order";
+import AddNoteAndExtrasModal from "./modal/AddNoteAndExtrasModal";
+import DiscountModal from "./modal/DiscountModal";
+import SelectMealModal from "./modal/SelectMealModal";
+import "./OrderItem.css";
+
+export default function OrderItem({
+  item,
+  index,
+  onUpdateQuantity,
+  onDeleteItem,
+  onAddNote,
+  isReadOnlyMode = false,
+}) {
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isSelectMealModalVisible, setIsSelectMealModalVisible] =
+    useState(false);
+  const [isDiscountModalVisible, setIsDiscountModalVisible] = useState(false);
+  const [priceInput, setPriceInput] = useState("");
+  const dispatch = useDispatch();
+  const token = localStorage.getItem("access_token");
+
+  const handleQuantityInputChange = (e) => {
+    if (isReadOnlyMode) return;
+    const rawValue = e.target.value.replace(/\D/g, "");
+    if (rawValue === "") return;
+    const newQuantity = Math.max(1, parseInt(rawValue, 10) || 1);
+    if (newQuantity === item.so_luong) return;
+    const diff = newQuantity - (parseFloat(item.so_luong || 0) || 0);
+    if (diff !== 0) {
+      onUpdateQuantity(index, diff);
+    }
+  };
+
+  useEffect(() => {
+    // Hiển thị giá sau giảm giá (thanh_tien) thay vì giá gốc (don_gia)
+    setPriceInput(
+      item.thanh_tien?.toString() || item.don_gia?.toString() || ""
+    );
+  }, [item.don_gia, item.thanh_tien, item.selected_meal]);
+
+  const handleAddNote = () => {
+    onAddNote();
+    setIsModalVisible(true);
+  };
+
+  const handleApplyVoucher = () => {
+    dispatch(updateProductPrice({ index, newPrice: 0 }));
+    dispatch(applyVoucherToProduct({ index }));
+    setPriceInput("0");
+  };
+
+  const handleSelectMeal = () => {
+    setIsSelectMealModalVisible(true);
+  };
+
+  const handleOpenDiscountModal = () => {
+    setIsDiscountModalVisible(true);
+  };
+
+  // Kiểm tra xem item có phải là "Cơm Suất tối" hoặc "Cơm Suất trưa" không
+  const isMealSetItem = item.ma_vt === "COM02" || item.ma_vt === "COM01";
+
+  const menu = (
+    <Menu>
+      <Menu.Item key="add-note" onClick={handleAddNote}>
+        Ghi chú/Món thêm
+      </Menu.Item>
+      {isMealSetItem && (
+        <Menu.Item key="select-meal" onClick={handleSelectMeal}>
+          Chọn món suất
+        </Menu.Item>
+      )}
+      <Menu.Item key="apply-discount" onClick={handleOpenDiscountModal}>
+        Giảm giá
+      </Menu.Item>
+      {token && (
+        <Menu.Item key="apply-voucher" onClick={handleApplyVoucher}>
+          Áp dụng voucher
+        </Menu.Item>
+      )}
+      <Menu.Item key="delete-item" danger onClick={() => onDeleteItem(index)}>
+        Xóa món
+      </Menu.Item>
+    </Menu>
+  );
+
+  return (
+    <>
+      <li className="order-item">
+        <div className="order-item-main">
+          <span className="order-item-index">{index + 1}.</span>
+          <span className="order-item-name">
+            {item.selected_meal ? item.selected_meal.label : item.ten_vt}
+          </span>
+          <div className="quantity-controls">
+            <Button
+              onClick={() => onUpdateQuantity(index, -1)}
+              disabled={item.so_luong <= 1 || isReadOnlyMode}
+              style={
+                isReadOnlyMode ? { opacity: 0.5, cursor: "not-allowed" } : {}
+              }
+            >
+              -
+            </Button>
+            <input
+              type="number"
+              min={1}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              className="quantity-input hide-number-input-spinners"
+              value={item.so_luong}
+              onChange={handleQuantityInputChange}
+              disabled={isReadOnlyMode}
+            />
+            <Button
+              onClick={() => onUpdateQuantity(index, 1)}
+              disabled={isReadOnlyMode}
+              style={
+                isReadOnlyMode ? { opacity: 0.5, cursor: "not-allowed" } : {}
+              }
+            >
+              +
+            </Button>
+          </div>
+          <span
+            className="order-item-price-input"
+            style={{
+              width: "90px",
+              textAlign: "right",
+              color: "#28a745",
+              display: "inline-block",
+            }}
+          >
+            {formatNumber(priceInput)}
+            {/* Hiển thị giá gốc bị gạch ngang khi có giảm giá */}
+            {parseFloat(item.tl_ck || 0) > 0 ||
+            parseFloat(item.ck_nt || 0) > 0 ? (
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "#999",
+                  textDecoration: "line-through",
+                  marginTop: "2px",
+                }}
+              >
+                {formatNumber(
+                  (parseFloat(item.don_gia || 0) || 0) *
+                    (parseFloat(item.so_luong || 1) || 1)
+                )}
+              </div>
+            ) : null}
+          </span>
+          <Dropdown
+            overlay={menu}
+            trigger={["click"]}
+            placement="bottomRight"
+            disabled={isReadOnlyMode}
+          >
+            <Button
+              type="text"
+              icon={<EllipsisOutlined style={{ fontSize: "20px" }} />}
+              disabled={isReadOnlyMode}
+              style={
+                isReadOnlyMode ? { opacity: 0.5, cursor: "not-allowed" } : {}
+              }
+            />
+          </Dropdown>
+        </div>
+
+        {item.extras && item.extras.length > 0 && (
+          <ul className="order-item-extras">
+            {item.extras.map((extra) => {
+              return (
+                <li key={extra.ma_vt_more} className="order-extra-item">
+                  <span className="extra-name">+ {extra.ten_vt}</span>
+                  <span className="extra-quantity">
+                    {extra.quantity || extra.so_luong}
+                  </span>
+                  <span className="extra-price">
+                    {formatNumber(extra.gia || extra.don_gia)} đ
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {item.selected_meal && (
+          <div className="order-item-selected-meal">
+            Ghi chú: <strong>{item.ten_vt}</strong>
+            {item.selected_meal.description && (
+              <div className="meal-description-small">
+                {item.selected_meal.description}
+              </div>
+            )}
+          </div>
+        )}
+        {item.ghi_chu && !item.selected_meal && (
+          <div className="order-item-note">Ghi chú: {item.ghi_chu}</div>
+        )}
+      </li>
+
+      <AddNoteAndExtrasModal
+        isVisible={isModalVisible}
+        onClose={() => setIsModalVisible(false)}
+        orderIndex={index}
+      />
+      <SelectMealModal
+        isVisible={isSelectMealModalVisible}
+        onClose={() => setIsSelectMealModalVisible(false)}
+        orderIndex={index}
+        item={item}
+      />
+      <DiscountModal
+        isVisible={isDiscountModalVisible}
+        onClose={() => setIsDiscountModalVisible(false)}
+        orderIndex={index}
+        item={item}
+      />
+    </>
+  );
+}

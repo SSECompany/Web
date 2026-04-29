@@ -1,0 +1,43 @@
+.error-container {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #f6f9fc;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  text-align: center;
+  overflow: hidden;
+}
+
+.error-image {
+  width: 180px;
+  margin-bottom: 20px;
+  object-fit: contain;
+}
+
+.error-title {
+  font-size: 32px;
+  color: #ff4d4f;
+  margin-bottom: 12px;
+}
+
+.error-message {
+  font-size: 16px;
+  color: #555;
+  max-width: 480px;
+}
+
+.error-bg-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 800px;
+  height: auto;
+  transform: translate(-50%, -50%);
+  opacity: 0.6;
+  z-index: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}

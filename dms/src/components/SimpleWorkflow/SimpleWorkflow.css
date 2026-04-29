@@ -1,0 +1,85 @@
+/* Ensure workflow menu item is highlighted when on workflow page */
+.workflow-page .navbar_routes span {
+  color: #1677ff !important;
+  font-weight: bold !important;
+}
+
+/* Style system selector when on workflow page - simple like DMS */
+.workflow-page .system_selector {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #0c122f !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+}
+
+.workflow-page .system_selector:hover {
+  color: #1677ff !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Style for workflow page */
+.workflow-page {
+  position: relative;
+}
+
+/* Subtle pattern overlay for workflow page */
+.workflow-page::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(24, 144, 255, 0.08) 1px,
+    transparent 0
+  );
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Simple hover effects like DMS */
+.workflow-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  transform: translateY(-2px);
+}
+
+/* Add subtle border highlight for workflow cards */
+.workflow-card {
+  border-left: 4px solid #1890ff !important;
+  position: relative;
+}
+
+.workflow-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  background: #52c41a;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.workflow-card:hover::before {
+  opacity: 1;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .workflow-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+
+  .workflow-header h1 {
+    font-size: 36px !important;
+  }
+
+  .workflow-quick-links {
+    grid-template-columns: 1fr !important;
+  }
+}

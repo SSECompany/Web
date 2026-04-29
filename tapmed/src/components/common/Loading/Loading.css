@@ -1,0 +1,20 @@
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 9999;
+}
+
+.loading-container .ant-spin {
+  color: #52c41a;
+}
+
+.loading-container .ant-spin-dot-item {
+  background-color: #52c41a;
+}

@@ -1,0 +1,47 @@
+.workflow-sidebar {
+  background: #fff;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  overflow: auto;
+}
+
+.workflow-sidebar-logo {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 0 16px;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.workflow-sidebar .ant-menu {
+  background: #fff;
+}
+
+.workflow-sidebar .ant-menu-item-selected {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.workflow-sidebar .ant-menu-item:hover {
+  background-color: #f0f7ff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .workflow-sidebar {
+    position: fixed;
+    left: 0;
+    z-index: 1000;
+    height: 100vh;
+    top: 0;
+  }
+}
+
+

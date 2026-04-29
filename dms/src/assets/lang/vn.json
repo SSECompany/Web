@@ -1,0 +1,7 @@
+{
+    "Transfer":{
+        "LoadingComponent":"Đang tạo phiếu đề nghị điều chuyển",
+        "MessEmptyStockTransfer":"Bạn chưa nhập kho",
+        "MessEmptyItem":"Bạn chưa vật tư "
+    }
+}

@@ -1,0 +1,43 @@
+.Home {
+    background-color: transparent;
+    padding: 0px 10px;
+    padding-bottom: 10px;
+    text-align: center;
+}
+
+.home_container {
+    display: inline-flex;
+    flex-direction: row;
+    height: 100%;
+    width: 100%;
+    gap: 0px 10px;
+    border-radius: 10px;
+    overflow: hidden;
+    text-align: left;
+}
+
+.home_container_left {
+    flex: 1;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: rgba(255, 255, 255, 0.6);
+    padding: 10px 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
+    transition: all ease 0.3s;
+}
+
+.home_container_left_item{
+    background: white;
+    padding: 5px;
+    border-radius: 10px;
+}
+
+.home_container_right {
+    flex-shrink: 0;
+    overflow: hidden;
+    width: 25%;
+    background: white;
+    border-radius: 10px;
+}

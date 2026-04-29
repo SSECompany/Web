@@ -1,0 +1,16 @@
+.issue-detail {
+  padding: 0;
+}
+
+.issue-detail .ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.comment-item {
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 4px;
+}
+
+

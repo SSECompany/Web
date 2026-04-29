@@ -1,0 +1,32 @@
+.merge-order-modal-container {
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  max-height: 70vh;
+}
+
+.merge-order_table .ant-table-body {
+  max-height: 320px !important;
+  min-height: 180px;
+}
+
+.merge-order_table .ant-table-body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.merge-order_table .ant-table-body::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+@media screen and (max-width: 768px) {
+  .merge-order-modal-container {
+    height: auto;
+    max-height: 90vh;
+  }
+  .merge-order_table,
+  .merge-order_table .ant-table-body {
+    max-height: 180px !important;
+  }
+}

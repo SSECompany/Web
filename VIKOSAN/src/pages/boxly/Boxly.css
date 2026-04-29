@@ -1,0 +1,797 @@
+/* Boxly Component Styles */
+.boxly-container {
+  padding: 24px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  position: relative;
+  min-height: 90vh;
+}
+
+.boxly-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(
+      circle at 25px 25px,
+      rgba(255, 255, 255, 0.2) 2%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 75px 75px,
+      rgba(255, 255, 255, 0.1) 2%,
+      transparent 50%
+    );
+  background-size: 100px 100px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.boxly-content {
+  position: relative;
+  z-index: 2;
+}
+
+.boxly-header {
+  text-align: center;
+  margin-bottom: 48px;
+  padding-top: 32px;
+}
+
+.boxly-title {
+  font-size: 42px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 12px 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.boxly-subtitle {
+  font-size: 18px;
+  color: #6c757d;
+  margin: 0;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.boxly-button-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(200px, 1fr));
+  gap: 16px;
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+  max-height: 70vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(108, 99, 255, 0.3) transparent;
+}
+
+.boxly-button-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.boxly-button-grid::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.boxly-button-grid::-webkit-scrollbar-thumb {
+  background: rgba(108, 99, 255, 0.3);
+  border-radius: 3px;
+}
+
+.boxly-button-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(108, 99, 255, 0.5);
+}
+
+.boxly-button-tile {
+  position: relative;
+  border: none;
+  border-radius: 16px;
+  padding: 24px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: white;
+  background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  height: auto;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.boxly-button-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.boxly-button-icon {
+  font-size: 24px;
+  margin-bottom: 6px;
+  opacity: 0.9;
+  transition: all 0.3s ease;
+}
+
+.boxly-button-label {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+}
+
+.boxly-button-description {
+  font-size: 11px;
+  opacity: 0.8;
+  font-weight: 400;
+  text-align: center;
+  margin-top: -2px;
+}
+
+.boxly-button-tile:hover .boxly-button-icon {
+  transform: scale(1.1);
+  opacity: 1;
+}
+
+.boxly-button-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.boxly-button-tile::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 70%
+  );
+  transform: scale(0);
+  transition: transform 0.6s ease;
+}
+
+.boxly-button-tile:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.boxly-button-tile:hover::before {
+  opacity: 1;
+}
+
+.boxly-button-tile:hover::after {
+  transform: scale(1);
+}
+
+.boxly-button-tile:active {
+  transform: translateY(-4px) scale(1.01);
+  transition: all 0.1s ease;
+}
+
+/* Color variants with beautiful gradients */
+.boxly-btn-color-1 {
+  background: linear-gradient(145deg, #11998e 0%, #38ef7d 100%);
+  box-shadow: 0 10px 30px rgba(17, 153, 142, 0.3),
+    0 1px 8px rgba(17, 153, 142, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.boxly-btn-color-1:hover {
+  box-shadow: 0 20px 40px rgba(17, 153, 142, 0.4),
+    0 5px 15px rgba(17, 153, 142, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.boxly-btn-color-2 {
+  background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3),
+    0 1px 8px rgba(102, 126, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.boxly-btn-color-2:hover {
+  box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4),
+    0 5px 15px rgba(102, 126, 234, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.boxly-btn-color-3 {
+  background: linear-gradient(145deg, #f093fb 0%, #f5576c 100%);
+  box-shadow: 0 10px 30px rgba(240, 147, 251, 0.3),
+    0 1px 8px rgba(240, 147, 251, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.boxly-btn-color-3:hover {
+  box-shadow: 0 20px 40px rgba(240, 147, 251, 0.4),
+    0 5px 15px rgba(240, 147, 251, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.boxly-btn-color-4 {
+  background: linear-gradient(145deg, #4facfe 0%, #00f2fe 100%);
+  box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3),
+    0 1px 8px rgba(79, 172, 254, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.boxly-btn-color-4:hover {
+  box-shadow: 0 20px 40px rgba(79, 172, 254, 0.4),
+    0 5px 15px rgba(79, 172, 254, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.boxly-button-grid-container {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* Add a subtle animation on page load */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.boxly-button-tile {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.boxly-button-tile:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.boxly-button-tile:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.boxly-button-tile:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.boxly-button-tile:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+/* Tablet & Mobile Responsive */
+@media (max-width: 1024px) {
+  .boxly-container {
+    padding: 16px;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .boxly-header {
+    margin-bottom: 24px;
+    padding-top: 16px;
+  }
+
+  .boxly-title {
+    font-size: 32px;
+  }
+
+  .boxly-subtitle {
+    font-size: 16px;
+  }
+}
+
+/* iPad Mini & iPad Air (Portrait) */
+@media screen and (min-width: 768px) and (max-width: 834px) and (orientation: portrait) {
+  .boxly-container {
+    padding: 16px;
+    margin: 0;
+    border-radius: 0;
+    box-sizing: border-box;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 16px;
+    max-width: 100%;
+  }
+
+  .boxly-header {
+    margin-bottom: 24px;
+  }
+
+  .boxly-title {
+    font-size: 28px;
+  }
+
+  .boxly-subtitle {
+    font-size: 14px;
+  }
+
+  .boxly-button-tile {
+    min-height: 120px;
+    padding: 24px 16px;
+  }
+}
+
+/* Samsung Tablet (Portrait) */
+@media screen and (min-width: 800px) and (max-width: 1280px) and (orientation: portrait) {
+  .boxly-container {
+    padding: 20px;
+    margin: 0;
+    width: 100vw;
+    border-radius: 0;
+    box-sizing: border-box;
+  }
+
+  .boxly-button-grid {
+    gap: 20px;
+    padding: 20px;
+    max-width: 100%;
+  }
+
+  .boxly-header {
+    margin-bottom: 32px;
+  }
+
+  .boxly-title {
+    font-size: 32px;
+  }
+
+  .boxly-button-tile {
+    min-height: 140px;
+  }
+}
+
+/* Mobile Devices */
+@media (max-width: 767px) {
+  .boxly-container {
+    padding: 12px;
+    margin: 0;
+    width: 100vw;
+    border-radius: 0;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .boxly-header {
+    margin-bottom: 20px;
+    padding-top: 12px;
+  }
+
+  .boxly-title {
+    font-size: 24px;
+  }
+
+  .boxly-subtitle {
+    font-size: 14px;
+  }
+
+  .boxly-button-tile {
+    min-height: 100px;
+    padding: 20px 16px;
+  }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 374px) {
+  .boxly-container {
+    padding: 8px;
+  }
+
+  .boxly-button-grid {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .boxly-title {
+    font-size: 20px;
+  }
+
+  .boxly-button-tile {
+    min-height: 80px;
+    padding: 16px 12px;
+  }
+}
+
+/* Touch optimizations for mobile */
+@media (max-width: 768px) and (pointer: coarse) {
+  .boxly-button-tile {
+    min-height: 120px;
+    padding: 32px 20px;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .boxly-button-tile:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* Safe area adjustments for iPhone with notch */
+@supports (padding: max(0px)) {
+  .boxly-container {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+}
+
+/* ========== IPAD MINI & SAMSUNG TABLET RESPONSIVE ========== */
+
+/* iPad Mini 8.3 inch - Landscape */
+@media screen and (min-width: 1180px) and (max-width: 1180px) and (min-height: 820px) and (orientation: landscape) {
+  .boxly-container {
+    padding: 26px;
+  }
+
+  .boxly-header {
+    margin-bottom: 44px;
+    padding-top: 32px;
+  }
+
+  .boxly-title {
+    font-size: 40px;
+  }
+
+  .boxly-subtitle {
+    font-size: 18px;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    padding: 32px;
+    max-width: 1100px;
+  }
+
+  .boxly-button-tile {
+    padding: 40px 24px;
+    font-size: 18px;
+    min-height: 140px;
+  }
+}
+
+/* Samsung Galaxy Tab 10.9 inch (1280x800px) - Landscape */
+@media screen and (min-width: 1280px) and (max-width: 1280px) and (min-height: 800px) and (orientation: landscape) {
+  .boxly-container {
+    padding: 30px;
+  }
+
+  .boxly-header {
+    margin-bottom: 52px;
+    padding-top: 38px;
+  }
+
+  .boxly-title {
+    font-size: 46px;
+    margin-bottom: 16px;
+  }
+
+  .boxly-subtitle {
+    font-size: 20px;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+    padding: 38px;
+    max-width: 1200px;
+  }
+
+  .boxly-button-tile {
+    padding: 46px 28px;
+    font-size: 20px;
+    min-height: 160px;
+    border-radius: 24px;
+  }
+
+  .boxly-button-label {
+    font-size: 22px;
+  }
+
+  .boxly-button-description {
+    font-size: 16px;
+    margin-top: 8px;
+  }
+
+  .boxly-button-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .boxly-button-content {
+    gap: 16px;
+  }
+}
+
+/* Samsung Galaxy Tab 10.9 inch - Portrait */
+@media screen and (min-width: 800px) and (max-width: 800px) and (min-height: 1280px) and (orientation: portrait) {
+  .boxly-container {
+    padding: 26px;
+    margin: 0;
+  }
+
+  .boxly-header {
+    margin-bottom: 46px;
+    padding-top: 34px;
+  }
+
+  .boxly-title {
+    font-size: 42px;
+    margin-bottom: 13px;
+  }
+
+  .boxly-subtitle {
+    font-size: 18px;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    padding: 34px;
+    max-width: 740px;
+  }
+
+  .boxly-button-tile {
+    padding: 42px 24px;
+    font-size: 18px;
+    min-height: 145px;
+    border-radius: 21px;
+  }
+
+  .boxly-button-label {
+    font-size: 19px;
+  }
+
+  .boxly-button-description {
+    font-size: 14px;
+    margin-top: 5px;
+  }
+
+  .boxly-button-icon {
+    font-size: 42px;
+    margin-bottom: 13px;
+  }
+
+  .boxly-button-content {
+    gap: 13px;
+  }
+}
+
+/* Ensure smooth animations on tablets */
+@media (min-width: 800px) and (max-width: 1280px) {
+  .boxly-button-tile {
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .boxly-button-tile:hover {
+    transform: translateY(-4px) scale(1.02);
+  }
+
+  .boxly-button-tile:active {
+    transform: translateY(-2px) scale(1.01);
+  }
+}
+
+/* ========== RESPONSIVE FOR 800x1340 PIXELS ========== */
+/* Optimized for tablet portrait mode 800x1340 (Surface Pro, Samsung Galaxy Tab S series) */
+@media screen and (min-width: 800px) and (max-width: 800px) and (min-height: 1340px) and (orientation: portrait) {
+  .boxly-container {
+    padding: 22px;
+    margin: 0;
+    width: 100vw;
+    border-radius: 0;
+    box-sizing: border-box;
+    min-height: 100vh;
+  }
+
+  .boxly-container::before {
+    background-size: 120px 120px;
+    opacity: 0.4;
+  }
+
+  .boxly-header {
+    margin-bottom: 36px;
+    padding-top: 28px;
+  }
+
+  .boxly-title {
+    font-size: 36px;
+    margin-bottom: 14px;
+    letter-spacing: 1.5px;
+    text-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+  }
+
+  .boxly-subtitle {
+    font-size: 18px;
+    opacity: 0.85;
+    font-weight: 500;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 22px;
+    padding: 28px;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+
+  .boxly-button-tile {
+    min-height: 160px;
+    padding: 36px 28px;
+    border-radius: 18px;
+    font-size: 17px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12), 0 2px 10px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  .boxly-button-content {
+    gap: 14px;
+  }
+
+  .boxly-button-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+  }
+
+  .boxly-button-label {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    line-height: 1.3;
+  }
+
+  .boxly-button-description {
+    font-size: 14px;
+    opacity: 0.85;
+    margin-top: -2px;
+    line-height: 1.4;
+  }
+
+  /* Enhanced hover effects for better tablet interaction */
+  .boxly-button-tile:hover {
+    transform: translateY(-6px) scale(1.03);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18), 0 6px 18px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+
+  .boxly-button-tile:hover .boxly-button-icon {
+    transform: scale(1.15);
+  }
+
+  .boxly-button-tile:active {
+    transform: translateY(-3px) scale(1.02);
+    transition: all 0.15s ease;
+  }
+
+  /* Color variant enhancements for 800x1340 */
+  .boxly-btn-color-1:hover {
+    box-shadow: 0 18px 45px rgba(17, 153, 142, 0.45),
+      0 6px 18px rgba(17, 153, 142, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+
+  .boxly-btn-color-2:hover {
+    box-shadow: 0 18px 45px rgba(102, 126, 234, 0.45),
+      0 6px 18px rgba(102, 126, 234, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+
+  .boxly-btn-color-3:hover {
+    box-shadow: 0 18px 45px rgba(240, 147, 251, 0.45),
+      0 6px 18px rgba(240, 147, 251, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+
+  .boxly-btn-color-4:hover {
+    box-shadow: 0 18px 45px rgba(79, 172, 254, 0.45),
+      0 6px 18px rgba(79, 172, 254, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+
+  /* Animation timing adjustments for smoother interaction */
+  .boxly-button-tile {
+    animation-duration: 0.8s;
+    animation-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .boxly-button-tile:nth-child(1) {
+    animation-delay: 0.15s;
+  }
+  .boxly-button-tile:nth-child(2) {
+    animation-delay: 0.25s;
+  }
+  .boxly-button-tile:nth-child(3) {
+    animation-delay: 0.35s;
+  }
+  .boxly-button-tile:nth-child(4) {
+    animation-delay: 0.45s;
+  }
+}
+
+/* Landscape mode optimization for 800x1340 when rotated */
+@media screen and (min-width: 1340px) and (max-width: 1340px) and (min-height: 800px) and (orientation: landscape) {
+  .boxly-container {
+    padding: 35px;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .boxly-header {
+    margin-bottom: 48px;
+    padding-top: 35px;
+  }
+
+  .boxly-title {
+    font-size: 44px;
+    margin-bottom: 16px;
+    letter-spacing: 2px;
+  }
+
+  .boxly-subtitle {
+    font-size: 20px;
+    font-weight: 500;
+  }
+
+  .boxly-button-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+    padding: 40px;
+    max-width: 1000px;
+  }
+
+  .boxly-button-tile {
+    min-height: 140px;
+    padding: 32px 24px;
+    border-radius: 20px;
+  }
+
+  .boxly-button-label {
+    font-size: 18px;
+  }
+
+  .boxly-button-icon {
+    font-size: 38px;
+  }
+}

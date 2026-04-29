@@ -1,0 +1,325 @@
+.pos-page {
+  display: flex;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  flex-direction: column;
+  overflow: auto;
+}
+
+/* Style tab đẹp cho POS */
+.custom-tabs .ant-tabs-nav {
+  background-color: #f8f9fa;
+  padding: 6px 8px;
+  border-bottom: 1px solid #ddd;
+  overflow-x: auto;
+}
+
+.custom-tabs .ant-tabs-nav-wrap {
+  height: 40px;
+}
+
+.custom-tabs .ant-tabs-tab {
+  white-space: nowrap;
+  /* width: 98px;  // Bỏ width cố định để tab co giãn theo tên */
+  justify-content: space-evenly;
+  padding: 10px 20px !important; /* padding ngang vừa phải */
+  margin-right: 10px !important;
+  margin-bottom: 2px;
+  box-sizing: border-box;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s, border-color 0.2s;
+  min-width: 60px;
+  max-width: 220px;
+  background: #f5f6fa;
+  color: #888;
+  border: 1.5px solid #e0e0e0;
+}
+
+.custom-tabs .ant-tabs-tab:hover {
+  background-color: #f0f0f0;
+}
+
+.custom-tabs .ant-tabs-tab-active {
+  background: #fff !important; /* nền trắng */
+  color: #397ba6 !important; /* xanh pastel đậm */
+  border: 2.5px solid #5fa8d3 !important; /* viền xanh pastel đậm hơn */
+  font-weight: bold;
+  box-shadow: 0 2px 8px 0 #a7c7e755;
+  z-index: 2;
+}
+
+.custom-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #397ba6 !important;
+}
+
+.custom-tabs .ant-tabs-tab-remove {
+  margin-left: 8px;
+  color: #bbb;
+}
+
+.custom-tabs .ant-tabs-tab-remove:hover {
+  color: red;
+}
+
+.main-container {
+  display: flex;
+  width: 100%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: auto;
+}
+
+.main-container::-webkit-scrollbar {
+  display: none;
+}
+
+.right-panel {
+  width: 40%;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.menu-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  padding: 16px;
+  overflow-y: auto;
+  height: calc(100vh - 400px);
+  box-sizing: border-box;
+}
+
+.order-summary {
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.left-middle-panel {
+  width: 60%;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+  position: relative;
+}
+
+.tool-tip {
+  position: fixed;
+  bottom: 10px;
+  left: 5px;
+  width: calc(60% - 17px);
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  border-radius: 7px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+  min-height: 50px;
+}
+
+.tool-tip button {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tool-tip button:hover {
+  background-color: #f0f0f0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tool-tip button i,
+.tool-tip button .anticon {
+  font-size: 18px;
+  color: #ff6600;
+}
+.tabs-menu-container .ant-tabs-content-holder {
+  padding-top: 0 !important;
+}
+
+.hide-tabs-and-buttons .tabs-menu-container button.ant-tabs-nav-add,
+.hide-tabs-and-buttons .tabs-menu-container span.anticon.anticon-close,
+.hide-tabs-and-buttons .select-table-button {
+  display: none;
+}
+
+.hide-tabs-and-buttons .summary-button {
+  width: 80%;
+  height: 40px;
+}
+
+.hide-tabs-and-buttons .summary-actions {
+  justify-content: center;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Blinking light orange border for unseen tab - smooth gentle glow */
+.ant-tabs-tab.blinking-tab {
+  border: 3px solid #ffd580 !important;
+  border-radius: 8px;
+  animation: glow-border-light-orange 1.4s ease-in-out infinite;
+  box-shadow: 0 0 0px 0px #ffd580;
+  transition: box-shadow 0.3s, border-color 0.3s;
+  background: #fff;
+}
+
+@keyframes glow-border-light-orange {
+  0% {
+    box-shadow: 0 0 0px 0px #ffd580;
+    border-color: #ffd580;
+    background: #fff;
+  }
+  50% {
+    box-shadow: 0 0 18px 6px #ffd58066;
+    border-color: #ffd580;
+    background: #fff;
+  }
+  100% {
+    box-shadow: 0 0 0px 0px #ffd580;
+    border-color: #ffd580;
+    background: #fff;
+  }
+}
+
+/* Responsive cho Mobile */
+@media screen and (max-width: 768px) {
+  .pos-page {
+    height: 100vh;
+  }
+  .main-container {
+    flex-direction: column;
+    overflow: scroll;
+    padding-bottom: 120px;
+  }
+  .left-middle-panel {
+    width: 100%;
+    border-right: none;
+  }
+  .right-panel {
+    width: 100%;
+    margin-top: 30px;
+    padding-bottom: 80px;
+  }
+  .menu-section {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  .order-list {
+    height: 45vh;
+    padding: 5px;
+  }
+  .menu-grid {
+    height: 45vh;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .order-item-main, .order-header {
+    grid-template-columns: 20px 1fr 130px 65px 20px;
+  }
+  .order-item {
+    padding: 10px 10px 10px 0;
+  }
+  .quantity-controls span {
+    padding: 4px;
+  }
+  .login_container_right {
+    display: none;
+  }
+  .order-summary {
+    margin-top: 30px;
+    height: 105px;
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .order-header {
+    padding: 12px 0;
+  }
+  .order-item-name {
+    font-size: 14px;
+  }
+  .login_logo_company_name,
+  .login_logo_company_name span {
+    line-height: 25px !important;
+    font-size: 45px !important;
+  }
+  .login_container_left {
+    padding-top: 30px !important;
+  }
+  .login_desciption_header {
+    font-size: 24px !important;
+  }
+  .login_form {
+    justify-content: flex-start !important;
+  }
+  .tool-tip {
+    width: calc(100% - 19px);
+    bottom: 1%;
+    left: 10px;
+    gap: 5px;
+    padding: 8px 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .tool-tip button {
+    min-width: 40px;
+    height: 40px;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 380px) and (max-width: 430px) {
+  .order-extra-item {
+    grid-template-columns: 1fr 40px 120px;
+  }
+  .order-item-price-input {
+    width: 60px !important;
+  }
+}
+
+@media screen and (max-width: 360px) {
+  .order-header {
+    grid-template-columns: 10% 35% 18% 26% 0;
+  }
+
+  .order-item-main {
+    grid-template-columns: 10% 35% 22% 27% 0;
+  }
+
+  .quantity-controls button {
+    width: 25px;
+    height: 25px;
+  }
+
+  .order-item-price {
+    font-size: 12px;
+  }
+
+  .payment-option {
+    padding: 10px 0px;
+    font-size: 12px;
+    width: 100px;
+  }
+  .order-extra-item {
+    grid-template-columns: 1fr 20px 120px;
+  }
+  .main-container {
+    padding-bottom: 140px;
+  }
+}

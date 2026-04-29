@@ -1,0 +1,19 @@
+.issue-list {
+  padding: 0;
+}
+
+.issue-list .ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.issue-list .ant-table {
+  background: #fff;
+}
+
+.issue-list .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+

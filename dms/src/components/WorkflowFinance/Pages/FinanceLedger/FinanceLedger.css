@@ -1,0 +1,27 @@
+.finance-ledger {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.finance-ledger-card .finance-ledger-filters {
+  margin-bottom: 16px;
+}
+
+.finance-ledger-timeline {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .finance-ledger {
+    padding: 12px;
+  }
+}
+
+
+
+
+
+

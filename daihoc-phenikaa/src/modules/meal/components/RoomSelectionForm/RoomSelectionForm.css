@@ -1,0 +1,208 @@
+/* RoomSelectionForm.css */
+
+/* Styling for the list of beds */
+.list-items {
+  margin-top: 15px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom styles for Ant Design Select component */
+.ant-select .ant-select-selector {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+}
+
+.ant-select-focused .ant-select-selector,
+.ant-select:hover .ant-select-selector {
+  border-color: #4caf50 !important;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.list-item {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  font-size: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.list-item:hover {
+  background-color: #e0f7fa;
+  border-color: #4caf50;
+  transform: translateX(4px);
+}
+
+/* Styling đặc biệt cho giường đã đặt */
+.list-item.bed-already-ordered {
+  border-left: 4px solid #ff9800;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.15);
+}
+
+.list-item.bed-already-ordered:hover {
+  background-color: #ffe0b2;
+  border-color: #ff9800;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
+}
+
+/* Badge hiển thị trạng thái đã đặt */
+.bed-status-badge {
+  display: inline-flex;
+  align-items: center;
+  background-color: #ff9800;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.list-item span {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.list-item .anticon {
+  font-size: 18px;
+  color: #4caf50;
+}
+
+/* Highlighting selected item */
+.list-item:active,
+.list-item:focus {
+  background-color: #4caf50;
+  color: white;
+  border-color: #4caf50;
+}
+
+.input-group select {
+  font-size: 14px;
+  padding: 8px;
+}
+
+/* Styling for the form submit button */
+.submit-button {
+  width: 100%;
+  padding: 12px !important;
+  background-color: #007bff !important;
+  color: white !important;
+  font-size: 16px !important;
+  border-radius: 6px !important;
+  border: none !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 500 !important;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: #0056b3 !important;
+}
+
+.input-group select {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fafafa;
+  transition: all 0.3s ease;
+}
+
+.input-group select:hover {
+  border-color: #4caf50;
+}
+
+.input-group select:focus {
+  border-color: #4caf50;
+  outline: none;
+}
+
+/* Disabled state for select */
+.input-group select:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+.input-group {
+  display: flex;
+  gap: 5px;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.room-datepicker {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.room-datepicker .room-date-picker-input {
+  font-size: 16px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #fafafa;
+  width: 40%;
+  margin-top: 5px;
+}
+
+.room-datepicker .ant-picker-dropdown {
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom styling for the label */
+.room-datepicker .date-label {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.room-datepicker .room-date-picker-input:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+/* Mobile Optimization */
+@media screen and (max-width: 600px) {
+  .form-container {
+    padding: 15px;
+    margin: 15px;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  .input-group select {
+    font-size: 14px;
+    padding: 8px;
+  }
+
+  .submit-button {
+    font-size: 14px;
+    padding: 10px;
+  }
+}
+
+/* Disabled submit button */
+.submit-button:disabled {
+  background-color: #cccccc !important;
+  cursor: not-allowed !important;
+}

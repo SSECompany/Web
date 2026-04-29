@@ -1,0 +1,12 @@
+.retail__promotion__Selection {
+    height: 15rem;
+    background-color: aliceblue;
+}
+
+.retail__promotion__container {
+    height: 70vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}

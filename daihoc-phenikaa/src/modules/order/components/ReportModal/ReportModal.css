@@ -1,0 +1,65 @@
+.report-modal_Container .ant-table-summary {
+  background-color: #f0fbff;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+}
+.report-modal_Container .ant-table-summary strong {
+  font-weight: bold;
+  font-size: 17px;
+  color: #000;
+  display: flex;
+  justify-content: center;
+}
+
+.report-modal_Container .ant-table-body::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+.report-modal_Container .ant-table-body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.report-modal_Container .summary-row.group-row strong i {
+  font-size: 15px !important;
+  font-weight: bold;
+  vertical-align: middle;
+  color: #333;
+}
+
+.report-modal_Container .summary-row.group-row {
+  background-color: #f2f2f2;
+}
+
+.report-modal_Container .ant-table-thead > tr > th {
+  font-size: 13px !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.report-modal_filterDropdown {
+  padding: 10px;
+  width: 230px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.report-modal_filterActions {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.report-modal_filterActions .ant-btn {
+  flex: 1;
+}
+
+.report-modal_actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
