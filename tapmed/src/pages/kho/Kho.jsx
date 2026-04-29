@@ -1,45 +1,63 @@
-import { InboxOutlined } from "@ant-design/icons";
+import {
+  InboxOutlined,
+  CarOutlined,
+  SendOutlined,
+  FileTextOutlined,
+  SolutionOutlined,
+} from "@ant-design/icons";
 import { Card, Col, Row, Typography } from "antd";
-import React from "react";
+import { Link } from "react-router-dom";
 import "./Kho.css";
 
 const { Title, Text } = Typography;
 
 const Kho = () => {
+
   const menuItems = [
     {
       title: "Phiếu nhặt hàng",
       subtitle: "Quản lý nhặt hàng",
-      icon: <InboxOutlined style={{ fontSize: "32px" }} />,
+      icon: <InboxOutlined style={{ fontSize: "28px" }} />,
       color: "linear-gradient(135deg, #52c41a 0%, #73d13d 100%)",
       path: "/kho/nhat-hang",
     },
+    {
+      title: "Phiếu giao hàng",
+      subtitle: "Quản lý giao hàng",
+      icon: <CarOutlined style={{ fontSize: "28px" }} />,
+      color: "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
+      path: "/kho/giao-hang",
+    },
     // {
-    //   title: "Phiếu xuất kho bán hàng",
-    //   subtitle: "Quản lý xuất kho bán hàng",
-    //   icon: <ShoppingCartOutlined style={{ fontSize: "32px" }} />,
-    //   color: "linear-gradient(135deg, #722ed1 0%, #9254de 100%)",
-    //   path: "/kho/xuat-ban",
+    //   title: "Phiếu nhập hàng theo đơn",
+    //   subtitle: "Quản lý nhập hàng theo đơn mua hàng",
+    //   icon: <SolutionOutlined style={{ fontSize: "28px" }} />,
+    //   color: "linear-gradient(135deg, #faad14 0%, #ffc53d 100%)",
+    //   path: "/kho/nhap-hang",
+    // },
+    // {
+    //   title: "Phiếu nhập điều chuyển",
+    //   subtitle: "Quản lý nhập kho điều chuyển",
+    //   icon: <SendOutlined style={{ fontSize: "28px" }} />,
+    //   color: "linear-gradient(135deg, #eb2f96 0%, #f759ab 100%)",
+    //   path: "/kho/nhap-dieu-chuyen",
     // },
     // {
     //   title: "Phiếu xuất điều chuyển",
     //   subtitle: "Quản lý xuất kho điều chuyển",
-    //   icon: <SendOutlined style={{ fontSize: "32px" }} />,
-    //   color: "linear-gradient(135deg, #eb2f96 0%, #f759ab 100%)",
+    //   icon: <SendOutlined style={{ fontSize: "28px" }} rotate={180} />,
+    //   color: "linear-gradient(135deg, #722ed1 0%, #b37feb 100%)",
     //   path: "/kho/xuat-dieu-chuyen",
     // },
-    // {
-    //   title: "Phiếu xuất kho",
-    //   subtitle: "Quản lý xuất kho",
-    //   icon: <ExportOutlined style={{ fontSize: "32px" }} />,
-    //   color: "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
-    //   path: "/kho/xuat-kho",
-    // },
+    {
+      title: "Phiếu yêu cầu kiểm kê",
+      subtitle: "Quản lý yêu cầu kiểm kê",
+      icon: <FileTextOutlined style={{ fontSize: "28px" }} />,
+      color: "linear-gradient(135deg, #13c2c2 0%, #36cfc9 100%)",
+      path: "/kho/yeu-cau-kiem-ke",
+    },
   ];
 
-  const handleMenuClick = (path) => {
-    window.location.href = path;
-  };
 
   return (
     <div className="kho-container">
@@ -56,27 +74,28 @@ const Kho = () => {
         <Row gutter={[24, 24]} justify="center">
           {menuItems.map((item, index) => (
             <Col xs={24} sm={12} md={8} lg={6} key={index}>
-              <Card
-                className="kho-menu-card"
-                hoverable
-                onClick={() => handleMenuClick(item.path)}
-                style={{
-                  background: item.color,
-                  border: "none",
-                  borderRadius: "12px",
-                  cursor: "pointer",
-                }}
-              >
-                <div className="kho-menu-item">
-                  <div className="kho-menu-icon">{item.icon}</div>
-                  <div className="kho-menu-text">
-                    <Title level={4} className="kho-menu-title">
-                      {item.title}
-                    </Title>
-                    <Text className="kho-menu-subtitle">{item.subtitle}</Text>
+              <Link to={item.path} style={{ textDecoration: 'none' }}>
+                <Card
+                  className="kho-menu-card"
+                  hoverable
+                  style={{
+                    background: item.color,
+                    border: "none",
+                    borderRadius: "12px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div className="kho-menu-item">
+                    <div className="kho-menu-icon" aria-hidden="true">{item.icon}</div>
+                    <div className="kho-menu-text">
+                      <Title level={4} className="kho-menu-title">
+                        {item.title}
+                      </Title>
+                      <Text className="kho-menu-subtitle">{item.subtitle}</Text>
+                    </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              </Link>
             </Col>
           ))}
         </Row>

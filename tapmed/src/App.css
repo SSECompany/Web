@@ -159,3 +159,30 @@
   text-align: center !important;
   background: transparent !important;
 }
+
+/* Message styling - chỉ hiển thị 1 message và xuống dòng khi dài */
+.ant-message {
+  top: 24px !important;
+  z-index: 1010;
+}
+
+.ant-message-notice {
+  margin-bottom: 8px;
+}
+
+.ant-message-notice-content {
+  max-width: 90vw;
+  word-wrap: break-word;
+  white-space: normal;
+  line-height: 1.5;
+  padding: 8px 16px;
+}
+
+.ant-message-notice-content .ant-message-custom-content {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
+  display: block !important;
+  line-height: 1.5 !important;
+}

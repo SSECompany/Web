@@ -18,6 +18,8 @@
   justify-content: space-between;
   z-index: 1000;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .navbar::before {
@@ -128,6 +130,45 @@
   font-weight: 600;
 }
 
+/* Fullscreen button - cùng style với avatar container */
+.navbar_fullscreen_btn {
+  height: 32px;
+  width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    145deg,
+    rgba(82, 196, 26, 0.08) 0%,
+    rgba(56, 158, 13, 0.04) 100%
+  );
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(82, 196, 26, 0.2);
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+  padding: 0;
+  color: #389e0d;
+}
+
+.navbar_fullscreen_btn:hover {
+  background: linear-gradient(
+    145deg,
+    rgba(82, 196, 26, 0.16) 0%,
+    rgba(56, 158, 13, 0.08) 100%
+  );
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(82, 196, 26, 0.25);
+  color: #52c41a;
+}
+
+.navbar_fullscreen_btn svg {
+  width: 20px;
+  height: 20px;
+}
+
 .navbar_avatar_container {
   height: 32px;
   width: 32px;
@@ -186,6 +227,8 @@
   display: flex;
   align-items: center;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
   position: relative;
   z-index: 2;
 }
@@ -201,6 +244,10 @@
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 12px;
+}
+
+.navbar_version {
+  display: flex !important;
 }
 
 .navbar_notification_dropdown {
@@ -349,6 +396,9 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 10px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0;
+  max-width: 150px;
+  flex-shrink: 1;
 }
 
 .full-name:hover {
@@ -360,13 +410,22 @@
   transform: translateY(-1px);
 }
 
-.full-name .primary_bold_text {
+.full-name .user_name_text {
   font-weight: 600;
   background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-size: 13px;
+  white-space: normal;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-align: left;
+  line-height: 1.2;
 }
 
 .navbar_avatar_container svg {
@@ -433,6 +492,75 @@
   color: #ff4d4f !important;
 }
 
+/* ========== MOBILE MENU BUTTON & DRAWER ========== */
+
+/* Nút hamburger menu / dropdown ngang - MẶC ĐỊNH ẨN trên desktop */
+.navbar_mobile_menu_btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  color: #389e0d;
+  font-size: 18px;
+  margin-left: 4px;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  position: relative;
+  z-index: 2;
+  border-radius: 6px;
+}
+.navbar_mobile_menu_btn:hover {
+  background: rgba(82, 196, 26, 0.08);
+  color: #52c41a;
+}
+.navbar_mobile_menu_btn:active {
+  background: rgba(82, 196, 26, 0.15);
+}
+
+/* Dropdown Router Mobile */
+.navbar_mobile_dropdown {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.85) 100%
+  ) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+  min-width: 180px !important;
+  padding: 4px !important;
+}
+.navbar_mobile_dropdown .ant-dropdown-menu-item {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+  padding: 10px 16px !important;
+}
+.navbar_mobile_dropdown .ant-dropdown-menu-item:hover {
+  color: #52c41a !important;
+  background: rgba(82, 196, 26, 0.08) !important;
+}
+
+/* Drawer user info */
+.navbar_drawer_user {
+  padding: 16px;
+  margin-top: auto;
+  border-top: 1px solid #f0f0f0;
+  color: #389e0d;
+  font-weight: 600;
+  font-size: 13px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
 /* ========== RESPONSIVE DESIGN ========== */
 
 /* Tablet Portrait (768px - 1024px) */
@@ -487,11 +615,12 @@
     padding: 6px 12px;
   }
 
-  .full-name .primary_bold_text {
+  .full-name .user_name_text {
     font-size: 13px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  }
+
+  .navbar_version {
+    display: none !important;
   }
 
   .sec_navbar_row {
@@ -585,11 +714,12 @@
     padding: 4px 8px;
   }
 
-  .full-name .primary_bold_text {
+  .full-name .user_name_text {
     font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  }
+
+  .navbar_version {
+    display: none !important;
   }
 
   .sec_navbar_row {
@@ -636,9 +766,9 @@
   .navbar {
     padding: 6px 8px;
     border-radius: 8px;
-    margin: 8px;
+    margin: 6px;
     flex-direction: row;
-    gap: 8px;
+    gap: 4px;
   }
 
   .navbar .first_navbar_row {
@@ -649,6 +779,41 @@
   .first_navbar_row_left {
     flex: 1;
     justify-content: flex-start;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* Ẩn menu routes trên mobile - dùng drawer thay thế */
+  .navbar_routes {
+    display: none;
+  }
+
+  /* Hiện nút hamburger menu */
+  .navbar_mobile_menu_btn {
+    display: flex;
+  }
+
+  /* Ẩn nút fullscreen trên mobile */
+  .navbar_fullscreen_btn {
+    display: none;
+  }
+
+  /* Ẩn version indicator trên mobile */
+  .navbar_version {
+    display: none !important;
+  }
+
+  /* Ẩn tên user trên mobile cực nhỏ (đã vào trong dropdown nếu cần), nếu không thì để hiện và truncate */
+  .full-name {
+    display: flex;
+    max-width: 100px;
+    padding: 4px 6px;
+    margin: 0;
+  }
+  .full-name .user_name_text {
+    font-size: 11px;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
   }
 
   .first_navbar_row_right {
@@ -667,7 +832,7 @@
   .default_header_label {
     font-size: 16px;
     padding-right: 8px;
-    border-right: 1px solid rgba(102, 126, 234, 0.3);
+    border-right: none;
     text-align: left;
   }
 
@@ -681,20 +846,8 @@
     height: 16px;
   }
 
-  .full-name {
-    max-width: 80px;
-    padding: 4px 8px;
-  }
-
-  .full-name .primary_bold_text {
-    font-size: 10px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
   .first_navbar_row_right ul {
-    gap: 8px;
+    gap: 6px;
   }
 
   .navbar_notification_dropdown_container {

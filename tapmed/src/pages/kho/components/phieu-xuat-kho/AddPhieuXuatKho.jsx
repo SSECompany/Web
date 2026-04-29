@@ -1,10 +1,12 @@
-import { LeftOutlined } from "@ant-design/icons";
+import { SaveOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
+import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuTable from "./components/VatTuTable";
@@ -59,18 +61,100 @@ const AddPhieuXuatKho = () => {
 
   const token = localStorage.getItem("access_token");
 
+
+
+  // LOCAL fetch vật tư giống PXĐC
+  const fetchVatTuList = useCallback(
+    async (keyword = "", page = 1, append = false, callback) => {
+      setLoadingVatTu(true);
+      try {
+        const userStr = localStorage.getItem("user");
+        const unitsResponseStr = localStorage.getItem("unitsResponse");
+        const user = userStr ? JSON.parse(userStr) : {};
+        const unitsResponse = unitsResponseStr
+          ? JSON.parse(unitsResponseStr)
+          : {};
+        const unitCode = user.unitCode || unitsResponse.unitCode;
+        const {
+          fetchVatTuListDynamicApi,
+        } = require("../phieu-nhat-hang/utils/phieuNhatHangUtils");
+        const res = await fetchVatTuListDynamicApi({
+          keyword,
+          unitCode,
+          pageIndex: page,
+          pageSize: 100,
+        });
+        if (res.success && res.data) {
+          const options = res.data.map((item) => ({
+            label: `${item.ma_vt} - ${item.ten_vt}`,
+            value: item.ma_vt,
+            ...item,
+          }));
+          setVatTuList((prev) => (append ? [...prev, ...options] : options));
+          if (callback) callback(res.pagination);
+        } else {
+          if (!append) setVatTuList([]);
+          if (callback) callback({ totalPage: 1 });
+        }
+      } catch (error) {
+        setVatTuList([]);
+        if (callback) callback({ totalPage: 1 });
+      } finally {
+        setLoadingVatTu(false);
+      }
+    },
+    []
+  );
+
+  // Phân trang vật tư
+  const fetchVatTuListPaging = useCallback(
+    async (keyword = "", page = 1, append = false) => {
+      setCurrentKeyword(keyword);
+      await fetchVatTuList(keyword, page, append, (pagination) => {
+        setPageIndex(page);
+        setTotalPage(pagination?.totalPage || 1);
+      });
+    },
+    [fetchVatTuList]
+  );
+
+  const handleVatTuSelect = useCallback(
+    async (value) => {
+      await vatTuSelectHandler(
+        value,
+        true,
+        fetchVatTuDetail,
+        fetchDonViTinh,
+        setVatTuInput,
+        setVatTuList,
+        fetchVatTuList,
+        vatTuSelectRef
+      );
+    },
+    [
+      vatTuSelectHandler,
+      fetchVatTuDetail,
+      fetchDonViTinh,
+      fetchVatTuList,
+    ]
+  );
+
+
   useEffect(() => {
     fetchMaGiaoDichList();
     fetchMaKhachList();
     fetchMaKhoList();
     fetchVatTuList();
-    fetchVoucherInfo();
 
     form.setFieldsValue({
       ngay: dayjs(),
       trangThai: "0",
+      ma_gd: "1",
+      so_ct: "",
+      ma_kh: "",
+      dien_giai: "",
     });
-  }, []);
+  }, [fetchMaGiaoDichList, fetchMaKhachList, fetchMaKhoList, fetchVatTuList, form]);
 
   useEffect(() => {
     if (barcodeJustEnabled && vatTuSelectRef.current) {
@@ -80,122 +164,20 @@ const AddPhieuXuatKho = () => {
   }, [barcodeJustEnabled]);
 
   useEffect(() => {
+    const searchTimeout = searchTimeoutRef.current;
     return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
       }
     };
   }, []);
 
-  const fetchVoucherInfo = async () => {
-    try {
-      const response = await https.get(
-        "v1/web/thong-tin-phieu-nhap",
-        { voucherCode: "PXA" },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
 
-      if (
-        response.data &&
-        response.data.data &&
-        response.data.data.length > 0
-      ) {
-        const voucherData = response.data.data[0];
-
-        form.setFieldsValue({
-          so_ct: voucherData.so_phieu_nhap,
-          ngay_ct: voucherData.ngay_lap ? dayjs(voucherData.ngay_lap) : dayjs(),
-          ma_gd: "2",
-          ma_kh: voucherData.ma_khach || "",
-          dien_giai: voucherData.dien_giai || "",
-          status: "3",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching voucher info:", error);
-    }
-  };
-
-  // LOCAL fetch vật tư giống PXĐC
-  const fetchVatTuList = async (
-    keyword = "",
-    page = 1,
-    append = false,
-    callback
-  ) => {
-    setLoadingVatTu(true);
-    try {
-      const userStr = localStorage.getItem("user");
-      const unitsResponseStr = localStorage.getItem("unitsResponse");
-      const user = userStr ? JSON.parse(userStr) : {};
-      const unitsResponse = unitsResponseStr
-        ? JSON.parse(unitsResponseStr)
-        : {};
-      const unitCode = user.unitCode || unitsResponse.unitCode;
-      const {
-        fetchVatTuListDynamicApi,
-      } = require("../phieu-nhat-hang/utils/phieuNhatHangUtils");
-      const res = await fetchVatTuListDynamicApi({
-        keyword,
-        unitCode,
-        pageIndex: page,
-        pageSize: 100,
-      });
-      if (res.success && res.data) {
-        const options = res.data.map((item) => ({
-          label: `${item.ma_vt} - ${item.ten_vt}`,
-          value: item.ma_vt,
-          ...item,
-        }));
-        setVatTuList((prev) => (append ? [...prev, ...options] : options));
-        if (callback) callback(res.pagination);
-      } else {
-        if (!append) setVatTuList([]);
-        if (callback) callback({ totalPage: 1 });
-      }
-    } catch (error) {
-      setVatTuList([]);
-      if (callback) callback({ totalPage: 1 });
-    } finally {
-      setLoadingVatTu(false);
-    }
-  };
-
-  // Phân trang vật tư
-  const fetchVatTuListPaging = async (
-    keyword = "",
-    page = 1,
-    append = false
-  ) => {
-    setCurrentKeyword(keyword);
-    await fetchVatTuList(keyword, page, append, (pagination) => {
-      setPageIndex(page);
-      setTotalPage(pagination?.totalPage || 1);
-    });
-  };
-
-  const handleVatTuSelect = async (value) => {
-    await vatTuSelectHandler(
-      value,
-      true,
-      fetchVatTuDetail,
-      fetchDonViTinh,
-      setVatTuInput,
-      setVatTuList,
-      fetchVatTuList,
-      vatTuSelectRef
-    );
-  };
 
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const values = await form.validateFields();
+      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
 
       if (!validateDataSource(dataSource)) return;
 
@@ -220,16 +202,12 @@ const AddPhieuXuatKho = () => {
             }
 
             // Gọi dynamicApi thêm mới phiếu xuất kho
-            const response = await https.post(
-              "v1/dynamicApi/call-dynamic-api",
-              payload,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
+            const response = await https.post("User/AddData", payload, {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            });
 
             const hasResponseModel =
               response?.data &&
@@ -239,7 +217,9 @@ const AddPhieuXuatKho = () => {
               : response?.data?.statusCode === 200;
 
             if (isSuccess) {
-              navigate("/kho/xuat-kho");
+              message.success("Tạo phiếu xuất kho thành công");
+              // Dùng window.location để tránh route matching issues
+              window.location.href = "/kho/xuat-kho";
             } else {
               const serverMsg =
                 response.data?.responseModel?.message || response.data?.message;
@@ -268,24 +248,38 @@ const AddPhieuXuatKho = () => {
   };
 
   return (
-    <div className="phieu-container">
-      <div className="phieu-header">
-        <Button
-          type="text"
-          icon={<LeftOutlined />}
-          onClick={() => navigate("/kho/xuat-kho")}
-          className="phieu-back-button"
-        >
-          Trở về
-        </Button>
-        <Title level={5} className="phieu-title">
-          THÊM PHIẾU XUẤT KHO
-        </Title>
-        <div style={{ width: 120 }}></div>
-      </div>
-
-      <div className="phieu-form-container">
-        <Form form={form} layout="vertical" className="phieu-form">
+    <FormTemplate
+      form={form}
+      onFinish={handleSubmit}
+      onBack={() => navigate("/kho/xuat-kho")}
+      badgeText="THÊM PHIẾU XUẤT KHO"
+      badgeColor="green"
+      metaDate={dayjs().format("DD-MM-YYYY")}
+      statusValue="0"
+      statusOptions={[
+        { value: "0", label: "Lập chứng từ" },
+        { value: "1", label: "Xuất kho" },
+        { value: "3", label: "Chuyển sổ cái" },
+        { value: "5", label: "Đề nghị xuất kho" },
+      ]}
+      fixedFooterActions={[
+        {
+          key: "save",
+          label: "Lưu phiếu",
+          icon: <SaveOutlined />,
+          type: "primary",
+          onClick: handleSubmit,
+          loading: loading,
+        },
+        {
+          key: "cancel",
+          label: "Hủy",
+          icon: <CloseCircleOutlined />,
+          onClick: () => navigate("/kho/xuat-kho"),
+        },
+      ]}
+    >
+      <Form form={form} layout="vertical" className="phieu-form phieu-form--floating">
           <PhieuFormInputs
             isEditMode={true}
             maKhachList={maKhachList}
@@ -328,24 +322,8 @@ const AddPhieuXuatKho = () => {
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
             fetchMaKhoList={fetchMaKhoList}
           />
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-start",
-              marginTop: 16,
-            }}
-          >
-            <Space>
-              <Button type="primary" onClick={handleSubmit} loading={loading}>
-                Lưu
-              </Button>
-              <Button onClick={() => navigate("/kho/xuat-kho")}>Hủy</Button>
-            </Space>
-          </div>
-        </Form>
-      </div>
-    </div>
+      </Form>
+    </FormTemplate>
   );
 };
 

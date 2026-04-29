@@ -12,10 +12,39 @@ export const phieuNhapKhoConfig = {
   soLuongCheatTitle: "Số lượng cheat",
   showSoLuongCheat: true,
   showMaKho: true,
+  showMaLo: true,
+  showMaViTri: true,
+  maLoLookup: true,
+  showThaoTac: true,
+  consolidateProduct: true,
+};
+
+// Cấu hình cho phiếu nhập hàng theo đơn
+export const phieuNhapHangConfig = {
+  tenMatHangField: "ten_mat_hang",
+  soLuongDeNghiField: "soLuongDeNghi",
+  soLuongDeNghiEditable: false,
+  showSoLuongDeNghi: false,
+  soLuongCheatTitle: "Số lượng",
+  soLuongCheatField: "so_luong",
+  showSoLuongCheat: true,
+  showMaKho: true,
+  maKhoRequired: false,
+  showMaLo: true,
+  showMaViTri: true,
+  showHanSuDung: true,
+  showDonHang: true,
+  maLoField: "ma_lo",
+  maViTriField: "ma_vi_tri",
+  hanSuDungField: "ngay_hh",
+  donHangField: "fcode2",
+  showThaoTac: false,
+  consolidateProduct: true,
 };
 
 // Cấu hình cho phiếu nhặt hàng
 export const phieuNhatHangConfig = {
+  showStt: false, 
   tenMatHangField: "ten_mat_hang",
   soLuongDeNghiField: "soLuongDeNghi",
   soLuongDeNghiEditable: false,
@@ -25,27 +54,33 @@ export const phieuNhatHangConfig = {
   soLuongCheatTitle: "Nhặt",
   showSoLuongCheat: false,
   showMaKho: false,
-  // Lock ĐVT editing for nhặt hàng (read-only display)
   dvtEditable: false,
-  // Các trường mới cho phiếu nhặt hàng
   showMaLo: true,
   maLoField: "ma_lo",
   showMaViTri: true,
   maViTriField: "ma_vi_tri",
   showGhiChu: true,
   ghiChuField: "ghi_chu",
-  showSoLuongTon: true,
+  ghiChuTitle: "Ghi chú nhặt", 
+  showGhiChuKD: true,
+  ghiChuKDField: "ghi_chu_dh",
+  showSoLuongTon: false,
   soLuongTonField: "so_luong_ton",
+  showTonKh: false,
+  tonKhField: "ton_kh",
+  integrateStockInfoInMatHang: true,
   showTongNhat: true,
   tongNhatField: "tong_nhat",
   tongNhatEditable: true,
+  showNhatCheckbox: true,
+  nhatCheckboxField: "nhat_checkbox",
   combineMaLoViTri: true,
-  // Sắp xếp lại thứ tự: tồn -> đơn -> tổng nhặt -> ghi chú
   tonDeNghiTongNhatGhiChuOrder: true,
-  // Hiển thị cột ghi chú ở cuối bảng
   placeGhiChuAtEnd: true,
-  // Thay đổi nút xóa thành nút thêm dòng mới
   useAddButtonInsteadOfDelete: true,
+  showThaoTac: true,
+  preventDeleteMainRow: true,
+  consolidateProduct: true,
 };
 
 // Cấu hình cho phiếu xuất kho
@@ -58,18 +93,37 @@ export const phieuXuatKhoConfig = {
   soLuongCheatTitle: "Số lượng cheat",
   showSoLuongCheat: true,
   showMaKho: true,
+  showMaLo: true,
+  showMaViTri: true,
+  maLoLookup: true,
+  showThaoTac: true,
+  consolidateProduct: true,
+};
+
+// Cấu hình cho phiếu nhập điều chuyển
+export const phieuNhapDieuChuyenConfig = {
+  tenMatHangField: "ten_vt",
+  soLuongDeNghiField: "so_luong",
+  soLuongDeNghiEditable: true,
+  showSoLuongDeNghi: true,
+  soLuongDeNghiTitle: "Số lượng",
+  soLuongCheatField: "sl_td3",
+  showSoLuongCheat: false,
+  showMaKho: false,
+  showMaLo: true,
+  maLoLookup: true, // Enable lookup for lot
+  showMaViTriTu: true,
+  showMaViTriDen: true,
+  maViTriTuField: "ma_vi_tri",
+  maViTriDenField: "ma_vi_tri_nh",
+  showThaoTac: true,
+  consolidateProduct: true,
 };
 
 // Cấu hình cho phiếu xuất điều chuyển
 export const phieuXuatDieuChuyenConfig = {
-  tenMatHangField: "maHang", // Lưu ý: phiếu này dùng maHang cho tên
-  soLuongDeNghiField: "so_luong",
-  soLuongDeNghiEditable: true,
-  showSoLuongDeNghi: true,
-  soLuongCheatField: "sl_td3",
-  soLuongCheatTitle: "Số lượng cheat",
-  showSoLuongCheat: true,
-  showMaKho: false, // Không có cột mã kho
+  ...phieuNhapDieuChuyenConfig,
+  showThaoTac: true,
 };
 
 // Cấu hình cho phiếu xuất kho bán hàng
@@ -81,7 +135,11 @@ export const phieuXuatKhoBanHangConfig = {
   soLuongCheatField: "sl_td3",
   soLuongCheatTitle: "Số lượng xuất",
   showSoLuongCheat: true,
-  showMaKho: false, // Không có cột mã kho
+  showMaKho: true,
+  showMaLo: true,
+  showMaViTri: true,
+  maLoLookup: true,
+  showThaoTac: true,
 };
 
 /**
@@ -92,8 +150,10 @@ export const phieuXuatKhoBanHangConfig = {
 export const getTableConfig = (type) => {
   const configs = {
     "nhap-kho": phieuNhapKhoConfig,
+    "nhap-hang": phieuNhapHangConfig,
     "nhat-hang": phieuNhatHangConfig,
     "xuat-kho": phieuXuatKhoConfig,
+    "nhap-dieu-chuyen": phieuNhapDieuChuyenConfig,
     "xuat-dieu-chuyen": phieuXuatDieuChuyenConfig,
     "xuat-kho-ban-hang": phieuXuatKhoBanHangConfig,
   };

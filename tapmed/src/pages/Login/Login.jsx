@@ -5,6 +5,7 @@ import {
 } from "@ant-design/icons";
 import { UilExclamationOctagon } from "@iconscout/react-unicons";
 import {
+  App,
   Button,
   Carousel,
   Checkbox,
@@ -12,20 +13,24 @@ import {
   Input,
   Select,
   Space,
-  notification,
 } from "antd";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router-dom"; // Import useLocation
 import { useDebouncedCallback } from "use-debounce";
 import { apiGetStoreByUser } from "../../api";
+import useVersionCheck from "../../hooks/useVersionCheck";
 import router from "../../router/routes";
 import { setClaims } from "../../store/reducers/claimsSlice";
 import https from "../../utils/https";
 import jwt from "../../utils/jwt";
+import { clearAllTokenData } from "../../utils/tokenUtils";
 import "./Login.css";
 
 const Login = () => {
+  const { notification } = App.useApp();
+  // Check version ngay từ màn login để tránh đăng nhập xong bị logout do lệch version
+  useVersionCheck();
   const [loginLoading, setLoginLoading] = useState(false);
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +49,7 @@ const Login = () => {
       setLoginLoading(false);
       return notification.warning({
         message: `Vui lòng chọn đơn vị`,
-        placement: "topLeft",
+        placement: "topRight",
         icon: <UilExclamationOctagon size="25" color="#ffba00" />,
       });
     }
@@ -62,7 +67,7 @@ const Login = () => {
           if (res?.status == 203) {
             return notification.warning({
               message: `Sai tài khoản hoặc mật khẩu`,
-              placement: "topLeft",
+              placement: "topRight",
               icon: <UilExclamationOctagon size="25" color="#ffba00" />,
             });
           }
@@ -70,6 +75,14 @@ const Login = () => {
           jwt.setAccessToken(res.data.token);
           jwt.setRefreshToken(res.data.refreshToken);
           const claims = jwt.saveClaims(res.data.token);
+          if (claims.Permision === "") {
+            clearAllTokenData();
+            return notification.error({
+              message: `Lỗi Phân Quyền`,
+              description: "Tài khoản không được cấp quyền.",
+              placement: "topRight",
+            });
+          }
           dispatch(setClaims(claims));
           const from = location.state?.from || "/";
           router.navigate(from, { replace: true });
@@ -77,6 +90,13 @@ const Login = () => {
             message: `Đăng nhập thành công`,
           });
         }
+      })
+      .catch((err) => {
+        setLoginLoading(false);
+        notification.error({
+          message: err?.message || "Đăng nhập thất bại",
+          placement: "topRight",
+        });
       });
   };
 
@@ -96,24 +116,27 @@ const Login = () => {
     await apiGetStoreByUser({
       unitId: unitSelected?.value.trim() || "",
       userName: userName,
-    }).then((res) => {
-      setLoginLoading(false);
-      setStoreOptions([
-        ...res.map((item) => {
-          return {
-            value: item.ma_bp,
-            label: item.ten_bp,
-          };
-        }),
-      ]);
-    });
+    })
+      .then((res) => {
+        setLoginLoading(false);
+        setStoreOptions([
+          ...res.map((item) => {
+            return {
+              value: item.ma_bp,
+              label: item.ten_bp,
+            };
+          }),
+        ]);
+      })
+      .catch(() => setLoginLoading(false));
   };
 
   useEffect(() => {
     if (unitSelected?.value) {
       fetchStoreData();
     }
-  }, [unitSelected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unitSelected?.value]);
 
   useEffect(() => {
     setUnits([{ value: "", label: "Không" }]);
@@ -139,7 +162,8 @@ const Login = () => {
             setUnitSelected({ value: "", label: "Không" });
           }
           setLoginLoading(false);
-        });
+        })
+        .catch(() => setLoginLoading(false));
     };
 
     if (userName) {
@@ -148,14 +172,25 @@ const Login = () => {
       setUnits([{ value: "", label: "Không" }]);
       setUnitSelected({ value: "", label: "Không" });
     }
-  }, [JSON.stringify(userName)]);
+  }, [userName]);
 
   useEffect(() => {
     if (jwt.checkExistToken()) {
       dispatch(setClaims(jwt.saveClaims(jwt.getAccessToken())));
       router.navigate("/");
     }
-  }, [dispatch]);
+    
+    // Check if we were redirected here with an error
+    if (location.state?.error) {
+      notification.error({
+        message: 'Lỗi Phân Quyền',
+        description: location.state.error,
+        placement: "topRight",
+      });
+      // Clear the state so it doesn't show again on refresh
+      window.history.replaceState({}, document.title)
+    }
+  }, [dispatch, location.state, notification]);
 
   const handleChangeUnit = (item) => {
     setUnitSelected(units.find((unit) => unit.value == item));
@@ -246,13 +281,17 @@ const Login = () => {
               <Select
                 style={{
                   width: "100%",
+                  minWidth: 0,
                 }}
                 size="large"
                 className="default_select"
                 value={unitSelected}
                 options={units}
                 popupMatchSelectWidth={false}
+                classNames={{ popup: { root: 'login_unit_select_dropdown' } }}
                 onSelect={handleChangeUnit}
+                optionLabelProp="label"
+                maxTagCount="responsive"
               />
             </Space>
 

@@ -14,7 +14,8 @@ export const useVatTuManager = () => {
     setVatTuInput,
     setVatTuList,
     fetchVatTuList,
-    vatTuSelectRef
+    vatTuSelectRef,
+    selectedOption = null
   ) => {
     if (!isEditMode) {
       message.warning("Bạn cần bật chế độ chỉnh sửa");
@@ -47,10 +48,11 @@ export const useVatTuManager = () => {
     };
 
     try {
-      const vatTuDetail = await fetchVatTuDetail(value.trim());
+      // Luôn fetch detail để lấy đủ thông tin theo kho, giá và hệ số quy đổi
+      let vatTuDetail = await fetchVatTuDetail(value.trim());
 
       if (!vatTuDetail) {
-        message.error("Thông tin vật tư không hợp lệ!");
+        message.error("Không tìm thấy thông tin chi tiết vật tư!");
         if (setVatTuInput) setTimeout(() => setVatTuInput(""), 2000);
         return false;
       }
@@ -60,7 +62,7 @@ export const useVatTuManager = () => {
         : vatTuDetail;
 
       if (!vatTuInfo) {
-        message.error("Thông tin vật tư không hợp lệ!");
+        message.error("Thông tin vật tư rỗng!");
         if (setVatTuInput) setTimeout(() => setVatTuInput(""), 2000);
         return false;
       }
@@ -68,7 +70,7 @@ export const useVatTuManager = () => {
       const donViTinhList = await fetchDonViTinh(value.trim());
 
       if (!Array.isArray(donViTinhList)) {
-        message.error("Thông tin vật tư không hợp lệ!");
+        message.error("Lỗi khi tải danh sách đơn vị tính!");
         if (setVatTuInput) setTimeout(() => setVatTuInput(""), 2000);
         return false;
       }
@@ -137,6 +139,7 @@ export const useVatTuManager = () => {
                 dvt: dvtHienTai || dvtAPI,
                 dvt_goc: dvtAPI,
                 ma_kho: (vatTuInfo.ma_kho || item.ma_kho || "").trim(), // Cập nhật ma_kho từ API, fallback về giá trị cũ
+                image: vatTuInfo.image || item.image || null,
                 donViTinhList: donViTinhList,
                 isNewlyAdded: item.isNewlyAdded,
                 _lastUpdated: Date.now(),
@@ -189,6 +192,7 @@ export const useVatTuManager = () => {
             so_luong_hienThi = so_luong_goc * heSoHienTai;
           }
 
+          const productName = vatTuInfo.ten_vt || vatTuInfo.label || value;
           const newItem = {
             key: prev.length + 1,
             maHang: value,
@@ -198,7 +202,8 @@ export const useVatTuManager = () => {
             sl_td3_goc: Math.round(sl_td3_goc * 1000) / 1000, // Số lượng cheat gốc = 1
             he_so: heSoHienTai,
             he_so_goc: heSoGocFromAPI,
-            ten_mat_hang: vatTuInfo.ten_vt || value,
+            ten_mat_hang: productName,
+            image: vatTuInfo.image || null,
             dvt: dvtHienTai,
             dvt_goc: dvtGocFromAPI,
             tk_vt: vatTuInfo.tk_vt ? vatTuInfo.tk_vt.trim() : "",
@@ -272,7 +277,7 @@ export const useVatTuManager = () => {
             tk_du: "",
             
             // Product name từ API response
-            ten_vt: vatTuInfo.ten_vt || value,
+            ten_vt: productName,
 
             // Other financial fields
             gia_nt: 0,
@@ -335,7 +340,7 @@ export const useVatTuManager = () => {
       return true;
     } catch (error) {
       console.error("Error adding vat tu:", error);
-      message.error("Thông tin vật tư không hợp lệ!");
+      message.error("Lỗi khi thêm vật tư: " + error.message);
       return false;
     } finally {
       // Reset processing flag after a delay
@@ -353,7 +358,7 @@ export const useVatTuManager = () => {
     if (value === "") {
       newValue = 0;
     } else if (value === ".") {
-      // Nếu chỉ có dấu chấm, giữ nguyên để người dùng tiếp tục nhập
+      // Nếu chỉ có dấu chấm, giữ nguyên để người dùng tiếp tục xuất
       newValue = value;
     } else if (value.endsWith(".")) {
       // Nếu kết thúc bằng dấu chấm, giữ nguyên chuỗi
@@ -496,6 +501,20 @@ export const useVatTuManager = () => {
     });
   };
 
+  const handleSelectChange = (value, record, field) => {
+    setDataSource((prev) =>
+      prev.map((item) =>
+        item.key === record.key
+          ? {
+              ...item,
+              [field]: value,
+              _lastUpdated: Date.now(),
+            }
+          : item
+      )
+    );
+  };
+
   return {
     dataSource,
     setDataSource,
@@ -503,5 +522,6 @@ export const useVatTuManager = () => {
     handleQuantityChange,
     handleDeleteItem,
     handleDvtChange,
+    handleSelectChange,
   };
 };

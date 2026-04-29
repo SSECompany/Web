@@ -702,6 +702,7 @@ const PrescriptionModal = ({ isOpen, onClose, onApplyPrescription }) => {
       key: "select",
       width: 320,
       minWidth: 280,
+      align: "center",
       render: (_, record) => (
         <VatTuSelectFullPOS
           isEditMode={true}
@@ -755,6 +756,7 @@ const PrescriptionModal = ({ isOpen, onClose, onApplyPrescription }) => {
       key: "maThuoc",
       width: 140,
       minWidth: 120,
+      align: "center",
       render: (text) => <div>{text}</div>,
     },
     {
@@ -763,6 +765,7 @@ const PrescriptionModal = ({ isOpen, onClose, onApplyPrescription }) => {
       key: "tenThuoc",
       width: 250,
       minWidth: 220,
+      align: "center",
       render: (text) => (
         <div
           style={{
@@ -781,6 +784,7 @@ const PrescriptionModal = ({ isOpen, onClose, onApplyPrescription }) => {
       key: "hoatChat",
       width: 320,
       minWidth: 280,
+      align: "center",
       render: (text) => (
         <div
           style={{
@@ -799,6 +803,7 @@ const PrescriptionModal = ({ isOpen, onClose, onApplyPrescription }) => {
       key: "dvt",
       width: 80,
       minWidth: 70,
+      align: "center",
     },
     {
       title: "SL kê đơn",
@@ -806,6 +811,7 @@ const PrescriptionModal = ({ isOpen, onClose, onApplyPrescription }) => {
       key: "slKeDon",
       width: 110,
       minWidth: 90,
+      align: "center",
     },
     {
       title: "Cách dùng",
@@ -813,6 +819,7 @@ const PrescriptionModal = ({ isOpen, onClose, onApplyPrescription }) => {
       key: "cachDung",
       width: 220,
       minWidth: 180,
+      align: "center",
       render: (text) => (
         <div
           style={{

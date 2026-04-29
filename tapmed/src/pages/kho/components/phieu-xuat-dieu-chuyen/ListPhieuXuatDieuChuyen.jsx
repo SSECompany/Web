@@ -2,16 +2,22 @@ import {
   DeleteOutlined,
   EditOutlined,
   FileTextOutlined,
+  FilterOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
-import { Button, DatePicker, Input, message, Tag, Typography } from "antd";
+import { Button, Checkbox, DatePicker, Input, message, Tag, Typography, Select, Table } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
-import CommonPhieuList from "../CommonPhieuList";
-import { fetchPhieuXuatDieuChuyenList } from "./utils/phieuXuatDieuChuyenApi";
+import ListTemplate from "../../../../components/common/PageTemplates/ListTemplate";
+import {
+  fetchPhieuXuatDieuChuyenList,
+  deletePhieuXuatDieuChuyen,
+} from "./utils/phieuXuatDieuChuyenApi";
+
 
 const { RangePicker } = DatePicker;
 
@@ -26,15 +32,13 @@ const ListPhieuXuatDieuChuyen = () => {
   const [screenSize, setScreenSize] = useState("desktop");
   const [filters, setFilters] = useState({
     so_ct: "",
+    ma_khox: "",
     ma_kho: "",
-    ma_khon: "",
-    dateRange: null,
+    status: [],
   });
 
+
   const pageSize = 20;
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedData = allData.slice(startIndex, endIndex);
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -55,11 +59,11 @@ const ListPhieuXuatDieuChuyen = () => {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  const fetchPhieuXuatDieuChuyen = async (filterParams = filters) => {
+  const fetchPhieuXuatDieuChuyen = useCallback(async (filterParams = filters) => {
     const params = {
       so_ct: filterParams.so_ct || "",
-      ma_kho: filterParams.ma_kho || "",
-      ma_khon: filterParams.ma_khon || "",
+      ma_kho: filterParams.ma_kho || "",    // Mã kho nhận trong procedure
+      ma_khox: filterParams.ma_khox || "",  // Mã kho xuất trong procedure
       DateFrom:
         filterParams.dateRange && filterParams.dateRange[0]
           ? filterParams.dateRange[0].format("YYYY-MM-DD")
@@ -70,8 +74,9 @@ const ListPhieuXuatDieuChuyen = () => {
           : dayjs().endOf("month").format("YYYY-MM-DD"),
       PageIndex: currentPage,
       PageSize: pageSize,
-      Status: "",
+      Status: filterParams.status && filterParams.status.length > 0 ? filterParams.status.join(",") : "",
     };
+
 
     const result = await fetchPhieuXuatDieuChuyenList(params);
 
@@ -84,28 +89,79 @@ const ListPhieuXuatDieuChuyen = () => {
         result.error
       );
     }
-  };
+  }, [currentPage, filters, pageSize]);
 
   useEffect(() => {
     fetchPhieuXuatDieuChuyen();
-  }, []);
+  }, [fetchPhieuXuatDieuChuyen]);
+
+  const handleRefresh = () => {
+    fetchPhieuXuatDieuChuyen(filters);
+  };
+
+  const removeFilter = (key) => {
+    const newFilters = { ...filters };
+    if (key === "dateRange") {
+      newFilters.dateRange = null;
+    } else {
+      newFilters[key] = "";
+    }
+    setFilters(newFilters);
+    fetchPhieuXuatDieuChuyen(newFilters);
+  };
+
+  const clearAllFilters = () => {
+    const cleared = {
+      so_ct: "",
+      ma_khox: "",
+      ma_kho: "",
+      dateRange: null,
+      status: [],
+
+    };
+    setFilters(cleared);
+    fetchPhieuXuatDieuChuyen(cleared);
+  };
+
+  const activeChips = useMemo(() => {
+    const chips = [];
+    if (filters.so_ct)
+      chips.push({ key: "so_ct", label: "Số chứng từ", value: filters.so_ct });
+    if (filters.ma_khox)
+      chips.push({ key: "ma_khox", label: "Mã kho xuất", value: filters.ma_khox });
+    if (filters.ma_kho)
+      chips.push({ key: "ma_kho", label: "Mã kho nhận", value: filters.ma_kho });
+
+    if (filters.dateRange && filters.dateRange.length === 2) {
+      const display = `${filters.dateRange[0].format(
+        "DD/MM/YYYY"
+      )} - ${filters.dateRange[1].format("DD/MM/YYYY")}`;
+      chips.push({ key: "dateRange", label: "Ngày", value: display });
+    }
+    if (filters.status && filters.status.length > 0) {
+      const statusLabels = {
+        "0": "Lập chứng từ",
+        "1": "Điều chuyển",
+        "2": "Chuyển KTTH",
+        "3": "Chuyển sổ cái",
+        "9": "Tài chính",
+      };
+      const display = filters.status.map(s => statusLabels[s] || s).join(", ");
+      chips.push({ key: "status", label: "Trạng thái", value: display });
+    }
+    return chips;
+  }, [filters]);
+
+  // chipsBar removed, handled by ListTemplate
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case "0":
-        return "orange";
-      case "2":
-        return "blue";
-      case "3":
-        return "green";
-      case "4":
-        return "cyan";
-      case "5":
-        return "purple";
-      case "6":
-        return "gold";
-      default:
-        return "default";
+    switch (String(status)) {
+      case "0": return "orange";   // Lập chứng từ
+      case "1": return "blue";     // Điều chuyển
+      case "2": return "cyan";     // Chuyển KTTH
+      case "3": return "green";    // Chuyển sổ cái
+      case "9": return "gold";     // Tài chính
+      default:  return "default";
     }
   };
 
@@ -121,417 +177,288 @@ const ListPhieuXuatDieuChuyen = () => {
             return;
           }
 
-          const body = {
-            store: "api_delete_xuat_dieu_chuyen_voucher",
-            param: { stt_rec: sttRec },
-            data: {},
-          };
-          const response = await https.post(
-            "v1/dynamicApi/call-dynamic-api",
-            body,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          const hasResponseModel =
-            response?.data &&
-            typeof response.data.responseModel !== "undefined";
-          const isSuccess = hasResponseModel
-            ? response.data.responseModel.isSucceded === true
-            : response?.data?.statusCode === 200;
-
-          if (isSuccess) {
-            message.success("Xóa phiếu xuất điều chuyển thành công");
+          const result = await deletePhieuXuatDieuChuyen(sttRec);
+          if (result.success) {
             await fetchPhieuXuatDieuChuyen();
-          } else {
-            message.error(
-              response.data?.message || "Xóa phiếu xuất điều chuyển thất bại"
-            );
           }
         } catch (error) {
           console.error("Lỗi khi xóa phiếu xuất điều chuyển:", error);
-          if (error.response?.data?.message) {
-            message.error(error.response.data.message);
-          } else {
-            message.error("Có lỗi xảy ra khi xóa phiếu xuất điều chuyển");
-          }
         }
       },
     });
   };
 
+
   const getColumns = () => {
-    const baseColumns = [
+    const columns = [
       {
-        title: "STT",
-        key: "stt",
-        render: (_, __, index) => index + 1,
-        width: 60,
+        title: "Chứng từ",
+        key: "chung_tu",
+        width: 160,
         align: "center",
-      },
-      {
-        title: "Mã phiếu",
-        dataIndex: "stt_rec",
-        key: "stt_rec",
-        width: 150,
-        align: "center",
-      },
-      {
-        title: "Ngày CT",
-        dataIndex: "ngay_ct",
-        key: "ngay_ct",
-        width: 150,
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <RangePicker
-              inputReadOnly
-              value={
-                selectedKeys[0] && selectedKeys[1]
-                  ? [
-                      dayjs(selectedKeys[0], "DD/MM/YYYY"),
-                      dayjs(selectedKeys[1], "DD/MM/YYYY"),
-                    ]
-                  : null
-              }
-              onChange={(dates) => {
-                if (dates && dates.length === 2) {
-                  setSelectedKeys([
-                    dates[0].format("DD/MM/YYYY"),
-                    dates[1].format("DD/MM/YYYY"),
-                  ]);
-                } else {
-                  setSelectedKeys([]);
-                }
-              }}
-              style={{ marginBottom: 8 }}
-              format="DD/MM/YYYY"
-              placeholder={["Từ ngày", "Đến ngày"]}
-            />
-            <Button
-              className="search_button"
-              type="primary"
-              onClick={() => {
-                confirm();
-                const newFilters = {
-                  ...filters,
-                  dateRange:
-                    selectedKeys.length === 2
-                      ? [
-                          dayjs(selectedKeys[0], "DD/MM/YYYY"),
-                          dayjs(selectedKeys[1], "DD/MM/YYYY"),
-                        ]
-                      : null,
-                };
-                setFilters(newFilters);
-                fetchPhieuXuatDieuChuyen(newFilters);
-              }}
-              size="small"
-            >
-              Tìm kiếm
-            </Button>
+        render: (_, record) => (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+              <Typography.Text strong>{record.so_ct?.trim()}</Typography.Text>
+            </div>
+            <div style={{ fontSize: '11px', color: '#8c8c8c' }}>{dayjs(record.ngay_ct).format("DD/MM/YYYY")}</div>
+            <div style={{ fontSize: '10px', color: '#6366f1' }}>Lập: {dayjs(record.datetime0).format("DD/MM/YYYY")}</div>
           </div>
         ),
-        filteredValue:
-          filters.dateRange && filters.dateRange.length === 2
-            ? [
-                filters.dateRange[0].format("DD/MM/YYYY"),
-                filters.dateRange[1].format("DD/MM/YYYY"),
-              ]
-            : null,
-        render: (text) =>
-          dayjs(text).format(screenSize === "mobile" ? "DD/MM" : "DD/MM/YYYY"),
+        filterDropdown: ({ confirm }) => (
+          <div style={{ padding: 12, width: 280 }}>
+            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Số chứng từ:</div>
+            <Input
+              placeholder="Nhập số CT..."
+              value={filters.so_ct}
+              onChange={e => {
+                const val = e.target.value;
+                setFilters(prev => ({ ...prev, so_ct: val }));
+              }}
+              onPressEnter={() => {
+                fetchPhieuXuatDieuChuyen(filters);
+                confirm();
+              }}
+              style={{ marginBottom: 16, display: 'block' }}
+            />
+            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Khoảng ngày:</div>
+            <RangePicker
+              value={filters.dateRange}
+              onChange={(dates) => {
+                setFilters(prev => ({ ...prev, dateRange: dates }));
+              }}
+              format="DD/MM/YYYY"
+              style={{ width: '100%', marginBottom: 16 }}
+              placeholder={['Từ ngày', 'Đến ngày']}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <Button 
+                onClick={() => {
+                  const cleared = { ...filters, so_ct: "", dateRange: null };
+                  setFilters(cleared);
+                  fetchPhieuXuatDieuChuyen(cleared);
+                  confirm();
+                }}
+                style={{ flex: 1, borderRadius: '8px' }}
+              >
+                Xóa lọc
+              </Button>
+              <Button 
+                type="primary" 
+                onClick={() => {
+                  fetchPhieuXuatDieuChuyen(filters);
+                  confirm();
+                }}
+                style={{ flex: 1, borderRadius: '8px', background: '#6366f1' }}
+              >
+                Tìm kiếm
+              </Button>
+            </div>
+          </div>
+        ),
+        filteredValue: (filters.so_ct || filters.dateRange) ? [1] : null,
+      },
+      {
+        title: "Kho Xuất -> Nhập",
+        key: "kho_transfer",
+        width: 180,
+        align: "center",
+        render: (_, record) => (
+          <div>
+            <Tag color="cyan">{record.ma_kho?.trim()}</Tag>
+            <div style={{ fontSize: '12px', margin: '2px 0' }}>→</div>
+            <Tag color="blue">{record.ma_khon?.trim()}</Tag>
+          </div>
+        )
+      },
+      {
+        title: "Thông tin",
+        key: "thong_tin",
+        width: 250,
+        render: (_, record) => (
+          <div>
+            <div style={{ fontWeight: 600, color: '#1a1a1a' }}>GD: {record.ma_gd?.trim()}</div>
+            <div style={{ fontSize: '12px', color: '#475569', lineHeight: '1.4' }}>Diễn giải : {record.dien_giai?.trim()}</div>
+          </div>
+        )
+      },
+      {
+        title: "Tài chính",
+        key: "tai_chinh",
+        width: 140,
+        align: "center",
+        render: (_, record) => {
+          const amount = record.t_tt !== null && record.t_tt !== undefined ? record.t_tt : (record.t_tien || 0);
+          return (
+            <div style={{ fontWeight: 700, color: '#52c41a', fontSize: '14px' }}>
+              {Number(amount).toLocaleString("vi-VN")}
+            </div>
+          );
+        }
+      },
+      {
+        title: "Trạng thái",
+        dataIndex: "statusname",
+        key: "status",
+        width: 150,
+        align: "center",
+        render: (statusname, record) => {
+          if (record.status === "*" || record.status === null) return "";
+          const displayText = (statusname ? statusname.replace(/^\d+\.\s*/, "") : "");
+          return <Tag color={getStatusColor(record.status)} style={{ margin: 0 }}>{displayText}</Tag>;
+        },
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+          <div style={{ padding: 12, minWidth: 220 }}>
+            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Trạng thái:</div>
+            <Checkbox.Group
+              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              value={selectedKeys}
+              onChange={(value) => setSelectedKeys(value)}
+              options={[
+                { label: "Lập chứng từ", value: "0" },
+                { label: "Điều chuyển",   value: "1" },
+                { label: "Chuyển KTTH",   value: "2" },
+                { label: "Chuyển sổ cái", value: "3" },
+                { label: "Tài chính",     value: "9" },
+              ]}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <Button 
+                onClick={() => {
+                  setSelectedKeys([]);
+                  const newFilters = { ...filters, status: [] };
+                  setFilters(newFilters);
+                  fetchPhieuXuatDieuChuyen(newFilters);
+                  confirm();
+                }}
+                style={{ flex: 1, borderRadius: '8px' }}
+              >
+                Xóa
+              </Button>
+              <Button 
+                type="primary" 
+                onClick={() => {
+                  const newFilters = { ...filters, status: selectedKeys };
+                  setFilters(newFilters);
+                  fetchPhieuXuatDieuChuyen(newFilters);
+                  confirm();
+                }}
+                style={{ flex: 1, borderRadius: '8px', background: '#6366f1' }}
+              >
+                Lọc
+              </Button>
+            </div>
+          </div>
+        ),
+        filteredValue: filters.status && filters.status.length > 0 ? filters.status : null,
+      },
+      {
+        title: "Nhân sự",
+        key: "nhan_su",
+        width: 180,
+        render: (_, record) => (
+          <div style={{ fontSize: '12px' }}>
+            <div style={{ color: '#1a1a1a', fontWeight: 500 }}>{record.nguoi_tao?.trim()}</div>
+            <div style={{ color: '#8c8c8c' }}>Giao: {record.ong_ba?.trim()}</div>
+          </div>
+        )
+      },
+      {
+        title: "Hành động",
+        key: "action",
+        width: 120,
+        align: "center",
+        fixed: "right",
+        render: (_, record) => (
+          <div className="phieu-action-group">
+            <button
+              className="phieu-action-btn phieu-action-btn--view"
+              title="Xem chi tiết"
+              onClick={() =>
+                navigate(`/kho/xuat-dieu-chuyen/chi-tiet/${record.stt_rec}`, {
+                  state: { sctRec: record.stt_rec },
+                })
+              }
+            >
+              <FileTextOutlined />
+            </button>
+            <button
+              className="phieu-action-btn phieu-action-btn--edit"
+              title="Chỉnh sửa"
+              onClick={() =>
+                navigate(`/kho/xuat-dieu-chuyen/edit/${record.stt_rec}`, {
+                  state: { sctRec: record.stt_rec },
+                })
+              }
+            >
+              <EditOutlined />
+            </button>
+            <button
+              className="phieu-action-btn phieu-action-btn--delete"
+              title="Xóa"
+              onClick={() => handleDelete(record.stt_rec)}
+            >
+              <DeleteOutlined />
+            </button>
+          </div>
+        ),
       },
     ];
 
-    if (screenSize !== "mobile") {
-      baseColumns.push({
-        title: () => (
-          <div className="filter-column-header">
-            Số chứng từ{" "}
-            {filters.so_ct ? (
-              <Tag color="blue" size="small">
-                {filters.so_ct}
-              </Tag>
-            ) : null}
-          </div>
-        ),
-        dataIndex: "so_ct",
-        key: "so_ct",
-        width: 150,
-        align: "center",
-        render: (text) => (text ? text.trim() : ""),
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm Số CT"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                confirm();
-                const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
-                setFilters(newFilters);
-                fetchPhieuXuatDieuChuyen(newFilters);
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              className="search_button"
-              type="primary"
-              onClick={() => {
-                confirm();
-                const newFilters = { ...filters, so_ct: selectedKeys[0] || "" };
-                setFilters(newFilters);
-                fetchPhieuXuatDieuChuyen(newFilters);
-              }}
-              size="small"
-            >
-              Tìm kiếm
-            </Button>
-          </div>
-        ),
-        filteredValue: filters.so_ct ? [filters.so_ct] : null,
-      });
-    }
-
-    if (screenSize !== "mobile") {
-      baseColumns.push(
-        {
-          title: () => (
-            <div className="filter-column-header">
-              Mã kho{" "}
-              {filters.ma_kho ? (
-                <Tag color="blue" size="small">
-                  {filters.ma_kho}
-                </Tag>
-              ) : null}
-            </div>
-          ),
-          dataIndex: "ma_kho",
-          key: "ma_kho",
-          width: 150,
-          align: "center",
-          render: (text) => (text ? text.trim() : ""),
-          filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-            <div style={{ padding: 8 }}>
-              <Input
-                placeholder="Tìm Mã kho"
-                value={selectedKeys[0]}
-                onChange={(e) =>
-                  setSelectedKeys(e.target.value ? [e.target.value] : [])
-                }
-                onPressEnter={() => {
-                  confirm();
-                  const newFilters = {
-                    ...filters,
-                    ma_kho: selectedKeys[0] || "",
-                  };
-                  setFilters(newFilters);
-                  fetchPhieuXuatDieuChuyen(newFilters);
-                }}
-                style={{ marginBottom: 8, display: "block" }}
-              />
-              <Button
-                className="search_button"
-                type="primary"
-                onClick={() => {
-                  confirm();
-                  const newFilters = {
-                    ...filters,
-                    ma_kho: selectedKeys[0] || "",
-                  };
-                  setFilters(newFilters);
-                  fetchPhieuXuatDieuChuyen(newFilters);
-                }}
-                size="small"
-              >
-                Tìm kiếm
-              </Button>
-            </div>
-          ),
-          filteredValue: filters.ma_kho ? [filters.ma_kho] : null,
-        },
-        {
-          title: () => (
-            <div className="filter-column-header-wide">
-              Mã kho nhập
-              {filters.ma_khon ? (
-                <Tag color="blue" size="small">
-                  {filters.ma_khon}
-                </Tag>
-              ) : null}
-            </div>
-          ),
-          dataIndex: "ma_khon",
-          key: "ma_khon",
-          width: 250,
-          align: "center",
-          render: (text) => (text ? text.trim() : ""),
-          filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-            <div style={{ padding: 8 }}>
-              <Input
-                placeholder="Tìm Mã kho nhập"
-                value={selectedKeys[0]}
-                onChange={(e) =>
-                  setSelectedKeys(e.target.value ? [e.target.value] : [])
-                }
-                onPressEnter={() => {
-                  confirm();
-                  const newFilters = {
-                    ...filters,
-                    ma_khon: selectedKeys[0] || "",
-                  };
-                  setFilters(newFilters);
-                  fetchPhieuXuatDieuChuyen(newFilters);
-                }}
-                style={{ marginBottom: 8, display: "block" }}
-              />
-              <Button
-                className="search_button"
-                type="primary"
-                onClick={() => {
-                  confirm();
-                  const newFilters = {
-                    ...filters,
-                    ma_khon: selectedKeys[0] || "",
-                  };
-                  setFilters(newFilters);
-                  fetchPhieuXuatDieuChuyen(newFilters);
-                }}
-                size="small"
-              >
-                Tìm kiếm
-              </Button>
-            </div>
-          ),
-          filteredValue: filters.ma_khon ? [filters.ma_khon] : null,
-        }
-      );
-    }
-
-    baseColumns.push({
-      title: "Trạng thái",
-      dataIndex: "statusname",
-      key: "status",
-      width: 180, // tăng width cho cột trạng thái
-      align: "center",
-      render: (statusname, record) => {
-        if (record.status === "*" || record.status === null) {
-          return "";
-        }
-        const getStatusText = (status) => {
-          const statusMap = {
-            0: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
-            2: screenSize === "mobile" ? "Xuất" : "Xuất kho",
-            3: screenSize === "mobile" ? "Chuyển" : "Chuyển số cài",
-            4: screenSize === "mobile" ? "Hoàn tất" : "Hoàn tất",
-            5: screenSize === "mobile" ? "Đề nghị" : "Đề nghị xuất kho",
-            6: screenSize === "mobile" ? "Đang xử lý" : "Đang xử lý",
-          };
-          return statusMap[status] || "Không xác định";
-        };
-        const displayText = statusname || getStatusText(record.status);
-        const statusColor = getStatusColor(record.status);
-        return <Tag color={statusColor}>{displayText}</Tag>;
-      },
-    });
-
-    baseColumns.push({
-      title: "Hành động",
-      key: "action",
-      width: 150,
-      align: "center",
-      fixed: "right",
-      render: (_, record) => (
-        <div className="phieu-action-group">
-          <button
-            className="phieu-action-btn phieu-action-btn--view"
-            title="Xem chi tiết"
-            onClick={() =>
-              navigate(`/kho/xuat-dieu-chuyen/chi-tiet/${record.stt_rec}`, {
-                state: { sctRec: record.stt_rec },
-              })
-            }
-          >
-            <FileTextOutlined />
-          </button>
-          <button
-            className="phieu-action-btn phieu-action-btn--edit"
-            title="Chỉnh sửa"
-            onClick={() =>
-              navigate(`/kho/xuat-dieu-chuyen/chi-tiet/${record.stt_rec}`, {
-                state: { sctRec: record.stt_rec },
-              })
-            }
-          >
-            <EditOutlined />
-          </button>
-          <button
-            className="phieu-action-btn phieu-action-btn--delete"
-            title="Xóa"
-            onClick={() => handleDelete(record.stt_rec)}
-          >
-            <DeleteOutlined />
-          </button>
-        </div>
-      ),
-    });
-
-    return baseColumns;
+    return columns;
   };
 
-  const getTableProps = () => {
-    const baseProps = {
-      columns: getColumns(),
-      dataSource: paginatedData,
-      pagination: {
-        current: currentPage,
-        pageSize: pageSize,
-        total: totalRecords,
-        onChange: (page) => setCurrentPage(page),
-        showSizeChanger: false,
-        showQuickJumper: false,
-      },
-      bordered: true,
-      rowKey: "stt_rec",
-      className: "phieu-data-table hidden_scroll_bar",
-      scroll: { x: 1800, y: 600 },
-    };
-    if (screenSize === "mobile") {
-      baseProps.scroll = { x: 600 };
-      baseProps.size = "small";
-    } else if (screenSize === "mobileLandscape") {
-      baseProps.scroll = { x: 800, y: 400 };
-      baseProps.size = "small";
-    } else if (screenSize === "tablet") {
-      baseProps.scroll = { x: 1400, y: 500 };
-    } else {
-      baseProps.scroll = { x: 1800, y: 600 };
-    }
-    return baseProps;
-  };
 
   return (
-    <CommonPhieuList
-      title="DANH SÁCH PHIẾU XUẤT ĐIỀU CHUYỂN"
+    <ListTemplate
+      title="PHIẾU XUẤT ĐIỀU CHUYỂN"
       columns={getColumns()}
-      data={paginatedData}
-      onAdd={() => navigate("/kho/xuat-dieu-chuyen/them-moi")}
+      data={allData}
+      onAdd={() => navigate("them-moi")}
       onBack={() => navigate("/kho")}
-      addLabel="Thêm mới"
+      onRefresh={handleRefresh}
+      activeChips={activeChips}
+      onRemoveFilter={removeFilter}
+      onClearAllFilters={clearAllFilters}
       rowKey="stt_rec"
       pagination={{
         current: currentPage,
         pageSize: pageSize,
         total: totalRecords,
         onChange: (page) => setCurrentPage(page),
-        showSizeChanger: false,
-        showQuickJumper: false,
+      }}
+      tableProps={{
+        summary: (pageData) => {
+          let totalTien = 0;
+          pageData.forEach((record) => {
+            const amount = record.t_tt !== null && record.t_tt !== undefined ? record.t_tt : (record.t_tien || 0);
+            totalTien += parseFloat(amount || 0);
+          });
+
+          return (
+            <Table.Summary fixed>
+              <Table.Summary.Row className="table-summary-row">
+                <Table.Summary.Cell index={0} colSpan={3} className="text-right">
+                  <span style={{ fontWeight: "bold", fontSize: "15px" }}>
+                    Tổng cộng:
+                  </span>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={1} align="center">
+                  <span
+                    style={{
+                      fontWeight: "bold",
+                      color: "#1890ff",
+                      fontSize: "15px",
+                    }}
+                  >
+                    {new Intl.NumberFormat("vi-VN").format(totalTien)}
+                  </span>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={2} colSpan={3} />
+              </Table.Summary.Row>
+            </Table.Summary>
+          );
+        },
       }}
     />
   );

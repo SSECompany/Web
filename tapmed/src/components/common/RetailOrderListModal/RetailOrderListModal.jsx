@@ -519,7 +519,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       align: "center",
       render: (text) => formatDateToDDMMYYYY(text),
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
+        <div style={{ padding: 8, display: "flex", flexDirection: "column"}}>
           <DatePicker.RangePicker
             inputReadOnly
             value={
@@ -906,7 +906,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
       <Modal
         open={isOpen}
         width="95%"
-        title="Danh sách đơn hàng"
+        title="Đơn hàng"
         destroyOnHidden
         onCancel={onClose}
         footer={null}
@@ -928,7 +928,19 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
                         e.preventDefault();
                         removeChip(chip.key);
                       }}
-                      className="filter-chip"
+                      className={`filter-chip ${
+                        chip.key === "status"
+                          ? "filter-chip--blue"
+                          : chip.key === "dateRange"
+                          ? "filter-chip--green"
+                          : chip.key === "so_ct"
+                          ? "filter-chip--orange"
+                          : chip.key === "s2"
+                          ? "filter-chip--purple"
+                          : chip.key === "s3"
+                          ? "filter-chip--geekblue"
+                          : "filter-chip--cyan"
+                      }`}
                     >
                       {chip.label}: {chip.value}
                     </Tag>
@@ -937,7 +949,7 @@ const RetailOrderListModal = ({ isOpen, onClose, onLoadOrder }) => {
               </div>
               <div className="filter-chips-right">
                 <Button size="small" onClick={clearAllChips}>
-                  Xóa tất cả
+                  Xóa lọc
                 </Button>
               </div>
             </div>

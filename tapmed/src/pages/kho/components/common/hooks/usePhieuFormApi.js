@@ -197,7 +197,7 @@ export const usePhieuFormApi = (formType = "nhat-hang") => {
  */
 export const usePhieuNhapKhoApi = () => usePhieuFormApi("nhap-kho");
 export const usePhieuXuatKhoApi = () => usePhieuFormApi("xuat-kho");
-export const usePhieuXuatDieuChuyenApi = () =>
-  usePhieuFormApi("xuat-dieu-chuyen");
+export const usePhieuNhapDieuChuyenApi = () =>
+  usePhieuFormApi("nhap-dieu-chuyen");
 export const usePhieuXuatKhoBanHangApi = () =>
   usePhieuFormApi("xuat-kho-ban-hang");

@@ -1,5 +1,5 @@
-import { EditOutlined, LeftOutlined } from "@ant-design/icons";
-import { Button, Form, message, Space, Typography } from "antd";
+import { EditOutlined, LeftOutlined, SaveOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { Button, Form, message, Space, Typography, Select } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -7,6 +7,7 @@ import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import VatTuSelectFull from "../../../../components/common/ProductSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
+import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
 import VatTuTable from "./components/VatTuTable";
@@ -134,7 +135,7 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
             so_ct: result.master.so_ct?.trim() || "",
             ma_kh: result.master.ma_kh?.trim() || "",
             ten_kh: result.master.ten_kh?.trim() || "",
-            ma_gd: result.master.ma_gd?.trim() || "",
+            ma_gd: result.master.ma_gd ? result.master.ma_gd.trim() : "1",
             status: result.master.status || "",
           };
 
@@ -191,7 +192,7 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
   const handleSubmit = useCallback(async () => {
     try {
       setLoading(true);
-      const values = await form.validateFields();
+      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
 
       if (!validateDataSource(dataSource)) {
         setLoading(false);
@@ -267,7 +268,7 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
       console.error("Lỗi khi cập nhật phiếu xuất kho:", error);
       setLoading(false);
     }
-  }, [form, dataSource, phieuData, isEditMode, navigate, setLoading, token]);
+  }, [form, dataSource, phieuData, navigate, setLoading, token]);
 
   const handleEdit = useCallback(() => {
     navigate(`/kho/xuat-kho/edit/${stt_rec}`);
@@ -293,16 +294,12 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
             param: { stt_rec: stt_rec },
             data: {},
           };
-          const response = await https.post(
-            "v1/dynamicApi/call-dynamic-api",
-            body,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const response = await https.post("User/AddData", body, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
           const isSuccess =
             (response.data &&
@@ -338,44 +335,52 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
   }, [stt_rec, navigate, token, setLoading]);
 
   const handleNew = useCallback(() => {
-    navigate("/kho/xuat-kho/add");
+    navigate("/kho/xuat-kho/them-moi");
   }, [navigate]);
 
-  return (
-    <div className="phieu-container">
-      <div className="phieu-header">
-        <Button
-          type="text"
-          icon={<LeftOutlined />}
-          onClick={() => navigate("/kho/xuat-kho")}
-          className="phieu-back-button"
-        >
-          Trở về
-        </Button>
-        <Title level={5} className="phieu-title">
-          {isEditMode ? "CHỈNH SỬA PHIẾU XUẤT KHO" : "CHI TIẾT PHIẾU XUẤT KHO"}
-        </Title>
-        {!isEditMode ? (
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={handleEdit}
-            className="phieu-edit-button"
-          >
-            Chỉnh sửa
-          </Button>
-        ) : (
-          <div style={{ width: 120 }}></div>
-        )}
-      </div>
+  const getBadge = () => {
+    if (!stt_rec) return { text: "THÊM PHIẾU XUẤT MỚI", color: "green" };
+    if (isEditMode) return { text: "SỬA PHIẾU XUẤT", color: "orange" };
+    return { text: "CHI TIẾT PHIẾU XUẤT", color: "blue" };
+  };
+  const badge = getBadge();
 
+  const footerActions = [];
+  if (isEditMode) {
+    footerActions.push(
+      { key: "save", label: "Lưu", icon: <SaveOutlined />, type: "primary", onClick: handleSubmit, loading: loading },
+      { key: "delete", label: "Xóa", icon: <DeleteOutlined />, danger: true, onClick: handleDelete },
+      { key: "new", label: "Mới", icon: <PlusOutlined />, onClick: handleNew }
+    );
+  }
+
+  return (
+    <FormTemplate
+      form={form}
+      onFinish={handleSubmit}
+      onBack={() => navigate("/kho/xuat-kho")}
+      badgeText={badge.text}
+      badgeColor={badge.color}
+      metaOrder={form.getFieldValue('so_ct')}
+      metaDate={form.getFieldValue('ngay_ct') ? dayjs(form.getFieldValue('ngay_ct')).format('DD/MM/YYYY') : '.........'}
+      statusValue={form.getFieldValue('status') || "0"}
+      statusOptions={[
+        { value: "0", label: "Lập chứng từ" },
+        { value: "1", label: "Chờ duyệt" },
+        { value: "2", label: "Duyệt" },
+      ]}
+      statusFieldName="status"
+      showStatusSelect={true}
+      statusDisabled={!isEditMode && !!stt_rec}
+      headerRightSpan={
+        !isEditMode && stt_rec ? (
+          <Button type="text" icon={<EditOutlined />} onClick={handleEdit} className="phieu-edit-button-kd" title="Chỉnh sửa" />
+        ) : null
+      }
+      fixedFooterActions={footerActions}
+    >
       <div className="phieu-form-container">
-        <Form
-          form={form}
-          layout="vertical"
-          className="phieu-form"
-          disabled={!isEditMode}
-        >
+        <Form form={form} layout="vertical" className="phieu-form-section phieu-form--floating" disabled={!isEditMode}>
           <PhieuFormInputs
             isEditMode={isEditMode}
             maGiaoDichList={maGiaoDichList}
@@ -416,29 +421,9 @@ const DetailPhieuXuatKho = ({ isEditMode: initialEditMode = false }) => {
             fetchDonViTinh={fetchDonViTinh}
             onDataSourceUpdate={setDataSource}
           />
-
-          {isEditMode && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-start",
-                marginTop: 16,
-              }}
-            >
-              <Space>
-                <Button type="primary" onClick={handleSubmit} loading={loading}>
-                  Lưu
-                </Button>
-                <Button danger onClick={handleDelete}>
-                  Xóa
-                </Button>
-                <Button onClick={handleNew}>Mới</Button>
-              </Space>
-            </div>
-          )}
         </Form>
       </div>
-    </div>
+    </FormTemplate>
   );
 };
 

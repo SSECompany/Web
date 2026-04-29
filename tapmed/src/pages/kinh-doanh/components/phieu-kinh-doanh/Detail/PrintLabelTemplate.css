@@ -1,0 +1,147 @@
+.print-label-container {
+    width: 600px; /* Adjust based on standard label printer width */
+    margin: 0 auto;
+    background: #fff;
+    font-family: Arial, sans-serif;
+}
+
+.print-label-card {
+    padding: 20px;
+    border: 2px solid #333;
+    position: relative;
+}
+
+.label-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #333;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.label-title {
+    font-size: 20px;
+    font-family: 'Times New Roman', serif;
+}
+
+.label-logo {
+    display: flex;
+    align-items: center;
+}
+
+.logo-icon-svg {
+    margin-right: 10px;
+}
+
+.logo-text-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.logo-brand {
+    font-size: 24px;
+    font-weight: bold;
+    color: #00a651;
+    line-height: 1;
+}
+
+.logo-tagline {
+    font-size: 10px;
+    color: #00a651;
+    margin-top: 2px;
+    font-style: italic;
+}
+
+.label-section {
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.label-row {
+    display: flex;
+    margin-bottom: 5px;
+}
+
+.label-item-title {
+    font-weight: bold;
+    min-width: 120px;
+}
+
+.label-item-value {
+    flex: 1;
+}
+
+.label-item-value.highlight {
+    font-size: 18px; /* Increased for better visibility */
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.label-payment-box {
+    display: flex;
+    border: 2px solid #333;
+    padding: 0;
+    margin-bottom: 15px;
+}
+
+.payment-status {
+    flex: 2;
+    border-right: 2px solid #333;
+    padding: 10px;
+    font-weight: bold;
+    font-size: 20px; /* Increased size */
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.payment-collection {
+    flex: 3;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+}
+
+.collection-title {
+    font-size: 20px;
+    margin-right: 15px;
+}
+
+.collection-value {
+    font-size: 24px; /* Explicitly target the value */
+}
+
+.label-transport {
+    font-size: 18px;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.label-transport strong {
+    font-size: 18px; /* Harmonized with Receiver size */
+}
+
+.label-footer {
+    text-align: center;
+    font-size: 28px;
+    font-weight: bold;
+    border-top: 2px solid #333;
+    padding-top: 15px;
+    margin-top: 20px;
+}
+
+/* Ensure print quality */
+@media print {
+    .print-label-container {
+        width: 100%;
+        margin: 0;
+    }
+    
+    .print-label-card {
+        border-width: 2px;
+    }
+}

@@ -55,6 +55,8 @@ const VatTuSelectFullPOS = ({
         clearTimeout(focusTimeoutRef.current);
       }
     };
+    // searchTimeoutRef is a ref (stable)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchVatTuList]);
 
   // Auto focus khi chuyển sang chế độ barcode
@@ -73,6 +75,8 @@ const VatTuSelectFullPOS = ({
         clearTimeout(focusTimeoutRef.current);
       }
     };
+    // vatTuSelectRef is a ref (stable)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [barcodeEnabled]);
 
   const handleSearch = (value, immediate = false) => {
@@ -244,7 +248,8 @@ const VatTuSelectFullPOS = ({
 
     // Process the barcode
     try {
-      const result = await handleVatTuSelect(barcodeValue);
+      const foundItem = vatTuList.find(i => i.value === barcodeValue || i.item?.sku === barcodeValue || i.item?.barcode === barcodeValue);
+      const result = await handleVatTuSelect(barcodeValue, { item: foundItem?.item || foundItem });
       if (result === false) {
         // Báo lỗi và clear input sau 2 giây
         message.error("Thông tin vật tư không hợp lệ!");
@@ -305,6 +310,8 @@ const VatTuSelectFullPOS = ({
         return () => clearTimeout(timer);
       }
     }
+  // processBarcode is stable; omit to avoid unnecessary effect re-runs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vatTuInput, barcodeEnabled]);
 
   // Xử lý scroll phân trang
@@ -322,12 +329,11 @@ const VatTuSelectFullPOS = ({
   };
 
   return (
-    <>
-      <Row gutter={16}>
+    <Row gutter={16}>
         <Col span={24}>
           <Space.Compact style={{ width: "100%" }}>
             {!barcodeEnabled ? (
-              <div style={{ position: "relative", width: "calc(100% - 40px)" }}>
+              <div style={{ position: "relative", flex: 1 }}>
                 {(loadingVatTu || isSearching) && (
                   <div
                     style={{
@@ -379,12 +385,10 @@ const VatTuSelectFullPOS = ({
                       <div style={{ padding: "8px", textAlign: "center" }}>
                         <Spin size="small" /> <span style={{ marginLeft: 8 }}>Đang tìm kiếm...</span>
                       </div>
-                    ) : vatTuList.length === 0 ? (
-                      <div style={{ padding: "8px", textAlign: "center" }}>
-                        <Spin size="small" /> <span style={{ marginLeft: 8 }}>Đang tìm kiếm...</span>
-                      </div>
                     ) : (
-                      "Không tìm thấy"
+                      <div style={{ padding: "8px", textAlign: "center", color: "#999" }}>
+                        Không tìm thấy vật tư
+                      </div>
                     )
                   }
                 onKeyDown={async (e) => {
@@ -465,15 +469,9 @@ const VatTuSelectFullPOS = ({
                 }}
                   style={{ width: "100%" }}
                   disabled={!isEditMode || disableSearch || (isSearching && isWaitingForEnter)}
-                  styles={{
-                    popup: {
-                      root: { maxHeight: 300, overflow: "auto" },
-                    },
-                  }}
-                  getPopupContainer={(trigger) => trigger.parentNode}
                 >
                   {vatTuList.map((item) => (
-                    <Select.Option key={item.value} value={item.value}>
+                    <Select.Option key={item.value} value={item.value} item={item}>
                       <div>
                         <div style={{ fontWeight: "bold" }}>{item.value}</div>
                         <div style={{ fontSize: "12px", color: "#666" }}>
@@ -550,7 +548,6 @@ const VatTuSelectFullPOS = ({
           </Space.Compact>
         </Col>
       </Row>
-    </>
   );
 };
 

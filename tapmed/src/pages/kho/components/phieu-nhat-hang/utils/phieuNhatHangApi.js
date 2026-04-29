@@ -1,5 +1,8 @@
-import { message } from "antd";
+import { staticMessage as message } from "../../../../../utils/antdStatic";
 import { multipleTablePutApi } from "../../../../../api";
+
+// Thời gian hiển thị thông báo lỗi khi lưu/hoàn thành phiếu nhặt hàng (giây)
+const ERROR_MESSAGE_DURATION = 4;
 
 // API để lấy danh sách phiếu nhặt hàng
 export const fetchPhieuNhatHangList = async (params) => {
@@ -13,6 +16,7 @@ export const fetchPhieuNhatHangList = async (params) => {
       DateTo: params.DateTo || "",
       ngay_ct: params.ngay_ct || "",
       ma_kh: params.ma_kh || "",
+      ten_kh: params.ten_kh || "",
       status: params.Status || "",
       ma_ban: params.ma_ban || "",
       s2: params.s2 || "",
@@ -37,9 +41,7 @@ export const fetchPhieuNhatHangList = async (params) => {
     const paginationData = response?.listObject?.[1]?.[0] || {};
 
     return {
-      data: responseData.filter(
-        (item) => item.status !== "*" && item.status !== null
-      ),
+      data: responseData,
       pagination: paginationData,
       success: true,
     };
@@ -172,21 +174,21 @@ export const updatePhieuNhatHang = async (
 
     // Check new response structure with responseModel
     if (response?.responseModel?.isSucceded === true) {
+      const apiMsg = response.responseModel.message || "Cập nhật phiếu thành công";
       if (options?.showSuccess) {
-        message.success(
-          response.responseModel.message || "Cập nhật phiếu thành công"
-        );
+        message.success(apiMsg);
       }
-      return { success: true };
+      return { success: true, message: apiMsg };
     } else if (response && response.statusCode === 200) {
       // Fallback for old response structure
       if (options?.showSuccess) {
         message.success("Cập nhật phiếu thành công");
       }
-      return { success: true };
+      return { success: true, message: "Cập nhật phiếu thành công" };
     } else {
       message.error(
-        response?.responseModel?.message || response?.message || "Có lỗi xảy ra"
+        response?.responseModel?.message || response?.message || "Có lỗi xảy ra",
+        ERROR_MESSAGE_DURATION
       );
       return { success: false };
     }
@@ -194,11 +196,11 @@ export const updatePhieuNhatHang = async (
     console.error("Error updating phieu nhat hang:", error);
 
     if (error.response?.data?.responseModel?.message) {
-      message.error(error.response.data.responseModel.message);
+      message.error(error.response.data.responseModel.message, ERROR_MESSAGE_DURATION);
     } else if (error.response?.data?.message) {
-      message.error(error.response.data.message);
+      message.error(error.response.data.message, ERROR_MESSAGE_DURATION);
     } else {
-      message.error("Vui lòng kiểm tra lại thông tin");
+      message.error("Vui lòng kiểm tra lại thông tin", ERROR_MESSAGE_DURATION);
     }
     return { success: false };
   }
@@ -224,24 +226,17 @@ export const startPhieuNhatHang = async (stt_rec, userId) => {
     // Check new response structure with responseModel
     if (response?.responseModel?.isSucceded === true) {
       // Không hiển thị message ở đây, để component tự hiển thị message cụ thể
-      return { success: true };
+      return { success: true, message: response.responseModel.message };
     } else if (response && response.statusCode === 200) {
       // Fallback for old response structure
       // Không hiển thị message ở đây, để component tự hiển thị message cụ thể
-      return { success: true };
+      return { success: true, message: "Bắt đầu nhặt hàng thành công" };
     } else {
-      // Kiểm tra nếu message liên quan đến "đã hoàn thành" thì không hiển thị
       const errorMessage =
         response?.responseModel?.message ||
         response?.message ||
         "Có lỗi xảy ra";
-      const lowerMessage = errorMessage.toLowerCase();
-      if (
-        !lowerMessage.includes("đã hoàn thành") &&
-        !lowerMessage.includes("hoàn thành")
-      ) {
-        message.error(errorMessage);
-      }
+      message.error(errorMessage);
       return { success: false };
     }
   } catch (error) {
@@ -257,13 +252,7 @@ export const startPhieuNhatHang = async (stt_rec, userId) => {
       errorMessage = "Vui lòng kiểm tra lại thông tin";
     }
 
-    const lowerMessage = errorMessage.toLowerCase();
-    if (
-      !lowerMessage.includes("đã hoàn thành") &&
-      !lowerMessage.includes("hoàn thành")
-    ) {
-      message.error(errorMessage);
-    }
+    message.error(errorMessage);
     return { success: false };
   }
 };
@@ -351,6 +340,46 @@ export const updatePhieuNhatHangWithStoredProc = async (
   } catch (error) {
     console.error("Error updating phieu nhat hang with stored proc:", error);
 
+    if (error.response?.data?.responseModel?.message) {
+      message.error(error.response.data.responseModel.message);
+    } else if (error.response?.data?.message) {
+      message.error(error.response.data.message);
+    } else {
+      message.error("Vui lòng kiểm tra lại thông tin");
+    }
+    return { success: false };
+  }
+};
+
+// API huỷ phiếu nhặt hàng: exec api_huy_phieu_nhat_hang stt_rec, userId
+export const huyPhieuNhatHang = async (stt_rec, userId) => {
+  const body = {
+    store: "api_huy_phieu_nhat_hang",
+    param: {
+      stt_rec: stt_rec,
+      userId: userId,
+    },
+    data: {},
+    resultSetNames: [],
+  };
+
+  try {
+    const response = await multipleTablePutApi(body);
+
+    if (response?.responseModel?.isSucceded === true) {
+      return { success: true };
+    }
+    if (response && response.statusCode === 200) {
+      return { success: true };
+    }
+    message.error(
+      response?.responseModel?.message ||
+        response?.message ||
+        "Có lỗi xảy ra khi huỷ nhặt"
+    );
+    return { success: false };
+  } catch (error) {
+    console.error("Error huy phieu nhat hang:", error);
     if (error.response?.data?.responseModel?.message) {
       message.error(error.response.data.responseModel.message);
     } else if (error.response?.data?.message) {

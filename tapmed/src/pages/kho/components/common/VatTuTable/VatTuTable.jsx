@@ -1,6 +1,7 @@
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Empty, Input, Select, Table, Spin } from "antd";
+import { Button, Empty, Input, Select, Table, Spin, Checkbox, message } from "antd";
 import { useCallback, useMemo, useState, useRef, useEffect } from "react";
+import dayjs from "dayjs";
 import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
 import { validateQuantityInput } from "./utils/validation";
 
@@ -22,6 +23,9 @@ import { validateQuantityInput } from "./utils/validation";
 const VatTuTable = ({
   dataSource,
   isEditMode = true,
+  showMaKho = true,
+  maKhoRequired = false,
+  showMaLo = true,
   onQuantityChange,
   onDeleteItem,
   onDvtChange,
@@ -32,6 +36,8 @@ const VatTuTable = ({
   selectData = {},
   loadingStates = {},
   tableClassName = "vat-tu-table hidden_scroll_bar",
+  focusInvalidRowKey,
+  onFocusInvalidRowHandled,
   ...otherProps
 }) => {
   const [loadingDvt, setLoadingDvt] = useState({});
@@ -40,59 +46,147 @@ const VatTuTable = ({
   const [openLo, setOpenLo] = useState({});
   const [openViTri, setOpenViTri] = useState({});
   const [viTriOptions, setViTriOptions] = useState({});
-  
+
   // Use ref to track latest dataSource to avoid stale closure in async callbacks
   const dataSourceRef = useRef(dataSource);
   useEffect(() => {
     dataSourceRef.current = dataSource;
   }, [dataSource]);
 
-  // Prefetch danh sách mã lô cho một dòng cụ thể, luôn dùng dataSource mới nhất
-  const loadLoOptions = useCallback(
-    async (keyword = "", record, openAfter = false) => {
-      if (!apiHandlers.fetchLoList || !record?.key) return;
+  // Scroll to invalid row and focus first editable input until validation is satisfied
+  const tableWrapperRef = useRef(null);
+  useEffect(() => {
+    if (!focusInvalidRowKey) return;
+    // Trên tablet/mobile DOM cập nhật chậm hơn, dùng delay dài hơn để đảm bảo bảng đã render và dòng đỏ đã hiển thị
+    const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+    const delay = isTouchDevice ? 450 : 250;
+    const timer = setTimeout(() => {
+      const root = tableWrapperRef.current || document;
+      const selector = `tr[data-row-key="${CSS.escape(String(focusInvalidRowKey))}"]`;
+      const allRows = root.querySelectorAll?.(selector) || [];
+      // Bảng có fixed cột thì có 2 dòng cùng key. Ưu tiên dòng trong .ant-table-body (vùng cuộn chính) để scroll + focus đúng trên cả tablet.
+      const row =
+        Array.from(allRows).find((r) => r.closest?.(".ant-table-body")) ||
+        Array.from(allRows).find((r) => r.querySelector('input:not([type="hidden"]), select')) ||
+        allRows[0];
+      if (row) {
+        // Tìm container scroll của bảng (ant-table-body) để cuộn đúng vùng
+        let scrollParent = row.parentElement;
+        while (scrollParent && scrollParent !== document.body) {
+          const { overflowY } = getComputedStyle(scrollParent);
+          const scrollHeight = scrollParent.scrollHeight;
+          const clientHeight = scrollParent.clientHeight;
+          const canScroll = scrollHeight > clientHeight && (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay");
+          if (canScroll) {
+            const rowRect = row.getBoundingClientRect();
+            const containerRect = scrollParent.getBoundingClientRect();
+            const rowOffsetInContent = scrollParent.scrollTop + (rowRect.top - containerRect.top);
+            const viewHeight = scrollParent.clientHeight;
+            const targetScroll = Math.max(0, rowOffsetInContent - Math.round(viewHeight / 3));
+            const maxScroll = scrollParent.scrollHeight - viewHeight;
+            scrollParent.scrollTop = Math.min(targetScroll, maxScroll);
+            break;
+          }
+          scrollParent = scrollParent.parentElement;
+        }
+        // Luôn cuộn trang (viewport) để dòng lỗi nằm trong màn hình — bảng có thể nằm dưới fold
+        row.scrollIntoView({ block: "center", behavior: "auto" });
+        // Focus sau khi scroll đã áp dụng; trên tablet dùng thêm setTimeout để scroll kịp vẽ trước khi focus
+        const focusInput = () => {
+          const focusable = row.querySelector(
+            'input:not([type="hidden"]), select, [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusable) {
+            focusable.focus({ preventScroll: true });
+          }
+          onFocusInvalidRowHandled?.();
+        };
+        if (isTouchDevice) {
+          requestAnimationFrame(() => {
+            setTimeout(focusInput, 80);
+          });
+        } else {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(focusInput);
+          });
+        }
+      } else {
+        onFocusInvalidRowHandled?.();
+      }
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [focusInvalidRowKey, onFocusInvalidRowHandled]);
 
+  // Prefetch danh sách mã lô cho một dòng cụ thể, luôn dùng dataSource mới nhất
+  const loLoadingRef = useRef({});
+  const loPageRef = useRef({});
+  const loTotalPageRef = useRef({});
+
+  const loadLoOptions = useCallback(
+    async (keyword = "", record, openAfter = false, page = 1) => {
+      if (!apiHandlers.fetchLoList || !record?.key || loLoadingRef.current[record.key]) return;
+
+      loLoadingRef.current[record.key] = true;
       setLoadingLo((prev) => ({ ...prev, [record.key]: true }));
       try {
         const currentDataSource = dataSourceRef.current;
         const currentRecord =
           currentDataSource.find((item) => item.key === record.key) || record;
 
-        const options = await apiHandlers.fetchLoList(
+        const result = await apiHandlers.fetchLoList(
           keyword,
           currentRecord,
-          1
+          page
         );
+
+        // Hỗ trợ cả array (cũ) và object { options, totalPage } (mới)
+        const fetchedOptions = Array.isArray(result) ? result : (result?.options || []);
+        const totalPage = !Array.isArray(result) ? (result?.totalPage || 1) : 1;
+
+        loPageRef.current[record.key] = page;
+        loTotalPageRef.current[record.key] = totalPage;
 
         const latestDataSource = dataSourceRef.current;
         const latestRecord =
           latestDataSource.find((item) => item.key === record.key) ||
           currentRecord;
 
-        const updatedRecord = { ...latestRecord, loOptions: options };
+        const existingOptions = page === 1 ? [] : (latestRecord.loOptions || []);
+        const mergedOptions = [...existingOptions, ...fetchedOptions];
+
+        const updatedRecord = { 
+          ...latestRecord, 
+          loOptions: mergedOptions,
+          loPage: page,
+          loKeyword: keyword, // Persist keyword
+          _loTotalPage: totalPage
+        };
         const updatedDataSource = latestDataSource.map((item) =>
           item.key === record.key ? updatedRecord : item
         );
 
         if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
-      // Mở dropdown sau khi tải xong options (phù hợp yêu cầu auto show)
-      if (openAfter) {
-        setOpenLo((prev) => ({ ...prev, [record.key]: true }));
-      }
+        // Mở dropdown sau khi tải xong options (phù hợp yêu cầu auto show)
+        if (openAfter) {
+          setOpenLo((prev) => ({ ...prev, [record.key]: true }));
+        }
       } catch (error) {
         console.error("Error loading lot options:", error);
       } finally {
+        loLoadingRef.current[record.key] = false;
         setLoadingLo((prev) => ({ ...prev, [record.key]: false }));
       }
     },
-    [apiHandlers.fetchLoList, onDataSourceUpdate]
+    [apiHandlers, onDataSourceUpdate]
   );
 
   // Prefetch danh sách vị trí cho một dòng cụ thể, quản lý state riêng như POS số lô
+  const viTriLoadingRef = useRef({});
   const loadViTriOptions = useCallback(
-    async (keyword = "", record, openAfter = false) => {
-      if (!apiHandlers.fetchViTriList || !record?.key) return;
+    async (keyword = "", record, openAfter = false, page = 1) => {
+      if (!apiHandlers.fetchViTriList || !record?.key || viTriLoadingRef.current[record.key]) return;
 
+      viTriLoadingRef.current[record.key] = true;
       setLoadingViTri((prev) => ({ ...prev, [record.key]: true }));
       try {
         const currentDataSource = dataSourceRef.current;
@@ -102,17 +196,24 @@ const VatTuTable = ({
         const options = await apiHandlers.fetchViTriList(
           keyword,
           currentRecord,
-          1
+          page
         );
 
-        setViTriOptions((prev) => ({ ...prev, [record.key]: options }));
+        setViTriOptions((prev) => ({ 
+          ...prev, 
+          [record.key]: page === 1 ? options : [...(prev[record.key] || []), ...options] 
+        }));
 
         // Giữ nguyên dataSource nhưng vẫn cập nhật viTriOptions nếu đã lưu trên record (để các nơi khác dùng)
         const latestDataSource = dataSourceRef.current;
         const latestRecord =
           latestDataSource.find((item) => item.key === record.key) ||
           currentRecord;
-        const updatedRecord = { ...latestRecord, viTriOptions: options };
+        const updatedRecord = { 
+          ...latestRecord, 
+          viTriOptions: page === 1 ? options : [...(latestRecord.viTriOptions || []), ...options],
+          viTriPage: page
+        };
         const updatedDataSource = latestDataSource.map((item) =>
           item.key === record.key ? updatedRecord : item
         );
@@ -124,10 +225,11 @@ const VatTuTable = ({
       } catch (error) {
         console.error("Error loading vi tri options:", error);
       } finally {
+        viTriLoadingRef.current[record.key] = false;
         setLoadingViTri((prev) => ({ ...prev, [record.key]: false }));
       }
     },
-    [apiHandlers.fetchViTriList, onDataSourceUpdate]
+    [apiHandlers, onDataSourceUpdate]
   );
 
   // Xử lý thay đổi số lượng với validation
@@ -160,6 +262,7 @@ const VatTuTable = ({
       return (
         <Input
           type="text"
+          inputMode="decimal"
           value={value}
           onChange={(e) => handleQuantityChange(e.target.value, record, field)}
           style={{
@@ -167,19 +270,25 @@ const VatTuTable = ({
             textAlign: "center",
             fontWeight: "bold",
             borderColor:
-              (field === (columnConfig.tongNhatField || "tong_nhat") && record.groupExceeded)
+              (field === (columnConfig.tongNhatField || "tong_nhat") &&
+                (record.groupExceeded || record.rowExceededSlDon))
                 ? "#ff4d4f"
                 : undefined,
             boxShadow:
-              (field === (columnConfig.tongNhatField || "tong_nhat") && record.groupExceeded)
+              (field === (columnConfig.tongNhatField || "tong_nhat") &&
+                (record.groupExceeded || record.rowExceededSlDon))
                 ? "0 0 0 2px rgba(255,77,79,0.2)"
                 : undefined,
           }}
           className="vat-tu-table-input"
           title={
-            field === (columnConfig.tongNhatField || "tong_nhat") && record.groupExceeded
-              ? "Tổng nhặt nhóm vượt Số lượng đơn"
-              : undefined
+            field === (columnConfig.tongNhatField || "tong_nhat") &&
+              record.rowExceededSlDon
+              ? "SL nhặt vượt quá SL đơn của dòng"
+              : field === (columnConfig.tongNhatField || "tong_nhat") &&
+                record.groupExceeded
+                ? "Tổng nhặt nhóm vượt Số lượng đơn"
+                : undefined
           }
           tabIndex={-1}
           autoComplete="off"
@@ -187,7 +296,7 @@ const VatTuTable = ({
         />
       );
     },
-    [isEditMode, handleQuantityChange]
+    [isEditMode, handleQuantityChange, columnConfig]
   );
 
   // Render select đơn vị tính
@@ -309,118 +418,191 @@ const VatTuTable = ({
   // Tạo columns động dựa trên config
   const columns = useMemo(() => {
     const baseColumns = [
-      {
-        title: "STT",
-        dataIndex: "key",
-        key: "key",
-        width: 60,
-        align: "center",
-        ellipsis: true,
-        render: (value, record, index) => {
-          if (record.isChild) return "";
-          // Đếm số dòng cha trước dòng hiện tại (không tính dòng con)
-          let parentCount = 0;
-          for (let i = 0; i < index; i++) {
-            if (!dataSource[i]?.isChild) {
-              parentCount++;
+      ...(columnConfig.showStt !== false
+        ? [
+          {
+            title: "STT",
+            dataIndex: "key",
+            key: "key",
+            width: 45,
+            align: "center",
+            fixed: "left",
+            ellipsis: true,
+            render: (value, record, index) => {
+              if (record.isChild) return "";
+              let parentCount = 0;
+              for (let i = 0; i < index; i++) {
+                if (!dataSource[i]?.isChild) {
+                  parentCount++;
+                }
+              }
+              return parentCount + 1;
+            },
+          },
+        ]
+        : []),
+      ...(columnConfig.integrateStockInfoInMatHang
+        ? [
+          {
+            title: "Ảnh",
+            key: "anh",
+            width: 150,
+            align: "center",
+            fixed: "left",
+            render: (_, record) => (
+              <div style={{ display: "flex", justifyContent: "center", padding: '8px 0' }}>
+                {record.image ? (
+                  <img
+                    src={record.image}
+                    alt=""
+                    style={{ 
+                      width: 130, 
+                      height: 130, 
+                      objectFit: "cover", 
+                      borderRadius: 8, 
+                      border: '1px solid #f0f0f0',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                    }}
+                  />
+                ) : (
+                  <div style={{ 
+                    width: 130, 
+                    height: 130, 
+                    background: '#f8f9fb', 
+                    borderRadius: 8, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    fontSize: '12px', 
+                    color: '#94a3b8', 
+                    border: '1px solid #eef2f7' 
+                  }}>No Image</div>
+                )}
+              </div>
+            ),
+          },
+          {
+            title: "Mặt hàng",
+            key: "mat_hang",
+            width: 250,
+            align: "center",
+            fixed: "left",
+            render: (_, record) => {
+              // Always try to pick from the most up-to-date dataSource to catch inline updates
+              const currentRecord = dataSource.find((item) => item.key === record.key) || record;
+              const maVt = currentRecord.maHang || currentRecord.ma_vt || "";
+              const tenVt = currentRecord[columnConfig.tenMatHangField || "ten_mat_hang"] || "";
+              const dvt = currentRecord.dvt || "";
+              const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"] || "";
+              const soLuongTon = currentRecord[columnConfig.soLuongTonField || "so_luong_ton"];
+              const tonKh = currentRecord[columnConfig.tonKhField || "ton_kh"];
+              
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '4px 0', gap: 4 }}>
+                  <div style={{ color: '#333', fontSize: '13px', lineHeight: '1.4' }}>
+                    {maVt ? `${maVt} - ` : ""}{tenVt}
+                  </div>
+                  <div style={{ color: '#666', fontSize: '13px' }}>
+                    {dvt}
+                  </div>
+                  {maViTri ? (
+                    <div style={{ color: '#ff4d4f', fontWeight: 'bold', fontSize: '13px' }}>
+                      {maViTri}
+                    </div>
+                  ) : null}
+                  <div style={{ color: '#52c41a', fontSize: '13px' }}>
+                    Tồn: {formatQuantityDisplay(soLuongTon || 0)} / Tồn khả dụng: {tonKh !== null && tonKh !== undefined ? formatQuantityDisplay(tonKh) : "-"}
+                  </div>
+                </div>
+              );
             }
           }
-          return parentCount + 1;
-        },
-      },
-      {
-        title: "Ảnh",
-        dataIndex: "image",
-        key: "image",
-        width: 150,
-        align: "center",
-        ellipsis: false,
-        render: (_, record) => {
-          if (record.isChild) return "";
-          const imageUrl = record.image || record.item?.image || "";
-          if (!imageUrl) return null;
-          const tenMatHang = record[columnConfig.tenMatHangField || "ten_mat_hang"] || record.maHang || "";
-          return (
-            <div style={{ display: "flex", justifyContent: "center", padding: "4px 0" }}>
-              <img
-                src={imageUrl}
-                alt={tenMatHang}
-                style={{
-                  width: 120,
-                  height: 120,
-                  objectFit: "cover",
-                  borderRadius: 6,
-                  border: "1px solid #e8e8e8",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                  cursor: "pointer",
-                }}
-                onError={(e) => {
-                  // Ẩn ảnh nếu lỗi load
-                  e.target.style.display = "none";
-                }}
-                onClick={() => {
-                  if (imageUrl) {
-                    window.open(imageUrl, "_blank");
-                  }
-                }}
-                title="Click để xem ảnh lớn"
-              />
-            </div>
-          );
-        },
-      },
-      {
-        title: "Mặt hàng",
-        key: "mat_hang",
-        width: 260,
-        align: "left",
-        ellipsis: false,
-        render: (_, record) => {
-          if (record.isChild) return "";
-          const maHang = record.maHang || "";
-          const tenMatHang = record[columnConfig.tenMatHangField || "ten_mat_hang"] || "";
-          // Lấy mã vị trí từ record
-          const currentRecord = dataSource.find((item) => item.key === record.key) || record;
-          const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"] || "";
-          return (
-            <div
-              style={{
-                fontSize: "13px",
-                lineHeight: "1.4",
-                fontWeight: 400,
-                color: "#333",
-                padding: "4px 0",
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontWeight: 400 }}>{`${maHang}${maHang && tenMatHang ? " - " : ""}${tenMatHang}`}</div>
-              {maViTri && (
-                <div
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: "#1890ff",
-                    marginTop: "6px",
-                    letterSpacing: "0.5px",
-                  }}
-                >
-                  {maViTri}
+        ]
+        : columnConfig.consolidateProduct
+        ? [
+          {
+            title: "Sản phẩm",
+            key: "san_pham",
+            width: 240,
+            align: "left",
+            fixed: "left",
+            render: (_, record) => (
+              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: '4px 0' }}>
+                {record.image ? (
+                  <img 
+                    src={record.image} 
+                    alt="" 
+                    style={{ width: 48, height: 48, flexShrink: 0, objectFit: "cover", borderRadius: 8, border: '1px solid #f0f0f0' }} 
+                  />
+                ) : (
+                  <div style={{ width: 48, height: 48, flexShrink: 0, background: '#f8f9fb', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#94a3b8', border: '1px solid #eef2f7' }}>No Image</div>
+                )}
+                <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+                  <div style={{ marginBottom: 2 }}>
+                    <span style={{ fontWeight: 700, fontSize: '12px', lineHeight: '1.3', whiteSpace: 'normal', wordBreak: 'break-word', display: 'block', color: '#1e293b' }}>
+                      {record[columnConfig.tenMatHangField || "ten_mat_hang"]}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, fontSize: '10px', color: '#64748b', background: '#f1f5f9', borderRadius: 4, padding: '1px 6px', width: 'fit-content' }}>
+                    <span style={{ fontWeight: 600 }}>{record.maHang || record.ma_vt}</span>
+                    <span style={{ color: '#cbd5e1' }}>|</span>
+                    <span style={{ fontWeight: 500 }}>{record.dvt}</span>
+                  </div>
                 </div>
-              )}
-            </div>
-          );
-        },
-      },
-      {
-        title: "Đvt",
-        dataIndex: "dvt",
-        key: "dvt",
-        width: 70,
-        align: "center",
-        ellipsis: true,
-        render: renderDvtSelect,
-      },
+              </div>
+            )
+          }
+        ]
+        : [
+          {
+            title: "Mã hàng",
+            dataIndex: "maHang",
+            key: "ma_hang",
+            width: 100,
+            align: "center",
+            fixed: "left",
+            render: (v) => <span style={{ fontWeight: 600 }}>{v}</span>
+          },
+          {
+            title: "Tên mặt hàng",
+            dataIndex: columnConfig.tenMatHangField || "ten_mat_hang",
+            key: "ten_mat_hang_separate",
+            width: 250,
+            align: "left",
+            render: (v, record) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {record.image && <img src={record.image} alt="" style={{ width: 40, height: 40, borderRadius: 4, objectFit: 'cover' }} />}
+                    <span className="vat-tu-table-cell-wrap" style={{ fontWeight: 400 }}>{v}</span>
+                </div>
+            )
+          },
+          {
+            title: "Đvt",
+            dataIndex: "dvt",
+            key: "dvt",
+            width: 70,
+            align: "center",
+            render: (v, r) => renderDvtSelect(v, r)
+          },
+        ])
     ];
+
+    // Thêm cột mã kho sớm if needed (after Đvt)
+    if (columnConfig.showMaKho) {
+        baseColumns.push({
+            title: (
+                <span>
+            Mã kho {columnConfig.maKhoRequired !== false && <span style={{ color: "red" }}>*</span>}
+          </span>
+            ),
+            dataIndex: "ma_kho",
+            key: "ma_kho",
+            width: 120,
+            align: "center",
+            ellipsis: true,
+            render: renderMaKhoSelect,
+        });
+    }
 
     // Cột gộp Mã lô / Mã vị trí hoặc hai cột riêng
     if (columnConfig.combineMaLoViTri) {
@@ -433,8 +615,8 @@ const VatTuTable = ({
         render: (_, record) => {
           // Get current record from dataSource to avoid stale data
           const currentRecord = dataSource.find((item) => item.key === record.key) || record;
-          const maLo = currentRecord[columnConfig.maLoField || "ma_lo"]; 
-          const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"]; 
+          const maLo = currentRecord[columnConfig.maLoField || "ma_lo"];
+          const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"];
           if (!isEditMode) {
             // Chỉ hiển thị mã lô; mã vị trí đã hiển thị ở cột Mặt hàng
             let maLoDisplay = maLo || "";
@@ -453,6 +635,9 @@ const VatTuTable = ({
           const isLoLoading = !!loadingLo[record.key];
           const isViTriLoading = !!loadingViTri[record.key];
 
+          const isDuplicateMaLo = !!currentRecord._invalid_duplicate_ma_lo;
+          const maLoValue = currentRecord.ma_lo ?? maLo ?? "";
+          const clearVersion = currentRecord._ma_lo_clear_version ?? 0;
           return (
             <div
               style={{
@@ -460,30 +645,19 @@ const VatTuTable = ({
                 gap: 8,
                 width: "100%",
                 justifyContent: "center",
+                ...(isDuplicateMaLo
+                  ? { backgroundColor: "#ffccc7", border: "1px solid #ff4d4f", borderRadius: 4 }
+                  : {}),
               }}
             >
               <Select
-                key={`ma-lo-${record.key}`}
-                value={maLo || undefined}
-                showSearch
+                key={`ma-lo-${record.key}-${String(maLoValue)}-${clearVersion}`}
+                value={maLoValue || undefined}
                 allowClear
                 placeholder="Mã lô"
                 size="small"
                 style={{ width: 140 }}
                 loading={isLoLoading}
-                filterOption={false}
-                onFocus={() => {
-                  const currentDataSource = dataSourceRef.current;
-                  const currentRecord =
-                    currentDataSource.find((item) => item.key === record.key) ||
-                    record;
-                  const hasOptions =
-                    currentRecord?.loOptions && currentRecord.loOptions.length > 0;
-                  if (!hasOptions) {
-                    loadLoOptions("", currentRecord, true);
-                  }
-                }}
-                onSearch={(keyword) => loadLoOptions(keyword, record, false)}
                 onOpenChange={(visible) => {
                   setOpenLo((prev) => {
                     if (visible) {
@@ -501,35 +675,32 @@ const VatTuTable = ({
                   const hasOptions =
                     currentRecord?.loOptions && currentRecord.loOptions.length > 0;
                   if (!hasOptions) {
-                    loadLoOptions("", currentRecord, true);
+                    loadLoOptions("", currentRecord, true, 1);
                   }
                 }}
                 onChange={(val) => {
-                  // Find the latest record from dataSource using ref to avoid stale reference
-                  // Match POS behavior: ensure value is string (val || "")
                   const currentDataSource = dataSourceRef.current;
                   const currentRecord = currentDataSource.find((item) => item.key === record.key);
-                  if (currentRecord) {
-                    // Preserve loOptions when updating ma_lo - important to keep options after selection
-                    const recordWithOptions = {
-                      ...currentRecord,
-                      loOptions: currentRecord.loOptions || record.loOptions,
-                    };
-                    onSelectChange(val || "", recordWithOptions, "ma_lo");
-                  } else {
-                    // Fallback to original record if not found
-                    onSelectChange(val || "", record, "ma_lo");
-                  }
-                  // Đóng dropdown sau khi chọn (trả về uncontrolled)
-                  setOpenLo((prev) => {
-                    const next = { ...prev };
-                    delete next[record.key];
-                    return next;
-                  });
+                  // Match POS behavior: ensure value is string (val || "") 
+                  // Preserve loOptions when updating ma_lo
+                  onSelectChange(val || "", currentRecord || record, "ma_lo");
                 }}
                 // Cho phép antd tự điều khiển nếu chưa set state; nếu đã có state thì control
                 open={openLo[record.key]}
                 options={loOpts}
+                listHeight={250}
+                onPopupScroll={(e) => {
+                  const { target } = e;
+                  if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !isLoLoading) {
+                    const currentRecord = dataSource.find(it => it.key === record.key) || record;
+                    const nextPage = (currentRecord?.loPage || 1) + 1;
+                    const currentKeyword = currentRecord?.loKeyword || "";
+                    // Chỉ load tiếp khi thực sự có options từ page trước (giả định pageSize=10)
+                    if (loOpts.length >= (nextPage - 1) * 10) {
+                      loadLoOptions(currentKeyword, record, false, nextPage);
+                    }
+                  }
+                }}
                 classNames={{ popup: { root: "vat-tu-dropdown" } }}
                 popupMatchSelectWidth={false}
                 notFoundContent={
@@ -545,35 +716,100 @@ const VatTuTable = ({
         },
       });
     } else {
-      // Thêm cột mã lô
-      if (columnConfig.showMaLo) {
+      // Thêm cột từ vị trí
+      if (columnConfig.showMaViTriTu) {
         baseColumns.push({
-          title: "Mã lô",
-          dataIndex: columnConfig.maLoField || "ma_lo",
-          key: "ma_lo",
+          title: "Từ vị trí",
+          dataIndex: columnConfig.maViTriTuField || "ma_vi_tri",
+          key: "ma_vi_tri",
           width: 100,
           align: "center",
           ellipsis: true,
           render: (value, record) => {
-            if (!isEditMode) {
-              return value;
-            }
+            if (!isEditMode) return value;
             return (
-              <Input
-                value={value}
-                onChange={(e) => onSelectChange(e.target.value, record, "ma_lo")}
-                style={{ width: "100%", textAlign: "center" }}
-                className="vat-tu-table-input"
-                placeholder="Nhập mã lô"
+              <Select
+                showSearch
+                placeholder="Vị trí"
+                value={value || undefined}
+                style={{ width: "100%" }}
                 size="small"
+                onSearch={(val) => loadViTriOptions(val, record)}
+                onDropdownVisibleChange={(open) => {
+                  if (open) {
+                    const r = dataSource.find(it => it.key === record.key) || record;
+                    if (!r.viTriOptions || r.viTriOptions.length === 0) {
+                      loadViTriOptions("", record, false, 1);
+                    }
+                  }
+                }}
+                onChange={(val) => onSelectChange(val, record, columnConfig.maViTriTuField || "ma_vi_tri")}
+                options={record.viTriOptions || []}
+                loading={loadingViTri[record.key]}
+                filterOption={false}
+                listHeight={250}
+                onPopupScroll={(e) => {
+                  const { target } = e;
+                  if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !loadingViTri[record.key]) {
+                    const r = dataSource.find(it => it.key === record.key) || record;
+                    const nextP = (r.viTriPage || 1) + 1;
+                    loadViTriOptions("", record, false, nextP);
+                  }
+                }}
               />
             );
           },
         });
       }
 
-      // Thêm cột mã vị trí
-      if (columnConfig.showMaViTri) {
+      // Thêm cột đến vị trí
+      if (columnConfig.showMaViTriDen) {
+        baseColumns.push({
+          title: "Đến vị trí",
+          dataIndex: columnConfig.maViTriDenField || "ma_vi_tri_nh",
+          key: "ma_vi_tri_nh",
+          width: 100,
+          align: "center",
+          ellipsis: true,
+          render: (value, record) => {
+            if (!isEditMode) return value;
+            return (
+              <Select
+                showSearch
+                placeholder="Vị trí"
+                value={value || undefined}
+                style={{ width: "100%" }}
+                size="small"
+                onSearch={(val) => loadViTriOptions(val, record)}
+                onDropdownVisibleChange={(open) => {
+                  if (open) {
+                    const r = dataSource.find(it => it.key === record.key) || record;
+                    if (!r.viTriOptions || r.viTriOptions.length === 0) {
+                      loadViTriOptions("", record, false, 1);
+                    }
+                  }
+                }}
+                onChange={(val) => onSelectChange(val, record, columnConfig.maViTriDenField || "ma_vi_tri_nh")}
+                options={record.viTriOptions || []}
+                loading={loadingViTri[record.key]}
+                filterOption={false}
+                listHeight={250}
+                onPopupScroll={(e) => {
+                  const { target } = e;
+                  if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !loadingViTri[record.key]) {
+                    const r = dataSource.find(it => it.key === record.key) || record;
+                    const nextP = (r.viTriPage || 1) + 1;
+                    loadViTriOptions("", record, false, nextP);
+                  }
+                }}
+              />
+            );
+          },
+        });
+      }
+
+      // Thêm cột mã vị trí (cũ)
+      if (columnConfig.showMaViTri && !columnConfig.showMaViTriTu && !columnConfig.showMaViTriDen) {
         baseColumns.push({
           title: "Mã vị trí",
           dataIndex: columnConfig.maViTriField || "ma_vi_tri",
@@ -600,83 +836,142 @@ const VatTuTable = ({
           },
         });
       }
-    }
 
-    // Thêm cột số lượng đề nghị
-    if (columnConfig.showSoLuongDeNghi !== false) {
-      baseColumns.push({
-        title: columnConfig.soLuongDeNghiTitle || "Số lượng đề nghị",
-        dataIndex: columnConfig.soLuongDeNghiField || "so_luong",
-        key: "so_luong_de_nghi",
-        width: 130,
-        align: "center",
-        ellipsis: true,
-        render: (value, record) =>
-          record.isChild
-            ? ""
-            : renderQuantityInput(
-                value,
-                record,
-                columnConfig.soLuongDeNghiField || "so_luong",
-                columnConfig.soLuongDeNghiEditable !== false
-              ),
-      });
-    }
+      // Thêm cột mã lô
+      if (columnConfig.showMaLo) {
+        baseColumns.push({
+          title: "Mã lô",
+          dataIndex: columnConfig.maLoField || "ma_lo",
+          key: "ma_lo",
+          width: 120,
+          align: "center",
+          ellipsis: true,
+          render: (value, record) => {
+            if (!isEditMode) {
+              return value;
+            }
+            
+            if (columnConfig.maLoLookup) {
+              return (
+                <Select
+                  showSearch
+                  placeholder="Chọn lô"
+                  value={value || undefined}
+                  style={{ 
+                    width: "100%",
+                    ...(!!record._invalid_duplicate_ma_lo ? { backgroundColor: "#ffccc7", borderColor: "#ff4d4f" } : {})
+                  }}
+                  size="small"
+                  onSearch={(val) => loadLoOptions(val, record)}
+                  onDropdownVisibleChange={(open) => {
+                    if (open) {
+                      setOpenLo((prev) => ({ ...prev, [record.key]: true }));
+                      const r = dataSource.find(it => it.key === record.key) || record;
+                      if (!r.loOptions || r.loOptions.length === 0) {
+                        loadLoOptions("", record, true, 1);
+                      }
+                    } else {
+                      setOpenLo((prev) => {
+                        const next = { ...prev };
+                        delete next[record.key];
+                        return next;
+                      });
+                    }
+                  }}
+                  open={openLo[record.key]}
+                  onChange={(val) => onSelectChange(val, record, columnConfig.maLoField || "ma_lo")}
+                  options={record.loOptions || []}
+                  loading={loadingLo[record.key]}
+                  filterOption={false}
+                  listHeight={250}
+                   onPopupScroll={(e) => {
+                    const { target } = e;
+                    if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !loadingLo[record.key]) {
+                      const currentRecord = dataSource.find((it) => it.key === record.key) || record;
+                      const nextPage = (currentRecord.loPage || 1) + 1;
+                      const currentKeyword = currentRecord.loKeyword || "";
+                      const currentOptions = currentRecord.loOptions || [];
+                      // Load more if we haven't reached the end
+                      if (currentOptions.length < (currentRecord._loTotalPage || 1) * 10) {
+                        loadLoOptions(currentKeyword, record, false, nextPage);
+                      }
+                    }
+                  }}
+                  dropdownRender={(menu) => (
+                    <div>
+                      {menu}
+                      {loadingLo[record.key] ? (
+                        <div style={{ display: "flex", justifyContent: "center", padding: 8 }}>
+                          <Spin size="small" />
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                />
+              );
+            }
 
-    // Thêm cột số lượng cheat/xuất
-    if (columnConfig.showSoLuongCheat !== false) {
-      baseColumns.push({
-        title: columnConfig.soLuongCheatTitle || "Số lượng cheat",
-        dataIndex: columnConfig.soLuongCheatField || "sl_td3",
-        key: "so_luong_cheat",
-        width: 120,
-        align: "center",
-        ellipsis: true,
-        render: (value, record) =>
-          renderQuantityInput(
-            value,
-            record,
-            columnConfig.soLuongCheatField || "sl_td3"
-          ),
-      });
-    }
+            const currentRecord = dataSource.find((item) => item.key === record.key) || record;
+            const isDuplicateMaLo = !!currentRecord._invalid_duplicate_ma_lo;
+            return (
+              <Input
+                value={value}
+                onChange={(e) => onSelectChange(e.target.value, record, "ma_lo")}
+                style={{
+                  width: "100%",
+                  textAlign: "center",
+                  ...(isDuplicateMaLo
+                    ? { backgroundColor: "#ffccc7", borderColor: "#ff4d4f" }
+                    : {}),
+                }}
+                className="vat-tu-table-input"
+                placeholder="Nhập mã lô"
+                size="small"
+              />
+            );
+          },
+        });
+      }
 
-    // Thêm cột ghi chú: mặc định, hoặc hoãn tới cuối nếu cấu hình yêu cầu
-    let ghiChuColumn = null;
-    if (columnConfig.showGhiChu) {
-      ghiChuColumn = {
-        title: "Ghi chú",
-        dataIndex: columnConfig.ghiChuField || "ghi_chu",
-        key: "ghi_chu",
-        width: 150,
-        align: "center",
-        ellipsis: true,
-        render: (value, record) => {
-          if (!isEditMode) {
-            return value;
-          }
-          return (
-            <Input
-              value={value}
-              onChange={(e) => onSelectChange(e.target.value, record, "ghi_chu")}
-              style={{ width: "100%" }}
-              className="vat-tu-table-input"
-              placeholder="Nhập ghi chú"
-              size="small"
-            />
-          );
-        },
-      };
-      if (!columnConfig.placeGhiChuAtEnd) {
-        baseColumns.push(ghiChuColumn);
-        ghiChuColumn = null;
+      if (columnConfig.showHanSuDung) {
+        baseColumns.push({
+          title: "Hạn sử dụng",
+          dataIndex: columnConfig.hanSuDungField || "ngay_hh",
+          key: "han_su_dung",
+          width: 120,
+          align: "center",
+          render: (v) => (v ? dayjs(v).format("DD/MM/YYYY") : ""),
+        });
       }
     }
 
-    // Thêm cột số lượng tồn
+    // Thêm cột số lượng đề nghị (SL đơn)
+    // Dòng con: được phép sửa SL đơn; dòng mẹ tự trừ theo tổng - sum(con)
+    if (columnConfig.showSoLuongDeNghi !== false) {
+      const soLuongDeNghiField = columnConfig.soLuongDeNghiField || "so_luong";
+      baseColumns.push({
+        title: columnConfig.soLuongDeNghiTitle === "Số lượng đơn" ? "SL đơn" : (columnConfig.soLuongDeNghiTitle || "Số lượng đề nghị"),
+        dataIndex: soLuongDeNghiField,
+        key: "so_luong_de_nghi",
+        width: 65,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) => {
+          const isEditable = columnConfig.soLuongDeNghiEditable !== false;
+          return renderQuantityInput(
+            value,
+            record,
+            soLuongDeNghiField,
+            isEditable
+          );
+        },
+      });
+    }
+
+    // Thêm cột số lượng tồn (SL tồn) - đặt trước cột Nhặt
     if (columnConfig.showSoLuongTon) {
       baseColumns.push({
-        title: "Số lượng tồn",
+        title: "SL tồn",
         dataIndex: columnConfig.soLuongTonField || "so_luong_ton",
         key: "so_luong_ton",
         width: 120,
@@ -700,13 +995,99 @@ const VatTuTable = ({
       });
     }
 
-    // Thêm cột tổng nhặt
+    // Thêm cột tồn kho (Tồn KH)
+    if (columnConfig.showTonKh) {
+      baseColumns.push({
+        title: "Tồn khả dụng",
+        dataIndex: columnConfig.tonKhField || "ton_kh",
+        key: "ton_kh",
+        width: 120,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) =>
+          record.isChild ? (
+            ""
+          ) : (
+            <span
+              style={{
+                fontWeight: "bold",
+                display: "block",
+                textAlign: "center",
+                color: value && value > 0 ? "#1890ff" : "#999",
+              }}
+            >
+              {value !== null && value !== undefined ? formatQuantityDisplay(value) : "-"}
+            </span>
+          ),
+      });
+    }
+
+    // Thêm cột checkbox Nhặt (cho phiếu nhặt hàng)
+    if (columnConfig.showNhatCheckbox) {
+      baseColumns.push({
+        title: "Nhặt",
+        dataIndex: columnConfig.nhatCheckboxField || "nhat_checkbox",
+        key: "nhat_checkbox",
+        width: 40,
+        align: "center",
+        ellipsis: true,
+        onCell: (record) => ({
+          onClick: (e) => {
+            // Stop propagation to prevent row click handlers from interfering
+            e.stopPropagation();
+          },
+        }),
+        render: (value, record, index) => {
+          const currentRecord = dataSource.find(item => item.key === record.key) || record;
+          const tongNhatField = columnConfig.tongNhatField || "tong_nhat";
+          const soLuongDeNghiField = columnConfig.soLuongDeNghiField || "soLuongDeNghi";
+          const soLuongDon = parseFloat(currentRecord[soLuongDeNghiField] ?? currentRecord.so_luong ?? 0);
+
+          // Dòng con: chỉ hiển thị ô Nhặt sau khi đã nhập SL đơn > 0
+          if (currentRecord.isChild && soLuongDon <= 0) {
+            return "";
+          }
+
+          const tongNhat = parseFloat(currentRecord[tongNhatField] || 0);
+          const isChecked = tongNhat > 0 && Math.abs(tongNhat - soLuongDon) < 0.001;
+
+          if (!isEditMode) {
+            return isChecked ? "✓" : "";
+          }
+
+          return (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}
+            >
+              <Checkbox
+                key={`checkbox-${currentRecord.key}-${tongNhat}`}
+                checked={isChecked}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  const checked = e.target.checked;
+                  const latestRecord = dataSource.find(item => item.key === currentRecord.key) || currentRecord;
+                  const latestSoLuongDon = parseFloat(latestRecord[soLuongDeNghiField] || latestRecord.so_luong || 0);
+                  const newTongNhat = checked ? latestSoLuongDon : 0;
+                  if (onQuantityChange) {
+                    onQuantityChange(newTongNhat, latestRecord, tongNhatField);
+                  }
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          );
+        },
+      });
+    }
+
+    // Thêm cột tổng nhặt (SL nhặt) - đặt sau cột Nhặt
     if (columnConfig.showTongNhat) {
       baseColumns.push({
-        title: "Tổng nhặt",
+        title: "SL nhặt",
         dataIndex: columnConfig.tongNhatField || "tong_nhat",
         key: "tong_nhat",
-        width: 120,
+        width: 70,
         align: "center",
         ellipsis: true,
         render: (value, record) => {
@@ -733,69 +1114,175 @@ const VatTuTable = ({
       });
     }
 
-
-    // Thêm cột mã kho nếu cần
-    if (columnConfig.showMaKho) {
+    // Thêm cột số lượng cheat/xuất
+    if (columnConfig.showSoLuongCheat !== false) {
       baseColumns.push({
-        title: (
-          <span>
-            Mã kho <span style={{ color: "red" }}>*</span>
-          </span>
-        ),
-        dataIndex: "ma_kho",
-        key: "ma_kho",
-        width: 180,
+        title: columnConfig.soLuongCheatTitle || "Số lượng cheat",
+        dataIndex: columnConfig.soLuongCheatField || "sl_td3",
+        key: "so_luong_cheat",
+        width: 120,
         align: "center",
         ellipsis: true,
-        render: renderMaKhoSelect,
+        render: (value, record) =>
+          renderQuantityInput(
+            value,
+            record,
+            columnConfig.soLuongCheatField || "sl_td3"
+          ),
       });
     }
 
-    // Nếu cần, thêm cột ghi chú ở cuối trước khi thêm thao tác
+    // Thêm cột Ghi chú KD (nếu có) - chỉ hiển thị, text xuống dòng khi dài
+    let ghiChuKDColumn = null;
+    if (columnConfig.showGhiChuKD) {
+      ghiChuKDColumn = {
+        title: "Ghi chú KD",
+        dataIndex: columnConfig.ghiChuKDField || "ghi_chu_dh",
+        key: "ghi_chu_dh",
+        width: 100,
+        align: "center",
+        ellipsis: false,
+        render: (value) => (
+          <span className="vat-tu-table-cell-wrap">{value || ""}</span>
+        ),
+      };
+    }
+
+    // Thêm cột ghi chú: mặc định, text xuống dòng khi dài
+    let ghiChuColumn = null;
+    if (columnConfig.showGhiChu) {
+      ghiChuColumn = {
+        title: columnConfig.ghiChuTitle || "Ghi chú",
+        dataIndex: columnConfig.ghiChuField || "ghi_chu",
+        key: "ghi_chu",
+        width: 120,
+        align: "center",
+        ellipsis: false,
+        render: (value, record) => {
+          if (!isEditMode) {
+            return (
+              <span className="vat-tu-table-cell-wrap">{value || ""}</span>
+            );
+          }
+          return (
+            <Input.TextArea
+              value={value || ""}
+              onChange={(e) => onSelectChange(e.target.value, record, columnConfig.ghiChuField || "ghi_chu")}
+              style={{ width: "100%", minHeight: 32 }}
+              className="vat-tu-table-input"
+              placeholder="Nhập ghi chú"
+              autoSize={{ minRows: 1, maxRows: 6 }}
+              rows={1}
+            />
+          );
+        },
+      };
+      if (!columnConfig.placeGhiChuAtEnd) {
+        baseColumns.push(ghiChuColumn);
+        ghiChuColumn = null;
+      }
+    }
+
+
+
+
+
+    // Moved Mã kho logic is now above at line 444+
+
+    if (columnConfig.showDonHang) {
+        baseColumns.push({
+            title: "Đơn hàng",
+            dataIndex: columnConfig.donHangField || "fcode2",
+            key: "don_hang",
+            width: 120,
+            align: "center",
+            render: (v, record) => {
+                const poNum = (record.fcode2 || record.dh_so || "").trim();
+                const poDate = record.fdate1 ? dayjs(record.fdate1).format("DD/MM/YYYY") : "";
+                return (
+                    <div style={{ fontSize: '11px' }}>
+                        <div>{poNum}</div>
+                        {poDate && <div style={{ color: '#64748b' }}>{poDate}</div>}
+                    </div>
+                );
+            }
+        });
+    }
+
+    // Nếu cần, thêm cột ghi chú KD và ghi chú ở cuối trước khi thêm thao tác
+    if (ghiChuKDColumn) {
+      baseColumns.push(ghiChuKDColumn);
+    }
     if (ghiChuColumn) {
       baseColumns.push(ghiChuColumn);
     }
 
-    // Thêm cột thao tác
-    baseColumns.push({
-      title: "Thao tác",
-      key: "action",
-      width: columnConfig.useAddButtonInsteadOfDelete ? 120 : 80, // Tăng width nếu có cả nút xóa và nút thêm
-      align: "center",
-      fixed: "right",
-      render: (_, record, index) => {
-        if (columnConfig.useAddButtonInsteadOfDelete) {
-          // Dòng cha: hiển thị cả nút xóa và nút thêm dòng con
-          if (!record.isChild) {
+    // Thêm cột thao tác (chỉ khi không bị ẩn)
+    if (columnConfig.showThaoTac !== false) {
+      baseColumns.push({
+        title: "Thao tác",
+        key: "action",
+        width: columnConfig.useAddButtonInsteadOfDelete ? 120 : 80, // Tăng width nếu có cả nút xóa và nút thêm
+        align: "center",
+        render: (_, record, index) => {
+          if (columnConfig.useAddButtonInsteadOfDelete) {
+            // Dòng cha: hiển thị cả nút xóa và nút thêm dòng con
+            const groupKey = record.isChild ? record.parentKey : record.key;
+            // Tìm xem đây có phải là dòng cuối cùng của nhóm vật tư này không để hiển thị nút +
+            const isLastInGroup =
+              index === dataSource.length - 1 ||
+              (dataSource[index + 1].isChild
+                ? dataSource[index + 1].parentKey !== groupKey
+                : true);
+
             return (
               <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
-                <Button
-                  type="text"
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  onClick={() => onDeleteItem(index, isEditMode)}
-                  title="Xóa dòng"
-                  disabled={true}
-                  className="vat-tu-delete-btn"
-                  style={{ opacity: 0.3, cursor: "not-allowed" }}
-                />
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<PlusOutlined />}
-                  onClick={() =>
-                    otherProps.onAddItem ? otherProps.onAddItem(index, record) : null
-                  }
-                  title="Thêm dòng con"
-                  disabled={!isEditMode}
-                  className="vat-tu-add-btn"
-                  style={{ color: "#52c41a" }}
-                />
+                {(!record.isChild &&
+                columnConfig.preventDeleteMainRow &&
+                !record.isNewlyAdded) ? null : (
+                  <Button
+                    type="text"
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={() => onDeleteItem(index, isEditMode)}
+                    title="Xóa dòng"
+                    disabled={!isEditMode}
+                    className="vat-tu-delete-btn"
+                  />
+                )}
+                {isLastInGroup && (
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      if (!isEditMode) return;
+                      const tongueNhatValue = parseFloat(record.tong_nhat || 0);
+                      if (tongueNhatValue <= 0) {
+                        message.warning("Vui lòng nhập số lượng nhặt trước khi cộng dòng.");
+                        return;
+                      }
+                      if (otherProps.onAddItem) {
+                        otherProps.onAddItem(index, record);
+                      }
+                    }}
+                    title="Thêm dòng con"
+                    disabled={
+                      !isEditMode ||
+                      parseFloat(record.so_luong || record.soLuongDeNghi || 0) <= 0 ||
+                      parseFloat(record.tong_nhat || 0) >= parseFloat(record.so_luong || record.soLuongDeNghi || 0)
+                    }
+                    className="vat-tu-add-btn"
+                    style={{ color: "#52c41a" }}
+                  />
+                )}
               </div>
             );
           }
-          // Dòng con: nút xóa dòng con
+          // Trường hợp không dùng useAddButtonInsteadOfDelete: cả dòng cha và dòng con đều có nút xóa
+          // Disable nút xóa cho dòng chính (không phải dòng con)
+          const isMainRowLocked = !record.isChild && columnConfig.preventDeleteMainRow && !record.isNewlyAdded;
           return (
             <Button
               type="text"
@@ -803,41 +1290,33 @@ const VatTuTable = ({
               size="small"
               icon={<DeleteOutlined />}
               onClick={() => onDeleteItem(index, isEditMode)}
-              title="Xóa dòng"
-              disabled={!isEditMode}
+              title={record.isChild ? "Xóa dòng" : (isMainRowLocked ? "Không thể xóa dòng chính" : "Xóa dòng")}
+              disabled={!isEditMode || isMainRowLocked}
               className="vat-tu-delete-btn"
             />
           );
-        }
-        // Trường hợp không dùng useAddButtonInsteadOfDelete: cả dòng cha và dòng con đều có nút xóa
-        // Disable nút xóa cho dòng chính (không phải dòng con)
-        return (
-          <Button
-            type="text"
-            danger
-            size="small"
-            icon={<DeleteOutlined />}
-            onClick={() => onDeleteItem(index, isEditMode)}
-            title={record.isChild ? "Xóa dòng" : "Không thể xóa dòng chính"}
-            disabled={!isEditMode || !record.isChild}
-            className="vat-tu-delete-btn"
-            style={!record.isChild ? { opacity: 0.3, cursor: "not-allowed" } : {}}
-          />
-        );
-      },
-    });
+        },
+      });
+    }
 
     return baseColumns;
   }, [
     columnConfig,
-    renderDvtSelect,
     renderQuantityInput,
     renderMaKhoSelect,
+    renderDvtSelect,
     onDeleteItem,
     isEditMode,
     otherProps,
-    dataSource, // Thêm dataSource để STT được tính lại khi có thay đổi
+    dataSource,
     viTriOptions,
+    onQuantityChange,
+    loadingLo,
+    loadingViTri,
+    loadLoOptions,
+    loadViTriOptions,
+    onSelectChange,
+    openLo,
   ]);
 
   // Cấu hình scroll
@@ -851,30 +1330,31 @@ const VatTuTable = ({
     // Tăng rowHeight để hiển thị ảnh tốt hơn (ảnh 120px + padding + text)
     const rowHeight = 160;
     const headerHeight = 50;
-    const maxRows = 10;
+    const maxRows = 25;
     const y = headerHeight + rowHeight * maxRows;
 
     return { x: minWidth, y };
   }, [columns]);
 
   return (
-    <Table
-      bordered
-      dataSource={dataSource}
-      columns={columns}
-      locale={{
-        emptyText: (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Trống" />
-        ),
-      }}
-      pagination={false}
-      className={tableClassName}
-      scroll={getScrollConfig()}
-      size="small"
-      tableLayout="auto"
-      
-      {...otherProps}
-    />
+    <div ref={tableWrapperRef} style={{ width: "100%" }}>
+      <Table
+        bordered
+        dataSource={dataSource}
+        columns={columns}
+        locale={{
+          emptyText: (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Trống" />
+          ),
+        }}
+        pagination={false}
+        className={tableClassName}
+        scroll={getScrollConfig()}
+        size="small"
+        tableLayout="auto"
+        {...otherProps}
+      />
+    </div>
   );
 };
 

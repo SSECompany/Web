@@ -1,5 +1,6 @@
 import { EditOutlined, LeftOutlined } from "@ant-design/icons";
-import { Button, Form, message, Space, Typography } from "antd";
+import { Button, Form, message, Space, Typography, Select } from "antd";
+import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
@@ -84,58 +85,55 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
     handleDvtChange,
   } = useVatTuManager();
 
-  const fetchVatTuList = async (
-    keyword = "",
-    page = 1,
-    append = false,
-    callback
-  ) => {
-    setLoadingVatTu(true);
-    try {
-      const userStr = localStorage.getItem("user");
-      const unitsResponseStr = localStorage.getItem("unitsResponse");
-      const user = userStr ? JSON.parse(userStr) : {};
-      const unitsResponse = unitsResponseStr
-        ? JSON.parse(unitsResponseStr)
-        : {};
-      const unitCode = user.unitCode || unitsResponse.unitCode;
-      const res = await fetchVatTuListDynamicApi({
-        keyword,
-        unitCode,
-        pageIndex: page,
-        pageSize: 100,
-      });
-      if (res.success && res.data) {
-        const options = res.data.map((item) => ({
-          label: `${item.ma_vt} - ${item.ten_vt}`,
-          value: item.ma_vt,
-          ...item,
-        }));
-        setVatTuList((prev) => (append ? [...prev, ...options] : options));
-        if (callback) callback(res.pagination);
-      } else {
-        if (!append) setVatTuList([]);
+  const fetchVatTuList = useCallback(
+    async (keyword = "", page = 1, append = false, callback) => {
+      setLoadingVatTu(true);
+      try {
+        const userStr = localStorage.getItem("user");
+        const unitsResponseStr = localStorage.getItem("unitsResponse");
+        const user = userStr ? JSON.parse(userStr) : {};
+        const unitsResponse = unitsResponseStr
+          ? JSON.parse(unitsResponseStr)
+          : {};
+        const unitCode = user.unitCode || unitsResponse.unitCode;
+        const res = await fetchVatTuListDynamicApi({
+          keyword,
+          unitCode,
+          pageIndex: page,
+          pageSize: 100,
+        });
+        if (res.success && res.data) {
+          const options = res.data.map((item) => ({
+            label: `${item.ma_vt} - ${item.ten_vt}`,
+            value: item.ma_vt,
+            ...item,
+          }));
+          setVatTuList((prev) => (append ? [...prev, ...options] : options));
+          if (callback) callback(res.pagination);
+        } else {
+          if (!append) setVatTuList([]);
+          if (callback) callback({ totalPage: 1 });
+        }
+      } catch (error) {
+        setVatTuList([]);
         if (callback) callback({ totalPage: 1 });
+      } finally {
+        setLoadingVatTu(false);
       }
-    } catch (error) {
-      setVatTuList([]);
-      if (callback) callback({ totalPage: 1 });
-    } finally {
-      setLoadingVatTu(false);
-    }
-  };
+    },
+    [] // setVatTuList is from useState, fetchVatTuListDynamicApi is imported
+  );
 
-  const fetchVatTuListPaging = async (
-    keyword = "",
-    page = 1,
-    append = false
-  ) => {
-    setCurrentKeyword(keyword);
-    await fetchVatTuList(keyword, page, append, (pagination) => {
-      setPageIndex(page);
-      setTotalPage(pagination?.totalPage || 1);
-    });
-  };
+  const fetchVatTuListPaging = useCallback(
+    async (keyword = "", page = 1, append = false) => {
+      setCurrentKeyword(keyword);
+      await fetchVatTuList(keyword, page, append, (pagination) => {
+        setPageIndex(page);
+        setTotalPage(pagination?.totalPage || 1);
+      });
+    },
+    [fetchVatTuList]
+  );
 
   // Load phieu detail - chỉ load thông tin cơ bản
   const fetchPhieuDetail = useCallback(async () => {
@@ -161,7 +159,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
         resultSetNames: ["master", "detail"],
       };
 
-      const res = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+      const res = await https.post("User/AddData", body, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -222,13 +220,14 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
     if (phieuDetailLoadedRef.current !== stt_rec) {
       fetchPhieuDetail();
     }
-  }, [stt_rec, location.pathname]);
+  }, [stt_rec, location.pathname, fetchPhieuDetail]);
 
   // Cleanup timeout
   useEffect(() => {
+    const searchTimeout = searchTimeoutRef.current;
     return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
       }
     };
   }, []);
@@ -266,6 +265,47 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
       fetchVatTuList,
       vatTuSelectRef,
     ]
+  );
+
+  const submitPhieuData = useCallback(
+    async (values) => {
+      try {
+        // Sử dụng buildPayload với dynamic logic đã được implement
+        const payload = buildPayload(values, dataSource, phieuData, true);
+
+        if (!payload) {
+          message.error(
+            "Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu."
+          );
+          setLoading(false);
+          return;
+        }
+        const result = await submitPhieuDynamic(
+          payload,
+          isEditMode
+            ? "Cập nhật phiếu xuất kho bán hàng thành công"
+            : "Lưu phiếu xuất kho bán hàng thành công",
+          true
+        );
+
+        if (result.success) {
+          message.success(
+            "Đã cập nhật thành công, đang chuyển về trang chính..."
+          );
+
+          // Delay một chút để user thấy message trước khi navigate
+          setTimeout(() => {
+            navigate("/kho/xuat-kho-ban-hang");
+          }, 1000);
+        } else {
+        }
+      } catch (error) {
+        console.error("Lỗi khi cập nhật phiếu xuất kho:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dataSource, phieuData, isEditMode, navigate, setLoading]
   );
 
   const handleSubmit = useCallback(async () => {
@@ -329,48 +369,7 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
       console.error("Lỗi khi cập nhật phiếu xuất kho:", error);
       setLoading(false);
     }
-  }, [form, dataSource, phieuData, isEditMode, navigate, setLoading]);
-
-  const submitPhieuData = useCallback(
-    async (values) => {
-      try {
-        // Sử dụng buildPayload với dynamic logic đã được implement
-        const payload = buildPayload(values, dataSource, phieuData, true);
-
-        if (!payload) {
-          message.error(
-            "Không thể tạo payload. Vui lòng kiểm tra lại dữ liệu."
-          );
-          setLoading(false);
-          return;
-        }
-        const result = await submitPhieuDynamic(
-          payload,
-          isEditMode
-            ? "Cập nhật phiếu xuất kho bán hàng thành công"
-            : "Lưu phiếu xuất kho bán hàng thành công",
-          true
-        );
-
-        if (result.success) {
-          message.success(
-            "Đã cập nhật thành công, đang chuyển về trang chính..."
-          );
-
-          // Delay một chút để user thấy message trước khi navigate
-          setTimeout(() => {
-            navigate("/kho/xuat-kho-ban-hang");
-          }, 1000);
-        } else {
-        }
-      } catch (error) {
-        console.error("Lỗi khi cập nhật phiếu xuất kho:", error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [dataSource, phieuData, isEditMode, navigate, setLoading]
-  );
+  }, [form, dataSource, submitPhieuData, setLoading]);
 
   const handleEdit = useCallback(() => {
     navigate(`/kho/xuat-kho-ban-hang/edit/${stt_rec}`);
@@ -424,33 +423,67 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
           icon={<LeftOutlined />}
           onClick={() => navigate("/kho/xuat-kho-ban-hang")}
           className="phieu-back-button"
-        >
-          Trở về
-        </Button>
-        <Title level={5} className="phieu-title">
-          {isEditMode
-            ? "CHỈNH SỬA PHIẾU XUẤT KHO BÁN HÀNG"
-            : "CHI TIẾT PHIẾU XUẤT KHO BÁN HÀNG"}
-        </Title>
-        {!isEditMode ? (
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={handleEdit}
-            className="phieu-edit-button"
-          >
-            Chỉnh sửa
-          </Button>
-        ) : (
-          <div style={{ width: 120 }}></div>
-        )}
+        />
+        
+        <div className="phieu-header-info">
+          <div className="phieu-header-tags">
+            <span className={`phieu-header-badge ${!stt_rec ? 'phieu-header-badge--green' : isEditMode ? 'phieu-header-badge--orange' : 'phieu-header-badge--blue'}`}>
+              {stt_rec ? (isEditMode ? "SỬA PHIẾU XUẤT" : "CHI TIẾT PHIẾU XUẤT") : "THÊM PHIẾU XUẤT MỚI"}
+            </span>
+          </div>
+
+          <div className="phieu-header-meta-stack">
+            <div className="phieu-header-meta-item">
+              ĐƠN HÀNG: <span className="phieu-header-meta-value">
+                {form.getFieldValue('soPhieu') || '.........'} 
+                {form.getFieldValue('bcontract_id') && (
+                  <span className="phieu-header-meta-sequence">
+                    ({form.getFieldValue('bcontract_id')})
+                  </span>
+                )}
+              </span>
+            </div>
+            <div className="phieu-header-meta-item">
+              NGÀY: <span className="phieu-header-meta-value">{form.getFieldValue('ngay') ? dayjs(form.getFieldValue('ngay')).format('DD/MM/YYYY') : '.........'}</span>
+            </div>
+            <div className="phieu-header-status-row">
+              <span className="phieu-header-status-label">TRẠNG THÁI:</span>
+              <Form.Item name="trangThai" noStyle>
+                <Select 
+                  size="small"
+                  className="phieu-header-status-select"
+                  dropdownMatchSelectWidth={false}
+                >
+                  <Select.Option value="0">0. Lập chứng từ</Select.Option>
+                  <Select.Option value="1">1. Chờ duyệt</Select.Option>
+                  <Select.Option value="2">2. Duyệt</Select.Option>
+                </Select>
+              </Form.Item>
+            </div>
+          </div>
+        </div>
+
+        <div className="phieu-header-right">
+          {!isEditMode && stt_rec ? (
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={handleEdit}
+              className="phieu-edit-button"
+            >
+              Chỉnh sửa
+            </Button>
+          ) : (
+            <div style={{ width: 120 }}></div>
+          )}
+        </div>
       </div>
 
       <div className="phieu-form-container">
         <Form
           form={form}
           layout="vertical"
-          className="phieu-form"
+          className="phieu-form phieu-form--floating"
           disabled={!isEditMode}
         >
           <PhieuFormInputs

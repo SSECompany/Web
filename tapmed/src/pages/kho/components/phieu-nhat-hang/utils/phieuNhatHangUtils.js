@@ -1,5 +1,6 @@
-import { message } from "antd";
+import { staticMessage as message } from "../../../../../utils/antdStatic";
 import https from "../../../../../utils/https";
+import dayjs from "dayjs";
 
 export const getUserInfo = () => {
   try {
@@ -27,8 +28,9 @@ export const getUserInfo = () => {
 };
 
 export const formatDate = (date) => {
-  const d = date ? new Date(date) : new Date();
-  return d.toISOString().split(".")[0];
+  if (!date) return dayjs().format("YYYY-MM-DDTHH:mm:ss");
+  const d = dayjs(date);
+  return d.isValid() ? d.format("YYYY-MM-DDTHH:mm:ss") : date;
 };
 
 export const validateDataSource = (dataSource, formType = "default") => {
@@ -51,11 +53,16 @@ export const validateDataSource = (dataSource, formType = "default") => {
   if (missingData.length > 0) {
     message.error({
       content: (
-        <div>
-          <div>Vui lòng bổ sung thông tin bắt buộc:</div>
-          {missingData.map((msg, idx) => (
-            <div key={idx}>• {msg}</div>
-          ))}
+        <div style={{ marginTop: '4px' }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '10px', color: '#ff4d4f', borderBottom: '1px solid #ffccc7', paddingBottom: '6px' }}>Vui lòng bổ sung thông tin bắt buộc:</div>
+          <div style={{ maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' }}>
+            {missingData.map((msg, idx) => (
+              <div key={idx} style={{ marginBottom: '8px', fontSize: '13px', display: 'flex', alignItems: 'flex-start' }}>
+                <span style={{ marginRight: '8px', color: '#ff4d4f', fontWeight: 'bold' }}>•</span>
+                <span style={{ lineHeight: '1.4' }}>{msg}</span>
+              </div>
+            ))}
+          </div>
         </div>
       ),
       duration: 6,
@@ -82,19 +89,55 @@ export const validateTongNhat = (dataSource) => {
 };
 
 /**
+ * Validate trùng cặp (mã vật tư + mã lô) trên toàn bảng.
+ * 1 vật tư có thể có nhiều mã lô nhưng không được trùng cặp (ma_vt, ma_lo).
+ * Cả khi mã lô rỗng: 2 dòng cùng mã vật tư mà đều không có mã lô cũng tính là trùng, không cho Lưu/Hoàn thành.
+ * @param {Array} dataSource - Dữ liệu bảng
+ * @returns {Object} { isValid: boolean, type?: string, details?: Array }
+ */
+export const validateDuplicateMaLo = (dataSource = []) => {
+  if (!Array.isArray(dataSource) || dataSource.length === 0) {
+    return { isValid: true };
+  }
+  const SEP = "\u0001"; // separator an toàn (không có trong mã)
+  const pairCount = new Map(); // key = "ma_vt\u0001ma_lo", value = number of rows
+
+  dataSource.forEach((row) => {
+    const maVt = String(row.ma_vt ?? row.maHang ?? "").trim();
+    const maLo = String(row.ma_lo ?? "").trim();
+    const key = `${maVt}${SEP}${maLo}`;
+    pairCount.set(key, (pairCount.get(key) || 0) + 1);
+  });
+
+  const duplicates = [];
+  for (const [key, count] of pairCount) {
+    if (count > 1) {
+      const [maVt, maLo] = key.split(SEP);
+      duplicates.push({ ma_vt: maVt || "", ma_lo: maLo || "", itemInfo: `${maVt || ""} - ${maLo || ""}` });
+    }
+  }
+
+  if (duplicates.length > 0) {
+    return { isValid: false, type: "duplicateMaLo", details: duplicates };
+  }
+  return { isValid: true };
+};
+
+/**
  * Validate điều kiện hoàn thành:
- * - Dòng nào có tổng nhặt (> 0) thì bắt buộc phải có mã lô
+ * - Dòng nào có tổng nhặt (> 0) và lo_yn = true thì bắt buộc phải có mã lô; lo_yn = false thì mã lô tùy chọn
  * - Tổng nhặt nhóm phải BẰNG số lượng đơn (không thiếu, không dư)
  */
 export const validateCompletionRules = (dataSource = []) => {
   const errors = [];
 
-  // 1) Kiểm tra mã lô cho mọi dòng có picked > 0
+  // 1) Kiểm tra mã lô: chỉ bắt buộc khi lo_yn = true và dòng có picked > 0
   const missingLotRows = [];
   dataSource.forEach((row, idx) => {
     const picked = parseFloat(row.tong_nhat || 0) || 0;
     const lot = (row.ma_lo || "").toString().trim();
-    if (picked > 0 && !lot) {
+    const loYn = row.lo_yn === true || row.lo_yn === "1" || row.lo_yn === 1;
+    if (picked > 0 && loYn && !lot) {
       const maHang = row.maHang || row.ma_vt || "";
       const ten = row.ten_mat_hang || row.ten_vt || "";
       const itemInfo =
@@ -116,7 +159,7 @@ export const validateCompletionRules = (dataSource = []) => {
     // Chỉ kiểm tra nhóm có parent (dòng cha)
     if (g && g.parentItem) {
       const equal =
-        (parseFloat(g.pickedSum) || 0) === (parseFloat(g.orderQty) || 0);
+        (Math.round(g.pickedSum) || 0) === (Math.round(g.orderQty) || 0);
       if (!equal) {
         const parent = g.parentItem;
         const maHang = parent.maHang || parent.ma_vt || "";
@@ -143,7 +186,19 @@ export const validateCompletionRules = (dataSource = []) => {
 };
 
 /**
+ * Lấy tồn khả dụng (vật tư mẹ) từ dòng - ưu tiên ton_kh, fallback so_luong_ton
+ */
+export const getTonKhFromRow = (row) => {
+  const tonKh = parseFloat(
+    row.ton_kh ?? row.tonKh ?? row.ton_kha_dung ?? row.sl_ton_kh ?? 0
+  );
+  const soLuongTon = parseFloat(row.so_luong_ton ?? 0);
+  return tonKh > 0 ? tonKh : soLuongTon;
+};
+
+/**
  * Tính trạng thái nhóm: tổng nhặt của nhóm (cha + các dòng con) không vượt quá số lượng đơn của dòng cha
+ * VÀ không vượt quá tồn khả dụng (vật tư mẹ) - để tránh vật tư mẹ = 0 hoặc âm
  * GroupKey: dòng cha dùng key của chính nó; dòng con dùng parentKey
  */
 export const computeGroupState = (dataSource = []) => {
@@ -154,33 +209,54 @@ export const computeGroupState = (dataSource = []) => {
       parentIndex: null,
       orderQty: 0,
       pickedSum: 0,
+      tonKh: 0,
       members: [],
       parentItem: null,
     };
-    const picked = parseFloat(row.tong_nhat || 0) || 0;
-    state.pickedSum += picked;
+    const picked = Math.round(parseFloat(row.tong_nhat || 0) || 0);
+    state.pickedSum = Math.round(state.pickedSum + picked);
     state.members.push(row);
     if (!row.isChild) {
       state.parentIndex = index + 1; // 1-based for display
-      // Ưu tiên so_luong_don, fallback so_luong/soLuongDeNghi
+      // Tổng SL đơn của nhóm: ưu tiên soLuongDeNghi_tong (khi có dòng con), rồi so_luong_don/so_luong/soLuongDeNghi
       const orderQty =
         parseFloat(
-          row.so_luong_don ?? row.so_luong ?? row.soLuongDeNghi ?? 0
+          row.soLuongDeNghi_tong ??
+            row.so_luong_don ??
+            row.so_luong ??
+            row.soLuongDeNghi ??
+            0
         ) || 0;
       state.orderQty = orderQty;
       state.parentItem = row;
+      state.tonKh = getTonKhFromRow(row);
     }
     groups.set(groupKey, state);
   });
-  // Mark exceeded
-  for (const [key, g] of groups) {
-    g.exceeded = g.pickedSum > g.orderQty;
+  // Mark exceeded: SL nhặt không vượt SL đơn (so sánh dòng mẹ vs mẹ, con vs con) + tổng nhóm — không check tồn khả dụng
+  for (const [, g] of groups) {
+    const roundedPickedSum = Math.round(g.pickedSum || 0);
+    const roundedOrderQty = Math.round(g.orderQty || 0);
+    g.exceeded = roundedPickedSum > roundedOrderQty;
+    g.exceededTonKh = false; // Phiếu nhặt hàng không kiểm tra tồn khả dụng
+    // Per-row: mỗi dòng có tong_nhat > soLuongDeNghi của chính dòng đó
+    g.exceededPerRow = g.members.some((row) => {
+      const picked = parseFloat(row.tong_nhat || 0) || 0;
+      const rowOrderQty =
+        parseFloat(
+          row.soLuongDeNghi ?? row.so_luong ?? 0
+        ) || 0;
+      return rowOrderQty > 0 && picked > rowOrderQty;
+    });
   }
   return groups;
 };
 
 /**
  * Validate theo nhóm dựa trên computeGroupState
+ * - pickedSum không vượt orderQty (tổng nhóm)
+ * - SL nhặt từng dòng không vượt SL đơn của chính dòng đó (mẹ vs mẹ, con vs con)
+ * (Phiếu nhặt hàng không kiểm tra tồn khả dụng)
  */
 export const validateTongNhatByGroup = (dataSource = []) => {
   const groups = computeGroupState(dataSource);
@@ -199,6 +275,27 @@ export const validateTongNhatByGroup = (dataSource = []) => {
         itemInfo,
         orderQty: g.orderQty || 0,
         pickedSum: g.pickedSum || 0,
+        type: "orderQty",
+      });
+    }
+    if (g.exceededPerRow) {
+      g.members.forEach((row) => {
+        const picked = parseFloat(row.tong_nhat || 0) || 0;
+        const rowOrderQty =
+          parseFloat(row.soLuongDeNghi ?? row.so_luong ?? 0) || 0;
+        if (rowOrderQty > 0 && picked > rowOrderQty) {
+          const maHang = row.maHang || row.ma_vt || "";
+          const ten = row.ten_mat_hang || row.ten_vt || "";
+          const itemInfo =
+            maHang && ten ? `${maHang} - ${ten}` : maHang || ten || "Dòng";
+          errors.push({
+            parentIndex: g.parentIndex || 0,
+            itemInfo,
+            orderQty: rowOrderQty,
+            pickedSum: picked,
+            type: "perRow",
+          });
+        }
       });
     }
   }
@@ -217,10 +314,10 @@ export const buildPhieuNhatHangPayload = (
   const orderDate = formatDate(values.ngay);
   // Chỉ giữ lại những trường thực sự có trong data từ API response
   // Không gắn mặc định bất kỳ trường nào
-  const totalQuantity = dataSource.reduce(
+  const totalQuantity = Math.round(dataSource.reduce(
     (sum, item) => sum + parseFloat(item.soLuong || 0),
     0
-  );
+  ));
 
   // Tính tổng tiền từ detail
   const totalAmount = dataSource.reduce(
@@ -241,9 +338,11 @@ export const buildPhieuNhatHangPayload = (
     ma_gd: values.maGiaoDich || "",
     // Khi update, giữ nguyên ngay_ct từ API; khi tạo mới mới dùng orderDate
     ngay_ct: isUpdate && phieuData?.ngay_ct ? phieuData.ngay_ct : orderDate,
-    so_ct: values.soPhieu || "",
-    ong_ba: values.maKhach || "",
-    ma_kh: values.maKhach || "",
+    // Khi update, ưu tiên giữ nguyên so_ct từ API để tránh bị reset thành rỗng
+    so_ct: isUpdate && phieuData?.so_ct ? phieuData.so_ct : (values.soPhieu || ""),
+    ong_ba: values.maKhach || (isUpdate && phieuData?.ong_ba ? phieuData.ong_ba : ""),
+    // Khi update, nếu values.maKhach rỗng thì giữ nguyên ma_kh từ phieuData
+    ma_kh: values.maKhach || (isUpdate && phieuData?.ma_kh ? phieuData.ma_kh : ""),
     dien_giai: values.dienGiai || "",
     status: values.trangThai || "0",
     t_so_luong: totalQuantity,
@@ -384,7 +483,11 @@ export const buildPhieuNhatHangPayload = (
     // Chỉ override các trường cần thiết từ form
     // Khi update, giữ nguyên ngay_ct từ item (API); khi tạo mới mới dùng orderDate
     dynamicItem.ngay_ct = isUpdate && item.ngay_ct ? item.ngay_ct : orderDate;
-    dynamicItem.so_ct = values.soPhieu || "";
+    // Khi update, ưu tiên giữ nguyên so_ct từ item (API) hoặc phieuData để tránh bị reset thành rỗng
+    // Fallback order: item.so_ct -> phieuData.so_ct -> values.soPhieu -> ""
+    dynamicItem.so_ct = isUpdate 
+      ? (item.so_ct || phieuData?.so_ct || values.soPhieu || "")
+      : (values.soPhieu || "");
 
     // Mapping từ UI fields sang API fields
     // Với dòng cha: set ma_vt từ maHang
@@ -396,11 +499,13 @@ export const buildPhieuNhatHangPayload = (
 
     // Mapping số lượng
     // Với dòng cha: set so_luong từ soLuongDeNghi
-    // Với dòng con: so_luong đã được copy từ parent qua {...parent}, giữ nguyên
+    // Với dòng con: set so_luong từ soLuongDeNghi của dòng con (SL đơn được phép sửa)
     if (!item.isChild && item.soLuongDeNghi !== undefined) {
       dynamicItem.so_luong = parseFloat(item.soLuongDeNghi || 0);
     }
-    // Với dòng con, so_luong đã được copy từ parent, không cần override
+    if (item.isChild && item.soLuongDeNghi !== undefined) {
+      dynamicItem.so_luong = parseFloat(item.soLuongDeNghi || 0);
+    }
     if (item.soLuong !== undefined)
       dynamicItem.sl_td3 = parseFloat(item.soLuong || 0);
 
@@ -425,23 +530,17 @@ export const buildPhieuNhatHangPayload = (
     if (!dynamicItem.stt_rec && phieuData?.stt_rec) {
       dynamicItem.stt_rec = phieuData.stt_rec;
     }
-    // Với dòng con (isChild), stt_rec0 đã được copy từ parent qua {...parent}
-    // Chỉ set stt_rec0 theo index nếu không phải dòng con và chưa có giá trị
-    if (!dynamicItem.stt_rec0 && !item.isChild) {
-      dynamicItem.stt_rec0 = String(index + 1).padStart(3, "0");
-    } else if (item.isChild && !dynamicItem.stt_rec0) {
-      // Nếu dòng con không có stt_rec0 (trường hợp hiếm), tìm parent để copy
-      // Nhưng thường thì đã được copy qua {...parent}
-      const parentIndex = dataSource.findIndex(
-        (row) => row.key === item.parentKey || row.line_nbr === item.parentKey
-      );
-      if (parentIndex >= 0 && dataSource[parentIndex]?.stt_rec0) {
-        dynamicItem.stt_rec0 = dataSource[parentIndex].stt_rec0;
-      } else {
-        // Fallback: set theo index của parent gần nhất
-        dynamicItem.stt_rec0 = String(index + 1).padStart(3, "0");
-      }
-    }
+    // Bảng d28 bắt buộc có trường stt_rec0pn (stt_rec0 phiếu nhập / dòng chi tiết PN)
+    // Lưu lại stt_rec0 nguyên bản (hoạt từ parent nếu là dòng con) vào stt_rec0pn trước khi re-index
+    const originalSttRec0 = (item.stt_rec0 || "").toString().trim();
+    dynamicItem.stt_rec0pn =
+      item.stt_rec0pn != null && String(item.stt_rec0pn).trim() !== ""
+        ? String(item.stt_rec0pn).trim()
+        : originalSttRec0;
+
+    // Luôn đảm bảo stt_rec0 trong payload là duy nhất dựa trên index dòng
+    // Điều này cực kỳ quan trọng đối với các dòng tách lô để tránh bị ghi đè/mất dữ liệu khi gửi API
+    dynamicItem.stt_rec0 = String(index + 1).padStart(3, "0");
     if (!dynamicItem.ma_ct) {
       dynamicItem.ma_ct = "PND";
     }
@@ -464,7 +563,8 @@ export const buildPhieuNhatHangPayload = (
         dynamicItem.ngay_ct = orderDate;
       }
       if (!dynamicItem.so_ct) {
-        dynamicItem.so_ct = values.soPhieu || "";
+        // Ưu tiên lấy so_ct từ phieuData nếu có, tránh bị reset thành rỗng
+        dynamicItem.so_ct = phieuData?.so_ct || values.soPhieu || "";
       }
       if (!dynamicItem.ma_dvcs) {
         dynamicItem.ma_dvcs =
@@ -560,6 +660,7 @@ export const buildPhieuNhatHangPayload = (
       "soLuong",
       "ten_mat_hang",
       "soLuongDeNghi",
+      "soLuongDeNghi_tong", // Tổng SL đơn nhóm (chỉ UI), API nhận so_luong từng dòng
       "soLuong_goc",
       "soLuongDeNghi_goc",
       "he_so_goc",
@@ -729,7 +830,7 @@ export const fetchVatTuListDynamicApi = async (params) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -818,7 +919,7 @@ export const submitPhieuNhatHangDynamic = async (
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -899,7 +1000,7 @@ export const deletePhieuNhatHangDynamic = async (sctRec, userInfo) => {
   };
 
   try {
-    const response = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+    const response = await https.post("User/AddData", body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,

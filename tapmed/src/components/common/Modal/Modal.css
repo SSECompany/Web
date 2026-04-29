@@ -1,9 +1,11 @@
 /* Modern Modal Confirm Styles - Consistent with new interface */
 .centered-buttons .ant-modal-confirm-btns {
-  display: flex;
-  justify-content: center;
+  display: flex !important;
+  justify-content: center !important;
   gap: 16px;
   margin-top: 20px;
+  float: none !important;
+  width: 100% !important;
 }
 
 .fixed-height .ant-modal-content {
@@ -16,8 +18,9 @@
 
 .compact-modal .ant-modal-content {
   min-height: 140px !important;
-  max-width: 380px !important;
-  width: 380px !important;
+  max-width: 320px !important;
+  width: 90vw !important;
+  margin: 0 auto;
 }
 
 /* Wide modal for warning content with JSX */
@@ -161,16 +164,34 @@
   backdrop-filter: blur(8px) !important;
 }
 
-/* Custom Title and Content Layout */
-.fixed-height .ant-modal-confirm-title-icon + .ant-modal-confirm-title {
-  margin-left: 0 !important;
+.fixed-height .ant-modal-confirm-body-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
 }
 
 .fixed-height .ant-modal-confirm-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.fixed-height .ant-modal-confirm-title,
+.fixed-height .ant-modal-confirm-content {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center !important;
+}
+
+.fixed-height .ant-modal-confirm-title-icon {
+  display: none !important;
 }
 
 .compact-modal .centered-buttons .ant-modal-confirm-btns {
@@ -188,8 +209,9 @@
 
   .compact-modal .ant-modal-content {
     max-width: 320px !important;
-    width: 320px !important;
+    width: 90vw !important;
     min-height: 120px !important;
+    margin: 0 auto !important;
   }
 
   .fixed-height .ant-modal-body {
@@ -220,8 +242,9 @@
 @media (max-width: 480px) {
   .compact-modal .ant-modal-content {
     max-width: 280px !important;
-    width: 280px !important;
+    width: 90vw !important;
     min-height: 110px !important;
+    margin: 0 auto !important;
   }
 
   .fixed-height .ant-modal-body {
@@ -260,8 +283,9 @@
   }
   .compact-modal .ant-modal-content {
     max-width: 320px !important;
-    width: 320px !important;
+    width: 90vw !important;
     min-height: 100px !important;
+    margin: 0 auto !important;
   }
   .wide-modal .ant-modal-content {
     max-width: 420px !important;
@@ -333,8 +357,9 @@
 
   .compact-modal .ant-modal-content {
     max-width: 390px !important;
-    width: 390px !important;
+    width: 90vw !important;
     min-height: 145px !important;
+    margin: 0 auto !important;
   }
 
   .wide-modal .ant-modal-content {

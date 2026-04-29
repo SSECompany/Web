@@ -1,0 +1,164 @@
+import React from "react";
+import { Col, DatePicker, Form, Input, Row, Select } from "antd";
+
+const PhieuFormInputs = ({
+  isEditMode,
+  phieuData,
+  maGiaoDichList,
+  maKhoList,
+  loadingMaKho,
+  fetchMaKhoListDebounced,
+  fetchMaKhoList,
+  fetchMaGiaoDichList,
+  barcodeEnabled,
+  setBarcodeEnabled,
+  setBarcodeJustEnabled,
+  vatTuInput,
+  setVatTuInput,
+  vatTuSelectRef,
+  loadingVatTu,
+  vatTuList,
+  searchTimeoutRef,
+  fetchVatTuList,
+  handleVatTuSelect,
+  totalPage,
+  pageIndex,
+  setPageIndex,
+  setVatTuList,
+  currentKeyword,
+  VatTuSelectComponent,
+  showVatTuSelect = true,
+}) => {
+  const commonInputStyle = { width: "100%" };
+
+  return (
+    <div className="phieu-nhap-dieu-chuyen-form">
+      <Row gutter={[32, 4]}>
+        {/* CỘT TRÁI */}
+        <Col span={14}>
+          <Form.Item
+            name="maKhoNhap"
+            label="Mã kho nhập"
+            rules={[{ required: true, message: "Chọn kho nhập" }]}
+          >
+            <Select
+              showSearch
+              allowClear
+              placeholder="Chọn kho nhập (Mã - Tên)"
+              loading={loadingMaKho}
+              filterOption={false}
+              onSearch={fetchMaKhoListDebounced}
+              onOpenChange={(open) => open && fetchMaKhoList && fetchMaKhoList("")}
+              options={maKhoList}
+              disabled={!isEditMode}
+              popupMatchSelectWidth={false}
+              optionFilterProp="label"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="maKhoXuat"
+            label="Mã kho xuất"
+            rules={[{ required: true, message: "Chọn kho xuất" }]}
+          >
+            <Select
+              showSearch
+              allowClear
+              placeholder="Chọn kho xuất (Mã - Tên)"
+              loading={loadingMaKho}
+              filterOption={false}
+              onSearch={fetchMaKhoListDebounced}
+              onOpenChange={(open) => open && fetchMaKhoList && fetchMaKhoList("")}
+              options={maKhoList}
+              disabled={!isEditMode}
+              popupMatchSelectWidth={false}
+              optionFilterProp="label"
+            />
+          </Form.Item>
+
+          <Form.Item name="ong_ba" label="Người giao">
+            <Input placeholder="Nhập người giao" disabled={!isEditMode} />
+          </Form.Item>
+
+          <Form.Item
+            name="ma_gd"
+            label="Mã giao dịch"
+            rules={[{ required: true, message: "Chọn mã giao dịch" }]}
+          >
+            <Select
+              placeholder="Chọn mã giao dịch"
+              options={maGiaoDichList?.map(x => ({ value: x.ma_gd || x.ma_giao_dich, label: (x.ma_gd || x.ma_giao_dich) + ' - ' + (x.ten_gd || x.ten_giao_dich) }))}
+              showSearch
+              optionFilterProp="label"
+              allowClear
+              onOpenChange={(open) => open && fetchMaGiaoDichList && fetchMaGiaoDichList()}
+              disabled={!isEditMode}
+              popupMatchSelectWidth={false}
+            />
+          </Form.Item>
+
+          <Form.Item name="dien_giai" label="Diễn giải">
+            <Input placeholder="Nhập diễn giải" disabled={!isEditMode} />
+          </Form.Item>
+        </Col>
+
+        {/* CỘT PHẢI */}
+        <Col span={10}>
+          <Form.Item
+            name="ngay"
+            label="Ngày lập"
+            rules={[{ required: true, message: "Chọn ngày lập" }]}
+          >
+            <DatePicker
+              style={{ width: "100%" }}
+              format="DD/MM/YYYY"
+              disabled={!isEditMode}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="ngay_lct"
+            label="Ngày hạch toán"
+            rules={[{ required: true, message: "Chọn ngày hạch toán" }]}
+          >
+            <DatePicker
+              style={{ width: "100%" }}
+              format="DD/MM/YYYY"
+              disabled={!isEditMode}
+            />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      {showVatTuSelect && VatTuSelectComponent && (
+        <Row style={{ marginTop: 16 }}>
+          <Col span={24}>
+            <Form.Item label={<span style={{ fontWeight: 500, fontSize: '16px' }}>Tìm vật tư hàng hoá</span>}>
+              <VatTuSelectComponent
+                isEditMode={isEditMode}
+                barcodeEnabled={barcodeEnabled}
+                setBarcodeEnabled={setBarcodeEnabled}
+                setBarcodeJustEnabled={setBarcodeJustEnabled}
+                vatTuInput={vatTuInput}
+                setVatTuInput={setVatTuInput}
+                vatTuSelectRef={vatTuSelectRef}
+                loadingVatTu={loadingVatTu}
+                vatTuList={vatTuList}
+                searchTimeoutRef={searchTimeoutRef}
+                fetchVatTuList={fetchVatTuList}
+                handleVatTuSelect={handleVatTuSelect}
+                totalPage={totalPage}
+                pageIndex={pageIndex}
+                setPageIndex={setPageIndex}
+                setVatTuList={setVatTuList}
+                currentKeyword={currentKeyword}
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+      )}
+    </div>
+  );
+};
+
+export default PhieuFormInputs;

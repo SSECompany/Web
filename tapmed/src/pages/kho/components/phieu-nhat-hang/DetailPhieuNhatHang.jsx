@@ -1,7 +1,10 @@
 import {
   DownOutlined,
   EditOutlined,
-  LeftOutlined,
+  SaveOutlined,
+  CheckCircleOutlined,
+  DeleteOutlined,
+  PlusOutlined,
   UpOutlined,
 } from "@ant-design/icons";
 import { Button, Form, Space, Typography, message } from "antd";
@@ -15,6 +18,7 @@ import VatTuSelectFullPOS from "../../../../components/common/ProductSelectFull/
 import QRScanner from "../../../../components/common/QRScanner/QRScanner";
 import notificationManager from "../../../../utils/notificationManager";
 import "../common-phieu.css";
+import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
 import PhieuNhatHangFormInputs from "./components/PhieuNhatHangFormInputs";
 import VatTuNhatHangTable from "./components/VatTuNhatHangTable";
 import { usePhieuNhatHangData } from "./hooks/usePhieuNhatHangData";
@@ -23,15 +27,20 @@ import {
   fetchPhieuNhatHangData,
   startPhieuNhatHang,
   updatePhieuNhatHang,
+  huyPhieuNhatHang,
 } from "./utils/phieuNhatHangApi";
+import { formatDate, formatDateTime } from "../../../../utils/dateUtils";
 import {
   buildPhieuNhatHangPayload,
   deletePhieuNhatHangDynamic,
   validateDataSource,
   validateTongNhat,
-    validateCompletionRules,
-    computeGroupState,
+  validateCompletionRules,
+  computeGroupState,
 } from "./utils/phieuNhatHangUtils";
+
+// Thời gian hiển thị thông báo lỗi khi lưu/hoàn thành (giây)
+const ERROR_MESSAGE_DURATION = 4;
 
 const { Title } = Typography;
 
@@ -41,6 +50,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   const { id } = useParams();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
+  const [loadingHuy, setLoadingHuy] = useState(false);
   const [phieuData, setPhieuData] = useState(null);
   const [isEditMode, setIsEditMode] = useState(initialEditMode);
   const [vatTuInput, setVatTuInput] = useState(undefined);
@@ -53,6 +63,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   const [currentKeyword, setCurrentKeyword] = useState("");
   const [phieuDetailLoaded, setPhieuDetailLoaded] = useState(false);
   const [showFormFields, setShowFormFields] = useState(true);
+  const [focusInvalidRowKey, setFocusInvalidRowKey] = useState(null);
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
@@ -159,7 +170,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               maKhach: phieuInfo.ma_kh || "",
               tenKhach: phieuInfo.ten_kh || "",
               dienGiai: phieuInfo.ghi_chu || "",
-              maGiaoDich: phieuInfo.ma_gd || "",
+              maGiaoDich: phieuInfo.ma_gd ? phieuInfo.ma_gd.trim() : "1",
               soDonHang: (phieuInfo.so_don_hang || "").trim(),
               vung: phieuInfo.ma_nhomvitri || "",
               nhanVien: phieuInfo.ma_nvbh || "",
@@ -176,10 +187,10 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               // Map bat_dau_nhat_hang and nhat_hang_xong
               batDauNhatHang: isEmptyDate(phieuInfo.bat_dau_nhat_hang)
                 ? ""
-                : dayjs(phieuInfo.bat_dau_nhat_hang).format("DD/MM/YYYY HH:mm"),
+                : formatDateTime(phieuInfo.bat_dau_nhat_hang),
               ketThucNhatHang: isEmptyDate(phieuInfo.nhat_hang_xong)
                 ? ""
-                : dayjs(phieuInfo.nhat_hang_xong).format("DD/MM/YYYY HH:mm"),
+                : formatDateTime(phieuInfo.nhat_hang_xong),
             };
 
             // Process vật tư list - DYNAMIC: Giữ nguyên TẤT CẢ trường từ API
@@ -188,9 +199,9 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               const soLuongDon = parseFloat(item.so_luong) || 0; // số lượng theo đơn
               const dvtHienTai = item.dvt ? item.dvt.trim() : "cái";
               
-              // Nếu tong_nhat chưa có hoặc bằng 0, tự động điền bằng số lượng đơn
+              // Ban đầu tong_nhat = 0 (không tự động điền bằng số lượng đơn nữa)
               const tongNhatHienTai = parseFloat(item.tong_nhat) || 0;
-              const tongNhat = tongNhatHienTai > 0 ? tongNhatHienTai : soLuongDon;
+              const tongNhat = tongNhatHienTai; // Giữ nguyên giá trị từ API, không tự động điền
 
               return {
                 // Giữ nguyên TẤT CẢ trường từ API response
@@ -212,8 +223,14 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 ma_vi_tri: item.ma_vi_tri || "",
                 nhat: item.nhat || false,
                 so_luong_ton: item.so_luong_ton || 0,
-                tong_nhat: Math.round(tongNhat * 1000) / 1000, // Tự động điền bằng số lượng đơn nếu chưa có
+                tong_nhat: Math.round(tongNhat * 1000) / 1000, // Giữ nguyên giá trị từ API
                 ghi_chu: item.ghi_chu || "",
+                ghi_chu_dh: item.ghi_chu_dh || "", // map cho cột Ghi chú KD
+                // Theo dõi lô: từ dòng hoặc master; true = bắt buộc mã lô
+                lo_yn: item.lo_yn !== undefined && item.lo_yn !== null
+                  ? (item.lo_yn === true || item.lo_yn === "1" || item.lo_yn === 1)
+                  : (phieuInfo.lo_yn === true || phieuInfo.lo_yn === "1" || phieuInfo.lo_yn === 1),
+                isNewlyAdded: false,
               };
             });
 
@@ -238,6 +255,8 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
     };
 
     fetchPhieuDetail();
+    // form/setDataSource are stable; omit to avoid unnecessary re-fetches
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sctRec, apiCalled, token, id, phieuDetailLoaded]);
 
   // Wrapper function to match VatTuSelectFullPOS expected signature (same as POS)
@@ -253,7 +272,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
     if (isEditMode) {
       fetchVatTuListPaging("", 1, false);
     }
-  }, [isEditMode]);
+  }, [isEditMode, fetchVatTuListPaging]);
 
   // === API: fetch lists for Mã lô / Vị trí (edit page) ===
   const fetchLoList = async (keyword = "", record = {}, page = 1) => {
@@ -269,19 +288,21 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       });
 
       const data = response?.listObject?.[0] || [];
+      const totalPage = response?.listObject?.[1]?.[0]?.totalPage ?? 1;
+
       const options = data.map((x) => {
         const value = (x?.ma_lo || x?.value || x?.ten_lo || "").toString();
         // Format label: ma_lo-ngay_hhsd nếu có ngay_hhsd
         let label = value;
         if (x?.ngay_hhsd) {
-          const ngayHHSD = dayjs(x.ngay_hhsd).format("DD/MM/YYYY");
+          const ngayHHSD = formatDate(x.ngay_hhsd);
           label = `${value}-${ngayHHSD}`;
         } else {
           label = x?.ma_lo || x?.ten_lo || x?.label || value;
         }
         return { value, label };
       });
-      return options;
+      return { options, totalPage };
     } catch (e) {
       console.error("fetchLoList (detail) error", e);
       return [];
@@ -294,7 +315,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         ma_kho: (record?.ma_kho || "ST").toString(),
         ten_vi_tri: keyword,
         pageIndex: page,
-        pageSize: 10,
+        pageSize: 50,
       });
 
       const data = response?.listObject?.[0] || [];
@@ -384,7 +405,8 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           if (newRecord) {
             // Tự động query mã lô để lấy options, không tự động điền giá trị
             fetchLoList("", newRecord, 1)
-              .then((loOptions) => {
+              .then((result) => {
+                const loOptions = Array.isArray(result) ? result : (result?.options || []);
                 if (!loOptions || loOptions.length === 0) {
                   return;
                 }
@@ -393,7 +415,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 setDataSource((currentDataSource) =>
                   currentDataSource.map((item) =>
                     item.key === newRecord.key
-                      ? { ...item, loOptions: loOptions }
+                      ? { ...item, loOptions: loOptions, _loTotalPage: result?.totalPage || 1 }
                       : item
                   )
                 );
@@ -564,15 +586,15 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             "",
           // Map bat_dau_nhat_hang and nhat_hang_xong
           batDauNhatHang: result.master.bat_dau_nhat_hang
-            ? dayjs(result.master.bat_dau_nhat_hang).format("DD/MM/YYYY HH:mm")
+            ? formatDateTime(result.master.bat_dau_nhat_hang)
             : "",
           ketThucNhatHang: result.master.nhat_hang_xong
-            ? dayjs(result.master.nhat_hang_xong).format("DD/MM/YYYY HH:mm")
+            ? formatDateTime(result.master.nhat_hang_xong)
             : "",
         };
 
         form.setFieldsValue(updatedFormattedData);
-        message.success("Đã bắt đầu nhặt hàng thành công");
+        message.success(startResult.message || "Đã bắt đầu nhặt hàng thành công");
       }
 
       setLoading(false);
@@ -611,18 +633,32 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const values = await form.validateFields();
+      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
 
-      // Validate data source
-      const validation = validateDataSource(dataSource);
+      // Validate data source — chặn Lưu nếu không hợp lệ
+      const validation = validateDataSource(dataSource, "nhat-hang");
       if (!validation.isValid) {
         setLoading(false);
         return;
       }
 
-      // Validate tổng nhặt không được vượt quá số lượng đơn
+      // Validate tổng nhặt không được vượt quá số lượng đơn — chặn Lưu (không check tồn khả dụng)
       const tongNhatValidation = validateTongNhat(dataSource);
       if (!tongNhatValidation.isValid) {
+        const firstError = tongNhatValidation.errors?.[0];
+        const firstInvalidKey =
+          firstError &&
+          (() => {
+            const parents = dataSource.filter((r) => !r.isChild);
+            const parentRow = parents[firstError.parentIndex - 1];
+            return parentRow?.key;
+          })();
+        if (firstInvalidKey) setFocusInvalidRowKey(firstInvalidKey);
+        const hasPerRowError = tongNhatValidation.errors?.some((e) => e.type === "perRow");
+        const errMsg = hasPerRowError
+          ? "SL nhặt không được vượt quá SL đơn của từng dòng (mẹ vs mẹ, con vs con)."
+          : "Tổng nhặt không được vượt quá số lượng đơn.";
+        message.error(`${errMsg} Vui lòng kiểm tra lại.`, ERROR_MESSAGE_DURATION);
         setLoading(false);
         return;
       }
@@ -645,20 +681,20 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       );
 
       if (!payload) {
-        message.error("Không thể tạo payload");
+        message.error("Không thể tạo payload", ERROR_MESSAGE_DURATION);
         setLoading(false);
         return;
       }
 
       // Gọi API cập nhật với stored procedure
-      // Wrap payload in Data structure như API cũ mong đợi
       const wrappedPayload = {
         Data: payload,
       };
 
-      const result = await updatePhieuNhatHang(wrappedPayload, userInfo);
+      const result = await updatePhieuNhatHang(wrappedPayload, userInfo, { showSuccess: false });
 
       if (result.success) {
+        message.success(result.message || "Lưu phiếu nhặt hàng thành công");
         // Giữ nguyên màn hình chỉnh sửa, không navigate về trang chủ
         setLoading(false);
       } else {
@@ -666,7 +702,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       }
     } catch (error) {
       console.error("Submit failed:", error);
-      message.error("Có lỗi xảy ra khi cập nhật phiếu");
+      message.error("Có lỗi xảy ra khi cập nhật phiếu", ERROR_MESSAGE_DURATION);
       setLoading(false);
     }
   };
@@ -676,22 +712,36 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
     showConfirm({
       title: "Xác nhận hoàn thành",
       content: "Bạn có chắc chắn muốn hoàn thành phiếu nhặt hàng này không?",
-      type: "info",
+      type: "success",
       onOk: async () => {
         try {
           setLoading(true);
-          const values = await form.validateFields();
+          const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
 
-          // Validate data source
-          const validation = validateDataSource(dataSource);
+          // Validate data source — chặn Hoàn thành nếu không hợp lệ
+          const validation = validateDataSource(dataSource, "nhat-hang");
           if (!validation.isValid) {
             setLoading(false);
             return;
           }
 
-          // Validate tổng nhặt không được vượt quá số lượng đơn
+          // Validate tổng nhặt không được vượt quá số lượng đơn — chặn Hoàn thành (không check tồn khả dụng)
           const tongNhatValidation = validateTongNhat(dataSource);
           if (!tongNhatValidation.isValid) {
+            const firstError = tongNhatValidation.errors?.[0];
+            const firstInvalidKey =
+              firstError &&
+              (() => {
+                const parents = dataSource.filter((r) => !r.isChild);
+                const parentRow = parents[firstError.parentIndex - 1];
+                return parentRow?.key;
+              })();
+            if (firstInvalidKey) setFocusInvalidRowKey(firstInvalidKey);
+            const hasPerRowError = tongNhatValidation.errors?.some((e) => e.type === "perRow");
+            const errMsg = hasPerRowError
+              ? "SL nhặt không được vượt quá SL đơn của từng dòng (mẹ vs mẹ, con vs con)."
+              : "Tổng nhặt không được vượt quá số lượng đơn.";
+            message.error(`${errMsg} Vui lòng kiểm tra lại.`, ERROR_MESSAGE_DURATION);
             setLoading(false);
             return;
           }
@@ -710,7 +760,8 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
                 updated = updated.map((row) => {
                   const picked = parseFloat(row.tong_nhat || 0) || 0;
                   const lot = (row.ma_lo || "").toString().trim();
-                  return picked > 0 && !lot ? { ...row, _invalid_missing_lot: true } : row;
+                  const loYn = row.lo_yn === true || row.lo_yn === "1" || row.lo_yn === 1;
+                  return picked > 0 && loYn && !lot ? { ...row, _invalid_missing_lot: true } : row;
                 });
               }
 
@@ -731,7 +782,23 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               return updated;
             });
 
-            message.error("Có dòng chưa hợp lệ. Vui lòng kiểm tra các dòng màu đỏ.");
+            const firstInvalidKey =
+              completionCheck.type === "missingLot"
+                ? dataSource[completionCheck.details[0].index - 1]?.key
+                : completionCheck.type === "sumNotEqual"
+                  ? (() => {
+                      const parents = dataSource.filter((r) => !r.isChild);
+                      const parentRow =
+                        parents[completionCheck.details[0].parentIndex - 1];
+                      return parentRow?.key;
+                    })()
+                  : null;
+            if (firstInvalidKey) setFocusInvalidRowKey(firstInvalidKey);
+            const errMsg =
+              completionCheck.type === "missingLot"
+                ? "Có dòng (theo dõi lô) chưa nhập mã lô. Vui lòng nhập mã lô."
+                : "Có dòng chưa hợp lệ. Vui lòng kiểm tra các dòng màu đỏ.";
+            message.error(errMsg, ERROR_MESSAGE_DURATION);
             setLoading(false);
             return;
           }
@@ -754,13 +821,12 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           );
 
           if (!payload) {
-            message.error("Không thể tạo payload");
+            message.error("Không thể tạo payload", ERROR_MESSAGE_DURATION);
             setLoading(false);
             return;
           }
 
           // Gọi API cập nhật với stored procedure
-          // Wrap payload in Data structure như API cũ mong đợi
           const wrappedPayload = {
             Data: payload,
           };
@@ -768,72 +834,98 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           const result = await updatePhieuNhatHang(wrappedPayload, userInfo, { showSuccess: false });
 
           if (result.success) {
-            message.success(
-              "Đã hoàn thành phiếu nhặt hàng, đang chuyển về trang chính..."
-            );
-
+            message.success(result.message || "Hoàn thành phiếu nhặt hàng thành công");
             // Delay một chút để user thấy message trước khi navigate
             setTimeout(() => {
               navigate(returnUrl);
-            }, 1000);
+            }, 1500);
           } else {
             setLoading(false);
           }
         } catch (error) {
           console.error("Complete failed:", error);
-          message.error("Có lỗi xảy ra khi hoàn thành phiếu");
+          message.error("Có lỗi xảy ra khi hoàn thành phiếu", ERROR_MESSAGE_DURATION);
           setLoading(false);
         }
       },
     });
   };
 
-  return (
-    <div className="phieu-container">
-      <div className="phieu-header">
-        <Button
-          type="text"
-          icon={<LeftOutlined />}
-          onClick={() => navigate(returnUrl)}
-          className="phieu-back-button"
-        >
-          Trở về
-        </Button>
-        <Title level={5} className="phieu-title">
-          {isEditMode
-            ? "CHỈNH SỬA PHIẾU NHẶT HÀNG"
-            : "CHI TIẾT PHIẾU NHẶT HÀNG"}
-        </Title>
-        {!isEditMode ? (
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={handleEdit}
-            className="phieu-edit-button"
-            disabled={(form.getFieldValue("trangThai") || phieuData?.status) === "2"}
-          >
-            Chỉnh sửa
-          </Button>
-        ) : (
-          <div style={{ width: 120 }}></div>
-        )}
-      </div>
+  const handleHuyNhat = () => {
+    if (!sctRec) {
+      message.warning("Không có thông tin phiếu");
+      return;
+    }
+    const userId = userInfo?.id || userInfo?.userId || "";
+    if (!userId) {
+      message.warning("Không có thông tin người dùng");
+      return;
+    }
+    showConfirm({
+      title: "Xác nhận huỷ nhặt",
+      content: "Bạn có chắc chắn muốn huỷ nhặt phiếu này không?",
+      type: "error",
+      onOk: async () => {
+        setLoadingHuy(true);
+        try {
+          const huyResult = await huyPhieuNhatHang(sctRec, userId);
+          if (huyResult?.success) {
+            const soDonHang = form.getFieldValue("soDonHang") || phieuData?.so_don_hang || "";
+            message.success(`Huỷ nhặt phiếu có số ĐH: ${soDonHang || "---"}`);
+            navigate(returnUrl);
+          }
+        } finally {
+          setLoadingHuy(false);
+        }
+      },
+    });
+  };
 
+
+
+  const getBadgeInfo = () => {
+    const isCompleted = (form.getFieldValue("trangThai") || phieuData?.status) === "2";
+    if (isCompleted) return { text: "CHI TIẾT PHIẾU NHẶT HÀNG", color: "blue" };
+    if (isEditMode) return { text: "SỬA PHIẾU NHẶT HÀNG", color: "orange" };
+    return { text: "CHI TIẾT PHIẾU NHẶT HÀNG", color: "blue" };
+  };
+  const badge = getBadgeInfo();
+
+  const footerActions = [];
+  if (isEditMode) {
+    footerActions.push(
+      { key: "save", label: "Lưu", icon: <SaveOutlined />, type: "primary", onClick: handleSubmit, loading: loading },
+      { key: "complete", label: "Hoàn thành", icon: <CheckCircleOutlined />, type: "primary", onClick: handleComplete, loading: loading, className: "btn-save-fixed" },
+      { key: "delete", label: "Huỷ nhặt", icon: <DeleteOutlined />, danger: true, onClick: handleHuyNhat, loading: loadingHuy },
+    );
+  }
+
+  return (
+    <FormTemplate
+      form={form}
+      onFinish={handleSubmit}
+      onBack={() => navigate(returnUrl)}
+      badgeText={badge.text}
+      badgeColor={badge.color}
+      showStatusSelect={false}
+      statusDisabled={!isEditMode && !!id}
+      headerRightSpan={
+        !isEditMode && id && (form.getFieldValue("trangThai") !== "2") ? (
+          <Button type="text" icon={<EditOutlined />} onClick={handleEdit} loading={loading} className="phieu-edit-button-kd" title="Chỉnh sửa" />
+        ) : null
+      }
+      fixedFooterActions={footerActions}
+    >
       <div className="phieu-form-container">
-        <Form
-          form={form}
-          layout="vertical"
-          className="phieu-form"
-          disabled={!isEditMode}
-        >
+        <div className="phieu-form phieu-form--floating">
           {/* Thanh tìm kiếm/ chọn vật tư đặt ngay trên bảng */}
           <div style={{ marginTop: 8, marginBottom: 8 }}>
             <div
               style={{
                 marginBottom: 8,
-                fontWeight: "bold",
-                fontSize: "14px",
-                color: "#333",
+                fontWeight: "600",
+                fontSize: "13px",
+                color: "#374151",
               }}
             >
               Vật tư
@@ -857,7 +949,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
               setVatTuList={setVatTuList}
               currentKeyword={currentKeyword}
               onOpenQRScanner={() => setShowQRScanner(true)}
-              disableSearch={true}
+              disableSearch={false}
             />
           </div>
 
@@ -877,32 +969,10 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
             onDataSourceUpdate={setDataSource}
             fetchLoList={fetchLoList}
             fetchViTriList={fetchViTriList}
+            focusInvalidRowKey={focusInvalidRowKey}
+            onFocusInvalidRowHandled={() => setFocusInvalidRowKey(null)}
           />
-
-          {isEditMode && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-start",
-                marginTop: 16,
-              }}
-            >
-              <Space>
-                <Button type="primary" onClick={handleSubmit} loading={loading}>
-                  Lưu
-                </Button>
-                <Button
-                  type="primary"
-                  onClick={handleComplete}
-                  loading={loading}
-                  style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
-                >
-                  Hoàn thành
-                </Button>
-              </Space>
-            </div>
-          )}
-        </Form>
+        </div>
 
         {/* Divider to separate table and form area */}
         <div
@@ -912,7 +982,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           }}
         />
 
-        {/* Toggle hiển/ẩn thông tin phiếu - 移到Form外面，不受disabled影响 */}
+        {/* Toggle hiển/ẩn thông tin phiếu */}
         <div style={{ marginBottom: 8 }}>
           <Button
             size="small"
@@ -932,32 +1002,33 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         </div>
 
         {showFormFields && (
-          <Form
-            form={form}
-            layout="vertical"
-            className="phieu-form"
-            disabled={!isEditMode}
-          >
-            <PhieuNhatHangFormInputs
-              isEditMode={isEditMode}
-              barcodeEnabled={barcodeEnabled}
-              setBarcodeEnabled={setBarcodeEnabled}
-              setBarcodeJustEnabled={setBarcodeJustEnabled}
-              vatTuInput={vatTuInput}
-              setVatTuInput={setVatTuInput}
-              vatTuSelectRef={vatTuSelectRef}
-              loadingVatTu={loadingVatTu}
-              vatTuList={vatTuList}
-              searchTimeoutRef={searchTimeoutRef}
-              fetchVatTuList={fetchVatTuListPaging}
-              totalPage={totalPage}
-              pageIndex={pageIndex}
-              setPageIndex={setPageIndex}
-              setVatTuList={setVatTuList}
-              currentKeyword={currentKeyword}
-              handleVatTuSelect={handleVatTuSelect}
-            />
-          </Form>
+          <div className="phieu-form-section phieu-form--floating">
+            <Form
+              form={form}
+              layout="vertical"
+              disabled={!isEditMode}
+            >
+              <PhieuNhatHangFormInputs
+                isEditMode={isEditMode}
+                barcodeEnabled={barcodeEnabled}
+                setBarcodeEnabled={setBarcodeEnabled}
+                setBarcodeJustEnabled={setBarcodeJustEnabled}
+                vatTuInput={vatTuInput}
+                setVatTuInput={setVatTuInput}
+                vatTuSelectRef={vatTuSelectRef}
+                loadingVatTu={loadingVatTu}
+                vatTuList={vatTuList}
+                searchTimeoutRef={searchTimeoutRef}
+                fetchVatTuList={fetchVatTuListPaging}
+                totalPage={totalPage}
+                pageIndex={pageIndex}
+                setPageIndex={setPageIndex}
+                setVatTuList={setVatTuList}
+                currentKeyword={currentKeyword}
+                handleVatTuSelect={handleVatTuSelect}
+              />
+            </Form>
+          </div>
         )}
       </div>
 
@@ -969,7 +1040,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         onSwitchToBarcode={handleSwitchToBarcodeMode}
         openWithCamera={true}
       />
-    </div>
+    </FormTemplate>
   );
 };
 

@@ -56,7 +56,7 @@ const getRoutesAccess = async (routes) => {
     //         isParent: r.children ? true : false,
     //       }));
     [...routesToFlat, ...childRoutes]
-      .filter((route) => Array.isArray(claims) && claims.includes(route.claims))
+      .filter((route) => claims && claims.includes(route.claims))
       .map((r) => ({
         label: r.label,
         path: r.path,
@@ -65,14 +65,14 @@ const getRoutesAccess = async (routes) => {
       }));
 
   const userRoute = allRoutes.filter(
-    (route) => Array.isArray(claims) && claims.includes(route.claims)
+    (route) => claims && claims.includes(route.claims)
   );
 
   // const userRoute =  userData?.RoleId == "1"
   //     ? [...allRoutes]
   //     : allRoutes.filter((route) => claims.includes(route.claims));
 
-  userRoute.map((route) => {
+  userRoute.forEach((route) => {
     route.key = route.path;
     if (
       route.parent &&

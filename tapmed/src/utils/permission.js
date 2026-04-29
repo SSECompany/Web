@@ -1,4 +1,4 @@
-import store from "store";
+import store from "../store";
 const checkPermission = (key) =>{
     try {
         const { Permision } = store.getState().claimsReducer.claims;

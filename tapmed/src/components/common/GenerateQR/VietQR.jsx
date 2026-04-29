@@ -72,14 +72,14 @@ function buildMerchantAccountInfo({ bankId, account }) {
 
 function buildVietQR({ account, bankId, amount, content }) {
   // Static QR: Point of Initiation = "11" (not "12" for dynamic)
-  const payloadFormat = "00" + "02" + "01";
-  const pointOfInit = "01" + "02" + "11"; // "11" = Static QR Code
+  const payloadFormat = "000201";
+  const pointOfInit = "010211"; // "11" = Static QR Code
 
   const accInfoValue = buildMerchantAccountInfo({ bankId, account });
   const accInfo = buildField("38", accInfoValue);
-  const currency = "53" + "03" + "704";
+  const currency = "5303704";
   const amountField = buildAmountField(amount);
-  const country = "58" + "02" + "VN";
+  const country = "5802VN";
   // Only include Add Data (62) if content is provided (Conditional field)
   const addData =
     content && content.trim() ? buildContentField(content.trim()) : "";
@@ -104,9 +104,9 @@ function buildVietQR({ account, bankId, amount, content }) {
   return qrString + crcValue;
 }
 
-export default function VietQR({ amount, soChungTu, size = 100 }) {
-  const account = process.env.REACT_APP_VIETQR_ACCOUNT;
-  const bankId = process.env.REACT_APP_VIETQR_BANK_ID;
+export default function VietQR({ amount, soChungTu, size = 100, account: propsAccount, bankId: propsBankId }) {
+  const account = propsAccount || process.env.REACT_APP_VIETQR_ACCOUNT;
+  const bankId = propsBankId || process.env.REACT_APP_VIETQR_BANK_ID;
 
   const qrData = buildVietQR({
     account,

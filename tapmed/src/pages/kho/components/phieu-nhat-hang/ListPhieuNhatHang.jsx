@@ -1,16 +1,28 @@
-import { EyeOutlined, FilterOutlined } from "@ant-design/icons";
-import { Button, DatePicker, Input, Select, Tag, Typography } from "antd";
+import { EyeOutlined, FilterOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Button, Checkbox, DatePicker, Input, Select, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
-import CommonPhieuList from "../CommonPhieuList";
+import ListTemplate from "../../../../components/common/PageTemplates/ListTemplate";
 import "../common-phieu.css";
 import { fetchPhieuNhatHangList } from "./utils/phieuNhatHangApi";
+import { formatDate, formatDateTime, formatDateForApi, formatDateForStorage } from "../../../../utils/dateUtils";
 
 const { RangePicker } = DatePicker;
 
 const { Title } = Typography;
+
+// Vùng: fix cứng V1, V2, V3, V4 (multi-select)
+const VUNG_OPTIONS = ["V1", "V2", "V3", "V4"];
+
+// Trạng thái: multi-select, mặc định Mới chia đơn + Đang nhặt hàng
+const STATUS_OPTIONS = [
+  { value: "0", label: "Mới chia đơn" },
+  { value: "1", label: "Đang nhặt hàng" },
+  { value: "2", label: "Nhặt xong" },
+];
+const STATUS_DEFAULT = ["0", "1"]; // Mới chia đơn, Đang nhặt hàng
 
 const ListPhieuNhatHang = () => {
   const navigate = useNavigate();
@@ -36,13 +48,24 @@ const ListPhieuNhatHang = () => {
           parsed.dateRange && parsed.dateRange.from && parsed.dateRange.to
             ? [dayjs(parsed.dateRange.from), dayjs(parsed.dateRange.to)]
             : null;
+        const maNhomVitri = parsed.ma_nhomvitri;
+        const maNhomVitriArr = Array.isArray(maNhomVitri)
+          ? maNhomVitri.filter((v) => VUNG_OPTIONS.includes(v))
+          : typeof maNhomVitri === "string" && maNhomVitri
+            ? maNhomVitri.split(",").map((s) => s.trim()).filter((v) => VUNG_OPTIONS.includes(v))
+            : [];
         return {
           so_ct: parsed.so_ct || "",
           so_don_hang: parsed.so_don_hang || "",
           ma_kh: parsed.ma_kh || "",
           ten_kh: parsed.ten_kh || "",
-          ma_nhomvitri: parsed.ma_nhomvitri || "",
-          status: parsed.status || "",
+          ma_nhomvitri: maNhomVitriArr,
+          status: (() => {
+            const s = parsed.status;
+            if (Array.isArray(s)) return s.filter((v) => ["0", "1", "2"].includes(String(v)));
+            if (s && typeof s === "string") return s.split(",").map((x) => x.trim()).filter((v) => ["0", "1", "2"].includes(v));
+            return [...STATUS_DEFAULT];
+          })(),
           dateRange,
         };
       }
@@ -54,8 +77,8 @@ const ListPhieuNhatHang = () => {
       so_don_hang: "",
       ma_kh: "",
       ten_kh: "",
-      ma_nhomvitri: "",
-      status: "",
+      ma_nhomvitri: [],
+      status: [...STATUS_DEFAULT],
       dateRange: null,
     };
   };
@@ -69,8 +92,9 @@ const ListPhieuNhatHang = () => {
       f.so_ct ||
       f.so_don_hang ||
       f.ma_kh ||
-      f.ma_nhomvitri ||
-      f.status ||
+      f.ten_kh ||
+      (Array.isArray(f.ma_nhomvitri) && f.ma_nhomvitri.length > 0) ||
+      (Array.isArray(f.status) && f.status.length > 0) ||
       (f.dateRange &&
         f.dateRange.length === 2 &&
         !f.dateRange[0].isSame(dayjs(), "day"))
@@ -81,7 +105,7 @@ const ListPhieuNhatHang = () => {
     checkHasAppliedFilters(initialFilters)
   );
 
-  const pageSize = 20;
+  const pageSize = 50;
   const lastApiCall = useRef({
     pageIndex: 0,
     filters: {},
@@ -93,6 +117,7 @@ const ListPhieuNhatHang = () => {
   const userInfoRef = useRef(userInfo); // Track userInfo để tránh re-render
   const filtersLoadedFromStorage = useRef(true); // Track đã load filters từ sessionStorage (true vì đã load trong getInitialFilters)
   const filtersInitialized = useRef(false); // Track filters đã được khởi tạo chưa
+  const filterChangeFromSearchRef = useRef(false); // Khi ấn Tìm kiếm: handleFilter đã gọi API → effect [filters] bỏ qua 1 lần
   const EMPTY_FILTERS = {};
   const stableFilters = useMemo(() => filters, [filters]);
 
@@ -132,13 +157,13 @@ const ListPhieuNhatHang = () => {
         so_don_hang: f.so_don_hang || "",
         ma_kh: f.ma_kh || "",
         ten_kh: f.ten_kh || "",
-        ma_nhomvitri: f.ma_nhomvitri || "",
-        status: f.status || "",
+        ma_nhomvitri: Array.isArray(f.ma_nhomvitri) ? f.ma_nhomvitri : [],
+        status: Array.isArray(f.status) ? f.status : [],
         dateRange:
           f.dateRange && f.dateRange.length === 2
             ? {
-                from: f.dateRange[0].format("YYYY-MM-DD"),
-                to: f.dateRange[1].format("YYYY-MM-DD"),
+                from: formatDateForStorage(f.dateRange[0]),
+                to: formatDateForStorage(f.dateRange[1]),
               }
             : null,
       };
@@ -163,13 +188,24 @@ const ListPhieuNhatHang = () => {
         parsed.dateRange && parsed.dateRange.from && parsed.dateRange.to
           ? [dayjs(parsed.dateRange.from), dayjs(parsed.dateRange.to)]
           : null;
+      const maNhomVitri = parsed.ma_nhomvitri;
+      const maNhomVitriArr = Array.isArray(maNhomVitri)
+        ? maNhomVitri.filter((v) => VUNG_OPTIONS.includes(v))
+        : typeof maNhomVitri === "string" && maNhomVitri
+          ? maNhomVitri.split(",").map((s) => s.trim()).filter((v) => VUNG_OPTIONS.includes(v))
+          : [];
+      const statusArr = Array.isArray(parsed.status)
+        ? parsed.status.filter((v) => ["0", "1", "2"].includes(String(v)))
+        : parsed.status && typeof parsed.status === "string"
+          ? parsed.status.split(",").map((x) => x.trim()).filter((v) => ["0", "1", "2"].includes(v))
+          : [...STATUS_DEFAULT];
       return {
         so_ct: parsed.so_ct || "",
         so_don_hang: parsed.so_don_hang || "",
         ma_kh: parsed.ma_kh || "",
         ten_kh: parsed.ten_kh || "",
-        ma_nhomvitri: parsed.ma_nhomvitri || "",
-        status: parsed.status || "",
+        ma_nhomvitri: maNhomVitriArr,
+        status: statusArr.length > 0 ? statusArr : [...STATUS_DEFAULT],
         dateRange,
       };
     } catch (error) {
@@ -191,7 +227,7 @@ const ListPhieuNhatHang = () => {
   }, [filters, saveFiltersToStorage]);
 
   const fetchPhieuNhatHang = useCallback(
-    async (pageIndex = currentPage, customFilters = null) => {
+    async (pageIndex = currentPage, customFilters = null, forceRefresh = false) => {
       if (isLoading) return;
 
       // Chỉ gọi API khi userInfo đã có dữ liệu (tránh gọi lần đầu với empty userInfo)
@@ -204,17 +240,6 @@ const ListPhieuNhatHang = () => {
       }
 
       const filtersToUse = customFilters || stableFilters;
-      const normalizeStatus = (val) => {
-        if (val === undefined || val === null) return "";
-        const str = String(val).trim();
-        if (["0", "1", "2"].includes(str)) return str;
-        const map = {
-          "Mới chia đơn": "0",
-          "Đang nhặt hàng": "1",
-          "Nhặt xong": "2",
-        };
-        return map[str] || "";
-      };
 
       // Get unitsResponse from localStorage as fallback for unitId
       const unitsResponse = JSON.parse(
@@ -225,7 +250,7 @@ const ListPhieuNhatHang = () => {
       const unitId = currentUserInfo?.unitId || unitsResponse?.unitId || "";
       const storeId = currentUserInfo?.storeId || "";
 
-      // Duplicate prevention logic - bao gồm cả userInfo để tránh gọi lại khi userInfo thay đổi nhưng params giống nhau
+      // Duplicate prevention logic - bỏ qua khi forceRefresh (vd. bấm logo làm tươi)
       const currentCall = {
         pageIndex,
         filters: filtersToUse,
@@ -234,6 +259,7 @@ const ListPhieuNhatHang = () => {
         storeId,
       };
       if (
+        !forceRefresh &&
         lastApiCall.current.pageIndex === pageIndex &&
         JSON.stringify(lastApiCall.current.filters) ===
           JSON.stringify(filtersToUse) &&
@@ -251,20 +277,25 @@ const ListPhieuNhatHang = () => {
           so_ct: filtersToUse.so_ct || "",
           DateFrom:
             filtersToUse.dateRange && filtersToUse.dateRange.length === 2
-              ? filtersToUse.dateRange[0].format("MM/DD/YYYY")
+              ? formatDateForApi(filtersToUse.dateRange[0])
               : "",
           DateTo:
             filtersToUse.dateRange && filtersToUse.dateRange.length === 2
-              ? filtersToUse.dateRange[1].format("MM/DD/YYYY")
+              ? formatDateForApi(filtersToUse.dateRange[1])
               : "",
           ngay_ct: "",
           ma_kh: filtersToUse.ma_kh || "",
-          Status: normalizeStatus(filtersToUse.status),
+          ten_kh: filtersToUse.ten_kh || "",
+          Status: Array.isArray(filtersToUse.status) && filtersToUse.status.length
+            ? filtersToUse.status.join(",")
+            : "",
           ma_ban: "",
           s2: "",
           s3: "",
           so_don_hang: filtersToUse.so_don_hang || "",
-          ma_nhomvitri: filtersToUse.ma_nhomvitri || "",
+          ma_nhomvitri: Array.isArray(filtersToUse.ma_nhomvitri) && filtersToUse.ma_nhomvitri.length
+            ? filtersToUse.ma_nhomvitri.join(",")
+            : "",
           pageIndex: pageIndex,
           pageSize: pageSize,
           userId: userId,
@@ -274,10 +305,15 @@ const ListPhieuNhatHang = () => {
 
         const result = await fetchPhieuNhatHangList(params);
 
-        if (result.success) {
+        // Chỉ cập nhật state nếu response này vẫn là request mới nhất (tránh race: đổi filter khi đang ở trang 5 → request cũ trả về sau ghi đè totalRecords)
+        const stillCurrent =
+          lastApiCall.current.pageIndex === pageIndex &&
+          JSON.stringify(lastApiCall.current.filters) === JSON.stringify(filtersToUse);
+
+        if (result.success && stillCurrent) {
           setAllData(result.data);
-          setTotalRecords(result.pagination.totalRecord || result.data.length);
-        } else {
+          setTotalRecords(result.pagination.totalRecord ?? result.data.length);
+        } else if (!result.success) {
           console.error("Lỗi gọi API danh sách phiếu nhặt hàng:", result.error);
         }
       } catch (err) {
@@ -308,7 +344,7 @@ const ListPhieuNhatHang = () => {
   }, [userInfo?.id, userInfo?.userId]);
 
   // Effect riêng cho filters - chỉ gọi khi filters thay đổi và đã load lần đầu
-  // Bỏ qua lần đầu tiên vì filters đã được set từ sessionStorage và đã được gọi trong effect trên
+  // Bỏ qua khi vừa ấn Tìm kiếm (handleFilter đã gọi API) để tránh double call
   useEffect(() => {
     const currentUserInfo = userInfoRef.current;
     if (!currentUserInfo || (!currentUserInfo.id && !currentUserInfo.userId)) {
@@ -321,6 +357,12 @@ const ListPhieuNhatHang = () => {
       return; // Bỏ qua lần đầu tiên vì filters đã được load từ sessionStorage
     }
 
+    // Khi ấn Tìm kiếm (đang ở trang 5 rồi bỏ trạng thái): handleFilter đã gọi API với newFilters → không gọi lại ở đây
+    if (filterChangeFromSearchRef.current) {
+      filterChangeFromSearchRef.current = false;
+      return;
+    }
+
     // Chỉ gọi nếu đã load lần đầu để tránh double call với effect trên
     if (hasInitialLoad.current) {
       fetchPhieuNhatHang(1, filters);
@@ -328,22 +370,93 @@ const ListPhieuNhatHang = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
+  // Làm tươi mềm: bấm logo TAPMED → gọi lại API lấy data mới nhất (không reload trang)
+  useEffect(() => {
+    const handler = () => {
+      if (hasInitialLoad.current) {
+        fetchPhieuNhatHang(currentPage, filters, true);
+      }
+    };
+    window.addEventListener("appRefreshRequested", handler);
+    return () => window.removeEventListener("appRefreshRequested", handler);
+  }, [currentPage, filters, fetchPhieuNhatHang]);
+
+  const handleRefreshClick = useCallback(() => {
+    if (hasInitialLoad.current) {
+      fetchPhieuNhatHang(currentPage, filters, true);
+    }
+  }, [currentPage, filters, fetchPhieuNhatHang]);
+
   const handlePageChange = (page) => {
+    // Khi đang ở trang 5 rồi ấn Tìm kiếm: handleFilter set currentPage=1 → Table có thể gọi onChange(1) với filters cũ → bỏ qua
+    if (filterChangeFromSearchRef.current && page === 1) {
+      setCurrentPage(page);
+      return;
+    }
     setCurrentPage(page);
     fetchPhieuNhatHang(page, filters);
   };
 
   const handleFilter = (key, value, confirm) => {
+    // Đặt ref ngay đầu, trước confirm() và setState — nếu confirm() gây re-render/effect thì effect [filters] sẽ bỏ qua
+    filterChangeFromSearchRef.current = true;
     confirm();
+
+    // Chuẩn hóa multi-select: luôn dùng array cho ma_nhomvitri và status
     let filterValue = value;
+    if (key === "ma_nhomvitri" || key === "status") {
+      filterValue = Array.isArray(value) ? value : value ? [value] : [];
+    }
 
     const newFilters = { ...filters, [key]: filterValue };
     setFilters(newFilters);
     setHasUserAppliedFilters(true); // User đã apply filter
     setCurrentPage(1);
-    // Save to sessionStorage
     saveFiltersToStorage(newFilters);
     fetchPhieuNhatHang(1, newFilters);
+  };
+
+  // Dropdown multi-select: đồng bộ selectedKeys với filters khi mở, ấn Tìm kiếm thì lọc theo đúng value đang chọn
+  const MultiSelectFilterDropdown = ({
+    setSelectedKeys,
+    selectedKeys,
+    confirm,
+    filterKey,
+    initialValue,
+    placeholder,
+    options,
+    onFilter,
+  }) => {
+    useEffect(() => {
+      setSelectedKeys(Array.isArray(initialValue) ? [...initialValue] : []);
+      // Chỉ đồng bộ khi dropdown mở (mount), không re-sync khi initialValue thay đổi
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    const currentValues = Array.isArray(selectedKeys) ? selectedKeys : [];
+    return (
+      <div style={{ padding: 8, minWidth: 200, display: "flex", flexDirection: "column" }}>
+        <Select
+          mode="multiple"
+          placeholder={placeholder}
+          value={currentValues}
+          onChange={(val) => setSelectedKeys(val || [])}
+          style={{ width: "100%", minWidth: 180 }}
+          size="small"
+          options={options}
+          listHeight={200}
+          placement="topLeft"
+          showSearch={false}
+        />
+        <Button
+          className="search_button"
+          type="primary"
+          onClick={() => onFilter(filterKey, currentValues, confirm)}
+          size="small"
+        >
+          Tìm kiếm
+        </Button>
+      </div>
+    );
   };
 
   // Active filter chips
@@ -354,7 +467,7 @@ const ListPhieuNhatHang = () => {
     if (filters.so_don_hang)
       chips.push({
         key: "so_don_hang",
-        label: "Số đơn hàng",
+        label: "Số ĐH",
         value: filters.so_don_hang,
       });
     if (filters.ma_kh)
@@ -363,26 +476,24 @@ const ListPhieuNhatHang = () => {
         label: "Mã khách hàng",
         value: filters.ma_kh,
       });
-    if (filters.ma_nhomvitri)
+    if (filters.ten_kh)
+      chips.push({
+        key: "ten_kh",
+        label: "Tên KH",
+        value: filters.ten_kh,
+      });
+    if (Array.isArray(filters.ma_nhomvitri) && filters.ma_nhomvitri.length > 0)
       chips.push({
         key: "ma_nhomvitri",
         label: "Vùng",
-        value: filters.ma_nhomvitri,
+        value: filters.ma_nhomvitri.join(", "),
       });
-    if (
-      filters.status !== "" &&
-      filters.status !== null &&
-      filters.status !== undefined
-    ) {
-      const statusMap = {
-        0: "Mới chia đơn",
-        1: "Đang nhặt hàng",
-        2: "Nhặt xong",
-      };
+    if (Array.isArray(filters.status) && filters.status.length > 0) {
+      const statusMap = { "0": "Mới chia đơn", "1": "Đang nhặt hàng", "2": "Nhặt xong" };
       chips.push({
         key: "status",
         label: "Trạng thái",
-        value: statusMap[String(filters.status)] || String(filters.status),
+        value: filters.status.map((s) => statusMap[String(s)] || s).join(", "),
       });
     }
     // Chỉ hiển thị dateRange chip khi user đã thực sự apply filter (không phải mặc định)
@@ -394,9 +505,7 @@ const ListPhieuNhatHang = () => {
       chips.push({
         key: "dateRange",
         label: "Ngày",
-        value: `${filters.dateRange[0].format(
-          "DD/MM/YYYY"
-        )} - ${filters.dateRange[1].format("DD/MM/YYYY")}`,
+        value: `${formatDate(filters.dateRange[0])} - ${formatDate(filters.dateRange[1])}`,
       });
     }
     return chips;
@@ -406,14 +515,17 @@ const ListPhieuNhatHang = () => {
     const newFilters = { ...filters };
     if (chipKey === "dateRange") {
       newFilters.dateRange = null;
+    } else if (chipKey === "ma_nhomvitri") {
+      newFilters.ma_nhomvitri = [];
+    } else if (chipKey === "status") {
+      newFilters.status = [];
     } else {
       newFilters[chipKey] = "";
     }
     setFilters(newFilters);
     setCurrentPage(1);
-    // Save to sessionStorage
     saveFiltersToStorage(newFilters);
-    fetchPhieuNhatHang(1, newFilters);
+    // useEffect([filters]) gọi API 1 lần
   };
 
   const clearAllChips = () => {
@@ -422,8 +534,8 @@ const ListPhieuNhatHang = () => {
       so_don_hang: "",
       ma_kh: "",
       ten_kh: "",
-      ma_nhomvitri: "",
-      status: "",
+      ma_nhomvitri: [],
+      status: [...STATUS_DEFAULT],
       dateRange: null,
     };
     setFilters(cleared);
@@ -435,7 +547,7 @@ const ListPhieuNhatHang = () => {
     } catch (error) {
       console.error("Error clearing filters from sessionStorage:", error);
     }
-    fetchPhieuNhatHang(1, cleared);
+    // useEffect([filters]) gọi API 1 lần
   };
 
   const getStatusColor = (status) => {
@@ -458,25 +570,46 @@ const ListPhieuNhatHang = () => {
   const getColumns = () => {
     const baseColumns = [
       {
-        title: "STT",
-        key: "stt",
-        render: (_, __, index) => index + 1,
-        width: 60,
+        title: "Số",
+        dataIndex: "so_ct",
+        key: "so_ct",
+        width: 100,
         align: "center",
-      },
-      {
-        title: "Đơn vị",
-        key: "don_vi",
-        dataIndex: "ma_dvcs",
-        width: 120,
-        align: "center",
-        render: (text) => (text || "").toString(),
+        render: (text) => (text ? text.trim() : ""),
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+          <div style={{ padding: 8 }}>
+            <Input
+              placeholder="Tìm Số"
+              value={selectedKeys[0]}
+              onChange={(e) =>
+                setSelectedKeys(e.target.value ? [e.target.value] : [])
+              }
+              onPressEnter={() => {
+                handleFilter("so_ct", selectedKeys[0] || "", confirm);
+              }}
+              style={{ marginBottom: 8, display: "block" }}
+            />
+            <Button
+              className="search_button"
+              type="primary"
+              onClick={() => {
+                handleFilter("so_ct", selectedKeys[0] || "", confirm);
+              }}
+              size="small"
+            >
+              Tìm kiếm
+            </Button>
+          </div>
+        ),
+        filteredValue: filters.so_ct ? [filters.so_ct] : null,
       },
       {
         title: "Ngày",
         dataIndex: "ngay_ct",
         key: "ngay_ct",
-        width: 140,
+        width: 100,
+        align: "center",
+        ellipsis: false,
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <div style={{ padding: 8 }}>
             <RangePicker
@@ -492,8 +625,8 @@ const ListPhieuNhatHang = () => {
               onChange={(dates) => {
                 if (dates && dates.length === 2) {
                   setSelectedKeys([
-                    dates[0].format("DD/MM/YYYY"),
-                    dates[1].format("DD/MM/YYYY"),
+                    formatDate(dates[0]),
+                    formatDate(dates[1]),
                   ]);
                 } else {
                   setSelectedKeys([]);
@@ -525,62 +658,55 @@ const ListPhieuNhatHang = () => {
         filteredValue:
           filters.dateRange && filters.dateRange.length === 2
             ? [
-                filters.dateRange[0].format("DD/MM/YYYY"),
-                filters.dateRange[1].format("DD/MM/YYYY"),
+                formatDate(filters.dateRange[0]),
+                formatDate(filters.dateRange[1]),
               ]
             : null,
-        render: (text) =>
-          dayjs(text).format(screenSize === "mobile" ? "DD/MM" : "DD/MM/YYYY"),
-      },
-      {
-        title: "Bắt đầu nhặt hàng",
-        dataIndex: "bat_dau_nhat_hang",
-        key: "bat_dau_nhat_hang",
-        width: 160,
-        align: "center",
         render: (text, record) => {
-          if (!text || text === null || text === "null" || text === "*")
-            return "";
-          try {
-            return dayjs(text).format("DD/MM/YYYY HH:mm");
-          } catch {
-            return "";
+          const dateStr = text
+            ? formatDate(text, screenSize === "mobile" ? "DD/MM" : "DD/MM/YYYY")
+            : "";
+          const raw = record?.datetime0;
+          let display = dateStr;
+          if (raw) {
+            const d = dayjs(raw);
+            if (d.isValid()) display = `${dateStr} ${d.format("HH:mm")}`;
+            else if (typeof raw === "string" && raw.includes(":")) {
+              const part = raw.trim().split(" ").pop() || raw;
+              const timeMatch = part.match(/^(\d{1,2}):(\d{2})/);
+              if (timeMatch) display = `${dateStr} ${timeMatch[0]}`;
+            }
           }
+          return display ? (
+            <span style={{ wordBreak: "break-word", whiteSpace: "normal" }}>
+              {display}
+            </span>
+          ) : (
+            ""
+          );
         },
       },
       {
-        title: "Kết thúc nhặt hàng",
-        dataIndex: "nhat_hang_xong",
-        key: "nhat_hang_xong",
-        width: 160,
-        align: "center",
-        render: (text, record) => {
-          if (!text || text === null || text === "null" || text === "*")
-            return "";
-          try {
-            return dayjs(text).format("DD/MM/YYYY HH:mm");
-          } catch {
-            return "";
-          }
-        },
-      },
-      {
-        title: "Số",
-        dataIndex: "so_ct",
-        key: "so_ct",
+        title: "Tên KH",
+        dataIndex: "ten_kh",
+        key: "ten_kh",
         width: 120,
         align: "center",
-        render: (text) => (text ? text.trim() : ""),
+        ellipsis: false,
+        render: (text) => {
+          const s = (text || "").toString();
+          return s ? <span style={{ wordBreak: "break-word", whiteSpace: "normal" }}>{s}</span> : "";
+        },
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <div style={{ padding: 8 }}>
             <Input
-              placeholder="Tìm Số"
+              placeholder="Tìm Tên KH"
               value={selectedKeys[0]}
               onChange={(e) =>
                 setSelectedKeys(e.target.value ? [e.target.value] : [])
               }
               onPressEnter={() => {
-                handleFilter("so_ct", selectedKeys[0] || "", confirm);
+                handleFilter("ten_kh", selectedKeys[0] || "", confirm);
               }}
               style={{ marginBottom: 8, display: "block" }}
             />
@@ -588,7 +714,7 @@ const ListPhieuNhatHang = () => {
               className="search_button"
               type="primary"
               onClick={() => {
-                handleFilter("so_ct", selectedKeys[0] || "", confirm);
+                handleFilter("ten_kh", selectedKeys[0] || "", confirm);
               }}
               size="small"
             >
@@ -596,19 +722,19 @@ const ListPhieuNhatHang = () => {
             </Button>
           </div>
         ),
-        filteredValue: filters.so_ct ? [filters.so_ct] : null,
+        filteredValue: filters.ten_kh ? [filters.ten_kh] : null,
       },
       {
-        title: "Số đơn hàng",
+        title: "Số ĐH",
         dataIndex: "so_don_hang",
         key: "so_don_hang",
-        width: 140,
+        width: 72,
         align: "center",
         render: (text) => (text ? text.trim() : ""),
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <div style={{ padding: 8 }}>
             <Input
-              placeholder="Tìm Số đơn hàng"
+              placeholder="Tìm Số ĐH"
               value={selectedKeys[0]}
               onChange={(e) =>
                 setSelectedKeys(e.target.value ? [e.target.value] : [])
@@ -636,56 +762,35 @@ const ListPhieuNhatHang = () => {
         title: "Vùng",
         dataIndex: "ma_nhomvitri",
         key: "ma_nhomvitri",
-        width: 120,
+        width: 65,
         align: "center",
         render: (text) => (text || "").toString(),
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Input
-              placeholder="Tìm Vùng"
-              value={selectedKeys[0]}
-              onChange={(e) =>
-                setSelectedKeys(e.target.value ? [e.target.value] : [])
-              }
-              onPressEnter={() => {
-                handleFilter("ma_nhomvitri", selectedKeys[0] || "", confirm);
-              }}
-              style={{ marginBottom: 8, display: "block" }}
-            />
-            <Button
-              className="search_button"
-              type="primary"
-              onClick={() => {
-                handleFilter("ma_nhomvitri", selectedKeys[0] || "", confirm);
-              }}
-              size="small"
-            >
-              Tìm kiếm
-            </Button>
-          </div>
+          <MultiSelectFilterDropdown
+            setSelectedKeys={setSelectedKeys}
+            selectedKeys={selectedKeys}
+            confirm={confirm}
+            filterKey="ma_nhomvitri"
+            initialValue={filters.ma_nhomvitri || []}
+            placeholder="Chọn Vùng"
+            options={VUNG_OPTIONS.map((v) => ({ label: v, value: v }))}
+            onFilter={handleFilter}
+          />
         ),
-        filteredValue: filters.ma_nhomvitri ? [filters.ma_nhomvitri] : null,
+        filteredValue: Array.isArray(filters.ma_nhomvitri) && filters.ma_nhomvitri.length > 0 ? filters.ma_nhomvitri : null,
       },
       {
         title: "Bàn",
         dataIndex: "ban_dong_goi",
         key: "ban_dong_goi",
-        width: 120,
+        width: 35,
         align: "center",
         render: (text) => (text || "").toString(),
       },
       {
-        title: "Ghi chú",
-        dataIndex: "ghi_chu",
-        key: "ghi_chu",
-        width: 220,
-        align: "center",
-        render: (text) => (text || "").toString(),
-      },
-      {
-        title: "Tỉ lệ hoàn thành",
+        title: "% HT",
         key: "ti_le_hoan_thanh",
-        width: 120,
+        width: 45,
         align: "center",
         render: (_, record) => {
           const a = record?.sl_phieu_xuat1 ?? 0;
@@ -695,44 +800,76 @@ const ListPhieuNhatHang = () => {
       },
       {
         title: "Nhân viên",
-        dataIndex: "ma_nvbh",
+        dataIndex: "ten_nvbh",
         key: "ma_nvbh",
-        width: 140,
+        width: 100,
         align: "center",
-        render: (text) => (text || "").toString(),
+        ellipsis: false,
+        render: (text, record) => {
+          const s = (text || record?.ma_nvbh || "").toString();
+          return s ? <span style={{ wordBreak: "break-word", whiteSpace: "normal" }}>{s}</span> : "";
+        },
       },
       {
         title: "Trạng thái",
         dataIndex: "statusname",
         key: "statusname",
-        width: screenSize === "mobile" ? 80 : 120,
+        width: screenSize === "mobile" ? 90 : 120,
         align: "center",
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-          <div style={{ padding: 8 }}>
-            <Select
-              placeholder="Chọn trạng thái"
-              value={selectedKeys[0]}
-              onChange={(val) => setSelectedKeys(val ? [val] : [])}
-              style={{ width: 180, marginBottom: 8, display: "block" }}
-              size="small"
+          <div style={{ padding: 12, minWidth: 200 }}>
+            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Trạng thái:</div>
+            <Checkbox.Group
+              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              value={selectedKeys}
+              onChange={(value) => setSelectedKeys(value)}
             >
-              <Select.Option value="0">Mới chia đơn</Select.Option>
-              <Select.Option value="1">Đang nhặt hàng</Select.Option>
-              <Select.Option value="2">Nhặt xong</Select.Option>
-            </Select>
-            <Button
-              className="search_button"
-              type="primary"
-              onClick={() =>
-                handleFilter("status", selectedKeys[0] || "", confirm)
-              }
-              size="small"
+              {STATUS_OPTIONS.map(opt => (
+                <Checkbox key={opt.value} value={opt.value}>{opt.label}</Checkbox>
+              ))}
+            </Checkbox.Group>
+            <div
+              style={{
+                marginTop: 12,
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "8px",
+              }}
             >
-              Tìm kiếm
-            </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  setSelectedKeys([]);
+                  const newFilters = { ...filters, status: [] };
+                  setFilters(newFilters);
+                  setCurrentPage(1);
+                  saveFiltersToStorage(newFilters);
+                  fetchPhieuNhatHang(1, newFilters);
+                  confirm();
+                }}
+                style={{ flex: 1, borderRadius: '8px' }}
+              >
+                Xóa
+              </Button>
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => {
+                  confirm();
+                  const newFilters = { ...filters, status: selectedKeys };
+                  setFilters(newFilters);
+                  setCurrentPage(1);
+                  saveFiltersToStorage(newFilters);
+                  fetchPhieuNhatHang(1, newFilters);
+                }}
+                style={{ flex: 1, borderRadius: '8px', background: '#6366f1' }}
+              >
+                Tìm kiếm
+              </Button>
+            </div>
           </div>
         ),
-        filteredValue: filters.status ? [filters.status] : null,
+        filteredValue: Array.isArray(filters.status) && filters.status.length > 0 ? filters.status : null,
         render: (_, record) => {
           const status = record?.status;
           if (status === "*" || status === null) {
@@ -754,6 +891,95 @@ const ListPhieuNhatHang = () => {
           const statusColor = getStatusColor(status);
 
           return <Tag color={statusColor}>{displayText}</Tag>;
+        },
+      },
+      {
+        title: "Thời gian xử lý",
+        key: "thoi_gian_xu_ly",
+        width: 110,
+        align: "center",
+        ellipsis: false,
+        render: (_, record) => {
+          const formatTime = (text) => {
+            if (!text || text === null || text === "null" || text === "*")
+              return null;
+            try {
+              return formatDateTime(text);
+            } catch {
+              return null;
+            }
+          };
+
+          const batDau = formatTime(record.bat_dau_nhat_hang);
+          const ketThuc = formatTime(record.nhat_hang_xong);
+
+          if (!batDau && !ketThuc) {
+            return "";
+          }
+
+          // Tạo dot lớn bằng CSS với khoảng trắng ở giữa
+          const dotStyle = {
+            display: "inline-block",
+            width: "10px",
+            height: "10px",
+            borderRadius: "50%",
+            border: "2px solid #000",
+            backgroundColor: "transparent",
+            marginRight: "8px",
+            verticalAlign: "middle",
+          };
+
+          // Nếu có cả bắt đầu và kết thúc: hiển thị với dot
+          if (batDau && ketThuc) {
+            return (
+              <div style={{ lineHeight: "1.5" }}>
+                <div>
+                  <span style={dotStyle}></span> {batDau}
+                </div>
+                <div>
+                  <span style={dotStyle}></span> {ketThuc}
+                </div>
+              </div>
+            );
+          }
+
+          // Chỉ có bắt đầu
+          if (batDau) {
+            return (
+              <div>
+                <span style={dotStyle}></span> {batDau}
+              </div>
+            );
+          }
+
+          // Chỉ có kết thúc
+          if (ketThuc) {
+            return (
+              <div>
+                <span style={dotStyle}></span> {ketThuc}
+              </div>
+            );
+          }
+
+          return "";
+        },
+      },
+      {
+        title: "Ghi chú",
+        dataIndex: "ghi_chu",
+        key: "ghi_chu",
+        width: 150,
+        align: "center",
+        ellipsis: false,
+        render: (text) => {
+          const s = (text || "").toString().trim();
+          return s ? (
+            <span style={{ wordBreak: "break-word", whiteSpace: "normal", lineHeight: 1.4 }}>
+              {s}
+            </span>
+          ) : (
+            ""
+          );
         },
       },
       {
@@ -801,7 +1027,7 @@ const ListPhieuNhatHang = () => {
       bordered: true,
       rowKey: "stt_rec",
       className: "phieu-data-table hidden_scroll_bar",
-      scroll: { x: 1480 },
+      scroll: { x: 1460 },
     };
 
     if (screenSize === "mobile") {
@@ -813,72 +1039,44 @@ const ListPhieuNhatHang = () => {
     } else if (screenSize === "tablet") {
       baseProps.scroll = { x: 1200, y: 500 };
     } else {
-      baseProps.scroll = { x: 1480, y: 600 };
+      baseProps.scroll = { x: 1460, y: 600 };
     }
 
     return baseProps;
   };
 
-  const chipsBar =
-    activeChips.length > 0 ? (
-      <div className="filter-chips-container">
-        <div className="filter-chips-left">
-          <FilterOutlined className="filter-chips-icon" />
-          <span className="filter-chips-title">
-            Đang áp dụng {activeChips.length} bộ lọc
-          </span>
-          <div className="filter-chips-list">
-            {activeChips.map((chip) => (
-              <Tag
-                key={chip.key}
-                closable
-                onClose={(e) => {
-                  e.preventDefault();
-                  removeChip(chip.key);
-                }}
-                className={`filter-chip ${
-                  chip.key === "status"
-                    ? "filter-chip--blue"
-                    : chip.key === "dateRange"
-                    ? "filter-chip--green"
-                    : "filter-chip--gray"
-                }`}
-              >
-                {chip.label}: {chip.value}
-              </Tag>
-            ))}
-          </div>
-        </div>
-        <div className="filter-chips-right">
-          <Button size="small" onClick={clearAllChips}>
-            Xóa tất cả
-          </Button>
-        </div>
-      </div>
-    ) : null;
+  // chipsBar removed, handled by ListTemplate
 
   return (
     <div>
-      <CommonPhieuList
+      <ListTemplate
         title={
           screenSize === "mobile"
             ? "PHIẾU NHẬT HÀNG"
-            : "DANH SÁCH PHIẾU NHẶT HÀNG"
+            : "PHIẾU NHẶT HÀNG"
         }
-        extraHeader={chipsBar}
         columns={getColumns()}
         data={allData}
         onBack={() => navigate("/kho")}
+        onRefresh={handleRefreshClick}
         rowKey="stt_rec"
         pagination={{
           current: currentPage,
           pageSize: pageSize,
           total: totalRecords,
           onChange: handlePageChange,
-          showSizeChanger: false,
-          showQuickJumper: false,
         }}
         loading={isLoading}
+        activeChips={activeChips}
+        onRemoveFilter={removeChip}
+        onClearAllFilters={clearAllChips}
+        tableProps={{
+          scroll: {
+            x: screenSize === "mobile" ? 600 : screenSize === "mobileLandscape" ? 800 : screenSize === "tablet" ? 1200 : 1460,
+            y: 1040, /* ~20 dòng visible, còn lại scroll (tối đa 50/trang) */
+          },
+          ...(screenSize === "mobile" || screenSize === "mobileLandscape" ? { size: "small" } : {}),
+        }}
       />
     </div>
   );

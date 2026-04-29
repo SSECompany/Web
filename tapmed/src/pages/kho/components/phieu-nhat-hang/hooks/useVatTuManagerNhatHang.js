@@ -1,4 +1,5 @@
 import { message } from "antd";
+import showConfirm from "../../../../../components/common/Modal/ModalConfirm";
 import { computeGroupState } from "../utils/phieuNhatHangUtils";
 import { useRef, useState } from "react";
 import notificationManager from "../../../../../utils/notificationManager";
@@ -16,9 +17,11 @@ export const useVatTuManagerNhatHang = () => {
     }
 
     const processedData = data2.map((item, index) => {
+      const maVt = (item.ma_vt || "").toString().trim();
       return {
         key: index + 1,
-        maHang: item.ma_vt || "",
+        maHang: maVt || "",
+        ma_vt: maVt || "",
         ten_mat_hang: item.ten_vt || item.ma_vt || "",
 
         // Sử dụng dữ liệu đã lưu trong phiếu
@@ -66,13 +69,13 @@ export const useVatTuManagerNhatHang = () => {
         so_luong_don: parseFloat(item.so_luong_don) || 0,
         nhat: parseFloat(item.nhat) || parseFloat(item.soLuong) || 0,
         ghi_chu: item.ghi_chu ? item.ghi_chu.trim() : "",
+        ghi_chu_dh: item.ghi_chu_dh ? item.ghi_chu_dh.trim() : "", // map cho cột Ghi chú KD
         so_luong_ton: parseFloat(item.so_luong_ton) || 0,
-        // Nếu tong_nhat chưa có hoặc bằng 0, tự động điền bằng số lượng đơn
-        tong_nhat: (() => {
-          const tongNhatHienTai = parseFloat(item.tong_nhat) || 0;
-          const soLuongDon = parseFloat(item.so_luong) || parseFloat(item.so_luong_don) || 0;
-          return tongNhatHienTai > 0 ? tongNhatHienTai : soLuongDon;
-        })(),
+        // Ban đầu tong_nhat = 0 (không tự động điền bằng số lượng đơn nữa)
+        tong_nhat: parseFloat(item.tong_nhat) || 0,
+
+        // Theo dõi lô: true = bắt buộc mã lô khi có tổng nhặt, false = mã lô tùy chọn
+        lo_yn: item.lo_yn === true || item.lo_yn === "1" || item.lo_yn === 1,
 
         // Đánh dấu không phải là item mới thêm
         isNewlyAdded: false,
@@ -181,10 +184,12 @@ export const useVatTuManagerNhatHang = () => {
         return;
       }
 
-      // Bỏ API danh-sach-dv, sử dụng đơn vị tính từ vatTuInfo
-      const donViTinhList = vatTuInfo.dvt 
-        ? [{ dvt: vatTuInfo.dvt.trim(), he_so: parseFloat(vatTuInfo.he_so) || 1 }]
-        : [];
+      // Re-enable unit of measure fetching
+      const donViTinhList = fetchDonViTinh ? await fetchDonViTinh(value.trim()) : [];
+      // Fallback if API returns empty
+      if (donViTinhList.length === 0 && vatTuInfo.dvt) {
+        donViTinhList.push({ dvt: vatTuInfo.dvt.trim(), he_so: parseFloat(vatTuInfo.he_so) || 1 });
+      }
 
       setDataSource((prev) => {
         // Đảm bảo maLo là string hợp lệ (không phải object)
@@ -445,6 +450,8 @@ export const useVatTuManagerNhatHang = () => {
             ma_vi_tri: parentMaViTri,
             // Tự động set mã lô từ QR scan nếu có
             ma_lo: maLoStr,
+            // Theo dõi lô: từ API vật tư; true = bắt buộc mã lô, false = tùy chọn
+            lo_yn: vatTuInfo.lo_yn === true || vatTuInfo.lo_yn === "1" || vatTuInfo.lo_yn === 1,
             ma_vv: "",
             ma_nx: "",
             tk_du: "",
@@ -453,8 +460,9 @@ export const useVatTuManagerNhatHang = () => {
             so_luong_don: Math.round(soLuongDeNghiHienThi * 1000) / 1000, // Số lượng đơn
             nhat: Math.round(soLuongHienThi * 1000) / 1000, // Nhặt
             ghi_chu: "", // Ghi chú
+            ghi_chu_dh: "", // Ghi chú KD (chỉ hiển thị)
             so_luong_ton: 0, // Số lượng tồn
-            tong_nhat: Math.round(soLuongHienThi * 1000) / 1000, // Tổng nhặt
+            tong_nhat: 0, // Tổng nhặt - ban đầu = 0, chỉ cập nhật khi tích checkbox Nhặt
 
             // Additional fields từ payload thực tế
             ma_hd: "",
@@ -552,22 +560,14 @@ export const useVatTuManagerNhatHang = () => {
 
       // Focus lại vào input sau khi xử lý xong với delay dài hơn cho tablet
       if (vatTuSelectRef && vatTuSelectRef.current) {
-        // Clear any existing focus attempts
         setTimeout(() => {
           if (vatTuSelectRef.current) {
             vatTuSelectRef.current.focus();
-            // Force focus again to ensure it works on tablet
             setTimeout(() => {
               if (vatTuSelectRef.current) {
                 vatTuSelectRef.current.focus();
-                // One more attempt to ensure focus on tablet
-                setTimeout(() => {
-                  if (vatTuSelectRef.current) {
-                    vatTuSelectRef.current.focus();
-                  }
-                }, 100);
               }
-            }, 50);
+            }, 100);
           }
         }, 300);
       }
@@ -575,7 +575,6 @@ export const useVatTuManagerNhatHang = () => {
       console.error("Error adding vat tu:", error);
       message.error("Có lỗi xảy ra khi thêm vật tư");
     } finally {
-      // Reset processing flag after a delay (tăng lên 3 giây để khớp với QR scan)
       setTimeout(() => {
         isProcessingRef.current = false;
       }, 3000);
@@ -583,16 +582,14 @@ export const useVatTuManagerNhatHang = () => {
   };
 
   const handleQuantityChange = (value, record, field) => {
-    // Xử lý giá trị đầu vào để hỗ trợ số thập phân
     let newValue;
-
     // Nếu value là chuỗi rỗng, đặt thành 0
     if (value === "") {
       newValue = 0;
     } else if (value === ".") {
       // Nếu chỉ có dấu chấm, giữ nguyên để người dùng tiếp tục nhập
       newValue = value;
-    } else if (value.endsWith(".")) {
+    } else if (typeof value === "string" && value.endsWith(".")) {
       // Nếu kết thúc bằng dấu chấm, giữ nguyên chuỗi
       newValue = value;
     } else {
@@ -604,8 +601,89 @@ export const useVatTuManagerNhatHang = () => {
       }
     }
 
+    // === LOGIC: Kiểm tra và hỏi xác nhận nếu xóa dòng con phía sau ===
+    if (field === "tong_nhat") {
+      const recordInSource = dataSource.find((r) => r.key === record.key);
+      if (recordInSource && newValue !== recordInSource.tong_nhat) {
+        const groupKey = recordInSource.isChild
+          ? recordInSource.parentKey
+          : recordInSource.key;
+        const groupMembers = dataSource.filter(
+          (r) => (r.isChild ? r.parentKey : r.key) === groupKey
+        );
+        const memberIndexInGroup = groupMembers.findIndex(
+          (m) => m.key === recordInSource.key
+        );
+        const hasFollowers = memberIndexInGroup < groupMembers.length - 1;
+
+        if (hasFollowers) {
+          showConfirm({
+            title: "Xác nhận thay đổi số lượng",
+            content: "Số lượng nhặt thay đổi sẽ xóa tất cả các dòng tách lô phía sau của vật tư này. Bạn có chắc chắn muốn tiếp tục?",
+            onOk: () => {
+              performQuantityChange(newValue, record, field, true);
+            },
+          });
+          return;
+        }
+      }
+    }
+
+    performQuantityChange(newValue, record, field);
+  };
+
+  const performQuantityChange = (
+    newValue,
+    record,
+    field,
+    forceDeleteFollowers = false
+  ) => {
     setDataSource((prev) => {
-      const next = prev.map((item) => {
+      let baseData = [...prev];
+
+      if (field === "tong_nhat" && forceDeleteFollowers) {
+        const recordInSource = prev.find((r) => r.key === record.key);
+        if (recordInSource) {
+          const groupKey = recordInSource.isChild
+            ? recordInSource.parentKey
+            : recordInSource.key;
+          const groupMembers = prev.filter(
+            (r) => (r.isChild ? r.parentKey : r.key) === groupKey
+          );
+          const memberIndexInGroup = groupMembers.findIndex(
+            (m) => m.key === recordInSource.key
+          );
+
+          const membersToRemove = groupMembers.slice(memberIndexInGroup + 1);
+          const keysToRemove = new Set(membersToRemove.map((m) => m.key));
+          baseData = prev.filter((r) => !keysToRemove.has(r.key));
+
+          // Dòng hiện tại trở thành dòng cuối của nhóm -> khôi phục SL đơn
+          const rootParent = baseData.find((r) => r.key === groupKey);
+          const totalOrder =
+            parseFloat(rootParent?.soLuongDeNghi_tong || 0) ||
+            parseFloat(rootParent?.so_luong || 0) ||
+            0;
+          const sumPrevPicked = Math.round(groupMembers
+            .slice(0, memberIndexInGroup)
+            .reduce((s, m) => s + parseFloat(m.tong_nhat || 0), 0));
+          const restoredOrderQty =
+            Math.round(totalOrder - sumPrevPicked);
+
+          baseData = baseData.map((item) => {
+            if (item.key === record.key) {
+              return {
+                ...item,
+                so_luong: restoredOrderQty,
+                soLuongDeNghi: restoredOrderQty,
+              };
+            }
+            return item;
+          });
+        }
+      }
+
+      const next = baseData.map((item) => {
         if (item.key === record.key) {
           // Nếu newValue là chuỗi (có dấu chấm ở cuối), chỉ cập nhật field
           if (typeof newValue === "string") {
@@ -622,7 +700,7 @@ export const useVatTuManagerNhatHang = () => {
                 return {
                   ...item,
                   [field]: newValue,
-                  soLuong_goc: Math.round(soLuongGocMoi * 1000) / 1000,
+                  soLuong_goc: Math.round(soLuongGocMoi),
                 };
               } else {
                 return {
@@ -631,12 +709,50 @@ export const useVatTuManagerNhatHang = () => {
                   soLuong_goc: newValue,
                 };
               }
-            } else if (field === "soLuongDeNghi") {
-              // Xử lý thay đổi số lượng đề nghị (so_luong) - không ảnh hưởng đến soLuong_goc
-              return {
+            } else if (field === "soLuongDeNghi" || field === "so_luong") {
+              // Xử lý thay đổi SL đơn: dòng con được sửa; SL đơn dòng con không được vượt SL đơn dòng mẹ
+              let finalValue = newValue;
+              if (item.isChild && typeof newValue === "number") {
+                const parent = prev.find(
+                  (r) => !r.isChild && r.key === item.parentKey
+                );
+                const parentTotal = parent
+                  ? parseFloat(
+                      parent.soLuongDeNghi_tong ??
+                        parent.soLuongDeNghi ??
+                        parent.so_luong ??
+                        0
+                    ) || 0
+                  : 0;
+                const otherChildren = prev.filter(
+                  (r) =>
+                    r.isChild &&
+                    r.parentKey === item.parentKey &&
+                    r.key !== item.key
+                );
+                const sumOtherChildren = Math.round(otherChildren.reduce(
+                  (s, c) => s + parseFloat(c.soLuongDeNghi ?? c.so_luong ?? 0),
+                  0
+                ));
+                const maxAllowed = Math.max(
+                  0,
+                  parentTotal - 1 - sumOtherChildren
+                );
+                if (parentTotal > 0 && newValue > maxAllowed) {
+                   finalValue = Math.round(maxAllowed);
+                  message.warning(
+                    `SL đơn dòng con phải nhỏ hơn SL đơn dòng mẹ ít nhất 1 (tối đa ${maxAllowed}). Đã giới hạn về ${finalValue}.`
+                  );
+                }
+              }
+              const updated = {
                 ...item,
-                [field]: newValue,
+                [field]: finalValue,
+                ...(field === "soLuongDeNghi"
+                  ? { so_luong: finalValue }
+                  : { soLuongDeNghi: finalValue }),
               };
+              return updated;
             } else if (field === "so_luong_don") {
               // Xử lý thay đổi số lượng đơn
               return {
@@ -651,10 +767,65 @@ export const useVatTuManagerNhatHang = () => {
                 tong_nhat: newValue, // Cập nhật tổng nhặt bằng số lượng nhặt
               };
             } else if (field === "tong_nhat") {
-              // Xử lý thay đổi tổng nhặt
+              // SL nhặt không vượt SL đơn (mẹ vs mẹ, con vs con) và SL đơn nhóm — không check tồn khả dụng
+              const rowOrderQty =
+                parseFloat(item.soLuongDeNghi ?? item.so_luong ?? 0) || 0;
+              const groupKey = item.isChild ? item.parentKey : item.key;
+              const parent = prev.find((r) => !r.isChild && r.key === groupKey);
+              const groupOrderQty = parent
+                ? parseFloat(
+                    parent.soLuongDeNghi_tong ??
+                      parent.soLuongDeNghi ??
+                      parent.so_luong ??
+                      0
+                  ) || 0
+                : 0;
+              const otherMembers = prev.filter(
+                (r) =>
+                  (r.isChild ? r.parentKey : r.key) === groupKey &&
+                  r.key !== item.key
+              );
+              const sumOthers = Math.round(otherMembers.reduce(
+                (s, m) => s + parseFloat(m.tong_nhat || 0),
+                0
+              ));
+              const limits = [];
+              if (rowOrderQty > 0) limits.push(rowOrderQty); // SL nhặt ≤ SL đơn của chính dòng đó
+              if (groupOrderQty > 0)
+                limits.push(Math.max(0, groupOrderQty - sumOthers));
+
+              const maxAllowedRaw = limits.length > 0 ? Math.min(...limits) : newValue;
+              const maxAllowed = typeof maxAllowedRaw === "number" ? Math.round(maxAllowedRaw) : maxAllowedRaw;
+              const roundedNewValue = typeof newValue === "number" ? Math.round(newValue) : newValue;
+
+              const cappedValue =
+                typeof newValue === "number" &&
+                limits.length > 0 &&
+                roundedNewValue > maxAllowed
+                  ? maxAllowed
+                  : newValue;
+              if (
+                typeof newValue === "number" &&
+                limits.length > 0 &&
+                roundedNewValue > maxAllowed
+              ) {
+                const reasons = [];
+                if (rowOrderQty > 0 && roundedNewValue > Math.round(rowOrderQty))
+                  reasons.push(`SL đơn (${rowOrderQty})`);
+                if (
+                  groupOrderQty > 0 &&
+                  roundedNewValue > Math.round(Math.max(0, groupOrderQty - sumOthers))
+                )
+                  reasons.push(`SL đơn nhóm (${groupOrderQty})`);
+                message.warning(
+                  `SL nhặt không được vượt quá ${reasons.join(
+                    " và "
+                  )}. Đã giới hạn về ${cappedValue}.`
+                );
+              }
               return {
                 ...item,
-                [field]: newValue,
+                [field]: cappedValue,
               };
             } else {
               // Xử lý các trường khác
@@ -668,16 +839,63 @@ export const useVatTuManagerNhatHang = () => {
         return item;
       });
 
+      // Khi sửa SL đơn dòng con: SL đơn dòng mẹ = tổng nhóm - sum(con); reset số lượng nhặt mẹ + tất cả con về 0
+      if (
+        (field === "soLuongDeNghi" || field === "so_luong") &&
+        record.isChild &&
+        typeof newValue === "number"
+      ) {
+        const parentKey = record.parentKey;
+        const parentIndex = next.findIndex((r) => r.key === parentKey);
+        if (parentIndex >= 0) {
+          const parent = next[parentIndex];
+          const children = next.filter(
+            (r) => r.isChild && r.parentKey === parentKey
+          );
+          const sumChildren = Math.round(children.reduce(
+            (s, c) => s + parseFloat(c.soLuongDeNghi ?? c.so_luong ?? 0),
+            0
+          ));
+          const total =
+            parseFloat(
+              parent.soLuongDeNghi_tong ??
+                parent.soLuongDeNghi ??
+                parent.so_luong ??
+                0
+            ) || 0;
+          const parentSoLuongDeNghi =
+            Math.round(total - sumChildren);
+          next[parentIndex] = {
+            ...parent,
+            soLuongDeNghi: parentSoLuongDeNghi,
+            so_luong: parentSoLuongDeNghi,
+            tong_nhat: 0,
+            nhat: 0,
+          };
+          children.forEach((c) => {
+            const idx = next.findIndex((r) => r.key === c.key);
+            if (idx >= 0) {
+              next[idx] = { ...next[idx], tong_nhat: 0, nhat: 0 };
+            }
+          });
+        }
+      }
       // Recompute group validation flags for next data
       const groups = computeGroupState(next);
       const nextWithFlags = next.map((row) => {
         const groupKey = row.isChild ? row.parentKey : row.key;
         const g = groups.get(groupKey);
+        const picked = parseFloat(row.tong_nhat || 0) || 0;
+        const rowOrderQty =
+          parseFloat(row.soLuongDeNghi ?? row.so_luong ?? 0) || 0;
+        const rowExceededSlDon = rowOrderQty > 0 && picked > rowOrderQty; // SL nhặt > SL đơn của chính dòng
         return {
           ...row,
           groupExceeded: !!g?.exceeded,
+          rowExceededSlDon,
         };
       });
+
       return nextWithFlags;
     });
   };
@@ -689,13 +907,12 @@ export const useVatTuManagerNhatHang = () => {
       if (field === "ma_lo" || field === "ma_vi_tri") {
         processedValue = value ? String(value).trim() : "";
       }
-      
+
       const next = prev.map((item) =>
         item.key === record.key
           ? {
               ...item,
               [field]: processedValue,
-              // Preserve loOptions and viTriOptions when updating other fields
               loOptions: item.loOptions || record.loOptions,
               viTriOptions: item.viTriOptions || record.viTriOptions,
             }
@@ -717,43 +934,107 @@ export const useVatTuManagerNhatHang = () => {
     }
 
     const itemToDelete = dataSource[index];
-    if (!itemToDelete) {
-      return;
-    }
+    if (!itemToDelete) return;
 
-    // Không cho phép xóa dòng chính (dòng cha)
-    if (!itemToDelete.isChild) {
-      message.warning("Không thể xóa dòng chính");
-      return;
-    }
+    const groupKey = itemToDelete.isChild ? itemToDelete.parentKey : itemToDelete.key;
+    const groupMembers = dataSource.filter(
+      (r) => (r.isChild ? r.parentKey : r.key) === groupKey
+    );
+    const memberIndexInGroup = groupMembers.findIndex(
+      (m) => m.key === itemToDelete.key
+    );
 
-    // Nếu là dòng cha, xóa cả dòng cha và tất cả các dòng con
-    // Nếu là dòng con, chỉ xóa dòng con đó
-    let newDataSource;
-    if (itemToDelete.isChild) {
-      // Xóa dòng con
-      newDataSource = dataSource.filter((_, i) => i !== index);
-    } else {
-      // Xóa dòng cha và tất cả các dòng con liên quan
-      const parentKey = itemToDelete.key;
-      newDataSource = dataSource.filter((item, i) => {
-        // Giữ lại nếu không phải dòng cha và không phải dòng con của dòng cha này
-        return i !== index && !(item.isChild && item.parentKey === parentKey);
+    const hasFollowers = memberIndexInGroup < groupMembers.length - 1;
+
+    if (hasFollowers || !itemToDelete.isChild) {
+      showConfirm({
+        title: "Xác nhận xóa dòng",
+        content: !itemToDelete.isChild 
+          ? "Bạn đang xóa dòng chính, tất cả các dòng tách lô liên quan sẽ bị xóa. Tiếp tục?"
+          : "Xóa dòng này sẽ xóa tất cả các dòng tách lô phía sau của vật tư này. Tiếp tục?",
+        onOk: () => {
+          performDeleteItem(index, groupKey, memberIndexInGroup, groupMembers);
+        },
       });
+      return;
     }
 
-    const reIndexedDataSource = newDataSource.map((item, i) => ({
-      ...item,
-      key: i + 1,
-    }));
-    const groups = computeGroupState(reIndexedDataSource);
-    const withFlags = reIndexedDataSource.map((row) => {
-      const groupKey = row.isChild ? row.parentKey : row.key;
-      const g = groups.get(groupKey);
-      return { ...row, groupExceeded: !!g?.exceeded };
+    performDeleteItem(index, groupKey, memberIndexInGroup, groupMembers);
+  };
+
+  const performDeleteItem = (index, groupKey, memberIndexInGroup, groupMembers) => {
+    const itemToDelete = dataSource[index];
+    let filteredData;
+
+    if (!itemToDelete.isChild) {
+      // Xóa dòng cha -> xóa cả group
+      filteredData = dataSource.filter(
+        (item) => !(item.key === groupKey || (item.isChild && item.parentKey === groupKey))
+      );
+    } else {
+      // Xóa dòng con và các dòng sau nó trong group
+      const membersToRemove = groupMembers.slice(memberIndexInGroup);
+      const keysToRemove = new Set(membersToRemove.map((m) => m.key));
+      filteredData = dataSource.filter((r) => !keysToRemove.has(r.key));
+
+      // Khôi phục SL cho dòng ngay trước dòng bị xóa trong group
+      const predecessor = groupMembers[memberIndexInGroup - 1];
+      if (predecessor) {
+        const rootParent = dataSource.find(r => !r.isChild && r.key === groupKey);
+        const totalOrder = parseFloat(rootParent?.soLuongDeNghi_tong || 0) || 
+                           parseFloat(rootParent?.so_luong || 0) || 0;
+        
+        const sumPickedBefore = groupMembers
+          .slice(0, memberIndexInGroup - 1)
+          .reduce((s, m) => s + parseFloat(m.tong_nhat || 0), 0);
+          
+        const restoredOrderQty = Math.round(totalOrder - sumPickedBefore);
+
+        filteredData = filteredData.map((item) => {
+          if (item.key === predecessor.key) {
+            return {
+              ...item,
+              so_luong: restoredOrderQty,
+              soLuongDeNghi: restoredOrderQty,
+            };
+          }
+          return item;
+        });
+      }
+    }
+
+    // Re-indexing logic needs to be careful with parentKey
+    // 1. Create a map from old key to new key
+    const keyMap = new Map();
+    const reindexed = filteredData.map((item, i) => {
+      const newKey = i + 1;
+      keyMap.set(item.key, newKey);
+      return { ...item, key: newKey, line_nbr: newKey };
     });
+
+    // 2. Update parentKey using the map
+    const finalData = reindexed.map((item) => {
+      if (item.isChild && item.parentKey) {
+        return { ...item, parentKey: keyMap.get(item.parentKey) || item.parentKey };
+      }
+      return item;
+    });
+
+    const groups = computeGroupState(finalData);
+    const withFlags = finalData.map((row) => {
+      const gK = row.isChild ? row.parentKey : row.key;
+      const g = groups.get(gK);
+      const picked = parseFloat(row.tong_nhat || 0) || 0;
+      const rowOrderQty = parseFloat(row.soLuongDeNghi ?? row.so_luong ?? 0) || 0;
+      return {
+        ...row,
+        groupExceeded: !!g?.exceeded,
+        rowExceededSlDon: rowOrderQty > 0 && picked > rowOrderQty
+      };
+    });
+
     setDataSource(withFlags);
-    message.success("Đã xóa vật tư");
+    message.success("Đã xóa dòng");
   };
 
   const handleAddItem = (parentIndex, parentRecord) => {
@@ -767,59 +1048,134 @@ export const useVatTuManagerNhatHang = () => {
       }
 
       const parent = parentRecord || prev[parentIndex];
+      const pickedValue = parseFloat(parent.tong_nhat || 0) || 0;
+      const currentOrderQty =
+        parseFloat(parent.soLuongDeNghi ?? parent.so_luong ?? 0) || 0;
+
+      if (pickedValue >= currentOrderQty) {
+        message.warning("Đã nhặt đủ số lượng đơn, không thể tách thêm dòng.");
+        return prev;
+      }
+
+      // Khi thêm dòng con lần đầu: lưu tổng SL đơn của nhóm vào dòng cha (soLuongDeNghi_tong)
+      const hasOtherChildren = prev.some(
+        (r) => r.isChild && r.parentKey === parent.key
+      );
+
+      // Tính toán SL đơn và SL nhặt mới: nếu đã nhặt 1 phần, tách phần đó cho dòng hiện tại, còn lại cho dòng mới
+      let parentNewOrderQty = currentOrderQty;
+      let parentNewNhat = pickedValue;
+      let childOrderQty = 0;
+
+      if (pickedValue > 0 && pickedValue < currentOrderQty) {
+        parentNewOrderQty = pickedValue;
+        parentNewNhat = pickedValue;
+        childOrderQty = Math.round(currentOrderQty - pickedValue);
+      }
+
+      const groupKey = parent.isChild ? parent.parentKey : parent.key;
+
+      const parentUpdated = {
+        ...parent,
+        soLuongDeNghi_tong: parent.isChild
+          ? parent.soLuongDeNghi_tong
+          : !hasOtherChildren
+          ? parseFloat(parent.soLuongDeNghi ?? parent.soLuongDeNghi_tong ?? 0) ||
+            0
+          : parent.soLuongDeNghi_tong,
+        // Cập nhật SL đơn của mẹ thành phần đã nhặt (hoặc giữ nguyên nếu split tại 0/8)
+        soLuongDeNghi: parentNewOrderQty,
+        so_luong: parentNewOrderQty,
+        // Giữ nguyên SL nhặt
+        tong_nhat: parentNewNhat,
+        nhat: parentNewNhat,
+      };
+
+      // Dòng con: luôn có ma_vt từ dòng cha để validate trùng (ma_vt + ma_lo)
+      const parentMaVt = (
+        parent.maHang ||
+        parent.ma_vt ||
+        ""
+      ).toString().trim();
 
       // Copy tất cả các trường từ dòng cha
       const newChild = {
         ...parent,
         key: 0, // sẽ re-index sau
-        
+
         // Override: dòng con để trống mã hàng và tên (ẩn trên UI)
-        // Nhưng giữ nguyên ma_vt, ten_vt từ parent để có trong payload
         maHang: "",
         ten_mat_hang: "",
-        // ma_vt giữ nguyên từ parent (đã được copy từ {...parent})
-        
-        // Override: Chỉ các trường số lượng nhặt hàng về 0
+        // Dòng con luôn có ma_vt = dòng cha (để validate trùng mã lô)
+        ma_vt: parentMaVt,
+
+        // Override: SL đơn của dòng con là phần còn lại
+        soLuongDeNghi: childOrderQty,
+        so_luong: childOrderQty,
+        so_luong_don: childOrderQty,
+
+        // SL nhặt của dòng con mới luôn là 0
         soLuong: 0,
         soLuong_goc: 0,
-        soLuongDeNghi: 0,
         nhat: 0,
-        tong_nhat: 0, // Tổng nhặt - về 0 cho dòng con mới
-        // so_luong và so_luong_ton giữ nguyên từ parent (đã được copy từ {...parent})
-        // so_luong: giữ nguyên từ parent
-        // so_luong_ton: giữ nguyên từ parent
+        tong_nhat: 0,
         sl_td3: 0,
-        // so_luong_don: sẽ bị xóa khỏi payload (thêm vào uiOnlyFields)
-        
+
         // Override: Ghi chú để trống
         ghi_chu: "",
-        
-        // Override: Mã lô để trống (dòng con không cần theo dòng cha)
+        ghi_chu_dh: "", // Ghi chú KD (chỉ hiển thị)
+
+        // Mã lô dòng con để trống, user chọn sau (validate trùng dùng ma_vt + ma_lo)
         ma_lo: "",
-        
-        // Liên kết cha
-        parentKey: parent.key,
+
+        // Liên kết cha - kế thừa từ root parent
+        parentKey: groupKey,
         isChild: true,
         _lastUpdated: Date.now(),
       };
 
       const newData = [
-        ...prev.slice(0, parentIndex + 1),
+        ...prev.slice(0, parentIndex),
+        parentUpdated,
         newChild,
         ...prev.slice(parentIndex + 1),
       ];
 
-      // Re-index keys và line_nbr nếu có
-      const reindexed = newData.map((item, i) => ({
-        ...item,
-        key: i + 1,
-        line_nbr: i + 1,
-      }));
+      // Re-index keys và line_nbr; cập nhật parentKey của dòng con theo key mới của cha
+      const isSplittingRoot = !parent.isChild;
+      const oldSplitRowKey = parent.key;
+      const newSplitRowKey = parentIndex + 1;
+
+      const reindexed = newData.map((item, i) => {
+        const newKey = i + 1;
+        let finalParentKey = item.parentKey;
+
+        // Nếu split từ dòng gốc, cập nhật tất cả dòng con đang trỏ tới key cũ của cha
+        if (isSplittingRoot && item.isChild && item.parentKey === oldSplitRowKey) {
+          finalParentKey = newSplitRowKey;
+        }
+
+        return {
+          ...item,
+          key: newKey,
+          line_nbr: newKey,
+          parentKey: finalParentKey,
+        };
+      });
       const groups = computeGroupState(reindexed);
       return reindexed.map((row) => {
         const groupKey = row.isChild ? row.parentKey : row.key;
         const g = groups.get(groupKey);
-        return { ...row, groupExceeded: !!g?.exceeded };
+        const picked = parseFloat(row.tong_nhat || 0) || 0;
+        const rowOrderQty =
+          parseFloat(row.soLuongDeNghi ?? row.so_luong ?? 0) || 0;
+        const rowExceededSlDon =
+          rowOrderQty > 0 && picked > rowOrderQty;
+        return {
+          ...row,
+          groupExceeded: !!g?.exceeded,
+          rowExceededSlDon,
+        };
       });
     });
   };
@@ -839,43 +1195,9 @@ export const useVatTuManagerNhatHang = () => {
 
     const heSoMoi = selectedDvt ? parseFloat(selectedDvt.he_so) || 1 : 1;
 
-    const currentDvtInList = dvtOptions.find(
-      (dvt) => dvt && dvt.dvt && dvt.dvt.trim() === record.dvt?.trim()
-    );
-    const heSoHienTai = currentDvtInList
-      ? parseFloat(currentDvtInList.he_so) || 1
-      : record.he_so || 1;
-
-    // Lấy số lượng hiện tại từ cả 2 trường
-    const soLuongHienTai = record.soLuong || 0;
-    const soLuongDeNghiHienTai = record.soLuongDeNghi || 0;
-
-    // Tính toán số lượng mới cho cả 2 trường
-    let soLuongMoi = (soLuongHienTai * heSoHienTai) / heSoMoi;
-    let soLuongDeNghiMoi = (soLuongDeNghiHienTai * heSoHienTai) / heSoMoi;
-
-    const soLuongLamTron = Math.round(soLuongMoi * 10000) / 10000;
-    const soLuongDeNghiLamTron = Math.round(soLuongDeNghiMoi * 10000) / 10000;
-
-    let soLuongGocMoi = record.soLuong_goc;
-
-    if (newValue.trim() === record.dvt_goc?.trim()) {
-      const he_so_goc = record.he_so_goc || 1;
-      soLuongGocMoi = soLuongLamTron / he_so_goc;
-    } else {
-      if (record.dvt?.trim() === record.dvt_goc?.trim()) {
-        soLuongGocMoi = soLuongHienTai / (record.he_so_goc || 1);
-      } else {
-        soLuongGocMoi = record.soLuong_goc;
-      }
-    }
-
     const finalResult = {
       dvt: newValue,
       he_so: heSoMoi,
-      soLuong: soLuongLamTron, // Cập nhật số lượng thực tế (sl_td3)
-      soLuongDeNghi: soLuongDeNghiLamTron, // Cập nhật số lượng đề nghị (so_luong)
-      soLuong_goc: Math.round((soLuongGocMoi || 0) * 10000) / 10000,
       _lastUpdated: Date.now(),
     };
 

@@ -161,13 +161,58 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Truncate long selected unit name with ellipsis */
+/* Override padding for select to allow proper wrapping */
+.login_form .ant-select .ant-select-selector {
+  padding: 8px 11px !important;
+  min-height: 40px !important;
+  height: auto !important;
+}
+
+/* Allow long unit name to wrap to multiple lines */
+.login_form .ant-select {
+  min-height: 40px;
+  height: auto;
+}
+
+.login_form .ant-select .ant-select-selector {
+  overflow: visible !important;
+  min-height: 40px !important;
+  height: auto !important;
+  max-height: none !important;
+  padding: 8px 11px !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+}
+
+.login_form .ant-select .ant-select-selection-search {
+  display: none !important;
+}
+
 .login_form .ant-select .ant-select-selection-item {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
+  display: block !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  line-height: 1.5 !important;
+  padding: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  position: relative !important;
+  top: 0 !important;
+  margin: 0 !important;
+}
+
+.login_form .ant-select .ant-select-selection-placeholder {
+  overflow: visible !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  line-height: 1.5 !important;
 }
 
 .login_form .ant-input:focus,
@@ -188,11 +233,48 @@
 /* Select dropdown styling */
 .login_form .ant-select {
   width: 100%;
+  min-width: 0;
+  min-height: 40px;
+}
+
+.login_form .ant-select .ant-select-selector {
+  min-width: 0 !important;
+  overflow: visible !important;
+  min-height: 40px !important;
+  height: auto !important;
+  max-height: none !important;
+  align-items: flex-start !important;
+  flex-wrap: wrap;
+  box-sizing: border-box;
 }
 
 .login_form .ant-select .ant-select-selection-item {
   font-weight: 500;
   color: #4779cf;
+  overflow: visible !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  line-height: 1.5 !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* Dropdown options styling - ensure proper width (classNames.popup cho Select Đơn vị) */
+.login_unit_select_dropdown.ant-select-dropdown,
+.login_form .ant-select-dropdown {
+  min-width: 200px !important;
+  max-width: 500px !important;
+}
+
+.login_form .ant-select-dropdown .ant-select-item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 8px 12px;
 }
 
 /* Remember me and forgot password section */
@@ -230,9 +312,10 @@
   background: linear-gradient(135deg, #4779cf 0%, #667eea 100%);
   border: none;
   border-radius: 12px;
-  padding: 14px 24px;
+  padding: 18px 32px !important;
+  min-height: 56px;
   height: auto;
-  font-size: 16px;
+  font-size: 18px !important;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -241,6 +324,10 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.5;
 }
 
 .login_form .ant-btn-primary::before {
@@ -384,8 +471,9 @@
   }
 
   .login_form .ant-btn-primary {
-    padding: 13px 22px;
-    font-size: 15px;
+    padding: 18px 32px !important;
+    font-size: 18px !important;
+    min-height: 56px;
   }
 }
 
@@ -476,8 +564,9 @@
   }
 
   .login_form .ant-btn-primary {
-    padding: 12px 20px;
-    font-size: 15px;
+    padding: 18px 32px !important;
+    font-size: 18px !important;
+    min-height: 56px;
   }
 
   .login_images_container {
@@ -594,8 +683,9 @@
   }
 
   .login_form .ant-btn-primary {
-    padding: 16px 24px;
-    font-size: 16px;
+    padding: 18px 32px !important;
+    font-size: 18px !important;
+    min-height: 56px;
     border-radius: 10px;
   }
 
@@ -648,8 +738,9 @@
   }
 
   .login_form .ant-btn-primary {
-    padding: 14px 20px;
-    font-size: 15px;
+    padding: 18px 32px !important;
+    font-size: 18px !important;
+    min-height: 56px;
   }
 }
 
@@ -740,9 +831,9 @@
   }
 
   .login_form .ant-btn-primary {
-    padding: 16px 26px !important;
-    font-size: 17px !important;
-    height: 50px !important;
+    padding: 20px 36px !important;
+    font-size: 20px !important;
+    min-height: 60px !important;
     border-radius: 12px !important;
     letter-spacing: 0.8px;
   }
@@ -819,9 +910,9 @@
   }
 
   .login_form .ant-btn-primary {
-    padding: 18px 30px !important;
-    font-size: 18px !important;
-    height: 54px !important;
+    padding: 20px 36px !important;
+    font-size: 20px !important;
+    min-height: 60px !important;
   }
 }
 
@@ -875,8 +966,9 @@
   }
 
   .login_form .ant-btn-primary {
-    padding: 13px 22px !important;
-    font-size: 15px !important;
+    padding: 18px 32px !important;
+    font-size: 18px !important;
+    min-height: 56px !important;
   }
 }
 
@@ -936,9 +1028,9 @@
   }
 
   .login_form .ant-btn-primary {
-    padding: 14px 24px !important;
-    font-size: 16px !important;
-    height: 48px !important;
+    padding: 18px 32px !important;
+    font-size: 18px !important;
+    min-height: 56px !important;
   }
 }
 
@@ -1022,9 +1114,9 @@
   }
 
   .login_form .ant-btn-primary {
-    padding: 16px 28px !important;
-    font-size: 17px !important;
-    height: 52px !important;
+    padding: 18px 32px !important;
+    font-size: 18px !important;
+    min-height: 56px !important;
   }
 }
 
@@ -1085,9 +1177,9 @@
   }
 
   .login_form .ant-btn-primary {
-    padding: 14px 23px !important;
-    font-size: 16px !important;
-    height: 46px !important;
+    padding: 18px 32px !important;
+    font-size: 18px !important;
+    min-height: 56px !important;
   }
 }
 

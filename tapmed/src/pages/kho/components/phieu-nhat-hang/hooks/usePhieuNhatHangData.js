@@ -209,6 +209,8 @@ export const usePhieuNhatHangData = () => {
         setLoadingMaKho(false);
       }
     },
+    // maKhoList intentionally omitted to avoid infinite loop (callback sets it)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [token]
   );
 
@@ -279,6 +281,8 @@ export const usePhieuNhatHangData = () => {
         setLoadingMaKhach(false);
       }
     },
+    // maKhachList intentionally omitted to avoid infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [token]
   );
 
@@ -360,26 +364,27 @@ export const usePhieuNhatHangData = () => {
         setLoadingFcode3(false);
       }
     },
+    // fcode3List intentionally omitted to avoid infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [token]
   );
 
   const fetchVatTuList = useCallback(
     async (keyword = "", page = 1, append = false, callback) => {
-      // TẠM THỜI TẮT CACHE để test pagination
       // Use cache for empty search - CHỈ cache khi không có keyword và page 1
-      // if (
-      //   !keyword &&
-      //   masterDataCache.lastFetch &&
-      //   Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
-      //   masterDataCache.vatTu &&
-      //   page === 1 &&
-      //   !append
-      // ) {
-      //   setVatTuList(masterDataCache.vatTu);
-      //   // KHÔNG set totalPage = 1 cố định, để API tự tính
-      //   if (callback) callback({ totalPage: 1 });
-      //   return;
-      // }
+      if (
+        !keyword &&
+        masterDataCache.lastFetch &&
+        Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
+        masterDataCache.vatTu &&
+        page === 1 &&
+        !append
+      ) {
+        setVatTuList(masterDataCache.vatTu);
+        // KHÔNG set totalPage = 1 cố định, để API tự tính
+        if (callback) callback({ totalPage: 1 });
+        return;
+      }
 
       try {
         setLoadingVatTu(true);
@@ -492,7 +497,7 @@ export const usePhieuNhatHangData = () => {
         setLoadingVatTu(false);
       }
     },
-    [token, userInfo]
+    [userInfo]
   );
 
   const fetchVatTuDetail = useCallback(
@@ -531,7 +536,7 @@ export const usePhieuNhatHangData = () => {
         return null;
       }
     },
-    [token, userInfo]
+    [userInfo]
   );
 
   const fetchDonViTinh = useCallback(
@@ -551,36 +556,10 @@ export const usePhieuNhatHangData = () => {
         return masterDataCache.donViTinh[cleanMaVatTu];
       }
 
-      try {
-        // Alternative approach: use manual URL construction to avoid double encoding
-        const encodedMaVt = encodeURIComponent(cleanMaVatTu);
-        const url = `v1/web/danh-sach-dv?ma_vt=${encodedMaVt}`;
-
-        const response = await https.get(
-          url,
-          {}, // Empty params since we manually built the URL
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.data && response.data.data) {
-          const data = response.data.data;
-          // Cache kết quả theo cleanMaVatTu
-          masterDataCache.donViTinh[cleanMaVatTu] = data;
-          masterDataCache.lastFetch = Date.now();
-          return data;
-        }
-        return [];
-      } catch (error) {
-        console.error("Error fetching don vi tinh:", error);
-        return [];
-      }
+      // API v1/web/danh-sach-dv đã bị bỏ theo yêu cầu.
+      return [];
     },
-    [token]
+    []
   );
 
   // Clear cache function

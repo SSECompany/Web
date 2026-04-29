@@ -1,0 +1,865 @@
+/* ========== PROCESS PHIẾU GIAO HÀNG - WEB APP ========== */
+
+.process-container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f0f5ff 0%, #e8f4f8 100%);
+  padding-bottom: 140px; /* Space for fixed action buttons + extra margin */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.process-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+/* Header: z-index cao hơn nút xóa ảnh (102) để không bị đè khi cuộn */
+.process-header {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  background: linear-gradient(135deg, #fa8c16 0%, #d46b08 100%);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(250, 140, 22, 0.3);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.process-back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.process-title {
+  flex: 1;
+  text-align: center;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Cards */
+.process-card {
+  margin: 12px 16px;
+  border-radius: 16px;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.process-card .ant-card-body {
+  padding: 16px;
+}
+
+.process-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.process-card-icon {
+  font-size: 20px;
+  color: #1890ff;
+}
+
+.process-card-icon.order {
+  color: #fa8c16;
+}
+
+.process-card-icon.customer {
+  color: #52c41a;
+}
+
+.process-card-icon.transport {
+  color: #722ed1;
+}
+
+.process-card-icon.package {
+  color: #eb2f96;
+}
+
+.process-card-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 15px;
+  color: #262626;
+}
+
+.process-card-title-inline {
+  flex: none;
+}
+
+.process-card-header-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.process-card-header-meta {
+  font-size: 14px;
+  color: #595959;
+  font-weight: 500;
+}
+
+.process-card-header-date {
+  color: #8c8c8c;
+  font-weight: 400;
+  margin-left: auto;
+}
+
+/* Info grid */
+.process-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.process-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.process-info-label {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.process-info-value {
+  font-size: 14px;
+  color: #262626;
+  font-weight: 500;
+}
+
+.process-info-value.highlight {
+  color: #1890ff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.process-info-value.phone {
+  color: #52c41a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Info list */
+.process-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.process-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.process-info-row .process-info-label {
+  flex-shrink: 0;
+  width: 90px;
+}
+
+/* Package count */
+.process-card-highlight {
+  background: linear-gradient(135deg, #fff0f6 0%, #fff 100%);
+}
+
+.process-package-count {
+  font-size: 36px;
+  font-weight: 700;
+  color: #eb2f96;
+  text-align: center;
+}
+
+.process-package-count span {
+  font-size: 16px;
+  font-weight: 500;
+  color: #8c8c8c;
+}
+
+/* Upload section */
+.process-upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.process-upload-milestone {
+  border: 1px dashed #d9d9d9;
+  border-radius: 12px;
+  padding: 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Đảm bảo container upload có width cố định */
+.process-upload-list-wrapper .ant-upload {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+.process-upload-list-wrapper .ant-upload-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+.process-upload-list-wrapper .ant-upload-list {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  box-sizing: border-box;
+}
+
+.process-upload-milestone .ant-upload-list {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  box-sizing: border-box;
+}
+
+.process-upload-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #1890ff;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+/* Wrapper cho button chụp ảnh */
+.process-upload-button-wrapper {
+  margin-bottom: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.process-upload-button-wrapper .ant-upload {
+  width: auto;
+}
+
+.process-upload-button-wrapper .ant-upload-list {
+  display: none !important;
+}
+
+.process-upload-button-wrapper .ant-upload-select {
+  width: 80px !important;
+  height: 80px !important;
+  margin: 0 !important;
+}
+
+/* Wrapper cho upload list để kiểm soát overflow */
+.process-upload-list-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+
+.process-upload-list-wrapper .ant-upload {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+.process-upload-list-wrapper .ant-upload-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+.process-upload-list-wrapper .ant-upload-list {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  display: block !important;
+  box-sizing: border-box;
+}
+
+/* Ẩn button upload trong list ảnh */
+.process-upload-list-wrapper .ant-upload-select {
+  display: none !important;
+}
+
+/* Đảm bảo list picture card trong wrapper hiển thị đầy đủ và có thể scroll */
+.process-upload-list-wrapper .ant-upload-list-picture-card {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 8px;
+  padding-bottom: 4px;
+  margin: 0 !important;
+  width: max-content !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+
+/* CSS chung cho picture card */
+.process-upload-milestone .ant-upload-list-picture-card {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 8px;
+  padding-bottom: 4px;
+  margin: 0 !important;
+  width: max-content !important;
+  max-width: none !important;
+}
+
+/* Đảm bảo tất cả ảnh hiển thị */
+.process-upload-list-wrapper .ant-upload-list-picture-card .ant-upload-list-item {
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  flex-shrink: 0 !important;
+  width: 80px !important;
+  height: 80px !important;
+  margin: 0 !important;
+  position: relative !important;
+}
+
+/* Đảm bảo tất cả item trong list wrapper được hiển thị */
+.process-upload-list-wrapper .ant-upload-list-item {
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  flex-shrink: 0 !important;
+  width: 80px !important;
+  height: 80px !important;
+  margin: 0 !important;
+}
+
+/* Đảm bảo container picture-card có thể mở rộng */
+.process-upload-list-wrapper .ant-upload-list-picture-card-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  display: block !important;
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar cho upload list wrapper */
+.process-upload-list-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.process-upload-list-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.process-upload-list-wrapper::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.process-upload-list-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Custom scrollbar cho upload list (fallback) */
+.process-upload-milestone .ant-upload-list::-webkit-scrollbar {
+  height: 6px;
+}
+
+.process-upload-milestone .ant-upload-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.process-upload-milestone .ant-upload-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.process-upload-milestone .ant-upload-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.process-upload-milestone .ant-upload-select {
+  width: 80px !important;
+  height: 80px !important;
+  flex-shrink: 0 !important;
+}
+
+.process-upload-milestone .ant-upload-list-item {
+  width: 80px !important;
+  height: 80px !important;
+  cursor: pointer !important;
+  position: relative !important;
+  flex-shrink: 0 !important;
+}
+
+.process-upload-milestone .ant-upload-list-item-thumbnail {
+  cursor: pointer !important;
+}
+
+.process-upload-milestone .ant-upload-list-item-thumbnail img {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+/* Bỏ hover effect và overlay khi hover vào ảnh */
+.process-upload-milestone .ant-upload-list-item:hover .ant-upload-list-item-actions {
+  opacity: 1 !important;
+  background: transparent !important;
+}
+
+.process-upload-milestone .ant-upload-list-item:hover {
+  border-color: #d9d9d9 !important;
+}
+
+.process-upload-milestone .ant-upload-list-item:hover .ant-upload-list-item-thumbnail {
+  opacity: 1 !important;
+}
+
+/* Bỏ overlay mask che ảnh */
+.process-upload-milestone .ant-upload-list-item::before {
+  display: none !important;
+  content: none !important;
+}
+
+.process-upload-milestone .ant-upload-list-item::after {
+  display: none !important;
+  content: none !important;
+}
+
+.process-upload-milestone .ant-upload-list-item-mask {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.process-upload-milestone .ant-upload-list-item:hover .ant-upload-list-item-mask {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  background: transparent !important;
+}
+
+.process-upload-milestone .ant-upload-list-item-actions {
+  position: absolute !important;
+  top: -5px !important;
+  right: -0px !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: auto !important;
+  height: auto !important;
+  background: transparent !important;
+  opacity: 1 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: flex-end !important;
+  padding: 0 !important;
+  z-index: 100 !important;
+}
+
+.process-upload-milestone .ant-upload-list-item-actions .ant-upload-list-item-action {
+  opacity: 1 !important;
+  position: static !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  z-index: 101 !important;
+  width: 20px !important;
+  height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.process-upload-milestone .ant-upload-list-item-actions .anticon {
+  display: none !important;
+}
+
+/* Thay icon xóa thành nút X màu đỏ */
+.process-upload-milestone .ant-upload-list-item-actions .ant-upload-list-item-action::after {
+  content: "×" !important;
+  color: #ff4d4f !important;
+  font-size: 20px !important;
+  font-weight: bold !important;
+  line-height: 1 !important;
+  display: block !important;
+  z-index: 102 !important;
+  position: relative !important;
+}
+
+/* Log trạng thái: card có padding top để không bị cắt */
+.process-card-log.ant-card .ant-card-body {
+  padding-top: 24px;
+}
+
+/* Log trạng thái: wrapper scroll được, không bị button che */
+.process-timeline-wrapper {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-top: 8px;
+  margin-bottom: 16px;
+  padding-right: 4px;
+  padding-top: 8px;
+  padding-bottom: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.process-timeline-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.process-timeline-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.process-timeline-wrapper::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.process-timeline-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Timeline */
+.process-timeline {
+  margin-top: 0;
+}
+
+.process-timeline-item {
+  font-size: 13px;
+}
+
+.process-timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.process-timeline-action {
+  font-weight: 600;
+  color: #262626;
+}
+
+.process-timeline-time {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.process-timeline-user {
+  font-size: 12px;
+  color: #1890ff;
+  margin-top: 4px;
+}
+
+.process-timeline-note {
+  font-size: 12px;
+  color: #595959;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+.process-timeline-cost {
+  font-size: 12px;
+  color: #eb2f96;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.process-timeline-detail {
+  font-size: 12px;
+  color: #262626;
+  margin-top: 4px;
+}
+
+/* Labels (Bởi, Ghi chú, Chi phí, Xe) bôi đen */
+.process-timeline-user strong,
+.process-timeline-note strong,
+.process-timeline-cost strong,
+.process-timeline-detail strong {
+  font-weight: 700;
+  color: #262626;
+}
+
+/* Action buttons */
+.process-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 12px 16px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Row cho 2 nút Hoàn thành và Thất bại */
+.process-actions-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  flex: 1 1 100%;
+}
+
+.process-action-btn {
+  flex: 1;
+  min-width: calc(50% - 6px);
+  height: 56px;
+  border-radius: 16px;
+  font-weight: 600;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+/* Nút Bàn giao ĐVVC khi là nút chính (full width, to hơn) */
+.process-action-btn.handover-primary {
+  width: 100%;
+  flex: 1 1 100%;
+  min-width: 100%;
+  height: 64px;
+  font-size: 18px;
+}
+
+/* Nút trong row (Hoàn thành, Thất bại) */
+.process-actions-row .process-action-btn {
+  flex: 1;
+  min-width: 0;
+}
+
+.process-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.process-action-btn:active {
+  transform: translateY(0);
+}
+
+.process-action-btn.store {
+  background: linear-gradient(135deg, #faad14 0%, #d46b08 100%);
+}
+
+.process-action-btn.export {
+  background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%);
+}
+
+.process-action-btn.receive {
+  background: linear-gradient(135deg, #722ed1 0%, #531dab 100%);
+}
+
+.process-action-btn.handover {
+  background: linear-gradient(135deg, #13c2c2 0%, #006d75 100%);
+}
+
+.process-action-btn.complete {
+  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.process-action-btn.complete:hover {
+  background: linear-gradient(135deg, #73d13d 0%, #52c41a 100%) !important;
+  box-shadow: 0 6px 20px rgba(82, 196, 26, 0.4) !important;
+}
+
+.process-action-btn.fail {
+  background: linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.process-action-btn.fail:hover {
+  background: linear-gradient(135deg, #ff7875 0%, #ff4d4f 100%) !important;
+  box-shadow: 0 6px 20px rgba(255, 77, 79, 0.4) !important;
+}
+
+/* Confirm modal */
+.process-confirm-content {
+  padding: 8px 0;
+}
+
+.process-confirm-field {
+  margin-top: 16px;
+}
+
+.process-confirm-field label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+  color: #262626;
+}
+
+.process-confirm-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* Checkbox style chung: box trước, label sau */
+.process-confirm-checkbox {
+  display: inline-flex !important;
+  align-items: center !important;
+  font-weight: 700 !important;
+}
+
+.process-confirm-checkbox .ant-checkbox {
+  top: 0 !important;
+  margin-right: 8px !important;
+}
+
+.process-confirm-checkbox + span {
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}
+
+.process-confirm-advance-money {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.process-confirm-content .process-upload-label {
+  font-weight: 700;
+}
+
+/* Edit transport modal */
+.process-edit-transport {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.process-edit-field label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #262626;
+}
+
+/* Safe area */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .process-container {
+    padding-bottom: calc(160px + env(safe-area-inset-bottom));
+  }
+  
+  .process-actions {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Responsive - Trên mobile thật sự (màn hình < 414px) */
+@media (max-width: 414px) {
+  .process-container {
+    max-width: 100%;
+    margin: 0;
+    padding-left: 0;
+    padding-right: 0;
+    padding-bottom: 140px; /* Space for fixed buttons + extra margin */
+  }
+  
+  .process-header {
+    max-width: 100%;
+    margin: 0;
+  }
+  
+  .process-card {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .process-actions {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+    padding: 12px 16px;
+    gap: 12px;
+  }
+
+  .process-action-btn {
+    flex: 1;
+    min-width: calc(50% - 6px);
+    height: 52px;
+    font-size: 15px;
+  }
+}
+
+/* Responsive - Trên desktop (màn hình > 414px) */
+@media (min-width: 415px) {
+  .process-container {
+    max-width: 414px;
+    margin: 0 auto;
+    padding-bottom: 100px; /* Space for fixed buttons + extra margin */
+  }
+  
+  .process-header {
+    max-width: 414px;
+    margin: 0 auto;
+  }
+
+  .process-actions {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 414px;
+    max-width: 414px;
+    padding: 12px 16px;
+    gap: 12px;
+  }
+
+  .process-action-btn {
+    flex: 1;
+    min-width: calc(50% - 6px);
+  }
+}

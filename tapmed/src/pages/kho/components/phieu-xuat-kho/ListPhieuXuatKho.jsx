@@ -2,15 +2,17 @@ import {
   DeleteOutlined,
   EditOutlined,
   FileTextOutlined,
+  FilterOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
-import { Button, DatePicker, Input, message, Tag, Typography } from "antd";
+import { Button, DatePicker, Input, message, Tag, Typography, Select } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import https from "../../../../utils/https";
 import "../common-phieu.css";
-import CommonPhieuList from "../CommonPhieuList";
+import ListTemplate from "../../../../components/common/PageTemplates/ListTemplate";
 
 const { RangePicker } = DatePicker;
 
@@ -28,12 +30,10 @@ const ListPhieuXuatKho = () => {
     ma_kh: "",
     ten_kh: "",
     dateRange: null,
+    status: [],
   });
 
   const pageSize = 20;
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedData = allData.slice(startIndex, endIndex);
 
   // Detect screen size
   useEffect(() => {
@@ -55,7 +55,7 @@ const ListPhieuXuatKho = () => {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  const fetchPhieuXuatKho = async (filterParams = filters) => {
+  const fetchPhieuXuatKho = useCallback(async (filterParams = filters) => {
     const body = {
       store: "api_list_phieu_xuat_kho_voucher",
       param: {
@@ -73,13 +73,13 @@ const ListPhieuXuatKho = () => {
             : dayjs().endOf("month").format("YYYY-MM-DD"),
         PageIndex: currentPage,
         PageSize: pageSize,
-        Status: "",
+        Status: filterParams.status && filterParams.status.length > 0 ? filterParams.status.join(",") : "",
       },
       data: {},
       resultSetNames: ["data", "pagination"],
     };
     try {
-      const res = await https.post("v1/dynamicApi/call-dynamic-api", body, {
+      const res = await https.post("User/AddData", body, {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       });
@@ -89,20 +89,72 @@ const ListPhieuXuatKho = () => {
       const paginationData =
         res.data?.listObject?.dataLists?.pagination?.[0] || {};
 
-      const filteredData = responseData.filter(
-        (item) => item.status !== "*" && item.status !== null
-      );
-
-      setAllData(filteredData);
-      setTotalRecords(paginationData.totalRecord || filteredData.length);
+      setAllData(responseData);
+      setTotalRecords(paginationData.totalRecord || responseData.length);
     } catch (err) {
       console.error("Lỗi gọi API danh sách phiếu xuất kho:", err);
     }
-  };
+  }, [currentPage, filters, pageSize, token]);
 
   useEffect(() => {
     fetchPhieuXuatKho();
-  }, []);
+  }, [fetchPhieuXuatKho]);
+
+  const handleRefresh = () => {
+    fetchPhieuXuatKho(filters);
+  };
+
+  const removeFilter = (key) => {
+    const newFilters = { ...filters };
+    if (key === "dateRange") {
+      newFilters.dateRange = null;
+    } else {
+      newFilters[key] = "";
+    }
+    setFilters(newFilters);
+    fetchPhieuXuatKho(newFilters);
+  };
+
+  const clearAllFilters = () => {
+    const cleared = {
+      so_ct: "",
+      ma_kh: "",
+      ten_kh: "",
+      dateRange: null,
+      status: [],
+    };
+    setFilters(cleared);
+    fetchPhieuXuatKho(cleared);
+  };
+
+  const activeChips = useMemo(() => {
+    const chips = [];
+    if (filters.so_ct)
+      chips.push({ key: "so_ct", label: "Số chứng từ", value: filters.so_ct });
+    if (filters.ma_kh)
+      chips.push({ key: "ma_kh", label: "Mã khách", value: filters.ma_kh });
+    if (filters.ten_kh)
+      chips.push({ key: "ten_kh", label: "Tên khách", value: filters.ten_kh });
+    if (filters.dateRange && filters.dateRange.length === 2) {
+      const display = `${filters.dateRange[0].format(
+        "DD/MM/YYYY"
+      )} - ${filters.dateRange[1].format("DD/MM/YYYY")}`;
+      chips.push({ key: "dateRange", label: "Ngày", value: display });
+    }
+    if (filters.status && filters.status.length > 0) {
+      const statusLabels = {
+        "0": "Lập chứng từ",
+        "1": "Xuất kho",
+        "3": "Chuyển sổ cái",
+        "5": "Đề nghị xuất kho"
+      };
+      const display = filters.status.map(s => statusLabels[s] || s).join(", ");
+      chips.push({ key: "status", label: "Trạng thái", value: display });
+    }
+    return chips;
+  }, [filters]);
+
+  // chipsBar removed, handled by ListTemplate
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -136,16 +188,12 @@ const ListPhieuXuatKho = () => {
             param: { stt_rec: sttRec },
             data: {},
           };
-          const response = await https.post(
-            "v1/dynamicApi/call-dynamic-api",
-            body,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          const response = await https.post("User/AddData", body, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
           const hasResponseModel =
             response?.data &&
@@ -446,7 +494,7 @@ const ListPhieuXuatKho = () => {
           return statusMap[status] || "Không xác định";
         };
 
-        const displayText = statusname || getStatusText(record.status);
+        const displayText = (statusname ? statusname.replace(/^\d+\.\s*/, "") : "") || getStatusText(record.status);
         const statusColor = getStatusColor(record.status);
 
         return <Tag color={statusColor}>{displayText}</Tag>;
@@ -497,57 +545,26 @@ const ListPhieuXuatKho = () => {
     return baseColumns;
   };
 
-  const getTableProps = () => {
-    const baseProps = {
-      columns: getColumns(),
-      dataSource: paginatedData,
-      pagination: {
-        current: currentPage,
-        pageSize: pageSize,
-        total: totalRecords,
-        onChange: (page) => setCurrentPage(page),
-        showSizeChanger: false,
-        showQuickJumper: false,
-      },
-      bordered: true,
-      rowKey: "stt_rec",
-      className: "phieu-data-table hidden_scroll_bar",
-      scroll: { x: 1600 },
-    };
-
-    if (screenSize === "mobile") {
-      baseProps.scroll = { x: 600 };
-      baseProps.size = "small";
-    } else if (screenSize === "mobileLandscape") {
-      baseProps.scroll = { x: 800, y: 400 };
-      baseProps.size = "small";
-    } else if (screenSize === "tablet") {
-      baseProps.scroll = { x: 1200, y: 500 };
-    } else {
-      baseProps.scroll = { x: 1600, y: 600 };
-    }
-
-    return baseProps;
-  };
 
   return (
-    <CommonPhieuList
+    <ListTemplate
       title={
-        screenSize === "mobile" ? "PHIẾU XUẤT KHO" : "DANH SÁCH PHIẾU XUẤT KHO"
+        screenSize === "mobile" ? "PHIẾU XUẤT KHO" : "PHIẾU XUẤT KHO"
       }
       columns={getColumns()}
-      data={paginatedData}
-      onAdd={() => navigate("/kho/xuat-kho/them-moi")}
+      data={allData}
+      onAdd={() => navigate("them-moi")}
       onBack={() => navigate("/kho")}
-      addLabel={screenSize === "mobile" ? "Thêm" : "Thêm mới"}
+      onRefresh={handleRefresh}
+      activeChips={activeChips}
+      onRemoveFilter={removeFilter}
+      onClearAllFilters={clearAllFilters}
       rowKey="stt_rec"
       pagination={{
         current: currentPage,
         pageSize: pageSize,
         total: totalRecords,
         onChange: (page) => setCurrentPage(page),
-        showSizeChanger: false,
-        showQuickJumper: false,
       }}
     />
   );

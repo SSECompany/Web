@@ -1,7 +1,6 @@
 import { jwtDecode } from "jwt-decode";
 import Cookies from "universal-cookie";
 import {
-  calculateTokenExpiry,
   checkExistToken as checkToken,
   getTokenExpiry,
   isTokenExpired as isExpired,
@@ -26,11 +25,9 @@ const getRefreshToken = () => {
 const setAccessToken = (token, skipExpiryUpdate = false) => {
   if (token) {
     localStorage.setItem(ACCESS_TOKEN_KEY, token);
-
-    // Chỉ set expiry time khi không skip (tức là lần đầu login)
+    // Khi không skip: set token_expiry từ JWT exp (login), khớp với access token thực tế
     if (!skipExpiryUpdate) {
-      const expiryTime = calculateTokenExpiry();
-      setTokenExpiry(expiryTime);
+      setTokenExpiryFromJwt(token);
     }
   } else {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
@@ -50,6 +47,42 @@ const setRefreshToken = (token) => {
     localStorage.setItem(REFRESH_TOKEN_KEY, token);
   } else {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
+};
+
+/**
+ * Cập nhật toàn bộ token sau khi gọi API Refresh thành công.
+ * Ghi đè access_token, refresh_token, token_expiry trong localStorage.
+ * Ghi từng key khi có giá trị (không bỏ qua nếu thiếu một bên).
+ */
+const applyRefreshResponse = (newAccessToken, newRefreshToken) => {
+  const access = newAccessToken != null && String(newAccessToken).trim() !== "";
+  const refresh = newRefreshToken != null && String(newRefreshToken).trim() !== "";
+  if (!access && !refresh) return;
+  if (refresh) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, String(newRefreshToken));
+  }
+  if (access) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, String(newAccessToken));
+    setTokenExpiryFromJwt(newAccessToken);
+  }
+};
+
+// Fallback expiry khi JWT không có exp (khớp với thời hạn refresh token backend: 160 phút)
+const TOKEN_EXPIRY_FALLBACK_MS = 160 * 60 * 1000;
+
+// Cập nhật token_expiry từ JWT exp (login + refresh), fallback 160 phút
+const setTokenExpiryFromJwt = (token) => {
+  if (!token) return;
+  try {
+    const decoded = jwtDecode(token);
+    if (decoded?.exp != null) {
+      setTokenExpiry(decoded.exp * 1000);
+    } else {
+      setTokenExpiry(Date.now() + TOKEN_EXPIRY_FALLBACK_MS);
+    }
+  } catch (_) {
+    setTokenExpiry(Date.now() + TOKEN_EXPIRY_FALLBACK_MS);
   }
 };
 
@@ -122,9 +155,9 @@ const clearTokens = () => {
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
 };
 
-// Function riêng để set initial token expiry (chỉ gọi khi login lần đầu)
+// Set token_expiry khi không có token (fallback 160 phút, khớp với refresh token backend)
 const setInitialTokenExpiry = () => {
-  const expiryTime = calculateTokenExpiry();
+  const expiryTime = Date.now() + TOKEN_EXPIRY_FALLBACK_MS;
   setTokenExpiry(expiryTime);
   return expiryTime;
 };
@@ -134,6 +167,7 @@ const jwt = {
   getRefreshToken,
   setAccessToken,
   setRefreshToken,
+  applyRefreshResponse,
   claimNewToken,
   checkExistToken,
   resetAccessToken,
@@ -150,5 +184,6 @@ const jwt = {
   isTokenExpired,
   clearTokens,
   setInitialTokenExpiry,
+  setTokenExpiryFromJwt,
 };
 export default jwt;

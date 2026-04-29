@@ -14,29 +14,37 @@ const CommonPhieuList = ({
   loading = false,
   pagination,
   extraHeader,
+  extraButtons,
   tableClassName = "phieu-data-table hidden_scroll_bar",
   tableProps = {},
 }) => {
   return (
     <div className="phieu-container">
-      <Row justify="space-between" align="middle" className="phieu-header">
-        <Col>
+      <Row align="middle" className="phieu-header" style={{ position: "relative" }}>
+        <Col flex={1} style={{ textAlign: "left", zIndex: 1 }}>
           <Button
             type="text"
             icon={<LeftOutlined />}
             onClick={onBack}
             className="phieu-back-button"
-          >
-            Trở về
-          </Button>
+            style={{ paddingLeft: 0 }}
+          />
         </Col>
-        <Col flex="auto" style={{ textAlign: "center" }}>
-          <Title level={5} className="phieu-title">
+
+        <div style={{
+          position: "absolute",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 0,
+          whiteSpace: "nowrap"
+        }}>
+          <Title level={5} className="phieu-title" style={{ margin: 0 }}>
             {title}
           </Title>
-        </Col>
-        {onAdd && (
-          <Col>
+        </div>
+
+        <Col flex={1} style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", zIndex: 1, gap: 8 }}>
+          {onAdd && (
             <Button
               type="primary"
               icon={<PlusOutlined />}
@@ -45,16 +53,27 @@ const CommonPhieuList = ({
             >
               {addLabel}
             </Button>
-          </Col>
-        )}
+          )}
+          {extraButtons && (
+            <span style={{ display: "inline-flex", alignItems: "center" }}>
+              {extraButtons}
+            </span>
+          )}
+        </Col>
       </Row>
       {extraHeader}
+      {/* Dynamic toolbar area under extraHeader */}
+      {tableProps.toolbar && (
+        <div className="phieu-table-toolbar" style={{ padding: '0 24px 12px 24px', display: 'flex', justifyContent: 'flex-start' }}>
+          {tableProps.toolbar}
+        </div>
+      )}
       <div className="phieu-table-container">
         <Table
           columns={columns.map((col) => ({
             ...col,
-            width: undefined,
-            ellipsis: false,
+            align: col.align || "center",
+            ellipsis: col.ellipsis !== undefined ? col.ellipsis : false,
           }))}
           dataSource={data}
           rowKey={rowKey}

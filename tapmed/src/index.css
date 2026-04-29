@@ -1342,3 +1342,62 @@ body > iframe {
 
   /* Removed legacy grid */
 }
+
+/* ========== PREMIUM ANT DESIGN OVERRIDES FOR VISIBILITY ========== */
+.ant-message-notice-content {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+  border-radius: 10px !important;
+  padding: 12px 20px !important;
+  font-weight: 600 !important;
+}
+
+.ant-message-success .ant-message-notice-content {
+  background-color: #f6ffed !important;
+  border: 1px solid #b7eb8f !important;
+  color: #389e0d !important;
+}
+
+.ant-message-error .ant-message-notice-content {
+  background-color: #fff2f0 !important;
+  border: 1px solid #ffccc7 !important;
+  color: #cf1322 !important;
+}
+
+.ant-message-warning .ant-message-notice-content {
+  background-color: #fffbe6 !important;
+  border: 1px solid #ffe58f !important;
+  color: #d46b08 !important;
+}
+
+.ant-message-info .ant-message-notice-content {
+  background-color: #e6f7ff !important;
+  border: 1px solid #91d5ff !important;
+  color: #096dd9 !important;
+}
+
+/* Notification overrides for better visibility */
+.ant-notification-notice {
+  border-radius: 12px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+  border-left: 4px solid #6c63ff; /* Default primary left accent */
+}
+
+.ant-notification-notice-success {
+  border-left-color: #52c41a !important;
+  background-color: #f6ffed !important;
+}
+
+.ant-notification-notice-error {
+  border-left-color: #ff4d4f !important;
+  background-color: #fff2f0 !important;
+}
+
+.ant-notification-notice-message {
+  font-weight: 700 !important;
+  font-size: 15px !important;
+}
+
+.ant-notification-notice-description {
+  color: #475569 !important;
+  font-size: 13px !important;
+}

@@ -269,30 +269,12 @@ const VatTuTable = ({
             style={{ width: "100%" }}
             size="small"
             className="vat-tu-table-select"
-                classNames={{ popup: { root: "vat-tu-dropdown" } }}
+            classNames={{ popup: { root: "vat-tu-dropdown" } }}
             popupMatchSelectWidth={false}
           />
         ) : (
           value
         ),
-    },
-    {
-      title: "Thao tác",
-      key: "action",
-      width: 80,
-      align: "center",
-      render: (_, record, index) => (
-        <Button
-          type="text"
-          danger
-          size="small"
-          className="vat-tu-delete-btn"
-          icon={<DeleteOutlined />}
-          onClick={() => handleDeleteItem(index, isEditMode)}
-          title="Xóa dòng"
-          disabled={!isEditMode}
-        />
-      ),
     },
   ];
 
@@ -302,7 +284,7 @@ const VatTuTable = ({
 
     const rowHeight = 40;
     const headerHeight = 50;
-    const maxRows = 10;
+    const maxRows = 25;
     const y = headerHeight + rowHeight * maxRows;
 
     return {

@@ -1,24 +1,51 @@
-import { MoreOutlined } from "@ant-design/icons";
+import { FullscreenExitOutlined, FullscreenOutlined, MoreOutlined } from "@ant-design/icons";
 import { Dropdown, Menu } from "antd";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
 
 import router from "../../../router/routes";
+import VersionIndicator from "../../common/VersionIndicator/VersionIndicator";
 import {
   setClaims,
   setIsBackgrouds,
 } from "../../../store/reducers/claimsSlice";
 import { getUserInfo } from "../../../store/selectors/Selectors";
 import jwt from "../../../utils/jwt";
+import { clearStorageExceptVersion } from "../../../utils/tokenUtils";
 
 import "./Navbar.css";
 
 const Navbar = () => {
   const dispatch = useDispatch();
   const userInfo = useSelector(getUserInfo);
+  const claims = useSelector((state) => state.claimsReducer.claims);
+  const permissionsString = claims?.Permision || "";
+  const hasBusinessPermission = permissionsString.includes("Permissions.Business");
+  const hasSitePermission = permissionsString.includes("Permissions.Site");
   const [userFromStorage, setUserFromStorage] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const routeLocation = useLocation();
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  };
+
+  const handleRefresh = () => {
+    window.dispatchEvent(new CustomEvent("appRefreshRequested"));
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -39,52 +66,70 @@ const Navbar = () => {
               DVCS: unitsData.unitName || "",
             })
           );
-        } catch (error) {}
+        } catch (error) { }
       }
     } else {
       // Real JWT - try to decode
       try {
         dispatch(setClaims(jwt.getClaims() || {}));
-      } catch (error) {}
+      } catch (error) { }
     }
 
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         setUserFromStorage(JSON.parse(storedUser));
-      } catch (error) {}
+      } catch (error) { }
     }
   }, [dispatch]);
 
   const handleLogout = async () => {
+    // Clear state trước
+    dispatch(setClaims([]));
+
+    // Clear tokens và localStorage (giữ lại app_version)
     await jwt.resetAccessToken();
     localStorage.removeItem("ban_hang_activeTabId");
     localStorage.removeItem("ban_hang_orders");
-    localStorage.clear();
-    router.navigate("/login");
-    dispatch(setClaims([]));
+    clearStorageExceptVersion();
+
+    // Force reload và redirect về trang login
+    window.location.href = "/login";
   };
 
   const handleSetBackground = () => {
     dispatch(setIsBackgrouds(true));
   };
 
-  const handleRouteChange = (data) => {
-    // Simplified route handling for pharmacy app
+  const handleRouteChange = useCallback((data) => {
+    // Simplified route handling for pharmacy app - BÁN HÀNG & TRẢ HÀNG DISABLED IN THIS BRANCH
     const validRoutes = [
       "",
       "/",
       "login",
-      "ban-hang", // Bán hàng
-      "tra-hang", // Trả hàng
+      // Bán hàng và Trả hàng routes removed - not allowed in this branch
+      "kinh-doanh",
+      "kinh-doanh/danh-sach",
+      "kinh-doanh/them-moi",
       "kho",
       "kho/nhat-hang", // Phiếu nhặt hàng
       "kho/nhat-hang/them-moi",
-      "kho/nhap-kho", // Legacy - có thể xóa sau
-      "kho/nhap-kho/them-moi", // Legacy - có thể xóa sau
+      "kho/giao-hang", // Phiếu giao hàng
+      "kho/giao-hang/them-moi",
+      "kho/nhap-kho",
+      "kho/nhap-kho/them-moi",
+      "kho/nhap-hang",
+      "kho/nhap-hang/them-moi",
       "kho/xuat-ban",
+      // Các phiếu kho mới
+      "kho/nhap-dieu-chuyen",
+      "kho/nhap-dieu-chuyen/them-moi",
       "kho/xuat-dieu-chuyen",
+      "kho/xuat-dieu-chuyen/them-moi",
       "kho/xuat-kho",
+      "kho/xuat-kho/them-moi",
+      "kho/yeu-cau-kiem-ke",
+      "kho/yeu-cau-kiem-ke/them-moi",
       "bao-cao/phieu-ban-le", // Báo cáo
       "bao-cao/ton-kho",
       "bao-cao/tong-hop-nhap-xuat-ton",
@@ -92,22 +137,58 @@ const Navbar = () => {
 
     const currentPath = data?.pathname?.substring(1);
 
+    // Block any ban-hang and tra-hang routes
+    if (currentPath && (currentPath.startsWith("ban-hang") || currentPath.startsWith("tra-hang"))) {
+      router.navigate(hasSitePermission ? "/kho" : "/kinh-doanh");
+      return;
+    }
+
+    // Role-based route enforcement
+    const isKhoRoute = currentPath === "kho" || currentPath.startsWith("kho/");
+    const isKinhDoanhRoute = currentPath === "kinh-doanh" || currentPath.startsWith("kinh-doanh/");
+
+    if (isKhoRoute && !hasSitePermission && hasBusinessPermission) {
+      router.navigate("/kinh-doanh");
+      return;
+    }
+
+    if (isKinhDoanhRoute && !hasBusinessPermission && hasSitePermission) {
+      router.navigate("/kho");
+      return;
+    }
+
     // Check if current path matches any valid route or pattern
     const isValidRoute =
       validRoutes.includes(currentPath) ||
       currentPath.match(/^kho\/nhat-hang\/chi-tiet\/[^/]+$/) || // Detail route pattern (allow alphanumeric IDs)
       currentPath.match(/^kho\/nhat-hang\/edit\/[^/]+$/) || // Edit route pattern
-      currentPath.match(/^kho\/nhap-kho\/chi-tiet\/[^/]+$/); // Legacy detail route
+      currentPath.match(/^kho\/giao-hang\/chi-tiet\/[^/]+$/) || // Phiếu giao hàng detail route
+      currentPath.match(/^kho\/giao-hang\/xu-ly\/[^/]+$/) || // Phiếu giao hàng xử lý route
+      currentPath.match(/^kho\/giao-hang\/edit\/[^/]+$/) || // Phiếu giao hàng edit route
+      currentPath.match(/^kho\/nhap-kho\/chi-tiet\/edit\/[^/]+$/) || // Phiếu nhập kho edit
+      currentPath.match(/^kho\/nhap-kho\/chi-tiet\/[^/]+$/) || // Legacy detail route
+      // Phiếu nhập hàng mới
+      currentPath.match(/^kho\/nhap-hang\/chi-tiet\/edit\/[^/]+$/) ||
+      currentPath.match(/^kho\/nhap-hang\/(chi-tiet|edit)\/[^/]+$/) ||
+      // Phiếu xuất kho: cho phép chi tiết + edit
+      currentPath.match(/^kho\/xuat-kho\/(chi-tiet|edit)\/[^/]+$/) ||
+      // Phiếu nhập điều chuyển: cho phép chi tiết + edit
+      currentPath.match(/^kho\/nhap-dieu-chuyen\/(chi-tiet|edit)\/[^/]+$/) ||
+      // Phiếu xuất điều chuyển: cho phép chi tiết + edit
+      currentPath.match(/^kho\/xuat-dieu-chuyen\/(chi-tiet|edit)\/[^/]+$/) ||
+      // Phiếu yêu cầu kiểm kê: cho phép chi tiết + edit
+      currentPath.match(/^kho\/yeu-cau-kiem-ke\/(chi-tiet|edit)\/[^/]+$/) ||
+      // Phiếu kinh doanh: cho phép chi tiết + edit
+      currentPath.match(/^kinh-doanh\/(chi-tiet|edit)\/[^/]+$/);
 
     if (!isValidRoute) {
-      // Redirect to Bán hàng if invalid route
-      router.navigate("/ban-hang");
+      router.navigate("/kho");
     }
-  };
+  }, [hasBusinessPermission, hasSitePermission]);
 
   useEffect(() => {
     handleRouteChange(routeLocation);
-  }, [routeLocation]);
+  }, [routeLocation, handleRouteChange]);
 
   const menuItems = [
     {
@@ -124,27 +205,51 @@ const Navbar = () => {
           <div className="navbar_logo_functions">
             <div className="navbar_search_function">
               <h2
-                onClick={handleSetBackground}
+                onClick={handleRefresh}
                 className="default_header_label"
+                title="Làm tươi"
+                style={{ cursor: "pointer" }}
               >
                 TAPMED
               </h2>
             </div>
+
+            {/* Mobile Router Dropdown Menu */}
+            <Dropdown
+              overlayClassName="navbar_mobile_dropdown"
+              placement="bottomLeft"
+              trigger={["click"]}
+              menu={{
+                items: [
+                  hasBusinessPermission && { key: "kinh-doanh", label: <Link to="/kinh-doanh">Kinh doanh</Link> },
+                  hasSitePermission && { key: "kho", label: <Link to="/kho">Kho</Link> },
+                  {
+                    key: "bao-cao",
+                    label: "Báo cáo",
+                    children: [
+                      { key: "phieu-ban-le", label: <Link to="/bao-cao/phieu-ban-le">Báo cáo phiếu bán lẻ</Link> },
+                      { key: "ton-kho", label: <Link to="/bao-cao/ton-kho">Báo cáo tồn kho</Link> },
+                      { key: "tong-hop-nhap-xuat-ton", label: <Link to="/bao-cao/tong-hop-nhap-xuat-ton">Tổng hợp nhập xuất tồn</Link> },
+                    ],
+                  },
+                ].filter(Boolean)
+              }}
+            >
+              <button className="navbar_mobile_menu_btn" aria-label="Menu">
+                <MoreOutlined style={{ transform: "rotate(90deg)" }} />
+              </button>
+            </Dropdown>
           </div>
 
           <Menu
             mode="horizontal"
             className="navbar_routes"
             items={[
-              {
-                key: "ban-hang",
-                label: <Link to="/ban-hang">Bán hàng</Link>,
+              hasBusinessPermission && {
+                key: "kinh-doanh",
+                label: <Link to="/kinh-doanh">Kinh doanh</Link>,
               },
-              {
-                key: "tra-hang",
-                label: <Link to="/tra-hang">Trả hàng</Link>,
-              },
-              {
+              hasSitePermission && {
                 key: "kho",
                 label: <Link to="/kho">Kho</Link>,
               },
@@ -166,7 +271,7 @@ const Navbar = () => {
                   },
                 ],
               },
-            ]}
+            ].filter(Boolean)}
             style={{
               lineHeight: "30px",
               border: "none",
@@ -178,8 +283,20 @@ const Navbar = () => {
         </div>
 
         <div className="first_navbar_row_right flex gap-1">
+          <button
+            type="button"
+            className="navbar_fullscreen_btn"
+            onClick={toggleFullscreen}
+            title={isFullscreen ? "Thoát phóng to" : "Phóng to màn hình"}
+            aria-label={isFullscreen ? "Thoát phóng to" : "Phóng to màn hình"}
+          >
+            {isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+          </button>
+          <div className="navbar_version px-1 text-center items-center gap-2">
+            <VersionIndicator showDetails={true} size="small" />
+          </div>
           <div className="px-1 text-center flex full-name">
-            <div className="primary_bold_text">
+            <div className="primary_bold_text user_name_text">
               {userInfo?.fullName || userInfo?.userName}
             </div>
           </div>

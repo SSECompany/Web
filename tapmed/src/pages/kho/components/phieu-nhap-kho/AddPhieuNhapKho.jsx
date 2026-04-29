@@ -1,0 +1,280 @@
+import { SaveOutlined, CloseCircleOutlined } from "@ant-design/icons";
+import { Button, Form, message, Space, Typography } from "antd";
+import dayjs from "dayjs";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import VatTuSelectFull from "../../../../components/common/ProductSelectFull/VatTuSelectFull";
+import "../common-phieu.css";
+import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
+import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
+import PhieuNhapKhoFormInputs from "./components/PhieuNhapKhoFormInputs";
+import VatTuNhapKhoTable from "./components/VatTuNhapKhoTable";
+import { usePhieuNhapKhoData } from "./hooks/usePhieuNhapKhoData";
+import { useVatTuManagerNhapKho } from "./hooks/useVatTuManagerNhapKho";
+import {
+  buildPhieuNhapKhoPayload,
+  fetchVoucherInfo,
+  submitPhieuNhapKhoDynamic,
+  validateDataSource,
+} from "./utils/phieuNhapKhoUtils";
+
+const { Title } = Typography;
+
+const AddPhieuNhapKho = () => {
+  const navigate = useNavigate();
+  const [form] = Form.useForm();
+  const [isEditMode] = useState(true);
+  const [vatTuInput, setVatTuInput] = useState(undefined);
+  const [barcodeEnabled, setBarcodeEnabled] = useState(false);
+  const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
+  const [currentKeyword, setCurrentKeyword] = useState("");
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  const vatTuSelectRef = useRef();
+  const searchTimeoutRef = useRef();
+
+  const {
+    loading,
+    setLoading,
+    maGiaoDichList,
+    maKhoList,
+    loadingMaKho,
+    maKhachList,
+    loadingMaKhach,
+    vatTuList,
+    loadingVatTu,
+    fetchMaKhoListDebounced,
+    fetchMaKhachListDebounced,
+    fetchMaGiaoDichList,
+    fetchMaKhoList,
+    fetchMaKhachList,
+    fetchVatTuList,
+    fetchVatTuDetail,
+    fetchDonViTinh,
+    fetchLoList,
+    fetchViTriList,
+    setVatTuList,
+  } = usePhieuNhapKhoData();
+
+  const {
+    dataSource,
+    handleVatTuSelect: vatTuSelectHandler,
+    handleQuantityChange,
+    handleSelectChange,
+    handleDeleteItem,
+    handleDvtChange,
+  } = useVatTuManagerNhapKho();
+
+  const fetchVatTuListPaging = async (
+    keyword = "",
+    page = 1,
+    append = false
+  ) => {
+    setCurrentKeyword(keyword);
+    await fetchVatTuList(keyword, page, append, (pagination) => {
+      setPageIndex(page);
+      setTotalPage(pagination?.totalPage || 1);
+    });
+  };
+
+  useEffect(() => {
+    if (isInitialized) return;
+
+    const initializeData = async () => {
+      setIsInitialized(true);
+
+      await Promise.all([
+        fetchMaGiaoDichList(),
+        fetchMaKhoList(),
+        fetchMaKhachList(),
+        fetchVatTuList(),
+      ]);
+
+      const formData = {
+        soPhieu: "",
+        ngay: dayjs(),
+        maGiaoDich: "1",
+        donViTienTe: "VND",
+        tyGia: 1,
+        trangThai: "0",
+        maKhach: "",
+        dienGiai: "",
+      };
+      form.setFieldsValue(formData);
+    };
+
+    initializeData();
+  }, [
+    fetchMaGiaoDichList,
+    fetchMaKhoList,
+    fetchMaKhachList,
+    fetchVatTuList,
+    form,
+    isInitialized,
+  ]);
+
+  useEffect(() => {
+    if (barcodeJustEnabled && vatTuSelectRef.current) {
+      vatTuSelectRef.current.focus();
+      setBarcodeJustEnabled(false);
+    }
+  }, [barcodeJustEnabled]);
+
+  useEffect(() => {
+    const timeoutRef = searchTimeoutRef.current;
+    return () => {
+      if (timeoutRef) {
+        clearTimeout(timeoutRef);
+      }
+    };
+  }, []);
+
+  const handleVatTuSelect = async (value) => {
+    await vatTuSelectHandler(
+      value,
+      isEditMode,
+      fetchVatTuDetail,
+      fetchDonViTinh,
+      setVatTuInput,
+      setVatTuList,
+      fetchVatTuList,
+      vatTuSelectRef
+    );
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
+
+      const validation = validateDataSource(dataSource);
+      if (!validation.isValid) {
+        setLoading(false);
+        return;
+      }
+
+      const currentStatus = values.trangThai || "0";
+
+      validateQuantityForPhieu(
+        dataSource,
+        "phieu_nhap_kho",
+        currentStatus,
+        async () => {
+          try {
+            const payload = buildPhieuNhapKhoPayload(values, dataSource);
+
+            if (!payload) {
+              message.error("Không thể tạo payload");
+              setLoading(false);
+              return;
+            }
+
+            const result = await submitPhieuNhapKhoDynamic(
+              payload,
+              "Thêm phiếu nhập kho thành công",
+              false
+            );
+
+            if (result.success) {
+              navigate("/kho/nhap-kho");
+            }
+          } catch (error) {
+            console.error("Submit failed:", error);
+          } finally {
+            setLoading(false);
+          }
+        },
+        () => {
+          setLoading(false);
+        }
+      );
+    } catch (error) {
+      console.error("Validation failed:", error);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <FormTemplate
+      form={form}
+      onFinish={handleSubmit}
+      onBack={() => navigate("/kho/nhap-kho")}
+      badgeText="THÊM PHIẾU NHẬP KHO MỚI"
+      badgeColor="green"
+      metaDate={dayjs().format("DD-MM-YYYY")}
+      statusValue="3"
+      statusOptions={[
+        { value: "0", label: "Lập chứng từ" },
+        { value: "2", label: "Nhập kho" },
+        { value: "3", label: "Chuyển số cài" },
+        { value: "5", label: "Đề nghị nhập kho" },
+      ]}
+      fixedFooterActions={[
+        {
+          key: "save",
+          label: "Lưu phiếu",
+          icon: <SaveOutlined />,
+          type: "primary",
+          onClick: handleSubmit,
+          loading: loading,
+        },
+        {
+          key: "cancel",
+          label: "Hủy",
+          icon: <CloseCircleOutlined />,
+          onClick: () => navigate("/kho/nhap-kho"),
+        },
+      ]}
+    >
+      <Form form={form} layout="vertical" className="phieu-form phieu-form--floating">
+          <PhieuNhapKhoFormInputs
+            isEditMode={isEditMode}
+            maKhachList={maKhachList}
+            loadingMaKhach={loadingMaKhach}
+            fetchMaKhachListDebounced={fetchMaKhachListDebounced}
+            maGiaoDichList={maGiaoDichList}
+            fetchMaKhachList={fetchMaKhachList}
+            fetchMaGiaoDichList={fetchMaGiaoDichList}
+            barcodeEnabled={barcodeEnabled}
+            setBarcodeEnabled={setBarcodeEnabled}
+            setBarcodeJustEnabled={setBarcodeJustEnabled}
+            vatTuInput={vatTuInput}
+            setVatTuInput={setVatTuInput}
+            vatTuSelectRef={vatTuSelectRef}
+            loadingVatTu={loadingVatTu}
+            vatTuList={vatTuList}
+            searchTimeoutRef={searchTimeoutRef}
+            fetchVatTuList={fetchVatTuListPaging}
+            totalPage={totalPage}
+            pageIndex={pageIndex}
+            setPageIndex={setPageIndex}
+            setVatTuList={setVatTuList}
+            currentKeyword={currentKeyword}
+            VatTuSelectComponent={VatTuSelectFull}
+            handleVatTuSelect={handleVatTuSelect}
+          />
+
+          <VatTuNhapKhoTable
+            dataSource={dataSource}
+            isEditMode={isEditMode}
+            handleQuantityChange={handleQuantityChange}
+            handleSelectChange={handleSelectChange}
+            handleDeleteItem={handleDeleteItem}
+            handleDvtChange={handleDvtChange}
+            maKhoList={maKhoList}
+            loadingMaKho={loadingMaKho}
+            fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchMaKhoList={fetchMaKhoList}
+            fetchDonViTinh={fetchDonViTinh}
+            fetchLoList={fetchLoList}
+            fetchViTriList={fetchViTriList}
+          />
+      </Form>
+    </FormTemplate>
+  );
+};
+
+export default AddPhieuNhapKho;
+

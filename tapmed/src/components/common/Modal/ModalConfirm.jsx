@@ -3,9 +3,18 @@ import {
   DeleteOutlined,
   InfoCircleOutlined,
   CheckCircleOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import { Modal } from "antd";
 import "./Modal.css";
+
+const TYPE_COLORS = {
+  warning: "#ff6b35",
+  exclamation: "#faad14",
+  error: "#ff4d4f",
+  success: "#52c41a",
+  info: "#1677ff",
+};
 
 const showConfirm = ({
   title,
@@ -16,6 +25,8 @@ const showConfirm = ({
   showIcon = true,
   className = "centered-buttons fixed-height compact-modal",
 }) => {
+  const buttonColor = TYPE_COLORS[type] || TYPE_COLORS.warning;
+
   const getIcon = () => {
     if (!showIcon) return null;
 
@@ -23,31 +34,37 @@ const showConfirm = ({
       case "warning":
         return (
           <DeleteOutlined
-            style={{ color: "#ff6b35", fontSize: "20px", marginBottom: "6px" }}
+            style={{ color: buttonColor, fontSize: "20px", marginBottom: "6px" }}
+          />
+        );
+      case "exclamation":
+        return (
+          <ExclamationCircleOutlined
+            style={{ color: buttonColor, fontSize: "20px", marginBottom: "6px" }}
           />
         );
       case "error":
         return (
           <CloseCircleOutlined
-            style={{ color: "#ff4d4f", fontSize: "20px", marginBottom: "6px" }}
+            style={{ color: buttonColor, fontSize: "20px", marginBottom: "6px" }}
           />
         );
       case "success":
         return (
           <CheckCircleOutlined
-            style={{ color: "#52c41a", fontSize: "20px", marginBottom: "6px" }}
+            style={{ color: buttonColor, fontSize: "20px", marginBottom: "6px" }}
           />
         );
       case "info":
         return (
           <InfoCircleOutlined
-            style={{ color: "#1677ff", fontSize: "20px", marginBottom: "6px" }}
+            style={{ color: buttonColor, fontSize: "20px", marginBottom: "6px" }}
           />
         );
       default:
         return (
           <DeleteOutlined
-            style={{ color: "#ff6b35", fontSize: "20px", marginBottom: "6px" }}
+            style={{ color: buttonColor, fontSize: "20px", marginBottom: "6px" }}
           />
         );
     }
@@ -95,8 +112,8 @@ const showConfirm = ({
     cancelText: "Huỷ",
     okButtonProps: {
       style: {
-        background: "#1890ff",
-        borderColor: "#1890ff",
+        background: buttonColor,
+        borderColor: buttonColor,
         width: 90,
         height: 38,
         borderRadius: 10,
