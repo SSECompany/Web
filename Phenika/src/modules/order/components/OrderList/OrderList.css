@@ -1,0 +1,22 @@
+.order-list {
+  background-color: #fff;
+  border-radius: 8px;
+  list-style: none;
+  height: 57vh;
+  overflow-y: auto;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.order-list::-webkit-scrollbar {
+  width: 6px;
+  display: none;
+}
+
+.order-list::-webkit-scrollbar-thumb {
+  background-color: #ddd;
+  border-radius: 8px;
+}
+
+.order-list::-webkit-scrollbar-thumb:hover {
+  background-color: #bbb;
+}

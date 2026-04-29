@@ -1,0 +1,141 @@
+/* Mẫu preview giống hóa đơn thermal IminPrinterService - khổ hẹp, font đơn giản */
+
+.receipt-thermal-preview {
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  font-size: 12px;
+  color: #000;
+  max-width: 280px;
+  margin: 0 auto;
+  line-height: 1.35;
+}
+
+.receipt-thermal-preview .rtep-line {
+  margin: 4px 0;
+  letter-spacing: 0.5px;
+  color: #333;
+}
+
+.receipt-thermal-preview .rtep-center {
+  text-align: center;
+}
+
+.receipt-thermal-preview .rtep-right {
+  text-align: right;
+  margin: 2px 0;
+}
+
+.receipt-thermal-preview .rtep-bold {
+  font-weight: 700;
+}
+
+.receipt-thermal-preview .rtep-italic {
+  font-style: italic;
+}
+
+.receipt-thermal-preview .rtep-logo-wrap {
+  text-align: center;
+  margin: 6px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.receipt-thermal-preview .rtep-logo {
+  max-width: 60%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.receipt-thermal-preview .rtep-title {
+  font-size: 14px;
+  margin: 4px 0 0;
+}
+
+.receipt-thermal-preview .rtep-date {
+  font-size: 11px;
+  margin: 2px 0 8px;
+  color: #444;
+}
+
+.receipt-thermal-preview .rtep-info {
+  margin-bottom: 8px;
+}
+
+.receipt-thermal-preview .rtep-info > div {
+  margin: 2px 0;
+}
+
+/* Bảng: cột tỷ lệ giống IminPrinterService (Tên món 3, SL 1, Giá 2, Thành tiền 2) */
+.receipt-thermal-preview .rtep-table-header,
+.receipt-thermal-preview .rtep-row {
+  display: grid;
+  grid-template-columns: 3fr 1fr 2fr 2fr;
+  gap: 4px 8px;
+  align-items: baseline;
+  margin: 2px 0;
+  font-size: 11px;
+}
+
+.receipt-thermal-preview .rtep-table-header {
+  margin-bottom: 4px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid #333;
+}
+
+.receipt-thermal-preview .rtep-col-name {
+  text-align: left;
+  word-break: break-word;
+}
+
+.receipt-thermal-preview .rtep-col-sl {
+  text-align: center;
+}
+
+.receipt-thermal-preview .rtep-col-gia {
+  text-align: right;
+}
+
+.receipt-thermal-preview .rtep-col-tt {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.receipt-thermal-preview .rtep-row.rtep-sub .rtep-col-name {
+  font-size: 10px;
+  color: #555;
+}
+
+.receipt-thermal-preview .rtep-ghichu {
+  font-size: 10px;
+  font-style: italic;
+  color: #555;
+  margin: 0 0 4px 0;
+  padding-left: 0;
+}
+
+.receipt-thermal-preview .rtep-tongtien {
+  font-size: 13px;
+  margin: 6px 0 8px;
+}
+
+.receipt-thermal-preview .rtep-thanks {
+  font-size: 11px;
+  margin: 8px 0 6px;
+}
+
+.receipt-thermal-preview .rtep-qr-wrap {
+  margin: 8px 0;
+}
+
+.receipt-thermal-preview .rtep-qr-wrap svg {
+  display: block;
+  margin: 0 auto;
+}
+
+.receipt-thermal-preview .rtep-einvoice {
+  font-size: 10px;
+  color: #555;
+  margin: 4px 0;
+  line-height: 1.3;
+}
