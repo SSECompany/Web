@@ -341,6 +341,7 @@ const ListPhieuGiaoHang = () => {
   const getStatusClass = (status) => {
     switch (String(status)) {
       case "1": return "created";     // Lập chứng từ
+      case "2": return "stored";      // Lưu kho
       case "3": return "exported";     // Xuất hàng
       case "4": return "received";     // Đã tiếp nhận
       case "5": return "handover";     // Bàn giao ĐVVC
@@ -353,6 +354,7 @@ const ListPhieuGiaoHang = () => {
   const getStatusText = (status) => {
     switch (String(status)) {
       case "1": return "Lập chứng từ";
+      case "2": return "Lưu kho";
       case "3": return "Xuất hàng";
       case "4": return "Đã tiếp nhận";
       case "5": return "Bàn giao ĐVVC";
