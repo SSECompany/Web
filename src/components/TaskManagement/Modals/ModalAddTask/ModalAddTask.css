@@ -1,6 +1,6 @@
 .modal-add-task .ant-modal-header {
   border-bottom: 1px solid #f0f0f0;
-  padding: 16px 24px;
+  padding: 12px 20px;
 }
 
 .modal-add-task .ant-modal-title {
@@ -11,11 +11,45 @@
 
 .modal-add-task .ant-modal-body {
   padding: 0 24px 24px 24px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.modal-add-task .ant-form {
+  padding: 0;
+}
+
+.modal-add-task .ant-form-item-label > label::before {
+  display: none !important;
+}
+
+.modal-add-task .ant-form-item-required::before {
+  display: none !important;
+}
+
+.modal-add-task .ant-form-item-required:not(.ant-form-item-required-mark-optional)::before {
+  display: none !important;
 }
 
 .modal-add-task .ant-form-item-label > label {
   font-weight: 500;
   color: #262626;
+  padding-left: 0;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.modal-add-task .ant-form-item {
+  margin-bottom: 12px;
+}
+
+.modal-add-task .ant-form-item-label {
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+.modal-add-task .ant-form-item-control {
+  padding-left: 0;
 }
 
 .modal-add-task .ant-input,

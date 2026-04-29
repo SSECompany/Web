@@ -14,14 +14,22 @@ import {
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
+import { useLocation } from "react-router-dom";
 import send_icon from "../../../../Icons/send_icon.svg";
 import LoadingComponents from "../../../Loading/LoadingComponents";
 import {
   apiCreateProject,
   apiUpdateProject,
-  ProjectManagementGetApi,
+  apiGetProject,
 } from "../../API";
 import { addProject, updateProject } from "../../Store/Slices/ProjectSlice";
+import { 
+  createWorkflowProject,
+  updateWorkflowProject,
+  getWorkflowProjectDetail,
+} from "../../../WorkflowApp/API/workflowApi";
+import { getUserInfo } from "../../../../store/selectors/Selectors";
+import { useSelector } from "react-redux";
 import "./ModalAddProject.css";
 
 const { Option } = Select;
@@ -29,6 +37,8 @@ const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 
 const ModalAddProject = (props) => {
+  const location = useLocation();
+  const isInWorkflow = location.pathname.includes('/workflow');
   const [inputForm] = Form.useForm();
   const [isOpenModal, setOpenModal] = useState();
   const [initialValues, setInitialValues] = useState({});
@@ -37,6 +47,7 @@ const ModalAddProject = (props) => {
   const [managersList, setManagersList] = useState([]);
   const [customersList, setCustomersList] = useState([]);
   const dispatch = useDispatch();
+  const userInfo = useSelector(getUserInfo);
 
   // Project status options
   const statusOptions = [
@@ -64,47 +75,11 @@ const ModalAddProject = (props) => {
   };
 
   const handleUseTemplate = async (templateId) => {
-    try {
-      setLoading(true);
-      const response = await ProjectManagementGetApi({
-        store: "Api_Get_Project_Template",
-        data: { templateId: templateId },
-      });
-
-      if (response.status === 200 && response.data) {
-        const templateData = response.data;
-        setInitialValues(templateData);
-
-        inputForm.setFieldsValue({
-          projectCode: templateData.projectCode || "",
-          projectName: templateData.projectName || "",
-          description: templateData.description || "",
-          status: templateData.status || "PLANNING",
-          priority: templateData.priority || "MEDIUM",
-          projectManagerId: templateData.projectManagerId || null,
-          customerId: templateData.customerId || null,
-          dateRange: null, // Reset date range for new project
-          budget: templateData.budget || 0,
-          estimatedHours: templateData.estimatedHours || 0,
-          actualHours: 0, // Reset for new project
-          progress: 0, // Reset for new project
-          notes: templateData.notes || "",
-        });
-
-        notification.success({
-          message: "Thành công",
-          description: "Đã tải dữ liệu từ template",
-        });
-      }
-    } catch (error) {
-      console.error("Error loading template:", error);
-      notification.error({
-        message: "Lỗi",
-        description: "Có lỗi xảy ra khi tải template",
-      });
-    } finally {
-      setLoading(false);
-    }
+    // TODO: Implement template API trong workflow
+    notification.warning({
+      message: "Thông báo",
+      description: "Chức năng template chưa được hỗ trợ",
+    });
   };
 
   const onSubmitForm = async () => {
@@ -112,6 +87,97 @@ const ModalAddProject = (props) => {
       setLoading(true);
       const formData = inputForm.getFieldsValue();
 
+      // Nếu đang ở trong workflow context, sử dụng workflow API
+      if (isInWorkflow) {
+        const workflowProjectData = {
+          // Hardcode theo yêu cầu
+          companyCode: "DVCS01",
+          projectName: formData.projectName || "",
+          status: formData.status || "",
+          priority: formData.priority || "",
+          projectManagerId: formData.projectManagerId || 1,
+          orgUnitId: formData.orgUnitId || 1, // TODO: bind orgUnitId vào form khi có
+          customerId: formData.customerId ?? null,
+          clientName: formData.customerId 
+            ? customersList.find(c => c.id === formData.customerId)?.customerName || ""
+            : formData.clientName || "",
+          healthStatus: formData.healthStatus || "",
+          startDate: formData.dateRange?.[0]
+            ? formData.dateRange[0].toISOString()
+            : undefined,
+          endDate: formData.dateRange?.[1]
+            ? formData.dateRange[1].toISOString()
+            : undefined,
+          budget: formData.budget ?? null,
+          budgetUsed: formData.budgetUsed ?? null,
+          progress: formData.progress ?? 0,
+          description: formData.description || "",
+          // Thêm 3 trường mới
+          estimatedHours: formData.estimatedHours ?? null,
+          actualHours: formData.actualHours ?? null,
+          notes: formData.notes || "",
+        };
+
+        try {
+          if (props.openModalType === "EDIT") {
+            // Cập nhật dự án
+            const projectId = props.currentRecord?.id || props.currentRecord?.Id || props.currentRecord?.projectId;
+            if (!projectId) {
+              notification.error({
+                message: "Lỗi",
+                description: "Không tìm thấy ID dự án để cập nhật",
+              });
+              return;
+            }
+
+            workflowProjectData.projectId = parseInt(projectId);
+            // Hardcode theo yêu cầu
+            workflowProjectData.updatedBy = 1;
+            
+            // Đảm bảo có đầy đủ dữ liệu cần thiết
+            if (!workflowProjectData.projectName) {
+              notification.error({
+                message: "Lỗi",
+                description: "Vui lòng nhập tên dự án",
+              });
+              return;
+            }
+            
+            console.log("Updating project with data:", workflowProjectData);
+            const result = await updateWorkflowProject(workflowProjectData);
+            console.log("Update result:", result);
+
+            notification.success({
+              message: "Thành công",
+              description: "Cập nhật dự án thành công",
+            });
+          } else {
+            // Tạo mới dự án
+            workflowProjectData.createdBy = 1; // Hardcode theo yêu cầu
+            
+            console.log("Creating project with data:", workflowProjectData);
+            await createWorkflowProject(workflowProjectData);
+
+            notification.success({
+              message: "Thành công",
+              description: "Tạo dự án mới thành công",
+            });
+          }
+
+          props.refreshData();
+          handleCancelModal();
+          return;
+        } catch (workflowError) {
+          console.error("Workflow API error:", workflowError);
+          notification.error({
+            message: "Lỗi",
+            description: workflowError.response?.data?.message || workflowError.message || "Có lỗi xảy ra khi thao tác dự án",
+          });
+          return;
+        }
+      }
+
+      // Code cũ cho edit hoặc fallback
       const projectData = {
         action: props.openModalType === "EDIT" ? "EDIT" : "ADD",
         id:
@@ -168,7 +234,6 @@ const ModalAddProject = (props) => {
         });
       }
     } catch (error) {
-      console.error("Error saving project:", error);
       notification.error({
         message: "Lỗi",
         description: "Có lỗi xảy ra khi lưu dự án",
@@ -188,36 +253,84 @@ const ModalAddProject = (props) => {
   const getDataEdit = async (id) => {
     try {
       setLoading(true);
-      const response = await ProjectManagementGetApi({
-        store: "Api_Get_Project_Detail",
-        data: { id: id },
-      });
-
-      if (response.status === 200 && response.data) {
-        const projectData = response.data;
-        setInitialValues(projectData);
-
-        inputForm.setFieldsValue({
-          projectCode: projectData.projectCode,
-          projectName: projectData.projectName,
-          description: projectData.description,
-          status: projectData.status,
-          priority: projectData.priority,
-          projectManagerId: projectData.projectManagerId,
-          customerId: projectData.customerId,
-          dateRange:
-            projectData.startDate && projectData.endDate
-              ? [dayjs(projectData.startDate), dayjs(projectData.endDate)]
-              : null,
-          budget: projectData.budget,
-          estimatedHours: projectData.estimatedHours,
-          actualHours: projectData.actualHours,
-          progress: projectData.progress,
-          notes: projectData.notes,
+      
+      if (isInWorkflow) {
+        // Sử dụng workflow API
+        const workflowData = await getWorkflowProjectDetail({
+          projectId: parseInt(id),
+          companyCode: "DVCS01",
         });
+
+        if (workflowData) {
+          const projectData = {
+            projectCode: workflowData.ProjectCode || workflowData.projectCode,
+            projectName: workflowData.ProjectName || workflowData.projectName || "",
+            description: workflowData.Description || workflowData.description || "",
+            status: workflowData.Status || workflowData.status || "",
+            priority: workflowData.Priority || workflowData.priority || "",
+            projectManagerId: workflowData.ProjectManagerId || workflowData.projectManagerId,
+            orgUnitId: workflowData.OrgUnitId || workflowData.orgUnitId,
+            clientName: workflowData.ClientName || workflowData.clientName || "",
+            startDate: workflowData.StartDate || workflowData.startDate,
+            endDate: workflowData.EndDate || workflowData.endDate,
+            budget: workflowData.Budget || workflowData.budget || 0,
+            progress: workflowData.Progress || workflowData.progress || 0,
+            customerId: workflowData.CustomerId || workflowData.customerId || null,
+            estimatedHours: workflowData.EstimatedHours || workflowData.estimatedHours || 0,
+            actualHours: workflowData.ActualHours || workflowData.actualHours || 0,
+            notes: workflowData.Notes || workflowData.notes || "",
+          };
+          
+          setInitialValues(projectData);
+
+          inputForm.setFieldsValue({
+            projectCode: projectData.projectCode,
+            projectName: projectData.projectName,
+            description: projectData.description,
+            status: projectData.status || "PLANNING",
+            priority: projectData.priority || "MEDIUM",
+            projectManagerId: projectData.projectManagerId,
+            customerId: projectData.customerId,
+            dateRange:
+              projectData.startDate && projectData.endDate
+                ? [dayjs(projectData.startDate), dayjs(projectData.endDate)]
+                : null,
+            budget: projectData.budget,
+            progress: projectData.progress,
+            estimatedHours: projectData.estimatedHours,
+            actualHours: projectData.actualHours,
+            notes: projectData.notes,
+          });
+        }
+      } else {
+        // Sử dụng API cũ cho non-workflow context
+        const response = await apiGetProject({ projectId: id });
+
+        if (response.status === 200 && response.data) {
+          const projectData = response.data;
+          setInitialValues(projectData);
+
+          inputForm.setFieldsValue({
+            projectCode: projectData.projectCode,
+            projectName: projectData.projectName,
+            description: projectData.description,
+            status: projectData.status,
+            priority: projectData.priority,
+            projectManagerId: projectData.projectManagerId,
+            customerId: projectData.customerId,
+            dateRange:
+              projectData.startDate && projectData.endDate
+                ? [dayjs(projectData.startDate), dayjs(projectData.endDate)]
+                : null,
+            budget: projectData.budget,
+            estimatedHours: projectData.estimatedHours,
+            actualHours: projectData.actualHours,
+            progress: projectData.progress,
+            notes: projectData.notes,
+          });
+        }
       }
     } catch (error) {
-      console.error("Error fetching project data:", error);
       notification.error({
         message: "Lỗi",
         description: "Có lỗi xảy ra khi tải thông tin dự án",
@@ -227,33 +340,77 @@ const ModalAddProject = (props) => {
     }
   };
 
+  const COMPANY_CODE = "dvcs01"; // TODO: lấy từ userInfo nếu cần dynamic
+
   const loadManagers = async () => {
     try {
-      const response = await ProjectManagementGetApi({
-        store: "Api_Get_Project_Managers",
-        data: { active: true },
-      });
+      console.log("[ModalAddProject] Loading project managers...");
 
-      if (response.status === 200 && response.data) {
-        setManagersList(response.data);
+      const response = await fetch(
+        `https://api-trinhtest.sse.net.vn/api/workflow/dropdowns/project-managers?companyCode=${COMPANY_CODE}`,
+        {
+          method: "POST",
+          headers: {
+            accept: "text/plain",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to load project managers: ${response.status}`);
       }
+
+      const data = await response.json();
+      console.log("[ModalAddProject] Project managers response:", data);
+
+      const mappedManagers = (data || []).map((m) => ({
+        id: m.value,
+        fullName: m.label,
+        email: m.Email,
+        avatarUrl: m.AvatarUrl,
+      }));
+
+      setManagersList(mappedManagers);
     } catch (error) {
-      console.error("Error loading managers:", error);
+      console.error("[ModalAddProject] Error loading project managers:", error);
+      setManagersList([]);
     }
   };
 
   const loadCustomers = async () => {
     try {
-      const response = await ProjectManagementGetApi({
-        store: "Api_Get_Customers",
-        data: { active: true },
-      });
+      console.log("[ModalAddProject] Loading customers...");
 
-      if (response.status === 200 && response.data) {
-        setCustomersList(response.data);
+      const response = await fetch(
+        `https://api-trinhtest.sse.net.vn/api/workflow/dropdowns/customers?companyCode=${COMPANY_CODE}`,
+        {
+          method: "POST",
+          headers: {
+            accept: "text/plain",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to load customers: ${response.status}`);
       }
+
+      const data = await response.json();
+      console.log("[ModalAddProject] Customers response:", data);
+
+      const mappedCustomers = (data || []).map((c) => ({
+        id: c.value,
+        customerName: c.label,
+        customerCode: c.CustomerCode,
+        contactName: c.ContactName,
+        email: c.Email,
+        phone: c.Phone,
+      }));
+
+      setCustomersList(mappedCustomers);
     } catch (error) {
-      console.error("Error loading customers:", error);
+      console.error("[ModalAddProject] Error loading customers:", error);
+      setCustomersList([]);
     }
   };
 
@@ -264,17 +421,30 @@ const ModalAddProject = (props) => {
 
   useEffect(() => {
     if (isOpenModal) {
+      // Mỗi lần mở modal luôn load lại dropdown & clear form nếu không phải EDIT
       loadManagers();
       loadCustomers();
 
       if (props.openModalType === "EDIT" && props.currentRecord) {
-        getDataEdit(props.currentRecord.id);
+        // Lấy dữ liệu chi tiết cho chế độ chỉnh sửa
+        const recordId =
+          props.currentRecord.id ||
+          props.currentRecord.Id ||
+          props.currentRecord.projectId;
+        if (recordId) {
+          getDataEdit(recordId);
+        }
       } else {
+        // Mở ở chế độ tạo mới: reset toàn bộ form & initialValues
         inputForm.resetFields();
         setInitialValues({});
       }
+    } else {
+      // Khi modal đóng, dọn sạch form để tránh dữ liệu cũ dính sang lần sau
+      inputForm.resetFields();
+      setInitialValues({});
     }
-  }, [isOpenModal, props.openModalType, props.currentRecord]);
+  }, [isOpenModal, props.openModalType, props.currentRecord, inputForm]);
 
   return (
     <Modal
@@ -289,32 +459,28 @@ const ModalAddProject = (props) => {
       }
       open={isOpenModal}
       onCancel={handleCancelModal}
-      width={800}
+      width={900}
       footer={null}
       className="modal-add-project"
+      style={{ top: 20 }}
     >
-      <div style={{ maxHeight: "70vh", overflowY: "auto", padding: "20px 0" }}>
+      <div style={{ padding: "20px 0" }}>
         <Form
           form={inputForm}
           layout="vertical"
           onFinish={onSubmitForm}
           onFinishFailed={onSubmitFormFail}
           autoComplete="off"
-          initialValues={initialValues}
         >
           <Row gutter={[16, 0]}>
             <Col xs={24} sm={12}>
               <Form.Item
                 label="Mã dự án"
                 name="projectCode"
-                rules={[
-                  { required: true, message: "Vui lòng nhập mã dự án" },
-                  { max: 50, message: "Mã dự án không được quá 50 ký tự" },
-                ]}
               >
                 <Input
                   placeholder="Nhập mã dự án"
-                  disabled={disableFields}
+                  disabled={disableFields || isInWorkflow}
                   style={{ textTransform: "uppercase" }}
                   onChange={(e) => {
                     e.target.value = e.target.value.toUpperCase();
@@ -339,10 +505,11 @@ const ModalAddProject = (props) => {
           <Form.Item
             label="Mô tả dự án"
             name="description"
-            rules={[{ max: 1000, message: "Mô tả không được quá 1000 ký tự" }]}
+            // Tạm thời ẩn validation
+            // rules={[{ max: 1000, message: "Mô tả không được quá 1000 ký tự" }]}
           >
             <TextArea
-              rows={3}
+              rows={2}
               placeholder="Nhập mô tả dự án"
               disabled={disableFields}
             />
@@ -353,9 +520,11 @@ const ModalAddProject = (props) => {
               <Form.Item
                 label="Trạng thái"
                 name="status"
-                rules={[
-                  { required: true, message: "Vui lòng chọn trạng thái" },
-                ]}
+                // Tạm thời ẩn validation
+                // rules={[
+                //   { required: true, message: "Vui lòng chọn trạng thái" },
+                // ]}
+                tooltip="Chọn trạng thái hiện tại của dự án"
               >
                 <Select placeholder="Chọn trạng thái" disabled={disableFields}>
                   {statusOptions.map((option) => (
@@ -370,9 +539,11 @@ const ModalAddProject = (props) => {
               <Form.Item
                 label="Độ ưu tiên"
                 name="priority"
-                rules={[
-                  { required: true, message: "Vui lòng chọn độ ưu tiên" },
-                ]}
+                // Tạm thời ẩn validation
+                // rules={[
+                //   { required: true, message: "Vui lòng chọn độ ưu tiên" },
+                // ]}
+                tooltip="Chọn mức độ ưu tiên của dự án"
               >
                 <Select placeholder="Chọn độ ưu tiên" disabled={disableFields}>
                   {priorityOptions.map((option) => (
@@ -387,21 +558,13 @@ const ModalAddProject = (props) => {
               <Form.Item
                 label="Tiến độ (%)"
                 name="progress"
-                rules={[
-                  {
-                    type: "number",
-                    min: 0,
-                    max: 100,
-                    message: "Tiến độ phải từ 0 đến 100%",
-                  },
-                ]}
               >
                 <InputNumber
                   style={{ width: "100%" }}
                   placeholder="0"
                   min={0}
                   max={100}
-                  disabled={disableFields}
+                  disabled={disableFields || props.openModalType !== "EDIT"}
                 />
               </Form.Item>
             </Col>
@@ -435,7 +598,13 @@ const ModalAddProject = (props) => {
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
-              <Form.Item label="Khách hàng" name="customerId">
+              <Form.Item
+                label="Khách hàng"
+                name="customerId"
+                rules={[
+                  { required: true, message: "Vui lòng chọn khách hàng" },
+                ]}
+              >
                 <Select
                   placeholder="Chọn khách hàng"
                   disabled={disableFields}
@@ -460,9 +629,10 @@ const ModalAddProject = (props) => {
           <Form.Item
             label="Thời gian thực hiện"
             name="dateRange"
-            rules={[
-              { required: true, message: "Vui lòng chọn thời gian thực hiện" },
-            ]}
+            // Tạm thời ẩn validation
+            // rules={[
+            //   { required: true, message: "Vui lòng chọn thời gian thực hiện" },
+            // ]}
           >
             <RangePicker
               style={{ width: "100%" }}
@@ -477,13 +647,14 @@ const ModalAddProject = (props) => {
               <Form.Item
                 label="Ngân sách (VNĐ)"
                 name="budget"
-                rules={[
-                  {
-                    type: "number",
-                    min: 0,
-                    message: "Ngân sách phải lớn hơn 0",
-                  },
-                ]}
+                // Tạm thời ẩn validation
+                // rules={[
+                //   {
+                //     type: "number",
+                //     min: 0,
+                //     message: "Ngân sách phải lớn hơn 0",
+                //   },
+                // ]}
               >
                 <InputNumber
                   style={{ width: "100%" }}
@@ -501,9 +672,10 @@ const ModalAddProject = (props) => {
               <Form.Item
                 label="Số giờ ước tính"
                 name="estimatedHours"
-                rules={[
-                  { type: "number", min: 0, message: "Số giờ phải lớn hơn 0" },
-                ]}
+                // Tạm thời ẩn validation
+                // rules={[
+                //   { type: "number", min: 0, message: "Số giờ phải lớn hơn 0" },
+                // ]}
               >
                 <InputNumber
                   style={{ width: "100%" }}
@@ -517,9 +689,10 @@ const ModalAddProject = (props) => {
               <Form.Item
                 label="Số giờ thực tế"
                 name="actualHours"
-                rules={[
-                  { type: "number", min: 0, message: "Số giờ phải lớn hơn 0" },
-                ]}
+                // Tạm thời ẩn validation
+                // rules={[
+                //   { type: "number", min: 0, message: "Số giờ phải lớn hơn 0" },
+                // ]}
               >
                 <InputNumber
                   style={{ width: "100%" }}
@@ -534,10 +707,11 @@ const ModalAddProject = (props) => {
           <Form.Item
             label="Ghi chú"
             name="notes"
-            rules={[{ max: 500, message: "Ghi chú không được quá 500 ký tự" }]}
+            // Tạm thời ẩn validation
+            // rules={[{ max: 500, message: "Ghi chú không được quá 500 ký tự" }]}
           >
             <TextArea
-              rows={3}
+              rows={2}
               placeholder="Nhập ghi chú"
               disabled={disableFields}
             />

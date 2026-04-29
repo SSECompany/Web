@@ -1,7 +1,7 @@
 import { EyeOutlined, UserAddOutlined } from "@ant-design/icons";
 import { Avatar, Button, List, Modal, Space, Typography } from "antd";
 import { useState, useEffect } from "react";
-import { apiGetTaskWatchers, apiAddTaskWatcher, apiRemoveTaskWatcher, TaskManagementGetApi } from "../../API";
+import { apiGetTaskWatchers, apiAddTaskWatcher, apiRemoveTaskWatcher } from "../../API";
 
 const { Text } = Typography;
 
@@ -19,13 +19,21 @@ const ModalAddWatcher = ({ visible, onCancel, taskId, currentWatchers = [], onSu
 
   const loadUsers = async () => {
     try {
-      const response = await TaskManagementGetApi({
-        store: "Api_Get_Users_For_Tasks",
-        data: { active: true },
-      });
-      if (response.status === 200 && response.data) {
-        setAllUsers(response.data);
-      }
+      // Đã tắt để tránh gọi /addData
+      // const response = await TaskManagementGetApi({
+      //   store: "Api_Get_Users_For_Tasks",
+      //   data: { active: true },
+      // });
+      // if (response.status === 200 && response.data) {
+      //   setAllUsers(response.data);
+      // }
+      // Fallback sample data
+      setAllUsers([
+        { id: "1", name: "Nguyễn Văn A", email: "a@example.com" },
+        { id: "2", name: "Trần Thị B", email: "b@example.com" },
+        { id: "3", name: "Lê Văn C", email: "c@example.com" },
+        { id: "4", name: "Phạm Thị D", email: "d@example.com" },
+      ]);
     } catch (error) {
       console.error("Error loading users:", error);
       // Fallback sample data

@@ -1,0 +1,509 @@
+
+
+Table WorkflowCompanies {
+  Id           int [pk, increment]
+  CompanyCode  nvarchar(16) [not null, unique]
+  Name         nvarchar(255) [not null]
+  Domain       nvarchar(255)
+  IsActive     bit [default: 1]
+  CreatedBy    nvarchar(255)
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowOrgUnits {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  ParentId     int
+  UnitCode     nvarchar(50) [not null]
+  UnitName     nvarchar(255) [not null]
+  Level        int [default: 1]
+  IsActive     bit [default: 1]
+  CreatedBy    nvarchar(255)
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowUsers {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  EmployeeCode nvarchar(50) [not null]
+  FullName     nvarchar(255) [not null]
+  Email        nvarchar(255) [not null]
+  Phone        nvarchar(20)
+  OrgUnitId    int [not null]
+  Level        int [default: 1]
+  Title        nvarchar(255)
+  Status       nvarchar(20) [default: 'ACTIVE']
+  AvatarUrl    nvarchar(500)
+  IsAdmin      bit [default: 0]
+  IsSup        bit [default: 0]
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowUserRoles {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  UserId       int [not null]
+  RoleCode     nvarchar(50) [not null]
+  ScopeType    nvarchar(20) [default: 'ORG']
+  ScopeId      int
+  GrantedDate  datetime [default: 'GETDATE()']
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowProjects {
+  Id               int [pk, increment]
+  DepId            int [not null]
+  CompanyCode      nvarchar(16) [not null]
+  Level            int [default: 1]
+  ProjectCode      nvarchar(50) [not null]
+  ProjectName      nvarchar(255) [not null]
+  Status           nvarchar(30) [default: 'PLANNING']
+  Priority         nvarchar(20) [default: 'MEDIUM']
+  ProjectManagerId int [not null]
+  OrgUnitId        int [not null]
+  ClientName       nvarchar(255)
+  HealthStatus     nvarchar(20) [default: 'GOOD']
+  Progress         decimal(5,2) [default: 0]
+  StartDate        datetime [not null]
+  EndDate          datetime [not null]
+  Budget           decimal(18,2)
+  BudgetUsed       decimal(18,2) [default: 0]
+  Description      nvarchar(max)
+  CreatedBy        int [not null]
+  UpdatedBy        int
+  IsDeleted        bit [default: 0]
+  RecordStatus     tinyint [default: 1]
+  datetime0        datetime2
+  datetime2        datetime2
+  user_id0         int
+  user_id2         int
+}
+
+Table WorkflowProjectMembers {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  Level        int [default: 1]
+  ProjectId    int [not null]
+  UserId       int [not null]
+  Role         nvarchar(50) [default: 'MEMBER']
+  Allocation   decimal(5,2) [default: 100]
+  StartDate    datetime [not null]
+  EndDate      datetime
+  JoinedDate   datetime [default: 'GETDATE()']
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowProjectDocuments {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  ProjectId    int [not null]
+  FileName     nvarchar(255) [not null]
+  FilePath     nvarchar(500) [not null]
+  FileType     nvarchar(20)
+  FileSize     bigint [not null]
+  UploadedBy   int [not null]
+  UploadedDate datetime [default: 'GETDATE()']
+  Tags         nvarchar(255)
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowProjectPosts {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  ProjectId    int [not null]
+  Content      nvarchar(max) [not null]
+  CreatedBy    int [not null]
+  CreatedDate  datetime [default: 'GETDATE()']
+  IsPinned     bit [default: 0]
+  MentionsJson nvarchar(max)
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowProjectActivities {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  ProjectId    int [not null]
+  ActivityType nvarchar(50) [not null]
+  Description  nvarchar(max) [not null]
+  TriggeredBy  int [not null]
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+// Tasks - phân kỳ theo tháng: WorkflowTasks_yyyymm
+Table WorkflowTasks_yyyymm {
+  Id             bigint [pk, increment]
+  DepId          int [not null]
+  CompanyCode    nvarchar(16) [not null]
+  ProjectId      int
+  ParentTaskId   bigint
+  TaskCode       nvarchar(50) [not null]
+  TaskName       nvarchar(255) [not null]
+  Level          int [default: 1]
+  Status         nvarchar(30) [default: 'PENDING']
+  Priority       nvarchar(20) [default: 'MEDIUM']
+  Mode           nvarchar(20) [default: 'INTERNAL']
+  Category       nvarchar(50)
+  FormTemplate   nvarchar(50)
+  EstimatedHours decimal(10,2)
+  ActualHours    decimal(10,2) [default: 0]
+  Progress       decimal(5,2) [default: 0]
+  StartDate      datetime
+  EndDate        datetime
+  DueDate        datetime
+  CompletedDate  datetime
+  AssignedBy     int
+  AssignedTo     int
+  ReviewerId     int
+  Description    nvarchar(max)
+  CreatedBy      int [not null]
+  IsDeleted      bit [default: 0]
+  RecordStatus   tinyint [default: 1]
+  datetime0      datetime2
+  datetime2      datetime2
+  user_id0       int
+  user_id2       int
+}
+
+Table WorkflowTaskAssignments {
+  Id             int [pk, increment]
+  DepId          int [not null]
+  CompanyCode    nvarchar(16) [not null]
+  TaskId         bigint [not null]
+  TaskMonth      char(6) [not null] // 'YYYYMM'
+  Level          int [default: 1]
+  UserId         int [not null]
+  AssignmentType nvarchar(20) [default: 'EXECUTOR']
+  AssignedDate   datetime [default: 'GETDATE()']
+  IsDeleted      bit [default: 0]
+  RecordStatus   tinyint [default: 1]
+  datetime0      datetime2
+  datetime2      datetime2
+  user_id0       int
+  user_id2       int
+}
+
+Table WorkflowTaskDependencies {
+  Id              int [pk, increment]
+  DepId           int [not null]
+  CompanyCode     nvarchar(16) [not null]
+  TaskId          bigint [not null]
+  TaskMonth       char(6) [not null]
+  DependsOnTaskId bigint [not null]
+  DependsOnMonth  char(6) [not null]
+  DependencyType  nvarchar(30) [default: 'FINISH_TO_START']
+  IsDeleted       bit [default: 0]
+  RecordStatus    tinyint [default: 1]
+  datetime0       datetime2
+  datetime2       datetime2
+  user_id0        int
+  user_id2        int
+}
+
+Table WorkflowTaskChecklist {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  TaskId       bigint [not null]
+  TaskMonth    char(6) [not null]
+  ItemOrder    int [not null]
+  ItemText     nvarchar(255) [not null]
+  IsDone       bit [default: 0]
+  DoneBy       int
+  DoneDate     datetime
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowTaskComments {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  TaskId       bigint [not null]
+  TaskMonth    char(6) [not null]
+  Content      nvarchar(max) [not null]
+  ContentParent int
+  CreatedBy    int [not null]
+  MentionsJson nvarchar(max)
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowTaskAttachments {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  TaskId       bigint [not null]
+  TaskMonth    char(6) [not null]
+  FileName     nvarchar(255) [not null]
+  FilePath     nvarchar(500) [not null]
+  FileType     nvarchar(20)
+  FileSize     bigint [not null]
+  UploadedBy   int [not null]
+  UploadedDate datetime [default: 'GETDATE()']
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowTaskHistory {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  TaskId       bigint [not null]
+  TaskMonth    char(6) [not null]
+  FieldName    nvarchar(100) [not null]
+  OldValue     nvarchar(max)
+  NewValue     nvarchar(max)
+  ChangedBy    int [not null]
+  ChangedDate  datetime [default: 'GETDATE()']
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowRequests {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  RequestCode  nvarchar(50) [not null]
+  RequestType  nvarchar(50) [not null]
+  ProjectId    int
+  TaskId       bigint
+  TaskMonth    char(6)
+  ApplicantId  int [not null]
+  Status       nvarchar(30) [default: 'PENDING']
+  PayloadJson  nvarchar(max)
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowRequestApprovals {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  RequestId    int [not null]
+  Level        int [default: 1]
+  ApproverId   int [not null]
+  StepOrder    int [not null]
+  Status       nvarchar(20) [default: 'WAITING']
+  Comment      nvarchar(max)
+  ActionDate   datetime
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowCalendarEvents {
+  Id         int [pk, increment]
+  DepId      int [not null]
+  CompanyCode nvarchar(16) [not null]
+  SourceType nvarchar(20) [not null]
+  SourceId   int [not null]
+  Title      nvarchar(255) [not null]
+  StartDate  datetime [not null]
+  EndDate    datetime [not null]
+  OwnerId    int [not null]  
+  Visibility nvarchar(20) [default: 'INTERNAL']
+  IsDeleted  bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0  datetime2
+  datetime2  datetime2
+  user_id0   int
+  user_id2   int
+}
+
+Table WorkflowReminders {
+  Id               int [pk, increment]
+  DepId            int [not null]
+  CompanyCode      nvarchar(16) [not null]
+  TargetType       nvarchar(20) [not null]
+  TargetId         int [not null]
+  UserId           int [not null]
+  Channel          nvarchar(20) [not null]
+  Frequency        nvarchar(20) [default: 'ONCE']
+  TriggerCondition nvarchar(30) [default: 'BEFORE_DUE']
+  ReminderTime     datetime [not null]
+  IsActive         bit [default: 1]
+  LastSent         datetime
+  IsDeleted        bit [default: 0]
+  RecordStatus     tinyint [default: 1]
+  datetime0        datetime2
+  datetime2        datetime2
+  user_id0         int
+  user_id2         int
+}
+
+// Note: WorkflowNotifications được phân kỳ theo tháng: WorkflowNotifications_yyyymm
+// SP: sp_CreateMonthlyNotificationsTable @yyyymm
+Table WorkflowNotifications {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  UserId       int [not null]
+  Title        nvarchar(255) [not null]
+  Message      nvarchar(max) [not null]
+  Link         nvarchar(500)
+  IsRead       bit [default: 0]
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowTimeEntries {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  TaskId       bigint [not null]
+  TaskMonth    char(6) [not null]
+  UserId       int [not null]
+  EntryDate    date [not null]
+  Hours        decimal(5,2) [not null]
+  Description  nvarchar(255)
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+Table WorkflowKpiResults {
+  Id             int [pk, increment]
+  DepId          int [not null]
+  CompanyCode    nvarchar(16) [not null]
+  UserId         int [not null]
+  Period         nvarchar(20) [not null]
+  CompletedTasks int [default: 0]
+  OnTimeRate     decimal(5,2) [default: 0]
+  OverdueTasks   int [default: 0]
+  Workload       decimal(5,2) [default: 0]
+  IsDeleted      bit [default: 0]
+  RecordStatus   tinyint [default: 1]
+  datetime0      datetime2
+  datetime2      datetime2
+  user_id0       int
+  user_id2       int
+}
+
+// Note: WorkflowActivityLogs được phân kỳ theo tháng: WorkflowActivityLogs_yyyymm
+// SP: sp_CreateMonthlyActivityLogsTable @yyyymm
+Table WorkflowActivityLogs {
+  Id           int [pk, increment]
+  DepId        int [not null]
+  CompanyCode  nvarchar(16) [not null]
+  EntityType   nvarchar(20) [not null]
+  EntityId     int [not null]
+  ActivityType nvarchar(50) [not null]
+  Description  nvarchar(max)
+  ActorId      int [not null]
+  IsDeleted    bit [default: 0]
+  RecordStatus tinyint [default: 1]
+  datetime0    datetime2
+  datetime2    datetime2
+  user_id0     int
+  user_id2     int
+}
+
+
+Ref: WorkflowOrgUnits.DepId > WorkflowCompanies.Id
+Ref: WorkflowOrgUnits.ParentId > WorkflowOrgUnits.Id
+Ref: WorkflowUsers.DepId > WorkflowCompanies.Id
+Ref: WorkflowUsers.OrgUnitId > WorkflowOrgUnits.Id
+Ref: WorkflowProjects.DepId > WorkflowCompanies.Id
+Ref: WorkflowProjects.ProjectManagerId > WorkflowUsers.Id
+Ref: WorkflowProjects.OrgUnitId > WorkflowOrgUnits.Id
+
+Ref: WorkflowProjectMembers.ProjectId > WorkflowProjects.Id
+Ref: WorkflowProjectMembers.UserId > WorkflowUsers.Id
+Ref: WorkflowProjectDocuments.ProjectId > WorkflowProjects.Id
+Ref: WorkflowProjectPosts.ProjectId > WorkflowProjects.Id
+Ref: WorkflowProjectActivities.ProjectId > WorkflowProjects.Id
+
+// Tasks & liên kết (conceptual, bảng phân kỳ WorkflowTasks_yyyymm)
+Ref: WorkflowTasks_yyyymm.DepId > WorkflowCompanies.Id
+Ref: WorkflowTasks_yyyymm.ProjectId > WorkflowProjects.Id
+Ref: WorkflowTasks_yyyymm.ParentTaskId > WorkflowTasks_yyyymm.Id
+
+Ref: WorkflowTaskAssignments.TaskId > WorkflowTasks_yyyymm.Id
+Ref: WorkflowTaskChecklist.TaskId > WorkflowTasks_yyyymm.Id
+Ref: WorkflowTaskComments.TaskId > WorkflowTasks_yyyymm.Id
+Ref: WorkflowTaskAttachments.TaskId > WorkflowTasks_yyyymm.Id
+Ref: WorkflowTaskHistory.TaskId > WorkflowTasks_yyyymm.Id
+
+Ref: WorkflowRequests.ProjectId > WorkflowProjects.Id
+Ref: WorkflowRequestApprovals.RequestId > WorkflowRequests.Id
+
+
+
+Ref: "WorkflowProjectDocuments"."Id" < "WorkflowProjectDocuments"."UploadedDate"

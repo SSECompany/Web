@@ -23,7 +23,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
-import { TaskManagementGetApi } from "../../API";
+// import { TaskManagementGetApi } from "../../API"; // Đã tắt để tránh gọi /addData
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -45,18 +45,19 @@ const ModalTaskHistory = ({ visible, onClose, taskId, taskData }) => {
   const loadTaskHistory = async () => {
     setLoading(true);
     try {
-      const response = await TaskManagementGetApi({
-        store: "Api_Get_Task_History",
-        data: { taskId },
-      });
+      // Đã tắt để tránh gọi /addData
+      // const response = await TaskManagementGetApi({
+      //   store: "Api_Get_Task_History",
+      //   data: { taskId },
+      // });
 
-      if (response?.status === 200 && response?.data) {
-        setHistory(response.data.history || []);
-        setReferences(response.data.references || []);
-      } else {
+      // if (response?.status === 200 && response?.data) {
+      //   setHistory(response.data.history || []);
+      //   setReferences(response.data.references || []);
+      // } else {
         // Fallback: Generate sample history from task data
         generateSampleHistory();
-      }
+      // }
     } catch (error) {
       console.error("Error loading task history:", error);
       generateSampleHistory();

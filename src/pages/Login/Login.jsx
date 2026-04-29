@@ -138,7 +138,7 @@ const Login = () => {
           if (res.data) {
             const new_Units = [];
             res.data.map((item) => {
-              return new_Units.push({ value: item.dvcsCode, label: item.name });
+              return new_Units.push({ value: item.companyCode, label: item.name });
             });
             setUnits(new_Units);
             setUnitSelected(new_Units[0]);

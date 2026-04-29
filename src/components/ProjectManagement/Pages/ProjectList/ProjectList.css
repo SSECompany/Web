@@ -1,27 +1,409 @@
 .project-list-container {
-  padding: 24px;
+  padding: 16px;
+  background: transparent !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-header-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: stretch;
+}
+
+.project-header-card,
+.project-action-card {
   background: #fff;
-  min-height: 100vh;
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.project-header-card {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.project-header-card__title h2 {
+  margin: 0;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.project-header-card__subtitle {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.project-action-card {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.project-action-card__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.project-action-card__desc {
+  color: #64748b;
+  font-size: 11px;
+  margin: 0;
+}
+
+.project-primary-add-btn {
+  height: 34px;
+  font-size: 13px;
+  padding: 0 14px;
+}
+
+/* Đảm bảo các thẻ cha của project-list-container không có background dark */
+.workflow-app .ant-layout-content,
+.workflow-content,
+.workflow-body-layout,
+.workflow-content-wrapper,
+.workflow-app .ant-layout,
+.workflow-layout .ant-layout,
+.workflow-layout .ant-layout-content {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Override tất cả background dark có thể có từ Ant Design Layout */
+.workflow-app .ant-layout,
+.workflow-app .ant-layout-content,
+.workflow-app .ant-layout-body,
+.workflow-layout .ant-layout,
+.workflow-layout .ant-layout-content,
+.workflow-layout .ant-layout-body {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Đảm bảo body không có background dark khi ở trong workflow */
+body.workflow-app {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Override mạnh hơn với specificity cao - target tất cả các trường hợp có thể */
+.workflow-layout .ant-layout-content,
+.workflow-layout .ant-layout,
+.workflow-app .workflow-content,
+.workflow-app .workflow-content-wrapper,
+.workflow-app .ant-layout-content,
+.workflow-app .ant-layout {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Override cho tất cả các thẻ wrapper có thể có */
+div.workflow-content-wrapper,
+div.workflow-content,
+div.workflow-body-layout {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.project-overview-grid {
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.project-insight-card {
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+  border: none;
+  min-height: 100px;
+}
+
+.project-insight-card__subtext {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.project-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.status-chip {
+  border-radius: 999px;
+  padding: 6px 16px;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.status-chip.active {
+  border-color: transparent;
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2);
+}
+
+.status-chip__content {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-weight: 600;
+}
+
+.status-chip__badge {
+  display: inline-flex;
+  margin-left: 12px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #fde68a;
+  color: #92400e;
+  font-size: 12px;
 }
 
 .project-filters {
-  background: #f5f5f5;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff;
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.project-filters__fields {
+  flex: 1;
+  min-width: 280px;
+}
+
+.project-filters__actions {
+  display: flex;
+  align-items: center;
+}
+
+.segmented-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.project-progress-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.project-progress-meta {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.project-board-view {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.project-board-column {
+  background: #f8fafc;
+  border-radius: 16px;
   padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
+  min-height: 360px;
+  max-height: 750px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
+.project-board-column__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.project-board-column__scrollable {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  max-height: 670px;
+  width: 100%;
+  max-width: 100%;
+  padding-right: 8px;
+  margin-right: -8px;
+}
+
+.project-board-column__scrollable::-webkit-scrollbar {
+  width: 8px;
+}
+
+.project-board-column__scrollable::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 8px 0;
+}
+
+.project-board-column__scrollable::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.project-board-column__scrollable::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+  background-clip: padding-box;
+}
+
+.project-board-card {
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.project-board-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.project-board-card .ant-card-body {
+  padding: 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.project-board-card__progress {
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 8px;
+}
+
+.project-board-card__title {
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 4px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+.project-board-card__meta {
+  display: flex;
+  justify-content: space-between;
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.project-board-card__progress-meta {
+  font-size: 12px;
+  color: #475569;
+  margin-top: 4px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+.project-board-card .ant-tag {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-board-card .ant-avatar-group {
+  flex-shrink: 0;
+}
+
+.project-board-card .ant-space {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.project-board-card .ant-btn {
+  flex-shrink: 0;
+}
+
+.project-board-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.project-table-wrapper {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 450px;
 }
 
 .project-list-container .ant-table {
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-list-container .ant-table-container {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+.project-list-container .ant-table-body {
+  overflow-y: auto !important;
+  min-height: 400px;
 }
 
 .project-list-container .ant-table-thead > tr > th {
-  background-color: #fafafa;
+  background-color: #f8fafc;
   font-weight: 600;
-  color: #262626;
-  border-bottom: 2px solid #f0f0f0;
+  color: #0f172a;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .project-list-container .ant-table-tbody > tr {
@@ -29,7 +411,7 @@
 }
 
 .project-list-container .ant-table-tbody > tr:hover {
-  background-color: #f5f5f5;
+  background-color: #f1f5f9;
 }
 
 .project-list-container .ant-btn-link {
@@ -39,46 +421,97 @@
 }
 
 .project-list-container .ant-btn-link:hover {
-  background-color: rgba(24, 144, 255, 0.1);
+  background-color: rgba(24, 144, 255, 0.08);
   border-radius: 4px;
 }
 
 .project-list-container .ant-btn-link.ant-btn-dangerous:hover {
-  background-color: rgba(255, 77, 79, 0.1);
+  background-color: rgba(255, 77, 79, 0.12);
 }
 
 .project-list-container .ant-tag {
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
+  margin: 0;
+  cursor: default;
+  transition: none !important;
+  position: relative;
 }
 
-.project-list-container .ant-space {
-  gap: 8px !important;
+/* Fix tag hover/active states - tránh tag bị stuck ở trạng thái hover */
+.project-list-container .ant-table-tbody .ant-tag,
+.project-list-container .ant-table-thead .ant-tag {
+  transition: none !important;
 }
 
-/* Responsive design */
+/* Ngăn chặn tag bị thay đổi khi row hover */
+.project-list-container .ant-table-tbody > tr:hover .ant-tag,
+.project-list-container .ant-table-tbody > tr > td:hover .ant-tag {
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  background-color: initial !important;
+  border-color: initial !important;
+  color: initial !important;
+}
+
+/* Đảm bảo tag không có hover effect */
+.project-list-container .ant-tag:hover,
+.project-list-container .ant-tag:active,
+.project-list-container .ant-tag:focus {
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  background-color: initial !important;
+  border-color: initial !important;
+  color: initial !important;
+  outline: none !important;
+}
+
+@media (max-width: 1024px) {
+  .project-header-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .project-filters {
+    flex-direction: column;
+  }
+
+  .project-filters__actions {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 768px) {
   .project-list-container {
     padding: 16px;
   }
-  
+
   .project-filters {
     padding: 12px;
   }
-  
-  .project-filters .ant-space {
-    width: 100%;
-  }
-  
-  .project-filters .ant-input {
+
+  .project-filters .ant-input,
+  .project-filters .ant-select,
+  .project-filters .ant-picker {
     width: 100% !important;
   }
+
+  .project-status-chips {
+    gap: 8px;
+  }
+
+  .project-board-view {
+    grid-template-columns: repeat(5, 1fr);
+    overflow-x: auto;
+  }
   
-  .project-filters .ant-select {
-    width: 100% !important;
+  .project-board-column {
+    min-width: 250px;
   }
 }
+
 
 
 

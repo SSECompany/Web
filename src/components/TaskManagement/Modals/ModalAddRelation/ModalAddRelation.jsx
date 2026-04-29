@@ -2,8 +2,8 @@ import { LinkOutlined } from "@ant-design/icons";
 import { Button, Form, Input, Modal, Select, Space, Table, Tag } from "antd";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getSampleTasks } from "../../../WorkflowApp/utils/workflowSampleData";
 import { apiGetTaskRelations, apiAddTaskRelation, apiRemoveTaskRelation } from "../../API";
+import { useSelector } from "react-redux";
 
 const { Option } = Select;
 
@@ -119,7 +119,8 @@ const ModalAddRelation = ({ visible, onCancel, taskId, currentTaskTitle, onSucce
   };
 
   // Get available tasks (excluding current task)
-  const allTasks = getSampleTasks();
+  const { tasksList } = useSelector((state) => state.tasks);
+  const allTasks = tasksList || [];
   const availableTasks = allTasks.filter((task) => task.id !== taskId);
 
   const filteredTasks = availableTasks.filter(

@@ -8,7 +8,6 @@ import { Dropdown, Input, Modal } from "antd";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getRoutesAccess } from "../../app/Functions/getRouteAccess";
 import options__icon from "../../Icons/options__icon.svg";
-import white from "../../Icons/white.png";
 import router, { routes } from "../../router/routes";
 import {
   setClaims,
@@ -244,8 +243,7 @@ const Navbar = () => {
 
   useEffect(() => {
     dispatch(setClaims(jwt.getClaims() ? jwt.getClaims() : {}));
-    getUserSetting(jwt.getClaims().MA_DVCS);
-
+    
     // Auto-detect system from URL
     const currentPath = window.location.pathname;
     if (currentPath.includes("/workflow")) {
@@ -254,6 +252,11 @@ const Navbar = () => {
       setCurrentSystem("HRM");
     } else {
       setCurrentSystem("DMS");
+    }
+
+    // Bỏ qua API getUserSetting khi đang ở trang workflow
+    if (!currentPath.includes("/workflow")) {
+      getUserSetting(jwt.getClaims().MA_DVCS);
     }
 
     // Sử dụng system đã được detect thay vì default
@@ -460,12 +463,19 @@ const Navbar = () => {
     <div className="navbar">
       <div className="first_navbar_row_left">
         <div className="navbar_logo_functions">
-          <img
-            src={white}
-            alt="SSE giải pháp phần mềm doanh nghiệp"
+          <div
+            className="navbar_logo_placeholder"
+            role="button"
+            tabIndex={0}
+            aria-label="SSE giải pháp phần mềm doanh nghiệp"
             onClick={handleLogo}
-            color="red"
-          ></img>
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleLogo();
+              }
+            }}
+          />
           <div className="navbar_search_function">
             <img
               src={options__icon}

@@ -17,12 +17,18 @@ import {
   Tabs,
   Tag,
   Typography,
+  Spin,
+  message,
 } from "antd";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import useDepartmentPermissions from "../../../app/hooks/useDepartmentPermissions";
 import DepartmentSelector from "../../../components/ReuseComponents/DepartmentSelector";
 import { getUserInfo } from "../../../store/selectors/Selectors";
+import { 
+  getWorkflowRecentActivities,
+  getWorkflowProjectStats,
+} from "../../../components/WorkflowApp/API/workflowApi";
 import "./WorkflowDashboard.css";
 
 const { Title, Text } = Typography;
@@ -35,153 +41,179 @@ const WorkflowDashboard = () => {
     departmentPermissions.getDefaultDepartmentFilter()
   );
 
+  const [loading, setLoading] = useState(false);
   const [dashboardData, setDashboardData] = useState({
     projects: {
-      total: 12,
-      active: 8,
-      completed: 4,
-      overdue: 2,
+      total: 0,
+      active: 0,
+      completed: 0,
+      onHold: 0,
+      cancelled: 0,
+      overdue: 0,
+      goodHealth: 0,
+      warningHealth: 0,
+      criticalHealth: 0,
     },
     tasks: {
-      total: 45,
-      completed: 28,
-      inProgress: 12,
-      overdue: 5,
+      total: 0,
+      completed: 0,
+      inProgress: 0,
+      overdue: 0,
+    },
+    budget: {
+      total: 0,
+      used: 0,
+      remaining: 0,
+      utilization: 0,
+    },
+    progress: {
+      average: 0,
     },
   });
 
-  // Reports data
+  // Reports data - sẽ được fill từ API
   const [reportsData, setReportsData] = useState({
     projectProgress: {
-      totalProjects: 12,
-      completedProjects: 4,
-      inProgressProjects: 8,
-      averageProgress: 65.5,
+      totalProjects: 0,
+      completedProjects: 0,
+      inProgressProjects: 0,
+      averageProgress: 0,
     },
     projectVolume: {
-      totalTasks: 145,
-      completedTasks: 95,
-      inProgressTasks: 35,
-      pendingTasks: 15,
+      totalTasks: 0,
+      completedTasks: 0,
+      inProgressTasks: 0,
+      pendingTasks: 0,
     },
     projectCost: {
-      totalBudget: 500000000,
-      spentBudget: 320000000,
-      remainingBudget: 180000000,
-      budgetUtilization: 64,
+      totalBudget: 0,
+      spentBudget: 0,
+      remainingBudget: 0,
+      budgetUtilization: 0,
     },
     projectKPI: {
-      onTimeDelivery: 85,
-      qualityScore: 92,
-      customerSatisfaction: 88,
-      teamProductivity: 78,
+      onTimeDelivery: 0,
+      qualityScore: 0,
+      customerSatisfaction: 0,
+      teamProductivity: 0,
     },
     taskProgress: {
-      totalTasks: 45,
-      completedTasks: 28,
-      inProgressTasks: 12,
-      pendingTasks: 5,
-      averageCompletionTime: 3.5,
+      totalTasks: 0,
+      completedTasks: 0,
+      inProgressTasks: 0,
+      pendingTasks: 0,
+      averageCompletionTime: 0,
     },
     taskKPI: {
-      completionRate: 62.2,
-      onTimeCompletion: 75.5,
-      averageTaskDuration: 2.8,
-      taskQuality: 89,
+      completionRate: 0,
+      onTimeCompletion: 0,
+      averageTaskDuration: 0,
+      taskQuality: 0,
     },
   });
 
-  // Sample data for recent activities
-  const recentActivities = [
-    {
-      key: "1",
-      type: "project",
-      title: "Dự án website mới",
-      status: "IN_PROGRESS",
-      assignee: "Nguyễn Văn A",
-      dueDate: "2024-02-15",
-      progress: 75,
-    },
-    {
-      key: "2",
-      type: "task",
-      title: "Thiết kế giao diện login",
-      status: "COMPLETED",
-      assignee: "Trần Thị B",
-      dueDate: "2024-02-10",
-      progress: 100,
-    },
-    {
-      key: "3",
-      type: "task",
-      title: "Review code backend",
-      status: "OVERDUE",
-      assignee: "Lê Văn C",
-      dueDate: "2024-02-08",
-      progress: 60,
-    },
-  ];
+  // Recent activities - sẽ được fill từ API sau
+  const [recentActivities, setRecentActivities] = useState([]);
 
   const columns = [
+    {
+      title: "STT",
+      key: "stt",
+      width: 50,
+      fixed: "left",
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
     {
       title: "Loại",
       dataIndex: "type",
       key: "type",
-      width: 80,
-      render: (type) =>
-        type === "project" ? (
-          <Tag color="blue" icon={<ProjectOutlined />}>
-            Dự án
-          </Tag>
-        ) : (
-          <Tag color="green" icon={<CheckSquareOutlined />}>
-            Công việc
-          </Tag>
-        ),
+      width: 100,
+      fixed: "left",
+      render: (type) => (
+        <div style={{ minWidth: 80, maxWidth: 100 }}>
+          {type === "PROJECT" || type === "project" ? (
+            <Tag color="blue" icon={<ProjectOutlined />} style={{ margin: 0 }}>
+              Dự án
+            </Tag>
+          ) : (
+            <Tag color="green" icon={<CheckSquareOutlined />} style={{ margin: 0 }}>
+              Công việc
+            </Tag>
+          )}
+        </div>
+      ),
     },
     {
-      title: "Tiêu đề",
+      title: "Tên",
       dataIndex: "title",
       key: "title",
-      width: 200,
+      width: 180,
+      ellipsis: {
+        showTitle: true,
+      },
+    },
+    {
+      title: "Mã",
+      dataIndex: "code",
+      key: "code",
+      width: 150,
+      ellipsis: {
+        showTitle: true,
+      },
+    },
+    {
+      title: "Loại hoạt động",
+      dataIndex: "activityType",
+      key: "activityType",
+      width: 160,
+      render: (activityType) => {
+        const activityTypeConfig = {
+          PROJECT_CREATED: { color: "success", text: "Tạo dự án" },
+          PROJECT_DELETED: { color: "error", text: "Xóa dự án" },
+          PM_CHANGED: { color: "processing", text: "Đổi PM" },
+          MEMBER_ADDED: { color: "blue", text: "Thêm thành viên" },
+          MEMBER_REMOVED: { color: "warning", text: "Xóa thành viên" },
+          TASK_CREATED: { color: "success", text: "Tạo công việc" },
+          TASK_UPDATED: { color: "processing", text: "Cập nhật công việc" },
+          TASK_DELETED: { color: "error", text: "Xóa công việc" },
+        };
+        const config = activityTypeConfig[activityType] || { color: "default", text: activityType || "N/A" };
+        return <Tag color={config.color}>{config.text}</Tag>;
+      },
+    },
+    {
+      title: "Mô tả",
+      dataIndex: "description",
+      key: "description",
+      width: 350,
+      render: (text) => (
+        <div
+          style={{
+            wordBreak: "break-word",
+            whiteSpace: "normal",
+            lineHeight: "1.5",
+          }}
+        >
+          {text || "N/A"}
+        </div>
+      ),
     },
     {
       title: "Người thực hiện",
       dataIndex: "assignee",
       key: "assignee",
       width: 150,
-    },
-    {
-      title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
-      width: 120,
-      render: (status) => {
-        const statusConfig = {
-          IN_PROGRESS: { color: "processing", text: "Đang thực hiện" },
-          COMPLETED: { color: "success", text: "Hoàn thành" },
-          OVERDUE: { color: "error", text: "Quá hạn" },
-        };
-        return (
-          <Tag color={statusConfig[status].color}>
-            {statusConfig[status].text}
-          </Tag>
-        );
+      ellipsis: {
+        showTitle: true,
       },
     },
     {
-      title: "Hạn hoàn thành",
-      dataIndex: "dueDate",
-      key: "dueDate",
-      width: 120,
-      render: (date) => new Date(date).toLocaleDateString("vi-VN"),
-    },
-    {
-      title: "Tiến độ",
-      dataIndex: "progress",
-      key: "progress",
-      width: 100,
-      render: (progress) => <Progress percent={progress} size="small" />,
+      title: "Ngày thực hiện",
+      dataIndex: "activityDate",
+      key: "activityDate",
+      width: 180,
+      render: (date) => date ? new Date(date).toLocaleString("vi-VN") : "--",
     },
   ];
 
@@ -192,13 +224,167 @@ const WorkflowDashboard = () => {
     // Add workflow page class
     document.body.classList.add("workflow-page");
 
+    // Hàm lấy dữ liệu dashboard từ API
+    const fetchDashboardStats = async () => {
+      try {
+        setLoading(true);
+        
+        // Gọi song song 2 API cần thiết để tăng tốc độ và độc lập với nhau
+        // Đã bỏ 3 API không sử dụng: getWorkflowUserDashboard, getWorkflowUserProjects, getWorkflowUserProjectStats
+        const [projectStatsResponse, activitiesResponse] = await Promise.allSettled([
+          // API 1: Project Stats
+          (async () => {
+            const projectStatsParams = {
+              companyCode: "dvcs01",
+              userId: 1,
+            };
+            
+            return await getWorkflowProjectStats(projectStatsParams);
+          })(),
+          
+          // API 2: Recent Activities
+          getWorkflowRecentActivities({
+            companyCode: "DVCS01",
+            limit: 20,
+          }),
+        ]);
+
+        // Xử lý kết quả Project Stats
+        if (projectStatsResponse.status === 'fulfilled') {
+          const response = projectStatsResponse.value;
+          
+          // Cập nhật dữ liệu dashboard từ API response
+          // Format: [{ TotalProjects, Planning, InProgress, OnHold, Completed, Cancelled, 
+          //           HealthGood, HealthAtRisk, HealthCritical, TotalBudget, TotalBudgetUsed, AvgProgress }]
+          if (response && Array.isArray(response) && response.length > 0) {
+            const summary = response[0];
+            
+            // Tính toán remaining budget và utilization
+            const totalBudget = summary.TotalBudget || 0;
+            const usedBudget = summary.TotalBudgetUsed || 0;
+            const remainingBudget = totalBudget - usedBudget;
+            const budgetUtilization = totalBudget > 0 ? (usedBudget / totalBudget) * 100 : 0;
+
+            // Cập nhật dashboardData
+            setDashboardData(prev => ({
+              projects: {
+                total: summary.TotalProjects || 0,
+                active: summary.InProgress || 0,
+                completed: summary.Completed || 0,
+                onHold: summary.OnHold || 0,
+                cancelled: summary.Cancelled || 0,
+                overdue: 0, // Không có trong API mới
+                goodHealth: summary.HealthGood || 0,
+                warningHealth: summary.HealthAtRisk || 0,
+                criticalHealth: summary.HealthCritical || 0,
+              },
+              tasks: prev.tasks, // Giữ nguyên tasks
+              budget: {
+                total: totalBudget,
+                used: usedBudget,
+                remaining: remainingBudget,
+                utilization: budgetUtilization,
+              },
+              progress: {
+                average: summary.AvgProgress || 0,
+              },
+            }));
+
+            // Cập nhật reportsData
+            setReportsData(prev => ({
+              ...prev,
+              projectProgress: {
+                totalProjects: summary.TotalProjects || 0,
+                completedProjects: summary.Completed || 0,
+                inProgressProjects: summary.InProgress || 0,
+                averageProgress: summary.AvgProgress || 0,
+              },
+              projectCost: {
+                totalBudget: totalBudget,
+                spentBudget: usedBudget,
+                remainingBudget: remainingBudget,
+                budgetUtilization: budgetUtilization,
+              },
+            }));
+          } else {
+            console.warn("API project-stats trả về dữ liệu không hợp lệ:", response);
+          }
+        } else {
+          // Nếu lỗi khi lấy project stats, log và giữ nguyên dữ liệu cũ
+          console.error("Không thể tải thống kê dự án:", projectStatsResponse.reason);
+          console.error("Error details:", {
+            message: projectStatsResponse.reason?.message,
+            response: projectStatsResponse.reason?.response,
+            status: projectStatsResponse.reason?.response?.status,
+          });
+          // Không set lại dữ liệu về 0, giữ nguyên dữ liệu hiện tại
+        }
+
+        // Xử lý kết quả Recent Activities
+        if (activitiesResponse.status === 'fulfilled') {
+          const activitiesData = activitiesResponse.value;
+          
+          if (activitiesData && Array.isArray(activitiesData)) {
+            // Map dữ liệu activities để phù hợp với table columns
+            // Format: [{ EntityType, EntityId, EntityCode, EntityName, ActivityType, Description, TriggeredBy, TriggeredByName, ActivityDate }]
+            const mappedActivities = activitiesData.map((activity, index) => ({
+              key: activity.EntityId || activity.id || `activity-${index}`,
+              type: activity.EntityType || 'PROJECT',
+              title: activity.EntityName || 'N/A',
+              code: activity.EntityCode || 'N/A',
+              activityType: activity.ActivityType || 'N/A',
+              description: activity.Description || 'N/A',
+              assignee: activity.TriggeredByName || 'N/A',
+              activityDate: activity.ActivityDate || null,
+            }));
+            setRecentActivities(mappedActivities);
+          } else if (activitiesData && activitiesData.data && Array.isArray(activitiesData.data)) {
+            // Nếu response có format { data: [...] }
+            const mappedActivities = activitiesData.data.map((activity, index) => ({
+              key: activity.EntityId || activity.id || `activity-${index}`,
+              type: activity.EntityType || 'PROJECT',
+              title: activity.EntityName || 'N/A',
+              code: activity.EntityCode || 'N/A',
+              activityType: activity.ActivityType || 'N/A',
+              description: activity.Description || 'N/A',
+              assignee: activity.TriggeredByName || 'N/A',
+              activityDate: activity.ActivityDate || null,
+            }));
+            setRecentActivities(mappedActivities);
+          } else {
+            setRecentActivities([]);
+          }
+        } else {
+          // Nếu lỗi khi lấy activities, log và giữ mảng rỗng
+          console.error("Không thể tải hoạt động gần đây:", activitiesResponse.reason);
+          console.error("Error details:", {
+            message: activitiesResponse.reason?.message,
+            response: activitiesResponse.reason?.response,
+            status: activitiesResponse.reason?.response?.status,
+          });
+          setRecentActivities([]);
+        }
+      } catch (error) {
+        console.error("Error loading dashboard:", error);
+        message.error("Không thể tải dữ liệu dashboard. Vui lòng thử lại sau.");
+        // Giữ dữ liệu mặc định nếu có lỗi
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Gọi API để lấy dữ liệu dashboard
+    fetchDashboardStats();
+
     return () => {
       document.body.classList.remove("workflow-page");
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <div className="workflow-dashboard">
+    <Spin spinning={loading}>
+      <div className="workflow-dashboard">
       {/* Header */}
       <div className="dashboard-header">
         <div
@@ -227,7 +413,6 @@ const WorkflowDashboard = () => {
                   onChange={(departmentId) => {
                     setSelectedDepartment(departmentId);
                     // TODO: Reload dashboard data for selected department
-                    console.log("Selected department:", departmentId);
                   }}
                   allowAll={true}
                   placeholder="Chọn phòng ban xem báo cáo"
@@ -306,19 +491,23 @@ const WorkflowDashboard = () => {
               >
                 <span>Dự án hoàn thành</span>
                 <span>
-                  {(
-                    (dashboardData.projects.completed /
-                      dashboardData.projects.total) *
-                    100
-                  ).toFixed(1)}
+                  {dashboardData.projects.total > 0
+                    ? (
+                        (dashboardData.projects.completed /
+                          dashboardData.projects.total) *
+                        100
+                      ).toFixed(1)
+                    : 0}
                   %
                 </span>
               </div>
               <Progress
                 percent={
-                  (dashboardData.projects.completed /
-                    dashboardData.projects.total) *
-                  100
+                  dashboardData.projects.total > 0
+                    ? (dashboardData.projects.completed /
+                        dashboardData.projects.total) *
+                      100
+                    : 0
                 }
                 strokeColor="#52c41a"
               />
@@ -333,20 +522,40 @@ const WorkflowDashboard = () => {
               >
                 <span>Công việc hoàn thành</span>
                 <span>
-                  {(
-                    (dashboardData.tasks.completed /
-                      dashboardData.tasks.total) *
-                    100
-                  ).toFixed(1)}
+                  {dashboardData.tasks.total > 0
+                    ? (
+                        (dashboardData.tasks.completed /
+                          dashboardData.tasks.total) *
+                        100
+                      ).toFixed(1)
+                    : 0}
                   %
                 </span>
               </div>
               <Progress
                 percent={
-                  (dashboardData.tasks.completed / dashboardData.tasks.total) *
-                  100
+                  dashboardData.tasks.total > 0
+                    ? (dashboardData.tasks.completed / dashboardData.tasks.total) *
+                      100
+                    : 0
                 }
                 strokeColor="#1890ff"
+              />
+            </div>
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: 8,
+                }}
+              >
+                <span>Tiến độ trung bình</span>
+                <span>{dashboardData.progress.average.toFixed(1)}%</span>
+              </div>
+              <Progress
+                percent={dashboardData.progress.average}
+                strokeColor="#722ed1"
               />
             </div>
           </Card>
@@ -381,7 +590,19 @@ const WorkflowDashboard = () => {
             <div style={{ display: "flex", alignItems: "center" }}>
               <TeamOutlined style={{ color: "#1890ff", marginRight: 8 }} />
               <span>
-                Nhân viên đang làm việc: <strong>15</strong>
+                Dự án sức khỏe tốt: <strong>{dashboardData.projects.goodHealth}</strong>
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", marginTop: 8 }}>
+              <WarningOutlined style={{ color: "#fa8c16", marginRight: 8 }} />
+              <span>
+                Dự án cần theo dõi: <strong>{dashboardData.projects.warningHealth}</strong>
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", marginTop: 8 }}>
+              <WarningOutlined style={{ color: "#ff4d4f", marginRight: 8 }} />
+              <span>
+                Dự án nguy cơ: <strong>{dashboardData.projects.criticalHealth}</strong>
               </span>
             </div>
           </Card>
@@ -390,13 +611,22 @@ const WorkflowDashboard = () => {
 
       {/* Recent Activities */}
       <Card title="🔄 Hoạt động gần đây" className="activities-card" style={{ marginBottom: 24 }}>
-        <Table
-          columns={columns}
-          dataSource={recentActivities}
-          pagination={false}
-          size="small"
-          scroll={{ x: 800 }}
-        />
+        {recentActivities.length > 0 ? (
+          <div style={{ width: '100%', overflowX: 'auto' }}>
+            <Table
+              columns={columns}
+              dataSource={recentActivities}
+              pagination={false}
+              size="small"
+              scroll={{ x: 1300 }}
+              style={{ minWidth: '100%' }}
+            />
+          </div>
+        ) : (
+          <div style={{ padding: "40px 0", textAlign: "center" }}>
+            <Text type="secondary">Chưa có hoạt động gần đây</Text>
+          </div>
+        )}
       </Card>
 
       {/* Reports Section */}
@@ -504,7 +734,9 @@ const WorkflowDashboard = () => {
                         title="Tổng ngân sách"
                         value={reportsData.projectCost.totalBudget}
                         formatter={(value) =>
-                          `${(value / 1000000).toFixed(0)}M VNĐ`
+                          value > 0
+                            ? `${(value / 1000000).toFixed(0)}M VNĐ`
+                            : "0 VNĐ"
                         }
                         valueStyle={{ fontSize: 18 }}
                       />
@@ -516,7 +748,9 @@ const WorkflowDashboard = () => {
                         title="Đã chi tiêu"
                         value={reportsData.projectCost.spentBudget}
                         formatter={(value) =>
-                          `${(value / 1000000).toFixed(0)}M VNĐ`
+                          value > 0
+                            ? `${(value / 1000000).toFixed(0)}M VNĐ`
+                            : "0 VNĐ"
                         }
                         valueStyle={{ color: "#ff4d4f", fontSize: 18 }}
                       />
@@ -528,7 +762,9 @@ const WorkflowDashboard = () => {
                         title="Còn lại"
                         value={reportsData.projectCost.remainingBudget}
                         formatter={(value) =>
-                          `${(value / 1000000).toFixed(0)}M VNĐ`
+                          value > 0
+                            ? `${(value / 1000000).toFixed(0)}M VNĐ`
+                            : "0 VNĐ"
                         }
                         valueStyle={{ color: "#52c41a", fontSize: 18 }}
                       />
@@ -690,10 +926,246 @@ const WorkflowDashboard = () => {
                 </Row>
               ),
             },
+            {
+              key: "trend-analysis",
+              label: "Phân tích xu hướng",
+              children: (
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} lg={12}>
+                    <Card title="Xu hướng hoàn thành dự án" size="small">
+                      <div style={{ padding: "20px 0", textAlign: "center" }}>
+                        <div style={{ marginBottom: 16 }}>
+                          <Text strong>Tháng này:</Text>
+                          <Progress
+                            percent={75}
+                            strokeColor="#52c41a"
+                            style={{ marginTop: 8 }}
+                          />
+                        </div>
+                        <div>
+                          <Text strong>Tháng trước:</Text>
+                          <Progress
+                            percent={68}
+                            strokeColor="#1890ff"
+                            style={{ marginTop: 8 }}
+                          />
+                        </div>
+                        <div style={{ marginTop: 16 }}>
+                          <Tag color="green">
+                            ↑ Tăng 7% so với tháng trước
+                          </Tag>
+                        </div>
+                      </div>
+                    </Card>
+                  </Col>
+                  <Col xs={24} lg={12}>
+                    <Card title="Xu hướng hoàn thành công việc" size="small">
+                      <div style={{ padding: "20px 0", textAlign: "center" }}>
+                        <div style={{ marginBottom: 16 }}>
+                          <Text strong>Tuần này:</Text>
+                          <Progress
+                            percent={82}
+                            strokeColor="#52c41a"
+                            style={{ marginTop: 8 }}
+                          />
+                        </div>
+                        <div>
+                          <Text strong>Tuần trước:</Text>
+                          <Progress
+                            percent={75}
+                            strokeColor="#1890ff"
+                            style={{ marginTop: 8 }}
+                          />
+                        </div>
+                        <div style={{ marginTop: 16 }}>
+                          <Tag color="green">
+                            ↑ Tăng 7% so với tuần trước
+                          </Tag>
+                        </div>
+                      </div>
+                    </Card>
+                  </Col>
+                  <Col xs={24}>
+                    <Card title="Biểu đồ xu hướng 6 tháng gần đây" size="small">
+                      <div
+                        style={{
+                          padding: "40px 0",
+                          textAlign: "center",
+                          background: "#fafafa",
+                          borderRadius: 4,
+                        }}
+                      >
+                        <Text type="secondary">
+                          [Biểu đồ line chart hiển thị xu hướng hoàn thành dự án và công việc theo thời gian]
+                        </Text>
+                        <div style={{ marginTop: 16 }}>
+                          <Row gutter={16}>
+                            {[
+                              { month: "T7", value: 65 },
+                              { month: "T8", value: 68 },
+                              { month: "T9", value: 72 },
+                              { month: "T10", value: 70 },
+                              { month: "T11", value: 75 },
+                              { month: "T12", value: 75 },
+                            ].map((item, index) => (
+                              <Col key={index} span={4}>
+                                <div
+                                  style={{
+                                    height: `${item.value * 2}px`,
+                                    background: "#1890ff",
+                                    borderRadius: "4px 4px 0 0",
+                                    marginBottom: 8,
+                                  }}
+                                />
+                                <Text>{item.month}</Text>
+                              </Col>
+                            ))}
+                          </Row>
+                        </div>
+                      </div>
+                    </Card>
+                  </Col>
+                </Row>
+              ),
+            },
+            {
+              key: "period-comparison",
+              label: "So sánh kỳ",
+              children: (
+                <Row gutter={[16, 16]}>
+                  <Col xs={24}>
+                    <Card title="So sánh tháng này vs tháng trước" size="small">
+                      <Row gutter={[16, 16]}>
+                        <Col xs={24} sm={12} md={6}>
+                          <Card size="small" bordered={false}>
+                            <Statistic
+                              title="Dự án hoàn thành"
+                              value={4}
+                              suffix={
+                                <span style={{ color: "#52c41a" }}>↑ +1</span>
+                              }
+                              valueStyle={{ fontSize: 24 }}
+                            />
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              Tháng trước: 3
+                            </Text>
+                          </Card>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <Card size="small" bordered={false}>
+                            <Statistic
+                              title="Công việc hoàn thành"
+                              value={28}
+                              suffix={
+                                <span style={{ color: "#52c41a" }}>↑ +5</span>
+                              }
+                              valueStyle={{ fontSize: 24 }}
+                            />
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              Tháng trước: 23
+                            </Text>
+                          </Card>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <Card size="small" bordered={false}>
+                            <Statistic
+                              title="Tỷ lệ hoàn thành"
+                              value={75}
+                              suffix={
+                                <span>
+                                  % <span style={{ color: "#52c41a" }}>↑ +7%</span>
+                                </span>
+                              }
+                              valueStyle={{ fontSize: 24 }}
+                            />
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              Tháng trước: 68%
+                            </Text>
+                          </Card>
+                        </Col>
+                        <Col xs={24} sm={12} md={6}>
+                          <Card size="small" bordered={false}>
+                            <Statistic
+                              title="Chi phí sử dụng"
+                              value={64}
+                              suffix={
+                                <span>
+                                  % <span style={{ color: "#fa8c16" }}>↑ +2%</span>
+                                </span>
+                              }
+                              valueStyle={{ fontSize: 24 }}
+                            />
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              Tháng trước: 62%
+                            </Text>
+                          </Card>
+                        </Col>
+                      </Row>
+                    </Card>
+                  </Col>
+                  <Col xs={24}>
+                    <Card title="So sánh quý này vs quý trước" size="small">
+                      <Row gutter={[16, 16]}>
+                        <Col xs={24} sm={8}>
+                          <Card size="small" bordered={false}>
+                            <Statistic
+                              title="Tổng dự án"
+                              value={12}
+                              suffix={
+                                <span style={{ color: "#1890ff" }}>→ 0</span>
+                              }
+                              valueStyle={{ fontSize: 24 }}
+                            />
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              Quý trước: 12
+                            </Text>
+                          </Card>
+                        </Col>
+                        <Col xs={24} sm={8}>
+                          <Card size="small" bordered={false}>
+                            <Statistic
+                              title="Năng suất team"
+                              value={78}
+                              suffix={
+                                <span>
+                                  % <span style={{ color: "#52c41a" }}>↑ +5%</span>
+                                </span>
+                              }
+                              valueStyle={{ fontSize: 24 }}
+                            />
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              Quý trước: 73%
+                            </Text>
+                          </Card>
+                        </Col>
+                        <Col xs={24} sm={8}>
+                          <Card size="small" bordered={false}>
+                            <Statistic
+                              title="Chất lượng"
+                              value={92}
+                              suffix={
+                                <span>
+                                  % <span style={{ color: "#52c41a" }}>↑ +3%</span>
+                                </span>
+                              }
+                              valueStyle={{ fontSize: 24 }}
+                            />
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              Quý trước: 89%
+                            </Text>
+                          </Card>
+                        </Col>
+                      </Row>
+                    </Card>
+                  </Col>
+                </Row>
+              ),
+            },
           ]}
         />
       </Card>
-    </div>
+      </div>
+    </Spin>
   );
 };
 

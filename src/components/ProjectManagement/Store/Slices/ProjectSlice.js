@@ -22,6 +22,8 @@ const initialState = {
   filters: {
     searchKey: "",
     status: "",
+    priority: "",
+    healthStatus: "",
     startDate: null,
     endDate: null,
     projectManager: "",

@@ -1,0 +1,70 @@
+.task-forms-container {
+  padding: 16px;
+  background: #fff;
+  min-height: calc(100vh - 80px);
+}
+
+.form-card {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+}
+
+.form-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.form-card .ant-card-body {
+  padding: 14px 16px 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-card .ant-card-meta {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.form-card .ant-card-meta-title {
+  margin-bottom: 6px;
+}
+
+.form-card .ant-card-meta-description {
+  flex: 1;
+}
+
+.form-card .form-card__description-text {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.form-card .form-card__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 6px;
+  row-gap: 2px;
+}
+
+.form-card .ant-card-actions {
+  margin-top: auto;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.form-card .ant-card-actions > li {
+  margin: 6px 0;
+}
+
+.form-card .ant-card-actions > li > span {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .task-forms-container {
+    padding: 12px;
+  }
+}
+

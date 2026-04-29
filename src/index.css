@@ -1025,6 +1025,17 @@ body > iframe {
   gap: 0px 8px;
 }
 
+.default_button--has-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-table-bar__primary-btn-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
 .premium_lock {
   position: absolute;
   width: 100%;

@@ -5,7 +5,7 @@ import location from "../Icons/location.svg";
 
 export const APP_CONFIG = {
   debug: true,
-  apiUrl: process.env.REACT_APP_ROOT_API,
+  apiUrl: process.env.REACT_APP_API, // Các module khác dùng REACT_APP_API
 };
 
 export const formStatus = {

@@ -79,7 +79,7 @@ const GridImageList = () => {
       setUnitOptions(
         res.map((item) => {
           return {
-            value: item.dvcsCode,
+            value: item.companyCode,
             label: item.name,
           };
         })

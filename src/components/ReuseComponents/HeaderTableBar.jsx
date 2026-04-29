@@ -36,10 +36,26 @@ const HeaderTableBar = ({
   ],
   printCallBack,
   searchCallBack,
+  buttonTitle,
+  buttonIcon,
+  onButtonClick,
+  buttonProps = {},
+  buttonTooltip,
 }) => {
   const [uploadState, setUploadState] = useState(false);
   const [printState, setPrintState] = useState(false);
   const [layoutKey, setLayoutKey] = useState([]);
+  const primaryButtonAvailable = Boolean(onButtonClick || addEvent);
+
+  const handlePrimaryButtonClick = useCallback(() => {
+    if (onButtonClick) {
+      onButtonClick();
+      return;
+    }
+    if (addEvent) {
+      addEvent();
+    }
+  }, [addEvent, onButtonClick]);
 
   const handleLayoutSelected = useCallback((layout) => {
     setLayoutKey(layout);
@@ -81,11 +97,27 @@ const HeaderTableBar = ({
 
   useHotkeys(
     "ctrl+i",
-    () => {
-      addEvent();
+    (event) => {
+      event?.preventDefault();
+      if (primaryButtonAvailable) {
+        handlePrimaryButtonClick();
+      }
     },
-    { enableOnFormTags: ["input", "select", "textarea"] }
+    { enableOnFormTags: ["input", "select", "textarea"] },
+    [primaryButtonAvailable, handlePrimaryButtonClick]
   );
+
+  const { type: customButtonType, disabled: customButtonDisabled, ...restButtonProps } =
+    buttonProps || {};
+  const resolvedButtonType =
+    customButtonType || (buttonTitle ? "primary" : "default");
+  const resolvedButtonDisabled =
+    typeof customButtonDisabled === "boolean"
+      ? customButtonDisabled
+      : !primaryButtonAvailable;
+  const resolvedButtonTooltip = buttonTooltip || buttonTitle || "Thêm mới";
+  const showPrimaryButton =
+    primaryButtonAvailable || Boolean(buttonTitle || buttonIcon);
 
   return (
     <div className="list__header__bar w-full">
@@ -148,13 +180,32 @@ const HeaderTableBar = ({
           </Tooltip>
         )}
 
-        {addEvent && (
-          <Tooltip placement="topLeft" title="Thêm mới">
-            <Button className="default_button" onClick={addEvent}>
-              <i
-                className="pi pi-plus sub_text_color"
-                style={{ fontWeight: "bold" }}
-              ></i>
+        {showPrimaryButton && (
+          <Tooltip placement="topLeft" title={resolvedButtonTooltip}>
+            <Button
+              className={`default_button ${
+                buttonTitle ? "default_button--has-text" : ""
+              }`}
+              type={resolvedButtonType}
+              onClick={handlePrimaryButtonClick}
+              disabled={resolvedButtonDisabled}
+              {...restButtonProps}
+            >
+              {buttonTitle ? (
+                <>
+                  {buttonIcon && (
+                    <span className="header-table-bar__primary-btn-icon">
+                      {buttonIcon}
+                    </span>
+                  )}
+                  <span>{buttonTitle}</span>
+                </>
+              ) : (
+                <i
+                  className="pi pi-plus sub_text_color"
+                  style={{ fontWeight: "bold" }}
+                ></i>
+              )}
             </Button>
           </Tooltip>
         )}
@@ -305,4 +356,9 @@ HeaderTableBar.prototype = {
   uploadFunction: PropTypes.func,
   fileExample: PropTypes.array,
   ReportLayout: PropTypes.object,
+  buttonTitle: PropTypes.string,
+  buttonIcon: PropTypes.node,
+  onButtonClick: PropTypes.func,
+  buttonProps: PropTypes.object,
+  buttonTooltip: PropTypes.string,
 };

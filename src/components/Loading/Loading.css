@@ -11,10 +11,26 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    backdrop-filter: blur(4px);
 }
 
 .loading.show {
     visibility: visible;
+}
+
+
+/* Smooth spinning animation */
+.loading .ant-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .loading__component {

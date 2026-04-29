@@ -11,6 +11,8 @@
 
 .modal-add-project .ant-modal-body {
   padding: 0 24px 24px 24px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
 }
 
 .modal-add-project .ant-form-item-label > label {
@@ -68,7 +70,7 @@
 }
 
 .modal-add-project .ant-form-item {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .modal-add-project .ant-col {

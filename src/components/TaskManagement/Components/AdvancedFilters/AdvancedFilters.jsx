@@ -42,10 +42,11 @@ const AdvancedFilters = ({
 
   const loadSavedFilters = async () => {
     try {
-      const response = await apiGetSavedFilters({});
-      if (response?.status === 200 && response?.data) {
-        setSavedFilters(response.data);
-      } else {
+      // Đã tắt để tránh gọi /addData
+      // const response = await apiGetSavedFilters({});
+      // if (response?.status === 200 && response?.data) {
+      //   setSavedFilters(response.data);
+      // } else {
         // Sample saved filters
         setSavedFilters([
           {
@@ -72,28 +73,55 @@ const AdvancedFilters = ({
             },
           },
         ]);
-      }
+      // }
     } catch (error) {
       console.error("Error loading saved filters:", error);
+      // Fallback to sample filters
+      setSavedFilters([
+        {
+          id: "1",
+          name: "Công việc của tôi",
+          filters: {
+            assignedToId: "current_user",
+            status: "IN_PROGRESS",
+          },
+        },
+        {
+          id: "2",
+          name: "Công việc quá hạn",
+          filters: {
+            overdue: true,
+          },
+        },
+        {
+          id: "3",
+          name: "Bug cần fix",
+          filters: {
+            type: "BUG",
+            priority: "HIGH",
+          },
+        },
+      ]);
     }
   };
 
   const handleSaveFilter = async (values) => {
     setLoading(true);
     try {
-      const response = await apiSaveFilter({
-        name: values.name,
-        filters: filters,
-      });
-      if (response?.status === 200) {
+      // Đã tắt để tránh gọi /addData
+      // const response = await apiSaveFilter({
+      //   name: values.name,
+      //   filters: filters,
+      // });
+      // if (response?.status === 200) {
         notification.success({
           message: "Thành công",
-          description: "Đã lưu filter",
+          description: "Đã lưu filter (local only)",
         });
         setSaveModalVisible(false);
         form.resetFields();
-        await loadSavedFilters();
-      }
+        // await loadSavedFilters();
+      // }
     } catch (error) {
       console.error("Error saving filter:", error);
       notification.error({
@@ -108,14 +136,17 @@ const AdvancedFilters = ({
   const handleDeleteFilter = async (filterId) => {
     setLoading(true);
     try {
-      const response = await apiDeleteSavedFilter({ filterId });
-      if (response?.status === 200) {
+      // Đã tắt để tránh gọi /addData
+      // const response = await apiDeleteSavedFilter({ filterId });
+      // if (response?.status === 200) {
         notification.success({
           message: "Thành công",
-          description: "Đã xóa filter",
+          description: "Đã xóa filter (local only)",
         });
-        await loadSavedFilters();
-      }
+        // await loadSavedFilters();
+        // Xóa local
+        setSavedFilters(savedFilters.filter(f => f.id !== filterId));
+      // }
     } catch (error) {
       console.error("Error deleting filter:", error);
       notification.error({

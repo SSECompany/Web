@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { getUserInfo } from "../../../../store/selectors/Selectors";
+import { getWorkflowTaskDetail } from "../../../WorkflowApp/API/workflowApi";
 import {
   Card,
   Descriptions,
@@ -44,7 +47,6 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { getSampleTasks, getSampleProjects } from "../../../WorkflowApp/utils/workflowSampleData";
 import ModalAddTask from "../../Modals/ModalAddTask/ModalAddTask";
 import ModalAssignTask from "../../Modals/ModalAssignTask/ModalAssignTask";
 import ModalTaskReminder from "../../Modals/ModalTaskReminder/ModalTaskReminder";
@@ -85,9 +87,14 @@ const PRIORITY_META = {
 const TaskDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const userInfo = useSelector(getUserInfo);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [commentForm] = Form.useForm();
+  
+  // Detect if we're in workflow context
+  const isInWorkflow = location.pathname.includes("/workflow");
 
   // Sample data - replace with API call
   const [task, setTask] = useState(null);
@@ -117,100 +124,100 @@ const TaskDetail = () => {
     }
   }, [id]);
 
-  const loadTaskData = () => {
-    setLoading(true);
-    // Load from sample data
-    const allTasks = getSampleTasks();
-    const foundTask = allTasks.find((t) => t.id === id);
+  const loadTaskData = async () => {
+    if (!id) return;
     
-    if (foundTask) {
-      const projects = getSampleProjects();
-      const project = projects.find((p) => p.id === foundTask.projectId);
+    setLoading(true);
+    try {
+      if (isInWorkflow) {
+        // Workflow API
+        const now = new Date();
+        const yyyymm = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+        
+        // Lấy CompanyCode từ userInfo hoặc dùng mặc định
+        const companyCode = userInfo?.companyCode || "DVCS01";
+        
+        const response = await getWorkflowTaskDetail({
+          yyyymm: yyyymm,
+          taskId: parseInt(id),
+          companyCode: companyCode,
+        });
+        
+        console.log("[TaskDetail] API Response:", response);
+        
+        // Xử lý response có thể là array hoặc object
+        let taskData = null;
+        if (Array.isArray(response)) {
+          // Nếu là array, lấy phần tử đầu tiên
+          taskData = response.length > 0 ? response[0] : null;
+        } else if (response && typeof response === 'object') {
+          // Nếu là object, dùng trực tiếp
+          taskData = response;
+        }
+        
+        // Map dữ liệu từ PascalCase sang camelCase
+        if (taskData) {
+          const mappedTask = {
+            id: taskData.TaskId || taskData.Id || taskData.id || parseInt(id),
+            taskCode: taskData.TaskCode || taskData.taskCode || "",
+            taskName: taskData.TaskName || taskData.taskName || "",
+            projectId: taskData.ProjectId || taskData.projectId,
+            projectName: taskData.ProjectName || taskData.projectName || "",
+            status: taskData.Status || taskData.status || "PENDING",
+            priority: taskData.Priority || taskData.priority || "MEDIUM",
+            type: taskData.Category || taskData.category || "TASK",
+            progress: taskData.Progress || taskData.progress || 0,
+            assignedToId: taskData.AssignedTo || taskData.assignedTo,
+            assignedToName: taskData.AssignedToName || taskData.assignedToName || "",
+            assignedById: taskData.AssignedBy || taskData.assignedBy,
+            assignedByName: taskData.AssignedByName || taskData.assignedByName || "",
+            createdById: taskData.CreatedBy || taskData.createdBy,
+            createdByName: taskData.CreatedByName || taskData.createdByName || "",
+            dueDate: taskData.DueDate || taskData.dueDate,
+            startDate: taskData.StartDate || taskData.startDate,
+            endDate: taskData.EndDate || taskData.endDate,
+            estimatedHours: taskData.EstimatedHours || taskData.estimatedHours,
+            actualHours: taskData.ActualHours || taskData.actualHours,
+            description: taskData.Description || taskData.description || "",
+            completedDate: taskData.CompletedDate || taskData.completedDate,
+            reviewerId: taskData.ReviewerId || taskData.reviewerId,
+            reviewerName: taskData.ReviewerName || taskData.reviewerName || "",
+          };
+          
+          console.log("[TaskDetail] Mapped Task:", mappedTask);
+          setTask(mappedTask);
+          
+          // Xử lý các result sets khác nếu API trả về
+          // Comments, Attachments, History sẽ được xử lý sau khi có API riêng
+        } else {
+          console.warn("[TaskDetail] No task data found in response");
+          notification.warning({
+            message: "Cảnh báo",
+            description: "Không tìm thấy dữ liệu công việc",
+          });
+        }
+      } else {
+        // API cũ - TODO: tích hợp sau
+        setTask(null);
+      }
       
-      setTask({
-        ...foundTask,
-        type: foundTask.type || "TASK",
-        description: foundTask.description || "Mô tả công việc chi tiết...",
-        reporter: foundTask.createdByName || "Người tạo",
-        spentHours: foundTask.spentHours || Math.round(foundTask.estimatedHours * (foundTask.progress / 100)),
+      // Các dữ liệu khác chưa có API
+      setComments([]);
+      setWatchers([]);
+      setRelations([]);
+      setSubtasks([]);
+      setDependencies([]);
+      setHistory([]);
+      setTimeEntries([]);
+    } catch (error) {
+      console.error("[TaskDetail] Error loading task data:", error);
+      notification.error({
+        message: "Lỗi",
+        description: error.message || "Không thể tải dữ liệu công việc",
       });
-
-      // Sample data for related features
-      setComments([
-        {
-          id: "1",
-          author: foundTask.assignedToName || "Người dùng",
-          content: "Đã bắt đầu thực hiện công việc này.",
-          createdDate: dayjs().subtract(2, "day").format("YYYY-MM-DD HH:mm"),
-        },
-      ]);
-
-      setWatchers([
-        { id: "1", name: foundTask.assignedToName || "Người dùng", email: "user@example.com" },
-        { id: "2", name: foundTask.createdByName || "Người tạo", email: "creator@example.com" },
-      ]);
-
-      setRelations([
-        {
-          id: "TASK-002",
-          type: "relates",
-          title: "Tích hợp cổng thanh toán",
-          status: "REVIEW",
-        },
-      ]);
-
-      setSubtasks([
-        {
-          id: "SUB-001",
-          title: "Phân tích yêu cầu",
-          status: "COMPLETED",
-          progress: 100,
-        },
-        {
-          id: "SUB-002",
-          title: "Thiết kế chi tiết",
-          status: "IN_PROGRESS",
-          progress: 60,
-        },
-      ]);
-
-      setDependencies([
-        {
-          id: "TASK-003",
-          title: "Xây dựng API báo cáo",
-          type: "blocks",
-          status: "PENDING",
-        },
-      ]);
-
-      setHistory([
-        {
-          id: "1",
-          user: foundTask.createdByName || "Người tạo",
-          action: "Tạo công việc",
-          timestamp: dayjs().subtract(5, "day").format("YYYY-MM-DD HH:mm"),
-          changes: {},
-        },
-        {
-          id: "2",
-          user: foundTask.assignedToName || "Người dùng",
-          action: "Cập nhật tiến độ",
-          timestamp: dayjs().subtract(2, "day").format("YYYY-MM-DD HH:mm"),
-          changes: { progress: "0% → 45%" },
-        },
-      ]);
-
-      setTimeEntries([
-        {
-          id: "1",
-          user: foundTask.assignedToName || "Người dùng",
-          hours: 4.5,
-          date: dayjs().subtract(1, "day").format("YYYY-MM-DD"),
-          comment: "Làm việc trên phần thiết kế",
-        },
-      ]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleAddComment = (values) => {

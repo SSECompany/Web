@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import send_icon from "../../../../Icons/send_icon.svg";
 import LoadingComponents from "../../../Loading/LoadingComponents";
-import { apiCreateTaskReminder, TaskManagementGetApi } from "../../API";
+import { apiCreateTaskReminder } from "../../API";
 import { addTaskReminder } from "../../Store/Slices/TaskSlice";
 
 const { Option } = Select;
@@ -97,16 +97,19 @@ const ModalTaskReminder = (props) => {
 
   const loadUsers = async () => {
     try {
-      const response = await TaskManagementGetApi({
-        store: "Api_Get_Users_For_Tasks",
-        data: { active: true },
-      });
+      // Đã tắt để tránh gọi /addData
+      // const response = await TaskManagementGetApi({
+      //   store: "Api_Get_Users_For_Tasks",
+      //   data: { active: true },
+      // });
 
-      if (response.status === 200 && response.data) {
-        setUsersList(response.data);
-      }
+      // if (response.status === 200 && response.data) {
+      //   setUsersList(response.data);
+      // }
+      setUsersList([]);
     } catch (error) {
       console.error("Error loading users:", error);
+      setUsersList([]);
     }
   };
 

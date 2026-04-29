@@ -47,12 +47,12 @@ const ApproveUnit = () => {
   const getUserGroup = () => {
     apiGetUnitByUser({ username: UserName }).then((res) => {
       if (res) {
-        const keys = res.map((item) => item.dvcsCode.trim());
+        const keys = res.map((item) => item.companyCode.trim());
         setSelectedItems(keys);
 
         setCurrentUnitsPermission(
           res.map((item) => {
-            return { key: item.dvcsCode.trim(), label: item.name.trim() };
+            return { key: item.companyCode.trim(), label: item.name.trim() };
           })
         );
       }

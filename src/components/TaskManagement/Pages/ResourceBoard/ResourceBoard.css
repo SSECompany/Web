@@ -1,0 +1,50 @@
+.resource-board {
+  padding: 16px;
+}
+
+.resource-board__card {
+  border-radius: 12px;
+}
+
+.resource-board__table .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.resource-board__grid {
+  width: 100%;
+  padding: 12px 8px;
+  box-shadow: none !important;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -23,7 +23,7 @@ import {
   PieChartOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { getSampleTasks } from "../../../WorkflowApp/utils/workflowSampleData";
+import { useSelector } from "react-redux";
 import "./TaskReports.css";
 
 const { RangePicker } = DatePicker;
@@ -31,6 +31,7 @@ const { Option } = Select;
 const { Title, Text } = Typography;
 
 const TaskReports = () => {
+  const { tasksList } = useSelector((state) => state.tasks);
   const [dateRange, setDateRange] = useState([
     dayjs().startOf("month"),
     dayjs().endOf("month"),
@@ -38,8 +39,16 @@ const TaskReports = () => {
   const [projectFilter, setProjectFilter] = useState("ALL");
   const [activeTab, setActiveTab] = useState("overview");
 
-  const allTasks = getSampleTasks();
-  const projects = ["Website thương mại", "Hệ thống báo cáo BI", "Ứng dụng Mobile CRM"];
+  const allTasks = tasksList || [];
+  const projects = useMemo(() => {
+    const projectSet = new Set();
+    allTasks.forEach((task) => {
+      if (task.projectName) {
+        projectSet.add(task.projectName);
+      }
+    });
+    return Array.from(projectSet);
+  }, [allTasks]);
 
   // Filter tasks by date range and project
   const filteredTasks = useMemo(() => {

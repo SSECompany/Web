@@ -97,6 +97,7 @@ const ModalAddTimeEntry = ({ visible, onCancel, onSuccess, taskId }) => {
             min={0.1}
             step={0.5}
             placeholder="Nhập số giờ"
+            controls={false}
           />
         </Form.Item>
 

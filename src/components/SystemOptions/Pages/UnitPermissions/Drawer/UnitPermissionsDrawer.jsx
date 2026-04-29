@@ -60,7 +60,7 @@ const GroupPermissionsDrawer = ({
         .map((item) => item.id);
 
       await apiAlterUnitClaims({
-        DVCSCode: currentItem?.ma_dvcs.trim(),
+        CompanyCode: currentItem?.ma_dvcs.trim(),
         Claims: ids,
       })
         .then((res) => {
@@ -85,7 +85,7 @@ const GroupPermissionsDrawer = ({
   useEffect(() => {
     if (Object.keys(currentItem).length > 0 && actions === formStatus.EDIT) {
       setLoading(true);
-      apiGetUnitClaims({ DVCSCode: currentItem?.ma_dvcs })
+      apiGetUnitClaims({ CompanyCode: currentItem?.ma_dvcs })
         .then((res) => {
           const fetchClaims = res.data.map((item) => {
             return item.value;

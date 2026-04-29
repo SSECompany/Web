@@ -28,7 +28,7 @@ const LoginHub = () => {
     apiGetUnitByUser({ username: data }).then((res) => {
       const options = res.map((item) => {
         return {
-          value: item?.dvcsCode?.trim() || "",
+          value: item?.companyCode?.trim() || "",
           label: item.name,
         };
       });

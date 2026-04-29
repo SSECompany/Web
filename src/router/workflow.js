@@ -26,6 +26,21 @@ const TaskDetail = lazy(() =>
 const TaskReports = lazy(() =>
   import("../components/TaskManagement/Pages/TaskReports/TaskReports")
 );
+const TaskReminders = lazy(() =>
+  import("../components/TaskManagement/Pages/TaskReminders/TaskReminders")
+);
+const ResourceBoard = lazy(() =>
+  import("../components/TaskManagement/Pages/ResourceBoard/ResourceBoard")
+);
+const TaskTemplates = lazy(() =>
+  import("../components/TaskManagement/Pages/TaskTemplates/TaskTemplates")
+);
+const TaskForms = lazy(() =>
+  import("../components/TaskManagement/Pages/TaskForms/TaskForms")
+);
+const TaskCategories = lazy(() =>
+  import("../components/TaskManagement/Pages/TaskCategories/TaskCategories")
+);
 
 // Calendar Pages
 const CalendarView = lazy(() =>
@@ -35,14 +50,6 @@ const CalendarView = lazy(() =>
 // Roadmap Pages
 const RoadmapView = lazy(() =>
   import("../components/Roadmap/Pages/RoadmapView/RoadmapView")
-);
-
-// Finance & Proposal Pages
-const ProposalCenter = lazy(() =>
-  import("../components/WorkflowFinance/Pages/ProposalCenter/ProposalCenter")
-);
-const FinanceLedger = lazy(() =>
-  import("../components/WorkflowFinance/Pages/FinanceLedger/FinanceLedger")
 );
 
 const workflowRoutes = [
@@ -110,6 +117,41 @@ const workflowRoutes = [
         parent: "task-management",
         element: <TaskReports />,
       },
+      {
+        label: "Quản lý nhắc việc",
+        claims: "",
+        path: "task-management/reminders",
+        parent: "task-management",
+        element: <TaskReminders />,
+      },
+      {
+        label: "Bảng nguồn lực",
+        claims: "",
+        path: "task-management/resources",
+        parent: "task-management",
+        element: <ResourceBoard />,
+      },
+      {
+        label: "Công việc mẫu",
+        claims: "",
+        path: "task-management/templates",
+        parent: "task-management",
+        element: <TaskTemplates />,
+      },
+      {
+        label: "Biểu mẫu",
+        claims: "",
+        path: "task-management/forms",
+        parent: "task-management",
+        element: <TaskForms />,
+      },
+      {
+        label: "Hạng mục",
+        claims: "",
+        path: "task-management/categories",
+        parent: "task-management",
+        element: <TaskCategories />,
+      },
 
       // Calendar Routes
       {
@@ -127,27 +169,6 @@ const workflowRoutes = [
         element: <RoadmapView />,
       },
 
-      // Proposal & Finance Routes
-      {
-        label: "Đề xuất & thu chi",
-        claims: "",
-        path: "finance",
-        children: [],
-      },
-      {
-        label: "Trung tâm đề xuất",
-        claims: "",
-        path: "finance/proposals",
-        parent: "finance",
-        element: <ProposalCenter />,
-      },
-      {
-        label: "Sổ thu chi",
-        claims: "",
-        path: "finance/ledger",
-        parent: "finance",
-        element: <FinanceLedger />,
-      },
     ],
   },
 ];

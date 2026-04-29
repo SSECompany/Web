@@ -26,8 +26,20 @@
   flex-shrink: 0;
 }
 
-.navbar .navbar_logo_functions img {
+.navbar_logo_placeholder {
+  width: 70px;
   height: 30px;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar_logo_placeholder:focus-visible {
+  outline: 2px solid rgba(71, 121, 207, 0.6);
+  outline-offset: 2px;
 }
 
 .navbar .first_navbar_row {
@@ -498,11 +510,13 @@
 /* WORKFLOW Theme - Purple Creative */
 .system_dropdown_item.workflow_theme {
   color: #8b5cf6 !important;
+  transition: all 0.3s ease;
 }
 
 .system_dropdown_item.workflow_theme .system_name {
   color: #8b5cf6;
   font-weight: 600;
+  transition: color 0.3s ease;
 }
 
 .system_dropdown_item.workflow_theme:hover {
@@ -516,6 +530,39 @@
   background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
   color: #ffffff !important;
   box-shadow: none;
+}
+
+/* Dark mode support for WORKFLOW theme */
+@media (prefers-color-scheme: dark) {
+  .system_dropdown_item.workflow_theme {
+    color: #a78bfa !important;
+  }
+
+  .system_dropdown_item.workflow_theme .system_name {
+    color: #a78bfa;
+  }
+
+  .system_dropdown_item.workflow_theme:hover {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
+    color: #ffffff !important;
+  }
+
+  .system_dropdown_item.workflow_theme.active {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+    color: #ffffff !important;
+  }
+}
+
+body.dark .system_dropdown_item.workflow_theme,
+html.dark .system_dropdown_item.workflow_theme,
+[data-theme="dark"] .system_dropdown_item.workflow_theme {
+  color: #a78bfa !important;
+}
+
+body.dark .system_dropdown_item.workflow_theme .system_name,
+html.dark .system_dropdown_item.workflow_theme .system_name,
+[data-theme="dark"] .system_dropdown_item.workflow_theme .system_name {
+  color: #a78bfa;
 }
 
 .system_name {

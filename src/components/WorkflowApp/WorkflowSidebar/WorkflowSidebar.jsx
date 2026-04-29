@@ -1,14 +1,14 @@
 import {
-  AuditOutlined,
   CalendarOutlined,
   DashboardOutlined,
-  DollarCircleOutlined,
   FundProjectionScreenOutlined,
   ProjectOutlined,
   TeamOutlined,
+  BellOutlined,
 } from "@ant-design/icons";
-import { Layout, Menu } from "antd";
-import { useEffect, useState } from "react";
+import { Layout, Menu, Tooltip } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./WorkflowSidebar.css";
 
@@ -27,20 +27,36 @@ const WorkflowSidebar = () => {
       setSelectedKey("dashboard");
     } else if (path.includes("/workflow/project-management")) {
       setSelectedKey("projects");
+    } else if (path.includes("/workflow/task-management/templates")) {
+      setSelectedKey("tasks-templates");
+    } else if (path.includes("/workflow/task-management/forms")) {
+      setSelectedKey("tasks-forms");
+    } else if (path.includes("/workflow/task-management/categories")) {
+      setSelectedKey("tasks-categories");
+    } else if (path.includes("/workflow/task-management/resources")) {
+      setSelectedKey("tasks-resources");
+    } else if (path.includes("/workflow/task-management/reminders")) {
+      setSelectedKey("tasks-reminders");
     } else if (path.includes("/workflow/task-management")) {
-      setSelectedKey("tasks");
+      setSelectedKey("tasks-list");
     } else if (path.includes("/workflow/calendar")) {
       setSelectedKey("calendar");
     } else if (path.includes("/workflow/roadmap")) {
       setSelectedKey("roadmap");
-    } else if (path.includes("/workflow/finance/proposals")) {
-      setSelectedKey("proposals");
-    } else if (path.includes("/workflow/finance/ledger")) {
-      setSelectedKey("finance-ledger");
     }
   }, [location.pathname]);
 
-  const menuItems = [
+  useHotkeys(
+    "alt+shift+n",
+    () => {
+      navigate("/workflow/task-management/reminders");
+      setSelectedKey("tasks-reminders");
+    },
+    { enableOnFormTags: ["input", "select", "textarea"] }
+  );
+
+  const menuItems = useMemo(
+    () => [
     {
       key: "dashboard",
       icon: <DashboardOutlined />,
@@ -73,6 +89,42 @@ const WorkflowSidebar = () => {
           onClick: () => navigate("/workflow/task-management/tasks"),
         },
         {
+          key: "tasks-reminders",
+          label: "Nhắc việc",
+          onClick: () =>
+            navigate("/workflow/task-management/reminders"),
+        },
+        {
+          key: "tasks-resources",
+          label: "Bảng nguồn lực",
+          onClick: () =>
+            navigate("/workflow/task-management/resources"),
+        },
+        {
+          type: "group",
+          label: "Mẫu & hạng mục",
+          children: [
+            {
+              key: "tasks-templates",
+              label: "Công việc mẫu",
+              onClick: () =>
+                navigate("/workflow/task-management/templates"),
+            },
+            {
+              key: "tasks-forms",
+              label: "Biểu mẫu",
+              onClick: () =>
+                navigate("/workflow/task-management/forms"),
+            },
+            {
+              key: "tasks-categories",
+              label: "Hạng mục",
+              onClick: () =>
+                navigate("/workflow/task-management/categories"),
+            },
+          ],
+        },
+        {
           key: "tasks-reports",
           label: "Báo cáo công việc",
           onClick: () => navigate("/workflow/task-management/reports"),
@@ -94,22 +146,9 @@ const WorkflowSidebar = () => {
       label: "Roadmap",
       onClick: () => navigate("/workflow/roadmap"),
     },
-    {
-      type: "divider",
-    },
-    {
-      key: "proposals",
-      icon: <AuditOutlined />,
-      label: "Trung tâm đề xuất",
-      onClick: () => navigate("/workflow/finance/proposals"),
-    },
-    {
-      key: "finance-ledger",
-      icon: <DollarCircleOutlined />,
-      label: "Sổ thu chi",
-      onClick: () => navigate("/workflow/finance/ledger"),
-    },
-  ];
+  ],
+    [navigate]
+  );
 
   return (
     <Sider
