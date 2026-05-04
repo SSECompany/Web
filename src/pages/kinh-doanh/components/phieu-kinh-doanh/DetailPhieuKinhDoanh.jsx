@@ -933,7 +933,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                             />
                                         </Form.Item>
                                         <Form.Item name="dia_chi" noStyle><Input type="hidden" /></Form.Item>
-                                        <Form.Item name="ghi_chu_giao_hang" label="Ghi chú ĐH">
+                                        <Form.Item name="ghi_chu_giao_hang" label="Ghi chú giao hàng">
                                             <Input.TextArea 
                                                 autoSize={{ minRows: 1, maxRows: 6 }} 
                                                 style={{ borderRadius: '6px' }} 
