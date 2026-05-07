@@ -183,7 +183,7 @@ const VatTuTable = ({
   // Prefetch danh sách vị trí cho một dòng cụ thể, quản lý state riêng như POS số lô
   const viTriLoadingRef = useRef({});
   const loadViTriOptions = useCallback(
-    async (keyword = "", record, openAfter = false, page = 1) => {
+    async (keyword = "", record, openAfter = false, page = 1, type = "") => {
       if (!apiHandlers.fetchViTriList || !record?.key || viTriLoadingRef.current[record.key]) return;
 
       viTriLoadingRef.current[record.key] = true;
@@ -196,7 +196,8 @@ const VatTuTable = ({
         const options = await apiHandlers.fetchViTriList(
           keyword,
           currentRecord,
-          page
+          page,
+          type
         );
 
         setViTriOptions((prev) => ({ 
@@ -734,12 +735,12 @@ const VatTuTable = ({
                 value={value || undefined}
                 style={{ width: "100%" }}
                 size="small"
-                onSearch={(val) => loadViTriOptions(val, record)}
+                onSearch={(val) => loadViTriOptions(val, record, false, 1, "tu")}
                 onDropdownVisibleChange={(open) => {
                   if (open) {
                     const r = dataSource.find(it => it.key === record.key) || record;
                     if (!r.viTriOptions || r.viTriOptions.length === 0) {
-                      loadViTriOptions("", record, false, 1);
+                      loadViTriOptions("", record, false, 1, "tu");
                     }
                   }
                 }}
@@ -753,7 +754,7 @@ const VatTuTable = ({
                   if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !loadingViTri[record.key]) {
                     const r = dataSource.find(it => it.key === record.key) || record;
                     const nextP = (r.viTriPage || 1) + 1;
-                    loadViTriOptions("", record, false, nextP);
+                    loadViTriOptions("", record, false, nextP, "tu");
                   }
                 }}
               />
@@ -780,12 +781,12 @@ const VatTuTable = ({
                 value={value || undefined}
                 style={{ width: "100%" }}
                 size="small"
-                onSearch={(val) => loadViTriOptions(val, record)}
+                onSearch={(val) => loadViTriOptions(val, record, false, 1, "den")}
                 onDropdownVisibleChange={(open) => {
                   if (open) {
                     const r = dataSource.find(it => it.key === record.key) || record;
                     if (!r.viTriOptions || r.viTriOptions.length === 0) {
-                      loadViTriOptions("", record, false, 1);
+                      loadViTriOptions("", record, false, 1, "den");
                     }
                   }
                 }}
@@ -799,7 +800,7 @@ const VatTuTable = ({
                   if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !loadingViTri[record.key]) {
                     const r = dataSource.find(it => it.key === record.key) || record;
                     const nextP = (r.viTriPage || 1) + 1;
-                    loadViTriOptions("", record, false, nextP);
+                    loadViTriOptions("", record, false, nextP, "den");
                   }
                 }}
               />

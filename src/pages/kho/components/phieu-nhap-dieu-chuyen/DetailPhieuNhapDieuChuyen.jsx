@@ -91,11 +91,19 @@ const DetailPhieuNhapDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
       const data = listObject[0] || [];
 
       if (Array.isArray(data)) {
-        const options = data.map((item) => ({
-          label: `${item.ma_vt} - ${item.ten_vt}`,
-          value: item.ma_vt,
-          ...item,
-        }));
+        const options = data.map((item) => {
+          const maVt = item.ma_vt || item.Ma_vt || item.ma_vtu || item.Ma_vtu || item.value || "";
+          const tenVt = item.ten_vt || item.Ten_vt || item.ten_vtu || item.Ten_vtu || item.label || "";
+          let finalLabel = tenVt || maVt;
+          if (tenVt && maVt && maVt !== tenVt && !tenVt.startsWith(maVt)) {
+            finalLabel = `${maVt} - ${tenVt}`;
+          }
+          return {
+            ...item,
+            label: finalLabel,
+            value: maVt || item.value,
+          };
+        });
         setVatTuList((prev) => (append ? [...prev, ...options] : options));
         if (callback) callback({ totalPage: data[0]?.totalPage || 1 });
       } else {
@@ -133,6 +141,9 @@ const DetailPhieuNhapDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
     fetchMaKhoList,
     fetchVatTuDetail,
     fetchDonViTinh,
+    fetchLoList,
+    fetchViTriList,
+    setMaKhoList,
   } = usePhieuNhapDieuChuyenData();
 
   const {
@@ -186,14 +197,19 @@ const DetailPhieuNhapDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             const detailData = result.detail;
 
             // Lưu chỉ data gốc từ API để sử dụng khi build payload (không merge với UI data)
+            const maKhoXuat = masterData.ma_khon?.trim() || masterData.ma_khox?.trim() || "";
+            const tenKhoXuat = masterData.ten_khon?.trim() || masterData.ten_kho_x?.trim() || "";
+            const maKhoNhap = masterData.ma_kho?.trim() || "";
+            const tenKhoNhap = masterData.ten_kho?.trim() || "";
+
             const formattedData = {
               ngay: masterData.ngay_ct ? dayjs(masterData.ngay_ct) : null,
               ngay_lct: masterData.ngay_lct ? dayjs(masterData.ngay_lct) : null,
               soPhieu: masterData.so_ct?.trim() || "",
-              maKhoXuat: masterData.ma_khox?.trim() || "",
-              tenKhoXuat: masterData.ten_kho_x?.trim() || "",
-              maKhoNhap: masterData.ma_kho?.trim() || "",
-              tenKhoNhap: masterData.ten_kho?.trim() || "",
+              maKhoXuat,
+              tenKhoXuat,
+              maKhoNhap,
+              tenKhoNhap,
               ong_ba: masterData.ong_ba?.trim() || "",
               dien_giai: masterData.dien_giai?.trim() || "",
               maGiaoDich: masterData.ma_gd ? masterData.ma_gd.trim() : "1",
@@ -203,6 +219,21 @@ const DetailPhieuNhapDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
               ma_nt: masterData.ma_nt || "VND",
             };
 
+            if (setMaKhoList) {
+              setMaKhoList((prev) => {
+                const newList = [...(prev || [])];
+                let changed = false;
+                if (maKhoXuat && !newList.some(x => x.value === maKhoXuat)) {
+                  newList.push({ value: maKhoXuat, label: `${maKhoXuat} - ${tenKhoXuat}`, ma_kho: maKhoXuat, ten_kho: tenKhoXuat });
+                  changed = true;
+                }
+                if (maKhoNhap && !newList.some(x => x.value === maKhoNhap)) {
+                  newList.push({ value: maKhoNhap, label: `${maKhoNhap} - ${tenKhoNhap}`, ma_kho: maKhoNhap, ten_kho: tenKhoNhap });
+                  changed = true;
+                }
+                return changed ? newList : prev;
+              });
+            }
 
             setPhieuData(masterData);
             form.setFieldsValue(formattedData);
@@ -238,7 +269,7 @@ const DetailPhieuNhapDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
       }
     };
     fetchPhieuDetail();
-  }, [actualSttRec, form, setDataSource]);
+  }, [actualSttRec, form, setDataSource, setMaKhoList, setPhieuData]);
 
 
 
@@ -419,8 +450,26 @@ const DetailPhieuNhapDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchMaKhoList={fetchMaKhoList}
             fetchDonViTinh={fetchDonViTinh}
+            fetchLoList={fetchLoList}
+            fetchViTriList={fetchViTriList}
             onDataSourceUpdate={setDataSource}
+            apiHandlers={{
+              fetchLoList,
+              fetchViTriList: (keyword, record, page, type) => {
+                let maKho = record.ma_kho;
+                if (!maKho) {
+                  const formValues = form.getFieldsValue();
+                  if (type === "tu") maKho = formValues.maKhoXuat;
+                  else if (type === "den") maKho = formValues.maKhoNhap;
+                  else maKho = formValues.maKhoNhap || formValues.maKhoXuat;
+                }
+                return fetchViTriList(keyword, { ...record, ma_kho: maKho }, page);
+              },
+              fetchMaKhoList,
+              fetchDonViTinh
+            }}
           />
         </Form>
       </div>

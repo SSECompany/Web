@@ -518,6 +518,7 @@ const ListPhieuNhapHang = () => {
       columns={getColumns()}
       data={allData}
       onBack={() => navigate("/kho")}
+      onAdd={() => navigate("them-moi")}
       onRefresh={handleRefresh}
       activeChips={activeChips}
       onRemoveFilter={removeFilter}

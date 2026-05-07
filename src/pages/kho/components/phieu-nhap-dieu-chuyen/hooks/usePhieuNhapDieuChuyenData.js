@@ -205,12 +205,12 @@ export const usePhieuNhapDieuChuyenData = () => {
 
         if (Array.isArray(data)) {
           const options = data.map((item) => {
-            const maVt = item.ma_vt || item.value || "";
-            const tenVt = item.ten_vt || item.label || "";
+            const maVt = item.ma_vt || item.Ma_vt || item.ma_vtu || item.Ma_vtu || item.value || "";
+            const tenVt = item.ten_vt || item.Ten_vt || item.ten_vtu || item.Ten_vtu || item.label || "";
             return {
-              label: tenVt ? `${maVt} - ${tenVt}` : maVt,
-              value: maVt,
               ...item,
+              label: tenVt && maVt && maVt !== tenVt ? `${maVt} - ${tenVt}` : (tenVt || maVt),
+              value: maVt || item.value,
               ma_vt: maVt,
               ten_vt: tenVt,
             };
@@ -395,6 +395,7 @@ export const usePhieuNhapDieuChuyenData = () => {
     fetchLoList,
     fetchViTriList,
     setVatTuList,
+    setMaKhoList,
     clearCache,
   };
 };
