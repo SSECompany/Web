@@ -83,7 +83,8 @@ body {
 }
 
 .phieu-add-button,
-.phieu-edit-button {
+.phieu-edit-button,
+.phieu-print-button {
   height: 40px;
   padding: 0 20px;
   border-radius: 12px;
@@ -113,6 +114,14 @@ body {
 }
 .phieu-edit-button:hover {
   background: #38b2ac;
+  color: #fff;
+}
+.phieu-print-button {
+  background: #4299e1;
+  color: #fff;
+}
+.phieu-print-button:hover {
+  background: #3182ce;
   color: #fff;
 }
 

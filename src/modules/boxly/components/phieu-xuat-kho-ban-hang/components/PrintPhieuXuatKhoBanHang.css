@@ -1,0 +1,143 @@
+@media print {
+  @page {
+    size: A4;
+    margin: 0; /* Hides browser default headers and footers */
+  }
+  
+  body {
+    margin: 15mm; /* Re-adds margin so content doesn't touch the edge */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+.print-phieu-container {
+  font-family: "Times New Roman", Times, serif;
+  color: #000;
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  font-size: 12px;
+}
+
+.print-header {
+  margin-bottom: 20px;
+}
+
+.company-info {
+  line-height: 1.5;
+}
+
+.company-name {
+  font-weight: bold;
+}
+
+.print-title-section {
+  text-align: center;
+  position: relative;
+  margin-bottom: 30px;
+}
+
+.print-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 0 0 8px 0;
+}
+
+.print-date-container {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 5px;
+}
+
+.print-date {
+  font-style: italic;
+}
+
+.print-order-no {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.print-info {
+  margin-bottom: 20px;
+}
+
+.info-row {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.info-label {
+  width: 150px;
+}
+
+.info-value {
+  flex: 1;
+}
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 30px;
+}
+
+.print-table th,
+.print-table td {
+  padding: 4px 6px;
+}
+
+.print-table th {
+  border: 1px solid #000;
+  text-align: center;
+  font-weight: bold;
+}
+
+.print-table td {
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  border-bottom: 1px dotted #000;
+}
+
+.print-table tbody tr:last-child td {
+  border-bottom: 1px solid #000;
+}
+
+.print-table tfoot td {
+  border: 1px solid #000;
+}
+
+.col-stt { width: 30px; white-space: nowrap; }
+.col-vattu { width: 220px; }
+.col-ghichu { width: auto; }
+.col-dvt { width: 40px; white-space: nowrap; }
+.col-soluong { width: 140px; }
+.col-yeucau, .col-thucxuat { width: 70px; white-space: nowrap; }
+
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.font-bold { font-weight: bold; }
+
+.print-footer {
+  margin-top: 30px;
+}
+
+.footer-date {
+  text-align: right;
+  font-style: italic;
+  margin-bottom: 20px;
+  padding-right: 40px;
+}
+
+.signatures {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.signature-box {
+  flex: 1;
+  text-align: center;
+}

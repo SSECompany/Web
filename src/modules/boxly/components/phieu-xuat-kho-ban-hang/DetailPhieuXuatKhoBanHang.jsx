@@ -1,7 +1,8 @@
-import { EditOutlined, LeftOutlined } from "@ant-design/icons";
+import { EditOutlined, LeftOutlined, PrinterOutlined } from "@ant-design/icons";
 import { Button, Form, message, Space, Typography } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useReactToPrint } from "react-to-print";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import VatTuSelectFull from "../../../../components/common/VatTuSelectFull/VatTuSelectFull";
 import https from "../../../../utils/https";
@@ -9,6 +10,7 @@ import "../common-phieu.css";
 import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 import { fetchVatTuListDynamicApi } from "../phieu-nhap-kho/utils/phieuNhapKhoUtils";
 import PhieuFormInputs from "./components/PhieuFormInputs";
+import PrintPhieuXuatKhoBanHang from "./components/PrintPhieuXuatKhoBanHang";
 import VatTuTable from "./components/VatTuTable";
 import { usePhieuXuatKhoData } from "./hooks/usePhieuXuatKhoData";
 import { useVatTuManager } from "./hooks/useVatTuManager";
@@ -60,6 +62,11 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
   // Flags to prevent duplicate calls
   const phieuDetailLoadedRef = useRef(null); // Store loaded stt_rec
   const isLoadingPhieuDetailRef = useRef(false);
+  const printRef = useRef(null);
+
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+  });
 
   // Custom hooks
   const {
@@ -433,14 +440,24 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
             : "CHI TIẾT PHIẾU XUẤT KHO BÁN HÀNG"}
         </Title>
         {!isEditMode ? (
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={handleEdit}
-            className="phieu-edit-button"
-          >
-            Chỉnh sửa
-          </Button>
+          <Space>
+            <Button
+              type="primary"
+              icon={<PrinterOutlined />}
+              onClick={handlePrint}
+              className="phieu-print-button"
+            >
+              In phiếu
+            </Button>
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={handleEdit}
+              className="phieu-edit-button"
+            >
+              Chỉnh sửa
+            </Button>
+          </Space>
         ) : (
           <div style={{ width: 120 }}></div>
         )}
@@ -514,6 +531,16 @@ const DetailPhieuXuatKhoBanHang = ({ isEditMode: initialEditMode = false }) => {
             </div>
           )}
         </Form>
+      </div>
+
+      {/* Hidden print component */}
+      <div style={{ display: "none" }}>
+        <PrintPhieuXuatKhoBanHang
+          ref={printRef}
+          phieuData={phieuData}
+          dataSource={dataSource}
+          maKhachList={maKhachList}
+        />
       </div>
     </div>
   );
