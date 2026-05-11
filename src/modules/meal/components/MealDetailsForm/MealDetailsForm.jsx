@@ -1058,9 +1058,7 @@ const MealDetailsForm = () => {
           invalidPriceMeals.push({
             shift: shiftName,
             mealName: mealName,
-            issue: hasMenuVip 
-              ? "Có giá = 0 nhưng không được tích 'Người bệnh trả tiền' hoặc 'Người bệnh VIP'"
-              : "Có giá = 0 nhưng không được tích 'Người bệnh trả tiền' hoặc 'Người nhà VIP'",
+            issue: "Có giá = 0 nhưng không được tích 'Người bệnh trả tiền' hoặc 'Người nhà VIP'",
           });
         }
       });
@@ -1105,7 +1103,7 @@ const MealDetailsForm = () => {
               <p style={{ marginBottom: "4px" }}>Vui lòng:</p>
               <ul style={{ margin: "0", paddingLeft: "16px" }}>
                 <li>
-                  Tích "Người bệnh trả tiền" hoặc {hasMenuVip ? '"Người bệnh VIP"' : '"Người nhà VIP"'} cho các món có giá = 0 hoặc cập
+                  Tích "Người bệnh trả tiền" hoặc "Người nhà VIP" cho các món có giá = 0 hoặc cập
                   nhật giá tiền
                 </li>
               </ul>
@@ -1787,7 +1785,7 @@ const MealDetailsForm = () => {
       <h2 className="form-title_detail">
         Giường {bedName?.ten_giuong || "Không rõ tên giường"}
         {isVipMealTicket && (
-          <span className="vip-badge">{hasMenuVip ? "Người bệnh VIP" : "Người nhà VIP"}</span>
+          <span className="vip-badge">Người nhà VIP</span>
         )}
       </h2>
       <div className="meal-details-datepicker">

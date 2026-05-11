@@ -201,7 +201,7 @@ const MealEntryRow = ({
             </div>
             {showVipCheckbox && (
               <div style={{ display: "flex", alignItems: "center" }}>
-                <span className="price-label">{hasMenuVip ? "Người bệnh VIP" : "Người nhà VIP"}</span>
+                <span className="price-label">Người nhà VIP</span>
                 <Checkbox
                   checked={!!vipChecked}
                   onChange={handleVipChange}
