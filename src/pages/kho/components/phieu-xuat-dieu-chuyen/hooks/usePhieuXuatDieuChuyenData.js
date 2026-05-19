@@ -202,15 +202,21 @@ export const usePhieuXuatDieuChuyenData = () => {
 
         const listObject = res.data?.listObject || [];
         const data = listObject[0] || [];
+        console.log("api_getListItem data:", data.slice(0, 2));
 
         if (Array.isArray(data)) {
           const options = data.map((item) => {
-            const maVt = item.ma_vt || item.value || "";
-            const tenVt = item.ten_vt || item.label || "";
+            const maVt = item.ma_vt || item.Ma_vt || item.ma_vtu || item.Ma_vtu || item.value || item.itemCode || item.code || item.Ma_Vt || "";
+            const tenVt = item.ten_vt || item.Ten_vt || item.ten_vtu || item.Ten_vtu || item.label || item.itemName || item.name || item.Ten_Vt || "";
+            // Ensure no duplicate hyphen if tenVt already starts with maVt
+            let finalLabel = tenVt || maVt;
+            if (tenVt && maVt && maVt !== tenVt && !tenVt.startsWith(maVt)) {
+              finalLabel = `${maVt} - ${tenVt}`;
+            }
             return {
-              label: tenVt ? `${maVt} - ${tenVt}` : maVt,
-              value: maVt,
               ...item,
+              label: finalLabel,
+              value: maVt || item.value,
               ma_vt: maVt,
               ten_vt: tenVt,
             };
@@ -396,6 +402,7 @@ export const usePhieuXuatDieuChuyenData = () => {
     fetchLoList,
     fetchViTriList,
     setVatTuList,
+    setMaKhoList,
     clearCache,
   };
 };

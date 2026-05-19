@@ -84,6 +84,7 @@ const PhieuFormInputs = ({
             name="ma_gd"
             label="Mã giao dịch"
             rules={[{ required: true, message: "Chọn mã giao dịch" }]}
+            hidden
           >
             <Select
               placeholder="Chọn mã giao dịch"

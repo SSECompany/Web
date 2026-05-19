@@ -163,7 +163,7 @@ const ListPhieuNhapHang = () => {
     if (filters.so_po)
       chips.push({ key: "so_po", label: "Số PO", value: filters.so_po });
     if (filters.ten_kh)
-      chips.push({ key: "ten_kh", label: "Khách hàng", value: filters.ten_kh });
+      chips.push({ key: "ten_kh", label: "Nhà cung cấp", value: filters.ten_kh });
     if (filters.dateRange && filters.dateRange.length === 2) {
       const display = `${filters.dateRange[0].format(
         "DD/MM/YYYY"
@@ -346,7 +346,7 @@ const ListPhieuNhapHang = () => {
         filteredValue: (filters.so_ct || filters.so_po || filters.dateRange) ? [1] : null,
       },
       {
-        title: "Khách hàng",
+        title: "Nhà cung cấp",
         key: "khach_hang",
         width: 200,
         align: "left",
@@ -360,9 +360,9 @@ const ListPhieuNhapHang = () => {
         ),
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <div style={{ padding: 12, width: 250 }}>
-            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Mã hoặc Tên khách:</div>
+            <div style={{ marginBottom: 8, fontWeight: 600, fontSize: '12px', color: '#6366f1' }}>Mã hoặc Tên NCC:</div>
             <Input
-              placeholder="Nhập mã hoặc tên khách..."
+              placeholder="Nhập mã hoặc tên NCC..."
               value={selectedKeys[0]}
               onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
               onPressEnter={() => {
@@ -390,12 +390,12 @@ const ListPhieuNhapHang = () => {
         filteredValue: filters.ten_kh ? [filters.ten_kh] : null,
       },
       {
-        title: "Tổng tiền",
-        dataIndex: "t_tt_nt",
-        key: "t_tt_nt",
-        width: 140,
-        align: "center",
-        render: (val) => <Typography.Text strong style={{ color: '#52c41a', fontSize: '15px' }}>{new Intl.NumberFormat("vi-VN").format(val || 0)}</Typography.Text>,
+        title: "Diễn giải",
+        dataIndex: "dien_giai",
+        key: "dien_giai",
+        width: 250,
+        align: "left",
+        render: (val) => <div className="vat-tu-table-cell-wrap">{val || ""}</div>,
       },
       {
         title: "Trạng thái",
@@ -518,6 +518,7 @@ const ListPhieuNhapHang = () => {
       columns={getColumns()}
       data={allData}
       onBack={() => navigate("/kho")}
+      onAdd={() => navigate("them-moi")}
       onRefresh={handleRefresh}
       activeChips={activeChips}
       onRemoveFilter={removeFilter}
@@ -531,38 +532,7 @@ const ListPhieuNhapHang = () => {
         showSizeChanger: false,
         showQuickJumper: false,
       }}
-      tableProps={{
-        summary: (pageData) => {
-          let totalTien = 0;
-          pageData.forEach(({ t_tt_nt }) => {
-            totalTien += parseFloat(t_tt_nt || 0);
-          });
-
-          return (
-            <Table.Summary fixed>
-              <Table.Summary.Row className="table-summary-row">
-                <Table.Summary.Cell index={0} colSpan={2} className="text-right">
-                  <span style={{ fontWeight: "bold", fontSize: "15px" }}>
-                    Tổng cộng:
-                  </span>
-                </Table.Summary.Cell>
-                <Table.Summary.Cell index={1} align="center">
-                  <span
-                    style={{
-                      fontWeight: "bold",
-                      color: "#1890ff",
-                      fontSize: "15px",
-                    }}
-                  >
-                    {new Intl.NumberFormat("vi-VN").format(totalTien)}
-                  </span>
-                </Table.Summary.Cell>
-                <Table.Summary.Cell index={2} colSpan={3} />
-              </Table.Summary.Row>
-            </Table.Summary>
-          );
-        },
-      }}
+      tableProps={{}}
     />
   );
 };

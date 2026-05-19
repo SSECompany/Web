@@ -131,11 +131,19 @@ const AddPhieuNhapDieuChuyen = () => {
       const data = listObject[0] || [];
 
       if (Array.isArray(data)) {
-        const options = data.map((item) => ({
-          label: `${item.ma_vt} - ${item.ten_vt}`,
-          value: item.ma_vt,
-          ...item,
-        }));
+        const options = data.map((item) => {
+          const maVt = item.ma_vt || item.Ma_vt || item.ma_vtu || item.Ma_vtu || item.value || "";
+          const tenVt = item.ten_vt || item.Ten_vt || item.ten_vtu || item.Ten_vtu || item.label || "";
+          let finalLabel = tenVt || maVt;
+          if (tenVt && maVt && maVt !== tenVt && !tenVt.startsWith(maVt)) {
+            finalLabel = `${maVt} - ${tenVt}`;
+          }
+          return {
+            ...item,
+            label: finalLabel,
+            value: maVt || item.value,
+          };
+        });
         setVatTuList((prev) => (append ? [...prev, ...options] : options));
         if (callback) callback({ totalPage: data[0]?.totalPage || 1 });
       } else {
@@ -326,7 +334,16 @@ const AddPhieuNhapDieuChuyen = () => {
             onDataSourceUpdate={setDataSource}
             apiHandlers={{
               fetchLoList,
-              fetchViTriList,
+              fetchViTriList: (keyword, record, page, type) => {
+                let maKho = record.ma_kho;
+                if (!maKho) {
+                  const formValues = form.getFieldsValue();
+                  if (type === "tu") maKho = formValues.maKhoXuat;
+                  else if (type === "den") maKho = formValues.maKhoNhap;
+                  else maKho = formValues.maKhoNhap || formValues.maKhoXuat;
+                }
+                return fetchViTriList(keyword, { ...record, ma_kho: maKho }, page);
+              },
               fetchMaKhoList,
               fetchDonViTinh
             }}
