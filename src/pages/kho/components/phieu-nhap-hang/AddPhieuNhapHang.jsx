@@ -57,6 +57,7 @@ const AddPhieuNhapHang = () => {
     fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
+    fetchViTriList,
     setVatTuList,
   } = usePhieuNhapHangData();
 
@@ -421,9 +422,10 @@ const AddPhieuNhapHang = () => {
         metaDate={dayjs().format("DD-MM-YYYY")}
         statusValue="0"
         statusOptions={[
-          { value: "0", label: "Lập chứng từ" },
-          { value: "1", label: "Chờ duyệt" },
-          { value: "2", label: "Duyệt" },
+          { value: "0", label: "Lập chứng từ", style: { display: "none" } },
+          { value: 0, label: "Lập chứng từ", style: { display: "none" } },
+          { value: "2", label: "Chuyển vào SC" },
+          { value: "3", label: "Nhập kho" },
         ]}
         fixedFooterActions={[
           {
@@ -520,7 +522,7 @@ const AddPhieuNhapHang = () => {
                         />
                       </div>
 
-                      <VatTuNhapHangTable
+                       <VatTuNhapHangTable
                         dataSource={dataSource}
                         isEditMode={isEditMode}
                         handleQuantityChange={handleQuantityChange}
@@ -532,6 +534,10 @@ const AddPhieuNhapHang = () => {
                         fetchMaKhoListDebounced={fetchMaKhoListDebounced}
                         fetchMaKhoList={fetchMaKhoList}
                         fetchDonViTinh={fetchDonViTinh}
+                        fetchViTriList={(keyword, record, page) => {
+                          const maKho = record.ma_kho || record.maKho || form.getFieldValue("maKho") || "";
+                          return fetchViTriList(keyword, { ...record, ma_kho: maKho }, page);
+                        }}
                         onDataSourceUpdate={setDataSource}
                       />
                     </div>

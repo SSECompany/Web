@@ -329,225 +329,202 @@ const VatTuSelectFullPOS = ({
   };
 
   return (
-    <Row gutter={16}>
-        <Col span={24}>
-          <Space.Compact style={{ width: "100%" }}>
-            {!barcodeEnabled ? (
-              <div style={{ position: "relative", flex: 1 }}>
-                {(loadingVatTu || isSearching) && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      right: "8px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      zIndex: 10,
-                      pointerEvents: "none",
-                    }}
-                  >
-                    <Spin size="small" />
-                  </div>
-                )}
-                <Select
-                  ref={vatTuSelectRef}
-                  showSearch={!disableSearch}
-                  placeholder={disableSearch ? "Chỉ quét camera" : (isSearching ? "Đang tìm kiếm..." : "Chọn vật tư")}
-                  optionFilterProp="children"
-                  loading={loadingVatTu || isSearching}
-                  value={vatTuInput}
-                  onSearch={disableSearch ? undefined : handleSearch}
-                  onSelect={(value, option) => {
-                    if (disableSearch) {
-                      message.warning("Chỉ cho phép quét camera. Vui lòng sử dụng nút camera để quét mã.");
-                      return;
-                    }
-                    // Block select if currently searching (waiting for API)
-                    if (isSearching) {
-                      message.warning("Vui lòng đợi kết quả tìm kiếm...");
-                      return;
-                    }
-                    // Only allow select if we have data and it matches current search
-                    if (vatTuList.length === 0) {
-                      message.warning("Vui lòng đợi kết quả tìm kiếm...");
-                      return;
-                    }
-                    handleVatTuSelect(value, option);
-                  }}
-                  onOpenChange={disableSearch ? undefined : handleDropdownVisibleChange}
-                  onPopupScroll={handlePopupScroll}
-                  filterOption={false}
-                  notFoundContent={
-                    disableSearch ? (
-                      <div style={{ padding: "8px", textAlign: "center" }}>
-                        Vui lòng sử dụng camera để quét mã
-                      </div>
-                    ) : loadingVatTu || isSearching ? (
-                      <div style={{ padding: "8px", textAlign: "center" }}>
-                        <Spin size="small" /> <span style={{ marginLeft: 8 }}>Đang tìm kiếm...</span>
-                      </div>
-                    ) : (
-                      <div style={{ padding: "8px", textAlign: "center", color: "#999" }}>
-                        Không tìm thấy vật tư
-                      </div>
-                    )
-                  }
-                onKeyDown={async (e) => {
-                  if (disableSearch) {
-                    e.preventDefault();
-                    message.warning("Chỉ cho phép quét camera. Vui lòng sử dụng nút camera để quét mã.");
-                    return;
-                  }
-                  // Handle Enter key - wait for search to complete if searching
-                  if (e.key === "Enter" && vatTuInput && vatTuInput.trim()) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const trimmedValue = vatTuInput.trim();
-                    
-                    // Block Enter if currently searching (waiting for API)
-                    if (isSearching && searchPromiseRef.current) {
-                      // There's a search in progress (API call)
-                      pendingEnterValueRef.current = trimmedValue;
-                      setIsWaitingForEnter(true);
-                      try {
-                        // Wait for the entire search process to complete (debounce + API)
-                        await searchPromiseRef.current;
-                        // The search completion handler will process the pending value
-                      } catch (error) {
-                        console.error("Error waiting for search:", error);
-                        // If search fails, clear pending
-                        pendingEnterValueRef.current = null;
-                        setIsWaitingForEnter(false);
-                        message.warning("Tìm kiếm thất bại, vui lòng thử lại");
-                      }
-                      return;
-                    }
-                    
-                    // Block Enter if list is empty and we haven't searched yet
-                    // This means user is trying to select before search completes
-                    if (vatTuList.length === 0 && trimmedValue !== currentKeyword) {
-                      // Trigger search immediately (no debounce) and wait for it
-                      pendingEnterValueRef.current = trimmedValue;
-                      setIsWaitingForEnter(true);
-                      try {
-                        await handleSearch(trimmedValue, true);
-                        // The search completion handler will process the pending value
-                      } catch (error) {
-                        console.error("Error in search after Enter:", error);
-                        pendingEnterValueRef.current = null;
-                        setIsWaitingForEnter(false);
-                        message.warning("Tìm kiếm thất bại, vui lòng thử lại");
-                      }
-                      return;
-                    }
-                    
-                    // If not searching and list has data, check if value exists in current list
-                    const existsInList = vatTuList.some(
-                      (item) => item.value === trimmedValue || 
-                                item.item?.sku === trimmedValue
-                    );
-                    
-                    if (existsInList) {
-                      // Value exists, select it immediately
-                      handleVatTuSelect(trimmedValue);
-                    } else {
-                      // Value doesn't exist, trigger search immediately (no debounce)
-                      pendingEnterValueRef.current = trimmedValue;
-                      setIsWaitingForEnter(true);
-                      try {
-                        // Trigger search immediately (no debounce) and wait for it
-                        await handleSearch(trimmedValue, true);
-                        // The search completion handler will process the pending value
-                      } catch (error) {
-                        console.error("Error in search after Enter:", error);
-                        pendingEnterValueRef.current = null;
-                        setIsWaitingForEnter(false);
-                        message.warning("Tìm kiếm thất bại, vui lòng thử lại");
-                      }
-                    }
-                  }
-                }}
-                  style={{ width: "100%" }}
-                  disabled={!isEditMode || disableSearch || (isSearching && isWaitingForEnter)}
-                >
-                  {vatTuList.map((item) => (
-                    <Select.Option key={item.value} value={item.value} item={item}>
-                      <div>
-                        <div style={{ fontWeight: "bold" }}>{item.value}</div>
-                        <div style={{ fontSize: "12px", color: "#666" }}>
-                          {item.label}
-                        </div>
-                      </div>
-                    </Select.Option>
-                  ))}
-                </Select>
-              </div>
-            ) : (
-              <Input
-                ref={vatTuSelectRef}
-                value={vatTuInput}
-                onChange={handleBarcodeInputChange}
-                onKeyPress={handleBarcodeInputKeyPress}
-                onKeyDown={handleBarcodeInputKeyDown}
-                onBlur={handleBarcodeInputBlur}
-                onFocus={handleBarcodeInputFocus}
-                placeholder="Quét barcode vật tư..."
-                style={{ width: "calc(100% - 40px)" }}
-                disabled={!isEditMode}
-                autoFocus={barcodeEnabled}
-                autoComplete="off"
-                spellCheck={false}
-                className="barcode-input"
-                inputMode="text"
-                pattern="[0-9A-Za-z]*"
-                maxLength={50}
-              />
-            )}
-            <Button
-              icon={<BarcodeOutlined />}
-              type={barcodeEnabled ? "primary" : "default"}
-              onClick={() => {
-                if (!isEditMode) return;
+    <div style={{ display: "flex", alignItems: "center", gap: 4, width: "100%" }}>
+      {!barcodeEnabled ? (
+        <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+          {(loadingVatTu || isSearching) && (
+            <div
+              style={{
+                position: "absolute",
+                right: "8px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                zIndex: 10,
+                pointerEvents: "none",
+              }}
+            >
+              <Spin size="small" />
+            </div>
+          )}
+          <Select
+            ref={vatTuSelectRef}
+            showSearch={!disableSearch}
+            placeholder={disableSearch ? "Chỉ quét camera" : (isSearching ? "Đang tìm kiếm..." : "Chọn vật tư")}
+            optionFilterProp="children"
+            loading={loadingVatTu || isSearching}
+            value={vatTuInput}
+            onSearch={disableSearch ? undefined : handleSearch}
+            onSelect={(value, option) => {
+              if (disableSearch) {
+                message.warning("Chỉ cho phép quét camera. Vui lòng sử dụng nút camera để quét mã.");
+                return;
+              }
+              if (isSearching) {
+                message.warning("Vui lòng đợi kết quả tìm kiếm...");
+                return;
+              }
+              if (vatTuList.length === 0) {
+                message.warning("Vui lòng đợi kết quả tìm kiếm...");
+                return;
+              }
+              handleVatTuSelect(value, option);
+            }}
+            onOpenChange={disableSearch ? undefined : handleDropdownVisibleChange}
+            onPopupScroll={handlePopupScroll}
+            filterOption={false}
+            popupMatchSelectWidth={false}
+            notFoundContent={
+              disableSearch ? (
+                <div style={{ padding: "8px", textAlign: "center" }}>
+                  Vui lòng sử dụng camera để quét mã
+                </div>
+              ) : loadingVatTu || isSearching ? (
+                <div style={{ padding: "8px", textAlign: "center" }}>
+                  <Spin size="small" /> <span style={{ marginLeft: 8 }}>Đang tìm kiếm...</span>
+                </div>
+              ) : (
+                <div style={{ padding: "8px", textAlign: "center", color: "#999" }}>
+                  Không tìm thấy vật tư
+                </div>
+              )
+            }
+            onKeyDown={async (e) => {
+              if (disableSearch) {
+                e.preventDefault();
+                message.warning("Chỉ cho phép quét camera. Vui lòng sử dụng nút camera để quét mã.");
+                return;
+              }
+              if (e.key === "Enter" && vatTuInput && vatTuInput.trim()) {
+                e.preventDefault();
+                e.stopPropagation();
 
-                if (barcodeEnabled) {
-                  // Đang bật barcode -> tắt barcode
-                  setBarcodeEnabled(false);
-                  setVatTuInput("");
-                  dropdownOpenedRef.current = false;
-                  lastSearchValueRef.current = "";
-                  isProcessingRef.current = false;
-                  lastProcessedBarcodeRef.current = null;
+                const trimmedValue = vatTuInput.trim();
+
+                if (isSearching && searchPromiseRef.current) {
+                  pendingEnterValueRef.current = trimmedValue;
+                  setIsWaitingForEnter(true);
+                  try {
+                    await searchPromiseRef.current;
+                  } catch (error) {
+                    console.error("Error waiting for search:", error);
+                    pendingEnterValueRef.current = null;
+                    setIsWaitingForEnter(false);
+                    message.warning("Tìm kiếm thất bại, vui lòng thử lại");
+                  }
+                  return;
+                }
+
+                if (vatTuList.length === 0 && trimmedValue !== currentKeyword) {
+                  pendingEnterValueRef.current = trimmedValue;
+                  setIsWaitingForEnter(true);
+                  try {
+                    await handleSearch(trimmedValue, true);
+                  } catch (error) {
+                    console.error("Error in search after Enter:", error);
+                    pendingEnterValueRef.current = null;
+                    setIsWaitingForEnter(false);
+                    message.warning("Tìm kiếm thất bại, vui lòng thử lại");
+                  }
+                  return;
+                }
+
+                const existsInList = vatTuList.some(
+                  (item) => item.value === trimmedValue || item.item?.sku === trimmedValue
+                );
+
+                if (existsInList) {
+                  handleVatTuSelect(trimmedValue);
                 } else {
-                  // Đang tắt barcode
-                  if (onOpenQRScanner) {
-                    // Có callback -> mở modal camera (phiếu nhặt hàng)
-                    onOpenQRScanner();
-                  } else {
-                    // Không có callback -> bật barcode mode trực tiếp (POS)
-                    setBarcodeEnabled(true);
-                    setBarcodeJustEnabled(true);
-                    setVatTuInput("");
-                    dropdownOpenedRef.current = false;
-                    lastSearchValueRef.current = "";
-                    isProcessingRef.current = false;
-                    lastProcessedBarcodeRef.current = null;
+                  pendingEnterValueRef.current = trimmedValue;
+                  setIsWaitingForEnter(true);
+                  try {
+                    await handleSearch(trimmedValue, true);
+                  } catch (error) {
+                    console.error("Error in search after Enter:", error);
+                    pendingEnterValueRef.current = null;
+                    setIsWaitingForEnter(false);
+                    message.warning("Tìm kiếm thất bại, vui lòng thử lại");
                   }
                 }
-              }}
-              disabled={!isEditMode}
-              title={
-                onOpenQRScanner
-                  ? barcodeEnabled
-                    ? "Tắt chế độ barcode"
-                    : "Mở camera quét mã"
-                  : barcodeEnabled
-                  ? "Tắt chế độ barcode"
-                  : "Bật chế độ barcode"
               }
-            />
-          </Space.Compact>
-        </Col>
-      </Row>
+            }}
+            classNames={{ popup: { root: "vat-tu-dropdown" } }}
+            styles={{ popup: { root: { maxHeight: 300, overflow: "auto" } } }}
+            style={{ width: "100%" }}
+            disabled={!isEditMode || disableSearch || (isSearching && isWaitingForEnter)}
+          >
+            {vatTuList.map((item) => (
+              <Select.Option key={item.value} value={item.value} item={item}>
+                <div>
+                  <div style={{ fontWeight: "bold" }}>{item.value}</div>
+                  <div style={{ fontSize: "12px", color: "#666" }}>
+                    {item.label}
+                  </div>
+                </div>
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+      ) : (
+        <Input
+          ref={vatTuSelectRef}
+          value={vatTuInput}
+          onChange={handleBarcodeInputChange}
+          onKeyPress={handleBarcodeInputKeyPress}
+          onKeyDown={handleBarcodeInputKeyDown}
+          onBlur={handleBarcodeInputBlur}
+          onFocus={handleBarcodeInputFocus}
+          placeholder="Quét barcode vật tư..."
+          style={{ flex: 1 }}
+          disabled={!isEditMode}
+          autoFocus={barcodeEnabled}
+          autoComplete="off"
+          spellCheck={false}
+          className="barcode-input"
+          inputMode="text"
+          pattern="[0-9A-Za-z]*"
+          maxLength={50}
+        />
+      )}
+      <Button
+        icon={<BarcodeOutlined />}
+        type={barcodeEnabled ? "primary" : "default"}
+        onClick={() => {
+          if (!isEditMode) return;
+
+          if (barcodeEnabled) {
+            setBarcodeEnabled(false);
+            setVatTuInput("");
+            dropdownOpenedRef.current = false;
+            lastSearchValueRef.current = "";
+            isProcessingRef.current = false;
+            lastProcessedBarcodeRef.current = null;
+          } else {
+            if (onOpenQRScanner) {
+              onOpenQRScanner();
+            } else {
+              setBarcodeEnabled(true);
+              setBarcodeJustEnabled(true);
+              setVatTuInput("");
+              dropdownOpenedRef.current = false;
+              lastSearchValueRef.current = "";
+              isProcessingRef.current = false;
+              lastProcessedBarcodeRef.current = null;
+            }
+          }
+        }}
+        disabled={!isEditMode}
+        title={
+          onOpenQRScanner
+            ? barcodeEnabled
+              ? "Tắt chế độ barcode"
+              : "Mở camera quét mã"
+            : barcodeEnabled
+            ? "Tắt chế độ barcode"
+            : "Bật chế độ barcode"
+        }
+      />
+    </div>
   );
 };
 

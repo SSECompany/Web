@@ -304,7 +304,6 @@ const ProductSelectFull = ({
                   loadingVatTu ? "Đang tải..." : "Không tìm thấy"
                 }
                 onPopupScroll={handlePopupScroll}
-                getPopupContainer={(trigger) => trigger.parentNode}
                 styles={{
                   popup: {
                     root: { maxHeight: 300, overflow: "auto" },

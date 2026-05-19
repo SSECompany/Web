@@ -57,36 +57,14 @@ export const usePhieuNhapHangData = () => {
   ).current;
 
   const fetchMaGiaoDichList = useCallback(async () => {
-    if (
-      masterDataCache.lastFetch &&
-      Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
-      masterDataCache.maGiaoDich
-    ) {
-      setMaGiaoDichList(masterDataCache.maGiaoDich);
-      return;
-    }
-
-    try {
-      const response = await https.get(
-        "v1/web/danh-sach-ma-gd",
-        { ma_ct: "PNA" },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (response.data && response.data.data) {
-        const data = response.data.data;
-        setMaGiaoDichList(data);
-        masterDataCache.maGiaoDich = data;
-        masterDataCache.lastFetch = Date.now();
-      }
-    } catch (error) {
-      message.error("Không thể tải danh sách mã giao dịch");
-    }
-  }, [token]);
+    const data = [
+      { ma_gd: "1", ten_gd: "1 - Nhập mua hàng trong nước" },
+      { ma_gd: "2", ten_gd: "2 - Nhập mua hàng nhập khẩu" }
+    ];
+    setMaGiaoDichList(data);
+    masterDataCache.maGiaoDich = data;
+    masterDataCache.lastFetch = Date.now();
+  }, []);
 
   const fetchTkCoList = useCallback(
     async (keyword = "") => {
@@ -328,6 +306,34 @@ export const usePhieuNhapHangData = () => {
     []
   );
 
+  const fetchViTriList = useCallback(async (keyword = "", record = {}, page = 1) => {
+    try {
+      const { getViTriByKho } = require("../../../../../api");
+      const response = await getViTriByKho({
+        ma_kho: (record?.ma_kho || "").toString(),
+        ten_vi_tri: keyword,
+        pageIndex: page,
+        pageSize: 50,
+      });
+
+      const data = response?.listObject?.[0] || [];
+      const options = data.map((x) => {
+        const value = (
+          x?.ma_vi_tri ||
+          x?.value ||
+          x?.ten_vi_tri ||
+          ""
+        ).toString();
+        const label = x?.ma_vi_tri || x?.ten_vi_tri || x?.label || value;
+        return { value, label, ...x };
+      });
+      return options;
+    } catch (e) {
+      console.error("fetchViTriList error", e);
+      return [];
+    }
+  }, []);
+
   const clearCache = useCallback((type = null) => {
     if (type) {
       if (type === "donViTinh") {
@@ -368,6 +374,7 @@ export const usePhieuNhapHangData = () => {
     fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
+    fetchViTriList,
     setVatTuList,
     setMaKhachList,
     clearCache,

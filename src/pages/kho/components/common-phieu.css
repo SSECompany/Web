@@ -1167,6 +1167,83 @@ body {
   overflow: visible !important;
 }
 
+/* Cấu hình chiều cao (28px) đồng bộ cho các ô nhập liệu và nút bấm */
+.vat-tu-table .ant-table-tbody td .ant-select,
+.vat-tu-table .ant-table-tbody td .ant-select-selector,
+.vat-tu-table .ant-table-tbody td .ant-input,
+.vat-tu-table .ant-table-tbody td .ant-picker,
+.vat-tu-table .ant-table-tbody td .ant-input-number,
+.vat-tu-table .ant-table-tbody td .ant-space-compact,
+.vat-tu-table .ant-table-tbody td .ant-btn {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  line-height: 26px !important;
+  font-size: 12px !important;
+}
+
+/* Cấu hình chiều rộng full 100% cho các thành phần nhập liệu chính */
+.vat-tu-table .ant-table-tbody td .ant-select,
+.vat-tu-table .ant-table-tbody td .ant-input,
+.vat-tu-table .ant-table-tbody td .ant-picker,
+.vat-tu-table .ant-table-tbody td .ant-input-number,
+.vat-tu-table .ant-table-tbody td .ant-space-compact {
+  width: 100% !important;
+}
+
+/* Đảm bảo text/placeholder bên trong select và datepicker căn giữa dọc */
+.vat-tu-table .ant-table-tbody td .ant-select-selection-item,
+.vat-tu-table .ant-table-tbody td .ant-select-selection-placeholder,
+.vat-tu-table .ant-table-tbody td .ant-picker-input > input {
+  line-height: 26px !important;
+  font-size: 12px !important;
+}
+
+.vat-tu-table .ant-table-tbody td .ant-picker {
+  padding: 0 8px !important;
+}
+
+.vat-tu-table .ant-table-tbody td .ant-input-number-input {
+  height: 26px !important;
+  line-height: 26px !important;
+  font-size: 12px !important;
+}
+
+/* Đảm bảo Select/Input bên trong container flex hoặc Space.Compact co giãn đúng và không bị đè width: 100% */
+.vat-tu-table-flex-cell .ant-select,
+.vat-tu-table-flex-cell .ant-input,
+.ant-space-compact .ant-select,
+.ant-space-compact .ant-input,
+.ant-space-compact .ant-select-wrapper {
+  width: auto !important;
+  flex: 1 !important;
+}
+
+/* Căn giữa theo chiều dọc cho toàn bộ nội dung trong ô bảng */
+.vat-tu-table .ant-table-tbody > tr > td {
+  vertical-align: middle !important;
+}
+
+/* Đảm bảo flex containers (như cột Mã Lô) có cùng chiều cao 28px và căn giữa dọc */
+.vat-tu-table-flex-cell {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  width: 100%;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+}
+
+/* Đảm bảo icon PlusOutlined trong Mã lô căn giữa tuyệt đối */
+.vat-tu-table-flex-cell .anticon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+}
+
 /* Highlight invalid rows for POS-style vật tư table */
 .row-invalid td {
   background-color: #fff1f0 !important;

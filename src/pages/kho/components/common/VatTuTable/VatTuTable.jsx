@@ -1,5 +1,5 @@
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Empty, Input, Select, Table, Spin, Checkbox, message, DatePicker } from "antd";
+import { Button, Empty, Input, Select, Table, Spin, Checkbox, message, DatePicker, Space } from "antd";
 import { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import dayjs from "dayjs";
 import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
@@ -38,6 +38,7 @@ const VatTuTable = ({
   tableClassName = "vat-tu-table hidden_scroll_bar",
   focusInvalidRowKey,
   onFocusInvalidRowHandled,
+  onAddLotClick,
   ...otherProps
 }) => {
   const [loadingDvt, setLoadingDvt] = useState({});
@@ -294,6 +295,7 @@ const VatTuTable = ({
           tabIndex={-1}
           autoComplete="off"
           spellCheck={false}
+          size="small"
         />
       );
     },
@@ -604,7 +606,7 @@ const VatTuTable = ({
             ),
             dataIndex: "ma_kho",
             key: "ma_kho",
-            width: 120,
+            width: 220,
             align: "center",
             ellipsis: true,
             render: renderMaKhoSelect,
@@ -647,15 +649,12 @@ const VatTuTable = ({
           const clearVersion = currentRecord._ma_lo_clear_version ?? 0;
           return (
             <div
-              style={{
-                display: "flex",
-                gap: 8,
-                width: "100%",
-                justifyContent: "center",
-                ...(isDuplicateMaLo
+              className="vat-tu-table-flex-cell"
+              style={
+                isDuplicateMaLo
                   ? { backgroundColor: "#ffccc7", border: "1px solid #ff4d4f", borderRadius: 4 }
-                  : {}),
-              }}
+                  : {}
+              }
             >
               <Select
                 key={`ma-lo-${record.key}-${String(maLoValue)}-${clearVersion}`}
@@ -663,7 +662,7 @@ const VatTuTable = ({
                 allowClear
                 placeholder="Mã lô"
                 size="small"
-                style={{ width: 140 }}
+                style={{ flex: 1, minWidth: 100 }}
                 loading={isLoLoading}
                 onOpenChange={(visible) => {
                   setOpenLo((prev) => {
@@ -718,6 +717,35 @@ const VatTuTable = ({
                   ) : null
                 }
               />
+              {isEditMode && onAddLotClick && (
+                <PlusOutlined
+                  onClick={() => onAddLotClick(currentRecord)}
+                  style={{
+                    cursor: "pointer",
+                    color: "#1890ff",
+                    fontSize: 15,
+                    border: "1px solid #d9d9d9",
+                    borderRadius: 4,
+                    backgroundColor: "#ffffff",
+                    width: 28,
+                    minWidth: 28,
+                    height: 28,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "all 0.2s",
+                    boxShadow: "0 2px 0 rgba(0, 0, 0, 0.016)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#40a9ff";
+                    e.currentTarget.style.color = "#40a9ff";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "#d9d9d9";
+                    e.currentTarget.style.color = "#1890ff";
+                  }}
+                />
+              )}
             </div>
           );
         },
@@ -828,6 +856,39 @@ const VatTuTable = ({
             if (!isEditMode) {
               return value;
             }
+            if (apiHandlers.fetchViTriList) {
+              return (
+                <Select
+                  showSearch
+                  placeholder="Chọn vị trí"
+                  value={value || undefined}
+                  style={{ width: "100%" }}
+                  size="small"
+                  onSearch={(val) => loadViTriOptions(val, record, false, 1, "vi_tri")}
+                  onDropdownVisibleChange={(open) => {
+                    if (open) {
+                      const r = dataSource.find(it => it.key === record.key) || record;
+                      if (!r.viTriOptions || r.viTriOptions.length === 0) {
+                        loadViTriOptions("", record, false, 1, "vi_tri");
+                      }
+                    }
+                  }}
+                  onChange={(val) => onSelectChange(val, record, columnConfig.maViTriField || "ma_vi_tri")}
+                  options={record.viTriOptions || []}
+                  loading={loadingViTri[record.key]}
+                  filterOption={false}
+                  listHeight={250}
+                  onPopupScroll={(e) => {
+                    const { target } = e;
+                    if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !loadingViTri[record.key]) {
+                      const r = dataSource.find(it => it.key === record.key) || record;
+                      const nextP = (r.viTriPage || 1) + 1;
+                      loadViTriOptions("", record, false, nextP, "vi_tri");
+                    }
+                  }}
+                />
+              );
+            }
             return (
               <Input
                 value={value}
@@ -859,62 +920,95 @@ const VatTuTable = ({
             }
             
             if (columnConfig.maLoLookup) {
+              const currentRecord = dataSource.find((item) => item.key === record.key) || record;
               return (
-                <Select
-                  showSearch
-                  placeholder="Chọn lô"
-                  value={value || undefined}
-                  style={{ 
-                    width: "100%",
-                    ...(!!record._invalid_duplicate_ma_lo ? { backgroundColor: "#ffccc7", borderColor: "#ff4d4f" } : {})
-                  }}
-                  size="small"
-                  onSearch={(val) => loadLoOptions(val, record)}
-                  onDropdownVisibleChange={(open) => {
-                    if (open) {
-                      setOpenLo((prev) => ({ ...prev, [record.key]: true }));
-                      const r = dataSource.find(it => it.key === record.key) || record;
-                      if (!r.loOptions || r.loOptions.length === 0) {
-                        loadLoOptions("", record, true, 1);
+                <div className="vat-tu-table-flex-cell">
+                  <Select
+                    showSearch
+                    placeholder="Chọn lô"
+                    value={value || undefined}
+                    style={{ 
+                      flex: 1,
+                      minWidth: 80,
+                      ...(!!record._invalid_duplicate_ma_lo ? { backgroundColor: "#ffccc7", borderColor: "#ff4d4f" } : {})
+                    }}
+                    size="small"
+                    onSearch={(val) => loadLoOptions(val, record)}
+                    onDropdownVisibleChange={(open) => {
+                      if (open) {
+                        setOpenLo((prev) => ({ ...prev, [record.key]: true }));
+                        const r = dataSource.find(it => it.key === record.key) || record;
+                        if (!r.loOptions || r.loOptions.length === 0) {
+                          loadLoOptions("", record, true, 1);
+                        }
+                      } else {
+                        setOpenLo((prev) => {
+                          const next = { ...prev };
+                          delete next[record.key];
+                          return next;
+                        });
                       }
-                    } else {
-                      setOpenLo((prev) => {
-                        const next = { ...prev };
-                        delete next[record.key];
-                        return next;
-                      });
-                    }
-                  }}
-                  open={openLo[record.key]}
-                  onChange={(val) => onSelectChange(val, record, columnConfig.maLoField || "ma_lo")}
-                  options={record.loOptions || []}
-                  loading={loadingLo[record.key]}
-                  filterOption={false}
-                  listHeight={250}
-                   onPopupScroll={(e) => {
-                    const { target } = e;
-                    if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !loadingLo[record.key]) {
-                      const currentRecord = dataSource.find((it) => it.key === record.key) || record;
-                      const nextPage = (currentRecord.loPage || 1) + 1;
-                      const currentKeyword = currentRecord.loKeyword || "";
-                      const currentOptions = currentRecord.loOptions || [];
-                      // Load more if we haven't reached the end
-                      if (currentOptions.length < (currentRecord._loTotalPage || 1) * 10) {
-                        loadLoOptions(currentKeyword, record, false, nextPage);
+                    }}
+                    open={openLo[record.key]}
+                    onChange={(val) => onSelectChange(val, record, columnConfig.maLoField || "ma_lo")}
+                    options={record.loOptions || []}
+                    loading={loadingLo[record.key]}
+                    filterOption={false}
+                    listHeight={250}
+                     onPopupScroll={(e) => {
+                      const { target } = e;
+                      if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !loadingLo[record.key]) {
+                        const currentRecord = dataSource.find((it) => it.key === record.key) || record;
+                        const nextPage = (currentRecord.loPage || 1) + 1;
+                        const currentKeyword = currentRecord.loKeyword || "";
+                        const currentOptions = currentRecord.loOptions || [];
+                        // Load more if we haven't reached the end
+                        if (currentOptions.length < (currentRecord._loTotalPage || 1) * 10) {
+                          loadLoOptions(currentKeyword, record, false, nextPage);
+                        }
                       }
-                    }
-                  }}
-                  dropdownRender={(menu) => (
-                    <div>
-                      {menu}
-                      {loadingLo[record.key] ? (
-                        <div style={{ display: "flex", justifyContent: "center", padding: 8 }}>
-                          <Spin size="small" />
-                        </div>
-                      ) : null}
-                    </div>
+                    }}
+                    dropdownRender={(menu) => (
+                      <div>
+                        {menu}
+                        {loadingLo[record.key] ? (
+                          <div style={{ display: "flex", justifyContent: "center", padding: 8 }}>
+                            <Spin size="small" />
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+                  />
+                  {isEditMode && onAddLotClick && (
+                    <PlusOutlined
+                      onClick={() => onAddLotClick(currentRecord)}
+                      style={{
+                        cursor: "pointer",
+                        color: "#1890ff",
+                        fontSize: 15,
+                        border: "1px solid #d9d9d9",
+                        borderRadius: 4,
+                        backgroundColor: "#ffffff",
+                        width: 28,
+                        minWidth: 28,
+                        height: 28,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "all 0.2s",
+                        boxShadow: "0 2px 0 rgba(0, 0, 0, 0.016)",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#40a9ff";
+                        e.currentTarget.style.color = "#40a9ff";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#d9d9d9";
+                        e.currentTarget.style.color = "#1890ff";
+                      }}
+                    />
                   )}
-                />
+                </div>
               );
             }
 
@@ -934,6 +1028,14 @@ const VatTuTable = ({
                 className="vat-tu-table-input"
                 placeholder="Nhập mã lô"
                 size="small"
+                suffix={
+                  isEditMode && onAddLotClick ? (
+                    <PlusOutlined
+                      onClick={() => onAddLotClick(currentRecord)}
+                      style={{ cursor: "pointer", color: "#1890ff" }}
+                    />
+                  ) : null
+                }
               />
             );
           },
@@ -1340,6 +1442,8 @@ const VatTuTable = ({
     loadViTriOptions,
     onSelectChange,
     openLo,
+    apiHandlers,
+    onAddLotClick,
   ]);
 
   // Cấu hình scroll
@@ -1374,7 +1478,7 @@ const VatTuTable = ({
         className={tableClassName}
         scroll={getScrollConfig()}
         size="small"
-        tableLayout="auto"
+        tableLayout="fixed"
         {...otherProps}
       />
     </div>

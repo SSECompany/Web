@@ -8,7 +8,7 @@ import {
   normalizeNotification,
 } from '../utils/notificationUtils';
 
-const STORAGE_KEY = 'phenika_notifications';
+const STORAGE_KEY = 'tapmed_notifications';
 const POLL_INTERVAL = 10000; // 10 giây
 
 function loadFromStorage() {
@@ -41,6 +41,8 @@ export function useNotifications() {
   const pollTimerRef = useRef(null);
   const MAX_RECONNECT_DELAY = 30000;
   const prevNotifIdsRef = useRef(new Set(loadFromStorage().map((n) => n.id)));
+  const connectSignalRRef = useRef(null);
+  const scheduleReconnectRef = useRef(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!jwt.getAccessToken()) {
@@ -163,7 +165,7 @@ export function useNotifications() {
 
     conn.onclose(() => {
       setRealtimeConnected(false);
-      scheduleReconnect();
+      scheduleReconnectRef.current?.();
     });
 
     const eventNames = [
@@ -195,7 +197,7 @@ export function useNotifications() {
       })
       .catch((err) => {
         setRealtimeConnected(false);
-        scheduleReconnect();
+        scheduleReconnectRef.current?.();
       });
   }, [pushNotification]);
 
@@ -206,10 +208,12 @@ export function useNotifications() {
     reconnectAttemptsRef.current = attempt + 1;
     reconnectTimerRef.current = setTimeout(() => {
       reconnectTimerRef.current = null;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      connectSignalR();
+      connectSignalRRef.current?.();
     }, delay);
   }, []);
+
+  connectSignalRRef.current = connectSignalR;
+  scheduleReconnectRef.current = scheduleReconnect;
 
   useEffect(() => {
     connectSignalR();

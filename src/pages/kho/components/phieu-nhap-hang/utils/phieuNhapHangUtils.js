@@ -382,32 +382,5 @@ export const fetchVatTuListDynamicApi = async (params) => {
 
 // Lấy thông tin phiếu nhập mặc định
 export const fetchVoucherInfo = async () => {
-  const token = localStorage.getItem("access_token");
-  const https = (await import("../../../../../utils/https")).default;
-
-  try {
-    const response = await https.get(
-      "v1/web/thong-tin-phieu-nhap",
-      { voucherCode: "PNA" },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (
-      response.data &&
-      response.data.data &&
-      response.data.data.length > 0
-    ) {
-      return response.data.data[0];
-    }
-
-    return null;
-  } catch (error) {
-    console.error("Lỗi lấy thông tin phiếu nhập hàng:", error);
-    return null;
-  }
+  return null;
 };

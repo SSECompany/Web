@@ -70,6 +70,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
     fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
+    fetchViTriList,
     setVatTuList,
     setMaKhachList,
   } = usePhieuNhapHangData();
@@ -322,9 +323,11 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
   }, [dataSource, form]);
 
   const TRANG_THAI_OPTIONS = [
-  { value: "2", label: "Chuyển vào SC" },
-  { value: "3", label: "Nhập kho" },
-];
+    { value: "0", label: "Lập chứng từ", style: { display: "none" } },
+    { value: 0, label: "Lập chứng từ", style: { display: "none" } },
+    { value: "2", label: "Chuyển vào SC" },
+    { value: "3", label: "Nhập kho" },
+  ];
   const handleVatTuSelectPNA = (value, option) => {
     const currentValues = form.getFieldsValue();
     vatTuSelectHandler(
@@ -725,6 +728,10 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                           fetchMaKhoListDebounced={fetchMaKhoListDebounced}
                           fetchMaKhoList={fetchMaKhoList}
                           fetchDonViTinh={fetchDonViTinh}
+                          fetchViTriList={(keyword, record, page) => {
+                            const maKho = record.ma_kho || record.maKho || form.getFieldValue("maKho") || "";
+                            return fetchViTriList(keyword, { ...record, ma_kho: maKho }, page);
+                          }}
                           onDataSourceUpdate={setDataSource}
                       />
 

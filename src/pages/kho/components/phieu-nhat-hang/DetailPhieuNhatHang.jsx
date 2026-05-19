@@ -533,10 +533,10 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       const maNvbh = phieuData?.ma_nvbh || "";
       const userNameFromToken = userInfo?.userName || "";
       
-      if (maNvbh && userNameFromToken && maNvbh.trim() === userNameFromToken.trim()) {
+      if (maNvbh && userNameFromToken && maNvbh.trim().toLowerCase() === userNameFromToken.trim().toLowerCase()) {
         // Nhân viên đã được gán và là chính người dùng hiện tại, không cần gọi API
         // Chuyển thẳng sang edit mode
-        navigate(`/kho/nhat-hang/chi-tiet/${id}`);
+        navigate(`/kho/nhat-hang/edit/${id}`);
         setIsEditMode(true);
         return;
       }
@@ -600,7 +600,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       setLoading(false);
 
       // Switch to edit mode
-      navigate(`/kho/nhat-hang/chi-tiet/${id}`);
+      navigate(`/kho/nhat-hang/edit/${id}`);
       setIsEditMode(true);
     } catch (error) {
       console.error("Error in handleEdit:", error);
@@ -919,39 +919,41 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
       <div className="phieu-form-container">
         <div className="phieu-form phieu-form--floating">
           {/* Thanh tìm kiếm/ chọn vật tư đặt ngay trên bảng */}
-          <div style={{ marginTop: 8, marginBottom: 8 }}>
-            <div
-              style={{
-                marginBottom: 8,
-                fontWeight: "600",
-                fontSize: "13px",
-                color: "#374151",
-              }}
-            >
-              Vật tư
+          {isEditMode && (
+            <div style={{ marginTop: 8, marginBottom: 8 }}>
+              <div
+                style={{
+                  marginBottom: 8,
+                  fontWeight: "600",
+                  fontSize: "13px",
+                  color: "#374151",
+                }}
+              >
+                Vật tư
+              </div>
+              <VatTuSelectFullPOS
+                isEditMode={isEditMode}
+                barcodeEnabled={barcodeEnabled}
+                setBarcodeEnabled={setBarcodeEnabled}
+                setBarcodeJustEnabled={setBarcodeJustEnabled}
+                vatTuInput={vatTuInput}
+                setVatTuInput={setVatTuInput}
+                vatTuSelectRef={vatTuSelectRef}
+                loadingVatTu={loadingVatTu}
+                vatTuList={vatTuList}
+                searchTimeoutRef={searchTimeoutRef}
+                fetchVatTuList={fetchVatTuListWrapper}
+                handleVatTuSelect={handleVatTuSelect}
+                totalPage={totalPage}
+                pageIndex={pageIndex}
+                setPageIndex={setPageIndex}
+                setVatTuList={setVatTuList}
+                currentKeyword={currentKeyword}
+                onOpenQRScanner={() => setShowQRScanner(true)}
+                disableSearch={false}
+              />
             </div>
-            <VatTuSelectFullPOS
-              isEditMode={isEditMode}
-              barcodeEnabled={barcodeEnabled}
-              setBarcodeEnabled={setBarcodeEnabled}
-              setBarcodeJustEnabled={setBarcodeJustEnabled}
-              vatTuInput={vatTuInput}
-              setVatTuInput={setVatTuInput}
-              vatTuSelectRef={vatTuSelectRef}
-              loadingVatTu={loadingVatTu}
-              vatTuList={vatTuList}
-              searchTimeoutRef={searchTimeoutRef}
-              fetchVatTuList={fetchVatTuListWrapper}
-              handleVatTuSelect={handleVatTuSelect}
-              totalPage={totalPage}
-              pageIndex={pageIndex}
-              setPageIndex={setPageIndex}
-              setVatTuList={setVatTuList}
-              currentKeyword={currentKeyword}
-              onOpenQRScanner={() => setShowQRScanner(true)}
-              disableSearch={false}
-            />
-          </div>
+          )}
 
           <VatTuNhatHangTable
             dataSource={dataSource}
