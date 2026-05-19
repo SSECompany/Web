@@ -292,7 +292,7 @@ const ProcessPhieuGiaoHang = () => {
   const currentStatus = String(phieuData?.status || "1");
   const canStore = currentStatus === "1";       // 1 -> 2
   const canExport = currentStatus === "2";     // 2 -> 3
-  const canHandover = currentStatus === "3" || currentStatus === "5";   // 3 hoặc 5 -> hiện nút Bàn giao ĐVVC
+  const canHandover = currentStatus === "3";   // Chỉ 3 -> hiện nút Bàn giao ĐVVC
   const canComplete = currentStatus === "5";   // 5 -> 6
   const canFail = currentStatus === "5";       // 5 -> 7
   const canReturnToStore = currentStatus === "7"; // 7 -> 2 (Thất bại -> Chuyển về kho)
