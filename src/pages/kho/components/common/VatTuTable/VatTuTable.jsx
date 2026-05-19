@@ -1,5 +1,5 @@
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Empty, Input, Select, Table, Spin, Checkbox, message } from "antd";
+import { Button, Empty, Input, Select, Table, Spin, Checkbox, message, DatePicker } from "antd";
 import { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import dayjs from "dayjs";
 import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
@@ -497,14 +497,20 @@ const VatTuTable = ({
               const maViTri = currentRecord[columnConfig.maViTriField || "ma_vi_tri"] || "";
               const soLuongTon = currentRecord[columnConfig.soLuongTonField || "so_luong_ton"];
               const tonKh = currentRecord[columnConfig.tonKhField || "ton_kh"];
+              const ngayLoDateGanNhat = currentRecord.ngay_lo_date_gan_nhat;
               
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '4px 0', gap: 4 }}>
                   <div style={{ color: '#333', fontSize: '13px', lineHeight: '1.4' }}>
                     {maVt ? `${maVt} - ` : ""}{tenVt}
                   </div>
-                  <div style={{ color: '#666', fontSize: '13px' }}>
-                    {dvt}
+                  <div style={{ color: '#666', fontSize: '13px', display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+                    <span>{dvt}</span>
+                    {ngayLoDateGanNhat && (
+                      <span style={{ fontWeight: 800, color: '#000' }}>
+                        {dayjs(ngayLoDateGanNhat).isValid() ? dayjs(ngayLoDateGanNhat).format('DD/MM/YYYY') : ngayLoDateGanNhat}
+                      </span>
+                    )}
                   </div>
                   {maViTri ? (
                     <div style={{ color: '#ff4d4f', fontWeight: 'bold', fontSize: '13px' }}>
@@ -939,9 +945,25 @@ const VatTuTable = ({
           title: "Hạn sử dụng",
           dataIndex: columnConfig.hanSuDungField || "ngay_hh",
           key: "han_su_dung",
-          width: 120,
+          width: 150,
           align: "center",
-          render: (v) => (v ? dayjs(v).format("DD/MM/YYYY") : ""),
+          render: (v, record) => {
+            if (!isEditMode) {
+              return v ? dayjs(v).format("DD/MM/YYYY") : "";
+            }
+            return (
+              <DatePicker
+                value={v ? dayjs(v) : null}
+                format="DD/MM/YYYY"
+                onChange={(date) => 
+                  onSelectChange(date ? date.format("YYYY-MM-DD") : null, record, columnConfig.hanSuDungField || "ngay_hh")
+                }
+                style={{ width: "100%" }}
+                size="small"
+                placeholder="Hạn SD"
+              />
+            );
+          },
         });
       }
     }

@@ -84,6 +84,14 @@ const AddPhieuNhapHang = () => {
     });
   };
 
+  const ngay = Form.useWatch("ngay", form);
+
+  useEffect(() => {
+    if (ngay) {
+      form.setFieldsValue({ ngayHachToan: ngay });
+    }
+  }, [ngay, form]);
+
   useEffect(() => {
     if (isInitialized) return;
 
@@ -98,22 +106,40 @@ const AddPhieuNhapHang = () => {
       ]);
 
       const voucherData = await fetchVoucherInfo();
+      const now = dayjs();
+      
+      const formData = {
+        ngay: now,
+        ngayHachToan: now,
+        maGiaoDich: "1",
+        donViTienTe: "VND",
+        tyGia: 1,
+        trangThai: "3",
+        dienGiai: "Nhập hàng theo đơn",
+        soPhieu: "",
+        maKhach: "",
+        soDonHang: "",
+      };
+
       if (voucherData) {
-        const formData = {
-          soPhieu: voucherData.so_phieu_nhap,
-          ngay: voucherData.ngay_lap ? dayjs(voucherData.ngay_lap) : dayjs(),
-          maGiaoDich: voucherData.ma_giao_dich || "1",
-          maCt: voucherData.ma_ct,
-          donViTienTe: voucherData.base_currency || "VND",
-          tyGia: 1,
-          trangThai: "3",
-          maKhach: voucherData.ma_khach || "",
-          dienGiai: voucherData.dien_giai || "Nhập hàng theo đơn",
-          soDonHang: "", // Field for PO No.
-        };
-        form.setFieldsValue(formData);
+        formData.soPhieu = voucherData.so_phieu_nhap || "";
+        formData.maCt = voucherData.ma_ct || "PNA";
+        if (voucherData.ngay_lap) {
+          const d = dayjs(voucherData.ngay_lap);
+          if (d.isValid()) {
+            formData.ngay = d;
+            formData.ngayHachToan = d;
+          }
+        }
+        if (voucherData.ma_giao_dich) formData.maGiaoDich = voucherData.ma_giao_dich;
+        if (voucherData.ma_khach) formData.maKhach = voucherData.ma_khach;
+        if (voucherData.dien_giai) formData.dienGiai = voucherData.dien_giai;
+        if (voucherData.base_currency) formData.donViTienTe = voucherData.base_currency;
+
         message.success("Đã tải thông tin phiếu nhập hàng thành công");
       }
+      
+      form.setFieldsValue(formData);
     };
 
     initializeData();
@@ -420,7 +446,17 @@ const AddPhieuNhapHang = () => {
           }
         ]}
       >
-        <Form form={form} layout="vertical">
+        <Form 
+          form={form} 
+          layout="vertical"
+          initialValues={{
+            ngay: dayjs(),
+            ngayHachToan: dayjs(),
+            maGiaoDich: "1",
+            trangThai: "3",
+            dienGiai: "Nhập hàng theo đơn"
+          }}
+        >
           <div className="detail-phieu-nhap-hang__body">
             <div className="phieu-form-section phieu-form--floating" style={{ paddingBottom: 0, marginBottom: 24, padding: "24px 28px" }}>
               <PhieuNhapHangFormInputs

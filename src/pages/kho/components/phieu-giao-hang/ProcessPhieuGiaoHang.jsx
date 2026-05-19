@@ -292,8 +292,7 @@ const ProcessPhieuGiaoHang = () => {
   const currentStatus = String(phieuData?.status || "1");
   const canStore = currentStatus === "1";       // 1 -> 2
   const canExport = currentStatus === "2";     // 2 -> 3
-  const canUpdateDeliveryInfo = currentStatus === "3"; // 3 -> 5 (cập nhật thông tin giao hàng, không yêu cầu ảnh/chi phí)
-  const canHandover = currentStatus === "5";   // Đã ở 5 thì mới hiện nút Bàn giao ĐVVC để cập nhật xe/chi phí/ảnh
+  const canHandover = currentStatus === "3" || currentStatus === "5";   // 3 hoặc 5 -> hiện nút Bàn giao ĐVVC
   const canComplete = currentStatus === "5";   // 5 -> 6
   const canFail = currentStatus === "5";       // 5 -> 7
   const canReturnToStore = currentStatus === "7"; // 7 -> 2 (Thất bại -> Chuyển về kho)
@@ -428,8 +427,6 @@ const ProcessPhieuGiaoHang = () => {
     if (!phieuData) return;
     if (confirmLoading) return; // Chặn spam bấm nhiều lần
 
-    // Cập nhật thông tin giao hàng: chỉ chuyển status 3 -> 5, không bắt buộc ảnh/xe/chi phí
-    const isUpdateDeliveryInfo = confirmAction === "updateDeliveryInfo";
     const isHandover = confirmAction === "handover" || (confirmAction === "save" && selectedStatus === "5");
     // Bàn giao ĐVVC: không còn bắt buộc ảnh theo yêu cầu mới
 
@@ -441,9 +438,6 @@ const ProcessPhieuGiaoHang = () => {
       if (confirmAction === "save") {
         // Lưu trạng thái đã chọn
         newStatus = selectedStatus;
-      } else if (confirmAction === "updateDeliveryInfo") {
-        // Chỉ chuyển status 3 -> 5, không gửi xe/chi phí
-        newStatus = "5";
       } else if (confirmAction === "handover" && currentStatus === "5") {
         // Đã ở Bàn giao ĐVVC: chỉ cập nhật xe/chi phí/ảnh, không đổi trạng thái
         newStatus = "";
@@ -474,8 +468,7 @@ const ProcessPhieuGiaoHang = () => {
       // Đảm bảo unitCode không có khoảng trắng thừa
       unitCode = unitCode.trim();
 
-      // Cập nhật thông tin giao hàng: chỉ gửi newStatus 5, không gửi xe/chi phí (backend chỉ cho phép đổi xe/chi phí khi đã ở status 5)
-      const sendVehicleCost = (confirmAction === "handover" || (confirmAction === "save" && newStatus === "5")) && confirmAction !== "updateDeliveryInfo";
+      const sendVehicleCost = (confirmAction === "handover" || (confirmAction === "save" && newStatus === "5"));
       // Chỉ truyền vào payload các trường có giá trị thay đổi so với hiện tại
       const currentVehicle = (phieuData?.vehicleCode || "").trim();
       const newVehicle = (confirmVehicle || "").trim();
@@ -561,7 +554,6 @@ const ProcessPhieuGiaoHang = () => {
       case "returnToStore": return "Chuyển về kho";
       case "export": return "Xuất hàng";
       case "receive": return "Đã tiếp nhận";
-      case "updateDeliveryInfo": return "Cập nhật thông tin giao hàng";
       case "handover": return "Bàn giao ĐVVC";
       case "complete": return "Hoàn thành";
       case "fail": return "Thất bại";
@@ -575,7 +567,6 @@ const ProcessPhieuGiaoHang = () => {
       case "returnToStore": return "#faad14";
       case "export": return "#1890ff";
       case "receive": return "#722ed1";
-      case "updateDeliveryInfo": return "#13c2c2";
       case "handover": return "#13c2c2";
       case "complete": return "#52c41a";
       case "fail": return "#ff4d4f";
@@ -1124,17 +1115,6 @@ const ProcessPhieuGiaoHang = () => {
                 Xuất hàng
               </Button>
             )}
-            {canUpdateDeliveryInfo && (
-              <Button
-                type="primary"
-                size="large"
-                icon={<EditOutlined />}
-                className="process-action-btn handover"
-                onClick={() => handleAction("updateDeliveryInfo")}
-              >
-                Cập nhật thông tin giao hàng
-              </Button>
-            )}
             {canHandover && (
               <Button
                 type="primary"
@@ -1239,7 +1219,7 @@ const ProcessPhieuGiaoHang = () => {
             </p>
           )}
           
-          {(confirmAction === "handover" || (confirmAction === "save" && selectedStatus === "5")) && confirmAction !== "updateDeliveryInfo" && (
+          {(confirmAction === "handover" || (confirmAction === "save" && selectedStatus === "5")) && (
             <>
               <div className="process-confirm-field">
                 <label style={{ fontWeight: 700, marginBottom: "8px", display: "block" }}>Chọn xe:</label>
@@ -1323,7 +1303,7 @@ const ProcessPhieuGiaoHang = () => {
             />
           </div>
 
-          {(confirmAction === "handover" || (confirmAction === "save" && selectedStatus === "5")) && confirmAction !== "updateDeliveryInfo" && (
+          {(confirmAction === "handover" || (confirmAction === "save" && selectedStatus === "5")) && (
             <div className="process-confirm-field">
               <div className="process-upload-section">
                 <div className="process-upload-milestone">
