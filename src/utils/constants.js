@@ -9,6 +9,16 @@ export const APP_CONFIG = {
   apiUrl: process.env.REACT_APP_ROOT_API,
 };
 
+/** Base URL cho SignalR hub (bỏ /api khỏi REACT_APP_ROOT_API). */
+export const getHubBaseUrl = () => {
+  const configured = process.env.REACT_APP_NOTIFICATION_HUB_URL;
+  if (configured) return configured.replace(/\/$/, "");
+
+  const apiUrl = (APP_CONFIG.apiUrl || "").replace(/\/$/, "");
+  if (!apiUrl) return "";
+  return apiUrl.replace(/\/api\/?$/i, "");
+};
+
 export const formStatus = {
   ADD: "ADD",
   EDIT: "EDIT",

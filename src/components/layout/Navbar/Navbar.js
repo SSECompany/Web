@@ -15,7 +15,7 @@ import jwt from "../../../utils/jwt";
 import { clearStorageExceptVersion } from "../../../utils/tokenUtils";
 
 import "./Navbar.css";
-
+import NotificationBell from "./NotificationBell";
 const Navbar = () => {
   const dispatch = useDispatch();
   const userInfo = useSelector(getUserInfo);
@@ -120,6 +120,8 @@ const Navbar = () => {
       "kho/nhap-kho/them-moi",
       "kho/nhap-hang",
       "kho/nhap-hang/them-moi",
+      "kho/nhap-hang-copy",
+      "kho/nhap-hang-copy/them-moi",
       "kho/xuat-ban",
       // Các phiếu kho mới
       "kho/nhap-dieu-chuyen",
@@ -170,6 +172,10 @@ const Navbar = () => {
       // Phiếu nhập hàng mới
       currentPath.match(/^kho\/nhap-hang\/chi-tiet\/edit\/[^/]+$/) ||
       currentPath.match(/^kho\/nhap-hang\/(chi-tiet|edit)\/[^/]+$/) ||
+      //Phiếu nhập hàng copy
+      // Phiếu nhập hàng mới
+      currentPath.match(/^kho\/nhap-hang-copy\/chi-tiet\/edit\/[^/]+$/) ||
+      currentPath.match(/^kho\/nhap-hang-copy\/(chi-tiet|edit)\/[^/]+$/) ||
       // Phiếu xuất kho: cho phép chi tiết + edit
       currentPath.match(/^kho\/xuat-kho\/(chi-tiet|edit)\/[^/]+$/) ||
       // Phiếu nhập điều chuyển: cho phép chi tiết + edit
@@ -282,7 +288,7 @@ const Navbar = () => {
           />
         </div>
 
-        <div className="first_navbar_row_right flex gap-1">
+        <div className="first_navbar_row_right flex items-center gap-1">
           <button
             type="button"
             className="navbar_fullscreen_btn"
@@ -292,6 +298,7 @@ const Navbar = () => {
           >
             {isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
           </button>
+           <NotificationBell />
           <div className="navbar_version px-1 text-center items-center gap-2">
             <VersionIndicator showDetails={true} size="small" />
           </div>
