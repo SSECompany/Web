@@ -114,19 +114,15 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
           currentVersionRef.current.buildHash !== newVersion.buildHash);
 
       if (isDifferent) {
-        // Đã có countdown đang chạy (từ instance khác, vd: login → sau đăng nhập) → không tạo thêm
+        // Đã có thông báo hiển thị → không tạo thêm
         if (globalCountdownActive) return;
 
         globalCountdownActive = true;
         setHasNewVersion(true);
         setNewVersionInfo(newVersion);
 
-        let secondsLeft = COUNTDOWN_SECONDS;
-        let countdownInterval = null;
-
         const doUpdate = async () => {
           globalCountdownActive = false;
-          if (countdownInterval) clearInterval(countdownInterval);
           notification.destroy(NOTIF_KEY);
           await clearAllBrowserData();
           localStorage.setItem("app_version", JSON.stringify(newVersion));
@@ -139,40 +135,31 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
           window.location.replace(url);
         };
 
-        const updateNotif = () => {
-          notification.info({
-            key: NOTIF_KEY,
-            message: "Có phiên bản mới!",
-            description: `Phiên bản ${newVersion.version} đã có sẵn. Trang sẽ tự động cập nhật sau ${secondsLeft} giây...`,
-            duration: 0,
-            btn: (
-              <button
-                onClick={() => doUpdate()}
-                style={{
-                  background: "#1890ff",
-                  color: "white",
-                  border: "none",
-                  padding: "4px 12px",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontWeight: 500,
-                }}
-              >
-                Cập nhật ngay
-              </button>
-            ),
-          });
-        };
-
-        updateNotif();
-
-        countdownInterval = setInterval(() => {
-          secondsLeft -= 1;
-          updateNotif();
-          if (secondsLeft <= 0) {
-            doUpdate();
-          }
-        }, 1000);
+        notification.info({
+          key: NOTIF_KEY,
+          message: "Có phiên bản mới!",
+          description: `Phiên bản ${newVersion.version} đã có sẵn. Vui lòng cập nhật để sử dụng các tính năng mới nhất.`,
+          duration: 0,
+          onClose: () => {
+            globalCountdownActive = false;
+          },
+          btn: (
+            <button
+              onClick={() => doUpdate()}
+              style={{
+                background: "#1890ff",
+                color: "white",
+                border: "none",
+                padding: "4px 12px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontWeight: 500,
+              }}
+            >
+              Cập nhật ngay
+            </button>
+          ),
+        });
 
         return;
       }
