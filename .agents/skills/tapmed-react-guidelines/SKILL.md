@@ -34,7 +34,9 @@ Ensure you use ONLY the allowed libraries and tools that are already declared in
   - `lucide-react`, `@iconscout/react-unicons`, and `primeicons`.
 - **Utilities**:
   - **Day.js**: Preferred date/time library over Moment.js for new utilities.
+  - **Number Formatting**: Always use `formatCurrency`, `formatNumber`, or `formatData` from `src/pharmacy-utils/hook/dataFormatHelper.js` when displaying money or quantities.
   - **Read Vietnamese Numbers**: Use `read-vietnamese-number` or `vn-num2words`.
+  - **Authentication**: Use the `jwt` object exported from `src/utils/jwt.js` to handle `access_token`, `refresh_token`, and JWT claims rather than manually reading `localStorage`.
 
 ---
 

@@ -1,12 +1,10 @@
 import { jwtDecode } from "jwt-decode";
-import Cookies from "universal-cookie";
 import {
   checkExistToken as checkToken,
   getTokenExpiry,
   isTokenExpired as isExpired,
   setTokenExpiry,
 } from "./tokenUtils";
-const cookies = new Cookies();
 const ACCESS_TOKEN_KEY = "access_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
 const TOKEN_EXPIRY_KEY = "token_expiry";
@@ -86,13 +84,6 @@ const setTokenExpiryFromJwt = (token) => {
   }
 };
 
-const claimNewToken = async () => {
-  const payload = {
-    token: getAccessToken(),
-    refreshToken: getRefreshToken(),
-  };
-};
-
 // Utilities from tokenUtils (imported at top)
 
 const isTokenExpired = () => {
@@ -115,8 +106,13 @@ const saveClaims = (token) => {
 };
 
 const getClaims = () => {
-  const claims = jwtDecode(getAccessToken());
-  return claims;
+  const token = getAccessToken();
+  if (!token) return {};
+  try {
+    return jwtDecode(token);
+  } catch (error) {
+    return {};
+  }
 };
 
 const getStatistictboardSetting = () => {
@@ -168,7 +164,6 @@ const jwt = {
   setAccessToken,
   setRefreshToken,
   applyRefreshResponse,
-  claimNewToken,
   checkExistToken,
   resetAccessToken,
   saveClaims,

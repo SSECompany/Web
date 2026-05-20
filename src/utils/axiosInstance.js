@@ -14,8 +14,16 @@ import { clearStorageExceptVersion } from "./tokenUtils";
 
 const controller = new AbortController();
 const MAX_REQUESTS_COUNT = 3;
-const INTERVAL_MS = 300;
 let PENDING_REQUESTS = 0;
+const requestQueue = [];
+
+function dequeue() {
+  if (PENDING_REQUESTS < MAX_REQUESTS_COUNT && requestQueue.length > 0) {
+    const nextTask = requestQueue.shift();
+    PENDING_REQUESTS++;
+    nextTask();
+  }
+}
 let refreshingFunc = undefined;
 
 const instance = axios.create({
@@ -50,25 +58,22 @@ instance.interceptors.request.use((req) => {
       req.headers.Authorization = `Bearer ${token}`;
     }
   }
-  return new Promise((resolve, reject) => {
-    let interval = setInterval(() => {
-      if (PENDING_REQUESTS < MAX_REQUESTS_COUNT) {
-        PENDING_REQUESTS++;
-        clearInterval(interval);
-        resolve(req);
-      }
-    }, INTERVAL_MS);
+  return new Promise((resolve) => {
+    requestQueue.push(() => resolve(req));
+    dequeue();
   });
 });
 
 instance.interceptors.response.use(
   async (res) => {
     PENDING_REQUESTS = Math.max(0, PENDING_REQUESTS - 1);
+    dequeue();
     return Promise.resolve(res);
   },
   async (error) => {
     const config = error?.config;
     PENDING_REQUESTS = Math.max(0, PENDING_REQUESTS - 1);
+    dequeue();
 
     if (error?.response?.status === 401) {
       // Request refresh trả 401 → logout ngay, không gọi refresh lại
