@@ -17,9 +17,6 @@ import AddPhieuNhapHang from "../pages/kho/components/phieu-nhap-hang/AddPhieuNh
 import DetailPhieuNhapHang from "../pages/kho/components/phieu-nhap-hang/DetailPhieuNhapHang";
 // Pages
 const Login = lazyRetry(() => import("../pages/Login/Login"));
-// ===== BÁN HÀNG & TRẢ HÀNG IMPORTS DISABLED IN BRANCH 08012026_kho =====
-// const POSPage = lazy(() => import("../pages/pharmacy/POS"));
-// const ReturnPOSPage = lazy(() => import("../pages/pharmacy/ReturnPOS"));
 const KhoPage = lazyRetry(() => import("../pages/kho/Kho"));
 const KinhDoanhPage = lazyRetry(() => import("../pages/kinh-doanh/KinhDoanh"));
 const ListPhieuKinhDoanh = lazyRetry(() => import("../pages/kinh-doanh/components/phieu-kinh-doanh/ListPhieuKinhDoanh"));
@@ -85,10 +82,6 @@ const DetailPhieuYeuCauKiemKe = lazyRetry(() =>
 );
 
 const protectedChildrenRoutes = [
-  // ===== BÁN HÀNG & TRẢ HÀNG ROUTES DISABLED IN BRANCH 08012026_kho =====
-  // { label: "Bán hàng", path: "ban-hang", element: <POSPage /> },
-  // { label: "Trả hàng", path: "tra-hang", element: <ReturnPOSPage /> },
-
   {
     label: "Kinh doanh",
     path: "kinh-doanh",

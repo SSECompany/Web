@@ -11,6 +11,9 @@ metadata:
 
 Comprehensive performance optimization guide for React and Next.js applications, maintained by Vercel. Contains 65 rules across 8 categories, prioritized by impact to guide automated refactoring and code generation.
 
+> [!IMPORTANT]
+> **Project Context**: This project is a standard React 18 client-side SPA (using `react-router-dom` and `redux-toolkit`). It does **not** use Next.js, React Server Components (RSC), or server actions. When applying this skill, Next.js-specific rules (like `next/dynamic`, `after()`, LRU server caches) should be ignored or adapted to client-side equivalents (e.g., using `React.lazy` instead of `next/dynamic`).
+
 ## When to Apply
 
 Reference these guidelines when:
