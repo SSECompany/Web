@@ -298,7 +298,7 @@ const Navbar = () => {
           >
             {isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
           </button>
-           <NotificationBell />
+           {hasBusinessPermission && routeLocation.pathname.startsWith("/kinh-doanh") && <NotificationBell />}
           <div className="navbar_version px-1 text-center items-center gap-2">
             <VersionIndicator showDetails={true} size="small" />
           </div>

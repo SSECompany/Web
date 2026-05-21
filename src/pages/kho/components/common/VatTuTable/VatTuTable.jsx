@@ -510,7 +510,7 @@ const VatTuTable = ({
                     <span>{dvt}</span>
                     {ngayLoDateGanNhat && (
                       <span style={{ fontWeight: 800, color: '#000' }}>
-                        {dayjs(ngayLoDateGanNhat).isValid() ? dayjs(ngayLoDateGanNhat).format('DD/MM/YYYY') : ngayLoDateGanNhat}
+                        HSD: {dayjs(ngayLoDateGanNhat).isValid() ? dayjs(ngayLoDateGanNhat).format('DD/MM/YYYY') : ngayLoDateGanNhat}
                       </span>
                     )}
                   </div>

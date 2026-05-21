@@ -9,7 +9,6 @@ import {
 } from '../utils/notificationUtils';
 
 const STORAGE_KEY = 'tapmed_notifications';
-const POLL_INTERVAL = 10000; // 10 giây
 
 function loadFromStorage() {
   try {
@@ -38,9 +37,7 @@ export function useNotifications() {
   const connectionRef = useRef(null);
   const reconnectTimerRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
-  const pollTimerRef = useRef(null);
   const MAX_RECONNECT_DELAY = 30000;
-  const prevNotifIdsRef = useRef(new Set(loadFromStorage().map((n) => n.id)));
   const connectSignalRRef = useRef(null);
   const scheduleReconnectRef = useRef(null);
 
@@ -97,15 +94,6 @@ export function useNotifications() {
         saveToStorage(merged);
         setNotifications(merged);
         setUnreadCount(countUnread(merged));
-        prevNotifIdsRef.current = new Set(merged.map((n) => n.id));
-
-        // Kiểm tra notification mới từ polling
-        const newIds = merged
-          .filter((n) => {
-            const wasUnread = !n.isRead && !n.is_read;
-            return wasUnread && !prevNotifIdsRef.current.has(n.id);
-          })
-          .map((n) => n.id);
       }
     } catch (error) {
       console.error('Lỗi lấy thông báo:', error);
@@ -141,10 +129,39 @@ export function useNotifications() {
     const token = jwt.getAccessToken();
     if (!hubBaseUrl || !token) return;
 
-    if (connectionRef.current?.state === signalR.HubConnectionState.Connected) return;
+    const startConnection = (conn) => {
+      conn.start()
+        .then(() => conn.invoke('JoinAdminGroup'))
+        .then(() => {
+          setRealtimeConnected(true);
+          reconnectAttemptsRef.current = 0;
+          if (reconnectTimerRef.current) {
+            clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+          }
+        })
+        .catch((err) => {
+          console.error('SignalR start/join error:', err);
+          setRealtimeConnected(false);
+          scheduleReconnectRef.current?.();
+        });
+    };
+
+    if (connectionRef.current) {
+      const state = connectionRef.current.state;
+      if (
+        state === signalR.HubConnectionState.Connected ||
+        state === signalR.HubConnectionState.Connecting ||
+        state === signalR.HubConnectionState.Reconnecting
+      ) {
+        return;
+      }
+      // Re-use existing connection
+      startConnection(connectionRef.current);
+      return;
+    }
 
     const hubUrl = `${hubBaseUrl}/notificationHub`;
-    
 
     const conn = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {
@@ -161,6 +178,7 @@ export function useNotifications() {
     conn.onreconnected(() => {
       setRealtimeConnected(true);
       reconnectAttemptsRef.current = 0;
+      fetchNotifications();
     });
 
     conn.onclose(() => {
@@ -183,23 +201,10 @@ export function useNotifications() {
         pushNotification(payload, name);
       });
     });
-    connectionRef.current = conn;
 
-    conn.start()
-      .then(() => conn.invoke('JoinAdminGroup'))
-      .then(() => {
-        setRealtimeConnected(true);
-        reconnectAttemptsRef.current = 0;
-        if (reconnectTimerRef.current) {
-          clearTimeout(reconnectTimerRef.current);
-          reconnectTimerRef.current = null;
-        }
-      })
-      .catch((err) => {
-        setRealtimeConnected(false);
-        scheduleReconnectRef.current?.();
-      });
-  }, [pushNotification]);
+    connectionRef.current = conn;
+    startConnection(conn);
+  }, [pushNotification, fetchNotifications]);
 
   const scheduleReconnect = useCallback(() => {
     if (reconnectTimerRef.current) return;
@@ -219,17 +224,15 @@ export function useNotifications() {
     connectSignalR();
     return () => {
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-      connectionRef.current?.stop();
+      if (connectionRef.current) {
+        connectionRef.current.stop();
+        connectionRef.current = null;
+      }
     };
   }, [connectSignalR]);
 
   useEffect(() => {
     fetchNotifications();
-    pollTimerRef.current = setInterval(fetchNotifications, POLL_INTERVAL);
-    return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    };
   }, [fetchNotifications]);
 
   const markAsRead = useCallback((id) => {

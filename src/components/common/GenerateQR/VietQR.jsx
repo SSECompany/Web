@@ -1,6 +1,15 @@
-import crc from "crc";
 import { QRCodeCanvas } from "qrcode.react";
 import React from "react";
+
+function crc16ccitt(str) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    let x = ((crc >> 8) ^ str.charCodeAt(i)) & 0xFF;
+    x ^= x >> 4;
+    crc = ((crc << 8) ^ (x << 12) ^ (x << 5) ^ x) & 0xFFFF;
+  }
+  return crc;
+}
 
 const GUID_VALUE = "A000000727";
 const SERVICE_VALUE = "QRIBFTTA";
@@ -95,8 +104,7 @@ function buildVietQR({ account, bankId, amount, content }) {
     addData +
     "6304";
 
-  const crcValue = crc
-    .crc16ccitt(qrString, 0xffff)
+  const crcValue = crc16ccitt(qrString)
     .toString(16)
     .toUpperCase()
     .padStart(4, "0");
