@@ -35,7 +35,7 @@ const ListPhieuGiaoHang = () => {
   const [allData, setAllData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalRecord, setTotalRecord] = useState(0);
-  const [countByStatus, setCountByStatus] = useState(() => ({ "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 }));
+  const [countByStatus, setCountByStatus] = useState(() => ({ "3": 0, "5": 0, "6": 0, "7": 0 }));
   const [isLoading, setIsLoading] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [activeFilter, setActiveFilter] = useState("exported");
@@ -340,7 +340,6 @@ const ListPhieuGiaoHang = () => {
       case "1": return "created";     // Lập chứng từ
       case "2": return "stored";      // Lưu kho
       case "3": return "exported";     // Xuất hàng
-      case "4": return "received";     // Đã tiếp nhận
       case "5": return "handover";     // Bàn giao ĐVVC
       case "6": return "completed";    // Hoàn thành
       case "7": return "failed";       // Thất bại
@@ -353,7 +352,6 @@ const ListPhieuGiaoHang = () => {
       case "1": return "Lập chứng từ";
       case "2": return "Lưu kho";
       case "3": return "Xuất hàng";
-      case "4": return "Đã tiếp nhận";
       case "5": return "Bàn giao ĐVVC";
       case "6": return "Hoàn thành";
       case "7": return "Thất bại";
@@ -366,7 +364,6 @@ const ListPhieuGiaoHang = () => {
       case "1": return "#8c8c8c";   // gray - Lập chứng từ
       case "2": return "#faad14";   // yellow - Lưu kho
       case "3": return "#1890ff";   // blue - Xuất hàng
-      case "4": return "#722ed1";   // purple - Đã tiếp nhận
       case "5": return "#13c2c2";   // cyan - Bàn giao ĐVVC
       case "6": return "#52c41a";   // green - Hoàn thành
       case "7": return "#ff4d4f";   // red - Thất bại

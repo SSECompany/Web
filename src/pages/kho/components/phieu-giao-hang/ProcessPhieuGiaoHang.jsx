@@ -267,7 +267,6 @@ const ProcessPhieuGiaoHang = () => {
       case "1": return "Lập chứng từ";
       case "2": return "Lưu kho";
       case "3": return "Xuất hàng";
-      case "4": return "Đã tiếp nhận";
       case "5": return "Bàn giao ĐVVC";
       case "6": return "Hoàn thành";
       case "7": return "Thất bại";
@@ -280,7 +279,6 @@ const ProcessPhieuGiaoHang = () => {
       case "1": return "#8c8c8c";   // gray - Lập chứng từ
       case "2": return "#faad14";   // yellow - Lưu kho
       case "3": return "#1890ff";   // blue - Xuất hàng
-      case "4": return "#722ed1";   // purple - Đã tiếp nhận
       case "5": return "#13c2c2";   // cyan - Bàn giao ĐVVC
       case "6": return "#52c41a";   // green - Hoàn thành
       case "7": return "#ff4d4f";   // red - Thất bại
@@ -553,7 +551,6 @@ const ProcessPhieuGiaoHang = () => {
       case "store": return "Lưu kho";
       case "returnToStore": return "Chuyển về kho";
       case "export": return "Xuất hàng";
-      case "receive": return "Đã tiếp nhận";
       case "handover": return "Bàn giao ĐVVC";
       case "complete": return "Hoàn thành";
       case "fail": return "Thất bại";
@@ -566,7 +563,6 @@ const ProcessPhieuGiaoHang = () => {
       case "store": return "#faad14";
       case "returnToStore": return "#faad14";
       case "export": return "#1890ff";
-      case "receive": return "#722ed1";
       case "handover": return "#13c2c2";
       case "complete": return "#52c41a";
       case "fail": return "#ff4d4f";

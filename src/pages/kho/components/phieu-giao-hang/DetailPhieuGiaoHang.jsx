@@ -596,19 +596,6 @@ const DetailPhieuGiaoHang = ({ isEditMode: initialEditMode = false }) => {
       );
     }
     
-    if (currentStatus === "4") {
-      // 4 (Đã tiếp nhận) -> 5 (Bàn giao ĐVVC)
-      buttons.push(
-        <button
-          key="ban_giao"
-          className="detail-giao-hang-status-btn handover"
-          onClick={() => handleStatusAction("ban_giao")}
-        >
-          <TruckOutlined /> Bàn giao ĐVVC
-        </button>
-      );
-    }
-    
     if (currentStatus === "5") {
       // 5 (Bàn giao ĐVVC) -> 6 (Hoàn thành) HOẶC 7 (Thất bại)
       buttons.push(
