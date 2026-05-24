@@ -1,9 +1,11 @@
 import {
   BellOutlined,
+  CheckCircleOutlined,
   CheckOutlined,
   CloseOutlined,
   UserOutlined,
 } from '@ant-design/icons';
+import { Pagination } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -33,6 +35,13 @@ function NotificationIcon({ type }) {
       </span>
     );
   }
+  if (type === 'AccountApproved') {
+    return (
+      <span className="navbar_notification_panel_item_icon navbar_notification_panel_item_icon--success">
+        <CheckCircleOutlined />
+      </span>
+    );
+  }
   return (
     <span className="navbar_notification_panel_item_icon">
       <BellOutlined />
@@ -47,6 +56,12 @@ export default function NotificationPanel({
   onClose,
   onMarkAsRead,
   onMarkAllAsRead,
+  pageNumber,
+  pageSize,
+  totalCount,
+  totalPages,
+  onGoToPage,
+  onChangePageSize,
 }) {
   const panelRef = useRef(null);
   const [position, setPosition] = useState(null);
@@ -86,6 +101,14 @@ export default function NotificationPanel({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [anchorRef, onClose]);
+
+  const handlePageChange = (page, size) => {
+    if (size !== pageSize) {
+      onChangePageSize?.(size);
+    } else {
+      onGoToPage?.(page);
+    }
+  };
 
   if (!position) return null;
 
@@ -138,53 +161,77 @@ export default function NotificationPanel({
             <span>Chưa có thông báo nào</span>
           </div>
         ) : (
-          notifications.map((n) => {
-            const customer = getCustomerInfo(n);
-            const unread = isNotificationUnread(n);
+          <>
+            <div className="navbar_notification_panel_list">
+              {notifications.map((n) => {
+                const customer = getCustomerInfo(n);
+                const unread = isNotificationUnread(n);
 
-            return (
-              <button
-                key={n.id}
-                type="button"
-                className={`navbar_notification_panel_item${unread ? ' navbar_notification_panel_item--unread' : ''}`}
-                onClick={() => unread && onMarkAsRead(n.id)}
-              >
-                <NotificationIcon type={n.type} />
-                <div className="navbar_notification_panel_item_content">
-                  <div className="navbar_notification_panel_item_row">
-                    <p className="navbar_notification_panel_item_title">{n.title}</p>
-                    {unread && <span className="navbar_notification_panel_item_dot" />}
-                  </div>
-                  {n.message && (
-                    <p className="navbar_notification_panel_item_message">{n.message}</p>
-                  )}
-                  {n.type === 'NewCustomerRegistered' &&
-                    (customer.nameCoSo || customer.fullName || customer.phoneNumber) && (
-                      <div className="navbar_notification_panel_item_meta">
-                        {customer.nameCoSo && (
-                          <span>
-                            Cơ sở: <strong>{customer.nameCoSo}</strong>
-                          </span>
-                        )}
-                        {customer.fullName && (
-                          <span>
-                            KH: <strong>{customer.fullName}</strong>
-                          </span>
-                        )}
-                        {customer.phoneNumber && (
-                          <span>
-                            SDT: <strong>{customer.phoneNumber}</strong>
-                          </span>
-                        )}
+                return (
+                  <button
+                    key={n.id}
+                    type="button"
+                    className={`navbar_notification_panel_item${unread ? ' navbar_notification_panel_item--unread' : ''}`}
+                    onClick={() => unread && onMarkAsRead(n.id)}
+                  >
+                    <NotificationIcon type={n.type} />
+                    <div className="navbar_notification_panel_item_content">
+                      <div className="navbar_notification_panel_item_row">
+                        <p className="navbar_notification_panel_item_title">{n.title}</p>
+                        {unread && <span className="navbar_notification_panel_item_dot" />}
                       </div>
-                    )}
-                  <p className="navbar_notification_panel_item_time">
-                    {relativeTime(getNotificationCreatedAt(n))}
-                  </p>
-                </div>
-              </button>
-            );
-          })
+                      {n.message && (
+                        <p className="navbar_notification_panel_item_message">{n.message}</p>
+                      )}
+                      {(customer.nameCoSo || customer.fullName || customer.userName || customer.status) && (
+                        <div className="navbar_notification_panel_item_meta">
+                          {customer.nameCoSo && (
+                            <span>
+                              Cơ sở: <strong>{customer.nameCoSo}</strong>
+                            </span>
+                          )}
+                          {customer.fullName && (
+                            <span>
+                              KH: <strong>{customer.fullName}</strong>
+                            </span>
+                          )}
+                          {customer.userName && (
+                            <span>
+                              User: <strong>{customer.userName}</strong>
+                            </span>
+                          )}
+                          {customer.status && (
+                            <span>
+                              Trạng thái: <strong>{customer.status}</strong>
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <p className="navbar_notification_panel_item_time">
+                        {relativeTime(getNotificationCreatedAt(n))}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {notifications.length > 0 && (
+              <div className="navbar_notification_panel_pagination">
+                <Pagination
+                  current={pageNumber}
+                  pageSize={pageSize}
+                  total={totalCount || notifications.length}
+                  onChange={handlePageChange}
+                  onShowSizeChange={handlePageChange}
+                  showSizeChanger
+                  pageSizeOptions={['10', '20', '50']}
+                  size="small"
+                  showTotal={(total, range) => `${range[0]}-${range[1]} của ${total}`}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>,

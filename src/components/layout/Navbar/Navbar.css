@@ -373,8 +373,36 @@
 }
 
 .navbar_notification_panel_body {
-  max-height: 420px;
+  max-height: 380px;
   overflow-y: auto;
+}
+
+.navbar_notification_panel_list {
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar_notification_panel_pagination {
+  padding: 8px 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: #fafafa;
+}
+
+.navbar_notification_panel_pagination .ant-pagination {
+  margin: 0;
+  font-size: 12px;
+}
+
+.navbar_notification_panel_pagination .ant-pagination-item,
+.navbar_notification_panel_pagination .ant-pagination-prev,
+.navbar_notification_panel_pagination .ant-pagination-next {
+  min-width: 26px;
+  height: 26px;
+  line-height: 26px;
+}
+
+.navbar_notification_panel_pagination .ant-pagination-options {
+  margin-left: 8px;
 }
 
 .navbar_notification_panel_loading,
