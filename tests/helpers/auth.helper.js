@@ -16,18 +16,18 @@ const { expect } = require('@playwright/test');
 /**
  * Thực hiện đăng nhập vào hệ thống.
  */
-async function login(page, username = 'sse2', password = '123abc') {
+async function login(page, username = 'trungdk', password = '123abc') {
   await page.goto('/login');
 
   // ① Chờ form login hiển thị
   const usernameInput = page.locator('#login_form_username');
   await usernameInput.waitFor({ state: 'visible', timeout: 15000 });
 
-  // ② Nhập username
-  await usernameInput.fill(username);
+  // ② Nhập username từng ký tự chậm rãi (delay 100ms giữa mỗi phím)
+  await usernameInput.pressSequentially(username, { delay: 100 });
 
-  // ③ Nhập password
-  await page.locator('#login_form_password').fill(password);
+  // ③ Nhập password từng ký tự chậm rãi (delay 100ms)
+  await page.locator('#login_form_password').pressSequentially(password, { delay: 100 });
 
   // ④ Đợi API DVCS trả về danh sách Đơn vị (debounce 300ms + network)
   await page.waitForTimeout(2500);

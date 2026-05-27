@@ -1,5 +1,6 @@
 /* eslint-disable */
 /**
+ * Run: npx playwright test tests/kho-dashboard.spec.js --headed
  * ============================================================================
  *  E2E TEST — TRANG CHỦ KHO (Dashboard)
  * ============================================================================

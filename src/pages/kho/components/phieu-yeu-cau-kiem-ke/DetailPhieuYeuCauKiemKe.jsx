@@ -1733,6 +1733,18 @@ const DetailPhieuYeuCauKiemKe = () => {
                             return;
                         }
                         notification.success({ message: `Tạo lô "${maLo}" thành công` });
+
+                        // Đồng bộ ES item sau khi tạo lô thành công
+                        const itemCode = vtCheckInfo?.ma_vt?.trim();
+                        if (itemCode) {
+                            https.post(`ItemsTapmed/sync-es-item/${encodeURIComponent(itemCode)}?invalidateCache=true`, {}, {
+                                headers: {
+                                    accept: "*/*"
+                                }
+                            }).catch(err => {
+                                console.error("Lỗi đồng bộ ES item:", err);
+                            });
+                        }
                     } catch (err) {
                         console.error("Lỗi tạo lô mới:", err);
                         notification.error({ message: "Lỗi khi tạo lô mới" });
