@@ -6,7 +6,19 @@ import NotificationPanel from './NotificationPanel';
 export default function NotificationBell() {
   const btnRef = useRef(null);
   const [open, setOpen] = useState(false);
-  const { notifications, loading, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const {
+    notifications,
+    loading,
+    unreadCount,
+    pageNumber,
+    pageSize,
+    totalCount,
+    totalPages,
+    goToPage,
+    changePageSize,
+    markAsRead,
+    markAllAsRead,
+  } = useNotifications();
 
   return (
     <div className="navbar_notification_wrap">
@@ -35,6 +47,12 @@ export default function NotificationBell() {
           onClose={() => setOpen(false)}
           onMarkAsRead={markAsRead}
           onMarkAllAsRead={markAllAsRead}
+          pageNumber={pageNumber}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          totalPages={totalPages}
+          onGoToPage={goToPage}
+          onChangePageSize={changePageSize}
         />
       )}
     </div>

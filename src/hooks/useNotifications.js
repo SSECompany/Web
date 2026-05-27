@@ -29,11 +29,16 @@ function countUnread(list) {
   return list.filter(isNotificationUnread).length;
 }
 
-export function useNotifications() {
+const DEFAULT_PAGE_SIZE = 20;
+
+export function useNotifications(initialPageSize = DEFAULT_PAGE_SIZE) {
   const [notifications, setNotifications] = useState(() => loadFromStorage());
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(() => countUnread(loadFromStorage()));
   const [realtimeConnected, setRealtimeConnected] = useState(false);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(initialPageSize);
+  const [totalCount, setTotalCount] = useState(0);
   const connectionRef = useRef(null);
   const reconnectTimerRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
@@ -41,36 +46,36 @@ export function useNotifications() {
   const connectSignalRRef = useRef(null);
   const scheduleReconnectRef = useRef(null);
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async (page = pageNumber, size = pageSize) => {
     if (!jwt.getAccessToken()) {
-      setNotifications([]);
-      setUnreadCount(0);
-      saveToStorage([]);
-      setLoading(false);
       return;
     }
 
+    setLoading(true);
     try {
-      const response = await https.get('Authentication/GetAll');
+      const response = await https.get('Notification/GetAll', {
+        params: { pageNumber: page, pageSize: size }
+      });
       const data = response?.data;
 
       if (response?.status === 200 && data?.isSucceeded) {
-        const rawList = data.data || [];
+        const rawList = data?.data?.items || [];
+        const total = data?.data?.totalCount || 0;
 
         const apiList = rawList
           .filter((item) => item.status === 'Chờ duyệt' && item.nameCoSo)
           .map((item) => {
-            const displayId = item.id || item.userName || item.nameCoSo || `pending_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+            const displayId = item.userName || item.nameCoSo || `pending_${Date.now()}_${Math.random().toString(36).slice(2)}`;
             return {
               id: displayId,
               type: 'NewCustomerRegistered',
               title: 'Khách hàng mới chờ duyệt',
               message: item.nameCoSo,
               data: {
-                FullName: item.fullName || item.userName || item.nameCoSo || '',
+                fullName: item.fullName || item.userName || item.nameCoSo || '',
                 userName: item.userName || '',
                 nameCoSo: item.nameCoSo,
-                PhoneNumber: item.phoneName || item.userName || '',
+                PhoneNumber: item.phoneName || '',
                 status: item.status,
               },
               isRead: false,
@@ -94,13 +99,14 @@ export function useNotifications() {
         saveToStorage(merged);
         setNotifications(merged);
         setUnreadCount(countUnread(merged));
+        setTotalCount(total);
       }
     } catch (error) {
       console.error('Lỗi lấy thông báo:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pageNumber, pageSize]);
 
   const addNotification = useCallback((normalized) => {
     setNotifications((prev) => {
@@ -112,6 +118,7 @@ export function useNotifications() {
       const next = [normalized, ...prev].slice(0, 30);
       saveToStorage(next);
       setUnreadCount(countUnread(next));
+      setTotalCount((prev) => prev + 1);
       return next;
     });
   }, []);
@@ -127,6 +134,7 @@ export function useNotifications() {
   const connectSignalR = useCallback(() => {
     const hubBaseUrl = getHubBaseUrl();
     const token = jwt.getAccessToken();
+
     if (!hubBaseUrl || !token) return;
 
     const startConnection = (conn) => {
@@ -188,12 +196,7 @@ export function useNotifications() {
 
     const eventNames = [
       'NewCustomerRegistered',
-      'ReceiveNotification',
-      'NotifyNewRegister',
-      'NewRegister',
-      'NotifyNewCustomer',
-      'CustomerRegistered',
-      'CustomerStatusChanged'
+      'AccountApproved',
     ];
 
     eventNames.forEach((name) => {
@@ -221,6 +224,12 @@ export function useNotifications() {
   scheduleReconnectRef.current = scheduleReconnect;
 
   useEffect(() => {
+    if (jwt.getAccessToken()) {
+      fetchNotifications();
+    }
+  }, []);
+
+  useEffect(() => {
     connectSignalR();
     return () => {
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
@@ -231,8 +240,15 @@ export function useNotifications() {
     };
   }, [connectSignalR]);
 
-  useEffect(() => {
-    fetchNotifications();
+  const goToPage = useCallback((page) => {
+    setPageNumber(page);
+    fetchNotifications(page, pageSize);
+  }, [fetchNotifications, pageSize]);
+
+  const changePageSize = useCallback((size) => {
+    setPageSize(size);
+    setPageNumber(1);
+    fetchNotifications(1, size);
   }, [fetchNotifications]);
 
   const markAsRead = useCallback((id) => {
@@ -255,13 +271,21 @@ export function useNotifications() {
     });
   }, []);
 
+  const totalPages = Math.ceil(totalCount / pageSize);
+
   return {
     notifications,
     loading,
     unreadCount,
     realtimeConnected,
+    pageNumber,
+    pageSize,
+    totalCount,
+    totalPages,
+    goToPage,
+    changePageSize,
+    fetchNotifications,
     markAsRead,
     markAllAsRead,
-    refetch: fetchNotifications,
   };
 }
