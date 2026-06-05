@@ -145,6 +145,32 @@ const protectedChildrenRoutes = [
     element: <ListPhieuGiaoHang />,
   },
 
+  {
+    label: "Phiếu nhập kho",
+    path: "kho/nhap-kho",
+    element: <ListPhieuNhapKho />,
+  },
+  {
+    label: "Thêm phiếu nhập kho",
+    path: "kho/nhap-kho/them-moi",
+    element: <AddPhieuNhapKho />,
+  },
+  {
+    label: "Chi tiết phiếu nhập kho",
+    path: "kho/nhap-kho/chi-tiet/:stt_rec",
+    element: <DetailPhieuNhapKho />,
+  },
+  {
+    label: "Chỉnh sửa phiếu nhập kho",
+    path: "kho/nhap-kho/edit/:stt_rec",
+    element: <DetailPhieuNhapKho isEditMode={true} />,
+  },
+  {
+    label: "Chỉnh sửa phiếu nhập kho",
+    path: "kho/nhap-kho/chi-tiet/edit/:stt_rec",
+    element: <DetailPhieuNhapKho isEditMode={true} />,
+  },
+
   // Default route - chỉ redirect khi path là "/" (redirect to Kho instead of ban-hang)
   { path: "", element: <Navigate to="kho" replace /> },
 
@@ -224,6 +250,28 @@ const protectedChildrenRoutes = [
     label: "Chỉnh sửa phiếu xuất điều chuyển",
     path: "kho/xuat-dieu-chuyen/edit/:stt_rec",
     element: <DetailPhieuXuatDieuChuyen isEditMode={true} />,
+  },
+
+
+  {
+    label: "Phiếu xuất kho",
+    path: "kho/xuat-kho",
+    element: <ListPhieuXuatKho />,
+  },
+  {
+    label: "Thêm phiếu xuất kho",
+    path: "kho/xuat-kho/them-moi",
+    element: <AddPhieuXuatKho />,
+  },
+  {
+    label: "Chi tiết phiếu xuất kho",
+    path: "kho/xuat-kho/chi-tiet/:stt_rec",
+    element: <DetailPhieuXuatKho />,
+  },
+  {
+    label: "Chỉnh sửa phiếu xuất kho",
+    path: "kho/xuat-kho/edit/:stt_rec",
+    element: <DetailPhieuXuatKho isEditMode={true} />,
   },
 
 

@@ -120,9 +120,6 @@ const Navbar = () => {
       "kho/nhap-kho/them-moi",
       "kho/nhap-hang",
       "kho/nhap-hang/them-moi",
-      "kho/nhap-hang-copy",
-      "kho/nhap-hang-copy/them-moi",
-      "kho/xuat-ban",
       // Các phiếu kho mới
       "kho/nhap-dieu-chuyen",
       "kho/nhap-dieu-chuyen/them-moi",

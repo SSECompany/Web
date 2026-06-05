@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Form } from 'antd';
 import { staticMessage as message } from '../../../../../utils/antdStatic';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import dayjs from 'dayjs';
 import _ from 'lodash';
 import {
@@ -56,6 +57,21 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
     const [discountModalStage, setDiscountModalStage] = useState('selection');
     const [discountSearchText, setDiscountSearchText] = useState('');
     const [printModalVisible, setPrintModalVisible] = useState(false);
+
+    const claims = useSelector((state) => state.claimsReducer.claims);
+    const permissionsString = claims?.Permision || "";
+    const rolesString = [
+        claims?.Roles,
+        claims?.["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"],
+    ]
+        .filter(Boolean)
+        .join(",")
+        .toLowerCase();
+    const canEditPriceFromClaims =
+        permissionsString.includes("Permissions.AccessPrice") ||
+        rolesString.includes("admin") ||
+        rolesString.includes("manager");
+    const canEditPriceInUpdateMode = canEditPriceFromClaims && !!stt_rec;
 
     const toggleGeneralInfo = () => setShowGeneralInfo(!showGeneralInfo);
 
@@ -231,7 +247,13 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
         try {
             const res = await fetchPhieuKinhDoanhChiTiet(stt_rec);
             if (res.success) {
-                setChiTietData(res.data || []);
+                const data = res.data || [];
+                // Lưu giá gốc để kiểm tra quyền sửa giá
+                const dataWithOriginPrice = data.map(item => ({
+                    ...item,
+                    gia_ban_nt_goc: item.gia_ban_nt
+                }));
+                setChiTietData(dataWithOriginPrice);
             }
         } catch (error) {
             console.error("Error loading details:", error);
@@ -586,7 +608,9 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
     const handleSearchVc = useMemo(() => _.debounce(async (val) => {
         setVcSearchLoading(true);
         try {
-            const list = await fetchVanChuyenSelection(val);
+            // Detect if search is by code (numeric) or by name (contains letters)
+            const searchField = /^[0-9\-_]+$/.test(val) ? "ma_vc" : "ten_vc";
+            const list = await fetchVanChuyenSelection(val, searchField);
             setVcSelectOptions(list.map(i => ({ value: i.ma_vc, label: `${i.ma_vc} - ${i.ten_vc}`, ...i })));
         } finally {
             setVcSearchLoading(false);
@@ -613,7 +637,9 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
         const maKh = form.getFieldValue("ma_kh");
         setNoiGiaoSearchLoading(true);
         try {
-            const list = await fetchNoiGiaoSelection(maKh, val);
+            // Detect if search is by code (numeric) or by name (contains letters)
+            const searchField = /^[0-9\-_]+$/.test(val) ? "ma_dc" : "ten_dc";
+            const list = await fetchNoiGiaoSelection(maKh, val, searchField);
             setNoiGiaoSelectOptions(list.map(i => ({ value: i.ma_dc, label: `${i.ma_dc} - ${i.ten_dc}`, ...i })));
         } finally {
             setNoiGiaoSearchLoading(false);
@@ -815,6 +841,18 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
 
     const handleSubmit = async () => {
         try {
+            // Kiểm tra quyền sửa giá ở client chỉ để khóa UI sớm; backend vẫn là nơi quyết định cuối cùng.
+            // Chỉ so sánh những item có gia_ban_nt_goc (load từ DB), bỏ qua item mới thêm ở màn tạo.
+            if (!canEditPriceInUpdateMode && chiTietData && chiTietData.length > 0) {
+                const hasPriceChange = chiTietData.some(
+                    item => item.gia_ban_nt_goc !== undefined && item.gia_ban_nt !== item.gia_ban_nt_goc
+                );
+                if (hasPriceChange) {
+                    message.warning("Bạn không có quyền sửa giá. Vui lòng liên hệ quản trị ERP để được hỗ trợ.");
+                    return;
+                }
+            }
+
             const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
             
             const validationErrors = validateKinhDoanh(values, chiTietData, chiPhiData);
@@ -976,6 +1014,7 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
         handleDeleteRow,
         handleDeleteChiPhi,
         fetchNoiGiaoSelection,
-        setNoiGiaoSelectOptions
+        setNoiGiaoSelectOptions,
+        canEditPriceInUpdateMode
     };
 };

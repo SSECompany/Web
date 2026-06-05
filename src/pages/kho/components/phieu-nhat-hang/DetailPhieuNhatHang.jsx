@@ -12,7 +12,7 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { getLoItem, getViTriByKho } from "../../../../api";
+import { getLoItemNhatHang, getViTriByKho } from "../../../../api";
 import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 import VatTuSelectFullPOS from "../../../../components/common/ProductSelectFull/VatTuSelectFullPOS";
 import QRScanner from "../../../../components/common/QRScanner/QRScanner";
@@ -277,7 +277,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
   // === API: fetch lists for Mã lô / Vị trí (edit page) ===
   const fetchLoList = async (keyword = "", record = {}, page = 1) => {
     try {
-      const response = await getLoItem({
+      const response = await getLoItemNhatHang({
         ma_vt: (record?.maHang || record?.ma_vt || "").toString(),
         ma_lo: "",
         ten_lo: keyword,

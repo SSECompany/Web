@@ -271,6 +271,7 @@ const Login = () => {
                   className="default_input"
                   size="large"
                   placeholder="Nhập mật khẩu"
+                  autoComplete="current-password"
                   iconRender={(visible) =>
                     visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
                   }

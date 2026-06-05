@@ -4,6 +4,8 @@ import {
   SendOutlined,
   FileTextOutlined,
   SolutionOutlined,
+  ShopOutlined,
+  ExportOutlined,
 } from "@ant-design/icons";
 import { Card, Col, Row, Typography } from "antd";
 import { Link } from "react-router-dom";
@@ -29,6 +31,13 @@ const Kho = () => {
       path: "/kho/giao-hang",
     },
     // {
+    //   title: "Phiếu nhập kho",
+    //   subtitle: "Quản lý nhập kho",
+    //   icon: <ShopOutlined style={{ fontSize: "28px" }} />,
+    //   color: "linear-gradient(135deg, #fa8c16 0%, #ffc53d 100%)",
+    //   path: "/kho/nhap-kho",
+    // },
+    // {
     //   title: "Phiếu nhập hàng theo đơn",
     //   subtitle: "Quản lý nhập hàng theo đơn mua hàng",
     //   icon: <SolutionOutlined style={{ fontSize: "28px" }} />,
@@ -48,6 +57,13 @@ const Kho = () => {
     //   icon: <SendOutlined style={{ fontSize: "28px" }} rotate={180} />,
     //   color: "linear-gradient(135deg, #722ed1 0%, #b37feb 100%)",
     //   path: "/kho/xuat-dieu-chuyen",
+    // },
+    // {
+    //   title: "Phiếu xuất kho",
+    //   subtitle: "Quản lý xuất kho",
+    //   icon: <ExportOutlined style={{ fontSize: "28px" }} />,
+    //   color: "linear-gradient(135deg, #f5222d 0%, #ff7875 100%)",
+    //   path: "/kho/xuat-kho",
     // },
     {
       title: "Phiếu yêu cầu kiểm kê",

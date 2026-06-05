@@ -9,6 +9,13 @@ import {
 } from '../utils/notificationUtils';
 
 const STORAGE_KEY = 'tapmed_notifications';
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_STORED_NOTIFICATIONS = 30;
+const SHOULD_ENABLE_SIGNALR = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+const MAX_SIGNALR_START_RETRIES = 1;
+const SILENT_SIGNALR_LOGGER = {
+  log: () => {},
+};
 
 function loadFromStorage() {
   try {
@@ -29,33 +36,47 @@ function countUnread(list) {
   return list.filter(isNotificationUnread).length;
 }
 
-const DEFAULT_PAGE_SIZE = 20;
+function mergeNotifications(apiList, storedList) {
+  const storedMap = new Map(storedList.map((item) => [item.id, item]));
+  const mergedApiItems = apiList.map((item) => {
+    const existing = storedMap.get(item.id);
+    return existing
+      ? { ...item, isRead: existing.isRead, is_read: existing.is_read }
+      : item;
+  });
+
+  const readOnlyStoredItems = storedList.filter(
+    (item) => !apiList.some((apiItem) => apiItem.id === item.id) && item.isRead
+  );
+
+  return [...mergedApiItems, ...readOnlyStoredItems].slice(0, MAX_STORED_NOTIFICATIONS);
+}
 
 export function useNotifications(initialPageSize = DEFAULT_PAGE_SIZE) {
-  const [notifications, setNotifications] = useState(() => loadFromStorage());
+  const initialNotifications = useRef(loadFromStorage());
+  const [notifications, setNotifications] = useState(initialNotifications.current);
   const [loading, setLoading] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(() => countUnread(loadFromStorage()));
+  const [unreadCount, setUnreadCount] = useState(() => countUnread(initialNotifications.current));
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);
-  const [totalCount, setTotalCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(initialNotifications.current.length);
   const connectionRef = useRef(null);
   const reconnectTimerRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
+  const hasFetchedRef = useRef(false);
   const MAX_RECONNECT_DELAY = 30000;
   const connectSignalRRef = useRef(null);
   const scheduleReconnectRef = useRef(null);
 
-  const fetchNotifications = useCallback(async (page = pageNumber, size = pageSize) => {
+  const fetchNotifications = useCallback(async (page = 1, size = pageSize) => {
     if (!jwt.getAccessToken()) {
       return;
     }
 
     setLoading(true);
     try {
-      const response = await https.get('Notification/GetAll', {
-        params: { pageNumber: page, pageSize: size }
-      });
+      const response = await https.get('Notification/GetAll', { pageNumber: page, pageSize: size });
       const data = response?.data;
 
       if (response?.status === 200 && data?.isSucceeded) {
@@ -86,27 +107,19 @@ export function useNotifications(initialPageSize = DEFAULT_PAGE_SIZE) {
           });
 
         const stored = loadFromStorage();
-        const storedIds = new Set(stored.map((n) => n.id));
-
-        const merged = [
-          ...apiList.map((n) => {
-            const existing = stored.find((s) => s.id === n.id);
-            return existing ? { ...n, isRead: existing.isRead, is_read: existing.is_read } : n;
-          }),
-          ...stored.filter((s) => !storedIds.has(s.id) && s.isRead),
-        ].slice(0, 30);
+        const merged = mergeNotifications(apiList, stored);
 
         saveToStorage(merged);
         setNotifications(merged);
         setUnreadCount(countUnread(merged));
         setTotalCount(total);
+        setPageNumber(page);
+        hasFetchedRef.current = true;
       }
-    } catch (error) {
-      console.error('Lỗi lấy thông báo:', error);
     } finally {
       setLoading(false);
     }
-  }, [pageNumber, pageSize]);
+  }, [pageSize]);
 
   const addNotification = useCallback((normalized) => {
     setNotifications((prev) => {
@@ -115,10 +128,10 @@ export function useNotifications(initialPageSize = DEFAULT_PAGE_SIZE) {
       }
       const existing = prev.find((n) => n.id === normalized.id);
       if (existing) return prev;
-      const next = [normalized, ...prev].slice(0, 30);
+      const next = [normalized, ...prev].slice(0, MAX_STORED_NOTIFICATIONS);
       saveToStorage(next);
       setUnreadCount(countUnread(next));
-      setTotalCount((prev) => prev + 1);
+      setTotalCount((currentTotal) => currentTotal + 1);
       return next;
     });
   }, []);
@@ -132,6 +145,11 @@ export function useNotifications(initialPageSize = DEFAULT_PAGE_SIZE) {
   }, [addNotification]);
 
   const connectSignalR = useCallback(() => {
+    if (!SHOULD_ENABLE_SIGNALR) {
+      setRealtimeConnected(false);
+      return;
+    }
+
     const hubBaseUrl = getHubBaseUrl();
     const token = jwt.getAccessToken();
 
@@ -148,8 +166,7 @@ export function useNotifications(initialPageSize = DEFAULT_PAGE_SIZE) {
             reconnectTimerRef.current = null;
           }
         })
-        .catch((err) => {
-          console.error('SignalR start/join error:', err);
+        .catch(() => {
           setRealtimeConnected(false);
           scheduleReconnectRef.current?.();
         });
@@ -164,7 +181,6 @@ export function useNotifications(initialPageSize = DEFAULT_PAGE_SIZE) {
       ) {
         return;
       }
-      // Re-use existing connection
       startConnection(connectionRef.current);
       return;
     }
@@ -176,7 +192,7 @@ export function useNotifications(initialPageSize = DEFAULT_PAGE_SIZE) {
         accessTokenFactory: () => jwt.getAccessToken() || '',
       })
       .withAutomaticReconnect([0, 2000, 5000, 10000, 15000])
-      .configureLogging(signalR.LogLevel.Warning)
+      .configureLogging(SILENT_SIGNALR_LOGGER)
       .build();
 
     conn.onreconnecting(() => {
@@ -186,7 +202,6 @@ export function useNotifications(initialPageSize = DEFAULT_PAGE_SIZE) {
     conn.onreconnected(() => {
       setRealtimeConnected(true);
       reconnectAttemptsRef.current = 0;
-      fetchNotifications();
     });
 
     conn.onclose(() => {
@@ -194,12 +209,7 @@ export function useNotifications(initialPageSize = DEFAULT_PAGE_SIZE) {
       scheduleReconnectRef.current?.();
     });
 
-    const eventNames = [
-      'NewCustomerRegistered',
-      'AccountApproved',
-    ];
-
-    eventNames.forEach((name) => {
+    ['NewCustomerRegistered', 'AccountApproved'].forEach((name) => {
       conn.on(name, (payload) => {
         pushNotification(payload, name);
       });
@@ -207,10 +217,13 @@ export function useNotifications(initialPageSize = DEFAULT_PAGE_SIZE) {
 
     connectionRef.current = conn;
     startConnection(conn);
-  }, [pushNotification, fetchNotifications]);
+  }, [pushNotification]);
 
   const scheduleReconnect = useCallback(() => {
-    if (reconnectTimerRef.current) return;
+    if (reconnectTimerRef.current || reconnectAttemptsRef.current >= MAX_SIGNALR_START_RETRIES) {
+      return;
+    }
+
     const attempt = reconnectAttemptsRef.current;
     const delay = Math.min(1000 * Math.pow(2, attempt), MAX_RECONNECT_DELAY);
     reconnectAttemptsRef.current = attempt + 1;
@@ -224,10 +237,12 @@ export function useNotifications(initialPageSize = DEFAULT_PAGE_SIZE) {
   scheduleReconnectRef.current = scheduleReconnect;
 
   useEffect(() => {
-    if (jwt.getAccessToken()) {
-      fetchNotifications();
+    if (!jwt.getAccessToken() || hasFetchedRef.current) {
+      return;
     }
-  }, []);
+
+    fetchNotifications(1, pageSize);
+  }, [fetchNotifications, pageSize]);
 
   useEffect(() => {
     connectSignalR();
@@ -241,13 +256,11 @@ export function useNotifications(initialPageSize = DEFAULT_PAGE_SIZE) {
   }, [connectSignalR]);
 
   const goToPage = useCallback((page) => {
-    setPageNumber(page);
     fetchNotifications(page, pageSize);
   }, [fetchNotifications, pageSize]);
 
   const changePageSize = useCallback((size) => {
     setPageSize(size);
-    setPageNumber(1);
     fetchNotifications(1, size);
   }, [fetchNotifications]);
 

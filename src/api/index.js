@@ -337,6 +337,59 @@ export const getViTriByKho = async ({
       };
     });
 };
+export const getLoItemNhatHang = async ({
+  ma_vt = "",
+  ma_lo = "",
+  ten_lo = "",
+  ngay_hhsd_tu = null,
+  ngay_hhsd_den = null,
+  pageIndex = 1,
+  pageSize = 10,
+} = {}) => {
+  const token = localStorage.getItem("access_token");
+
+  const payload = {
+    store: "api_getLoItem_nhathang",
+    param: {
+      ma_vt,
+      ma_lo,
+      ten_lo,
+      ngay_hhsd_tu,
+      ngay_hhsd_den,
+      pageIndex,
+      pageSize,
+    },
+    data: {},
+  };
+
+  return await https
+    .post(`User/AddData`, payload, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    })
+    .then((res) => {
+      const data = res?.data || {};
+      const responseModel = data?.responseModel || { isSucceded: true };
+      const list = data?.listObject;
+      let listObject;
+      if (Array.isArray(list)) {
+        listObject = Array.isArray(list[0]) ? list : [list];
+      } else {
+        const fallback = Array.isArray(data?.data) ? data.data : [];
+        listObject = [fallback];
+      }
+      return { responseModel, listObject };
+    })
+    .catch((error) => {
+      console.error("Error getLoItemNhatHang:", error);
+      return {
+        responseModel: { isSucceded: false, message: "Lỗi kết nối mạng" },
+        listObject: [[]],
+      };
+    });
+};
 
 export const getLoItem = async ({
   ma_vt = "",

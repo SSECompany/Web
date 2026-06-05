@@ -33,15 +33,14 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
         gia2 = parseFloat(updatedRow.gia2 || 0);
         tien_nt2 = parseFloat(updatedRow.tien_nt2 || 0);
         tien2 = parseFloat(updatedRow.tien2 || 0);
-        ck_nt = parseFloat(updatedRow.ck_nt || 0);
-        ck_khac_nt = parseFloat(updatedRow.ck_khac_nt || 0);
+        ck_nt = parseFloat(updatedRow.ck_nt || 0); // Đã được round ở switch case
+        ck_khac_nt = parseFloat(updatedRow.ck_khac_nt || 0); // Đã được round ở switch case
         tl_ck = parseFloat(updatedRow.tl_ck || 0);
         s4 = parseFloat(updatedRow.s4 || 0);
         
-        // Cập nhật lại thue_nt theo đúng logic: thue_nt = gia_ban_nt*so_luong - s4 - tien_nt2 + ck_nt
-        // Đối với trường hợp không VAT hoặc logic cũ: (tien_nt2 - ck_nt)*thue_suat/100
-        // Theo user code: [thue_nt]:= [gia_ban_nt]*[so_luong] - [s4] - [tien_nt2] + [ck_nt]
-        updatedRow.thue_nt = Math.round(gia_ban_nt * so_luong - s4 - tien_nt2 + ck_nt + ck_khac_nt);
+        // Cập nhật lại thue_nt theo đúng logic ERP: thue_nt = gia_ban_nt*so_luong - s4 - tien_nt2 + ck_nt + ck_khac_nt
+        // Không round ở đây vì các thành phần đã được round ở switch case
+        updatedRow.thue_nt = gia_ban_nt * so_luong - s4 - tien_nt2 + ck_nt + ck_khac_nt;
         thue_nt = updatedRow.thue_nt;
     };
 
@@ -51,81 +50,81 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.tien2_tg = updatedRow.tien_nt2 * ty_gia;
             updatedRow.tien2 = updatedRow.tien2_tg; // tien2 is derived heavily from tien2_tg usually
             updatedRow.s4 = gia_ban_nt * so_luong * tl_ck / 100;
-            updatedRow.ck_nt = updatedRow.tien_nt2 * tl_ck / 100;
-            updatedRow.ck = updatedRow.ck_nt * ty_gia;
+            updatedRow.ck_nt = Math.round(updatedRow.tien_nt2 * tl_ck / 100);
+            updatedRow.ck = Math.round(updatedRow.ck_nt * ty_gia);
             recomputeDeps();
-            updatedRow.thue = updatedRow.thue_nt * ty_gia;
+            updatedRow.thue = Math.round(updatedRow.thue_nt * ty_gia);
             break;
 
         case 'gia_ban_nt':
-            updatedRow.gia_ban = gia_ban_nt * ty_gia;
+            updatedRow.gia_ban = Math.round(gia_ban_nt * ty_gia);
             updatedRow.gia_nt2_from_tax = gia_ban_nt / (1 + thue_suat / 100);
             updatedRow.gia2_from_tax = gia_nt2 * ty_gia;
             updatedRow.tien_nt2 = Math.round(so_luong * gia_nt2);
             updatedRow.tien2_tg = updatedRow.tien_nt2 * ty_gia;
             updatedRow.tien2 = updatedRow.tien2_tg;
             updatedRow.s4 = gia_ban_nt * so_luong * tl_ck / 100;
-            updatedRow.ck_nt = updatedRow.tien_nt2 * tl_ck / 100;
-            updatedRow.ck = updatedRow.ck_nt * ty_gia;
+            updatedRow.ck_nt = Math.round(updatedRow.tien_nt2 * tl_ck / 100);
+            updatedRow.ck = Math.round(updatedRow.ck_nt * ty_gia);
             recomputeDeps();
-            updatedRow.thue = updatedRow.thue_nt * ty_gia;
+            updatedRow.thue = Math.round(updatedRow.thue_nt * ty_gia);
             break;
 
         case 'gia_nt2':
-            updatedRow.gia2 = gia_nt2 * ty_gia;
+            updatedRow.gia2 = Math.round(gia_nt2 * ty_gia);
             updatedRow.tien_nt2 = Math.round(so_luong * gia_nt2);
             updatedRow.tien2_tg = updatedRow.tien_nt2 * ty_gia;
             updatedRow.tien2 = updatedRow.tien2_tg;
             updatedRow.s4 = gia_ban_nt * so_luong * tl_ck / 100; // Not strictly dependent on gia_nt2 but in formulas
-            updatedRow.ck_nt = updatedRow.tien_nt2 * tl_ck / 100;
-            updatedRow.ck = updatedRow.ck_nt * ty_gia;
+            updatedRow.ck_nt = Math.round(updatedRow.tien_nt2 * tl_ck / 100);
+            updatedRow.ck = Math.round(updatedRow.ck_nt * ty_gia);
             recomputeDeps();
-            updatedRow.thue = updatedRow.thue_nt * ty_gia;
+            updatedRow.thue = Math.round(updatedRow.thue_nt * ty_gia);
             break;
 
         case 'gia2':
             updatedRow.tien2_sl = so_luong * gia2;
             updatedRow.tien2 = updatedRow.tien2_sl; // Map tien2 logic
             recomputeDeps();
-            updatedRow.thue = thue_nt * ty_gia;
+            updatedRow.thue = Math.round(thue_nt * ty_gia);
             break;
 
         case 'tien_nt2':
             updatedRow.tien2_tg = tien_nt2 * ty_gia;
             updatedRow.tien2 = updatedRow.tien2_tg;
             recomputeDeps();
-            updatedRow.thue = updatedRow.thue_nt * ty_gia;
+            updatedRow.thue = Math.round(updatedRow.thue_nt * ty_gia);
             break;
 
         case 'tien2':
             // According to spec, just thue
-            updatedRow.thue = thue_nt * ty_gia;
+            updatedRow.thue = Math.round(thue_nt * ty_gia);
             break;
 
         case 'ck_nt':
-            updatedRow.ck = ck_nt * ty_gia;
+            updatedRow.ck = Math.round(ck_nt * ty_gia);
             updatedRow.s4 = gia_ban_nt * so_luong * tl_ck / 100;
             recomputeDeps();
-            updatedRow.thue = updatedRow.thue_nt * ty_gia;
+            updatedRow.thue = Math.round(updatedRow.thue_nt * ty_gia);
             break;
 
         case 's4':
-            updatedRow.ck_nt = tien_nt2 * tl_ck / 100;
+            updatedRow.ck_nt = Math.round(tien_nt2 * tl_ck / 100);
             updatedRow.ck_tl = tien2 * tl_ck / 100;
             recomputeDeps();
-            updatedRow.thue = updatedRow.thue_nt * ty_gia;
+            updatedRow.thue = Math.round(updatedRow.thue_nt * ty_gia);
             break;
 
         case 'ck_khac_nt':
-            updatedRow.ck_khac = ck_khac_nt * ty_gia;
+            updatedRow.ck_khac = Math.round(ck_khac_nt * ty_gia);
             recomputeDeps();
-            updatedRow.thue = updatedRow.thue_nt * ty_gia;
+            updatedRow.thue = Math.round(updatedRow.thue_nt * ty_gia);
             break;
 
         case 'ck':
         case 'ck_khac':
         case 'thue_nt':
-            updatedRow.thue = thue_nt * ty_gia; // Technically ck/ck_khac just updates thue, thue_nt updates thue
+            updatedRow.thue = Math.round(thue_nt * ty_gia); // Technically ck/ck_khac just updates thue, thue_nt updates thue
             break;
 
         case 'thue':
@@ -133,11 +132,11 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             break;
 
         case 'tl_ck':
-            updatedRow.ck_nt = tien_nt2 * tl_ck / 100;
+            updatedRow.ck_nt = Math.round(tien_nt2 * tl_ck / 100);
             updatedRow.ck_tl = tien2 * tl_ck / 100;
             updatedRow.s4 = gia_ban_nt * so_luong * tl_ck / 100;
             recomputeDeps();
-            updatedRow.thue = updatedRow.thue_nt * ty_gia;
+            updatedRow.thue = Math.round(updatedRow.thue_nt * ty_gia);
             break;
 
         case 'ma_thue':
@@ -148,7 +147,7 @@ export const calculateRowOnChange = (row, field, value, ty_gia = 1) => {
             updatedRow.tien2_tg = updatedRow.tien_nt2 * ty_gia;
             updatedRow.tien2 = updatedRow.tien2_tg; // Tie to tien2
             recomputeDeps();
-            updatedRow.thue = updatedRow.thue_nt * ty_gia;
+            updatedRow.thue = Math.round(updatedRow.thue_nt * ty_gia);
             break;
 
         case 'km_yn': {

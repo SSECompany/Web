@@ -14,7 +14,7 @@ import {
 import {
     Button, Form, Input, Select, AutoComplete, Typography,
     Checkbox, Tabs, Row, Col, DatePicker,
-    Table, Spin, InputNumber, Divider
+    Table, Spin, InputNumber, Divider, message
 } from "antd";
 import dayjs from "dayjs";
 import VatTuSelectFullPOS from "../../../../components/common/ProductSelectFull/VatTuSelectFullPOS";
@@ -118,7 +118,8 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
         setNoiGiaoSelectOptions,
         chiPhiSelectOptions,
         chiPhiSearchLoading,
-        handleSearchChiPhi
+        handleSearchChiPhi,
+        canEditPriceInUpdateMode
     } = usePhieuKinhDoanh(initialEditMode);
 
     const [labelPrintData, setLabelPrintData] = React.useState(null);
@@ -394,7 +395,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                     value={v} 
                                     controls={false} 
                                     precision={2}
-                                    disabled={!!record.km_yn}
+                                    disabled={!canEditPriceInUpdateMode}
                                     formatter={val => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                                     parser={val => val.replace(/\$\s?|(,*)/g, '')}
                                     onChange={(val) => handleCellChange(record, "gia_ban_nt", val)} 
