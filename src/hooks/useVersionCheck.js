@@ -1,4 +1,4 @@
-import { staticNotification as notification } from "../utils/antdStatic";
+import { notification } from "antd";
 import { useEffect, useRef, useState } from "react";
 
 // Mặc định 60 giây - kiểm tra định kỳ khi user giữ nguyên trang
@@ -143,7 +143,7 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
           onClose: () => {
             globalCountdownActive = false;
           },
-          actions: (
+          btn: (
             <button
               onClick={() => doUpdate()}
               style={{
@@ -211,32 +211,32 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
             message: "Cập nhật phiên bản",
             description: `Đã phát hiện phiên bản ${versionData.version}. Nhấn để cập nhật và tiếp tục sử dụng.`,
             duration: 0,
-          actions: (
-            <button
-              onClick={() => {
-                try {
-                  localStorage.setItem(
-                    "app_version",
-                    JSON.stringify(versionData)
-                  );
-                  notification.destroy("version-first-time");
-                } catch (e) {
-                  console.warn("Không thể lưu version vào localStorage:", e);
-                }
-              }}
-              style={{
-                background: "#1890ff",
-                color: "white",
-                border: "none",
-                padding: "4px 12px",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontWeight: 500,
-              }}
-            >
-              Cập nhật
-            </button>
-          ),
+             btn: (
+              <button
+                onClick={() => {
+                  try {
+                    localStorage.setItem(
+                      "app_version",
+                      JSON.stringify(versionData)
+                    );
+                    notification.destroy("version-first-time");
+                  } catch (e) {
+                    console.warn("Không thể lưu version vào localStorage:", e);
+                  }
+                }}
+                style={{
+                  background: "#1890ff",
+                  color: "white",
+                  border: "none",
+                  padding: "4px 12px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: 500,
+                }}
+              >
+                Cập nhật
+              </button>
+            ),
           });
         }
       });
