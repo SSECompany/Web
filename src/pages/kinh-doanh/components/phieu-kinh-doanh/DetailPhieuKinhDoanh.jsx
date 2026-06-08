@@ -888,7 +888,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                         </Row>
                                         <Row gutter={16}>
                                             <Col span={24}>
-                                                <Form.Item name="ma_vc" label="P.tiện d.chuyển">
+                                                <Form.Item name="ma_vc" label="P.tiện d.chuyển" rules={[{ required: true, message: 'Vui lòng chọn phương tiện di chuyển' }]}>
                                                     <Select
                                                         showSearch
                                                         placeholder="Chọn phương tiện vận chuyển"
@@ -911,7 +911,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                                                 </Form.Item>
                                             </Col>
                                         </Row>
-                                        <Form.Item name="ma_dc" label="Nơi giao">
+                                        <Form.Item name="ma_dc" label="Nơi giao" rules={[{ required: true, message: 'Vui lòng chọn nơi giao hàng' }]}>
                                             <Select
                                                 showSearch
                                                 placeholder="Chọn nơi giao hàng"

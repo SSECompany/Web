@@ -565,7 +565,6 @@ const DetailPhieuYeuCauKiemKe = () => {
                         notification.error({ message: res.data?.responseModel?.message || res.data?.message || "Cập nhật thất bại" });
                     }
                 } catch (errInfo) {
-                    console.log("Validate or API Failed:", errInfo);
                 } finally {
                     setLoading(false);
                 }

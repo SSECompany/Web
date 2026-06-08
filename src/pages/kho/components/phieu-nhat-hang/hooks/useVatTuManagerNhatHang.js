@@ -240,20 +240,6 @@ export const useVatTuManagerNhatHang = () => {
           });
         }
 
-        console.log("🔍 Tìm dòng đã tồn tại:", {
-          value,
-          maLoStr,
-          existingIndex,
-          shouldUpdateLot,
-          totalItems: prev.length,
-          existingItem: existingIndex !== -1 ? prev[existingIndex] : null,
-          allItems: prev.map(item => ({
-            maHang: item.maHang,
-            ma_lo: item.ma_lo,
-            soLuong: item.soLuong,
-            tong_nhat: item.tong_nhat
-          }))
-        });
 
         if (existingIndex !== -1) {
           const updatedData = prev.map((item, index) => {
@@ -305,18 +291,6 @@ export const useVatTuManagerNhatHang = () => {
               const soLuongMoi = soLuongHienTai + soLuongThemVao;
               const soLuongLamTron = Math.round(soLuongMoi * 1000) / 1000;
 
-              console.log("📊 Cập nhật số lượng:", {
-                soLuongHienTai,
-                soLuongThemVao,
-                soLuongMoi,
-                soLuongLamTron,
-                heSoAPI,
-                dvtAPI,
-                dvtHienTai,
-                dvtGoc,
-                shouldUpdateLot,
-                maLoStr
-              });
 
               // Số lượng đề nghị giữ nguyên giá trị hiện tại
               const soLuongDeNghiHienTai = item.soLuongDeNghi || 0;

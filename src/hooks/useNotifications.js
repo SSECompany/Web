@@ -11,7 +11,7 @@ import {
 const STORAGE_KEY = 'tapmed_notifications';
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_STORED_NOTIFICATIONS = 30;
-const SHOULD_ENABLE_SIGNALR = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+const SHOULD_ENABLE_SIGNALR = false; // tạm tắt vì backend SignalR CORS chưa đúng (Access-Control-Allow-Origin: * không dùng được với credentials)
 const MAX_SIGNALR_START_RETRIES = 1;
 const SILENT_SIGNALR_LOGGER = {
   log: () => {},

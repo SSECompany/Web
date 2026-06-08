@@ -113,7 +113,7 @@ const DesktopLayout = ({
                 }
             },
         } : undefined,
-        scroll: { x: 1300 },
+        scroll: { x: 1300, y: "calc(100vh - 320px)" },
         ...tableProps,
     };
 

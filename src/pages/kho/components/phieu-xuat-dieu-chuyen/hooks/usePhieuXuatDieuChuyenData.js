@@ -202,7 +202,6 @@ export const usePhieuXuatDieuChuyenData = () => {
 
         const listObject = res.data?.listObject || [];
         const data = listObject[0] || [];
-        console.log("api_getListItem data:", data.slice(0, 2));
 
         if (Array.isArray(data)) {
           const options = data.map((item) => {

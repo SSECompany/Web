@@ -157,6 +157,39 @@ export const fetchPhieuKinhDoanhDetail = async (stt_rec) => {
     }
 };
 
+export const fetchPhieuKinhDoanhChiPhi = async (stt_rec) => {
+    const body = {
+        store: "api_get_don_hang_chi_phi",
+        param: {
+            stt_rec: stt_rec,
+            UserId: getCurrentUserId(),
+        },
+        data: {},
+        resultSetNames: ["chiPhi"],
+    };
+
+    try {
+        const response = await multipleTablePutApi(body);
+        const list = response?.listObject || [];
+        const chiPhi = list[0] || [];
+
+        return {
+            success: true,
+            data: chiPhi.map(item => ({
+                ...item,
+                ma_cp: item.ma_cp || item.ma_loai || "",
+                ten_cp: item.ten_cp || "",
+                tien_cp_nt: parseFloat(item.tien_cp_nt || item.tien_cp || 0),
+                tien_cp: parseFloat(item.tien_cp || 0),
+                line_nbr: item.line_nbr || 0,
+            })),
+        };
+    } catch (error) {
+        console.error("Lỗi khi gọi API api_get_don_hang_chi_phi:", error);
+        return { success: false, data: [] };
+    }
+};
+
 export const fetchPhieuKinhDoanhPrintData = async (stt_rec) => {
     const body = {
         store: "api_get_print_data_don_hang",
@@ -897,16 +930,63 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         ma_thue: item.ma_thue || "",
     }));
 
+    const r60Table = r60 && r60.length > 0 ? r60.map((item, index) => ({
+        stt_rec: master.stt_rec || "",
+        stt_rec0: item.stt_rec0 || String(index + 1).padStart(3, '0'),
+        ma_dvcs: unitId,
+        loai_ct: String(master.loai_ct || "1"),
+        ma_ct: "DXA",
+        ngay_lct: formatApiDate(master.ngay_lct || master.ngay_ct || new Date()),
+        ngay_ct: formatApiDate(master.ngay_ct || new Date()),
+        so_ct: master.so_ct || "",
+        ma_cp: item.ma_cp || "",
+        tien_cp_nt: roundNum(item.tien_cp_nt || item.tien_cp || 0, 0),
+        tien_cp: roundNum(item.tien_cp || 0, 0),
+        line_nbr: index + 1,
+        status: String(master.status || "0").trim(),
+        datetime0: formatApiDate(new Date()),
+        datetime2: formatApiDate(new Date()),
+        user_id0: userId,
+        user_id2: userId,
+        ma_hd: item.ma_hd || "",
+        ma_ku: item.ma_ku || "",
+        ma_phi: item.ma_phi || "",
+        so_dh: item.so_dh || "",
+        ma_td1: item.ma_td1 || "",
+        ma_td2: item.ma_td2 || "",
+        ma_td3: item.ma_td3 || "",
+        sl_td1: item.sl_td1 || 0,
+        sl_td2: item.sl_td2 || 0,
+        sl_td3: item.sl_td3 || 0,
+        ngay_td1: formatApiDate(item.ngay_td1),
+        ngay_td2: formatApiDate(item.ngay_td2),
+        ngay_td3: formatApiDate(item.ngay_td3),
+        gc_td1: item.gc_td1 || "",
+        gc_td2: item.gc_td2 || "",
+        gc_td3: item.gc_td3 || "",
+        s1: item.s1 || "",
+        s2: item.s2 || "",
+        s3: item.s3 || "",
+        s4: item.s4 || 0,
+        s5: item.s5 || 0,
+        s6: item.s6 || 0,
+        s7: formatApiDate(item.s7),
+        s8: formatApiDate(item.s8),
+        s9: formatApiDate(item.s9),
+    })) : [];
+
     const body = {
         store: "api_sua_don_hang",
         param: {
             UnitId: unitId,
             StoreID: storeId,
             userId: userId,
+            
         },
         data: {
             master64: [masterData],
             detail64: detail64,
+            r6064: r60Table,
         }
     };
 

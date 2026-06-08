@@ -8,6 +8,7 @@ import _ from 'lodash';
 import {
     fetchPhieuKinhDoanhDetail,
     fetchPhieuKinhDoanhChiTiet,
+    fetchPhieuKinhDoanhChiPhi,
     createPhieuKinhDoanh,
     updatePhieuKinhDoanh,
     fetchKhachHangSelection,
@@ -148,7 +149,12 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
         try {
             const res = await fetchPhieuKinhDoanhDetail(stt_rec);
             if (res.success && res.data) {
-                const { header, statusList: statuses, chiPhi, anhWeb } = res.data;
+                const { header, statusList: statuses, anhWeb } = res.data;
+
+                // Fetch chi phi riêng
+                const chiPhiRes = await fetchPhieuKinhDoanhChiPhi(stt_rec);
+                const chiPhiFromDetail = res.data?.chiPhi || [];
+                setChiPhiData(chiPhiRes.success ? chiPhiRes.data : (chiPhiFromDetail.length > 0 ? chiPhiFromDetail : []));
                 const currentStatus = header?.status !== undefined && header?.status !== null ? String(header.status).trim() : "0";
                 const currentSoanHang = String(header?.status_soan_hang || "").trim();
                 const isEditableStatus = ["0", "1", "2"].includes(currentStatus);
@@ -854,25 +860,56 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
             }
 
             const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
-            
-            const validationErrors = validateKinhDoanh(values, chiTietData, chiPhiData);
-            if (validationErrors.length > 0) {
-                message.error({
-                    content: (
-                        <div style={{ marginTop: '4px' }}>
-                            <div style={{ fontWeight: 'bold', marginBottom: '10px', color: '#ff4d4f', borderBottom: '1px solid #ffccc7', paddingBottom: '6px' }}>Vui lòng kiểm tra lại thông tin:</div>
-                            <div style={{ maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' }}>
-                                {validationErrors.map((err, idx) => (
-                                    <div key={idx} style={{ marginBottom: '8px', fontSize: '13px', display: 'flex', alignItems: 'flex-start' }}>
-                                        <span style={{ marginRight: '8px', color: '#ff4d4f', fontWeight: 'bold' }}>•</span>
-                                        <span style={{ lineHeight: '1.4' }}>{err}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ),
-                    duration: 6,
+
+            const { errors, fieldErrors, rowFieldErrors } = validateKinhDoanh(values, chiTietData, chiPhiData);
+            if (errors.length > 0) {
+                // Clear previous inline errors
+                form.setFields(
+                    Object.entries(fieldErrors).map(([name, help]) => ({
+                        name,
+                        errors: [help],
+                    }))
+                );
+
+                // Scroll to first error field (header fields prioritized)
+                const firstFieldName = Object.keys(fieldErrors)[0];
+                if (firstFieldName) {
+                    setTimeout(() => {
+                        form.scrollToField(firstFieldName, { behavior: "smooth", block: "center" });
+                    }, 100);
+                } else if (rowFieldErrors.size > 0) {
+                    // No header field errors — scroll to first error row in detail table
+                    const firstRowIndex = [...rowFieldErrors.keys()][0];
+                    setTimeout(() => {
+                        const rowEl = document.querySelector(`[data-row-key="${firstRowIndex}"]`);
+                        if (rowEl) rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }, 100);
+                }
+
+                // Also show system-level errors (non-field) as message
+                const systemErrors = errors.filter(e => {
+                    const errStr = String(e);
+                    return !Object.values(fieldErrors).includes(errStr) &&
+                        ![...rowFieldErrors.values()].some(m => [...m.values()].includes(errStr));
                 });
+                if (systemErrors.length > 0) {
+                    message.error({
+                        content: (
+                            <div style={{ marginTop: '4px' }}>
+                                <div style={{ fontWeight: 'bold', marginBottom: '10px', color: '#ff4d4f', borderBottom: '1px solid #ffccc7', paddingBottom: '6px' }}>Vui lòng kiểm tra lại thông tin:</div>
+                                <div style={{ maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' }}>
+                                    {systemErrors.map((err, idx) => (
+                                        <div key={idx} style={{ marginBottom: '8px', fontSize: '13px', display: 'flex', alignItems: 'flex-start' }}>
+                                            <span style={{ marginRight: '8px', color: '#ff4d4f', fontWeight: 'bold' }}>•</span>
+                                            <span style={{ lineHeight: '1.4' }}>{err}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ),
+                        duration: 6,
+                    });
+                }
                 return;
             }
 
