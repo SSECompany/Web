@@ -101,8 +101,20 @@ const DiscountModal = ({
                     { title: 'Mã CK', dataIndex: 'ma_ck', width: 110, align: 'center', render: (v) => String(v || "").trim() },
                     { title: 'Tên CK', dataIndex: 'ten_ck', render: (v) => String(v || "").trim() },
                     { title: 'Loại CK', dataIndex: 'loai_ck', width: 80, align: 'center', render: (v) => String(v || "").trim() },
-                    { title: 'Tên loại CK', dataIndex: 'ten_loai', width: 150, render: (v, r) => String(v || "").trim() || (r.kieu_ck === 'H' ? 'Khuyến mại tặng hàng' : (r.kieu_ck === 'M' ? 'Chiết khấu tổng đơn' : 'Chiết khấu dòng')) },
-                    { title: 'Mã hàng tặng', dataIndex: 'ma_vt', width: 120, render: (v, r) => String(r.kieu_ck || "").trim() === 'H' ? String(v || "").trim() : "" },
+                    { title: 'Tên loại CK', dataIndex: 'ten_loai', width: 150, render: (v, r) => {
+                        const loai = String(r.kieu_ck || '').trim();
+                        const loaiCk = String(r.loai_ck || '').trim();
+                        const type = loai || loaiCk;
+                        const label = String(v || "").trim();
+                        if (label) return label;
+                        if (type === 'H' || type === '09') return 'Khuyến mại tặng hàng';
+                        if (type === 'M' || type === '10') return 'Chiết khấu tổng đơn';
+                        return 'Chiết khấu dòng';
+                    }},
+                    { title: 'Mã hàng tặng', dataIndex: 'ma_vt', width: 120, render: (v, r) => {
+                        const type = String(r.kieu_ck || r.loai_ck || "").trim();
+                        return (type === 'H' || type === '09') ? String(v || "").trim() : "";
+                    }},
                 ]}
             />
         </Modal>

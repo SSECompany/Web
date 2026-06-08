@@ -507,7 +507,7 @@ const DetailPhieuKinhDoanh = ({ isEditMode: initialEditMode = false }) => {
                         size="small"
                         dataSource={chiPhiData}
                         columns={chiPhiColumns}
-                        rowKey={(r) => r.ma_cp || r.line_nbr}
+                        rowKey={(r) => `${r.ma_cp}_${r.line_nbr}`}
                         pagination={false}
                         bordered
                     />

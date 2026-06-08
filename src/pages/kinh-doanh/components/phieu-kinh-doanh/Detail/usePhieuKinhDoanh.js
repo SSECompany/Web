@@ -151,10 +151,12 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
             if (res.success && res.data) {
                 const { header, statusList: statuses, anhWeb } = res.data;
 
-                // Fetch chi phi riêng
                 const chiPhiRes = await fetchPhieuKinhDoanhChiPhi(stt_rec);
                 const chiPhiFromDetail = res.data?.chiPhi || [];
-                setChiPhiData(chiPhiRes.success ? chiPhiRes.data : (chiPhiFromDetail.length > 0 ? chiPhiFromDetail : []));
+                const chiPhiToUse = (chiPhiRes.success && chiPhiRes.data && chiPhiRes.data.length > 0)
+                    ? chiPhiRes.data
+                    : (chiPhiFromDetail.length > 0 ? chiPhiFromDetail : []);
+                setChiPhiData(chiPhiToUse);
                 const currentStatus = header?.status !== undefined && header?.status !== null ? String(header.status).trim() : "0";
                 const currentSoanHang = String(header?.status_soan_hang || "").trim();
                 const isEditableStatus = ["0", "1", "2"].includes(currentStatus);
@@ -472,7 +474,15 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
 
         if (resultsToApply.length > 0) {
             resultsToApply.forEach(res => {
-                const kieu_ck = String(res.kieu_ck || "").trim();
+                let kieu_ck = String(res.kieu_ck || "").trim();
+                if (!kieu_ck || !['H', 'D', 'M'].includes(kieu_ck)) {
+                    const loai = String(res.loai_ck || "").trim();
+                    if (loai === '08' || loai === 'D') kieu_ck = 'D';
+                    else if (loai === '09' || loai === 'H') kieu_ck = 'H';
+                    else if (loai === '10' || loai === 'M') kieu_ck = 'M';
+                    else if (loai) kieu_ck = 'D'; // Mặc định xử lý như chiết khấu dòng
+                    else console.warn("Chiết khấu không xác định loại:", res);
+                }
                 const ma_ck = String(res.ma_ck || "").trim();
                 
                 if (kieu_ck === 'H') {
@@ -509,15 +519,20 @@ export const usePhieuKinhDoanh = (initialEditMode = false) => {
                     updatedDetails = updatedDetails.map(row => {
                         if (String(row.ma_vt || "").trim() === ma_vt_mua && !row.km_yn) {
                             let updatedRow = { ...row, ma_ck: ma_ck || row.ma_ck };
-                            if (res.gia_nt && parseFloat(res.gia_nt) !== 0) {
-                                updatedRow = calculateRowOnChange(updatedRow, "gia_nt2", parseFloat(res.gia_nt), ty_gia);
-                            } else if (res.tl_ck && parseFloat(res.tl_ck) !== 0) {
-                                updatedRow = calculateRowOnChange(updatedRow, "tl_ck", parseFloat(res.tl_ck), ty_gia);
+                            
+                            const newPrice = parseFloat(res.gia_nt || res.gia_ban_nt || res.gia_ban || res.gia_nt2 || res.gia || 0);
+                            const discPct = parseFloat(res.tl_ck || res.phan_tram_ck || 0);
+                            const discAmt = parseFloat(res.ck_nt || res.ck || res.tien_ck || 0);
+                            
+                            if (newPrice !== 0) {
+                                updatedRow = calculateRowOnChange(updatedRow, "gia_nt2", newPrice, ty_gia);
+                            } else if (discPct !== 0) {
+                                updatedRow = calculateRowOnChange(updatedRow, "tl_ck", discPct, ty_gia);
                                 if (res.tien_ck_toi_da > 0 && updatedRow.ck_nt > res.tien_ck_toi_da) {
                                     updatedRow = calculateRowOnChange(updatedRow, "ck_nt", parseFloat(res.tien_ck_toi_da), ty_gia);
                                 }
-                            } else if (res.ck_nt || res.ck) {
-                                updatedRow = calculateRowOnChange(updatedRow, "ck_nt", parseFloat(res.ck_nt || res.ck), ty_gia);
+                            } else if (discAmt !== 0) {
+                                updatedRow = calculateRowOnChange(updatedRow, "ck_nt", discAmt, ty_gia);
                             }
                             last_ma_ck = ma_ck;
                             return updatedRow;
