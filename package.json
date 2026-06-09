@@ -1,6 +1,6 @@
 {
   "name": "phenika",
-  "version": "0.1.174",
+  "version": "0.1.176",
   "private": true,
   "dependencies": {
     "@iconscout/react-unicons": "^2.0.0",
