@@ -50,6 +50,7 @@ const Login = () => {
   const [isLoginInProgress, setIsLoginInProgress] = useState(false); // Thêm state để track login progress
   const [allUnitsData, setAllUnitsData] = useState([]); // Lưu toàn bộ dữ liệu units từ API
   const [isNavigating, setIsNavigating] = useState(false); // Thêm state cho navigation
+  const [prefetchAttempted, setPrefetchAttempted] = useState(false); // Chỉ prefetch đúng 1 lần
 
   const dispatch = useDispatch();
   const isValidSession = useSelector(selectIsValidSession);
@@ -132,7 +133,7 @@ const Login = () => {
     if (!userName || !password || token || isLoginInProgress) return; // Thêm check isLoginInProgress
     try {
       const response = await https.post("v1/users/signin", {
-        hostId: "https://vikosan-cloud.sse.net.vn",
+        hostId: "https://heijco-cloud.sse.net.vn",
         userName,
         password,
         devideToken: "",
@@ -180,12 +181,16 @@ const Login = () => {
       // Nếu chưa có token (preFetch chưa chạy hoặc failed), thì mới gọi signin
       if (!accessToken) {
         const response = await https.post("v1/users/signin", {
-          hostId: "https://vikosan-cloud.sse.net.vn",
+          hostId: "https://heijco-cloud.sse.net.vn",
           userName,
           password,
           devideToken: "",
           language: "V",
         });
+
+        if (!response?.data) {
+          throw new Error("INVALID_RESPONSE");
+        }
 
         accessToken = response.data.accessToken;
         newRefreshToken = response.data.refreshToken;
@@ -259,6 +264,7 @@ const Login = () => {
   }, [userName, password, token, dispatch, unitsLoaded, units, unitSelected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchCompanies = async (accessToken) => {
+    if (!accessToken || typeof accessToken !== "string") return;
     try {
       const companiesResponse = await https.get(
         "v1/users/companies",
@@ -579,10 +585,9 @@ const Login = () => {
                   size="large"
                   className="default_button"
                   type="primary"
-                  htmlType="submit"
                   loading={loginLoading || loginWaitingUnits || isNavigating}
                   style={{ flexShrink: "0", color: "white", width: "100%" }}
-                  disabled={!unitsLoaded && !loginWaitingUnits}
+                  onClick={() => onEnoughInfo()}
                 >
                   Đăng nhập
                 </Button>
