@@ -1151,16 +1151,12 @@ body {
   background: #f8fafc;
 }
 
-/* Đảm bảo Select trong cột Mã lô / Vị trí hiển thị đầy đủ text */
-.vat-tu-table .ant-table-tbody .ant-select-selector {
-  overflow: visible !important;
-}
-
+/* Giới hạn text hiển thị trong độ rộng của Select */
 .vat-tu-table .ant-table-tbody .ant-select-selection-item {
-  overflow: visible !important;
-  text-overflow: clip !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
   white-space: nowrap !important;
-  max-width: none !important;
+  max-width: 100% !important;
 }
 
 .vat-tu-table .ant-table-tbody .ant-select-selection-placeholder {

@@ -741,7 +741,17 @@ export const useVatTuManagerNhatHang = () => {
                 tong_nhat: newValue, // Cập nhật tổng nhặt bằng số lượng nhặt
               };
             } else if (field === "tong_nhat") {
-              // SL nhặt không vượt SL đơn (mẹ vs mẹ, con vs con) và SL đơn nhóm — không check tồn khả dụng
+              // Kiểm tra tồn khả dụng tại thời điểm làm phiếu nhặt hàng
+              const currentLoOption = (item.loOptions || []).find(
+                (opt) =>
+                  (opt.value || "").toString().trim() ===
+                  (item.ma_lo || "").toString().trim()
+              );
+              const slKhaDung = currentLoOption
+                ? parseFloat(currentLoOption.sl_kha_dung) || 0
+                : 0;
+
+              // SL nhặt không vượt SL đơn (mẹ vs mẹ, con vs con) và SL đơn nhóm
               const rowOrderQty =
                 parseFloat(item.soLuongDeNghi ?? item.so_luong ?? 0) || 0;
               const groupKey = item.isChild ? item.parentKey : item.key;
@@ -767,6 +777,8 @@ export const useVatTuManagerNhatHang = () => {
               if (rowOrderQty > 0) limits.push(rowOrderQty); // SL nhặt ≤ SL đơn của chính dòng đó
               if (groupOrderQty > 0)
                 limits.push(Math.max(0, groupOrderQty - sumOthers));
+              if (slKhaDung > 0)
+                limits.push(Math.max(0, slKhaDung - sumOthers)); // SL nhặt ≤ SL khả dụng lô
 
               const maxAllowedRaw = limits.length > 0 ? Math.min(...limits) : newValue;
               const maxAllowed = typeof maxAllowedRaw === "number" ? Math.round(maxAllowedRaw) : maxAllowedRaw;
@@ -791,6 +803,8 @@ export const useVatTuManagerNhatHang = () => {
                   roundedNewValue > Math.round(Math.max(0, groupOrderQty - sumOthers))
                 )
                   reasons.push(`SL đơn nhóm (${groupOrderQty})`);
+                if (slKhaDung > 0 && roundedNewValue > slKhaDung)
+                  reasons.push(`SL khả dụng lô (${slKhaDung})`);
                 message.warning(
                   `SL nhặt không được vượt quá ${reasons.join(
                     " và "

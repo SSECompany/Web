@@ -707,15 +707,23 @@ const VatTuTable = ({
                     }
                   }
                 }}
+                optionLabelRender={(opt) => {
+                  // Chỉ hiện mã lô trong ô input, cắt nếu quá dài
+                  const raw = opt.label || "";
+                  return raw.length > 30 ? raw.slice(0, 30) + "…" : raw;
+                }}
                 classNames={{ popup: { root: "vat-tu-dropdown" } }}
                 popupMatchSelectWidth={false}
-                notFoundContent={
-                  isLoLoading ? (
-                    <div style={{ display: "flex", justifyContent: "center" }}>
-                      <Spin size="small" />
-                    </div>
-                  ) : null
-                }
+                dropdownRender={(menu) => (
+                  <>
+                    {menu}
+                    {loadingLo[record.key] && (
+                      <div style={{ display: "flex", justifyContent: "center", padding: 8 }}>
+                        <Spin size="small" />
+                      </div>
+                    )}
+                  </>
+                )}
               />
               {isEditMode && onAddLotClick && (
                 <PlusOutlined

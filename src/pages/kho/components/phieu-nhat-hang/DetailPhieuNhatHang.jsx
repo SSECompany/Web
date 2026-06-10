@@ -292,7 +292,9 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
 
       const options = data.map((x) => {
         const value = (x?.ma_lo || x?.value || x?.ten_lo || "").toString();
-        // Format label: ma_lo-ngay_hhsd nếu có ngay_hhsd
+        const ton = x?.ton_thuc_te ?? x?.so_luong ?? 0;
+        const kd = x?.ton_kha_dung ?? x?.so_luong ?? 0;
+        // Label: mã lô + stock info để hiển thị trong dropdown
         let label = value;
         if (x?.ngay_hhsd) {
           const ngayHHSD = formatDate(x.ngay_hhsd);
@@ -300,7 +302,13 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
         } else {
           label = x?.ma_lo || x?.ten_lo || x?.label || value;
         }
-        return { value, label };
+        label = `${label} | Tồn: ${Number(ton).toLocaleString()} | Khả dụng: ${Number(kd).toLocaleString()}`;
+        return {
+          value,
+          label,
+          so_luong_ton: ton,
+          sl_kha_dung: kd,
+        };
       });
       return { options, totalPage };
     } catch (e) {
