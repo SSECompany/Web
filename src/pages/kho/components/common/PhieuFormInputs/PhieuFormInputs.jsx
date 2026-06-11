@@ -120,6 +120,7 @@ const PhieuFormInputs = memo(({
         <Form.Item name={fieldNames.soDonHang} noStyle><Input type="hidden" /></Form.Item>
         <Form.Item name={fieldNames.ngayDonHang} noStyle><Input type="hidden" /></Form.Item>
 
+        {/* Row 1: Nhà cung cấp */}
         <Row gutter={responsiveGutter}>
           <Col span={24}>
             <Form.Item
@@ -156,6 +157,7 @@ const PhieuFormInputs = memo(({
           </Col>
         </Row>
 
+        {/* Row 2: Người giao hàng | Ngày lập */}
         <Row gutter={responsiveGutter}>
           <Col xs={24} sm={16}>
             <Form.Item name={fieldNames.nguoiGiaoHang} label="Người giao hàng">
@@ -164,11 +166,26 @@ const PhieuFormInputs = memo(({
           </Col>
           <Col xs={24} sm={8}>
             <Form.Item name={fieldNames.ngay} label="Ngày lập" rules={[{ required: true, message: "Chọn ngày lập" }]}>
-              <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" disabled={!isEditMode} />
+              <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" disabled/>
             </Form.Item>
           </Col>
         </Row>
 
+        {/* Row 3: Số đơn hàng | Ngày đơn hàng */}
+        <Row gutter={responsiveGutter}>
+          <Col xs={24} sm={12}>
+            <Form.Item name={fieldNames.soDonHang} label="Số đơn hàng">
+              <Input placeholder="Số đơn hàng" disabled />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name={fieldNames.ngayDonHang} label="Ngày đơn hàng">
+              <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" disabled />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        {/* Row 4: Diễn giải | Ngày hạch toán */}
         <Row gutter={responsiveGutter}>
           <Col xs={24} sm={16}>
             <Form.Item name={fieldNames.dienGiai} label="Diễn giải">
@@ -177,11 +194,12 @@ const PhieuFormInputs = memo(({
           </Col>
           <Col xs={24} sm={8}>
             <Form.Item name={fieldNames.ngayHachToan} label="Ngày hạch toán" rules={[{ required: true, message: "Chọn ngày hạch toán" }]}>
-              <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" disabled={!isEditMode} />
+              <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" disabled />
             </Form.Item>
           </Col>
         </Row>
 
+        {/* Row 5: Nhân viên mua */}
         <Row gutter={responsiveGutter}>
           <Col xs={24} sm={16}>
             <Form.Item name={fieldNames.ma_nv_mua} label="Nhân viên mua">

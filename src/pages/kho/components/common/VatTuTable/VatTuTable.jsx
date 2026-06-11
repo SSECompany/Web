@@ -39,6 +39,7 @@ const VatTuTable = ({
   focusInvalidRowKey,
   onFocusInvalidRowHandled,
   onAddLotClick,
+  forceReloadLoOnOpen = false, // Khi true: mỗi lần mở dropdown đều reload API (thay vì dùng cache)
   ...otherProps
 }) => {
   const [loadingDvt, setLoadingDvt] = useState({});
@@ -120,13 +121,15 @@ const VatTuTable = ({
 
   // Prefetch danh sách mã lô cho một dòng cụ thể, luôn dùng dataSource mới nhất
   const loLoadingRef = useRef({});
+  const loJustOpenedRef = useRef({});
   const loPageRef = useRef({});
   const loTotalPageRef = useRef({});
 
   const loadLoOptions = useCallback(
     async (keyword = "", record, openAfter = false, page = 1) => {
       if (!apiHandlers.fetchLoList || !record?.key || loLoadingRef.current[record.key]) return;
-
+      // Set flag ĐỒNG BỘ trước khi await, để guard hoạt động đúng khi onDropdownVisibleChange fire lại sau re-render
+      loJustOpenedRef.current[record.key] = true;
       loLoadingRef.current[record.key] = true;
       setLoadingLo((prev) => ({ ...prev, [record.key]: true }));
       try {
@@ -139,7 +142,6 @@ const VatTuTable = ({
           currentRecord,
           page
         );
-
         // Hỗ trợ cả array (cũ) và object { options, totalPage } (mới)
         const fetchedOptions = Array.isArray(result) ? result : (result?.options || []);
         const totalPage = !Array.isArray(result) ? (result?.totalPage || 1) : 1;
@@ -167,15 +169,15 @@ const VatTuTable = ({
         );
 
         if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
-        // Mở dropdown sau khi tải xong options (phù hợp yêu cầu auto show)
-        if (openAfter) {
-          setOpenLo((prev) => ({ ...prev, [record.key]: true }));
-        }
       } catch (error) {
         console.error("Error loading lot options:", error);
       } finally {
         loLoadingRef.current[record.key] = false;
         setLoadingLo((prev) => ({ ...prev, [record.key]: false }));
+        // Reset flag sau khi React re-render xong, tránh vòng lặp gọi API
+        setTimeout(() => {
+          loJustOpenedRef.current[record.key] = false;
+        }, 0);
       }
     },
     [apiHandlers, onDataSourceUpdate]
@@ -673,16 +675,24 @@ const VatTuTable = ({
                     delete next[record.key];
                     return next;
                   });
+                
                   if (!visible) return;
+                
+                  // Luôn reset và gọi lại API mỗi lần mở (không dùng cache)
                   const currentDataSource = dataSourceRef.current;
                   const currentRecord =
-                    currentDataSource.find((item) => item.key === record.key) ||
-                    record;
-                  const hasOptions =
-                    currentRecord?.loOptions && currentRecord.loOptions.length > 0;
-                  if (!hasOptions) {
-                    loadLoOptions("", currentRecord, true, 1);
-                  }
+                    currentDataSource.find((item) => item.key === record.key) || record;
+                  const clearedRecord = {
+                    ...currentRecord,
+                    loOptions: [],
+                    loPage: 0,
+                    loKeyword: "",
+                  };
+                  const clearedDataSource = currentDataSource.map((item) =>
+                    item.key === record.key ? clearedRecord : item
+                  );
+                  if (onDataSourceUpdate) onDataSourceUpdate(clearedDataSource);
+                  loadLoOptions("", clearedRecord, true, 1);
                 }}
                 onChange={(val) => {
                   const currentDataSource = dataSourceRef.current;
@@ -945,16 +955,45 @@ const VatTuTable = ({
                     onDropdownVisibleChange={(open) => {
                       if (open) {
                         setOpenLo((prev) => ({ ...prev, [record.key]: true }));
-                        const r = dataSource.find(it => it.key === record.key) || record;
-                        if (!r.loOptions || r.loOptions.length === 0) {
-                          loadLoOptions("", record, true, 1);
-                        }
-                      } else {
-                        setOpenLo((prev) => {
-                          const next = { ...prev };
-                          delete next[record.key];
-                          return next;
+                        const currentRecord = dataSource.find(it => it.key === record.key) || record;
+                        const clearedRecord = { ...currentRecord, loOptions: [], loPage: 0, loKeyword: "" };
+                        const clearedDataSource = dataSource.map((item) =>
+                          item.key === record.key ? clearedRecord : item
+                        );
+                        if (onDataSourceUpdate) onDataSourceUpdate(clearedDataSource);
+                        // Set loading đồng bộ và gọi API ngay
+                        loLoadingRef.current[record.key] = true;
+                        setLoadingLo((prev) => ({ ...prev, [record.key]: true }));
+                        apiHandlers.fetchLoList("", clearedRecord, 1).then((result) => {
+                          const fetchedOptions = Array.isArray(result) ? result : (result?.options || []);
+                          const totalPage = !Array.isArray(result) ? (result?.totalPage || 1) : 1;
+                          const latestRecord =
+                            dataSourceRef.current.find((item) => item.key === record.key) || clearedRecord;
+                          const updatedRecord = {
+                            ...latestRecord,
+                            loOptions: fetchedOptions,
+                            loPage: 1,
+                            loKeyword: "",
+                            _loTotalPage: totalPage
+                          };
+                          const updated = (dataSourceRef.current || []).map((item) =>
+                            item.key === record.key ? updatedRecord : item
+                          );
+                          if (onDataSourceUpdate) onDataSourceUpdate(updated);
+                        }).catch((error) => {
+                          console.error("Error loading lot options:", error);
+                        }).finally(() => {
+                          loLoadingRef.current[record.key] = false;
+                          setLoadingLo((prev) => ({ ...prev, [record.key]: false }));
                         });
+                      } else {
+                        setOpenLo((prev) => ({ ...prev, [record.key]: false }));
+                        const clearedDataSource = dataSource.map((item) =>
+                          item.key === record.key
+                            ? { ...item, loOptions: [], loPage: 0, loKeyword: "" }
+                            : item
+                        );
+                        if (onDataSourceUpdate) onDataSourceUpdate(clearedDataSource);
                       }
                     }}
                     open={openLo[record.key]}

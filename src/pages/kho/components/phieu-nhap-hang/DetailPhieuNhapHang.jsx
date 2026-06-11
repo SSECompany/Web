@@ -104,6 +104,16 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
     setIsEditMode(isEditPath);
   }, [location.pathname]);
 
+  // Set default dates = today when creating new phieu
+  useEffect(() => {
+    if (!sctRec && !phieuDetailLoaded) {
+      form.setFieldsValue({
+        ngay: dayjs(),
+        ngayHachToan: dayjs(),
+      });
+    }
+  }, [sctRec, phieuDetailLoaded]);
+
   useEffect(() => {
     const fetchPhieuDetail = async () => {
       if (apiCalled || !sctRec || phieuDetailLoaded) return;

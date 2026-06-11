@@ -167,6 +167,7 @@ export const buildPhieuNhapHangPayload = (
     user_id2: isUpdate ? phieuData?.user_id2 : userInfo.userId,
     fcode2: values.soDonHang || phieuData?.fcode2 || "",
     fdate1: toDateVal(values.ngayDonHang) || toDateVal(phieuData?.fdate1) || null,
+    fcode1: values.ma_nv_mua || phieuData?.fcode1 || "",
     nam: new Date(orderDate).getFullYear(),
     ky: new Date(orderDate).getMonth() + 1,
   };
@@ -177,8 +178,8 @@ export const buildPhieuNhapHangPayload = (
   
   Object.keys(masterData).forEach(key => {
     if (
-      BAD_PREFIXES.some(p => key.startsWith(p)) || 
-      key.endsWith("_name") || 
+      BAD_PREFIXES.some(p => key.startsWith(p)) ||
+      key.endsWith("_name") ||
       ["d71", "cookie", "statusname", "comment", "comment2", "comment3", "dia_chi", "dept_id", "ma_so_thue", "ma_kho"].includes(key)
     ) {
       delete masterData[key];

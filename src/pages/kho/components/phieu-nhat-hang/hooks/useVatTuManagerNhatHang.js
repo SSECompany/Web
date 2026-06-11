@@ -741,15 +741,7 @@ export const useVatTuManagerNhatHang = () => {
                 tong_nhat: newValue, // Cập nhật tổng nhặt bằng số lượng nhặt
               };
             } else if (field === "tong_nhat") {
-              // Kiểm tra tồn khả dụng tại thời điểm làm phiếu nhặt hàng
-              const currentLoOption = (item.loOptions || []).find(
-                (opt) =>
-                  (opt.value || "").toString().trim() ===
-                  (item.ma_lo || "").toString().trim()
-              );
-              const slKhaDung = currentLoOption
-                ? parseFloat(currentLoOption.sl_kha_dung) || 0
-                : 0;
+              
 
               // SL nhặt không vượt SL đơn (mẹ vs mẹ, con vs con) và SL đơn nhóm
               const rowOrderQty =
@@ -777,8 +769,7 @@ export const useVatTuManagerNhatHang = () => {
               if (rowOrderQty > 0) limits.push(rowOrderQty); // SL nhặt ≤ SL đơn của chính dòng đó
               if (groupOrderQty > 0)
                 limits.push(Math.max(0, groupOrderQty - sumOthers));
-              if (slKhaDung > 0)
-                limits.push(Math.max(0, slKhaDung - sumOthers)); // SL nhặt ≤ SL khả dụng lô
+             
 
               const maxAllowedRaw = limits.length > 0 ? Math.min(...limits) : newValue;
               const maxAllowed = typeof maxAllowedRaw === "number" ? Math.round(maxAllowedRaw) : maxAllowedRaw;
@@ -803,8 +794,7 @@ export const useVatTuManagerNhatHang = () => {
                   roundedNewValue > Math.round(Math.max(0, groupOrderQty - sumOthers))
                 )
                   reasons.push(`SL đơn nhóm (${groupOrderQty})`);
-                if (slKhaDung > 0 && roundedNewValue > slKhaDung)
-                  reasons.push(`SL khả dụng lô (${slKhaDung})`);
+                
                 message.warning(
                   `SL nhặt không được vượt quá ${reasons.join(
                     " và "
@@ -952,8 +942,14 @@ export const useVatTuManagerNhatHang = () => {
 
   const performDeleteItem = (index, groupKey, memberIndexInGroup, groupMembers) => {
     const itemToDelete = dataSource[index];
-    let filteredData;
+    if (!itemToDelete) return;
 
+    // Identify the parent being deleted to handle orphan children
+    const deletedParentKey = !itemToDelete.isChild ? itemToDelete.key : itemToDelete.parentKey;
+    void deletedParentKey; // reserved for future use
+
+    // 1. Filter out deleted items (parent → whole group; child → this + followers)
+    let filteredData;
     if (!itemToDelete.isChild) {
       // Xóa dòng cha -> xóa cả group
       filteredData = dataSource.filter(
@@ -969,13 +965,13 @@ export const useVatTuManagerNhatHang = () => {
       const predecessor = groupMembers[memberIndexInGroup - 1];
       if (predecessor) {
         const rootParent = dataSource.find(r => !r.isChild && r.key === groupKey);
-        const totalOrder = parseFloat(rootParent?.soLuongDeNghi_tong || 0) || 
+        const totalOrder = parseFloat(rootParent?.soLuongDeNghi_tong || 0) ||
                            parseFloat(rootParent?.so_luong || 0) || 0;
-        
+
         const sumPickedBefore = groupMembers
           .slice(0, memberIndexInGroup - 1)
           .reduce((s, m) => s + parseFloat(m.tong_nhat || 0), 0);
-          
+
         const restoredOrderQty = Math.round(totalOrder - sumPickedBefore);
 
         filteredData = filteredData.map((item) => {
@@ -991,8 +987,17 @@ export const useVatTuManagerNhatHang = () => {
       }
     }
 
-    // Re-indexing logic needs to be careful with parentKey
-    // 1. Create a map from old key to new key
+    // 2. After deleting a parent, any child that no longer has its parent in filteredData
+    //    becomes an orphan (its maHang/ten_mat_hang are empty strings) — remove it.
+    if (!itemToDelete.isChild) {
+      const remainingParentKeys = new Set(filteredData.map(r => r.key));
+      filteredData = filteredData.filter((item) => {
+        if (!item.isChild || !item.parentKey) return true;
+        return remainingParentKeys.has(item.parentKey);
+      });
+    }
+
+    // 3. Re-index keys; build old-key → new-key map
     const keyMap = new Map();
     const reindexed = filteredData.map((item, i) => {
       const newKey = i + 1;
@@ -1000,7 +1005,7 @@ export const useVatTuManagerNhatHang = () => {
       return { ...item, key: newKey, line_nbr: newKey };
     });
 
-    // 2. Update parentKey using the map
+    // 4. Update parentKey using the map
     const finalData = reindexed.map((item) => {
       if (item.isChild && item.parentKey) {
         return { ...item, parentKey: keyMap.get(item.parentKey) || item.parentKey };

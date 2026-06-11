@@ -3,6 +3,7 @@ import { VatTuTable, phieuNhatHangConfig } from "../../common/VatTuTable";
 const VatTuNhatHangTable = ({
   dataSource,
   isEditMode = true,
+  forceReloadLoOnOpen = false,
   handleQuantityChange,
   handleSelectChange,
   handleDeleteItem,
@@ -23,6 +24,7 @@ const VatTuNhatHangTable = ({
     <VatTuTable
       dataSource={dataSource}
       isEditMode={isEditMode}
+      forceReloadLoOnOpen={forceReloadLoOnOpen}
       onQuantityChange={handleQuantityChange}
       onSelectChange={handleSelectChange}
       onDeleteItem={handleDeleteItem}

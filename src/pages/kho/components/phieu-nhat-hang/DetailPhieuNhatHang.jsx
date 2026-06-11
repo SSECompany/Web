@@ -966,6 +966,7 @@ const DetailPhieuNhatHang = ({ isEditMode: initialEditMode = false }) => {
           <VatTuNhatHangTable
             dataSource={dataSource}
             isEditMode={isEditMode}
+            forceReloadLoOnOpen={true}
             handleQuantityChange={handleQuantityChange}
             handleSelectChange={handleSelectChange}
             handleDeleteItem={handleDeleteItem}
