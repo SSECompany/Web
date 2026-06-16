@@ -521,7 +521,7 @@ const VatTuTable = ({
                       {maViTri}
                     </div>
                   ) : null}
-                  <div style={{ color: '#52c41a', fontSize: '13px' }}>
+                  <div style={{ color: '#52c41a', fontSize: '13px' }} hidden>
                     Tồn: {formatQuantityDisplay(soLuongTon || 0)} / Tồn khả dụng: {tonKh !== null && tonKh !== undefined ? formatQuantityDisplay(tonKh) : "-"}
                   </div>
                 </div>

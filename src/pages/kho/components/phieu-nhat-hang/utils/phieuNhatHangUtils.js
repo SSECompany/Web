@@ -239,12 +239,19 @@ export const computeGroupState = (dataSource = []) => {
     const roundedOrderQty = Math.round(g.orderQty || 0);
     g.exceeded = roundedPickedSum > roundedOrderQty;
     g.exceededTonKh = false; // Phiếu nhặt hàng không kiểm tra tồn khả dụng
-    // Per-row: mỗi dòng có tong_nhat > soLuongDeNghi của chính dòng đó
+    // Per-row: mỗi dòng có tong_nhat > SL đơn của chính dòng đó
+    // Ưu tiên soLuongDeNghi_tong (sau khi split, mẹ giữ tổng gốc ở đây),
+    // fallback sang soLuongDeNghi/so_luong để hỗ cho dòng con
     g.exceededPerRow = g.members.some((row) => {
       const picked = parseFloat(row.tong_nhat || 0) || 0;
       const rowOrderQty =
         parseFloat(
-          row.soLuongDeNghi ?? row.so_luong ?? 0
+          // Dòng cha sau split: soLuongDeNghi_tong giữ tổng gốc (khi split tại SL=0 → =0, bug)
+          // Ưu tiên soLuongDeNghi_tong để validate đúng sau split
+          row.soLuongDeNghi_tong ??
+            row.soLuongDeNghi ??
+            row.so_luong ??
+            0
         ) || 0;
       return rowOrderQty > 0 && picked > rowOrderQty;
     });

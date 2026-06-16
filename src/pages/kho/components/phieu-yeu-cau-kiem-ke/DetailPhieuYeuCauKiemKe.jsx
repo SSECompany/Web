@@ -140,18 +140,18 @@ const DetailPhieuYeuCauKiemKe = () => {
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             });
 
-            const listObj = response.data?.listObject;
+            const listObj = response?.data?.listObject;
             let items = [];
             let totalCount = 0;
             if (listObj?.dataLists) {
-                items = listObj.dataLists.data || [];
-                const pag = listObj.dataLists.pagination?.[0] || {};
-                totalCount = pag.totalCount ?? pag.TotalCount ?? pag.totalRecord ?? pag.TotalRecord ?? pag.Total_Row ?? pag.total_row ?? items.length;
+                items = listObj.dataLists?.data || [];
+                const pag = listObj.dataLists?.pagination?.[0] || {};
+                totalCount = pag?.totalCount ?? pag?.TotalCount ?? pag?.totalRecord ?? pag?.TotalRecord ?? pag?.Total_Row ?? pag?.total_row ?? items.length;
             } else if (Array.isArray(listObj)) {
                 items = Array.isArray(listObj[0]) ? listObj[0] : [];
                 if (listObj[1] && Array.isArray(listObj[1]) && listObj[1][0]) {
                     const pag = listObj[1][0];
-                    totalCount = pag.totalCount ?? pag.TotalCount ?? pag.totalRecord ?? pag.TotalRecord ?? pag.Total_Row ?? pag.total_row ?? items.length;
+                    totalCount = pag?.totalCount ?? pag?.TotalCount ?? pag?.totalRecord ?? pag?.TotalRecord ?? pag?.Total_Row ?? pag?.total_row ?? items.length;
                 }
             }
             setDataCanKiemKe(items);
@@ -201,18 +201,18 @@ const DetailPhieuYeuCauKiemKe = () => {
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             });
 
-            const listObj = response.data?.listObject;
+            const listObj = response?.data?.listObject;
             let items = [];
             let totalCount = 0;
             if (listObj?.dataLists) {
-                items = listObj.dataLists.data || [];
-                const pag = listObj.dataLists.pagination?.[0] || {};
-                totalCount = pag.totalCount ?? pag.TotalCount ?? pag.totalRecord ?? pag.TotalRecord ?? pag.Total_Row ?? pag.total_row ?? items.length;
+                items = listObj.dataLists?.data || [];
+                const pag = listObj.dataLists?.pagination?.[0] || {};
+                totalCount = pag?.totalCount ?? pag?.TotalCount ?? pag?.totalRecord ?? pag?.TotalRecord ?? pag?.Total_Row ?? pag?.total_row ?? items.length;
             } else if (Array.isArray(listObj)) {
                 items = Array.isArray(listObj[0]) ? listObj[0] : [];
                 if (listObj[1] && Array.isArray(listObj[1]) && listObj[1][0]) {
                     const pag = listObj[1][0];
-                    totalCount = pag.totalCount ?? pag.TotalCount ?? pag.totalRecord ?? pag.TotalRecord ?? pag.Total_Row ?? pag.total_row ?? items.length;
+                    totalCount = pag?.totalCount ?? pag?.TotalCount ?? pag?.totalRecord ?? pag?.TotalRecord ?? pag?.Total_Row ?? pag?.total_row ?? items.length;
                 }
             }
             setDataDaKiemKe(items);
@@ -481,6 +481,8 @@ const DetailPhieuYeuCauKiemKe = () => {
                     ma_kho: record.ma_kho || headerProps.ma_kho,
                     ma_vung: record.ma_kv || record.ma_vung || "",
                     ma_vi_tri: record.ma_vi_tri || "",
+                    ma_vung: record.ma_kv || record.ma_vung || "",
+                    ma_vi_tri: record.ma_vi_tri || "",
                     ma_vt: record.ma_vt,
                     dvt: record.dvt || "",
                     UserId: currentUserId,
@@ -616,6 +618,8 @@ const DetailPhieuYeuCauKiemKe = () => {
         if (filterKKSS.ten_vt) chips.push({ key: "ten_vt", label: "Tên VT", value: filterKKSS.ten_vt });
         if (filterKKSS.ma_vung) chips.push({ key: "ma_vung", label: "Vùng", value: filterKKSS.ma_vung });
         if (filterKKSS.ma_vi_tri) chips.push({ key: "ma_vi_tri", label: "Vị trí", value: filterKKSS.ma_vi_tri });
+        if (filterKKSS.ma_vung) chips.push({ key: "ma_vung", label: "Vùng", value: filterKKSS.ma_vung });
+        if (filterKKSS.ma_vi_tri) chips.push({ key: "ma_vi_tri", label: "Vị trí", value: filterKKSS.ma_vi_tri });
         return chips;
     }, [filterKKSS]);
 
@@ -624,6 +628,8 @@ const DetailPhieuYeuCauKiemKe = () => {
         if (filterKKCT.ma_vt) chips.push({ key: "ma_vt", label: "Mã VT", value: filterKKCT.ma_vt });
         if (filterKKCT.ten_vt) chips.push({ key: "ten_vt", label: "Tên VT", value: filterKKCT.ten_vt });
         if (filterKKCT.ma_lo) chips.push({ key: "ma_lo", label: "Lô", value: filterKKCT.ma_lo });
+        if (filterKKCT.ma_vung) chips.push({ key: "ma_vung", label: "Vùng", value: filterKKCT.ma_vung });
+        if (filterKKCT.ma_vi_tri) chips.push({ key: "ma_vi_tri", label: "Vị trí", value: filterKKCT.ma_vi_tri });
         if (filterKKCT.ma_vung) chips.push({ key: "ma_vung", label: "Vùng", value: filterKKCT.ma_vung });
         if (filterKKCT.ma_vi_tri) chips.push({ key: "ma_vi_tri", label: "Vị trí", value: filterKKCT.ma_vi_tri });
         if (filterKKCT.ng_tao) chips.push({ key: "ng_tao", label: "Người kiểm kê", value: filterKKCT.ng_tao });
@@ -675,6 +681,8 @@ const DetailPhieuYeuCauKiemKe = () => {
                                     chip.key === "ma_vt" ? "filter-chip--blue" :
                                     chip.key === "ten_vt" ? "filter-chip--magenta" :
                                     chip.key === "ma_lo" ? "filter-chip--orange" :
+                                    chip.key === "ma_vung" ? "filter-chip--geekblue" :
+                                    chip.key === "ma_vi_tri" ? "filter-chip--purple" :
                                     chip.key === "ma_vung" ? "filter-chip--geekblue" :
                                     chip.key === "ma_vi_tri" ? "filter-chip--purple" :
                                     chip.key === "ng_tao" ? "filter-chip--cyan" :
@@ -1405,7 +1413,7 @@ const DetailPhieuYeuCauKiemKe = () => {
                                                 image: opt?.item?.image || "",
                                                 ma_kho: vtCheckInfo?.ma_kho || "",
                                                 ma_vung: vtCheckInfo?.ma_vung || "",
-                                                ma_vi_tri: vtCheckInfo?.ma_vi_tri || ""
+                                                ma_vi_tri: vtCheckInfo?.ma_vi_tri || "",
                                             });
                                             // clear options
                                             setVtSearchOptions([]);

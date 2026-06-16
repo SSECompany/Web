@@ -30,7 +30,7 @@ const Kho = () => {
       color: "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
       path: "/kho/giao-hang",
     },
-    // {
+    //tạm chưa mở {
     //   title: "Phiếu nhập kho",
     //   subtitle: "Quản lý nhập kho",
     //   icon: <ShopOutlined style={{ fontSize: "28px" }} />,
@@ -41,7 +41,7 @@ const Kho = () => {
       title: "Phiếu nhập hàng theo đơn",
       subtitle: "Quản lý nhập hàng theo đơn mua hàng",
       icon: <SolutionOutlined style={{ fontSize: "28px" }} />,
-      color: "linear-gradient(135deg, #faad14 0%, #ffc53d 100%)",
+     color: "linear-gradient(135deg, #faad14 0%, #ffc53d 100%)",
       path: "/kho/nhap-hang",
     },
     {
@@ -58,7 +58,7 @@ const Kho = () => {
       color: "linear-gradient(135deg, #722ed1 0%, #b37feb 100%)",
       path: "/kho/xuat-dieu-chuyen",
     },
-    // {
+    //tạm chưa mở  {
     //   title: "Phiếu xuất kho",
     //   subtitle: "Quản lý xuất kho",
     //   icon: <ExportOutlined style={{ fontSize: "28px" }} />,

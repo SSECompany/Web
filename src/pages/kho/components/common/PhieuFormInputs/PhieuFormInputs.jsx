@@ -173,12 +173,12 @@ const PhieuFormInputs = memo(({
 
         {/* Row 3: Số đơn hàng | Ngày đơn hàng */}
         <Row gutter={responsiveGutter}>
-          <Col xs={24} sm={12}>
+          <Col xs={24} sm={16}>
             <Form.Item name={fieldNames.soDonHang} label="Số đơn hàng">
               <Input placeholder="Số đơn hàng" disabled />
             </Form.Item>
           </Col>
-          <Col xs={24} sm={12}>
+          <Col xs={24} sm={8}>
             <Form.Item name={fieldNames.ngayDonHang} label="Ngày đơn hàng">
               <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" disabled />
             </Form.Item>

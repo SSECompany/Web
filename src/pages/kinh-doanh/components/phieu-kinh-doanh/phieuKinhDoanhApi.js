@@ -675,7 +675,7 @@ export const createPhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         data: {
             master64: [masterData],
             detail64: detail64,
-            ...(r60Table && r60Table.length > 0 ? { r6064: r60Table } : {}),
+            ...(r60Table && r60Table.length > 0 ? { r60Table: r60Table } : {}),
         }
     };
 
@@ -712,7 +712,7 @@ export const updatePhieuKinhDoanh = async (master, detail, r60, unitId = "TAPMED
         data: {
             master64: [masterData],
             detail64: detail64,
-            ...(r60Table && r60Table.length > 0 ? { r6064: r60Table } : {}),
+            ...(r60Table && r60Table.length > 0 ? { r60Table: r60Table } : {}),
         }
     };
 

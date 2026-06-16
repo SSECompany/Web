@@ -741,11 +741,16 @@ export const useVatTuManagerNhatHang = () => {
                 tong_nhat: newValue, // Cập nhật tổng nhặt bằng số lượng nhặt
               };
             } else if (field === "tong_nhat") {
-              
+
 
               // SL nhặt không vượt SL đơn (mẹ vs mẹ, con vs con) và SL đơn nhóm
-              const rowOrderQty =
-                parseFloat(item.soLuongDeNghi ?? item.so_luong ?? 0) || 0;
+              // Dòng MẸ sau split: ưu tiên soLuongDeNghi_tong (tổng gốc),
+              // KHÔNG dùng soLuongDeNghi đã bị reset về 0 khi split tại SL=0
+              // Dòng CON: dùng soLuongDeNghi của con
+              const isParentRow = !item.isChild;
+              const rowOrderQty = isParentRow
+                ? parseFloat(item.soLuongDeNghi_tong ?? item.soLuongDeNghi ?? item.so_luong ?? 0) || 0
+                : parseFloat(item.soLuongDeNghi ?? item.so_luong ?? 0) || 0;
               const groupKey = item.isChild ? item.parentKey : item.key;
               const parent = prev.find((r) => !r.isChild && r.key === groupKey);
               const groupOrderQty = parent
@@ -1040,7 +1045,7 @@ export const useVatTuManagerNhatHang = () => {
         return prev;
       }
 
-      const parent = parentRecord || prev[parentIndex];
+      const parent = prev[parentIndex];
       const pickedValue = parseFloat(parent.tong_nhat || 0) || 0;
       const currentOrderQty =
         parseFloat(parent.soLuongDeNghi ?? parent.so_luong ?? 0) || 0;
