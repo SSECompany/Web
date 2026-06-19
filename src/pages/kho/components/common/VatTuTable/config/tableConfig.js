@@ -38,7 +38,7 @@ export const phieuNhapHangConfig = {
   maViTriField: "ma_vi_tri",
   hanSuDungField: "ngay_hh",
   donHangField: "fcode2",
-  showThaoTac: false,
+  showThaoTac: true,
   consolidateProduct: true,
   maLoLookup: true,
 };

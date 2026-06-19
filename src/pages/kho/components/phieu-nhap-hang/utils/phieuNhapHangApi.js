@@ -365,8 +365,17 @@ export const fetchDonHangKeThuaDetail = async (stt_rec) => {
     let detail = [];
 
     if (listObject.length === 1) {
-      // Chỉ có 1 mảng — có thể là detail hoặc master+detail gộp chung
-      detail = listObject[0] || [];
+      // Một mảng duy nhất — có thể là detail, hoặc master gộp detail
+      const arr = listObject[0] || [];
+      const first = arr[0] || {};
+      if (first.so_ct || first.ma_kh) {
+        // Dòng đầu có thông tin master → tách master khỏi detail
+        master = first;
+        detail = arr.slice(1);
+      } else {
+        // Chỉ có detail
+        detail = arr;
+      }
     } else if (listObject.length >= 2) {
       master = listObject[0]?.[0] || null;
       detail = listObject[1] || [];

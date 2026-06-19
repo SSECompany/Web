@@ -242,6 +242,7 @@ const ModalKeThua = ({ open, onCancel, onSelect, maKhach = "" }) => {
       onCancel={onCancel}
       footer={null}
       width={1000}
+      centered
       styles={{
         body: { padding: "16px 24px" },
       }}

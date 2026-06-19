@@ -202,8 +202,20 @@ const PhieuFormInputs = memo(({
         {/* Row 5: Nhân viên mua */}
         <Row gutter={responsiveGutter}>
           <Col xs={24} sm={16}>
-            <Form.Item name={fieldNames.ma_nv_mua} label="Nhân viên mua">
-              <Input placeholder="Nhân viên mua" disabled={!isEditMode} />
+            <Form.Item
+              name={fieldNames.ma_nv_mua}
+              label="Nhân viên mua"
+              valueTransform={(val) => {
+                if (!val) return undefined;
+                // Nếu đã có format "MA_NV – ten_nv" thì giữ nguyên
+                if (typeof val === 'string' && val.includes(' – ')) return val;
+                return val;
+              }}
+            >
+              <Input
+                placeholder="Nhân viên mua"
+                disabled={!isEditMode}
+              />
             </Form.Item>
           </Col>
         </Row>

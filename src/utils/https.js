@@ -27,7 +27,7 @@ class HttpService {
     return axios
       .post(apiEndpoint, payload, settings)
       .then((res) => {
-        if (res?.data?.errors) {
+        if (res?.data?.errors != null) {
           return this.handleErorr(res?.data?.errors);
         }
         return res;
@@ -40,7 +40,7 @@ class HttpService {
   put(apiEndpoint, payload) {
     return axios.put(apiEndpoint, payload).then(
       (res) => {
-        if (res?.data?.errors) {
+        if (res?.data?.errors != null) {
           return this.handleErorr(res?.data?.errors);
         }
         return res;
@@ -68,6 +68,7 @@ class HttpService {
   }
 
   handleErorr(error, statusCode = null) {
+    if (error == null) return;
     // Đã bỏ thông báo "Không kết nối được đến server" theo yêu cầu
     // if (error)
     //   return notification.error({

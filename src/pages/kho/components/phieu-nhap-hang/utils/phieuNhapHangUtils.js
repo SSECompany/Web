@@ -73,8 +73,8 @@ export const buildPhieuNhapHangPayload = (
   const orderDate = toDateVal(values.ngay) || new Date();
   const hachToanDate = toDateVal(values.ngayHachToan) || orderDate;
 
-  // ===== DETAIL71 - Build detail rows FIRST =====
-  const detailData = dataSource.map((item, index) => {
+  // ===== Tính tổng trước =====
+  const detailCalc = dataSource.map((item, index) => {
     const soLuong = roundNum(parseFloat(item.soLuong || item.so_luong || 0), 3);
     const giaNt = roundNum(parseFloat(item.gia_nt || 0), 4);
     const gia = roundNum(parseFloat(item.gia || giaNt), 4);
@@ -87,20 +87,7 @@ export const buildPhieuNhapHangPayload = (
     const thue = roundNum(tien * thueSuat / 100);
     const ttNt = roundNum(tienNt + thueNt);
     const tt = roundNum(tien + thue);
-
     return {
-      ...item,
-      stt_rec: isUpdate ? (phieuData?.stt_rec || "") : "",
-      stt_rec0: item.stt_rec0 || String(index + 1).padStart(3, "0"),
-      ma_ct: "PNA",
-      ngay_ct: orderDate,
-      so_ct: values.soPhieu || phieuData?.so_ct || item.so_ct || "",
-      ma_vt: (item.maHang || item.ma_vt || "").trim(),
-      dvt: (item.dvt || "").trim(),
-      he_so: roundNum(item.he_so || 1, 3),
-      ma_kho: (item.ma_kho || "").trim(),
-      ma_vi_tri: (item.ma_vi_tri || "").trim(),
-      ma_lo: (item.ma_lo || "").trim(),
       so_luong: soLuong,
       gia_nt: giaNt,
       gia: gia,
@@ -110,41 +97,38 @@ export const buildPhieuNhapHangPayload = (
       tien: tien,
       tien0: roundNum(item.tien0 || tienNt),
       tien_nt0: roundNum(item.tien_nt0 || tienNt),
-      ma_thue: item.ma_thue || "",
-      tk_thue: item.tk_thue || "1331",
-      thue_suat: thueSuat,
-      thue: thue,
       thue_nt: thueNt,
-      tt: tt,
+      thue: thue,
       tt_nt: ttNt,
-      tien_hang: roundNum(item.tien_hang || tienNt),
+      tt: tt,
       tien_hang_nt: roundNum(item.tien_hang_nt || tienNt),
-      line_nbr: item.line_nbr || index + 1,
-      ngay_td1: toDateVal(item.ngay_td1 || item.ngay_hh) || null,
+      tien_hang: roundNum(item.tien_hang || tienNt),
       ts_cktt: roundNum(item.ts_cktt || tienNt),
       cktt: roundNum(item.cktt || 0),
       tl_ck: roundNum(item.tl_ck || 0),
+      _item: item,
+      _index: index,
     };
   });
 
-  // ===== Tính tổng TỪ detail đã build (đảm bảo khớp 100%) =====
-  const totalQuantity = roundNum(detailData.reduce((sum, d) => sum + d.so_luong, 0), 3);
-  const totalTienNt = roundNum(detailData.reduce((sum, d) => sum + d.tien_nt, 0));
-  const totalTien = roundNum(detailData.reduce((sum, d) => sum + d.tien, 0));
-  const totalThueNt = roundNum(detailData.reduce((sum, d) => sum + d.thue_nt, 0));
-  const totalThue = roundNum(detailData.reduce((sum, d) => sum + d.thue, 0));
-  const totalTtNt = roundNum(detailData.reduce((sum, d) => sum + d.tt_nt, 0));
-  const totalTt = roundNum(detailData.reduce((sum, d) => sum + d.tt, 0));
-  const totalTienNt0 = roundNum(detailData.reduce((sum, d) => sum + d.tien_nt0, 0));
-  const totalTien0 = roundNum(detailData.reduce((sum, d) => sum + d.tien0, 0));
+  const totalQuantity  = roundNum(detailCalc.reduce((s, d) => s + d.so_luong, 0), 3);
+  const totalTienNt   = roundNum(detailCalc.reduce((s, d) => s + d.tien_nt, 0));
+  const totalTien     = roundNum(detailCalc.reduce((s, d) => s + d.tien, 0));
+  const totalThueNt   = roundNum(detailCalc.reduce((s, d) => s + d.thue_nt, 0));
+  const totalThue     = roundNum(detailCalc.reduce((s, d) => s + d.thue, 0));
+  const totalTtNt     = roundNum(detailCalc.reduce((s, d) => s + d.tt_nt, 0));
+  const totalTt       = roundNum(detailCalc.reduce((s, d) => s + d.tt, 0));
+  const totalTienNt0  = roundNum(detailCalc.reduce((s, d) => s + d.tien_nt0, 0));
+  const totalTien0    = roundNum(detailCalc.reduce((s, d) => s + d.tien0, 0));
 
-  // ===== MASTER71 - Bảng header =====
+  // ===== MASTER71 =====
   const masterData = {
-    ...(isUpdate ? phieuData : {}),
+    ma_nk: values.ma_nk || phieuData?.ma_nk || "",
+    loai_ct: values.loai_ct || phieuData?.loai_ct || "",
     stt_rec: isUpdate ? (phieuData?.stt_rec || "") : "",
     ma_dvcs: phieuData?.ma_dvcs || userInfo.unitId || "TAPMED",
     ma_ct: "PNA",
-    ma_gd: values.maGiaoDich || phieuData?.ma_gd || "2 ",
+    ma_gd: values.maGiaoDich || phieuData?.ma_gd || "1",
     ngay_lct: hachToanDate,
     ngay_ct: orderDate,
     so_ct: values.soPhieu || phieuData?.so_ct || "",
@@ -162,59 +146,84 @@ export const buildPhieuNhapHangPayload = (
     t_tt: totalTt,
     t_tien0: totalTien0,
     t_tien_nt0: totalTienNt0,
-    status: String(values.trangThai || values.status || phieuData?.status || "2").trim(),
-    datetime2: isUpdate ? phieuData?.datetime2 : new Date(),
+    status: String(values.trangThai || values.status || phieuData?.status || "3").trim(),
+    datetime2: isUpdate ? toDateVal(phieuData?.datetime2) : new Date(),
     user_id2: isUpdate ? phieuData?.user_id2 : userInfo.userId,
     fcode2: values.soDonHang || phieuData?.fcode2 || "",
     fdate1: toDateVal(values.ngayDonHang) || toDateVal(phieuData?.fdate1) || null,
-    fcode1: values.ma_nv_mua || phieuData?.fcode1 || "",
+    fcode1: (values.ma_nv_mua?.split(" – ")[0]) || phieuData?.fcode1 || "",
     nam: new Date(orderDate).getFullYear(),
     ky: new Date(orderDate).getMonth() + 1,
   };
 
-  // Clean up display-only fields that cause "Invalid column name" errors
-  // Prefix-based cleanup (covers ten_kh, sua_tk_vt, nhieu_dvt, etc.)
-  const BAD_PREFIXES = ["ten_", "sua_", "nhieu_"];
-  
-  Object.keys(masterData).forEach(key => {
-    if (
-      BAD_PREFIXES.some(p => key.startsWith(p)) ||
-      key.endsWith("_name") ||
-      ["d71", "cookie", "statusname", "comment", "comment2", "comment3", "dia_chi", "dept_id", "ma_so_thue", "ma_kho"].includes(key)
-    ) {
-      delete masterData[key];
-    }
-  });
-
-  // Clean up detail data as well
-  const EXCLUDED_DETAIL_FIELDS = [
-    "key", "maHang", "soLuong", "soLuongDeNghi", "isNewlyAdded", "_lastUpdated",
-    "lo_yn", "vi_tri_yn", "gia_ton", "tao_lo", "ngay_hh", "fcode2", "fdate1"
-  ];
-
-  const cleanedDetailData = detailData.map(row => {
-    const cleanedRow = { ...row };
-    Object.keys(cleanedRow).forEach(key => {
-      if (
-        BAD_PREFIXES.some(p => key.startsWith(p)) || 
-        key.endsWith("_name") || 
-        EXCLUDED_DETAIL_FIELDS.includes(key)
-      ) {
-        delete cleanedRow[key];
-      }
-    });
-    return cleanedRow;
-  });
-
-  // Nếu là thêm mới, cần gán id và thời gian khởi tạo
+  // Nếu thêm mới, thêm datetime0
   if (!isUpdate) {
     masterData.datetime0 = new Date();
     masterData.user_id0 = userInfo.userId;
   }
 
+  // ===== DETAIL71 =====
+  const detailData = detailCalc.map((d, index) => {
+    const item = d._item;
+    console.log("[DEBUG] buildPayload ma_lo:", { ma_lo: item.ma_lo, ma_lo_raw: item["ma_lo"], key: item.key });
+    return {
+      stt_rec: isUpdate ? (phieuData?.stt_rec || "") : "",
+      ma_ct: "PNA",
+      ngay_ct: orderDate,
+      so_ct: values.soPhieu || phieuData?.so_ct || item.so_ct || "",
+      ma_vt: (item.maHang || item.ma_vt || "").trim(),
+      stt_rec0: item.stt_rec0 || String(index + 1).padStart(3, "0"),
+      ma_sp: "",
+      ma_bp: "",
+      so_lsx: "",
+      ma_vi_tri: (item.ma_vi_tri || "").trim(),
+      ma_lo: (item.ma_lo || "").trim(),
+      ma_vv: "",
+      ma_hd: "",
+      ma_ku: "",
+      ma_phi: "",
+      ma_td1: "",
+      ma_td2: "",
+      ma_td3: "",
+      so_luong: d.so_luong,
+      he_so: roundNum(item.he_so || 1, 3),
+      dvt: (item.dvt || "").trim(),
+      tk_vt: item.tk_vt || "156",
+      ma_kho: (item.ma_kho || "").trim(),
+      gia_nt0: d.gia_nt0,
+      gia0: d.gia0,
+      gia_nt: d.gia_nt,
+      gia: d.gia,
+      tien_nt: d.tien_nt,
+      tien: d.tien,
+      tien_nt0: d.tien_nt0,
+      tien0: d.tien0,
+      tien_hang_nt: d.tien_hang_nt,
+      tien_hang: d.tien_hang,
+      ma_thue: item.ma_thue || "",
+      tk_thue: item.tk_thue || "1331",
+      thue_suat: roundNum(item.thue_suat || 0),
+      thue_nt: d.thue_nt,
+      thue: d.thue,
+      tt_nt: d.tt_nt,
+      tt: d.tt,
+      tl_ck: d.tl_ck,
+      stt_rec_pn: "",
+      stt_rec0pn: "",
+      dh_ln: 0,
+      stt_rec_dh: "",
+      stt_rec0dh: "",
+      dh_so: "",
+      line_nbr: item.line_nbr || index + 1,
+      ngay_td1: toDateVal(item.ngay_td1 || item.ngay_hh) || null,
+      ts_cktt: d.ts_cktt,
+      cktt: d.cktt,
+    };
+  });
+
   return {
     master: masterData,
-    detail: cleanedDetailData,
+    detail: detailData,
   };
 };
 
@@ -235,7 +244,8 @@ export const submitPhieuNhapHangDynamic = async (
     param: {
       UnitId: userInfo.unitId,
       StoreID: "",
-      userId: String(userInfo.userId),
+      userId: String(userInfo.userId)
+      
     },
     data: {
       master71: [payload.master],

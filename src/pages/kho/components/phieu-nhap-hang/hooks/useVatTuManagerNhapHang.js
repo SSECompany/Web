@@ -1,10 +1,22 @@
 import { staticMessage as message } from "../../../../../utils/antdStatic";
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 
-export const useVatTuManagerNhapHang = () => {
+export const useVatTuManagerNhapHang = ({
+  maKhoList = [],
+  loOptionsMap = {},
+} = {}) => {
   const [dataSource, setDataSource] = useState([]);
+  const [loOptionsMapState, setLoOptionsMapState] = useState({});
   const isProcessingRef = useRef(false);
   const lastProcessedValueRef = useRef("");
+
+  // Sync loOptions từ VatTuTable khi load xong
+  const syncLoOptions = useCallback((rowKey, options) => {
+    setLoOptionsMapState((prev) => ({
+      ...prev,
+      [rowKey]: options,
+    }));
+  }, []);
 
   const loadDataFromPhieu = (data2, fetchDonViTinh) => {
     if (!Array.isArray(data2) || data2.length === 0) {
@@ -483,6 +495,9 @@ export const useVatTuManagerNhapHang = () => {
   };
 
   const handleSelectChange = (value, record, field) => {
+    if (field === "ma_lo") {
+      console.log("[DEBUG] ma_lo changed:", { value, key: record.key, field });
+    }
     setDataSource((prev) =>
       prev.map((item) =>
         item.key === record.key
@@ -588,6 +603,7 @@ export const useVatTuManagerNhapHang = () => {
     handleSelectChange,
     handleDeleteItem,
     handleDvtChange,
+    syncLoOptions,
   };
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Table, Button, Checkbox, InputNumber, message, Tag } from "antd";
+import { Modal, Table, Button, Checkbox, InputNumber, Tag } from "antd";
 import { ShoppingCartOutlined } from "@ant-design/icons";
 
 const ModalChonVatTuKeThua = ({ open, onCancel, onConfirm, data = [] }) => {
@@ -119,7 +119,12 @@ const ModalChonVatTuKeThua = ({ open, onCancel, onConfirm, data = [] }) => {
   const handleConfirm = () => {
     const chosenItems = selectedRows.filter(item => item.selected && (item.so_luong0 || 0) > 0);
     if (chosenItems.length === 0) {
-      message.warning("Vui lòng chọn ít nhất một vật tư với số lượng > 0");
+      Modal.warning({
+        title: "Chưa chọn vật tư",
+        content: "Vui lòng chọn ít nhất một vật tư với số lượng lớn hơn 0.",
+        centered: true,
+        okText: "Đồng ý",
+      });
       return;
     }
     onConfirm(chosenItems);
@@ -149,6 +154,7 @@ const ModalChonVatTuKeThua = ({ open, onCancel, onConfirm, data = [] }) => {
       open={open}
       onCancel={onCancel}
       width={1000}
+      centered
       onOk={handleConfirm}
       okText="Xác nhận kế thừa"
       cancelText="Hủy"

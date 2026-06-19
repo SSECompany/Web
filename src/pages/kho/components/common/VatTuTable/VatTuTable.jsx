@@ -40,6 +40,8 @@ const VatTuTable = ({
   onFocusInvalidRowHandled,
   onAddLotClick,
   forceReloadLoOnOpen = false, // Khi true: mỗi lần mở dropdown đều reload API (thay vì dùng cache)
+  onLoOptionsUpdate,
+  onLoOptionsLoaded,
   ...otherProps
 }) => {
   const [loadingDvt, setLoadingDvt] = useState({});
@@ -169,6 +171,11 @@ const VatTuTable = ({
         );
 
         if (onDataSourceUpdate) onDataSourceUpdate(updatedDataSource);
+
+        // Thông báo options lô đã load xong (chỉ ở page 1)
+        if (page === 1 && onLoOptionsUpdate) {
+          onLoOptionsUpdate(record.key, mergedOptions);
+        }
       } catch (error) {
         console.error("Error loading lot options:", error);
       } finally {
@@ -406,6 +413,14 @@ const VatTuTable = ({
           onOpenChange={(visible) => {
             if (visible && apiHandlers.fetchMaKhoList) {
               apiHandlers.fetchMaKhoList();
+            }
+          }}
+          onBlur={() => {
+            if (!value) return;
+            const validValues = (selectData.maKhoList || []).map((o) => o.value);
+            if (!validValues.includes(value)) {
+              message.error(`Mã kho "${value}" không có trong danh sách`);
+              onSelectChange("", record, "ma_kho");
             }
           }}
         />
@@ -659,7 +674,7 @@ const VatTuTable = ({
               }
             >
               <Select
-                key={`ma-lo-${record.key}-${String(maLoValue)}-${clearVersion}`}
+                key={`ma-lo-${record.key}-${clearVersion}`}
                 value={maLoValue || undefined}
                 allowClear
                 placeholder="Mã lô"
@@ -697,9 +712,17 @@ const VatTuTable = ({
                 onChange={(val) => {
                   const currentDataSource = dataSourceRef.current;
                   const currentRecord = currentDataSource.find((item) => item.key === record.key);
-                  // Match POS behavior: ensure value is string (val || "") 
+                  // Match POS behavior: ensure value is string (val || "")
                   // Preserve loOptions when updating ma_lo
                   onSelectChange(val || "", currentRecord || record, "ma_lo");
+                }}
+                onBlur={() => {
+                  if (!maLoValue) return;
+                  const validValues = (loOpts || []).map((o) => o.value);
+                  if (!validValues.includes(maLoValue)) {
+                    message.error(`Mã lô "${maLoValue}" không có trong danh sách`);
+                    onSelectChange("", currentRecord || record, "ma_lo");
+                  }
                 }}
                 // Cho phép antd tự điều khiển nếu chưa set state; nếu đã có state thì control
                 open={openLo[record.key]}

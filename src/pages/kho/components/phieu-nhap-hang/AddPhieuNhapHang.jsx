@@ -1,5 +1,5 @@
 import { LeftOutlined, LinkOutlined, SaveOutlined, CloseCircleOutlined } from "@ant-design/icons";
-import { Button, Form, message, Space, Typography, Select, Tabs } from "antd";
+import { Button, Form, message, Space, Typography, Select, Tabs, AutoComplete, DatePicker } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +20,7 @@ import {
   submitPhieuNhapHangDynamic,
   validateDataSource,
 } from "./utils/phieuNhapHangUtils";
+import { fetchMaKhoApi } from "./utils/phieuNhapHangApi";
 
 const { Title } = Typography;
 
@@ -35,6 +36,10 @@ const AddPhieuNhapHang = () => {
   const [currentKeyword, setCurrentKeyword] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
   const [keThuaModalOpen, setKeThuaModalOpen] = useState(false);
+  const [batchKhoValue, setBatchKhoValue] = useState("");
+  const [batchKhoOptions, setBatchKhoOptions] = useState([]);
+  const [batchLoValue, setBatchLoValue] = useState("");
+  const [batchLoOptions, setBatchLoOptions] = useState([]);
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
@@ -71,7 +76,8 @@ const AddPhieuNhapHang = () => {
     handleSelectChange,
     handleDeleteItem,
     handleDvtChange,
-  } = useVatTuManagerNhapHang();
+    syncLoOptions,
+  } = useVatTuManagerNhapHang({ maKhoList });
 
   const fetchVatTuListPaging = async (
     keyword = "",
@@ -229,11 +235,17 @@ const AddPhieuNhapHang = () => {
     const { master, detail } = data;
     if (master) {
       const poNo = master.so_ct?.trim();
+      const poDate = master.ngay_ct ? dayjs(master.ngay_ct) : null;
+      const poNhanVien = master.ma_nv && master.ten_nv
+        ? `${master.ma_nv.trim()} – ${master.ten_nv.trim()}`
+        : (master.ma_nv?.trim() || "");
       const tyGia = form.getFieldValue("tyGia") || 1;
 
       form.setFieldsValue({
         soDonHang: poNo,
         maKhach: master.ma_kh?.trim() || form.getFieldValue("maKhach"),
+        ngayDonHang: poDate,
+        ma_nv_mua: poNhanVien,
         dienGiai: `Nhập hàng theo đơn ${poNo}`,
       });
 
@@ -267,6 +279,8 @@ const AddPhieuNhapHang = () => {
           ma_hd: item.ma_hd || "",
           ma_phi: item.ma_phi || "",
           ma_ku: item.ma_ku || "",
+          ma_lo: (item.ma_lo || "").trim(),
+          ma_vi_tri: (item.ma_vi_tri || "").trim(),
           gia_nt0: gia_nt0,
           gia_nt: gia_nt0,
           gia0: gia0,
@@ -299,6 +313,29 @@ const AddPhieuNhapHang = () => {
       message.success(`Lấy dữ liệu đơn hàng ${poNo} thành công`);
     }
   };
+
+  const fetchBatchKhoOptions = async (keyword) => {
+    try {
+      const options = await fetchMaKhoApi(keyword, 1, 50);
+      setBatchKhoOptions(options);
+    } catch (e) {
+      console.error("fetchBatchKhoOptions error", e);
+    }
+  };
+
+  const applyBatchKho = (khoValue) => {
+    if (!khoValue) return;
+    
+    setDataSource((prev) =>
+      prev.map((item) => ({ ...item, ma_kho: khoValue }))
+    );
+    setBatchKhoValue("");
+    setBatchKhoOptions([]);
+  };
+
+  
+
+  
 
   const handlePoSearch = async (poNo) => {
     if (!poNo) return;
@@ -410,7 +447,7 @@ const AddPhieuNhapHang = () => {
       setLoading(false);
     }
   };
-
+   
   return (
     <div className="detail-phieu-nhap-hang">
       <FormTemplate
@@ -522,6 +559,89 @@ const AddPhieuNhapHang = () => {
                         />
                       </div>
 
+                      {/* Tiện ích: điền kho hàng loạt */}
+                      {(() => {
+                        const itemsWithoutKho = dataSource.filter(item => !(item.ma_kho || "").trim());
+                      
+                        return (
+                          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", marginTop: 8 }}>
+                            <span style={{ fontSize: 13, color: "#475569", whiteSpace: "nowrap", fontWeight: 500 }}>
+                              Điền kho hàng loạt ({itemsWithoutKho.length} dòng chưa có kho):
+                            </span>
+                            <AutoComplete
+                              value={batchKhoValue}
+                              options={batchKhoOptions}
+                              onSearch={(text) => { setBatchKhoValue(text); fetchBatchKhoOptions(text); }}
+                              onFocus={() => { if (batchKhoOptions.length === 0) fetchBatchKhoOptions(""); }}
+                              onSelect={(val) => { applyBatchKho(val); }}
+                              onChange={(val) => setBatchKhoValue(val)}
+                              placeholder="Chọn hoặc gõ mã kho…"
+                              style={{ width: 240 }}
+                              notFoundContent={null}
+                              filterOption={(input, option) => option.label.toLowerCase().includes(input.toLowerCase())}
+                            />
+                            <Button
+                              size="small"
+                              //disabled={!batchKhoValue.trim() || itemsWithoutKho.length === 0}
+                              onClick={() => applyBatchKho(batchKhoValue.trim())}
+                            >
+                              Áp dụng
+                            </Button>
+                            {batchKhoValue.trim() && (
+                              <Button size="small" onClick={() => { setBatchKhoValue(""); setBatchKhoOptions([]); }}>
+                                Hủy
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Tiện ích: điền lô hàng loạt */}
+                      {/* {(() => {
+                        const itemsWithoutLo = dataSource.filter(item => !(item.ma_lo || "").trim());
+                        if (itemsWithoutLo.length === 0) return null;
+                        return (
+                          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "#fff8f0", borderRadius: 8, border: "1px solid #fed7aa", marginTop: 8 }}>
+                            <span style={{ fontSize: 13, color: "#92400e", whiteSpace: "nowrap", fontWeight: 500 }}>
+                              Điền lô hàng loạt ({itemsWithoutLo.length} dòng chưa có lô):
+                            </span>
+                            <AutoComplete
+                              value={batchLoValue}
+                              options={batchLoOptions}
+                              onSearch={(text) => {
+                                setBatchLoValue(text);
+                                if (!text.trim()) { setBatchLoOptions([]); return; }
+                                fetchBatchLoOptions(text);
+                              }}
+                              onFocus={() => { if (batchLoOptions.length === 0) fetchBatchLoOptions(""); }}
+                              onChange={(val) => setBatchLoValue(val)}
+                              placeholder="Chọn hoặc gõ mã lô…"
+                              style={{ width: 240 }}
+                              notFoundContent={null}
+                              filterOption={(input, option) => option.label.toLowerCase().includes(input.toLowerCase())}
+                            />
+                            <DatePicker
+                              placeholder="Ngày HSD"
+                              format={["DD/MM/YYYY", "DDMMYYYY"]}
+                              style={{ width: 130 }}
+                              allowClear
+                            />
+                            <Button
+                              size="small"
+                              disabled={!batchLoValue.trim() || itemsWithoutLo.length === 0}
+                              onClick={() => applyBatchLo({ loValue: batchLoValue.trim(), ngayHh: null })}
+                            >
+                              Áp dụng
+                            </Button>
+                            {batchLoValue.trim() && (
+                              <Button size="small" onClick={() => { setBatchLoValue(""); setBatchLoOptions([]); }}>
+                                Hủy
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })()} */}
+
                        <VatTuNhapHangTable
                         dataSource={dataSource}
                         isEditMode={isEditMode}
@@ -539,6 +659,7 @@ const AddPhieuNhapHang = () => {
                           return fetchViTriList(keyword, { ...record, ma_kho: maKho }, page);
                         }}
                         onDataSourceUpdate={setDataSource}
+                        onLoOptionsUpdate={syncLoOptions}
                       />
                     </div>
                   )

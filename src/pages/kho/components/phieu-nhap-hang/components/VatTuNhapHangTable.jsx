@@ -20,6 +20,7 @@ const VatTuNhapHangTable = ({
   fetchDonViTinh,
   fetchViTriList,
   onDataSourceUpdate,
+  onLoOptionsUpdate,
 }) => {
   const userInfo = useSelector((state) => state?.claimsReducer?.userInfo || {});
   const token = localStorage.getItem("access_token");
@@ -210,6 +211,7 @@ const VatTuNhapHangTable = ({
         selectData={{
           maKhoList,
         }}
+        onLoOptionsUpdate={onLoOptionsUpdate}
         loadingStates={{
           maKho: loadingMaKho,
         }}

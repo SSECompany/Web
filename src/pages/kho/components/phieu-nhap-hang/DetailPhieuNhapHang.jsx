@@ -5,7 +5,7 @@ import {
   CloseCircleOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
-import { Button, Form, message, Select, Tabs, Typography, Space } from "antd";
+import { Button, Form, message, Select, Tabs, Typography, Space, AutoComplete, DatePicker } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -21,7 +21,7 @@ import PhieuNhapHangFormInputs from "./components/PhieuNhapHangFormInputs";
 import VatTuNhapHangTable from "./components/VatTuNhapHangTable";
 import { usePhieuNhapHangData } from "./hooks/usePhieuNhapHangData";
 import { useVatTuManagerNhapHang } from "./hooks/useVatTuManagerNhapHang";
-import { fetchPhieuNhapHangDetail } from "./utils/phieuNhapHangApi";
+import { fetchPhieuNhapHangDetail, fetchMaKhoApi } from "./utils/phieuNhapHangApi";
 import {
   buildPhieuNhapHangPayload,
   deletePhieuNhapHangDynamic,
@@ -48,6 +48,8 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
   const [currentKeyword, setCurrentKeyword] = useState("");
   const [phieuDetailLoaded, setPhieuDetailLoaded] = useState(false);
   const [keThuaModalOpen, setKeThuaModalOpen] = useState(false);
+  const [batchKhoValue, setBatchKhoValue] = useState("");
+  const [batchKhoOptions, setBatchKhoOptions] = useState([]);
 
   const vatTuSelectRef = useRef();
   const searchTimeoutRef = useRef();
@@ -83,7 +85,8 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
     handleSelectChange,
     handleDeleteItem,
     handleDvtChange,
-  } = useVatTuManagerNhapHang();
+    syncLoOptions,
+  } = useVatTuManagerNhapHang({ maKhoList });
 
   const maKhach = Form.useWatch("maKhach", form);
 
@@ -450,6 +453,33 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
     }
   };
 
+  const fetchBatchKhoOptions = async (keyword) => {
+    try {
+      const options = await fetchMaKhoApi(keyword, 1, 50);
+      setBatchKhoOptions(options);
+    } catch (e) {
+      console.error("fetchBatchKhoOptions error", e);
+    }
+  };
+
+  const applyBatchKho = (khoValue) => {
+    if (!khoValue) return;
+    const validValues = (maKhoList || []).map((o) => o.value);
+    if (validValues.length > 0 && !validValues.includes(khoValue)) {
+      message.error(`Mã kho "${khoValue}" không có trong danh sách`);
+      return;
+    }
+    setDataSource((prev) =>
+      prev.map((item) =>
+        !(item.ma_kho || "").trim()
+          ? { ...item, ma_kho: khoValue }
+          : item
+      )
+    );
+    setBatchKhoValue("");
+    setBatchKhoOptions([]);
+  };
+
   const handleNew = () => {
     navigate("/kho/nhap-hang/them-moi");
   };
@@ -726,6 +756,43 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                           </div>
                       )}
 
+                      {/* Tiện ích: điền kho hàng loạt */}
+                      {(() => {
+                        const itemsWithoutKho = dataSource.filter(item => !(item.ma_kho || "").trim());
+                        if (itemsWithoutKho.length === 0) return null;
+                        return (
+                          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", marginTop: 8 }}>
+                            <span style={{ fontSize: 13, color: "#475569", whiteSpace: "nowrap", fontWeight: 500 }}>
+                              Điền kho hàng loạt ({itemsWithoutKho.length} dòng chưa có kho):
+                            </span>
+                            <AutoComplete
+                              value={batchKhoValue}
+                              options={batchKhoOptions}
+                              onSearch={(text) => { setBatchKhoValue(text); fetchBatchKhoOptions(text); }}
+                              onFocus={() => { if (batchKhoOptions.length === 0) fetchBatchKhoOptions(""); }}
+                              onSelect={(val) => { applyBatchKho(val); }}
+                              onChange={(val) => setBatchKhoValue(val)}
+                              placeholder="Chọn hoặc gõ mã kho…"
+                              style={{ width: 240 }}
+                              notFoundContent={null}
+                              filterOption={(input, option) => option.label.toLowerCase().includes(input.toLowerCase())}
+                            />
+                            <Button
+                              size="small"
+                              disabled={!batchKhoValue.trim() || itemsWithoutKho.length === 0}
+                              onClick={() => applyBatchKho(batchKhoValue.trim())}
+                            >
+                              Áp dụng
+                            </Button>
+                            {batchKhoValue.trim() && (
+                              <Button size="small" onClick={() => { setBatchKhoValue(""); setBatchKhoOptions([]); }}>
+                                Hủy
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                       <VatTuNhapHangTable
                           dataSource={dataSource}
                           isEditMode={isEditMode && !stt_rec}
@@ -743,6 +810,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                             return fetchViTriList(keyword, { ...record, ma_kho: maKho }, page);
                           }}
                           onDataSourceUpdate={setDataSource}
+                          onLoOptionsUpdate={syncLoOptions}
                       />
 
                       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: 12, padding: '12px 24px', borderTop: '1px solid #f0f0f0' }}>

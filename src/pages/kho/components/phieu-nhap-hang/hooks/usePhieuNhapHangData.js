@@ -190,7 +190,9 @@ export const usePhieuNhapHangData = () => {
       setLoadingMaKhach(true);
       try {
         // Reuse KD module's fetchKhachHangSelection API
-        const data = await fetchKhachHangSelection(keyword, "ten_kh");
+        // Load 100 records when opening dropdown (no keyword), 20 when searching
+        const pageSize = keyword ? 20 : 100;
+        const data = await fetchKhachHangSelection(keyword, "ten_kh", 1, pageSize);
         const options = data.map((item) => ({
           value: item.ma_kh.trim(),
           label: `${item.ma_kh.trim()} - ${item.ten_kh.trim()}`,
