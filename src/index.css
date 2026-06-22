@@ -357,6 +357,7 @@ body > iframe {
 
 .ant-input-number-input {
   text-align: right !important;
+  padding-right: 24px !important;
 }
 
 .page_2_side_right_default {

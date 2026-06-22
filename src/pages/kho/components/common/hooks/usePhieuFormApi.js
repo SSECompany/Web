@@ -75,6 +75,24 @@ export const usePhieuFormApi = (formType = "nhat-hang") => {
   );
 
   // Fetch mã khách
+  // const fetchMaKhachList = useCallback(
+  //   async (searchTerm = "") => {
+  //     const result = await fetchWithCache("maKhach", "/danh-muc/ma-khach", {
+  //       search: searchTerm,
+  //       limit: 50,
+  //     });
+
+  //     const options = result.map((item) => ({
+  //       value: item.ma_khach || item.ma_kh,
+  //       label: `${item.ma_khach || item.ma_kh} - ${
+  //         item.ten_khach || item.ten_kh
+  //       }`,
+  //     }));
+
+  //     setSelectData((prev) => ({ ...prev, maKhachList: options }));
+  //   },
+  //   [fetchWithCache]
+  // );
   const fetchMaKhachList = useCallback(
     async (searchTerm = "") => {
       const result = await fetchWithCache("maKhach", "/danh-muc/ma-khach", {
@@ -93,7 +111,6 @@ export const usePhieuFormApi = (formType = "nhat-hang") => {
     },
     [fetchWithCache]
   );
-
   // Debounced search cho mã khách
   const fetchMaKhachListDebounced = useCallback(
     debounce((searchTerm) => {

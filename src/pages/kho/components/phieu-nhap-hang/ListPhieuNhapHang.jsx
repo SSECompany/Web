@@ -349,7 +349,7 @@ const ListPhieuNhapHang = () => {
         title: "Nhà cung cấp",
         key: "khach_hang",
         width: 200,
-        align: "left",
+        align: "center",
         render: (_, record) => (
           <div>
             <div style={{ fontWeight: 600, color: '#1a1a1a' }}>{record.ten_kh}</div>
@@ -394,7 +394,7 @@ const ListPhieuNhapHang = () => {
         dataIndex: "dien_giai",
         key: "dien_giai",
         width: 250,
-        align: "left",
+        align: "center",
         render: (val) => <div className="vat-tu-table-cell-wrap">{val || ""}</div>,
       },
       {

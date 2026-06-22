@@ -415,14 +415,6 @@ const VatTuTable = ({
               apiHandlers.fetchMaKhoList();
             }
           }}
-          onBlur={() => {
-            if (!value) return;
-            const validValues = (selectData.maKhoList || []).map((o) => o.value);
-            if (!validValues.includes(value)) {
-              message.error(`Mã kho "${value}" không có trong danh sách`);
-              onSelectChange("", record, "ma_kho");
-            }
-          }}
         />
       );
     },
@@ -661,18 +653,10 @@ const VatTuTable = ({
           const isLoLoading = !!loadingLo[record.key];
           const isViTriLoading = !!loadingViTri[record.key];
 
-          const isDuplicateMaLo = !!currentRecord._invalid_duplicate_ma_lo;
           const maLoValue = currentRecord.ma_lo ?? maLo ?? "";
           const clearVersion = currentRecord._ma_lo_clear_version ?? 0;
           return (
-            <div
-              className="vat-tu-table-flex-cell"
-              style={
-                isDuplicateMaLo
-                  ? { backgroundColor: "#ffccc7", border: "1px solid #ff4d4f", borderRadius: 4 }
-                  : {}
-              }
-            >
+            <div className="vat-tu-table-flex-cell">
               <Select
                 key={`ma-lo-${record.key}-${clearVersion}`}
                 value={maLoValue || undefined}
@@ -716,14 +700,6 @@ const VatTuTable = ({
                   // Preserve loOptions when updating ma_lo
                   onSelectChange(val || "", currentRecord || record, "ma_lo");
                 }}
-                onBlur={() => {
-                  if (!maLoValue) return;
-                  const validValues = (loOpts || []).map((o) => o.value);
-                  if (!validValues.includes(maLoValue)) {
-                    message.error(`Mã lô "${maLoValue}" không có trong danh sách`);
-                    onSelectChange("", currentRecord || record, "ma_lo");
-                  }
-                }}
                 // Cho phép antd tự điều khiển nếu chưa set state; nếu đã có state thì control
                 open={openLo[record.key]}
                 options={loOpts}
@@ -731,12 +707,13 @@ const VatTuTable = ({
                 onPopupScroll={(e) => {
                   const { target } = e;
                   if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !isLoLoading) {
-                    const currentRecord = dataSource.find(it => it.key === record.key) || record;
+                    const currentDataSource = dataSourceRef.current;
+                    const currentRecord = currentDataSource.find(it => it.key === record.key) || record;
                     const nextPage = (currentRecord?.loPage || 1) + 1;
                     const currentKeyword = currentRecord?.loKeyword || "";
                     // Chỉ load tiếp khi thực sự có options từ page trước (giả định pageSize=10)
                     if (loOpts.length >= (nextPage - 1) * 10) {
-                      loadLoOptions(currentKeyword, record, false, nextPage);
+                      loadLoOptions(currentKeyword, currentRecord, false, nextPage);
                     }
                   }
                 }}
@@ -747,7 +724,7 @@ const VatTuTable = ({
                 }}
                 classNames={{ popup: { root: "vat-tu-dropdown" } }}
                 popupMatchSelectWidth={false}
-                dropdownRender={(menu) => (
+                popupRender={(menu) => (
                   <>
                     {menu}
                     {loadingLo[record.key] && (
@@ -968,19 +945,19 @@ const VatTuTable = ({
                     showSearch
                     placeholder="Chọn lô"
                     value={value || undefined}
-                    style={{ 
+                    style={{
                       flex: 1,
                       minWidth: 80,
-                      ...(!!record._invalid_duplicate_ma_lo ? { backgroundColor: "#ffccc7", borderColor: "#ff4d4f" } : {})
                     }}
                     size="small"
                     onSearch={(val) => loadLoOptions(val, record)}
                     onDropdownVisibleChange={(open) => {
                       if (open) {
                         setOpenLo((prev) => ({ ...prev, [record.key]: true }));
-                        const currentRecord = dataSource.find(it => it.key === record.key) || record;
+                        const currentDataSource = dataSourceRef.current;
+                        const currentRecord = currentDataSource.find(it => it.key === record.key) || record;
                         const clearedRecord = { ...currentRecord, loOptions: [], loPage: 0, loKeyword: "" };
-                        const clearedDataSource = dataSource.map((item) =>
+                        const clearedDataSource = currentDataSource.map((item) =>
                           item.key === record.key ? clearedRecord : item
                         );
                         if (onDataSourceUpdate) onDataSourceUpdate(clearedDataSource);
@@ -1020,7 +997,20 @@ const VatTuTable = ({
                       }
                     }}
                     open={openLo[record.key]}
-                    onChange={(val) => onSelectChange(val, record, columnConfig.maLoField || "ma_lo")}
+                    onChange={(val) => {
+                      const currentRecord = (dataSourceRef.current || dataSource).find((item) => item.key === record.key) || record;
+                      // Khi chọn lô từ dropdown: tự động fill ngay_hh từ loOptions
+                      if (val && val !== "" && currentRecord.loOptions) {
+                        const selectedOption = currentRecord.loOptions.find(o => String(o.value) === String(val));
+                        const ngayHhsd = selectedOption?.ngay_hhsd || null;
+                        // Truyền cả ngay_hh qua handleSelectChange để hook update đúng
+                        if (ngayHhsd) {
+                          onSelectChange({ ma_lo: val, ngay_hh: ngayHhsd }, currentRecord, "ma_lo");
+                          return;
+                        }
+                      }
+                      onSelectChange(val, currentRecord, columnConfig.maLoField || "ma_lo");
+                    }}
                     options={record.loOptions || []}
                     loading={loadingLo[record.key]}
                     filterOption={false}
@@ -1028,17 +1018,18 @@ const VatTuTable = ({
                      onPopupScroll={(e) => {
                       const { target } = e;
                       if (target.scrollTop + target.offsetHeight + 5 >= target.scrollHeight && !loadingLo[record.key]) {
-                        const currentRecord = dataSource.find((it) => it.key === record.key) || record;
+                        const currentDataSource = dataSourceRef.current;
+                        const currentRecord = currentDataSource.find((it) => it.key === record.key) || record;
                         const nextPage = (currentRecord.loPage || 1) + 1;
                         const currentKeyword = currentRecord.loKeyword || "";
                         const currentOptions = currentRecord.loOptions || [];
                         // Load more if we haven't reached the end
                         if (currentOptions.length < (currentRecord._loTotalPage || 1) * 10) {
-                          loadLoOptions(currentKeyword, record, false, nextPage);
+                          loadLoOptions(currentKeyword, currentRecord, false, nextPage);
                         }
                       }
                     }}
-                    dropdownRender={(menu) => (
+                    popupRender={(menu) => (
                       <div>
                         {menu}
                         {loadingLo[record.key] ? (
@@ -1083,7 +1074,6 @@ const VatTuTable = ({
             }
 
             const currentRecord = dataSource.find((item) => item.key === record.key) || record;
-            const isDuplicateMaLo = !!currentRecord._invalid_duplicate_ma_lo;
             return (
               <Input
                 value={value}
@@ -1120,14 +1110,24 @@ const VatTuTable = ({
           width: 150,
           align: "center",
           render: (v, record) => {
+            const hasLo = !!(record.ma_lo && (record.ma_lo || "").trim());
             if (!isEditMode) {
               return v ? dayjs(v).format("DD/MM/YYYY") : "";
             }
+            // Không có lô → chỉ hiển thị, không cho sửa
+            if (hasLo) {
+              return (
+                <span style={{ color: "#1e293b", fontSize: "12px" }}>
+                  {v ? dayjs(v).format("DD/MM/YYYY") : "—"}
+                </span>
+              );
+            }
+            // Có lô → cho sửa
             return (
               <DatePicker
                 value={v ? dayjs(v) : null}
                 format="DD/MM/YYYY"
-                onChange={(date) => 
+                onChange={(date) =>
                   onSelectChange(date ? date.format("YYYY-MM-DD") : null, record, columnConfig.hanSuDungField || "ngay_hh")
                 }
                 style={{ width: "100%" }}

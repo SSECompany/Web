@@ -4,6 +4,7 @@ import { useRef, useState, useCallback } from "react";
 export const useVatTuManagerNhapHang = ({
   maKhoList = [],
   loOptionsMap = {},
+  showConfirm = null,
 } = {}) => {
   const [dataSource, setDataSource] = useState([]);
   const [loOptionsMapState, setLoOptionsMapState] = useState({});
@@ -376,6 +377,8 @@ export const useVatTuManagerNhapHang = ({
             taoma_yn: 0,
             km_yn: 0,
             px_gia_dd: false,
+            lo_yn: vatTuInfo.lo_yn || false,
+            tao_lo: vatTuInfo.lo_yn || false,
             ma_kh2: "",
             datetime0: "",
             datetime2: "",
@@ -495,15 +498,33 @@ export const useVatTuManagerNhapHang = ({
   };
 
   const handleSelectChange = (value, record, field) => {
-    if (field === "ma_lo") {
-      console.log("[DEBUG] ma_lo changed:", { value, key: record.key, field });
+    // Hỗ trợ truyền object { field1: val1, field2: val2, ... } để update nhiều trường cùng lúc
+    if (typeof value === "object" && value !== null && !Array.isArray(value) && field === "ma_lo") {
+      const { ma_lo: newMaLo, ngay_hh: newNgayHh, ...rest } = value;
+      setDataSource((prev) =>
+        prev.map((item) =>
+          item.key === record.key
+            ? {
+                ...item,
+                ...rest,
+                ...(newMaLo !== undefined ? { [field]: newMaLo } : {}),
+                ...(newNgayHh !== undefined ? { ngay_hh: newNgayHh } : {}),
+              }
+            : item
+        )
+      );
+      return;
     }
+    // Antd Select trả về object { label, value } khi labelInValue=true
+    const safeValue = typeof value === 'object' && value !== null
+      ? (value.value ?? value.label ?? '')
+      : value;
     setDataSource((prev) =>
       prev.map((item) =>
         item.key === record.key
           ? {
               ...item,
-              [field]: value,
+              [field]: safeValue,
             }
           : item
       )
@@ -516,13 +537,33 @@ export const useVatTuManagerNhapHang = ({
       return;
     }
 
-    const newDataSource = dataSource.filter((_, i) => i !== index);
-    const reIndexedDataSource = newDataSource.map((item, i) => ({
-      ...item,
-      key: i + 1,
-    }));
-    setDataSource(reIndexedDataSource);
-    message.success("Đã xóa vật tư");
+    const item = dataSource[index];
+    const tenMatHang = item?.ten_mat_hang || item?.maHang || "vật tư này";
+
+    if (showConfirm) {
+      showConfirm({
+        title: "Xác nhận xóa",
+        content: `Bạn có chắc chắn muốn xóa "${tenMatHang}" không?`,
+        type: "error",
+        onOk: () => {
+          const newDataSource = dataSource.filter((_, i) => i !== index);
+          const reIndexedDataSource = newDataSource.map((item, i) => ({
+            ...item,
+            key: i + 1,
+          }));
+          setDataSource(reIndexedDataSource);
+          message.success("Đã xóa vật tư");
+        },
+      });
+    } else {
+      const newDataSource = dataSource.filter((_, i) => i !== index);
+      const reIndexedDataSource = newDataSource.map((item, i) => ({
+        ...item,
+        key: i + 1,
+      }));
+      setDataSource(reIndexedDataSource);
+      message.success("Đã xóa vật tư");
+    }
   };
 
   const handleDvtChange = (newValue, record) => {

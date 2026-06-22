@@ -39,6 +39,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
   const [loading, setLoading] = useState(false);
   const [phieuData, setPhieuData] = useState(null);
   const [isEditMode, setIsEditMode] = useState(initialEditMode);
+  const [statusValue, setStatusValue] = useState("0");
   const [vatTuInput, setVatTuInput] = useState(undefined);
   const [barcodeEnabled, setBarcodeEnabled] = useState(false);
   const [barcodeJustEnabled, setBarcodeJustEnabled] = useState(false);
@@ -55,7 +56,6 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
   const searchTimeoutRef = useRef();
   const sctRec = location.state?.sctRec || stt_rec;
   const token = localStorage.getItem("access_token");
-
   const {
     maGiaoDichList,
     maKhoList,
@@ -86,7 +86,13 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
     handleDeleteItem,
     handleDvtChange,
     syncLoOptions,
-  } = useVatTuManagerNhapHang({ maKhoList });
+  } = useVatTuManagerNhapHang({ maKhoList, showConfirm });
+
+  // Sync dataSource giữa modal và submit
+  const dataSourceRef = useRef([]);
+  useEffect(() => {
+    dataSourceRef.current = dataSource;
+  }, [dataSource]);
 
   const maKhach = Form.useWatch("maKhach", form);
 
@@ -113,6 +119,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
       form.setFieldsValue({
         ngay: dayjs(),
         ngayHachToan: dayjs(),
+        trangThai: "0",
       });
     }
   }, [sctRec, phieuDetailLoaded]);
@@ -127,16 +134,16 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
 
       try {
         const response = await fetchPhieuNhapHangDetail(sctRec);
-
         if (response && response.success) {
           const phieuInfo = response.master;
           const vatTuData = response.detail || [];
 
           if (phieuInfo) {
-            let statusValue = phieuInfo.status;
-            if (statusValue === "*" || statusValue === null) {
-              statusValue = "0";
+            let status = phieuInfo.status;
+            if (status === "*" || status === null) {
+              status = "0";
             }
+            setStatusValue(status);
 
             const formattedData = {
               stt_rec: stt_rec,
@@ -149,14 +156,14 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
               tenKhach: phieuInfo.ten_kh || phieuInfo.ong_ba || "",
               nguoiGiaoHang: phieuInfo.ong_ba || "",
               maGiaoDich: phieuInfo.ma_gd ? phieuInfo.ma_gd.trim() : "1",
-              trangThai: statusValue,
+              trangThai: status,
               maNT: phieuInfo.ma_nt || "VND",
               tyGia: phieuInfo.ty_gia || 1,
               soDonHang: phieuInfo.fcode2 ? phieuInfo.fcode2.trim() : "",
               ngayDonHang: phieuInfo.fdate1 ? dayjs(phieuInfo.fdate1) : null,
               maKho: phieuInfo.ma_kho || "",
-              ma_nv_mua: phieuInfo.ten_nvmh || "",
-              tenGiaoDich: phieuInfo.ten_gd || "",
+              ma_nv_mua: phieuInfo.fcode1 || "",
+              tenGiaoDich: phieuInfo.ten_gd || "", 
             };
 
             if (phieuInfo.ma_kh) {
@@ -237,6 +244,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                 cp: parseFloat(item.cp || 0),
                 tien_hang: parseFloat(item.tien_hang || item.tien_nt0 || 0),
                 tien_hang_nt: parseFloat(item.tien_hang_nt || item.tien_nt0 || 0),
+                
               };
             });
 
@@ -287,6 +295,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
     }
   }, [barcodeEnabled]);
 
+  // Cleanup search timeout
   useEffect(() => {
     const timeoutRef = searchTimeoutRef.current;
     return () => {
@@ -295,6 +304,11 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
       }
     };
   }, []);
+
+  // Sync dataSourceRef mỗi khi dataSource thay đổi — dùng cho validate/submit
+  useEffect(() => {
+    dataSourceRef.current = dataSource;
+  }, [dataSource]);
 
   // Tự động tính tổng từ dataSource lên master form
   useEffect(() => {
@@ -336,10 +350,8 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
   }, [dataSource, form]);
 
   const TRANG_THAI_OPTIONS = [
-    { value: "0", label: "Lập chứng từ", style: { display: "none" } },
-    { value: 0, label: "Lập chứng từ", style: { display: "none" } },
-    { value: "2", label: "Chuyển vào SC" },
-    { value: "3", label: "Nhập kho" },
+    { value: "0", label: "1.Lập chứng từ" },
+    { value: "3", label: "3.Nhập kho" },
   ];
   const handleVatTuSelectPNA = (value, option) => {
     const currentValues = form.getFieldsValue();
@@ -362,95 +374,113 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
   };
 
   const handleKeThuaSelect = (data) => {
-    const { master, detail } = data;
-    if (master) {
-      const poNo = master.so_ct?.trim();
-      const tyGia = form.getFieldValue("tyGia") || 1;
+    const { master, detail, originalRecord } = data;
+    if (!master && !originalRecord) return;
 
-      form.setFieldsValue({
-        soDonHang: poNo,                                          // fcode2 = so_ct
-        ngayDonHang: master.ngay_ct ? dayjs(master.ngay_ct) : null, // fdate1 = ngay_ct
-        ma_nv_mua: master.ma_nv || "",                            // fcode1 = ma_nv
-        maKhach: master.ma_kh?.trim() || form.getFieldValue("maKhach"),
-        dienGiai: `Nhập hàng theo đơn ${poNo}`,
+    const poNo = (master?.so_ct || originalRecord?.so_ct || "").trim();
+    const tyGia = form.getFieldValue("tyGia") || 1;
+
+    // Dùng master từ API detail, nhưng fallback về originalRecord (dòng list) cho fcode1/fdate1
+    const masterData = master || {};
+    const original = originalRecord || {};
+    const masterNgayDh = masterData.fdate1 || original.fdate1 || null;
+    const masterFcode1 = masterData.fcode1 || original.fcode1 || "";
+
+    form.setFieldsValue({
+      soDonHang: poNo,
+      ngayDonHang: masterNgayDh ? dayjs(masterNgayDh) : null,
+      ma_nv_mua: masterFcode1,
+      maKhach: (masterData.ma_kh || original.ma_kh || "").trim() || form.getFieldValue("maKhach"),
+      dienGiai: `Nhập hàng theo đơn ${poNo}`,
+    });
+
+    const maKhVal = masterData.ma_kh || original.ma_kh;
+    if (maKhVal) {
+      const mkh = maKhVal.trim();
+      setMaKhachList((prev) => {
+        const alreadyExists = prev.some((o) => o.value === mkh);
+        if (alreadyExists) return prev;
+        return [
+          ...prev,
+          {
+            value: mkh,
+            label: `${mkh} - ${(masterData.ten_kh || original.ten_kh || "").trim() || "Nhà cung cấp"}`,
+          },
+        ];
       });
-
-      if (master.ma_kh) {
-        setMaKhachList((prev) => {
-          const mkh = master.ma_kh.trim();
-          const alreadyExists = prev.some((o) => o.value === mkh);
-          if (alreadyExists) return prev;
-          return [
-            ...prev,
-            {
-              value: mkh,
-              label: `${mkh} - ${master.ten_kh?.trim() || "Nhà cung cấp"}`,
-            },
-          ];
-        });
-      }
-
-      const processedDetails = detail.map((item, index) => {
-        const soLuong = parseFloat(item.so_luong0 || 0);
-        const gia_nt0 = parseFloat(item.gia_nt || 0);
-        const thue_suat = parseFloat(item.thue_suat || 0);
-
-        const gia0 = gia_nt0 * tyGia;
-        const tien_nt0 = soLuong * gia_nt0;
-        const tien0 = tien_nt0 * tyGia;
-        const thue_nt = (tien_nt0 * thue_suat) / 100;
-        const thue = (tien0 * thue_suat) / 100;
-        const tt_nt = tien_nt0 + thue_nt;
-        const tt = tien0 + thue;
-
-        return {
-          key: dataSource.length + index + 1,
-          maHang: (item.ma_vt || "").trim(),
-          ten_mat_hang: item.ten_vt,
-          so_luong: soLuong,
-          soLuong: soLuong,
-          soLuongDeNghi: parseFloat(item.so_luong || 0),
-          dvt: (item.dvt || "").trim(),
-          ma_kho: (item.ma_kho || "").trim(),
-          tk_vt: item.tk_vt || "156",
-          ma_vv: item.ma_vv || "",
-          ma_bp: item.ma_bp || "",
-          so_lsx: item.so_lsx || "",
-          ma_sp: item.ma_sp || "",
-          ma_hd: item.ma_hd || "",
-          ma_phi: item.ma_phi || "",
-          ma_ku: item.ma_ku || "",
-          gia_nt0: gia_nt0,
-          gia_nt: gia_nt0,
-          gia0: gia0,
-          gia: gia0,
-          tien_nt0: tien_nt0,
-          tien_nt: tien_nt0,
-          tien0: tien0,
-          tien: tien0,
-          ma_thue: item.ma_thue || "",
-          thue_suat: thue_suat,
-          thue_nt: thue_nt,
-          thue: thue,
-          tk_thue: item.tk_thue || "1331",
-          tt_nt: tt_nt,
-          tt: tt,
-          stt_rec_dh: item.stt_rec || "",
-          stt_rec0dh: item.stt_rec0 || "",
-          dh_so: (item.dh_so || item.so_ct || poNo).trim(),
-          dh_ln: item.dh_ln || item.line_nbr || 0,
-          fcode2: poNo,
-          he_so: item.he_so || 1,
-          lo_yn: item.lo_yn || false,
-          tao_lo: item.tao_lo || false,
-          isNewlyAdded: true,
-          _lastUpdated: Date.now(),
-        };
-      });
-
-      setDataSource([...dataSource, ...processedDetails]);
-      message.success(`Lấy dữ liệu đơn hàng ${poNo} thành công`);
     }
+
+    if (!detail || !Array.isArray(detail) || detail.length === 0) {
+      message.warning("Đơn hàng không có vật tư");
+      return;
+    }
+
+    const processedDetails = detail.map((item, index) => {
+      const soLuong = parseFloat(item.so_luong0 || 0);
+      const gia_nt0 = parseFloat(item.gia_nt || 0);
+      const thue_suat = parseFloat(item.thue_suat || 0);
+
+      const gia0 = gia_nt0 * tyGia;
+      const tien_nt0 = soLuong * gia_nt0;
+      const tien0 = tien_nt0 * tyGia;
+      const thue_nt = (tien_nt0 * thue_suat) / 100;
+      const thue = (tien0 * thue_suat) / 100;
+      const tt_nt = tien_nt0 + thue_nt;
+      const tt = tien0 + thue;
+      const itemNgayDh = item.fdate1 || item.ngay_ct || masterNgayDh;
+
+      return {
+        key: dataSource.length + index + 1,
+        maHang: (item.ma_vt || "").trim(),
+        ten_mat_hang: item.ten_vt,
+        so_luong: soLuong,
+        soLuong: soLuong,
+        soLuongDeNghi: parseFloat(item.so_luong || 0),
+        dvt: (item.dvt || "").trim(),
+        ma_lo: (item.ma_lo || "").trim(),
+        ma_vi_tri: item.ma_vi_tri || "",
+        ngay_hh: item.ngay_hh || item.ngay_td1 || null,
+        ma_kho: (item.ma_kho || "").trim(),
+        tk_vt: item.tk_vt || "156",
+        ma_vv: item.ma_vv || "",
+        ma_bp: item.ma_bp || "",
+        so_lsx: item.so_lsx || "",
+        ma_sp: item.ma_sp || "",
+        ma_hd: item.ma_hd || "",
+        ma_phi: item.ma_phi || "",
+        ma_ku: item.ma_ku || "",
+        gia_nt0: gia_nt0,
+        gia_nt: gia_nt0,
+        gia0: gia0,
+        gia: gia0,
+        tien_nt0: tien_nt0,
+        tien_nt: tien_nt0,
+        tien0: tien0,
+        tien: tien0,
+        ma_thue: item.ma_thue || "",
+        thue_suat: thue_suat,
+        thue_nt: thue_nt,
+        thue: thue,
+        tk_thue: item.tk_thue || "1331",
+        tt_nt: tt_nt,
+        tt: tt,
+        stt_rec_dh: item.stt_rec || "",
+        stt_rec0dh: item.stt_rec0 || "",
+        dh_so: (item.dh_so || item.so_ct || poNo).trim(),
+        dh_ln: item.dh_ln || item.line_nbr || 0,
+        fdate1: item.fdate1 || masterNgayDh || null,
+        fcode2: poNo,
+        he_so: item.he_so || 1,
+        lo_yn: item.lo_yn || false,
+        tao_lo: item.tao_lo || false,
+        ngay_dh: itemNgayDh,
+        isNewlyAdded: true,
+        _lastUpdated: Date.now(),
+      };
+    });
+
+    setDataSource((prev) => [...prev, ...processedDetails]);
+    message.success(`Lấy dữ liệu đơn hàng ${poNo} thành công`);
   };
 
   const fetchBatchKhoOptions = async (keyword) => {
@@ -504,26 +534,39 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
-
-      const validation = validateDataSource(dataSource);
-      if (!validation.isValid) {
+      // Disabled/readOnly fields KHÔNG bị validate bởi validateFields().
+      // readOnly fields (ma_nv_mua, soDonHang, ngayDonHang) vẫn gửi được giá trị vì readOnly KHÔNG phải disabled.
+      // disabled fields (ngay, ngayHachToan) → getFieldsValue(true) giữ nguyên giá trị dayjs.
+      const allFields = form.getFieldsValue(true);
+      let values = { ...allFields };
+      try {
+        const validated = await form.validateFields();
+        values = { ...allFields, ...validated };
+      } catch (validationErrors) {
+        // Antd Form tự hiển thị lỗi trên form rồi — chỉ cần dừng submit
         setLoading(false);
         return;
       }
 
       const isUpdate = !!stt_rec;
-      const currentStatus = values.trangThai || "2";
+      const currentStatus = values.trangThai || "0";
+
+      // Validate: dùng dataSourceRef để lấy state MỚI NHẤT (tránh stale closure)
+      const validation = validateDataSource(dataSourceRef.current);
+      if (!validation.isValid) {
+        setLoading(false);
+        return;
+      }
 
       validateQuantityForPhieu(
-        dataSource,
+        dataSourceRef.current,
         "phieu_nhap_hang",
         currentStatus,
         async () => {
           try {
             const payload = buildPhieuNhapHangPayload(
               values,
-              dataSource,
+              dataSourceRef.current,
               phieuData,
               isUpdate
             );
@@ -583,7 +626,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
         data: {},
         resultSetNames: ["master", "detail"],
       };
-
+    
       const response = await https.post("User/AddData", body, {
         headers: {
           "Content-Type": "application/json",
@@ -597,9 +640,17 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
         const poDetails = apiData.detail || [];
 
         if (poInfo) {
+          const poDate = poInfo.ngay_ct ? dayjs(poInfo.ngay_ct) : null;
+          const poNhanVien = poInfo.ma_nv
+            ? `${poInfo.ma_nv.trim()} – ${(poInfo.ten_nv || "").trim()}`
+            : (poInfo.ma_nv?.trim() || "");
+
           form.setFieldsValue({
-            maKhach: poInfo.ma_kh,
+            soDonHang: poNo,
+            maKhach: poInfo.ma_kh || "",
             dienGiai: `Nhập hàng theo đơn ${poNo}`,
+            ngayDonHang: poDate,
+            ma_nv_mua: poNhanVien,
           });
 
           const processedDetails = poDetails.map((item, index) => ({
@@ -685,13 +736,20 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
         badgeText={badge.text}
         badgeColor={badge.color}
         metaDate={form.getFieldValue('ngay') ? dayjs(form.getFieldValue('ngay')).format('DD/MM/YYYY') : '.........'}
-        statusValue={form.getFieldValue('trangThai') || "0"}
+        statusValue={statusValue}
         statusOptions={TRANG_THAI_OPTIONS}
         showStatusSelect={true}
-        statusDisabled={!isEditMode && !!stt_rec}
+        
         headerRightSpan={
           !isEditMode && stt_rec ? (
-            <Button type="text" icon={<EditOutlined />} onClick={handleEdit} className="phieu-edit-button-kd" title="Chỉnh sửa" />
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={handleEdit}
+              className="phieu-edit-button-kd"
+              title="Chỉnh sửa"
+              disabled={statusValue !== "0"}
+            />
           ) : null
         }
         fixedFooterActions={footerActions}
@@ -719,6 +777,23 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
               fetchMaKhoList={fetchMaKhoList}
               fetchMaKhoListDebounced={fetchMaKhoListDebounced}
               onPoSearch={handlePoSearch}
+              VatTuSelectComponent={VatTuSelectFullPOS}
+              barcodeEnabled={barcodeEnabled}
+              setBarcodeEnabled={setBarcodeEnabled}
+              setBarcodeJustEnabled={setBarcodeJustEnabled}
+              vatTuInput={vatTuInput}
+              setVatTuInput={setVatTuInput}
+              vatTuSelectRef={vatTuSelectRef}
+              loadingVatTu={loadingVatTu}
+              vatTuList={vatTuList}
+              searchTimeoutRef={searchTimeoutRef}
+              fetchVatTuList={fetchVatTuListPaging}
+              handleVatTuSelect={handleVatTuSelectPNA}
+              totalPage={totalPage}
+              pageIndex={pageIndex}
+              setPageIndex={setPageIndex}
+              setVatTuList={setVatTuList}
+              currentKeyword={currentKeyword}
             />
             </div>
 
@@ -731,7 +806,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                   label: "Chi tiết",
                   children: (
                     <div style={{ minHeight: 120 }}>
-                      {isEditMode && !stt_rec && (
+                      {isEditMode && (
                           <div className="detail-phieu-nhap-hang__add-product-section">
                             <div className="section-title">Tìm quét vật tư nhập hàng</div>
                             <VatTuSelectFullPOS
@@ -756,10 +831,9 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                           </div>
                       )}
 
-                      {/* Tiện ích: điền kho hàng loạt */}
+                      {/* Tiện ích điền kho hàng loạt */}
                       {(() => {
                         const itemsWithoutKho = dataSource.filter(item => !(item.ma_kho || "").trim());
-                        if (itemsWithoutKho.length === 0) return null;
                         return (
                           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", marginTop: 8 }}>
                             <span style={{ fontSize: 13, color: "#475569", whiteSpace: "nowrap", fontWeight: 500 }}>
@@ -779,7 +853,6 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                             />
                             <Button
                               size="small"
-                              disabled={!batchKhoValue.trim() || itemsWithoutKho.length === 0}
                               onClick={() => applyBatchKho(batchKhoValue.trim())}
                             >
                               Áp dụng
@@ -792,10 +865,9 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                           </div>
                         );
                       })()}
-
-                      <VatTuNhapHangTable
+                          <VatTuNhapHangTable
                           dataSource={dataSource}
-                          isEditMode={isEditMode && !stt_rec}
+                          isEditMode={isEditMode}
                           handleQuantityChange={handleQuantityChange}
                           handleSelectChange={handleSelectChange}
                           handleDeleteItem={handleDeleteItem}
@@ -810,7 +882,6 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                             return fetchViTriList(keyword, { ...record, ma_kho: maKho }, page);
                           }}
                           onDataSourceUpdate={setDataSource}
-                          onLoOptionsUpdate={syncLoOptions}
                       />
 
                       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: 12, padding: '12px 24px', borderTop: '1px solid #f0f0f0' }}>

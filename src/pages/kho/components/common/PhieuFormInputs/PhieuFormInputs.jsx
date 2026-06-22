@@ -146,7 +146,10 @@ const PhieuFormInputs = memo(({
                   placeholder="Nhập tên nhà cung cấp"
                   loading={loadingMaKhach}
                   filterOption={false}
-                  onSearch={fetchMaKhachListDebounced}
+                  //onSearch={(value) => fetchMaKhachList && fetchMaKhachList(value)}
+                  onSearch={(value) => {
+                    if (value) fetchMaKhachListDebounced(value, fetchMaKhachList);
+                  }}
                   onOpenChange={(open) => open && fetchMaKhachList && fetchMaKhachList("")}
                   options={maKhachList}
                   disabled={!isEditMode}
@@ -166,7 +169,7 @@ const PhieuFormInputs = memo(({
           </Col>
           <Col xs={24} sm={8}>
             <Form.Item name={fieldNames.ngay} label="Ngày lập" rules={[{ required: true, message: "Chọn ngày lập" }]}>
-              <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" disabled/>
+              <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" disabled />
             </Form.Item>
           </Col>
         </Row>
@@ -205,12 +208,6 @@ const PhieuFormInputs = memo(({
             <Form.Item
               name={fieldNames.ma_nv_mua}
               label="Nhân viên mua"
-              valueTransform={(val) => {
-                if (!val) return undefined;
-                // Nếu đã có format "MA_NV – ten_nv" thì giữ nguyên
-                if (typeof val === 'string' && val.includes(' – ')) return val;
-                return val;
-              }}
             >
               <Input
                 placeholder="Nhân viên mua"

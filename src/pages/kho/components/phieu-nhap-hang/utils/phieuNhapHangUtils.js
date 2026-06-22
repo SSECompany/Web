@@ -1,3 +1,4 @@
+
 import dayjs from "dayjs";
 import { staticMessage as message } from "../../../../../utils/antdStatic";
 import { multipleTablePutApi } from "../../../../../api";
@@ -56,6 +57,21 @@ export const validateDataSource = (dataSource) => {
     message.error("Vui lòng thêm ít nhất một vật tư");
     return { isValid: false };
   }
+
+  // Validate: hàng theo dõi lô (lo_yn) phải có mã lô
+  for (let i = 0; i < dataSource.length; i++) {
+    const item = dataSource[i];
+    const loYn = item.lo_yn === true || item.lo_yn === "true" || item.lo_yn === "Y" || item.lo_yn === 1;
+    if (loYn) {
+      const maLo = (item.ma_lo || "").trim();
+      if (!maLo) {
+        const tenHang = item.ten_mat_hang || item.maHang || `dòng ${i + 1}`;
+        message.error(`Vật tư "${tenHang}" theo dõi lô — vui lòng nhập mã lô trước khi lưu`);
+        return { isValid: false, focusIndex: i };
+      }
+    }
+  }
+
   return { isValid: true };
 };
 
@@ -154,6 +170,8 @@ export const buildPhieuNhapHangPayload = (
     fcode1: (values.ma_nv_mua?.split(" – ")[0]) || phieuData?.fcode1 || "",
     nam: new Date(orderDate).getFullYear(),
     ky: new Date(orderDate).getMonth() + 1,
+    fdate1: toDateVal(values.ngayDonHang) || toDateVal(phieuData?.fdate1) || null,
+    datetime0: isUpdate ? toDateVal(phieuData?.datetime0) : new Date()
   };
 
   // Nếu thêm mới, thêm datetime0
@@ -165,7 +183,7 @@ export const buildPhieuNhapHangPayload = (
   // ===== DETAIL71 =====
   const detailData = detailCalc.map((d, index) => {
     const item = d._item;
-    console.log("[DEBUG] buildPayload ma_lo:", { ma_lo: item.ma_lo, ma_lo_raw: item["ma_lo"], key: item.key });
+    //console.log("[DEBUG] buildPayload ma_lo:", { ma_lo: item.ma_lo, ma_lo_raw: item["ma_lo"], key: item.key });
     return {
       stt_rec: isUpdate ? (phieuData?.stt_rec || "") : "",
       ma_ct: "PNA",
