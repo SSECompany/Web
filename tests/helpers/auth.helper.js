@@ -23,14 +23,14 @@ async function login(page, username = 'trungdk', password = '123abc') {
   const usernameInput = page.locator('#login_form_username');
   await usernameInput.waitFor({ state: 'visible', timeout: 15000 });
 
-  // ② Nhập username từng ký tự chậm rãi (delay 100ms giữa mỗi phím)
-  await usernameInput.pressSequentially(username, { delay: 100 });
+  // ② Nhập username nhanh
+  await usernameInput.pressSequentially(username, { delay: 20 });
 
-  // ③ Nhập password từng ký tự chậm rãi (delay 100ms)
-  await page.locator('#login_form_password').pressSequentially(password, { delay: 100 });
+  // ③ Nhập password nhanh
+  await page.locator('#login_form_password').pressSequentially(password, { delay: 20 });
 
   // ④ Đợi API DVCS trả về danh sách Đơn vị (debounce 300ms + network)
-  await page.waitForTimeout(2500);
+  await page.waitForTimeout(1500);
 
   // ⑤ Click nút Đăng nhập
   await page.getByRole('button', { name: 'Đăng nhập' }).click();

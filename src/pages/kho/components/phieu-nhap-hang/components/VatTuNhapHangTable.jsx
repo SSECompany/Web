@@ -123,6 +123,7 @@ const VatTuNhapHangTable = ({
         return;
       }
 
+
       notification.success({ message: `Tạo lô "${maLo}" thành công` });
 
       // Pre-compute giá/đơn vị trước để tránh lặp trong map
@@ -143,31 +144,36 @@ const VatTuNhapHangTable = ({
         ...dataSourceRef.current.map((it) =>
           it.key === selectedRecord?.key
             ? {
-                ...it,
-                ma_lo: maLo,
-                ngay_hh: hsdStr,
-                so_luong: soLuong,
-                soLuong: soLuong,
-                sl_td3: soLuong,
-                soLuong_goc: soLuongGoc,
-                tien_nt: amountNt,
-                tien: amount,
-                tien_nt0: amountNt,
-                tien0: amount,
-                tien_hang_nt: amountNt,
-                tien_hang: amount,
-                thue_nt: taxNt,
-                thue: tax,
-                tt_nt: amountNt + taxNt,
-                tt: amount + tax,
-                _lastUpdated: Date.now(),
-              }
+              ...it,
+              ma_lo: maLo,
+              ngay_hh: hsdStr,
+              so_luong: soLuong,
+              soLuong: soLuong,
+              sl_td3: soLuong,
+              soLuong_goc: soLuongGoc,
+              tien_nt: amountNt,
+              tien: amount,
+              tien_nt0: amountNt,
+              tien0: amount,
+              tien_hang_nt: amountNt,
+              tien_hang: amount,
+              thue_nt: taxNt,
+              thue: tax,
+              tt_nt: amountNt + taxNt,
+              tt: amount + tax,
+              _lastUpdated: Date.now(),
+            }
             : it
         ),
       ];
 
       // setDataSource với object MỚI → React re-render → useEffect sync ref
       setDataSource(dataSourceRef.current);
+
+      // Notify parent component of the updated data (so ERP payload includes the new ma_lo)
+      if (onDataSourceUpdate) {
+        onDataSourceUpdate(dataSourceRef.current);
+      }
 
       // Tự động load danh sách lô mới cho dropdown options (chạy async, không block UI)
       const updatedRecord = dataSourceRef.current.find((it) => it.key === selectedRecord?.key);

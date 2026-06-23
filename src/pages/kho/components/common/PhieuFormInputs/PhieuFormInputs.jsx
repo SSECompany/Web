@@ -11,7 +11,8 @@ const PhieuFormInputs = memo(({
   // Basic props
   isEditMode = true,
   formType = "nhap-kho", // 'nhap-kho', 'nhap-hang', 'xuat-kho', 'nhap-dieu-chuyen', 'xuat-kho-ban-hang'
-  
+  form, // Form instance from parent, used for auto-fill on NCC selection
+
   // Select data & handlers
   selectData = {},
   selectHandlers = {},
@@ -146,9 +147,18 @@ const PhieuFormInputs = memo(({
                   placeholder="Nhập tên nhà cung cấp"
                   loading={loadingMaKhach}
                   filterOption={false}
-                  //onSearch={(value) => fetchMaKhachList && fetchMaKhachList(value)}
                   onSearch={(value) => {
                     if (value) fetchMaKhachListDebounced(value, fetchMaKhachList);
+                  }}
+                  onSelect={(value) => {
+                    const selectedOption = maKhachList.find(o => o.value === value);
+                    if (selectedOption && form) {
+                      // Auto-fill tên khách khi chọn NCC
+                      const tenKhach = selectedOption.label
+                        ? selectedOption.label.split(' - ').slice(1).join(' - ').trim()
+                        : "";
+                      form.setFieldsValue({ tenKhach });
+                    }
                   }}
                   onOpenChange={(open) => open && fetchMaKhachList && fetchMaKhachList("")}
                   options={maKhachList}

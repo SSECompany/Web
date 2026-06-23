@@ -29,6 +29,7 @@ export const phieuNhapHangConfig = {
   soLuongCheatField: "so_luong",
   showSoLuongCheat: true,
   showMaKho: true,
+  maKhoField: "ma_kho",
   maKhoRequired: false,
   showMaLo: true,
   showMaViTri: true,

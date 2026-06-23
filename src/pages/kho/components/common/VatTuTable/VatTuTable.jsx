@@ -57,6 +57,12 @@ const VatTuTable = ({
     dataSourceRef.current = dataSource;
   }, [dataSource]);
 
+  // Cache loOptions to avoid stale closure when dropdown closes and clears options before onChange fires
+  const loOptionsCacheRef = useRef({});
+  const getLoOpts = (record) => {
+    return record?.loOptions || loOptionsCacheRef.current[record?.key] || [];
+  };
+
   // Scroll to invalid row and focus first editable input until validation is satisfied
   const tableWrapperRef = useRef(null);
   useEffect(() => {
@@ -158,6 +164,9 @@ const VatTuTable = ({
 
         const existingOptions = page === 1 ? [] : (latestRecord.loOptions || []);
         const mergedOptions = [...existingOptions, ...fetchedOptions];
+
+        // Update cache to avoid stale closure when dropdown closes before onChange fires
+        loOptionsCacheRef.current[record.key] = mergedOptions;
 
         const updatedRecord = { 
           ...latestRecord, 
@@ -391,14 +400,18 @@ const VatTuTable = ({
   // Render select mã kho
   const renderMaKhoSelect = useCallback(
     (value, record) => {
+      // Get current record from dataSource to avoid stale data
+      const currentRecord = (dataSourceRef?.current || dataSource).find((item) => item.key === record.key) || record;
+      const currentValue = currentRecord[columnConfig.maKhoField || "ma_kho"];
+      
       if (!isEditMode) {
-        return value;
+        return currentValue;
       }
 
       return (
         <Select
-          value={value}
-          onChange={(newValue) => onSelectChange(newValue, record, "ma_kho")}
+          value={currentValue}
+          onChange={(newValue) => onSelectChange(newValue, currentRecord, columnConfig.maKhoField || "ma_kho")}
           placeholder="Chọn kho"
           showSearch
           loading={loadingStates.maKho}
@@ -424,6 +437,9 @@ const VatTuTable = ({
       loadingStates.maKho,
       apiHandlers,
       selectData.maKhoList,
+      dataSource,
+      dataSourceRef,
+      columnConfig,
     ]
   );
 
@@ -696,9 +712,17 @@ const VatTuTable = ({
                 onChange={(val) => {
                   const currentDataSource = dataSourceRef.current;
                   const currentRecord = currentDataSource.find((item) => item.key === record.key);
-                  // Match POS behavior: ensure value is string (val || "")
+                  // Antd Select với labelInValue=true trả về {label, value}
+                  const safeVal = typeof val === 'object' && val !== null ? (val.value ?? val.label ?? '') : val;
+                  const newMaLo = safeVal || "";
+                  const loYn = currentRecord?.lo_yn === true || currentRecord?.lo_yn === "true" || currentRecord?.lo_yn === "Y" || currentRecord?.lo_yn === 1;
+                  if (loYn && !newMaLo) {
+                    message.warning("Vật tư theo dõi lô — vui lòng chọn hoặc nhập mã lô");
+                    return;
+                  }
+                  // Match POS behavior: ensure value is string
                   // Preserve loOptions when updating ma_lo
-                  onSelectChange(val || "", currentRecord || record, "ma_lo");
+                  onSelectChange(newMaLo, currentRecord || record, columnConfig.maLoField || "ma_lo");
                 }}
                 // Cho phép antd tự điều khiển nếu chưa set state; nếu đã có state thì control
                 open={openLo[record.key]}
@@ -987,7 +1011,10 @@ const VatTuTable = ({
                           setLoadingLo((prev) => ({ ...prev, [record.key]: false }));
                         });
                       } else {
-                        setOpenLo((prev) => ({ ...prev, [record.key]: false }));
+                        setOpenLo((prev) => ({ ... prev, [record.key]: false }));
+                        // Cache options before clearing so onChange can still find them
+                        const cachedOpts = getLoOpts(record);
+                        loOptionsCacheRef.current[record.key] = cachedOpts;
                         const clearedDataSource = dataSource.map((item) =>
                           item.key === record.key
                             ? { ...item, loOptions: [], loPage: 0, loKeyword: "" }
@@ -998,18 +1025,30 @@ const VatTuTable = ({
                     }}
                     open={openLo[record.key]}
                     onChange={(val) => {
+                      console.log("[VatTuTable ma_lo onChange] val:", val, "record.key:", record.key, "record.ma_lo:", record.ma_lo);
                       const currentRecord = (dataSourceRef.current || dataSource).find((item) => item.key === record.key) || record;
-                      // Khi chọn lô từ dropdown: tự động fill ngay_hh từ loOptions
-                      if (val && val !== "" && currentRecord.loOptions) {
-                        const selectedOption = currentRecord.loOptions.find(o => String(o.value) === String(val));
-                        const ngayHhsd = selectedOption?.ngay_hhsd || null;
-                        // Truyền cả ngay_hh qua handleSelectChange để hook update đúng
-                        if (ngayHhsd) {
-                          onSelectChange({ ma_lo: val, ngay_hh: ngayHhsd }, currentRecord, "ma_lo");
-                          return;
+                      console.log("[VatTuTable ma_lo onChange] currentRecord found:", currentRecord?.key, "ma_lo:", currentRecord?.ma_lo);
+                      // Dùng getLoOpts thay vì currentRecord.loOptions để tránh stale closure khi dropdown đóng và clear options trước onChange
+                      const loOpts = getLoOpts(currentRecord);
+                      // Lấy ngay_hh từ loOpts nếu có
+                      let ngayHhsd = null;
+                      if (val && val !== "" && loOpts.length > 0) {
+                        const selectedOption = loOpts.find(o => String(o.value) === String(val));
+                        if (selectedOption) {
+                          ngayHhsd = selectedOption?.ngay_hhsd || null;
                         }
                       }
-                      onSelectChange(val, currentRecord, columnConfig.maLoField || "ma_lo");
+                      // Khi chọn lô từ dropdown: luôn gọi onSelectChange, chỉ bỏ qua nếu val rỗng và lo_yn = true
+                      const loYn = currentRecord?.lo_yn === true || currentRecord?.lo_yn === "true" || currentRecord?.lo_yn === "Y" || currentRecord?.lo_yn === 1;
+                      if (loYn && !val) {
+                        message.warning("Vật tư theo dõi lô — vui lòng chọn hoặc nhập mã lô");
+                        return;
+                      }
+                      if (ngayHhsd) {
+                        onSelectChange({ ma_lo: val, ngay_hh: ngayHhsd }, currentRecord, "ma_lo");
+                      } else {
+                        onSelectChange(val || "", currentRecord, columnConfig.maLoField || "ma_lo");
+                      }
                     }}
                     options={record.loOptions || []}
                     loading={loadingLo[record.key]}
@@ -1077,7 +1116,15 @@ const VatTuTable = ({
             return (
               <Input
                 value={value}
-                onChange={(e) => onSelectChange(e.target.value, record, "ma_lo")}
+                onChange={(e) => {
+                  const newVal = (e.target.value || "").trim();
+                  const loYn = currentRecord?.lo_yn === true || currentRecord?.lo_yn === "true" || currentRecord?.lo_yn === "Y" || currentRecord?.lo_yn === 1;
+                  if (loYn && !newVal) {
+                    message.warning("Vật tư theo dõi lô — vui lòng nhập mã lô");
+                    return;
+                  }
+                  onSelectChange(newVal, currentRecord, columnConfig.maLoField || "ma_lo");
+                }}
                 style={{
                   width: "100%",
                   textAlign: "center",

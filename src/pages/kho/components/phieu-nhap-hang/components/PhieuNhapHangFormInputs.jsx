@@ -3,6 +3,7 @@ import { PhieuFormInputs } from "../../common/PhieuFormInputs";
 
 const PhieuNhapHangFormInputs = ({
   isEditMode = true,
+  form, // Form instance from DetailPhieuNhapHang
   maKhachList,
   loadingMaKhach,
   fetchMaKhachListDebounced,
@@ -111,6 +112,7 @@ const PhieuNhapHangFormInputs = ({
     <PhieuFormInputs
       isEditMode={isEditMode}
       formType="nhap-hang"
+      form={form}
       selectData={selectData}
       selectHandlers={selectHandlers}
       loadingStates={loadingStates}

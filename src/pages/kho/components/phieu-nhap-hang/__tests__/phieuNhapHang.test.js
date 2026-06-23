@@ -207,6 +207,24 @@ describe("1. validateDataSource", () => {
     ]).isValid).toBe(true);
   });
 
+  test("lo_yn=1 (number) + ma_lo='' → isValid=false", () => {
+    expect(validateDataSource([
+      { ma_lo: "", ma_kho: "KHO01", maHang: "VT001", lo_yn: 1 },
+    ]).isValid).toBe(false);
+  });
+
+  test("lo_yn=1 (number) + ma_lo='LOT001' → isValid=true", () => {
+    expect(validateDataSource([
+      { ma_lo: "LOT001", ma_kho: "KHO01", maHang: "VT001", lo_yn: 1 },
+    ]).isValid).toBe(true);
+  });
+
+  test("lo_yn=0 (number) + ma_lo='' → isValid=true (không theo dõi lô)", () => {
+    expect(validateDataSource([
+      { ma_lo: "", ma_kho: "KHO01", maHang: "VT001", lo_yn: 0 },
+    ]).isValid).toBe(true);
+  });
+
   test("nhiều dòng lo_yn=true lỗi → focusIndex = dòng đầu tiên", () => {
     const r = validateDataSource([
       { ma_lo: "", ma_kho: "KHO01", maHang: "VT001", lo_yn: true },

@@ -1,5 +1,5 @@
 // import { LeftOutlined, LinkOutlined, SaveOutlined, CloseCircleOutlined } from "@ant-design/icons";
-// import { Button, Form, message, Space, Typography, Select, Tabs, AutoComplete, DatePicker } from "antd";
+// import { Button, Form, message, Space, Typography, Select, Tabs, AutoComplete, DatePicker, Tooltip } from "antd";
 // import dayjs from "dayjs";
 // import { useEffect, useRef, useState } from "react";
 // import { useNavigate } from "react-router-dom";
@@ -9,7 +9,7 @@
 // import "./DetailPhieuNhapHang.css";
 // import { validateQuantityForPhieu } from "../common/QuantityValidationUtils";
 // import ModalKeThua from "./components/ModalKeThua";
-// import showConfirm from "../../../../components/common/Modal/ModalConfirm";
+import showConfirm from "../../../../components/common/Modal/ModalConfirm";
 // import PhieuNhapHangFormInputs from "./components/PhieuNhapHangFormInputs";
 // import VatTuNhapHangTable from "./components/VatTuNhapHangTable";
 // import FormTemplate from "../../../../components/common/PageTemplates/FormTemplate";
@@ -711,7 +711,7 @@
 // export default AddPhieuNhapHang;
 
 import { LeftOutlined, LinkOutlined, SaveOutlined, CloseCircleOutlined } from "@ant-design/icons";
-import { Button, Form, message, Space, Typography, Select, Tabs, AutoComplete, DatePicker } from "antd";
+import { Button, Form, message, Space, Typography, Select, Tabs, AutoComplete, DatePicker, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -768,6 +768,7 @@ const AddPhieuNhapHang = () => {
     loadingVatTu,
     fetchMaKhoListDebounced,
     fetchMaKhachListDebounced,
+    fetchLoList,
     fetchMaGiaoDichList,
     fetchMaKhoList,
     fetchMaKhachList,
@@ -782,6 +783,7 @@ const AddPhieuNhapHang = () => {
 
   const {
     dataSource,
+    dataSourceRef,
     setDataSource,
     handleVatTuSelect: vatTuSelectHandler,
     handleQuantityChange,
@@ -789,7 +791,7 @@ const AddPhieuNhapHang = () => {
     handleDeleteItem,
     handleDvtChange,
     syncLoOptions,
-  } = useVatTuManagerNhapHang({ maKhoList });
+  } = useVatTuManagerNhapHang({ maKhoList, showConfirm });
 
   const fetchVatTuListPaging = async (
     keyword = "",
@@ -951,9 +953,14 @@ const AddPhieuNhapHang = () => {
     if (master) {
       const poNo = master.so_ct?.trim();
       const poDate = master.ngay_ct ? dayjs(master.ngay_ct) : null;
-      const poNhanVien = master.ma_nv && master.ten_nv
-        ? `${master.ma_nv.trim()} – ${master.ten_nv.trim()}`
-        : (master.ma_nv?.trim() || "");
+      
+      // Xử lý nhân viên: thử nhiều field name khác nhau
+      const maNv = master.ma_nv || master.fcode1 || master.ma_nv_mua || "";
+      const tenNv = master.ten_nv || master.ten_nv_mua || master.fname1 || "";
+      const poNhanVien = maNv && tenNv
+        ? `${maNv.trim()} – ${tenNv.trim()}`
+        : (maNv?.trim() || "");
+      
       const tyGia = form.getFieldValue("tyGia") || 1;
 
       form.setFieldsValue({
@@ -965,6 +972,7 @@ const AddPhieuNhapHang = () => {
       });
 
       const processedDetails = detail.map((item, index) => {
+        // process item
         const soLuong = parseFloat(item.so_luong0 || 0);
         const gia_nt0 = parseFloat(item.gia_nt || 0);
         const thue_suat = parseFloat(item.thue_suat || 0);
@@ -1116,12 +1124,15 @@ const AddPhieuNhapHang = () => {
       setLoading(true);
       const values = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
      
-      const validation = validateDataSource(dataSource);
+      // Use ref for immediate access to latest state (avoids React setState async delay)
+      const latestDataSource = dataSourceRef?.current ?? dataSource;
+      console.log("[DEBUG submit] ma_lo values:", latestDataSource.map(i => ({ key: i.key, ma_lo: i.ma_lo })));
+      const validation = validateDataSource(latestDataSource);
       if (!validation.isValid) {
         setLoading(false);
         return;
       }
-
+          
       const currentStatus = values.trangThai || "0";
 
       validateQuantityForPhieu(
@@ -1191,8 +1202,13 @@ const AddPhieuNhapHang = () => {
             label: "Kế thừa",
             icon: <LinkOutlined />,
             type: "default",
-            onClick: () => setKeThuaModalOpen(true),
-            disabled: !maKhach,
+            onClick: () => {
+              if (!maKhach) {
+                message.warning("Vui lòng chọn Tên nhà cung cấp trước");
+                return;
+              }
+              setKeThuaModalOpen(true);
+            },
             className: "btn-print-fixed",
           }
         ]}
@@ -1203,6 +1219,7 @@ const AddPhieuNhapHang = () => {
           initialValues={{
             ngay: dayjs(),
             ngayHachToan: dayjs(),
+            ngayDonHang: dayjs(),
             maGiaoDich: "1",
             trangThai: "3",
             dienGiai: "Nhập hàng theo đơn"
@@ -1370,6 +1387,7 @@ const AddPhieuNhapHang = () => {
                           const maKho = record.ma_kho || record.maKho || form.getFieldValue("maKho") || "";
                           return fetchViTriList(keyword, { ...record, ma_kho: maKho }, page);
                         }}
+                        fetchLoList={fetchLoList}
                         onDataSourceUpdate={setDataSource}
                         onLoOptionsUpdate={syncLoOptions}
                       />

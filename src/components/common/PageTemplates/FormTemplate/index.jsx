@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Form, Select } from "antd";
+import { Button, Form, Select, Tooltip } from "antd";
 import { LeftOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import "./FormTemplate.css";
@@ -137,25 +137,47 @@ const FormTemplate = ({
       )}
     </div>
 
-    {/* ===== FIXED FOOTER (ngoài container, position fixed) ===== */}
+      {/* ===== FIXED FOOTER (ngoài container, position fixed) ===== */}
     {fixedFooterActions && fixedFooterActions.length > 0 && (
       <div className="phieu-form-fixed-footer">
         <div className="phieu-form-fixed-footer__buttons">
-          {fixedFooterActions.map((action, idx) => (
-            <Button
-              key={action.key || idx}
-              type={action.type || "default"}
-              danger={action.danger}
-              icon={action.icon}
-              onClick={action.onClick}
-              loading={action.loading}
-              disabled={action.disabled}
-              className={action.className || ""}
-              style={action.style}
-            >
-              {action.label}
-            </Button>
-          ))}
+          {fixedFooterActions.map((action, idx) => {
+            const button = (
+              <Button
+                key={action.key || idx}
+                type={action.type || "default"}
+                danger={action.danger}
+                icon={action.icon}
+                onClick={action.onClick}
+                loading={action.loading}
+                disabled={action.disabled}
+                className={action.className || ""}
+                style={action.style}
+              >
+                {action.label}
+              </Button>
+            );
+
+            if (action.disabled && action.tooltip) {
+              return (
+                <span
+                  key={action.key || idx}
+                  title={action.tooltip}
+                  style={{ display: "inline-block" }}
+                >
+                  {button}
+                </span>
+              );
+            }
+
+            return action.tooltip ? (
+              <Tooltip title={action.tooltip} key={action.key || idx}>
+                {button}
+              </Tooltip>
+            ) : (
+              button
+            );
+          })}
         </div>
       </div>
     )}

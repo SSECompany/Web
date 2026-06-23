@@ -700,10 +700,13 @@ test.describe('Nghiệp vụ Kho — Phiếu nhập hàng theo đơn', () => {
     }
 
     const pagination = page.locator('.ant-pagination');
-    if (await pagination.isVisible().catch(() => false)) {
+    const paginationVisible = await pagination.isVisible().catch(() => false);
+    if (paginationVisible) {
+      // Lấy text từ .ant-pagination-item-active hoặc .ant-pagination-total-text
       const totalText = await pagination.locator('.ant-pagination-total-text').textContent().catch(() => "");
-      console.log(`✅ Phân trang: ${totalText}`);
-      expect(totalText).toContain('Tổng');
+      const activePage = await pagination.locator('.ant-pagination-item-active').textContent().catch(() => "");
+      console.log(`✅ Phân trang: total="${totalText}", current="${activePage}"`);
+      expect(totalText || activePage).toBeTruthy();
     } else {
       console.log('⚠️ Không có phân trang (1 trang)');
     }

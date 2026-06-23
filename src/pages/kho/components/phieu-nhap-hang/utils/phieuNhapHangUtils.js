@@ -138,6 +138,14 @@ export const buildPhieuNhapHangPayload = (
   const totalTien0    = roundNum(detailCalc.reduce((s, d) => s + d.tien0, 0));
 
   // ===== MASTER71 =====
+  // Convert all date fields to consistent string format for SQL smalldatetime (precision to minute)
+  const formatDateForSQL = (d) => {
+    if (!d) return null;
+    if (typeof d === "string") return d;
+    // smalldatetime precision: YYYY-MM-DD HH:mm (no seconds, no milliseconds)
+    return dayjs(d).format("YYYY-MM-DD HH:mm");
+  };
+
   const masterData = {
     ma_nk: values.ma_nk || phieuData?.ma_nk || "",
     loai_ct: values.loai_ct || phieuData?.loai_ct || "",
@@ -145,8 +153,8 @@ export const buildPhieuNhapHangPayload = (
     ma_dvcs: phieuData?.ma_dvcs || userInfo.unitId || "TAPMED",
     ma_ct: "PNA",
     ma_gd: values.maGiaoDich || phieuData?.ma_gd || "1",
-    ngay_lct: hachToanDate,
-    ngay_ct: orderDate,
+    ngay_lct: formatDateForSQL(hachToanDate),
+    ngay_ct: formatDateForSQL(orderDate),
     so_ct: values.soPhieu || phieuData?.so_ct || "",
     ma_nt: values.maNT || phieuData?.ma_nt || "VND",
     ty_gia: parseFloat(values.tyGia || phieuData?.ty_gia || 1),
@@ -163,31 +171,34 @@ export const buildPhieuNhapHangPayload = (
     t_tien0: totalTien0,
     t_tien_nt0: totalTienNt0,
     status: String(values.trangThai || values.status || phieuData?.status || "3").trim(),
-    datetime2: isUpdate ? toDateVal(phieuData?.datetime2) : new Date(),
+    // SQL smalldatetime precision: YYYY-MM-DD HH:mm (no seconds, no milliseconds)
+    datetime2: isUpdate
+      ? (formatDateForSQL(phieuData?.datetime2) || dayjs().format("YYYY-MM-DD HH:mm"))
+      : dayjs().format("YYYY-MM-DD HH:mm"),
     user_id2: isUpdate ? phieuData?.user_id2 : userInfo.userId,
     fcode2: values.soDonHang || phieuData?.fcode2 || "",
-    fdate1: toDateVal(values.ngayDonHang) || toDateVal(phieuData?.fdate1) || null,
+    fdate1: formatDateForSQL(values.ngayDonHang) || formatDateForSQL(phieuData?.fdate1) || null,
     fcode1: (values.ma_nv_mua?.split(" – ")[0]) || phieuData?.fcode1 || "",
     nam: new Date(orderDate).getFullYear(),
     ky: new Date(orderDate).getMonth() + 1,
-    fdate1: toDateVal(values.ngayDonHang) || toDateVal(phieuData?.fdate1) || null,
-    datetime0: isUpdate ? toDateVal(phieuData?.datetime0) : new Date()
+    datetime0: isUpdate 
+      ? (formatDateForSQL(phieuData?.datetime0) || dayjs().format("YYYY-MM-DD HH:mm"))
+      : dayjs().format("YYYY-MM-DD HH:mm")
   };
 
   // Nếu thêm mới, thêm datetime0
   if (!isUpdate) {
-    masterData.datetime0 = new Date();
+    masterData.datetime0 = dayjs().format("YYYY-MM-DD HH:mm");
     masterData.user_id0 = userInfo.userId;
   }
 
   // ===== DETAIL71 =====
   const detailData = detailCalc.map((d, index) => {
     const item = d._item;
-    //console.log("[DEBUG] buildPayload ma_lo:", { ma_lo: item.ma_lo, ma_lo_raw: item["ma_lo"], key: item.key });
     return {
       stt_rec: isUpdate ? (phieuData?.stt_rec || "") : "",
       ma_ct: "PNA",
-      ngay_ct: orderDate,
+      ngay_ct: typeof orderDate === "string" ? orderDate : dayjs(orderDate).format("YYYY-MM-DD HH:mm"),
       so_ct: values.soPhieu || phieuData?.so_ct || item.so_ct || "",
       ma_vt: (item.maHang || item.ma_vt || "").trim(),
       stt_rec0: item.stt_rec0 || String(index + 1).padStart(3, "0"),
@@ -231,7 +242,7 @@ export const buildPhieuNhapHangPayload = (
       dh_ln: 0,
       stt_rec_dh: "",
       stt_rec0dh: "",
-      dh_so: "",
+      dh_so: values.soDonHang || "",
       line_nbr: item.line_nbr || index + 1,
       ngay_td1: toDateVal(item.ngay_td1 || item.ngay_hh) || null,
       ts_cktt: d.ts_cktt,
@@ -256,6 +267,29 @@ export const submitPhieuNhapHangDynamic = async (
   isUpdate = false
 ) => {
   const userInfo = getUserInfo();
+
+  // Nếu update, fetch lại datetime2 mới nhất từ DB để tránh conflict
+  if (isUpdate && payload.master?.stt_rec) {
+    try {
+      const https = (await import("../../../../../utils/https")).default;
+      const token = localStorage.getItem("access_token");
+      const body = {
+        store: "api_get_data_phieu_nhap_hang",
+        param: { stt_rec: payload.master.stt_rec },
+        data: {},
+        resultSetNames: ["master", "detail"],
+      };
+      const res = await https.post("User/AddData", body, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+      if (res?.data?.listObject?.dataLists?.master?.[0]?.datetime2) {
+        const latestDatetime2 = res.data.listObject.dataLists.master[0].datetime2;
+        payload.master.datetime2 = dayjs(latestDatetime2).format("YYYY-MM-DD HH:mm");
+      }
+    } catch (err) {
+      // Silent fail - will use existing datetime2
+    }
+  }
 
   const body = {
     store: isUpdate ? "api_sua_phieu_nhap_hang_theo_don" : "api_tao_phieu_nhap_hang_theo_don",

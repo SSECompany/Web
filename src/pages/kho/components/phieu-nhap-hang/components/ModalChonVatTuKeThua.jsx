@@ -61,6 +61,11 @@ const ModalChonVatTuKeThua = ({ open, onCancel, onConfirm, data = [] }) => {
             <span style={{ color: '#cbd5e1' }}>|</span>
             <span style={{ fontWeight: 500 }}>{record.dvt}</span>
           </div>
+          {record.ma_lo && (
+            <div style={{ marginTop: 4, fontSize: '11px', color: '#b45309', background: '#fef3c7', borderRadius: 4, padding: '2px 8px', width: 'fit-content', border: '1px solid #fcd34d' }}>
+              Lô: <strong>{record.ma_lo}</strong>
+            </div>
+          )}
         </div>
       )
     },

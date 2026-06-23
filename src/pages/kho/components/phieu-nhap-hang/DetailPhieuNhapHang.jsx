@@ -1,7 +1,7 @@
-import { 
-  EditOutlined, 
+import {
+  EditOutlined,
   LinkOutlined,
-  SaveOutlined, 
+  SaveOutlined,
   CloseCircleOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
@@ -163,7 +163,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
               ngayDonHang: phieuInfo.fdate1 ? dayjs(phieuInfo.fdate1) : null,
               maKho: phieuInfo.ma_kho || "",
               ma_nv_mua: phieuInfo.fcode1 || "",
-              tenGiaoDich: phieuInfo.ten_gd || "", 
+              tenGiaoDich: phieuInfo.ten_gd || "",
             };
 
             if (phieuInfo.ma_kh) {
@@ -244,7 +244,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                 cp: parseFloat(item.cp || 0),
                 tien_hang: parseFloat(item.tien_hang || item.tien_nt0 || 0),
                 tien_hang_nt: parseFloat(item.tien_hang_nt || item.tien_nt0 || 0),
-                
+
               };
             });
 
@@ -523,7 +523,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
         setLoading(true);
         const result = await deletePhieuNhapHangDynamic(sctRec);
         setLoading(false);
- 
+
         if (result.success) {
           navigate("/kho/nhap-hang");
         }
@@ -577,6 +577,10 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
               return;
             }
 
+            // Debug: trace datetime2/user_id2 conflict
+            if (isUpdate) {
+            }
+
             const successMsg = isUpdate
               ? "Cập nhật phiếu nhập hàng thành công"
               : "Tạo phiếu nhập hàng thành công";
@@ -626,7 +630,7 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
         data: {},
         resultSetNames: ["master", "detail"],
       };
-    
+
       const response = await https.post("User/AddData", body, {
         headers: {
           "Content-Type": "application/json",
@@ -739,16 +743,15 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
         statusValue={statusValue}
         statusOptions={TRANG_THAI_OPTIONS}
         showStatusSelect={true}
-        
+
         headerRightSpan={
-          !isEditMode && stt_rec ? (
+          !isEditMode && stt_rec && statusValue === "0" ? (
             <Button
               type="text"
               icon={<EditOutlined />}
               onClick={handleEdit}
               className="phieu-edit-button-kd"
               title="Chỉnh sửa"
-              disabled={statusValue !== "0"}
             />
           ) : null
         }
@@ -764,37 +767,38 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
         >
           <div className="detail-phieu-nhap-hang__body">
             <div className="phieu-form-section phieu-form--floating" style={{ paddingBottom: 0, marginBottom: 24, padding: "24px 28px" }}>
-            <PhieuNhapHangFormInputs
-              isEditMode={isEditMode}
-              maKhachList={maKhachList}
-              loadingMaKhach={loadingMaKhach}
-              fetchMaKhachListDebounced={fetchMaKhachListDebounced}
-              fetchMaKhachList={fetchMaKhachList}
-              maGiaoDichList={maGiaoDichList}
-              fetchMaGiaoDichList={fetchMaGiaoDichList}
-              maKhoList={maKhoList}
-              loadingMaKho={loadingMaKho}
-              fetchMaKhoList={fetchMaKhoList}
-              fetchMaKhoListDebounced={fetchMaKhoListDebounced}
-              onPoSearch={handlePoSearch}
-              VatTuSelectComponent={VatTuSelectFullPOS}
-              barcodeEnabled={barcodeEnabled}
-              setBarcodeEnabled={setBarcodeEnabled}
-              setBarcodeJustEnabled={setBarcodeJustEnabled}
-              vatTuInput={vatTuInput}
-              setVatTuInput={setVatTuInput}
-              vatTuSelectRef={vatTuSelectRef}
-              loadingVatTu={loadingVatTu}
-              vatTuList={vatTuList}
-              searchTimeoutRef={searchTimeoutRef}
-              fetchVatTuList={fetchVatTuListPaging}
-              handleVatTuSelect={handleVatTuSelectPNA}
-              totalPage={totalPage}
-              pageIndex={pageIndex}
-              setPageIndex={setPageIndex}
-              setVatTuList={setVatTuList}
-              currentKeyword={currentKeyword}
-            />
+              <PhieuNhapHangFormInputs
+                form={form}
+                isEditMode={isEditMode}
+                maKhachList={maKhachList}
+                loadingMaKhach={loadingMaKhach}
+                fetchMaKhachListDebounced={fetchMaKhachListDebounced}
+                fetchMaKhachList={fetchMaKhachList}
+                maGiaoDichList={maGiaoDichList}
+                fetchMaGiaoDichList={fetchMaGiaoDichList}
+                maKhoList={maKhoList}
+                loadingMaKho={loadingMaKho}
+                fetchMaKhoList={fetchMaKhoList}
+                fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+                onPoSearch={handlePoSearch}
+                VatTuSelectComponent={VatTuSelectFullPOS}
+                barcodeEnabled={barcodeEnabled}
+                setBarcodeEnabled={setBarcodeEnabled}
+                setBarcodeJustEnabled={setBarcodeJustEnabled}
+                vatTuInput={vatTuInput}
+                setVatTuInput={setVatTuInput}
+                vatTuSelectRef={vatTuSelectRef}
+                loadingVatTu={loadingVatTu}
+                vatTuList={vatTuList}
+                searchTimeoutRef={searchTimeoutRef}
+                fetchVatTuList={fetchVatTuListPaging}
+                handleVatTuSelect={handleVatTuSelectPNA}
+                totalPage={totalPage}
+                pageIndex={pageIndex}
+                setPageIndex={setPageIndex}
+                setVatTuList={setVatTuList}
+                currentKeyword={currentKeyword}
+              />
             </div>
 
             <Tabs
@@ -807,28 +811,28 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                   children: (
                     <div style={{ minHeight: 120 }}>
                       {isEditMode && (
-                          <div className="detail-phieu-nhap-hang__add-product-section">
-                            <div className="section-title">Tìm quét vật tư nhập hàng</div>
-                            <VatTuSelectFullPOS
-                                isEditMode={isEditMode}
-                                barcodeEnabled={barcodeEnabled}
-                                setBarcodeEnabled={setBarcodeEnabled}
-                                setBarcodeJustEnabled={setBarcodeJustEnabled}
-                                vatTuInput={vatTuInput}
-                                setVatTuInput={setVatTuInput}
-                                vatTuSelectRef={vatTuSelectRef}
-                                loadingVatTu={loadingVatTu}
-                                vatTuList={vatTuList}
-                                searchTimeoutRef={searchTimeoutRef}
-                                fetchVatTuList={fetchVatTuListPaging}
-                                handleVatTuSelect={handleVatTuSelectPNA}
-                                totalPage={totalPage}
-                                pageIndex={pageIndex}
-                                setPageIndex={setPageIndex}
-                                setVatTuList={setVatTuList}
-                                currentKeyword={currentKeyword}
-                            />
-                          </div>
+                        <div className="detail-phieu-nhap-hang__add-product-section">
+                          <div className="section-title">Tìm quét vật tư nhập hàng</div>
+                          <VatTuSelectFullPOS
+                            isEditMode={isEditMode}
+                            barcodeEnabled={barcodeEnabled}
+                            setBarcodeEnabled={setBarcodeEnabled}
+                            setBarcodeJustEnabled={setBarcodeJustEnabled}
+                            vatTuInput={vatTuInput}
+                            setVatTuInput={setVatTuInput}
+                            vatTuSelectRef={vatTuSelectRef}
+                            loadingVatTu={loadingVatTu}
+                            vatTuList={vatTuList}
+                            searchTimeoutRef={searchTimeoutRef}
+                            fetchVatTuList={fetchVatTuListPaging}
+                            handleVatTuSelect={handleVatTuSelectPNA}
+                            totalPage={totalPage}
+                            pageIndex={pageIndex}
+                            setPageIndex={setPageIndex}
+                            setVatTuList={setVatTuList}
+                            currentKeyword={currentKeyword}
+                          />
+                        </div>
                       )}
 
                       {/* Tiện ích điền kho hàng loạt */}
@@ -865,34 +869,34 @@ const DetailPhieuNhapHang = ({ isEditMode: initialEditMode = false }) => {
                           </div>
                         );
                       })()}
-                          <VatTuNhapHangTable
-                          dataSource={dataSource}
-                          isEditMode={isEditMode}
-                          handleQuantityChange={handleQuantityChange}
-                          handleSelectChange={handleSelectChange}
-                          handleDeleteItem={handleDeleteItem}
-                          handleDvtChange={handleDvtChange}
-                          maKhoList={maKhoList}
-                          loadingMaKho={loadingMaKho}
-                          fetchMaKhoListDebounced={fetchMaKhoListDebounced}
-                          fetchMaKhoList={fetchMaKhoList}
-                          fetchDonViTinh={fetchDonViTinh}
-                          fetchViTriList={(keyword, record, page) => {
-                            const maKho = record.ma_kho || record.maKho || form.getFieldValue("maKho") || "";
-                            return fetchViTriList(keyword, { ...record, ma_kho: maKho }, page);
-                          }}
-                          onDataSourceUpdate={setDataSource}
+                      <VatTuNhapHangTable
+                        dataSource={dataSource}
+                        isEditMode={isEditMode}
+                        handleQuantityChange={handleQuantityChange}
+                        handleSelectChange={handleSelectChange}
+                        handleDeleteItem={handleDeleteItem}
+                        handleDvtChange={handleDvtChange}
+                        maKhoList={maKhoList}
+                        loadingMaKho={loadingMaKho}
+                        fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+                        fetchMaKhoList={fetchMaKhoList}
+                        fetchDonViTinh={fetchDonViTinh}
+                        fetchViTriList={(keyword, record, page) => {
+                          const maKho = record.ma_kho || record.maKho || form.getFieldValue("maKho") || "";
+                          return fetchViTriList(keyword, { ...record, ma_kho: maKho }, page);
+                        }}
+                        onDataSourceUpdate={setDataSource}
                       />
 
                       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: 12, padding: '12px 24px', borderTop: '1px solid #f0f0f0' }}>
-                          <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
-                              <div style={{ textAlign: 'right' }}>
-                                  <span style={{ color: '#64748b', fontSize: '13px' }}>Tổng SL: </span>
-                                  <span style={{ fontWeight: 600, color: '#1e293b' }}>
-                                      {dataSource.reduce((acc, item) => acc + (parseFloat(item.soLuong || item.so_luong) || 0), 0).toLocaleString("vi-VN")}
-                                  </span>
-                              </div>
+                        <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ color: '#64748b', fontSize: '13px' }}>Tổng SL: </span>
+                            <span style={{ fontWeight: 600, color: '#1e293b' }}>
+                              {dataSource.reduce((acc, item) => acc + (parseFloat(item.soLuong || item.so_luong) || 0), 0).toLocaleString("vi-VN")}
+                            </span>
                           </div>
+                        </div>
                       </div>
                     </div>
                   )

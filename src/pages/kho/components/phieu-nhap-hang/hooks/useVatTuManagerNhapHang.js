@@ -1,15 +1,36 @@
 import { staticMessage as message } from "../../../../../utils/antdStatic";
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 
 export const useVatTuManagerNhapHang = ({
   maKhoList = [],
   loOptionsMap = {},
   showConfirm = null,
 } = {}) => {
-  const [dataSource, setDataSource] = useState([]);
+  const [dataSource, setDataSourceState] = useState([]);
   const [loOptionsMapState, setLoOptionsMapState] = useState({});
   const isProcessingRef = useRef(false);
   const lastProcessedValueRef = useRef("");
+  // Keep ref in sync with state
+  const dataSourceRef = useRef(dataSource);
+
+  // Update ref whenever state changes
+  useEffect(() => {
+    dataSourceRef.current = dataSource;
+  }, [dataSource]);
+
+  // Custom setter that updates both state and ref
+  const setDataSource = useCallback((updater) => {
+    if (typeof updater === 'function') {
+      setDataSourceState(prev => {
+        const next = updater(prev);
+        dataSourceRef.current = next;
+        return next;
+      });
+    } else {
+      dataSourceRef.current = updater;
+      setDataSourceState(updater);
+    }
+  }, []);
 
   // Sync loOptions từ VatTuTable khi load xong
   const syncLoOptions = useCallback((rowKey, options) => {
@@ -289,7 +310,7 @@ export const useVatTuManagerNhapHang = ({
           const tax = Math.round((amount * taxRate / 100) * 100) / 100;
 
           const newItem = {
-            key: Date.now() + Math.random(),
+            key: Date.now(),
             maHang: value,
             so_luong: Math.round(soLuongHienThi * 1000) / 1000,
             soLuong: Math.round(soLuongHienThi * 1000) / 1000,
@@ -498,12 +519,21 @@ export const useVatTuManagerNhapHang = ({
   };
 
   const handleSelectChange = (value, record, field) => {
+    console.log("[DEBUG handleSelectChange]", { value, recordKey: record?.key, field });
     // Hỗ trợ truyền object { field1: val1, field2: val2, ... } để update nhiều trường cùng lúc
     if (typeof value === "object" && value !== null && !Array.isArray(value) && field === "ma_lo") {
       const { ma_lo: newMaLo, ngay_hh: newNgayHh, ...rest } = value;
-      setDataSource((prev) =>
-        prev.map((item) =>
-          item.key === record.key
+      console.log("[DEBUG ma_lo object]", { newMaLo, newNgayHh, rest, recordKeyStr: String(record.key) });
+      const recordKeyStr = String(record.key);
+      setDataSource((prev) => {
+        console.log("[DEBUG prev dataSource]", prev.map(i => ({ key: i.key, ma_lo: i.ma_lo })));
+        const updated = prev.map((item) => {
+          // So sánh key dạng string để tránh floating point precision issues
+          const match = String(item.key) === recordKeyStr;
+          if (match) {
+            console.log("[DEBUG match found]", { itemKey: item.key, newMaLo });
+          }
+          return match
             ? {
                 ...item,
                 ...rest,
@@ -511,8 +541,10 @@ export const useVatTuManagerNhapHang = ({
                 ...(newNgayHh !== undefined ? { ngay_hh: newNgayHh } : {}),
               }
             : item
-        )
-      );
+        });
+        console.log("[DEBUG updated dataSource]", updated.map(i => ({ key: i.key, ma_lo: i.ma_lo })));
+        return updated;
+      });
       return;
     }
     // Antd Select trả về object { label, value } khi labelInValue=true
@@ -637,6 +669,7 @@ export const useVatTuManagerNhapHang = ({
 
   return {
     dataSource,
+    dataSourceRef,
     setDataSource,
     loadDataFromPhieu,
     handleVatTuSelect,
