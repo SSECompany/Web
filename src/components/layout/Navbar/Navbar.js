@@ -81,7 +81,7 @@ const Navbar = () => {
                 onClick={handleSetBackground}
                 className="default_header_label"
               >
-                VIKOSAN
+                HEIJCO
               </h2>
             </div>
           </div>
