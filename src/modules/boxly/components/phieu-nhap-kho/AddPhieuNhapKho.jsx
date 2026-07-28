@@ -67,8 +67,9 @@ const AddPhieuNhapKho = () => {
     handleDvtChange,
     handleInYnChange,
     handleMaVcChange,
+    handleMaVuViecChange,
     handleViTriLookupUpdate,
-  } = useVatTuManagerNhapKho();
+  } = useVatTuManagerNhapKho(form);
 
   // Phân trang vật tư
   const fetchVatTuListPaging = async (
@@ -153,7 +154,8 @@ const AddPhieuNhapKho = () => {
       setVatTuInput,
       setVatTuList,
       fetchVatTuList,
-      vatTuSelectRef
+      vatTuSelectRef,
+      form
     );
   };
 
@@ -213,7 +215,7 @@ const AddPhieuNhapKho = () => {
       setLoading(false);
     }
   };
-
+  
   return (
     <div className="phieu-container">
       <div className="phieu-header">
@@ -269,6 +271,7 @@ const AddPhieuNhapKho = () => {
             handleDvtChange={handleDvtChange}
             handleInYnChange={handleInYnChange}
             handleMaVcChange={handleMaVcChange}
+            handleMaVuViecChange={handleMaVuViecChange}
             handleViTriLookupUpdate={handleViTriLookupUpdate}
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}

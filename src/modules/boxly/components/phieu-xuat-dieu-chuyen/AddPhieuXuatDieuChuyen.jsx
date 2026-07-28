@@ -47,6 +47,7 @@ const AddPhieuXuatDieuChuyen = () => {
     fetchMaKhoList,
     fetchVatTuDetail,
     fetchDonViTinh,
+    fetchMaViTriLookup,
     setVatTuList: setVatTuListFromHook,
   } = usePhieuXuatKhoData();
 
@@ -57,6 +58,10 @@ const AddPhieuXuatDieuChuyen = () => {
     handleQuantityChange,
     handleDeleteItem,
     handleDvtChange,
+    handleMaVuViecChange,
+    handleInYnChange,
+    handleMaVcChange,
+    handleViTriLookupUpdate,
   } = useVatTuManager();
 
   const token = localStorage.getItem("access_token");
@@ -321,10 +326,12 @@ const AddPhieuXuatDieuChuyen = () => {
             handleQuantityChange={handleQuantityChange}
             handleDeleteItem={handleDeleteItem}
             handleDvtChange={handleDvtChange}
-            maKhoList={maKhoList}
-            loadingMaKho={loadingMaKho}
-            fetchMaKhoListDebounced={fetchMaKhoListDebounced}
-            fetchMaKhoList={fetchMaKhoList}
+            handleMaVuViecChange={handleMaVuViecChange}
+            handleInYnChange={handleInYnChange}
+            handleMaVcChange={handleMaVcChange}
+            handleViTriLookupUpdate={handleViTriLookupUpdate}
+            fetchDonViTinh={fetchDonViTinh}
+            fetchMaViTriLookup={fetchMaViTriLookup}
           />
           <div
             style={{

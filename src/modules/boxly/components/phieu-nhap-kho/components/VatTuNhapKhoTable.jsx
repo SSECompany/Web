@@ -9,6 +9,7 @@ const VatTuNhapKhoTable = ({
   handleDvtChange,
   handleInYnChange,
   handleMaVcChange,
+  handleMaVuViecChange,
   handleViTriLookupUpdate,
   maKhoList,
   loadingMaKho,
@@ -20,6 +21,7 @@ const VatTuNhapKhoTable = ({
 }) => {
   return (
     <VatTuTable
+      
       dataSource={dataSource}
       isEditMode={isEditMode}
       onQuantityChange={handleQuantityChange}
@@ -30,7 +32,10 @@ const VatTuNhapKhoTable = ({
       onMaVcChange={handleMaVcChange}
       onMaViTriLookupUpdate={handleViTriLookupUpdate}
       onDataSourceUpdate={onDataSourceUpdate}
-      columnConfig={phieuNhapKhoConfig}
+      columnConfig={{
+        ...phieuNhapKhoConfig,
+        onMaVuViecChange: handleMaVuViecChange,
+      }}
       apiHandlers={{
         fetchMaKhoList,
         fetchMaKhoListDebounced,

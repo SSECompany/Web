@@ -265,7 +265,8 @@ export const useVatTuManager = () => {
             ma_sp: "",
             ma_bp: "",
             so_lsx: "",
-            ma_vi_tri: "",
+            // Lấy ma_vi_tri từ API tìm kiếm vật tư nếu có
+            ma_vi_tri: vatTuInfo.ma_vi_tri ? vatTuInfo.ma_vi_tri.trim() : "",
             ma_lo: "",
             ma_vv: "",
             ma_nx: "",
@@ -496,6 +497,87 @@ export const useVatTuManager = () => {
     });
   };
 
+  // Cập nhật mã vụ việc cho dòng
+  const handleMaVuViecChange = (newValue, record) => {
+    setDataSource((prev) =>
+      prev.map((item) =>
+        item.key === record.key
+          ? {
+              ...item,
+              ma_vv: newValue || "",
+              _lastUpdated: Date.now(),
+            }
+          : item
+      )
+    );
+  };
+
+  // Toggle "Theo dõi mã vạch" cho từng dòng
+  const handleInYnChange = (newChecked, record) => {
+    setDataSource((prev) =>
+      prev.map((item) =>
+        item.key === record.key
+          ? {
+              ...item,
+              in_yn: Boolean(newChecked),
+              _lastUpdated: Date.now(),
+            }
+          : item
+      )
+    );
+  };
+
+  // Cập nhật mã vạch cho dòng - chỉ cho phép gõ khi in_yn=true
+  // Khi gõ ma_vc mới khác giá trị cũ -> set _barcodeAction = "insert" (nếu chưa có) hoặc "update"
+  // Khi xóa ma_vc -> _barcodeAction = "delete"
+  const handleMaVcChange = (newValue, record) => {
+    setDataSource((prev) =>
+      prev.map((item) => {
+        if (item.key !== record.key) return item;
+        // Không cho gõ nếu in_yn=false
+        if (!item.in_yn) return item;
+
+        const oldMaVc = (item.ma_vc || "").trim();
+        const newMaVc = (newValue || "").trim();
+
+        let action;
+        if (!oldMaVc && newMaVc) {
+          action = "insert";
+        } else if (oldMaVc && !newMaVc) {
+          action = "delete";
+        } else if (oldMaVc !== newMaVc) {
+          action = "update";
+        } else {
+          action = item._barcodeAction; // giữ nguyên
+        }
+
+        return {
+          ...item,
+          ma_vc: newValue,
+          _barcodeAction: action,
+          _lastUpdated: Date.now(),
+        };
+      })
+    );
+  };
+
+  // Cập nhật kết quả lookup vị trí kho cho từng dòng
+  const handleViTriLookupUpdate = ({ key, ma_vi_tri, ten_vi_tri, _viTriLookupKey }) => {
+    setDataSource((prev) =>
+      prev.map((item) =>
+        item.key === key
+          ? {
+              ...item,
+              ma_vi_tri_lookup: ma_vi_tri,
+              ten_vi_tri_lookup: ten_vi_tri,
+              _viTriLookupKey,
+              _lastUpdated: Date.now(),
+            }
+          : item
+      )
+    );
+  };
+
   return {
     dataSource,
     setDataSource,
@@ -503,5 +585,9 @@ export const useVatTuManager = () => {
     handleQuantityChange,
     handleDeleteItem,
     handleDvtChange,
+    handleMaVuViecChange,
+    handleInYnChange,
+    handleMaVcChange,
+    handleViTriLookupUpdate,
   };
 };

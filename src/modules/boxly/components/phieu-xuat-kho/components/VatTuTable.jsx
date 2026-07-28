@@ -1,5 +1,5 @@
-import { DeleteOutlined } from "@ant-design/icons";
-import { Button, Empty, Input, Select, Table } from "antd";
+import { CheckSquareOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Button, Checkbox, Empty, Input, Select, Table } from "antd";
 import { useState } from "react";
 import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
 
@@ -10,11 +10,16 @@ const VatTuTable = ({
   handleDeleteItem,
   handleDvtChange,
   handleSelectChange,
+  handleMaVuViecChange,
+  handleInYnChange,
+  handleMaVcChange,
+  handleViTriLookupUpdate,
   maKhoList,
   loadingMaKho,
   fetchMaKhoListDebounced,
   fetchMaKhoList,
   fetchDonViTinh,
+  fetchMaViTriLookup,
   onDataSourceUpdate,
 }) => {
   const [loadingDvt, setLoadingDvt] = useState({});
@@ -24,6 +29,7 @@ const VatTuTable = ({
       dataIndex: "key",
       key: "key",
       width: 60,
+      fixed: "left",
       align: "center",
     },
     {
@@ -36,8 +42,16 @@ const VatTuTable = ({
       title: "Tên mặt hàng",
       dataIndex: "ten_mat_hang",
       key: "ten_mat_hang",
+      width: 280,
       align: "center",
-      render: (value) => value,
+      ellipsis: {
+        showTitle: true,
+      },
+      render: (value) => (
+        <span title={value} style={{ display: "inline-block", maxWidth: "100%" }}>
+          {value}
+        </span>
+      ),
     },
     {
       title: "Đvt",
@@ -63,9 +77,8 @@ const VatTuTable = ({
             loading={loadingDvt[record.key]}
             onDropdownVisibleChange={async (visible) => {
               if (visible && record.maHang) {
-                // Kiểm tra xem đã có cache trong record chưa
                 if (record.donViTinhList && Array.isArray(record.donViTinhList) && record.donViTinhList.length > 0) {
-                  return; // Đã có data, không cần gọi API
+                  return;
                 }
 
                 setLoadingDvt((prev) => ({ ...prev, [record.key]: true }));
@@ -115,26 +128,17 @@ const VatTuTable = ({
             value={value}
             onChange={(e) => {
               let val = e.target.value;
-
               val = val.replace(/[^0-9.,]/g, "");
-
               val = val.replace(/,/g, ".");
-
               const parts = val.split(".");
               if (parts.length > 2) {
                 val = parts[0] + "." + parts.slice(1).join("");
               }
-
               const finalParts = val.split(".");
               if (finalParts.length === 2 && finalParts[1].length > 3) {
                 val = finalParts[0] + "." + finalParts[1].substring(0, 3);
               }
-
-              if (val.endsWith(".")) {
-                handleQuantityChange(val, record, "so_luong");
-              } else {
-                handleQuantityChange(val, record, "so_luong");
-              }
+              handleQuantityChange(val, record, "so_luong");
             }}
             style={{
               width: "100%",
@@ -158,14 +162,7 @@ const VatTuTable = ({
             {formatQuantityDisplay(value)}
           </span>
         ) : (
-          <span
-            style={{
-              fontWeight: "bold",
-              display: "block",
-              textAlign: "center",
-              color: "#999",
-            }}
-          >
+          <span style={{ fontWeight: "bold", display: "block", textAlign: "center", color: "#999" }}>
             0
           </span>
         ),
@@ -190,17 +187,11 @@ const VatTuTable = ({
               if (parts.length > 2) {
                 val = parts[0] + "." + parts.slice(1).join("");
               }
-
               const finalParts = val.split(".");
               if (finalParts.length === 2 && finalParts[1].length > 3) {
                 val = finalParts[0] + "." + finalParts[1].substring(0, 3);
               }
-
-              if (val.endsWith(".")) {
-                handleQuantityChange(val, record, "sl_td3");
-              } else {
-                handleQuantityChange(val, record, "sl_td3");
-              }
+              handleQuantityChange(val, record, "sl_td3");
             }}
             style={{
               width: "100%",
@@ -213,25 +204,11 @@ const VatTuTable = ({
             spellCheck={false}
           />
         ) : value ? (
-          <span
-            style={{
-              fontWeight: "bold",
-              display: "block",
-              textAlign: "center",
-            }}
-          >
+          <span style={{ fontWeight: "bold", display: "block", textAlign: "center" }}>
             {formatQuantityDisplay(value)}
           </span>
         ) : (
-          <span
-            style={{
-              fontWeight: "bold",
-              display: "block",
-              textAlign: "center",
-            }}
-          >
-            0
-          </span>
+          <span style={{ fontWeight: "bold", display: "block", textAlign: "center" }}>0</span>
         ),
     },
     {
@@ -248,9 +225,22 @@ const VatTuTable = ({
         isEditMode ? (
           <Select
             value={value}
-            onChange={(newValue) =>
-              handleSelectChange(newValue, record, "ma_kho")
-            }
+            onChange={(newValue) => {
+              handleSelectChange(newValue, record, "ma_kho");
+              // Gọi API lấy vị trí kho khi user thay đổi kho
+              if (fetchMaViTriLookup && record.maHang) {
+                fetchMaViTriLookup(record.maHang, newValue).then((result) => {
+                  if (result) {
+                    handleViTriLookupUpdate({
+                      key: record.key,
+                      ma_vi_tri: result.ma_vi_tri,
+                      ten_vi_tri: result.ten_vi_tri,
+                      _viTriLookupKey: `${record.maHang}__${newValue}`,
+                    });
+                  }
+                });
+              }
+            }}
             placeholder="Chọn kho"
             showSearch
             loading={loadingMaKho}
@@ -273,9 +263,108 @@ const VatTuTable = ({
         ),
     },
     {
+      title: "Vị trí lưu kho",
+      dataIndex: "ma_vi_tri_lookup",
+      key: "ma_vi_tri_lookup",
+      width: 160,
+      align: "center",
+      ellipsis: true,
+      render: (value, record) => {
+        // Hiển thị readonly: mã_vi_tri - ten_vi_tri
+        const maVT = record.ma_vi_tri || record.ma_vi_tri_lookup || value || "";
+        const tenVT = record.ten_vi_tri || record.ten_vi_tri_lookup || "";
+        if (!maVT && !tenVT) {
+          return <span style={{ color: "#999", fontStyle: "italic" }}>-</span>;
+        }
+        return <span title={tenVT}>{maVT}{tenVT ? ` - ${tenVT}` : ""}</span>;
+      },
+    },
+    {
+      title: "Mã vụ việc",
+      dataIndex: "ma_vv",
+      key: "ma_vv",
+      width: 120,
+      align: "center",
+      ellipsis: true,
+      render: (value, record) => {
+        if (!isEditMode) {
+          return value || "";
+        }
+        return (
+          <Input
+            type="text"
+            value={value || ""}
+            placeholder="Nhập mã vụ việc"
+            onChange={(e) =>
+              handleMaVuViecChange && handleMaVuViecChange(e.target.value, record)
+            }
+            style={{ width: "100%", textAlign: "center" }}
+            size="small"
+            className="vat-tu-table-input"
+            tabIndex={-1}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        );
+      },
+    },
+    {
+      title: "Theo dõi mã vạch",
+      dataIndex: "in_yn",
+      key: "in_yn",
+      width: 100,
+      align: "center",
+      render: (value, record) => (
+        <Checkbox
+          checked={Boolean(value)}
+          disabled={!isEditMode}
+          onChange={(e) =>
+            handleInYnChange && handleInYnChange(e.target.checked, record)
+          }
+        />
+      ),
+    },
+    {
+      title: "Mã vạch",
+      dataIndex: "ma_vc",
+      key: "ma_vc",
+      width: 160,
+      align: "center",
+      ellipsis: true,
+      render: (value, record) => {
+        if (!isEditMode) {
+          return value ? <span style={{ fontWeight: 600 }}>{value}</span> : "";
+        }
+        const inYn = Boolean(record.in_yn);
+        const placeholder = inYn ? "Nhập mã vạch" : "Vật tư không theo dõi mã vạch";
+        return (
+          <Input
+            type="text"
+            value={value || ""}
+            disabled={!inYn}
+            placeholder={placeholder}
+            onChange={(e) =>
+              handleMaVcChange && handleMaVcChange(e.target.value, record)
+            }
+            style={{
+              width: "100%",
+              textAlign: "center",
+              backgroundColor: inYn ? "#fffbe6" : "#f5f5f5",
+            }}
+            size="small"
+            className="vat-tu-table-input"
+            tabIndex={-1}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        );
+      },
+    },
+    {
       title: "Thao tác",
       key: "action",
       width: 80,
+      fixed: "right",
       align: "center",
       render: (_, record, index) => (
         <Button
@@ -293,7 +382,8 @@ const VatTuTable = ({
   ];
 
   const getScrollConfig = () => {
-    const baseWidth = 60 + 120 + 200 + 80 + 130 + 120 + 180 + 80;
+    // STT(60) + Mã hàng(120) + Tên(200) + ĐVT(80) + SL ĐN(130) + SL cheat(120) + Mã kho(180) + Vị trí(160) + Mã VV(120) + Theo dõi(100) + Mã vạch(160) + Thao tác(80)
+    const baseWidth = 60 + 120 + 200 + 80 + 130 + 120 + 180 + 160 + 120 + 100 + 160 + 80;
     const minWidth = Math.max(baseWidth, window.innerWidth - 100);
 
     const rowHeight = 40;
@@ -321,7 +411,7 @@ const VatTuTable = ({
       pagination={false}
       scroll={getScrollConfig()}
       size="small"
-      tableLayout="auto"
+      tableLayout="fixed"
     />
   );
 };

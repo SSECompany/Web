@@ -1,10 +1,24 @@
 import { message } from "antd";
+import dayjs from "dayjs";
 import { useRef, useState } from "react";
 
-export const useVatTuManagerNhapKho = () => {
+export const useVatTuManagerNhapKho = (form) => {
   const [dataSource, setDataSource] = useState([]);
   const isProcessingRef = useRef(false);
   const lastProcessedValueRef = useRef("");
+
+  // Helper: sinh barcode tự động theo pattern ma_vt + ngay + soPhieu + ma_vu_viec
+  const generateAutoBarcode = (item, maVuViec, ngay, soPhieu) => {
+    const maVt = item.maHang || item.ma_vt || "";
+    // Format ngày: DDMMYYYY
+    const ngayFormatted = ngay
+      ? dayjs(ngay).format("DDMMYYYY")
+      : dayjs().format("DDMMYYYY");
+    const soPhieuFormatted = (soPhieu || "").replace(/[^a-zA-Z0-9]/g, "");
+    const maVuViecFormatted = (maVuViec || "").replace(/[^a-zA-Z0-9]/g, "");
+
+    return `${maVt}${ngayFormatted}${soPhieuFormatted}${maVuViecFormatted}`;
+  };
 
   // Function để load dữ liệu từ phiếu đã có (data2)
   const loadDataFromPhieu = (data2, fetchDonViTinh) => {
@@ -145,12 +159,17 @@ export const useVatTuManagerNhapKho = () => {
     setVatTuInput,
     setVatTuList,
     fetchVatTuList,
-    vatTuSelectRef
+    vatTuSelectRef,
+    formInstance
   ) => {
     if (!isEditMode) {
       message.warning("Bạn cần bật chế độ chỉnh sửa");
       return;
     }
+
+    // Lấy thông tin từ form để sinh barcode tự động
+    const formValues = formInstance?.getFieldsValue?.() || {};
+    const { maVuViec, ngay, soPhieu } = formValues;
 
     // Validate input
     if (!value || !value.trim()) {
@@ -371,7 +390,25 @@ export const useVatTuManagerNhapKho = () => {
               const str = String(v).trim().toLowerCase();
               return str === "1" || str === "true" || str === "y" || str === "yes";
             })(),
-            ma_vc: "", // Mã vạch - FE sẽ tự sinh theo serial khi user gõ vào
+            // ma_vc: nếu in_yn=true -> tự sinh barcode = ma_vt + ngay + soPhieu + ma_vu_viec
+            ma_vc: (() => {
+              const inYnValue = vatTuInfo.in_yn ?? vatTuInfo.barcode_yn;
+              let shouldTrackBarcode = false;
+              if (inYnValue !== undefined && inYnValue !== null && inYnValue !== "") {
+                if (typeof inYnValue === "boolean") shouldTrackBarcode = inYnValue;
+                else if (typeof inYnValue === "number") shouldTrackBarcode = inYnValue === 1;
+                else {
+                  const str = String(inYnValue).trim().toLowerCase();
+                  shouldTrackBarcode = str === "1" || str === "true" || str === "y" || str === "yes";
+                }
+              }
+              if (shouldTrackBarcode) {
+                // Sinh barcode tự động
+                const tempItem = { maHang: value, ma_vt: value };
+                return generateAutoBarcode(tempItem, maVuViec, ngay, soPhieu);
+              }
+              return "";
+            })(),
             ma_vi_tri_lookup: "", // Suy ra từ DM vị trí kho (read-only display)
 
             // === DYNAMIC: THÊM TẤT CẢ TRƯỜNG API ĐỂ ĐỒNG NHẤT ===
@@ -387,9 +424,10 @@ export const useVatTuManagerNhapKho = () => {
             ma_sp: "",
             ma_bp: "",
             so_lsx: "",
-            ma_vi_tri: "",
+            // Lấy ma_vi_tri từ API tìm kiếm vật tư nếu có
+            ma_vi_tri: vatTuInfo.ma_vi_tri ? vatTuInfo.ma_vi_tri.trim() : "",
             ma_lo: "",
-            ma_vv: "",
+            ma_vv: maVuViec || "",
             ma_nx: "",
             tk_du: "",
 
@@ -666,6 +704,42 @@ export const useVatTuManagerNhapKho = () => {
     );
   };
 
+  // Cập nhật mã vụ việc cho dòng - đồng thời sinh lại barcode nếu in_yn=true
+  const handleMaVuViecChange = (newValue, record) => {
+    const formValues = form?.getFieldsValue?.() || {};
+    const { ngay, soPhieu } = formValues;
+
+    setDataSource((prev) =>
+      prev.map((item) => {
+        if (item.key !== record.key) return item;
+
+        const newMaVv = newValue || "";
+        // Nếu in_yn=true, sinh lại barcode với ma_vu_viec mới
+        if (item.in_yn) {
+          const maVt = item.maHang || item.ma_vt || "";
+          const ngayFormatted = ngay ? dayjs(ngay).format("DDMMYYYY") : dayjs().format("DDMMYYYY");
+          const soPhieuFormatted = (soPhieu || "").replace(/[^a-zA-Z0-9]/g, "");
+          const maVuViecFormatted = newMaVv.replace(/[^a-zA-Z0-9]/g, "");
+          const newMaVc = `${maVt}${ngayFormatted}${soPhieuFormatted}${maVuViecFormatted}`;
+
+          return {
+            ...item,
+            ma_vv: newMaVv,
+            ma_vc: newMaVc,
+            _barcodeAction: item._originalMaVc ? "update" : item._barcodeAction || "insert",
+            _lastUpdated: Date.now(),
+          };
+        }
+
+        return {
+          ...item,
+          ma_vv: newMaVv,
+          _lastUpdated: Date.now(),
+        };
+      })
+    );
+  };
+
   // Cập nhật kết quả lookup vị trí kho cho từng dòng
   const handleViTriLookupUpdate = ({ key, ma_vi_tri, ten_vi_tri, _viTriLookupKey }) => {
     setDataSource((prev) =>
@@ -762,6 +836,7 @@ export const useVatTuManagerNhapKho = () => {
     handleDvtChange,
     handleInYnChange,
     handleMaVcChange,
+    handleMaVuViecChange,
     handleViTriLookupUpdate,
   };
 };

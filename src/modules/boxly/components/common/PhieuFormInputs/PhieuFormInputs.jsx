@@ -61,6 +61,7 @@ const PhieuFormInputs = memo(({
         ngay: 'ngay',
         maGiaoDich: 'maGiaoDich',
         trangThai: 'trangThai',
+        maVuViec: 'maVuViec',
       },
       'xuat-kho': {
         maKhach: 'ma_kh',

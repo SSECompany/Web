@@ -19,6 +19,8 @@ export const phieuNhapKhoConfig = {
   maVcRequired: true,
   // Mã vị trí (lookup từ DM vị trí kho theo ma_vt + ma_kho)
   showMaViTri: true,
+  // Mã vụ việc - dùng để sinh barcode
+  showMaVuViec: true,
 };
 
 // Cấu hình cho phiếu xuất kho
@@ -31,6 +33,15 @@ export const phieuXuatKhoConfig = {
   soLuongCheatTitle: "Số lượng cheat",
   showSoLuongCheat: true,
   showMaKho: true,
+  // Theo dõi mã vạch
+  showInYn: true,
+  // Mã vạch
+  showMaVc: true,
+  maVcRequired: false,
+  // Vị trí lưu kho
+  showMaViTri: true,
+  // Mã vụ việc
+  showMaVuViec: true,
 };
 
 // Cấu hình cho phiếu xuất điều chuyển
@@ -43,6 +54,15 @@ export const phieuXuatDieuChuyenConfig = {
   soLuongCheatTitle: "Số lượng cheat",
   showSoLuongCheat: true,
   showMaKho: false, // Không có cột mã kho
+  // Theo dõi mã vạch
+  showInYn: true,
+  // Mã vạch
+  showMaVc: true,
+  maVcRequired: false,
+  // Vị trí lưu kho
+  showMaViTri: true,
+  // Mã vụ việc
+  showMaVuViec: true,
 };
 
 // Cấu hình cho phiếu xuất kho bán hàng
@@ -55,6 +75,15 @@ export const phieuXuatKhoBanHangConfig = {
   soLuongCheatTitle: "Số lượng xuất",
   showSoLuongCheat: true,
   showMaKho: false, // Không có cột mã kho
+  // Theo dõi mã vạch
+  showInYn: true,
+  // Mã vạch
+  showMaVc: true,
+  maVcRequired: false,
+  // Vị trí lưu kho
+  showMaViTri: true,
+  // Mã vụ việc
+  showMaVuViec: true,
 };
 
 /**

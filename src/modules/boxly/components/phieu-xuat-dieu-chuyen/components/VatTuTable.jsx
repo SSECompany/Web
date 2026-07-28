@@ -1,5 +1,5 @@
-import { DeleteOutlined } from "@ant-design/icons";
-import { Button, Empty, Input, Select, Table } from "antd";
+import { CheckSquareOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Button, Checkbox, Empty, Input, Select, Table } from "antd";
 import { useState } from "react";
 import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
 
@@ -9,7 +9,16 @@ const VatTuTable = ({
   handleQuantityChange,
   handleDeleteItem,
   handleDvtChange,
+  handleMaVuViecChange,
+  handleInYnChange,
+  handleMaVcChange,
+  handleViTriLookupUpdate,
   fetchDonViTinh,
+  fetchMaViTriLookup,
+  maKhoList,
+  loadingMaKho,
+  fetchMaKhoListDebounced,
+  fetchMaKhoList,
   onDataSourceUpdate,
 }) => {
   const [loadingDvt, setLoadingDvt] = useState({});
@@ -19,6 +28,7 @@ const VatTuTable = ({
       dataIndex: "key",
       key: "key",
       width: 60,
+      fixed: "left",
       align: "center",
     },
     {
@@ -31,7 +41,16 @@ const VatTuTable = ({
       title: "Tên mặt hàng",
       dataIndex: "ten_mat_hang",
       key: "ten_mat_hang",
+      width: 280,
       align: "center",
+      ellipsis: {
+        showTitle: true,
+      },
+      render: (value) => (
+        <span title={value} style={{ display: "inline-block", maxWidth: "100%" }}>
+          {value}
+        </span>
+      ),
     },
     {
       title: "Đvt",
@@ -58,7 +77,6 @@ const VatTuTable = ({
             loading={loadingDvt[record.key]}
             onDropdownVisibleChange={async (visible) => {
               if (visible && record.maHang) {
-                // Kiểm tra xem đã có cache trong record chưa
                 if (
                   record.donViTinhList &&
                   Array.isArray(record.donViTinhList) &&
@@ -237,9 +255,110 @@ const VatTuTable = ({
         ),
     },
     {
+      title: "Vị trí lưu kho",
+      dataIndex: "ma_vi_tri_lookup",
+      key: "ma_vi_tri_lookup",
+      width: 160,
+      align: "center",
+      ellipsis: true,
+      render: (value, record) => {
+        const maVT = record.ma_vi_tri || record.ma_vi_tri_lookup || value || "";
+        const tenVT = record.ten_vi_tri || record.ten_vi_tri_lookup || "";
+        if (!maVT && !tenVT) {
+          return <span style={{ color: "#999", fontStyle: "italic" }}>-</span>;
+        }
+        return <span title={tenVT}>{maVT}{tenVT ? ` - ${tenVT}` : ""}</span>;
+      },
+    },
+    {
+      title: "Mã vụ việc",
+      dataIndex: "ma_vv",
+      key: "ma_vv",
+      width: 120,
+      align: "center",
+      ellipsis: true,
+      render: (value, record) => {
+        if (!isEditMode) {
+          return value || "";
+        }
+        return (
+          <Input
+            type="text"
+            value={value || ""}
+            placeholder="Nhập mã vụ việc"
+            onChange={(e) =>
+              handleMaVuViecChange && handleMaVuViecChange(e.target.value, record)
+            }
+            style={{
+              width: "100%",
+              textAlign: "center",
+            }}
+            size="small"
+            className="vat-tu-table-input"
+            tabIndex={-1}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        );
+      },
+    },
+    {
+      title: "Theo dõi mã vạch",
+      dataIndex: "in_yn",
+      key: "in_yn",
+      width: 100,
+      align: "center",
+      render: (value, record) => (
+        <Checkbox
+          checked={Boolean(value)}
+          disabled={!isEditMode}
+          onChange={(e) =>
+            handleInYnChange && handleInYnChange(e.target.checked, record)
+          }
+        />
+      ),
+    },
+    {
+      title: "Mã vạch",
+      dataIndex: "ma_vc",
+      key: "ma_vc",
+      width: 160,
+      align: "center",
+      ellipsis: true,
+      render: (value, record) => {
+        if (!isEditMode) {
+          return value ? <span style={{ fontWeight: 600 }}>{value}</span> : "";
+        }
+        const inYn = Boolean(record.in_yn);
+        const placeholder = inYn ? "Nhập mã vạch" : "Vật tư không theo dõi mã vạch";
+        return (
+          <Input
+            type="text"
+            value={value || ""}
+            disabled={!inYn}
+            placeholder={placeholder}
+            onChange={(e) =>
+              handleMaVcChange && handleMaVcChange(e.target.value, record)
+            }
+            style={{
+              width: "100%",
+              textAlign: "center",
+              backgroundColor: inYn ? "#fffbe6" : "#f5f5f5",
+            }}
+            size="small"
+            className="vat-tu-table-input"
+            tabIndex={-1}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        );
+      },
+    },
+    {
       title: "Thao tác",
       key: "action",
       width: 80,
+      fixed: "right",
       align: "center",
       render: (_, record, index) => (
         <Button
@@ -257,7 +376,8 @@ const VatTuTable = ({
   ];
 
   const getScrollConfig = () => {
-    const baseWidth = 60 + 120 + 200 + 80 + 130 + 120 + 80;
+    // STT(60) + Mã hàng(120) + Tên(200) + ĐVT(80) + SL ĐN(130) + SL cheat(120) + Vị trí(160) + Mã VV(120) + Theo dõi(100) + Mã vạch(160) + Thao tác(80)
+    const baseWidth = 60 + 120 + 200 + 80 + 130 + 120 + 160 + 120 + 100 + 160 + 80;
     const minWidth = Math.max(baseWidth, window.innerWidth - 100);
 
     const rowHeight = 40;
@@ -285,7 +405,7 @@ const VatTuTable = ({
       pagination={false}
       scroll={getScrollConfig()}
       size="small"
-      tableLayout="auto"
+      tableLayout="fixed"
     />
   );
 };

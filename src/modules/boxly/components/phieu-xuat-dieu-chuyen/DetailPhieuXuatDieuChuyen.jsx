@@ -108,6 +108,7 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
     fetchMaKhoList,
     fetchVatTuDetail,
     fetchDonViTinh,
+    fetchMaViTriLookup,
   } = usePhieuXuatKhoData();
 
   const {
@@ -195,6 +196,9 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
                   ma_kho: item.ma_kho || "",
                   tk_vt: item.tk_vt || "",
                   line_nbr: item.line_nbr || index + 1,
+
+                  // Lưu ma_vc gốc để track barcode action
+                  _originalMaVc: item.ma_vc || "",
                 };
               });
               setDataSource(formattedDetail);
@@ -432,7 +436,9 @@ const DetailPhieuXuatDieuChuyen = ({ isEditMode: initialEditMode = false }) => {
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
+            fetchMaKhoList={fetchMaKhoList}
             fetchDonViTinh={fetchDonViTinh}
+            fetchMaViTriLookup={fetchMaViTriLookup}
             onDataSourceUpdate={setDataSource}
           />
 

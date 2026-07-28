@@ -313,6 +313,8 @@ export const buildPayload = (
       "donViTinhList",
       "isNewlyAdded",
       "_lastUpdated",
+      "_originalMaVc",
+      "_barcodeAction",
     ];
 
     uiOnlyFields.forEach((field) => {
@@ -320,6 +322,24 @@ export const buildPayload = (
         delete dynamicItem[field];
       }
     });
+
+    let barcodeAction = dynamicItem._barcodeAction;
+    if (!barcodeAction) {
+      const originalMaVc = item._originalMaVc || item.ma_vc;
+      const currentMaVc = dynamicItem.ma_vc;
+
+      if (!originalMaVc && currentMaVc) {
+        barcodeAction = "insert";
+      } else if (originalMaVc && !currentMaVc) {
+        barcodeAction = "delete";
+      } else if (originalMaVc !== currentMaVc) {
+        barcodeAction = "update";
+      }
+    }
+
+    if (barcodeAction) {
+      dynamicItem.barcode_action = barcodeAction;
+    }
 
     return dynamicItem;
   });

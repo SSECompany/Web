@@ -9,6 +9,7 @@ const masterDataCache = {
   maKho: null,
   vatTu: null,
   donViTinh: {}, // Cache ĐVT theo maHang
+  viTriKho: {}, // Cache lookup vị trí kho theo ma_vt + ma_kho
   lastFetch: null,
 };
 
@@ -255,8 +256,76 @@ export const usePhieuXuatKhoData = () => {
   const clearCache = useCallback(() => {
     masterDataCache.maGiaoDich = null;
     masterDataCache.vatTu = null;
+    masterDataCache.viTriKho = {};
     masterDataCache.lastFetch = null;
   }, []);
+
+  // Lookup mã vị trí lưu kho theo ma_vt + ma_kho
+  // Trả về: { ma_vi_tri, ten_vi_tri } hoặc null nếu không tìm thấy
+  const fetchMaViTriLookup = useCallback(
+    async (maVatTu, maKho) => {
+      if (!maVatTu || !maKho) return null;
+
+      const cleanMaVt = String(maVatTu).trim();
+      const cleanMaKho = String(maKho).trim();
+      const cacheKey = `${cleanMaVt}__${cleanMaKho}`;
+
+      // Check cache
+      if (
+        masterDataCache.lastFetch &&
+        Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
+        masterDataCache.viTriKho &&
+        masterDataCache.viTriKho[cacheKey]
+      ) {
+        return masterDataCache.viTriKho[cacheKey];
+      }
+
+      try {
+        const response = await https.post(
+          "v1/dynamicApi/call-dynamic-api",
+          {
+            store: "sp_GetLocationBySite",
+            param: {
+              Site: cleanMaKho,
+              Item: cleanMaVt,
+            },
+            data: {},
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.data && response.data.listObject?.dataLists) {
+          const dataLists = response.data.listObject.dataLists;
+          const data = Array.isArray(dataLists) && dataLists.length > 0
+            ? dataLists[0]
+            : null;
+          const result = data
+            ? {
+                ma_vi_tri: data.ma_vi_tri ? String(data.ma_vi_tri).trim() : "",
+                ten_vi_tri: data.ten_vi_tri ? String(data.ten_vi_tri).trim() : "",
+              }
+            : null;
+
+          // Lưu cache
+          if (!masterDataCache.viTriKho) masterDataCache.viTriKho = {};
+          masterDataCache.viTriKho[cacheKey] = result;
+          masterDataCache.lastFetch = Date.now();
+
+          return result;
+        }
+        return null;
+      } catch (error) {
+        console.error("Error fetching ma vi tri lookup:", error);
+        return null;
+      }
+    },
+    [token]
+  );
 
   return {
     loading,
@@ -273,6 +342,7 @@ export const usePhieuXuatKhoData = () => {
     fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
+    fetchMaViTriLookup,
     setVatTuList,
     clearCache,
   };

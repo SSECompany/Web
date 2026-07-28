@@ -345,6 +345,43 @@ const VatTuTable = ({
       });
     }
 
+    // Thêm cột Mã vụ việc (ma_vv) - chỉ hiển thị khi showMaVuViec = true
+    if (columnConfig.showMaVuViec) {
+      baseColumns.push({
+        title: "Mã vụ việc",
+        dataIndex: "ma_vv",
+        key: "ma_vv",
+        width: 120,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) => {
+          if (!isEditMode) {
+            return value || "";
+          }
+          return (
+            <Input
+              type="text"
+              value={value || ""}
+              placeholder="Nhập mã vụ việc"
+              onChange={(e) =>
+                columnConfig.onMaVuViecChange &&
+                columnConfig.onMaVuViecChange(e.target.value, record)
+              }
+              style={{
+                width: "100%",
+                textAlign: "center",
+              }}
+              size="small"
+              className="vat-tu-table-input"
+              tabIndex={-1}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          );
+        },
+      });
+    }
+
     // Thêm cột Tick "Theo dõi mã vạch" (in_yn) - chỉ hiển thị khi showInYn = true
     if (columnConfig.showInYn) {
       baseColumns.push({
@@ -466,7 +503,7 @@ const VatTuTable = ({
       className={tableClassName}
       scroll={getScrollConfig()}
       size="small"
-      tableLayout="auto"
+      tableLayout="fixed"
       {...otherProps}
     />
   );

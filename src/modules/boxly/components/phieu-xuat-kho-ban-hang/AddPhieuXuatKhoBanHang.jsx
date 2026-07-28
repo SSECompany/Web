@@ -61,6 +61,10 @@ const AddPhieuXuatKhoBanHang = () => {
     handleQuantityChange,
     handleDeleteItem,
     handleDvtChange,
+    handleMaVuViecChange,
+    handleInYnChange,
+    handleMaVcChange,
+    handleViTriLookupUpdate,
   } = useVatTuManager();
 
   const token = localStorage.getItem("access_token");
@@ -337,9 +341,11 @@ const AddPhieuXuatKhoBanHang = () => {
             handleQuantityChange={handleQuantityChange}
             handleDeleteItem={handleDeleteItem}
             handleDvtChange={handleDvtChange}
-            maKhachList={maKhachList}
-            loadingMaKhach={loadingMaKhach}
-            fetchMaKhachListDebounced={fetchMaKhachListDebounced}
+            handleMaVuViecChange={handleMaVuViecChange}
+            handleInYnChange={handleInYnChange}
+            handleMaVcChange={handleMaVcChange}
+            handleViTriLookupUpdate={handleViTriLookupUpdate}
+            fetchDonViTinh={fetchDonViTinh}
           />
           <div
             style={{

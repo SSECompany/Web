@@ -397,11 +397,15 @@ export const usePhieuNhapKhoData = () => {
       }
 
       try {
-        const response = await https.get(
-          "v1/web/danh-sach-vi-tri-kho",
+        const response = await https.post(
+          "v1/dynamicApi/call-dynamic-api",
           {
-            ma_vt: cleanMaVt,
-            ma_kho: cleanMaKho,
+            store: "sp_GetLocationBySite",
+            param: {
+              Site: cleanMaKho,
+              Item: cleanMaVt,
+            },
+            data: {},
           },
           {
             headers: {
@@ -411,10 +415,11 @@ export const usePhieuNhapKhoData = () => {
           }
         );
 
-        if (response.data && response.data.data) {
-          const data = Array.isArray(response.data.data)
-            ? response.data.data[0]
-            : response.data.data;
+        if (response.data && response.data.listObject?.dataLists) {
+          const dataLists = response.data.listObject.dataLists;
+          const data = Array.isArray(dataLists) && dataLists.length > 0
+            ? dataLists[0]
+            : null;
           const result = data
             ? {
                 ma_vi_tri: data.ma_vi_tri ? String(data.ma_vi_tri).trim() : "",

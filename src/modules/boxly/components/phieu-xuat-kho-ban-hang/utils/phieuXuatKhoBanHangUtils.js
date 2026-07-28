@@ -56,6 +56,9 @@ export const formatDetailDataFromResponse = (apiDetailData) => {
 
       // Override một số field để tương thích với UI
       line_nbr: item.line_nbr || index + 1,
+
+      // Lưu ma_vc gốc để track barcode action
+      _originalMaVc: item.ma_vc || "",
     };
   });
 };
@@ -435,6 +438,8 @@ export const buildPayload = (
       "donViTinhList",
       "isNewlyAdded",
       "_lastUpdated",
+      "_originalMaVc",
+      "_barcodeAction",
     ];
 
     uiOnlyFields.forEach((field) => {
@@ -442,6 +447,26 @@ export const buildPayload = (
         delete dynamicItem[field];
       }
     });
+
+    // Xử lý barcode_action - ưu tiên _barcodeAction từ FE, nếu không có thì suy ra từ dữ liệu gốc
+    let barcodeAction = dynamicItem._barcodeAction;
+    if (!barcodeAction) {
+      // Nếu không có _barcodeAction, suy ra từ ma_vc gốc
+      const originalMaVc = item._originalMaVc || item.ma_vc;
+      const currentMaVc = dynamicItem.ma_vc;
+
+      if (!originalMaVc && currentMaVc) {
+        barcodeAction = "insert";
+      } else if (originalMaVc && !currentMaVc) {
+        barcodeAction = "delete";
+      } else if (originalMaVc !== currentMaVc) {
+        barcodeAction = "update";
+      }
+    }
+
+    if (barcodeAction) {
+      dynamicItem.barcode_action = barcodeAction;
+    }
 
     return dynamicItem;
   });
