@@ -42,6 +42,13 @@ export const validateDataSource = (dataSource) => {
     if (!item.ma_kho) {
       missingData.push(`Dòng ${index + 1}: Chưa chọn mã kho`);
     }
+
+    // Nếu vật tư bật "Theo dõi mã vạch" mà chưa gõ ma_vc -> bắt buộc
+    if (item.in_yn && !(item.ma_vc && String(item.ma_vc).trim())) {
+      missingData.push(
+        `Dòng ${index + 1} (${item.maHang || ""}): Bật "Theo dõi mã vạch" nhưng chưa nhập mã vạch`
+      );
+    }
   });
 
   if (missingData.length > 0) {
@@ -238,6 +245,53 @@ export const buildPhieuNhapKhoPayload = (
     if (item.soLuong !== undefined)
       dynamicItem.sl_td3 = parseFloat(item.soLuong || 0);
 
+    // ==== Mapping mã vạch (ma_vc) + action ====
+    // Logic sửa-lưu nhiều lần:
+    //   - Lần đầu thêm mới (isUpdate=false && in_yn=true): action = "insert"
+    //   - Sửa phiếu (isUpdate=true):
+    //       + ma_vc cũ (từ API) -> ma_vc mới (user gõ): "update"
+    //       + ma_vc cũ (từ API) -> "" (xóa): "delete"
+    //       + chưa có -> ma_vc mới: "insert"
+    //       + ma_vc cũ == ma_vc mới: giữ nguyên (không gửi action)
+    //   - Ưu tiên _barcodeAction (đã detect ngay khi user thay đổi ma_vc ở FE)
+    //   - Nếu không có _barcodeAction thì suy ra từ item gốc từ data2
+    if (item.in_yn !== undefined) {
+      dynamicItem.in_yn = item.in_yn ? 1 : 0;
+    }
+
+    const currentMaVc = (item.ma_vc || "").trim();
+    const originalMaVc = (item._originalMaVc || "").trim();
+    let barcodeAction = item._barcodeAction;
+
+    if (!barcodeAction) {
+      // Suy ra từ so sánh original vs current
+      if (!originalMaVc && currentMaVc) {
+        barcodeAction = "insert";
+      } else if (originalMaVc && !currentMaVc) {
+        barcodeAction = "delete";
+      } else if (originalMaVc && currentMaVc && originalMaVc !== currentMaVc) {
+        barcodeAction = "update";
+      }
+    }
+
+    if (item.in_yn && currentMaVc) {
+      dynamicItem.ma_vc = currentMaVc;
+      if (barcodeAction) {
+        dynamicItem.barcode_action = barcodeAction;
+      }
+    } else if (item.in_yn && !currentMaVc) {
+      // in_yn=true nhưng chưa có ma_vc: bỏ qua (validation sẽ chặn ở validateDataSource)
+      dynamicItem.ma_vc = "";
+    } else {
+      // in_yn=false: không gửi ma_vc + action
+      dynamicItem.ma_vc = "";
+    }
+
+    // Mapping ma_vi_tri từ lookup (nếu có)
+    if (item.ma_vi_tri_lookup) {
+      dynamicItem.ma_vi_tri = item.ma_vi_tri_lookup;
+    }
+
     // Đảm bảo các trường bắt buộc có mặt (chỉ nếu không có trong API response)
     if (!dynamicItem.stt_rec && phieuData?.stt_rec) {
       dynamicItem.stt_rec = phieuData.stt_rec;
@@ -357,6 +411,12 @@ export const buildPhieuNhapKhoPayload = (
       "donViTinhList",
       "isNewlyAdded",
       "_lastUpdated",
+      // Các trường phụ trợ cho lookup barcode + vi tri
+      "_originalMaVc",
+      "_barcodeAction",
+      "_viTriLookupKey",
+      "ma_vi_tri_lookup",
+      "ten_vi_tri_lookup",
     ];
 
     uiOnlyFields.forEach((field) => {

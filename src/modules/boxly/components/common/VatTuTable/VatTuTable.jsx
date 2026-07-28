@@ -1,6 +1,6 @@
 import { DeleteOutlined } from "@ant-design/icons";
-import { Button, Empty, Input, Select, Table } from "antd";
-import { useState, useMemo, useCallback } from "react";
+import { Button, Checkbox, Empty, Input, Select, Table } from "antd";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { formatQuantityDisplay } from "../../../../../utils/numberUtils";
 import { validateQuantityInput } from "./utils/validation";
 
@@ -26,6 +26,9 @@ const VatTuTable = ({
   onDeleteItem,
   onDvtChange,
   onSelectChange,
+  onInYnChange,
+  onMaVcChange,
+  onMaViTriLookupUpdate,
   onDataSourceUpdate,
   columnConfig = {},
   apiHandlers = {},
@@ -253,6 +256,115 @@ const VatTuTable = ({
       });
     }
 
+    // Thêm cột Vị trí lưu kho (lookup) - chỉ hiển thị khi showMaViTri = true
+    if (columnConfig.showMaViTri && apiHandlers.fetchMaViTriLookup) {
+      baseColumns.push({
+        title: "Vị trí lưu kho",
+        dataIndex: "ma_vi_tri_lookup",
+        key: "ma_vi_tri_lookup",
+        width: 160,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) => {
+          // Hiển thị readonly: mã_vi_tri - ten_vi_tri (suy ra từ DM vị trí lưu kho)
+          if (!record.maHang || !record.ma_kho) {
+            return (
+              <span style={{ color: "#999", fontStyle: "italic" }}>
+                (Chọn mã vật tư & mã kho)
+              </span>
+            );
+          }
+          const maVT = record.ma_vi_tri || record.ma_vi_tri_lookup || "";
+          const tenVT = record.ten_vi_tri || "";
+          if (!maVT && !tenVT) {
+            return (
+              <span style={{ color: "#999", fontStyle: "italic" }}>
+                (Không tìm thấy)
+              </span>
+            );
+          }
+          return (
+            <span title={tenVT}>
+              {maVT}
+              {tenVT ? ` - ${tenVT}` : ""}
+            </span>
+          );
+        },
+      });
+    }
+
+    // Thêm cột Mã vạch (ma_vc) - chỉ hiển thị khi showMaVc = true
+    if (columnConfig.showMaVc) {
+      baseColumns.push({
+        title: (
+          <span>
+            Mã vạch {columnConfig.maVcRequired ? <span style={{ color: "red" }}>*</span> : null}
+          </span>
+        ),
+        dataIndex: "ma_vc",
+        key: "ma_vc",
+        width: 160,
+        align: "center",
+        ellipsis: true,
+        render: (value, record) => {
+          if (!isEditMode) {
+            return value ? (
+              <span style={{ fontWeight: 600 }}>{value}</span>
+            ) : (
+              ""
+            );
+          }
+          // Nếu vật tư KHÔNG bật "Theo dõi mã vạch" -> disable
+          const inYn = Boolean(record.in_yn);
+          const placeholder = inYn
+            ? "Nhập mã vạch (bắt buộc)"
+            : "Vật tư không theo dõi mã vạch";
+
+          return (
+            <Input
+              type="text"
+              value={value || ""}
+              disabled={!inYn}
+              placeholder={placeholder}
+              onChange={(e) =>
+                onMaVcChange && onMaVcChange(e.target.value, record)
+              }
+              style={{
+                width: "100%",
+                textAlign: "center",
+                backgroundColor: inYn ? "#fffbe6" : "#f5f5f5",
+              }}
+              size="small"
+              className="vat-tu-table-input"
+              tabIndex={-1}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          );
+        },
+      });
+    }
+
+    // Thêm cột Tick "Theo dõi mã vạch" (in_yn) - chỉ hiển thị khi showInYn = true
+    if (columnConfig.showInYn) {
+      baseColumns.push({
+        title: "Theo dõi mã vạch",
+        dataIndex: "in_yn",
+        key: "in_yn",
+        width: 100,
+        align: "center",
+        render: (value, record) => (
+          <Checkbox
+            checked={Boolean(value)}
+            disabled={!isEditMode}
+            onChange={(e) =>
+              onInYnChange && onInYnChange(e.target.checked, record)
+            }
+          />
+        ),
+      });
+    }
+
     // Thêm cột thao tác
     baseColumns.push({
       title: "Thao tác",
@@ -276,12 +388,55 @@ const VatTuTable = ({
 
     return baseColumns;
   }, [
-    columnConfig, 
-    renderDvtSelect, 
-    renderQuantityInput, 
-    renderMaKhoSelect, 
-    onDeleteItem, 
-    isEditMode
+    columnConfig,
+    renderDvtSelect,
+    renderQuantityInput,
+    renderMaKhoSelect,
+    onDeleteItem,
+    isEditMode,
+    onInYnChange,
+    onMaVcChange,
+    apiHandlers,
+  ]);
+
+  // Auto lookup vị trí kho khi có ma_vt + ma_kho (chỉ chạy khi cấu hình bật)
+  // Lưu ý: đây là effect phụ thuộc vào dataSource + config, sẽ trigger gọi lookup async
+  useEffect(() => {
+    if (!columnConfig.showMaViTri || !apiHandlers.fetchMaViTriLookup) return;
+    if (onMaViTriLookupUpdate) {
+      const list = (dataSource || []).filter(
+        (item) => item.maHang && item.ma_kho
+      );
+      list.forEach((item) => {
+        // Chỉ call khi chưa có ma_vi_tri hoặc đã đổi maHang/ma_kho
+        const lookupKey = `${item.maHang}__${item.ma_kho}`;
+        if (item._viTriLookupKey === lookupKey) return;
+        apiHandlers.fetchMaViTriLookup(item.maHang, item.ma_kho).then(
+          (result) => {
+            if (result) {
+              onMaViTriLookupUpdate({
+                key: item.key,
+                ma_vi_tri: result.ma_vi_tri || "",
+                ten_vi_tri: result.ten_vi_tri || "",
+                _viTriLookupKey: lookupKey,
+              });
+            } else {
+              onMaViTriLookupUpdate({
+                key: item.key,
+                ma_vi_tri: "",
+                ten_vi_tri: "",
+                _viTriLookupKey: lookupKey,
+              });
+            }
+          }
+        );
+      });
+    }
+  }, [
+    dataSource,
+    columnConfig.showMaViTri,
+    apiHandlers,
+    onMaViTriLookupUpdate,
   ]);
 
   // Cấu hình scroll

@@ -323,9 +323,9 @@ const QRScanner = ({ isOpen, onClose, onScanSuccess, onSwitchToBarcode, openWith
                 <div className="scan-mode-content">
                   <BarcodeOutlined className="scan-mode-icon" />
                   <div className="scan-mode-text">
-                    <h3>Quét barcode</h3>
+                    <h3>Quét thiết bị ngoại vi</h3>
                     <p>
-                      Chuyển về màn hình nhập mã để sử dụng máy quét barcode
+                      Chuyển về màn hình nhập mã để sử dụng máy quét thiết bị ngoại vi
                     </p>
                   </div>
                 </div>

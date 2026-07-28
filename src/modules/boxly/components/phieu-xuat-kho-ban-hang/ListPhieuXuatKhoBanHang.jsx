@@ -79,6 +79,7 @@ const ListPhieuXuatKhoBanHang = () => {
   const getStatusText = (status) => {
     const statusMap = {
       0: "Lập chứng từ",
+      1: "Chờ xuất kho",
       2: "Chuyển SC",
       4: "Đề nghị xuất kho",
       5: "Xuất kho",
@@ -189,6 +190,8 @@ const ListPhieuXuatKhoBanHang = () => {
     switch (status) {
       case "0":
         return "orange";
+      case "1":
+        return "gold";
       case "4":
         return "green";
       case "5":
@@ -441,6 +444,7 @@ const ListPhieuXuatKhoBanHang = () => {
               allowClear
             >
               <Select.Option value="0">Lập chứng từ</Select.Option>
+              <Select.Option value="1">Chờ xuất kho</Select.Option>
               <Select.Option value="2">Chuyển SC</Select.Option>
               <Select.Option value="4">Đề nghị xuất kho</Select.Option>
               <Select.Option value="5">Xuất kho</Select.Option>
@@ -473,6 +477,7 @@ const ListPhieuXuatKhoBanHang = () => {
           const getStatusText = (status) => {
             const statusMap = {
               0: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
+              1: screenSize === "mobile" ? "Chờ XK" : "Chờ xuất kho",
               2: screenSize === "mobile" ? "Chuyển SC" : "Chuyển SC",
               4: screenSize === "mobile" ? "Đã duyệt" : "Đã duyệt",
               5: screenSize === "mobile" ? "Đề nghị" : "Đề nghị xuất kho",

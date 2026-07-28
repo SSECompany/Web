@@ -70,6 +70,7 @@ const ListPhieuNhapKho = () => {
   const getStatusText = (status) => {
     const statusMap = {
       0: "Lập chứng từ",
+      1: "Chờ nhập kho",
       2: "Nhập kho",
       3: "Chuyển số cài",
       5: "Đề nghị nhập kho",
@@ -174,6 +175,8 @@ const ListPhieuNhapKho = () => {
     switch (status) {
       case "0":
         return "orange";
+      case "1":
+        return "gold";
       case "2":
         return "blue";
       case "3":
@@ -235,6 +238,7 @@ const ListPhieuNhapKho = () => {
               allowClear
             >
               <Select.Option value="0">Lập chứng từ</Select.Option>
+              <Select.Option value="1">Chờ nhập kho</Select.Option>
               <Select.Option value="2">Nhập kho</Select.Option>
               <Select.Option value="3">Chuyển số cài</Select.Option>
               <Select.Option value="5">Đề nghị nhập kho</Select.Option>
@@ -267,6 +271,7 @@ const ListPhieuNhapKho = () => {
           const getStatusTextLocal = (status) => {
             const statusMap = {
               0: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
+              1: screenSize === "mobile" ? "Chờ NK" : "Chờ nhập kho",
               2: screenSize === "mobile" ? "Nhập" : "Nhập kho",
               3: screenSize === "mobile" ? "Chuyển" : "Chuyển số cài",
               5: screenSize === "mobile" ? "Đề nghị" : "Đề nghị nhập kho",

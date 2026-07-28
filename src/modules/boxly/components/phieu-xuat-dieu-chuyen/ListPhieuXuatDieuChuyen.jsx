@@ -68,6 +68,7 @@ const ListPhieuXuatDieuChuyen = () => {
   const getStatusText = (status) => {
     const statusMap = {
       0: "Lập chứng từ",
+      1: "Chờ xuất kho",
       2: "Chuyển KTTH",
       3: "Chuyển vào SC",
     };
@@ -169,6 +170,8 @@ const ListPhieuXuatDieuChuyen = () => {
     switch (status) {
       case "0":
         return "orange";
+      case "1":
+        return "magenta";
       case "2":
         return "blue";
       case "3":
@@ -264,6 +267,7 @@ const ListPhieuXuatDieuChuyen = () => {
               allowClear
             >
               <Select.Option value="0">Lập chứng từ</Select.Option>
+              <Select.Option value="1">Chờ xuất kho</Select.Option>
               <Select.Option value="2">Chuyển KTTH</Select.Option>
               <Select.Option value="3">Chuyển vào SC</Select.Option>
             </Select>
@@ -293,6 +297,7 @@ const ListPhieuXuatDieuChuyen = () => {
           const getStatusTextLocal = (status) => {
             const statusMap = {
               0: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
+              1: screenSize === "mobile" ? "Chờ XK" : "Chờ xuất kho",
               2: screenSize === "mobile" ? "Chuyển KTTH" : "Chuyển KTTH",
               3: screenSize === "mobile" ? "Chuyển SC" : "Chuyển vào SC",
             };

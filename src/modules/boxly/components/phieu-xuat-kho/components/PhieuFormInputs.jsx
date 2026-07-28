@@ -86,6 +86,7 @@ const PhieuFormInputs = ({
           <Form.Item name="status" label="Trạng thái">
             <Select placeholder="Chọn trạng thái" disabled={!isEditMode}>
               <Select.Option value="0">Lập chứng từ</Select.Option>
+              <Select.Option value="2">Chờ xuất kho</Select.Option>
               <Select.Option value="5">Đề nghị xuất kho</Select.Option>
               <Select.Option value="1">Xuất kho</Select.Option>
               <Select.Option value="3">Chuyển sổ cái</Select.Option>

@@ -14,6 +14,30 @@ export const useVatTuManagerNhapKho = () => {
     }
 
     const processedData = data2.map((item, index) => {
+      // Parse in_yn: có thể từ data2 (đã lưu trong DB) hoặc từ DMVT - flag "Theo dõi mã vạch"
+      // Ưu tiên parse từ nhiều nguồn: in_yn, barcode_yn, ton_theo_ma_vach
+      const parseBoolFlag = (val) => {
+        if (val === undefined || val === null || val === "") return false;
+        if (typeof val === "boolean") return val;
+        if (typeof val === "number") return val === 1;
+        const str = String(val).trim().toLowerCase();
+        return str === "1" || str === "true" || str === "y" || str === "yes";
+      };
+
+      // Default load: nếu không có trong data2 thì mặc định false (an toàn)
+      const parseBoolFlagSafe = (val) => {
+        if (val === undefined || val === null || val === "") return null;
+        if (typeof val === "boolean") return val;
+        if (typeof val === "number") return val === 1;
+        const str = String(val).trim().toLowerCase();
+        if (str === "1" || str === "true" || str === "y" || str === "yes") return true;
+        if (str === "0" || str === "false" || str === "n" || str === "no") return false;
+        return null;
+      };
+      const inYnLoaded = parseBoolFlagSafe(item.in_yn) ?? parseBoolFlagSafe(item.barcode_yn) ?? false;
+      // Barcode (ma_vc) - lưu giá trị đã lưu
+      const ma_vc = item.ma_vc ? String(item.ma_vc).trim() : "";
+
       return {
         key: index + 1,
         maHang: item.ma_vt || "",
@@ -42,6 +66,13 @@ export const useVatTuManagerNhapKho = () => {
         ma_vv: item.ma_vv ? item.ma_vv.trim() : "",
         ma_nx: item.ma_nx ? item.ma_nx.trim() : "",
         tk_du: item.tk_du ? item.tk_du.trim() : "",
+
+        // Theo dõi mã vạch (in_yn) - Flag bật/tắt và mã vạch đã lưu
+        in_yn: inYnLoaded,
+        ma_vc: ma_vc,
+        // Lưu giá trị gốc từ DB để so sánh khi submit (logic sửa-lưu nhiều lần)
+        _originalMaVc: ma_vc,
+        _barcodeAction: null,
 
         // Thông tin giá
         gia_nt: parseFloat(item.gia_nt) || 0,
@@ -183,6 +214,17 @@ export const useVatTuManagerNhapKho = () => {
               const dvtHienTai = (item.dvt || "").trim();
               const dvtGoc = (item.dvt_goc || "").trim();
 
+              // in_yn: lấy từ API DMVT (vatTuInfo.in_yn), fallback giữ nguyên giá trị cũ
+              const parseBoolFlag = (val) => {
+                if (val === undefined || val === null || val === "") return null;
+                if (typeof val === "boolean") return val;
+                if (typeof val === "number") return val === 1;
+                const str = String(val).trim().toLowerCase();
+                return str === "1" || str === "true" || str === "y" || str === "yes";
+              };
+              const inYnFromAPI = parseBoolFlag(vatTuInfo.in_yn) ?? parseBoolFlag(vatTuInfo.barcode_yn);
+              const in_ynMoi = inYnFromAPI !== null ? inYnFromAPI : Boolean(item.in_yn);
+
               // Luôn lấy hệ số gốc từ API tìm kiếm vật tư (fetchVatTuDetail)
               const heSoGocFromAPI = parseFloat(vatTuInfo.he_so);
               const heSoHienTai = item.he_so;
@@ -240,6 +282,9 @@ export const useVatTuManagerNhapKho = () => {
                 dvt_goc: dvtAPI,
 
                 ma_kho: (vatTuInfo.ma_kho || item.ma_kho || "").trim(), // Cập nhật ma_kho từ API, fallback về giá trị cũ
+
+                // Cập nhật in_yn từ DMVT nếu có
+                in_yn: in_ynMoi,
 
                 donViTinhList: donViTinhList,
                 isNewlyAdded: item.isNewlyAdded,
@@ -315,6 +360,19 @@ export const useVatTuManagerNhapKho = () => {
             ma_kho: (vatTuInfo.ma_kho || "").trim(),
             donViTinhList: donViTinhList,
             isNewlyAdded: true,
+
+            // === Theo dõi mã vạch ===
+            // Lấy từ API DMVT (vatTuInfo.in_yn) - mặc định false
+            in_yn: (() => {
+              const v = vatTuInfo.in_yn ?? vatTuInfo.barcode_yn;
+              if (v === undefined || v === null || v === "") return false;
+              if (typeof v === "boolean") return v;
+              if (typeof v === "number") return v === 1;
+              const str = String(v).trim().toLowerCase();
+              return str === "1" || str === "true" || str === "y" || str === "yes";
+            })(),
+            ma_vc: "", // Mã vạch - FE sẽ tự sinh theo serial khi user gõ vào
+            ma_vi_tri_lookup: "", // Suy ra từ DM vị trí kho (read-only display)
 
             // === DYNAMIC: THÊM TẤT CẢ TRƯỜNG API ĐỂ ĐỒNG NHẤT ===
             // Core fields - sẽ được fill từ phieuData khi submit
@@ -558,8 +616,74 @@ export const useVatTuManagerNhapKho = () => {
     message.success("Đã xóa vật tư");
   };
 
-  const handleDvtChange = (newValue, record) => {
-    if (!record || !record.donViTinhList) {
+  // Toggle "Theo dõi mã vạch" cho từng dòng
+  // Khi bật in_yn=false -> true: ma_vc được phép gõ. Khi tắt về false: giữ nguyên giá trị ma_vc (user tự xóa nếu muốn).
+  const handleInYnChange = (newChecked, record) => {
+    setDataSource((prev) =>
+      prev.map((item) =>
+        item.key === record.key
+          ? {
+              ...item,
+              in_yn: Boolean(newChecked),
+              _lastUpdated: Date.now(),
+            }
+          : item
+      )
+    );
+  };
+
+  // Cập nhật mã vạch cho dòng - chỉ cho phép gõ khi in_yn=true
+  // Khi gõ ma_vc mới khác giá trị cũ -> set _barcodeAction = "insert" (nếu chưa có) hoặc "update"
+  // Khi xóa ma_vc -> _barcodeAction = "delete"
+  const handleMaVcChange = (newValue, record) => {
+    setDataSource((prev) =>
+      prev.map((item) => {
+        if (item.key !== record.key) return item;
+        // Không cho gõ nếu in_yn=false
+        if (!item.in_yn) return item;
+
+        const oldMaVc = (item.ma_vc || "").trim();
+        const newMaVc = (newValue || "").trim();
+
+        let action;
+        if (!oldMaVc && newMaVc) {
+          action = "insert";
+        } else if (oldMaVc && !newMaVc) {
+          action = "delete";
+        } else if (oldMaVc !== newMaVc) {
+          action = "update";
+        } else {
+          action = item._barcodeAction; // giữ nguyên
+        }
+
+        return {
+          ...item,
+          ma_vc: newValue,
+          _barcodeAction: action,
+          _lastUpdated: Date.now(),
+        };
+      })
+    );
+  };
+
+  // Cập nhật kết quả lookup vị trí kho cho từng dòng
+  const handleViTriLookupUpdate = ({ key, ma_vi_tri, ten_vi_tri, _viTriLookupKey }) => {
+    setDataSource((prev) =>
+      prev.map((item) =>
+        item.key === key
+          ? {
+              ...item,
+              ma_vi_tri_lookup: ma_vi_tri,
+              ten_vi_tri_lookup: ten_vi_tri,
+              _viTriLookupKey,
+              _lastUpdated: Date.now(),
+            }
+          : item
+      )
+    );
+  };
+
+  const handleDvtChange = (newValue, record) => {    if (!record || !record.donViTinhList) {
       message.error("Thông tin vật tư không hợp lệ");
       return;
     }
@@ -636,5 +760,8 @@ export const useVatTuManagerNhapKho = () => {
     handleSelectChange,
     handleDeleteItem,
     handleDvtChange,
+    handleInYnChange,
+    handleMaVcChange,
+    handleViTriLookupUpdate,
   };
 };

@@ -12,6 +12,13 @@ export const phieuNhapKhoConfig = {
   soLuongCheatTitle: "Số lượng cheat",
   showSoLuongCheat: true,
   showMaKho: true,
+  // Theo dõi mã vạch (theo yêu cầu nghiệp vụ)
+  showInYn: true,
+  // Mã vạch (ma_vc) - bắt buộc gõ nếu in_yn=true
+  showMaVc: true,
+  maVcRequired: true,
+  // Mã vị trí (lookup từ DM vị trí kho theo ma_vt + ma_kho)
+  showMaViTri: true,
 };
 
 // Cấu hình cho phiếu xuất kho

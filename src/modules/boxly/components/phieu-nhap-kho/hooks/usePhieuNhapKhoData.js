@@ -12,6 +12,7 @@ const masterDataCache = {
   maKhach: null,
   vatTu: null,
   donViTinh: {}, // Cache ĐVT theo maHang: { "ABC123": [{dvt: "Bo"}, {dvt: "Cai"}], ... }
+  viTriKho: {}, // Cache lookup vị trí kho theo ma_vt + ma_kho
   lastFetch: null,
 };
 
@@ -375,12 +376,76 @@ export const usePhieuNhapKhoData = () => {
     [token]
   );
 
+  // Lookup mã vị trí lưu kho theo ma_vt + ma_kho
+  // Trả về: { ma_vi_tri, ten_vi_tri } hoặc null nếu không tìm thấy
+  const fetchMaViTriLookup = useCallback(
+    async (maVatTu, maKho) => {
+      if (!maVatTu || !maKho) return null;
+
+      const cleanMaVt = String(maVatTu).trim();
+      const cleanMaKho = String(maKho).trim();
+      const cacheKey = `${cleanMaVt}__${cleanMaKho}`;
+
+      // Check cache
+      if (
+        masterDataCache.lastFetch &&
+        Date.now() - masterDataCache.lastFetch < CACHE_EXPIRY &&
+        masterDataCache.viTriKho &&
+        masterDataCache.viTriKho[cacheKey]
+      ) {
+        return masterDataCache.viTriKho[cacheKey];
+      }
+
+      try {
+        const response = await https.get(
+          "v1/web/danh-sach-vi-tri-kho",
+          {
+            ma_vt: cleanMaVt,
+            ma_kho: cleanMaKho,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.data && response.data.data) {
+          const data = Array.isArray(response.data.data)
+            ? response.data.data[0]
+            : response.data.data;
+          const result = data
+            ? {
+                ma_vi_tri: data.ma_vi_tri ? String(data.ma_vi_tri).trim() : "",
+                ten_vi_tri: data.ten_vi_tri ? String(data.ten_vi_tri).trim() : "",
+              }
+            : null;
+
+          // Lưu cache
+          if (!masterDataCache.viTriKho) masterDataCache.viTriKho = {};
+          masterDataCache.viTriKho[cacheKey] = result;
+          masterDataCache.lastFetch = Date.now();
+
+          return result;
+        }
+        return null;
+      } catch (error) {
+        console.error("Error fetching ma vi tri lookup:", error);
+        return null;
+      }
+    },
+    [token]
+  );
+
   // Clear cache function
   const clearCache = useCallback((type = null) => {
     if (type) {
       // Clear specific cache
       if (type === 'donViTinh') {
         masterDataCache.donViTinh = {};
+      } else if (type === 'viTriKho') {
+        masterDataCache.viTriKho = {};
       } else if (masterDataCache[type]) {
         masterDataCache[type] = null;
       }
@@ -392,6 +457,7 @@ export const usePhieuNhapKhoData = () => {
       masterDataCache.maKhach = null;
       masterDataCache.vatTu = null;
       masterDataCache.donViTinh = {};
+      masterDataCache.viTriKho = {};
       masterDataCache.lastFetch = null;
     }
   }, []);
@@ -418,6 +484,7 @@ export const usePhieuNhapKhoData = () => {
     fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
+    fetchMaViTriLookup,
     setVatTuList,
     clearCache,
   };

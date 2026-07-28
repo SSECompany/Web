@@ -300,7 +300,7 @@ const VatTuInputSection = ({
               <Input
                 value={vatTuInput}
                 readOnly
-                placeholder="Quét barcode vật tư..."
+                placeholder="Quét thiết bị ngoại vi..."
                 style={{ width: "calc(100% - 40px)" }}
                 disabled={!isEditMode}
                 key={vatTuInput || ""}
@@ -352,8 +352,8 @@ const VatTuInputSection = ({
               disabled={!isEditMode}
               title={
                 barcodeEnabled
-                  ? "Click: Tắt mode barcode | Right-click: Chuyển đổi mode"
-                  : "Click: Quét QR/Camera | Right-click: Chuyển đổi mode barcode"
+                  ? "Click: Tắt thiết bị ngoại vi | Right-click: Chuyển đổi mode"
+                  : "Click: Quét QR/Camera | Right-click: Chuyển đổi thiết bị ngoại vi"
               }
             />
           </Input.Group>

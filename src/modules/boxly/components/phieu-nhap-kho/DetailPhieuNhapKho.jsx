@@ -60,17 +60,22 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
     fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
+    fetchMaViTriLookup,
     setVatTuList,
   } = usePhieuNhapKhoData();
 
   const {
     dataSource,
     setDataSource,
+    loadDataFromPhieu,
     handleVatTuSelect: vatTuSelectHandler,
     handleQuantityChange,
     handleSelectChange,
     handleDeleteItem,
     handleDvtChange,
+    handleInYnChange,
+    handleMaVcChange,
+    handleViTriLookupUpdate,
   } = useVatTuManagerNhapKho();
 
   // Phân trang vật tư
@@ -150,33 +155,11 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
               tyGia: 1,
             };
 
-            // Process vật tư list - DYNAMIC: Giữ nguyên TẤT CẢ trường từ API
-            const processedVatTu = vatTuList.map((item, index) => {
-              const soLuongHienThi = item.sl_td3 ?? 0; // sl_td3 - số lượng thực tế
-              const soLuongDeNghiHienThi = item.so_luong ?? 0; // so_luong - số lượng đề nghị
-              const dvtHienTai = item.dvt ? item.dvt.trim() : "cái";
-
-              return {
-                // Giữ nguyên TẤT CẢ trường từ API response
-                ...item,
-
-                // Override với UI-friendly fields
-                key: index + 1,
-                maHang: item.ma_vt || "",
-                soLuong: Math.round(soLuongHienThi * 1000) / 1000, // sl_td3 - số lượng thực tế
-                soLuongDeNghi: parseFloat(soLuongDeNghiHienThi) || 0, // so_luong - số lượng đề nghị
-                ten_mat_hang: item.ten_vt || item.ma_vt || "",
-                dvt: dvtHienTai,
-                ma_kho: item.ma_kho || "",
-                tk_vt: item.tk_vt || "",
-                line_nbr: item.line_nbr || index + 1,
-              };
-            });
-
             // Lưu chỉ data gốc từ API để sử dụng khi build payload (không merge với UI data)
             setPhieuData(phieuInfo);
             form.setFieldsValue(formattedData);
-            setDataSource(processedVatTu);
+            // Sử dụng loadDataFromPhieu để parse đầy đủ in_yn, ma_vc, _originalMaVc, ...
+            loadDataFromPhieu(vatTuList, fetchDonViTinh);
           }
         }
       } catch (error) {
@@ -413,11 +396,15 @@ const DetailPhieuNhapKho = ({ isEditMode: initialEditMode = false }) => {
             handleSelectChange={handleSelectChange}
             handleDeleteItem={handleDeleteItem}
             handleDvtChange={handleDvtChange}
+            handleInYnChange={handleInYnChange}
+            handleMaVcChange={handleMaVcChange}
+            handleViTriLookupUpdate={handleViTriLookupUpdate}
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
             fetchMaKhoList={fetchMaKhoList}
             fetchDonViTinh={fetchDonViTinh}
+            fetchMaViTriLookup={fetchMaViTriLookup}
             onDataSourceUpdate={setDataSource}
           />
 

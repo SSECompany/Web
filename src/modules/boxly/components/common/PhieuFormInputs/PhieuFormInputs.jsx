@@ -4,6 +4,7 @@ import { Col, DatePicker, Form, Input, Row, Select } from "antd";
 // Constants
 const TRANG_THAI_OPTIONS = [
   { value: "0", label: "Lập chứng từ" },
+  { value: "1", label: "Chờ nhập kho" },
   { value: "2", label: "Nhập kho" },
   { value: "3", label: "Chuyển số cái" },
   { value: "5", label: "Đề nghị nhập kho" },

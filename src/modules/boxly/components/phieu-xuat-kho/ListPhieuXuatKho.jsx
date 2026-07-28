@@ -67,7 +67,7 @@ const ListPhieuXuatKho = () => {
   const getStatusText = (status) => {
     const statusMap = {
       0: "Lập chứng từ",
-      1: "Xuất kho",
+      1: "Chờ xuất kho",
       3: "Chuyển vào SC",
     };
     return statusMap[status] || "Không xác định";
@@ -183,6 +183,8 @@ const ListPhieuXuatKho = () => {
     switch (status) {
       case "0":
         return "orange";
+      case "1":
+        return "gold";
       case "2":
         return "blue";
       case "3":
@@ -274,7 +276,7 @@ const ListPhieuXuatKho = () => {
               allowClear
             >
               <Select.Option value="0">Lập chứng từ</Select.Option>
-              <Select.Option value="1">Xuất kho</Select.Option>
+              <Select.Option value="1">Chờ xuất kho</Select.Option>
               <Select.Option value="3">Chuyển vào SC</Select.Option>
             </Select>
             <Button
@@ -305,7 +307,7 @@ const ListPhieuXuatKho = () => {
           const getStatusTextLocal = (status) => {
             const statusMap = {
               0: screenSize === "mobile" ? "Lập CT" : "Lập chứng từ",
-              1: screenSize === "mobile" ? "Xuất" : "Xuất kho",
+              1: screenSize === "mobile" ? "Chờ XK" : "Chờ xuất kho",
               3: screenSize === "mobile" ? "Chuyển" : "Chuyển vào SC",
             };
             return statusMap[status] || "Không xác định";

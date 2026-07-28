@@ -104,14 +104,37 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
       if (!newVersion) return;
 
       if (!currentVersionRef.current) {
-        currentVersionRef.current = { version: null, buildHash: null };
+        currentVersionRef.current = { version: newVersion.version, buildHash: newVersion.buildHash };
       }
 
+      // Chỉ so sánh với version đã lưu trong localStorage (đại diện cho version user đang dùng).
+      // Nếu chưa có localStorage → đây là lần đầu load, im lặng lưu version lại, KHÔNG báo cập nhật.
+      const storedRaw = localStorage.getItem("app_version");
+      let baselineVersion = null;
+      if (storedRaw) {
+        try {
+          baselineVersion = JSON.parse(storedRaw);
+        } catch (e) {
+          baselineVersion = null;
+        }
+      }
+
+      // Lần đầu tiên: chưa có localStorage -> lưu version hiện tại và thoát, không báo
+      if (!baselineVersion) {
+        localStorage.setItem(
+          "app_version",
+          JSON.stringify({ version: newVersion.version, buildHash: newVersion.buildHash })
+        );
+        setCurrentVersion(newVersion);
+        return;
+      }
+
+      // So sánh với baseline đã lưu (chính là version user đang chạy)
       const isDifferent =
-        currentVersionRef.current.version !== newVersion.version ||
-        (currentVersionRef.current.buildHash &&
+        baselineVersion.version !== newVersion.version ||
+        (baselineVersion.buildHash &&
           newVersion.buildHash &&
-          currentVersionRef.current.buildHash !== newVersion.buildHash);
+          baselineVersion.buildHash !== newVersion.buildHash);
 
       if (isDifferent) {
         if (globalCountdownActive) return;
@@ -203,6 +226,22 @@ const useVersionCheck = (checkInterval = 60 * 1000) => {
   };
 
   useEffect(() => {
+    // Trong môi trường development, bỏ qua auto-check để tránh thông báo
+    // liên tục mỗi lần webpack rebuild tạo buildHash mới.
+    if (process.env.NODE_ENV === "development") {
+      const devVersion = localStorage.getItem("app_version");
+      if (devVersion) {
+        try {
+          setCurrentVersion(JSON.parse(devVersion));
+        } catch (e) {
+          /* noop */
+        }
+      } else {
+        setCurrentVersion({ version: "0.0.0-dev", buildHash: "dev" });
+      }
+      return undefined;
+    }
+
     const savedVersion = localStorage.getItem("app_version");
     if (savedVersion) {
       try {

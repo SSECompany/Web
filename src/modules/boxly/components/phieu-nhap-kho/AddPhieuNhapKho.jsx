@@ -53,6 +53,7 @@ const AddPhieuNhapKho = () => {
     fetchVatTuList,
     fetchVatTuDetail,
     fetchDonViTinh,
+    fetchMaViTriLookup,
     setVatTuList,
   } = usePhieuNhapKhoData();
 
@@ -64,6 +65,9 @@ const AddPhieuNhapKho = () => {
     handleSelectChange,
     handleDeleteItem,
     handleDvtChange,
+    handleInYnChange,
+    handleMaVcChange,
+    handleViTriLookupUpdate,
   } = useVatTuManagerNhapKho();
 
   // Phân trang vật tư
@@ -263,10 +267,16 @@ const AddPhieuNhapKho = () => {
             handleSelectChange={handleSelectChange}
             handleDeleteItem={handleDeleteItem}
             handleDvtChange={handleDvtChange}
+            handleInYnChange={handleInYnChange}
+            handleMaVcChange={handleMaVcChange}
+            handleViTriLookupUpdate={handleViTriLookupUpdate}
             maKhoList={maKhoList}
             loadingMaKho={loadingMaKho}
             fetchMaKhoListDebounced={fetchMaKhoListDebounced}
             fetchMaKhoList={fetchMaKhoList}
+            fetchDonViTinh={fetchDonViTinh}
+            fetchMaViTriLookup={fetchMaViTriLookup}
+            onDataSourceUpdate={setDataSource}
           />
 
           <div

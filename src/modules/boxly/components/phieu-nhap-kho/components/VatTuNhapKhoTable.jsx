@@ -7,11 +7,15 @@ const VatTuNhapKhoTable = ({
   handleSelectChange,
   handleDeleteItem,
   handleDvtChange,
+  handleInYnChange,
+  handleMaVcChange,
+  handleViTriLookupUpdate,
   maKhoList,
   loadingMaKho,
   fetchMaKhoListDebounced,
   fetchMaKhoList,
   fetchDonViTinh,
+  fetchMaViTriLookup,
   onDataSourceUpdate,
 }) => {
   return (
@@ -22,12 +26,16 @@ const VatTuNhapKhoTable = ({
       onSelectChange={handleSelectChange}
       onDeleteItem={handleDeleteItem}
       onDvtChange={handleDvtChange}
+      onInYnChange={handleInYnChange}
+      onMaVcChange={handleMaVcChange}
+      onMaViTriLookupUpdate={handleViTriLookupUpdate}
       onDataSourceUpdate={onDataSourceUpdate}
       columnConfig={phieuNhapKhoConfig}
       apiHandlers={{
         fetchMaKhoList,
         fetchMaKhoListDebounced,
         fetchDonViTinh,
+        fetchMaViTriLookup,
       }}
       selectData={{
         maKhoList,
